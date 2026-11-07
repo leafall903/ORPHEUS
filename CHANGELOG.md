@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### PVE entrance acceptance and local deployment
+
+- All 47 Archives/Junkenstein cards passed original build-104319 client menu,
+  map load, hero selection, actual-world entry and settled-menu return. This
+  covers 24 Archives difficulty cards, nine Archives challenges and 14
+  Junkenstein difficulty/challenge cards. The final client completed 39 cards
+  consecutively and closed normally without reproducing earlier cleanup crashes.
+- Tutorial passed five consecutive fixed-Soldier entry/return cycles, followed
+  by Practice Range and normal closure. Both entrances also passed after local
+  deployment, alongside Retribution All Heroes Normal in the same client.
+- Promoted the two accepted external map/graph inputs with hashes and backups,
+  restarted the normal local service, and enabled Archives and Halloween for
+  existing profiles and the new-account template. The usual local launcher
+  logged in and completed all three deployment smoke checks; the service remains
+  available after normal client closure. Game assets and detailed evidence stay local.
+- The implementation's 141 focused tests, Ruff and 47 independent offline frame
+  checks passed. This acceptance covers entrances only: mission AI, objectives,
+  challenge effects, Tutorial guidance and story hero restrictions remain open.
+  Long-term stability and the complete causes of earlier crashes are unproven.
+  GitHub synchronization remains blocked by the absent required publication helper.
+
 #### Tutorial entry and world delivery on leave
 
 - Route the native Training > Tutorial request to its authored solo red team,
