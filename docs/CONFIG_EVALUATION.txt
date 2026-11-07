@@ -1,0 +1,45 @@
+Native config evaluation — observed empty resource case
+Target: original Overwatch 1.74.0.0.104319. Addresses below are module RVAs.
+
+The authored Retribution 100B node 322 assigns entity variable 6751 from an
+STU_7BD2CA19 with no resource key. This class has no additional fields beyond
+STUConfigVarResource. A null destination and an unsuccessful evaluator must be
+distinguished: different native callers retain different defaults.
+
+Evidence from the separately authorized original-client session, 2026-11-07:
+- Entered Retribution Story Normal, selected Reaper and entered the actual Rialto
+  world through the accepted entrance server. Returned through Leave Game to
+  the difficulty menu and closed normally. The server did not host the candidate
+  mission scripts, so this is config research, not full-mission acceptance.
+- A bounded read-only private-memory search found three raw instances with the
+  class vtable at 26E0D98. All three resource handles at +10 were invalid (-1).
+  One instance's cached evaluator pointer at +8 referenced an object whose
+  vtable is 26292E0. The two other instances had no cached evaluator yet.
+  This does not identify which of these instances belongs to the mission root.
+- The evaluator record at 3294B58 registers STUConfigVar's typeinfo 2D6B1E0,
+  constructors 1B7F3E0/1B7FC40 and size 8. Its vtable +20 is 123CC10, which
+  returns false without writing the output. Vtable +28 wrapper 93CA10 returns
+  the supplied destination only when +20 succeeds; otherwise it returns null.
+- SetVar 1B6D325..34D skips assignment when target or value config is absent.
+  Its destination starts as int 0 at 1B6D353..377. The +28 wrapper call at
+  1B6D381 resets a failed result to type 2 at 1B6D3A0..3A5, then stores it.
+- ForCode getter D4B2B4..2D3 directly invokes +20 and ignores its false return.
+  Consequently the existing destination survives this known no-output case.
+
+Implementation scope:
+- evaluate(..., initial=...) preserves that destination for STU_7BD2CA19 with
+  an absent resource key. Normal calls use a fresh null destination. Successful
+  null configs, such as an unset dynamic variable, still overwrite it with null.
+- SetVar supplies integer zero and skips assignment for absent target/value
+  pointers, while following its output plug in both paths. ForCode supplies the
+  current destination, retaining first-match and nonmatching-state clearing.
+- A nonempty resource key remains unsupported in strict execution. No generic
+  unknown-class fallback or new resource resolution service is introduced.
+- Other native evaluator failures and caller-specific policies remain outside
+  this observed case. This is not a claim of complete config evaluation.
+
+Local-only evidence is in verification/retribution/live-resource-search.json,
+live-resource-pointers.json, functions-1B6D300.txt and config-failure-validation.json.
+The search retained bounded match contexts, not a full private-memory dump.
+The isolated authored-node probe and strict root initialization probe do not
+instantiate the mission world, players, team components or queue overrides.

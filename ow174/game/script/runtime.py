@@ -478,9 +478,10 @@ class Component:
     def code_value(self, identifier: int, initial=None) -> tuple[bool, object]:
         """First registered matching state/row wins (104319 RVA D0D8B0, D4B230).
 
-        A null config leaves the destination unchanged; each nonmatching state
-        clears it. The default represents a fresh null destination. Read a found
-        expression now, without the ticking state's dependency watcher.
+        A null config or a known evaluator that fails without writing leaves the
+        destination unchanged; each nonmatching state clears it. The default
+        represents a fresh null destination. Read a found expression now, without
+        the ticking state's dependency watcher.
         """
         value = initial
         with self.operation():
@@ -489,7 +490,9 @@ class Component:
                     self.consume_work("native code value lookup")
                     if expr.guid_of(row.get("m_identifier")) == identifier:
                         config = row.get("m_value")
-                        return True, value if config is None else state.instance.evaluate(config)
+                        if config is not None:
+                            value = state.instance.evaluate(config, initial=value)
+                        return True, value
                 value = None
         return False, value
 
@@ -665,8 +668,8 @@ class Instance:
     def context(self, watcher: "State | None" = None) -> InstanceContext:
         return InstanceContext(self, watcher)
 
-    def evaluate(self, cfg, watcher: "State | None" = None):
-        return expr.evaluate(cfg, self.context(watcher))
+    def evaluate(self, cfg, watcher: "State | None" = None, *, initial=None):
+        return expr.evaluate(cfg, self.context(watcher), initial=initial)
 
     def write(self, target: tuple[int, int] | None, value) -> None:
         """A plain assignment with the value's own type (0x7FF78AAB5650)."""

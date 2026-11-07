@@ -73,3 +73,15 @@ Candidate preparation: verification/build_retribution_candidate.py.
 Current next step: interpret definition/encounter components, implement the first
 unsupported native script services and attach the real mission host. Cinematic
 and enemy-AI acceptance has not started.
+
+Empty config evaluation work, 2026-11-07:
+- An authorized original-client world session exposed an empty STU_7BD2CA19
+  instance linked to the base ConfigVar evaluator, which fails without writing.
+  SetVar uses integer zero for that failure; ForCode retains its destination.
+  See CONFIG_EVALUATION.txt for the native evidence and exact supported scope.
+- An isolated invocation of authored node 322 writes integer zero to variable
+  6751. The strict full-root probe now stops at node 106, STU_D38D0035, instead
+  of the empty resource config. Root initialization still has not passed.
+- Passed 149 related expression/runtime/bot/entrance/replication/snapshot tests.
+  The client research session returned to the menu and closed normally; the
+  candidate was not deployed and full story/cinematic/AI acceptance remains open.

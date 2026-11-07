@@ -1395,8 +1395,13 @@ def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedTyp
 def set_var(instance: Instance, node, caller) -> bool:
     """SetVar (0x7FF78AA7D300): the value (failure: int 0), then a keyed insert, an element write or a
     plain assignment with the value's own type; then m_outPlug."""
-    value = instance.evaluate(node.fields.get("m_value"))
-    store(instance, node.fields.get("m_out_Var"), value, node.fields.get("m_index"), node.fields.get("m_key"))
+    config = node.fields.get("m_value")
+    target = node.fields.get("m_out_Var")
+    # Native 1B6D325..353 skips assignment when either pointer is absent. The
+    # value wrapper at 1B6D381 resets a failed evaluation to type 2 (int 0).
+    if config is not None and target is not None:
+        value = instance.evaluate(config, initial=0)
+        store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
     instance.follow(node, "m_outPlug", None)
     return True
 

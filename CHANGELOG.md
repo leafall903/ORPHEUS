@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### Empty resource evaluation and assignment
+
+- Preserve the observed empty STU_7BD2CA19 evaluator's no-output failure:
+  SetVar assigns int 0, while a ForCode read retains its current destination.
+  Skip assignment when the SetVar target or value pointer is absent and retain
+  its output-plug behavior. Successful null values still assign null. Nonempty
+  resource keys and unknown native configs remain unsupported in strict mode.
+- Passed 149 related expression/runtime/bot/entrance/replication/snapshot tests,
+  Ruff and Git diff checks. The isolated authored 100B node 322 writes integer
+  zero; full-root initialization advances to unsupported STU_D38D0035 node 106.
+- A separately authorized original client entered Story Normal as Reaper, exposed
+  the cached native evaluator for inspection, returned to the difficulty menu and
+  closed normally. This researches config behavior on the accepted entrance
+  server: the candidate is not deployed, and full story, cinematics and enemy AI
+  remain unaccepted. The required publication helper remains unavailable.
+
 #### Native mission value bindings
 
 - Implement the verified zero-sync-flag ForCodeSynced path for strict mission

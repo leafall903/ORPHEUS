@@ -379,13 +379,24 @@ RESOURCES = {
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 
 
-def evaluate(cfg, ctx: Context):
-    """The value of a config var (None for no config var)."""
+def evaluate(cfg, ctx: Context, *, initial=None):
+    """Evaluate into a fresh null destination, or the caller's explicit initial value.
+
+    A recognized native evaluator that fails without writing leaves ``initial``
+    intact. A successful null value still returns None. This does not grant an
+    implementation to unknown configs; those continue through ctx.native.
+    """
     if cfg is None:
         return None
     if not isinstance(cfg, dict):
         return cfg
     cls = cfg.get("$")
+    if cls == "STU_7BD2CA19" and cfg.get("m_resourceKey") is None:
+        # 104319: a live empty-key instance caches the base ConfigVar evaluator
+        # (vtable RVA 26292E0). Its +20 method, 123CC10, returns false and writes
+        # nothing. SetVar's +28 wrapper consequently uses int 0; ForCode's +20
+        # call preserves the caller's destination. See CONFIG_EVALUATION.txt.
+        return initial
     if cls == "STUConfigVarDynamic":
         scope, var = dynamic(cfg)
         return ctx.var(scope, var)
