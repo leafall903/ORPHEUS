@@ -1,0 +1,101 @@
+Auxiliary effect parameters — isolated primitive, mission state still unsupported
+Target: original Overwatch 1.74.0.0.104319. Addresses are module RVAs.
+
+582E0D5F's 9D2E70 updates an existing effect referenced at State+218. It returns
+without evaluating configs when that pointer is null. The implementation in
+effect_parameters.py models its authored parameter writes only. It does not
+register 582E0D5F as a supported runtime class, create a native effect, select a
+target or attach a renderer/gameplay consumer. Its parameter block is not a wire
+format, VM snapshot or substitute effect object.
+
+Verified parameter mapping
+Effect offset   Authored offset / field       Conversion and failure default
+C4              E8  F5C94645                   f32, 0.5
+C8              F0  63FFE8DF                   f32, 0.5
+F4              100 6A79BD98                   f32, 2.0
+2E8             108 6B30E42C                   bool, false; AND context vt+C8
+2E4             110 B53E150A                   MAXSS(0, f32), default 3.0
+1A0             120 51EFD5D6                   asset GUID low32, default 0
+1B0             128 01D7DF02                   vector, default xyz zero
+170             130 02400C28                   vector, default xyz zero
+180             138 767D90FD                   vector, default xyz zero
+190             140 4AB67781                   vector, default xyz zero
+1C0             148 D0103F1A                   f32 degrees * f32 radians constant
+1C4             150 595AE325                   f32 degrees * f32 radians constant
+1C8             158 8C563869                   f32, 0.0; no angle conversion
+1D0             160 7642C777                   vector, default xyz zero
+1E0             168 AB5F32F7                   vector, default xyz zero
+1F0             170 79370307                   vector, default xyz zero
+200             178 B31CA390                   f32 degrees * f32 radians constant
+204             180 84DD5440                   f32 degrees * f32 radians constant
+210 list        1A8 62F44973                   ordered valid entities, duplicates kept
+
+The entity list's native count at +218 is reset before iteration. The Python
+block keys that logical list by 218, rather than exposing an allocation pointer
+or capacity. Every refresh replaces it. Vector xyz components are retained;
+native padding is not treated as an authored fourth component. All four angle
+inputs default to zero. The original radians constant at 260FC98 is f32
+0.01745329238474369. MAXSS preserves operand-two NaN and signed zero. A missing
+or failed scalar config retains its supplied default; a successful null casts
+to zero. First-array casts do not search later members for a successful value.
+
+1B721B0 resolves a direct Entity through the instance's position-query interface
+before calling F65E70. An array containing an Entity does not enter that branch.
+Known positions use the existing World service; missing position evidence stays
+a strict error. The explicit context_enabled input represents context vt+C8,
+not State.active, possession or a guessed dedicated-server capability. Even a
+false capability does not skip evaluation of the authored boolean config.
+
+The primitive passes its State to scalar and iterator config evaluation. Active
+dynamic reads therefore keep existing VM watcher and work-budget semantics;
+inactive callbacks do not acquire active watches. Native per-frame invocation
+and effect lifetime remain outside this helper. Unknown configs remain strict.
+
+Additional native interface/phase findings
+- Runtime size240, primary vtable2634760. Ordinary begin/enter/end hooks remain
+  inherited. The empty owner payload is not evidence that the class is passive.
+- Auxiliary scope interface +1C0, vtable2634918: 9D1C80 enters only when engine
+  context 978A30 is present, then calls creation9D2140; 9D1CC0 calls release9D2630
+  only when State+218 is non-null. Neither callback checks State.active.
+- A separate two-slot observer at +210 uses vtable2634938. 9D1D20 releases only
+  when a non-null current effect equals its incoming pointer. 9D1D40 refreshes.
+  This observer is passed to effect construction, not a second scope callback.
+- Primary +88 (9D1CE0) calls refresh. 1B92500 invokes this slot for active states
+  from its two native lists; component phase1B8C820 calls1B92500. This is separate
+  from ordinary update1B8C910 and State.tick's +70. No phase is invented here.
+- Primary +120 (9D1CF0) calls release then creation only while State.active. Its
+  authoritative invocation/reconciliation policy remains open.
+- The first virtual-base getter911F08 ->8D88C0 returns +1C0. The second getter
+  returns null. A component+1A8 registration is not implied by the +210 observer.
+- 9D2140 resolves the authored target at +188 before selecting an effect list.
+  Descriptor helperBD4680 selects component43 (mask bit43, shift43, slot0).
+  That branch uses its +1A0 list; a separate fallback depends on the instance
+  flag and engine context. Routing, fallback conditions, allocation6B3E60,
+  release and consumer behavior still need a complete model. No camera/AI label
+  is inferred solely from the parameter layout.
+
+Evidence and limits
+- Fourteen checks cover defaults, failure versus null, MAXSS edges, context
+  gates, scalar/asset/angle/vector casts, entity order/replacement, watchers,
+  inactive evaluation, strict missing services and recursive work limits.
+- Passed 503 related runtime/expression/VM/body/bot/entrance/replication/replay
+  checks and 15 server snapshot/research-injection checks, Ruff and diff checks.
+- Unicorn executes original9D2E70 plus F64C80/F64940/F65540/F65E70/F64C20 casts
+  for 192 cases, with 6,336 exact field/component comparisons. Engine/node/config
+  inputs, position-query results, value iterator, scratch disposal, append copy
+  and cookie check are explicit adapters. No engine/renderer scheduling is proven.
+- 144 additional original callback gate cases agree on State/interface pointer
+  adjustment, context availability, active bit, current effect and incoming
+  pointer. Creation/release/refresh bodies are stubs in those gate-only cases;
+  this does not validate their object ownership or host trigger timing.
+- Actual0EC6/node4 resolves C4/C8/F4/2E4 to0/0.75/5/0 in an isolated parameter
+  adapter. It allocates no VM State and starts no graph. Actual helper entry
+  still stops at unsupported582E0D5F/node4. Full100B stays atD38D0035/node106.
+- Full helper/mission execution, cinematics, control handoffs and enemy AI remain
+  unaccepted. No candidate deployment or new original-client session.
+
+Local evidence outside Git, under verification/retribution:
+effect-parameters-native-validation.json, effect-parameters-authored-validation.json,
+effect-parameters-root-summary.txt, helper-582E-methods.txt,
+helper-582E-interfaces.txt, helper-582E-refresh-dispatch.txt, helper-582E-phase.txt,
+helper-582E-backend.txt and helper-582E-getter-result.txt.

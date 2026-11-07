@@ -54,7 +54,7 @@ def evaluate_value(instance, cfg, *, initial=0):
         return instance.evaluate(cfg, initial=initial)
 
 
-def _iter_values(instance, cfg, *, _depth=0):
+def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 
     A missing/failed config or a scalar null yields no item. Null members of an
@@ -68,9 +68,9 @@ def _iter_values(instance, cfg, *, _depth=0):
         return
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         for child in cfg.get("m_configVars") or ():
-            yield from _iter_values(instance, child, _depth=_depth + 1)
+            yield from _iter_values(instance, child, _depth=_depth + 1, watcher=watcher)
         return
-    value = instance.evaluate(cfg, initial=_FAILED)
+    value = instance.evaluate(cfg, watcher, initial=_FAILED)
     if value is _FAILED or value is None:
         return
 

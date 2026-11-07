@@ -231,3 +231,21 @@ Auxiliary subgraph interfaces, 2026-11-08:
   no new client/deployment. See AUXILIARY_SUBGRAPHS.txt for scope and evidence.
 - Passed 489 runtime/expression/VM/body/bot/entrance/replication/replay checks,
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary effect parameter core, 2026-11-08:
+- Implement 582E0D5F's existing-effect parameter updates separately from state
+  creation/routing and the native +88 phase. Preserve f32 defaults/casts, degree
+  conversion, MAXSS edges, direct-entity vector queries and ordered entity-list
+  replacement. Scalar and iterator reads retain the supplied State's watchers.
+- Original x64 parameter instructions and casts match 192 cases and 6,336 field
+  comparisons with explicit engine/config/iterator adapters. Another 144 native
+  callback-gate cases establish pointer, presence and active-bit conditions;
+  creation/release/refresh bodies are stubs in those gate-only cases.
+- Actual 0EC6/node4's isolated parameters resolve to 0/0.75/5/0. The state remains
+  unsupported: helper entry still stops at 582E0D5F/node4, full 100B still stops
+  at D38D0035/node106. This primitive does not replace either mission gate.
+- Creation/target/consumer services, native frame phase and reconciliation remain
+  open, along with mission host, cinematics and enemy AI. No deployment or new
+  client session. See AUXILIARY_EFFECT_PARAMETERS.txt for the mapping and limits.
+- Passed 503 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.

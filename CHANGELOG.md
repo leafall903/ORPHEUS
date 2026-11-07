@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Auxiliary effect parameter updates
+
+- Add 582E0D5F's isolated existing-effect parameter core: native f32 defaults,
+  scalar/asset/vector casts, angle conversion, MAXSS edges and ordered entity
+  list replacement. Pass the calling State through config iterator reads so
+  dynamic dependencies retain watcher and shared VM work-budget behavior.
+- Original x64 parameter instructions/casts match 192 cases and 6,336 field
+  comparisons with explicit engine/config/iterator adapters. Another 144 native
+  callback-gate cases establish pointer/presence/active-bit conditions, using
+  stubbed creation/release/refresh bodies. Neither proves host trigger timing.
+- Actual 0EC6/node4 parameters independently resolve to 0/0.75/5/0. Creation,
+  target routing, consumers, native +88 phase and reconciliation remain open;
+  the state remains unsupported. Helper entry still stops at 582E0D5F/node4,
+  full 100B at D38D0035/node106. No mission/cinematic/enemy AI acceptance.
+- Passed 503 related runtime/expression/VM/body/bot/entrance/replication/replay
+  checks, 15 server snapshot/research-injection checks, Ruff and diff checks.
+  No deployment or new original-client session. Publication helper is missing.
+
 #### Auxiliary subgraph interfaces
 
 - Model BD02E168's enter/exit interface separately from ordinary state hooks.
