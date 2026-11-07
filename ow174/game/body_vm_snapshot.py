@@ -22,7 +22,7 @@ TRANSPORT_FIELDS = frozenset(("stream", "create_arrived", "first_owner_frame", "
 _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
-    "_follow_depth", "_work_left", "strict",
+    "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -62,6 +62,7 @@ _STATE_LAYOUTS = {
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
+    nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()), nodes.GameMessageEntry: ((), ("received",)),
     nodes.SendGameMessageState: ((), ()), nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
@@ -115,7 +116,8 @@ class _Export:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
         _containers(fields, ("instances", "vars", "disabled"), dict, "component")
-        _containers(fields, ("held", "destroyed", "shots"), list, "component")
+        _containers(fields, ("held", "destroyed", "shots", "code_states", "code_pending", "code_observers"),
+                    list, "component")
         _integer(fields["entity"], "component")
         self.component = component
         self.instances = {}

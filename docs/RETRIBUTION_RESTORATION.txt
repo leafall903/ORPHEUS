@@ -22,7 +22,7 @@ Acceptance still required:
 - Verify complete original-client playthroughs with stage/event evidence and
   visible AI/cinematic behavior; retain failures and unfinished paths explicitly.
 
-2026-11-07 implementation evidence:
+Initial dependency work, 2026-11-07 (9f03529):
 - The existing mode/controller/body asset-reference closure contains 98 graphs,
   but no mission runtime is attached to Match. The entrance uses a prepared
   readiness frame. Existing bot support is chiefly training-bot behavior.
@@ -53,6 +53,19 @@ Acceptance still required:
   components and encounter configurations still require interpretation.
 - Passed 158 focused extraction/runtime/expression/bot/snapshot/fault tests and
   Ruff. These checks do not establish cinematic or enemy behavior.
+
+Native value binding work, 2026-11-07:
+- Strict ForCodeSynced execution now supports its verified zero-sync-flag path:
+  ordered live value lookup, swap removal and native notification timing. The
+  separate local probe of authored node 158/state 49 reads updated values and
+  stops exposing the binding when it ends. See FOR_CODE_BINDINGS.txt.
+- Nonzero sync flags stop explicitly. Legacy bodies keep their passive behavior.
+  No mission runtime or cinematic/enemy service is attached by this change.
+- Full 100B initialization now stops at STU_7BD2CA19, an unimplemented resource
+  configuration whose unique source candidate is node 322. This is a later
+  initialization diagnostic, not accepted mission startup.
+- Passed 126 focused runtime/bot/entrance/replication/snapshot tests and 30 server
+  snapshot/runtime checks. No new original-client mission acceptance is claimed.
 
 Local research records: verification/retribution/authored-script-audit.json,
 candidate-script-audit.json, candidate-manifest.json and for-code-synced-native.txt.

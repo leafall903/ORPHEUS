@@ -1035,6 +1035,63 @@ class Watch(State):
         self.seen = self.evaluate(_field(self, "m_B7A3CF78"))
 
 
+@state_class("STU_CD46AF93")
+class ForCodeSynced(State):
+    """Strict mission support for the verified zero-sync-flag path.
+
+    Native begin/end/update: D44CA0, D44CD0, D44D00. Nonzero sync flags invoke
+    D4F690, whose transport behavior is not yet implemented; strict execution
+    stops there. Legacy body prediction retains its former passive state.
+    """
+
+    def on_begin(self) -> None:
+        component = self.instance.component
+        if not component.strict:
+            return
+        if any(_field(self, name) not in (None, 0) for name in ("m_598E32D5", "m_0582B0E4")):
+            component.unsupported(self.instance, "for-code synchronization", self.node.cls, self.node)
+        if _field(self, "m_DC897C87") not in (None, 0, 1):
+            component.unsupported(self.instance, "for-code notification channel", self.node.cls, self.node)
+        for row in _field(self, "m_values") or []:
+            if not isinstance(row, dict):
+                component.unsupported(self.instance, "for-code value row", self.node.cls, self.node)
+        component.code_states.append(self)
+        self.ticks()
+
+    def on_enter(self) -> None:
+        # DoBeginState calls the native E0 update before the authored begin plugs
+        # (1B70A6E, followed by 1B70A9E/1B73E00).
+        self.publish()
+
+    def tick(self) -> None:
+        self.publish()
+
+    def reentry(self) -> None:
+        # The already-active DoBegin branch also invokes E0 (1B708FA).
+        self.publish()
+
+    def publish(self) -> None:
+        component = self.instance.component
+        if not component.strict:
+            return
+        channel = _field(self, "m_DC897C87")
+        channel = 1 if channel is None else channel  # STU default x61315314 = 1.
+        for row in _field(self, "m_values") or []:
+            component.consume_work("native code value update")
+            if row.get("m_value") is not None:
+                self.evaluate(row["m_value"])
+            identifier = expr.guid_of(row.get("m_identifier"))
+            if identifier:
+                component.code_pending[channel].append(identifier)
+        if channel == 0:
+            component.notify_code(0)
+
+    def on_end(self, finished: bool) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unregister_code_state(self)
+            self.publish()
+
+
 @state_class("STU_DEBD057B")
 class Switch(State):
     """A switch over subgraphs (m_05706D1C cases, m_A5EF385D otherwise), re-evaluated like a BooleanSwitch."""

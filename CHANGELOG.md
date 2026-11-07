@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### Native mission value bindings
+
+- Implement the verified zero-sync-flag ForCodeSynced path for strict mission
+  execution: first-match live reads, native swap removal, begin/reentry/end
+  ordering and immediate/deferred observer notification with callback identity
+  deduplication. Preserve binding registries and pending notifications in read-only
+  VM snapshots. Legacy player/bot bodies keep their passive default behavior.
+- Passed 126 focused runtime/bot/entrance/replication/snapshot tests, 30 server
+  snapshot/runtime checks, Ruff and Git diff checks. An isolated probe of authored
+  100B node 158/state 49 reads updates and removes its native binding correctly.
+- Full initialization remains closed at the next unsupported resource config;
+  nonzero ForCode sync flags, the mission host, cinematics and enemy AI remain
+  open. No new original-client mission acceptance or deployment is claimed.
+  Publication still requires the absent work/sync_orpheus_publication.py helper.
+
 #### Retribution mission dependency and execution diagnostics
 
 - Include placed map script roots, graph order and component overrides in

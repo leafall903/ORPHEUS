@@ -333,6 +333,13 @@ class World:
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
 
+    def code_changed(self, component: "Component", token: int) -> None:
+        """Deliver an explicitly registered native-service notification."""
+        instance = next(iter(component.instances.values()), None)
+        if instance is not None:
+            component.unsupported(instance, "native code observer", str(token))
+        raise NotImplementedError(f"no native code observer backend for token {token}")
+
 
 class Component:
     """The statescript component of one entity: its clock, its instances (in creation order) and its
@@ -346,6 +353,10 @@ class Component:
         # Mission reconstruction cannot advance through placeholder native nodes.
         # Existing player/body prediction keeps its current compatibility policy.
         self.strict = strict
+        self.code_states: list[State] = []
+        self.code_pending: list[list[int]] = [[], []]
+        # A token identifies one backend callback/context pair; None matches any identifier.
+        self.code_observers: list[tuple[int, int | None]] = []
         self.frame_ms = frame_ms
         self.world = world or World()
         self.rng = expr.random.Random(seed)
@@ -385,6 +396,9 @@ class Component:
             self.fault = error
             self.shots.clear()
             self.held.clear()
+            self.code_states.clear()
+            for pending in self.code_pending:
+                pending.clear()
             for instance in self.instances.values():
                 instance.stopped = True
                 instance.queue.clear()
@@ -458,6 +472,55 @@ class Component:
         before = target.value()
         target.base = value
         self.changed(target, before)
+
+    # --- values exposed to native code --------------------------------------------------------------
+
+    def code_value(self, identifier: int, initial=None) -> tuple[bool, object]:
+        """First registered matching state/row wins (104319 RVA D0D8B0, D4B230).
+
+        A null config leaves the destination unchanged; each nonmatching state
+        clears it. The default represents a fresh null destination. Read a found
+        expression now, without the ticking state's dependency watcher.
+        """
+        value = initial
+        with self.operation():
+            for state in self.code_states:
+                for row in state.node.field("m_values") or []:
+                    self.consume_work("native code value lookup")
+                    if expr.guid_of(row.get("m_identifier")) == identifier:
+                        config = row.get("m_value")
+                        return True, value if config is None else state.instance.evaluate(config)
+                value = None
+        return False, value
+
+    def unregister_code_state(self, state: "State") -> None:
+        """Native D0E920 removes by swapping in the last registered state."""
+        if state in self.code_states:
+            index = self.code_states.index(state)
+            last = self.code_states.pop()
+            if index < len(self.code_states):
+                self.code_states[index] = last
+
+    def notify_code(self, channel: int) -> None:
+        """D0D370: collect observer pairs once, clear pending IDs, then dispatch.
+
+        Tokens preserve callback/context identity without storing native pointers.
+        Changes queued by a callback survive for a subsequent notification pass.
+        """
+        with self.operation():
+            self._notify_code(channel)
+
+    def _notify_code(self, channel: int) -> None:
+        notifications = []
+        for identifier in self.code_pending[channel]:
+            for token, selected in self.code_observers:
+                self.consume_work("native code observer selection")
+                if selected in (None, identifier) and token not in notifications:
+                    notifications.append(token)
+        self.code_pending[channel].clear()
+        for token in notifications:
+            self.consume_work("native code notification")
+            self.world.code_changed(self, token)
 
     def entity_var(self, var: int, create: bool = True) -> Var | None:
         found = self.vars.get(var)
@@ -561,6 +624,9 @@ class Component:
             for instance in list(self.instances.values()):
                 if instance.id in self.instances:
                     instance.update()
+            # The native component override D0D350 calls the ordinary update,
+            # then drains deferred channel 1 through D0D370.
+            self.notify_code(1)
 
 
 class Instance:

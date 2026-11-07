@@ -38,6 +38,7 @@ STATE_MODELS = (
     ("STUStatescriptStateAbility", nodes.Ability),
     ("STU_9C9A422A", nodes.Defer),
     ("STU_2F4E2E3F", nodes.Watch),
+    ("STU_CD46AF93", nodes.ForCodeSynced),
     ("STU_DEBD057B", nodes.Switch),
     ("STU_37D754C8", nodes.SubScript),
     ("STUStatescriptStateGameMessageEntry", nodes.GameMessageEntry),
@@ -52,7 +53,7 @@ STATE_MODELS = (
 COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
-    "_follow_depth", "_work_left", "strict",
+    "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -130,7 +131,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 24)
+        self.assertEqual(len(STATE_MODELS), 25)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
