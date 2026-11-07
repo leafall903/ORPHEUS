@@ -910,7 +910,7 @@ class Match:
             player.spawned = True
             self.notices.entered_world(player)
             log.info("[game] %s: %s spawned", self.label(), player.describe())
-            if self.controller is heroselect.PVP and self.assemble_ends is None:
+            if self.controller.graph == heroselect.PVP.graph and self.assemble_ends is None:
                 self.assemble_ends = now + ASSEMBLE_SECONDS
                 log.info("[game] %s: assemble your team, %d s", self.label(), ASSEMBLE_SECONDS)
         if player.steps_done == 3 and waited >= SEND_CONTROLLER:
@@ -929,7 +929,9 @@ class Match:
         """The seconds left, as the game mode entity's v1303. The client shows them rounded up."""
         player.next_countdown = now + COUNTDOWN_EVERY
         seconds = max(0.0, self.assemble_ends - now)
-        frame = combat.mode_frame({COUNTDOWN: float(seconds)})  # with the mode's UI graph (combat.py)
+        frame = combat.mode_frame(
+            {COUNTDOWN: float(seconds)}, self.game_map.mode_guid, self.game_map.map_guid,
+        )
         player.client.queue_mode_frame(frame)
 
     def _end_assemble(self, now: float) -> None:

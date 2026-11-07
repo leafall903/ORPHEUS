@@ -83,7 +83,7 @@ class ModeVariableExtractionTests(unittest.TestCase):
     def test_mode_scripts_are_roots_and_missing_scripts_remain_explicit(self):
         self.write("000000000025.0C5.xml", f'''<STUGameMode {NS}>
           <dragon:ref dragon:name="m_CF63B633" GUID="00000000100B.01B" />
-          <dragon:array dragon:name="m_teams"><STUGameModeTeam>
+          <dragon:array dragon:name="m_teams"><STUGameModeTeam m_team="0">
             <dragon:ref dragon:name="m_controllerScript" GUID="000000000F44.01B" />
             <dragon:ref dragon:name="m_bodyScript" GUID="000000000F45.01B" />
           </STUGameModeTeam></dragon:array>
@@ -97,6 +97,41 @@ class ModeVariableExtractionTests(unittest.TestCase):
         self.assertEqual(bundle["roots"]["graphs"], [0xF44, 0xF45, 0x100B])
         self.assertEqual(bundle["missing"], [0xF44, 0xF45, 0x100B])
         self.assertEqual(bundle["graphs"], [])
+        self.assertEqual(bundle["mode_scripts"]["0x0230000000000025"]["teams"], {
+            "0": {"controller": "0x0580000000000F44", "body": "0x0580000000000F45"},
+        })
+
+    def test_mode_script_ownership_preserves_null_teams_and_loading_flag(self):
+        self.write("000000000025.0C5.xml", f'''<STUGameMode {NS}
+            m_gameModeType="PVE" m_0FC17230="1" m_F88BA3B9="{{null}}">
+          <dragon:ref dragon:name="m_CF63B633" GUID="00000000100B.01B" />
+          <dragon:array dragon:name="m_teams">
+            <STUGameModeTeam m_team="0">
+              <dragon:ref dragon:name="m_controllerScript" GUID="000000000F44.01B" />
+              <dragon:ref dragon:name="m_bodyScript" GUID="000000000F45.01B" />
+            </STUGameModeTeam>
+            <STUGameModeTeam m_team="1" m_controllerScript="{{null}}" m_bodyScript="{{null}}" />
+          </dragon:array>
+        </STUGameMode>''')
+        scripts = extractor.mode_scripts(self.root, self.enums)["0x0230000000000025"]
+        self.assertTrue(scripts["pve"])
+        self.assertTrue(scripts["scripted_loading"])
+        self.assertEqual(scripts["graph"], "0x058000000000100B")
+        self.assertIsNone(scripts["shared_graph"])
+        self.assertEqual(scripts["teams"]["1"], {"controller": None, "body": None})
+
+    def test_ambiguous_teams_and_wrong_script_types_are_rejected(self):
+        for teams, message in (
+            ('<STUGameModeTeam m_team="0"/><STUGameModeTeam m_team="0"/>', 'duplicate mode team'),
+            ('<STUGameModeTeam m_team="-1"/>', 'mode team'),
+            ('''<STUGameModeTeam m_team="0"><dragon:ref dragon:name="m_controllerScript"
+                GUID="000000000F44.003" /></STUGameModeTeam>''', 'm_controllerScript'),
+        ):
+            with self.subTest(teams=teams):
+                self.write("000000000025.0C5.xml", f'''<STUGameMode {NS}>
+                  <dragon:array dragon:name="m_teams">{teams}</dragon:array></STUGameMode>''')
+                with self.assertRaisesRegex(ValueError, message):
+                    extractor.mode_scripts(self.root, self.enums)
 
     def test_mode_graphs_must_fit_the_replication_descriptor(self):
         for reference in ("000000000000.01B", "000000010000.01B", "garbage.01B"):

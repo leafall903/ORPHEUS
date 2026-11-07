@@ -605,6 +605,49 @@ def mode_graph_roots(folder: Path) -> set[int]:
     return roots
 
 
+def _mode_script_ref(xml: StuXml, element: ET.Element, name: str, source: str) -> str | None:
+    ref = xml.field(element, name)
+    if ref is None:
+        return None
+    reference = ref.get("GUID", "").upper()
+    if not re.fullmatch(r"[0-9A-F]{1,12}\.01B", reference) or not 0 < guid_index(reference) <= 0xFFFF:
+        raise ValueError(f"{source}: {name} must reference a nonzero 16-bit .01B graph")
+    return guid_text(reference)
+
+
+def mode_scripts(folder: Path, enums: EnumTables) -> dict[str, dict]:
+    """Preserve which mode and team owns each script, rather than only exporting their union."""
+    modes = {}
+    for path in sorted(folder.iterdir()):
+        if not path.is_file() or not path.name.upper().endswith(".0C5.XML"):
+            continue
+        xml = StuXml(path, enums)
+
+        teams = {}
+        array = xml.field(xml.root, "m_teams")
+        for child in array if array is not None else ():
+            team = xml.resolve(child)
+            number = enums.number("TeamIndex", scalar(team.get("m_team")), "STUGameModeTeam.m_team")
+            if type(number) is not int or not 0 <= number <= 5 or str(number) in teams:
+                raise ValueError(f"{path.name}: invalid or duplicate mode team {number}")
+            teams[str(number)] = {
+                "controller": _mode_script_ref(xml, team, "m_controllerScript", path.name),
+                "body": _mode_script_ref(xml, team, "m_bodyScript", path.name),
+            }
+        flag = scalar(xml.root.get("m_0FC17230", "0"))
+        if type(flag) is not int or flag not in (0, 1):
+            raise ValueError(f"{path.name}: invalid scripted loading flag")
+        mode = guid_text(path.name[:-4].upper())
+        if mode in modes:
+            raise ValueError(f"{path.name}: duplicate mode asset {mode}")
+        modes[mode] = {
+            "graph": _mode_script_ref(xml, xml.root, "m_CF63B633", path.name),
+            "shared_graph": _mode_script_ref(xml, xml.root, "m_F88BA3B9", path.name),
+            "pve": xml.root.get("m_gameModeType") == "PVE", "scripted_loading": bool(flag), "teams": teams,
+        }
+    return modes
+
+
 def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
     *, ai_spawners: Path | None = None,
@@ -661,6 +704,7 @@ def collect(
         data["entities"] = entities
     if variables is not None:
         data["mode_variables"] = variables
+        data["mode_scripts"] = mode_scripts(mode_xml, enums)
     return data
 
 

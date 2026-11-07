@@ -13,7 +13,7 @@ MAPS_PATH = DATA_DIR / "game_maps_174.json"  # tools/extract_game_maps.py
 SOLDIER = 0x02E000000000006E
 PRACTICE_RANGE_MODE = 0x0230000000000018
 # Modes whose loading screen waits for a state of the mode's own script (m_0FC17230 = 1 in the
-# 0C5 asset; the loader's gate at 0x7FF789A271E0): a server has to run that script first. Mei's
+# 0C5 asset; build 104319's loader gate at RVA 706BFF): the script must signal readiness first. Mei's
 # Snowball Offensive, two PvE modes, Retribution and Storm Rising.
 SCRIPTED_LOADING_MODES = {
     0x0230000000000008,
@@ -155,8 +155,13 @@ def game_map(
     if map_guid == PRACTICE_RANGE.map_guid:
         return PRACTICE_RANGE
     entry = _map_entries().get(map_guid)
-    if entry is None or mode_guid in SCRIPTED_LOADING_MODES:
+    if entry is None:
         return None
+    if mode_guid in SCRIPTED_LOADING_MODES:
+        from ow174.game.pve import entrance
+
+        if entrance(mode_guid, map_guid) is None:
+            return None
     if mode_guid not in {int(mode, 16) for mode in entry.get("modes", [])}:
         return None
     by_mode = {int(mode, 16): indexes for mode, indexes in (entry.get("placeables_by_mode") or {}).items()}

@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### PVE controller and loading states
+
+- Preserve the mode/team script associations in external graph bundles. Replicate
+  Archives and Junkenstein controller wrappers with their authored SubScript
+  parents, and keep the shared hero-selection assembly countdown.
+- Recognize build 104319's native scripted-loading readiness state on the real
+  mode graph. Support map-scoped configured mission graphs while retaining the
+  primary mode root; unavailable or ambiguous readiness data stays closed.
+- Passed 69 focused tests, Ruff and Git diff checks. Separate local inputs now
+  contain 619 graphs, the Storm Rising mission binding and authored, ground-checked
+  entrance markers on four PVE maps. All 47 card/map choices and their loading
+  frames passed offline selection and independent decoding.
+- In the separately authorized original-client session, Retribution All Heroes
+  Normal and Legendary and Storm Rising All Heroes Normal entered their actual
+  starting rooms with Soldier: 76 and returned to the difficulty menu. Junkenstein
+  Normal entered the world but crashed after leaving; its return remains open.
+  Other cards, Tutorial, Practice Range regression checks and normal-service
+  deployment remain pending. Mission AI and objective execution are not covered.
+- Publication was not run because the required work/sync_orpheus_publication.py
+  helper is absent. Generated assets, captures, logs and runtime inputs stay outside Git.
+
 #### PVE entry preparation
 
 - Allow simultaneous, validated Archives and Halloween event groups so their 47 PVE difficulty and challenge cards can be offered together. Keep event updates atomic and deduplicate repeated groups.

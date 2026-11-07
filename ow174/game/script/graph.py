@@ -23,6 +23,9 @@ The file is gzip JSON:
 - "entities" (optional): additional body records with the same graph fields. An "ai_weapon_buttons" map
   can link decimal fire-control slots to logical buttons from the associated AI definition.
 - "mode_variables" (optional): per 0C5 mode GUID, its explicit mode entity values by 01C identifier index.
+- "mode_scripts" (optional): per 0C5 mode GUID, its primary/shared graphs, loading flag and team scripts.
+- "mission_scripts" (optional): per map and mode GUID, a configured mission graph with its mode graph,
+  source asset and schema overrides. These bindings come from external map/mission inputs.
 - "missing": graph indexes referenced but not in the dump.
 
 Which states a frame carries (read in the client at 0x7FF78991BE30):
@@ -324,3 +327,17 @@ def mode_variables(mode: int) -> dict[int, bool | int | Asset] | None:
 def missing() -> list[int]:
     """Graphs a kept graph names that are not in the dump."""
     return list(_data()["missing"])
+
+
+def mode_scripts(mode: int) -> dict | None:
+    """The authored mode/team script associations, absent in older runtime bundles."""
+    return _data().get("mode_scripts", {}).get(f"0x{mode:016X}")
+
+
+def mission_script(mode: int, map_guid: int) -> dict | None:
+    """A map's configured mission script, keyed by both map and supported mode.
+
+    Local extractors retain the source mission asset and its mode graph alongside
+    the configured graph. Older bundles have no dynamic mission bindings.
+    """
+    return _data().get("mission_scripts", {}).get(f"0x{map_guid:016X}", {}).get(f"0x{mode:016X}")

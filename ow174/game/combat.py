@@ -407,7 +407,9 @@ class Combat:
         """The player's client has the world: the game mode entity gets its UI graph (mode_frame). While
         heroes are assembled the countdown's frames carry it."""
         if player.client is not None and not self.match.assembling():
-            player.client.queue_mode_frame(mode_frame({}))
+            player.client.queue_mode_frame(mode_frame(
+                {}, player.match.game_map.mode_guid, player.match.game_map.map_guid,
+            ))
         self.voice.spawned(player, self.now)
 
     def command(self, player, command: Command | None) -> None:
@@ -977,7 +979,7 @@ def respawn_seconds(match) -> float:
     return PRACTICE_RESPAWN if match.controller is heroselect.PRACTICE else RESPAWN
 
 
-def mode_frame(entity_vars: dict) -> BitWriter:
+def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | None = None) -> BitWriter:
     """A plain full frame of the game mode entity: the mode's client UI graph 0CB6 as instance 1 (its
     client-only Entries make the kill feed 0DEA and the notices 1FC0) and the entity variables given (the
     PvP countdown). Every full frame of this entity has to list 0CB6, or it would destroy it."""
@@ -986,4 +988,23 @@ def mode_frame(entity_vars: dict) -> BitWriter:
     shared = ui.state(21)
     instance = InstanceWire(1, ui, states={21: StateWire(shared.cls, True)})
     values = {var: (value, ()) for var, value in entity_vars.items()}
-    return remote_full_frame([instance], values, {1: ui})
+    from ow174.game import pve
+
+    entrance = pve.entrance(mode_guid, map_guid) if mode_guid is not None else None
+    if entrance is None:
+        return remote_full_frame([instance], values, {1: ui})
+    primary = entrance.graph
+    states = {}
+    if entrance.ready_state is not None:
+        states[entrance.ready_state] = StateWire(pve.READY_CLASS, True)
+    # Keep the existing presentation root. The mode's common-UI SubScript is
+    # not remote-synced, so an H=0 frame cannot activate it. Mission execution
+    # will own that relationship when its server runtime is implemented.
+    instances, graphs = [instance], {1: ui}
+    if entrance.mode_graph is not None:
+        instances.append(InstanceWire(2, entrance.mode_graph))
+        graphs[2] = entrance.mode_graph
+    root_id = len(instances) + 1
+    instances.append(InstanceWire(root_id, primary, states=states))
+    graphs[root_id] = primary
+    return remote_full_frame(instances, values, graphs)

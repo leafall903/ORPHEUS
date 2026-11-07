@@ -21,10 +21,11 @@ More of the screen (read in the graphs and the client):
   also carries his pick (team_entry_frame); the list reads his name from his card (20308, match.py).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ow174.game.bits import BitWriter
 from ow174.game.content import PRACTICE_RANGE_MODE, heroes
+from ow174.game.script import graph as scripts
 from ow174.game.statescript import (
     CONTROLLER,
     HERO_SELECT,
@@ -61,6 +62,13 @@ PICKED_HERO = 13161
 
 
 @dataclass(frozen=True)
+class ControllerParent:
+    graph: Graph
+    state: int
+    bit: int
+
+
+@dataclass(frozen=True)
 class Controller:
     graph: Graph
     allow_bit: int  # the presence bit of v8419, m_allowHeroSelect
@@ -69,6 +77,7 @@ class Controller:
     select_state: int
     hud_bit: int | None = None  # the SubScript state that starts 20E4, if the server has to
     hud_state: int | None = None
+    parent: ControllerParent | None = None
 
 
 PRACTICE = Controller(CONTROLLER, 5, 25, 37, 43, 36, 42)
@@ -76,7 +85,35 @@ PVP = Controller(PVP_CONTROLLER, 19, 1, 103, 119)
 
 
 def controller_of(mode_guid: int) -> Controller:
-    return PRACTICE if mode_guid == PRACTICE_RANGE_MODE else PVP
+    if mode_guid == PRACTICE_RANGE_MODE:
+        return PRACTICE
+    mode = scripts.mode_scripts(mode_guid)
+    if mode is None or not mode.get("pve"):
+        return PVP
+    reference = (mode.get("teams", {}).get("0") or {}).get("controller")
+    if reference is None:
+        raise ValueError(f"PVE mode {mode_guid:#x} has no team 0 controller")
+    index = int(reference, 16) & 0xFFFF
+    if index == PVP.graph.index:
+        return PVP
+    if index == PRACTICE.graph.index:
+        return PRACTICE
+    source = scripts.graph(index)
+    if source is None:
+        raise ValueError(f"PVE controller graph {index:04X} is unavailable")
+    # Archives and Junkenstein controllers host the common controller as an authored SubScript.
+    # Keep the actual parent/state in the network tree; sending 0C90 alone loses that relationship.
+    states = [
+        (number, node) for number, node in enumerate(source.states)
+        if node is not None and node.is_networked and node.cls == "STU_37D754C8"
+        and scripts.guid(node.field("m_36F7B64C.m_36F7B64C.m_C974E369.m_graph"))
+        == 0x0580000000000000 | PVP.graph.index
+    ]
+    if len(states) != 1:
+        raise ValueError(f"PVE controller {index:04X} needs one verified common-controller SubScript")
+    state, _ = states[0]
+    wrapper = Graph(source.index, len(source.owner_states()), len(source.presence_vars()))
+    return replace(PVP, parent=ControllerParent(wrapper, state, source.owner_slot(state)))
 
 
 def controller_frame(
@@ -95,22 +132,29 @@ def controller_frame(
     is the hero he plays (None before the first pick): v940, which retail's controller graph sets on
     the server. The F1 hero info (288A's client-only 2931) shows v940's hero while hero select is
     closed (2931 st3: v14152 = v31435 ? the browsed hero : v940)."""
-    active = {controller.hero_select_bit: None, controller.select_bit: subscript(2)}
-    host = Instance(2, HERO_SELECT_HOST, parent=(1, controller.select_state), active={0: subscript(3)})
-    screen = Instance(3, HERO_SELECT, parent=(2, 0))
+    root = 2 if controller.parent is not None else 1
+    host_id, screen_id = root + 1, root + 2
+    active = {controller.hero_select_bit: None, controller.select_bit: subscript(host_id)}
+    host = Instance(host_id, HERO_SELECT_HOST, parent=(root, controller.select_state),
+                    active={0: subscript(screen_id)})
+    screen = Instance(screen_id, HERO_SELECT, parent=(host_id, 0))
     bits = {controller.allow_bit: Bool(True), **(presence or {})}
     instances = [
-        Instance(1, controller.graph, presence=bits, active=active),
+        Instance(root, controller.graph, presence=bits, active=active),
         host,
         screen,
     ]
+    if controller.parent is not None:
+        parent = controller.parent
+        instances[0].parent = (1, parent.state)
+        instances.insert(0, Instance(1, parent.graph, active={parent.bit: subscript(root)}))
     if controller.hud_bit is not None:
-        active[controller.hud_bit] = subscript(4)
+        active[controller.hud_bit] = subscript(root + 3)
         # 20E4's EntryClientOnlySharedVars starts st25, its only owner state.
-        instances.append(Instance(4, HUD, parent=(1, controller.hud_state), active={0: None}))
+        instances.append(Instance(root + 3, HUD, parent=(root, controller.hud_state), active={0: None}))
     entry = len(instances) + 1
     host.active[1] = subscript(entry)
-    instances.append(Instance(entry, TEAM_ENTRY, parent=(2, 1)))
+    instances.append(Instance(entry, TEAM_ENTRY, parent=(host_id, 1)))
     if skins:
         screen.presence[ASSEMBLING] = Bool(True)
     if hide_assemble:
