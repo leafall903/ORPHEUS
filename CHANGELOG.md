@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Auxiliary subgraph interfaces
+
+- Model BD02E168's enter/exit interface separately from ordinary state hooks.
+  Register after insertion into the instance and release on object retirement,
+  including never-begun states. Explicit calls share VM budgets and cancellation.
+- SceneWorld requires an explicit per-entity registration service or known no
+  service. Missing declarations stay strict errors. Ordinary begin/end do not
+  invent interface dispatch. Retirement, ID reuse and failure clear stale calls.
+- Isolated original x64 callbacks agree on 256 argument-preparation cases with
+  explicit node/follow/exit library stubs. Native authoritative trigger timing
+  is not derived. Client/library component registration slots are nullsubs;
+  this is not silently made the server-host policy.
+- Actual 0F45 -> 0EC6 with declared context now begins states0/2 and produces
+  five numeric rows, then stops at 582E0D5F/node4. Three registered interfaces
+  remain inactive; no interface dispatch was injected into the helper probe.
+- Passed 489 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+  Full 100B remains at D38D0035. Complete helper/host behavior, cinematics and
+  enemy AI remain unaccepted. No deployment or new original-client session.
+  The required publication helper remains missing.
+
 #### Numeric property modifier records
 
 - Implement the numeric component-31 subarray: native f32 priority ordering,

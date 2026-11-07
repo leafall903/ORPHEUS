@@ -12,7 +12,7 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from types import NotImplementedType
 
-from ow174.game.script import expr, modifiers, play
+from ow174.game.script import expr, modifiers, play, scopes
 from ow174.game.script.expr import (
     EPSILON,
     Asset,
@@ -70,6 +70,43 @@ _NUMERIC_ROWS = {
     "STU_C61711C8": (3, f32(3.4028234663852886e38)),
     "STU_F197CFBF": (4, f32(2 ** -126)), "STU_0A019882": (5, f32(2 ** -126)),
 }
+
+
+@state_class("STU_BD02E168")
+class ScopedSubgraph(State):
+    """The +1C0 interface enters/exits +E8, separately from ordinary state hooks.
+
+    The component owns dispatch timing. Strict execution requires an explicit
+    registration service or a declaration that the component does not register
+    this interface. The native game/library component's +198 slot is a nullsub;
+    that observation is not made an implicit authoritative-host policy here.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.scope_registry = None
+
+    def on_created(self):
+        component = self.instance.component
+        if not component.strict:
+            return
+        registry = component.world.subgraph_scopes(component.entity)
+        if registry is not None and type(registry) is not scopes.Registry:
+            component.unsupported(self.instance, "subgraph scope registration", self.node.cls, self.node)
+        if registry is not None:
+            registry.register(self)
+            self.scope_registry = registry
+
+    def on_destroyed(self):
+        if self.scope_registry is not None:
+            self.scope_registry.unregister(self)
+            self.scope_registry = None
+
+    def scope_enter(self):
+        self.instance.follow(self.node, "m_5B10D01F", self)
+
+    def scope_exit(self):
+        self.instance.exit_subgraph(self.node, "m_5B10D01F")
 
 
 @state_class("STU_316CFEF2")

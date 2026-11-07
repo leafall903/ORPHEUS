@@ -13,7 +13,7 @@ import struct
 import uuid
 from dataclasses import dataclass
 
-from ow174.game.script import expr, graph, modifiers, play, runtime
+from ow174.game.script import expr, graph, modifiers, play, runtime, scopes
 
 CLIENT_PLACEABLE = 0xC0000000
 SERVER_PLACEABLE = 0x80000000
@@ -86,6 +86,7 @@ class SceneWorld(runtime.World):
         self.possessors: set[int] | None = None  # None means component availability is unknown.
         self.primary_possessors: dict[int, int] = {}
         self.modifier_components: dict[int, modifiers.NumericModifiers | None] = {}
+        self.scope_components: dict[int, scopes.Registry | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -109,6 +110,9 @@ class SceneWorld(runtime.World):
         """Forget a query binding after its owner has retired the entity."""
         record = self.entities.pop(entity, None)
         self.modifier_components.pop(entity, None)
+        scope = self.scope_components.pop(entity, None)
+        if scope is not None:
+            scope.clear()
         if record is not None and record.reference.int:
             del self.references[record.reference]
         if record is not None and self.possessors is not None:
@@ -135,10 +139,27 @@ class SceneWorld(runtime.World):
             return None
         return self.modifier_components.get(entity, NotImplemented)
 
+    def set_subgraph_scopes(self, entity: int, registry: scopes.Registry | None) -> None:
+        """Declare interface registration without guessing the host's dispatch policy."""
+        self._bound_entity(entity)
+        if registry is not None and type(registry) is not scopes.Registry:
+            raise ValueError("expected subgraph scope registry or known no service")
+        if entity in self.scope_components and self.scope_components[entity] is not registry:
+            raise ValueError("retire the entity before replacing its subgraph scope service")
+        self.scope_components[entity] = registry
+
+    def subgraph_scopes(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.scope_components.get(entity, NotImplemented)
+
     def script_failed(self, component: runtime.Component) -> None:
         backend = self.modifier_components.get(component.entity)
         if backend is not None:
             backend.records.clear()
+        scope = self.scope_components.get(component.entity)
+        if scope is not None:
+            scope.clear()
 
     def set_possessions(self, *, possessors=(), primary=()) -> None:
         """Install a complete known possession catalog, separately from UUIDs.

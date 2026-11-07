@@ -48,6 +48,7 @@ _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
+    nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),

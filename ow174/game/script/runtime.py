@@ -340,6 +340,10 @@ class World:
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented
 
+    def subgraph_scopes(self, entity: int):
+        """Known auxiliary-interface registration service, known no service, or unknown."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 
@@ -629,6 +633,8 @@ class Component:
             self.destroy(child)
         for state in list(instance.states.values()):
             state.end(False)
+        for state in list(instance.states.values()):
+            state.on_destroyed()
         instance.stopped = True
         instance.queue.clear()
         del self.instances[instance.id]
@@ -799,6 +805,7 @@ class Instance:
             if self.component.strict and node.cls not in STATE_CLASSES and node.cls != "STUStatescriptState":
                 self.component.unsupported(self, "state", node.cls, node)
             found = self.states[index] = STATE_CLASSES.get(node.cls, State)(self, node, index)
+            found.on_created()
         return found
 
     def node_state(self, node: Node) -> "State | None":
@@ -1262,6 +1269,12 @@ class State:
             self.instance.ticking.append(self)
 
     # --- class hooks -------------------------------------------------------------------------------
+
+    def on_created(self) -> None:
+        """1B91460: after insertion into the instance, before its first begin."""
+
+    def on_destroyed(self) -> None:
+        """Release object-lifetime services without following authored plugs."""
 
     def on_begin(self) -> None:
         """OnBegin (vt+0xB8): before the base plugs."""

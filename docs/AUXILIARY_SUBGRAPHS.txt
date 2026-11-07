@@ -1,0 +1,70 @@
+Auxiliary subgraph interfaces — explicit host dispatch, partial mission runtime
+Target: original Overwatch 1.74.0.0.104319. Addresses are module RVAs.
+
+BD02E168's primary State vtable 2637310 has ordinary lifecycle hooks. Its
+additional interface at object +1C0 uses vtable 26374C8:
+  +0 deleting destructor thunk 9A7110 -> 9A8270,
+  +8 enter 9FB880, +10 exit 9FB8D0, +18 nullsub.
+The pointer at table +20 is a neighboring destructor for a size290 class,
+not another BD02E168 callback. Earlier local research mislabeled that boundary.
+
+9FB880 adjusts the interface pointer back to the State, obtains its authored
+node, and calls 1B73FA0 with State, Instance, node, node+E8 plug and field offset
+E8. That plug is m_5B10D01F. 9FB8D0 calls 1B6FC00, which exits the plug's +20
+state-index list through 1B6FD00. Neither interface callback tests State.active.
+The regular begin/end hooks do not call these callbacks or this custom plug.
+
+Allocation 1B91460 stores the State in its instance before checking auxiliary
+interfaces. BD02E168's first virtual-base getter returns its +1C0 interface;
+the component's +198 virtual receives the State object. Its second getter
+returns null, so the +1A8 route is not taken for this class. Both the captured
+library component vtable 27AEBB8 and game component vtable 266AFE0 have nullsub
+registration slots. This is evidence about those client component contexts;
+it does not establish the original authoritative server's dispatch policy.
+
+Implemented primitive
+ScopedSubgraph models the custom interface methods. State.on_created runs
+after instance insertion, before first begin. SceneWorld.set_subgraph_scopes
+declares a per-entity scopes.Registry or known no registration service (None).
+A bound but undeclared entity remains unknown and strict creation stops there.
+Legacy body prediction keeps its previous passive policy.
+
+Registry registration stores the object and runs no graph code. enter/exit
+explicitly invoke the verified callbacks and share the component's work/follow
+budgets. They allow an inactive parent, preserve deferred child begin events,
+and exit aborts listed child states and drops their begins at the current time.
+No callback is inferred from a parent begin, finish, abort or frame update.
+Local allocation order is retained; native authoritative dispatch order is open.
+
+Object release unregisters the interface without running more authored plugs.
+Component.destroy releases even never-begun states after ending allocated states.
+Entity retirement and strict VM failure clear registrations. A retired instance
+or reused ID cannot dispatch an old object. Replacing a declared service requires
+retiring the entity first. These registry cleanup rules protect the local host;
+they are not a claim to reproduce an unknown native server callback protocol.
+
+The ScopedSubgraph reference field is covered by read-only body VM storage when
+it is None under legacy body policy. SceneWorld and Registry-backed mission
+storage/restoration remain unsupported. No new Component persistent field is added.
+
+Evidence and current frontier
+- Thirteen lifecycle/dispatch checks cover cold allocation, independent callbacks,
+  child event cancellation, normal hooks, teardown, reuse, failure and budgets.
+- Original x64 callbacks match 256 isolated argument-preparation cases, including
+  inactive State and null plug. Node lookup, plug follow and state-list exit are
+  explicit library stubs in that probe; no trigger timing or live client is proven.
+- Actual 0F45 node48 -> 0EC6 is checked with unknown, known-no-service and explicit
+  Registry declarations. Unknown stops at scope registration. Known declarations
+  now begin states0/2, register state0 and create five numeric rows before stopping
+  at 582E0D5F/node4. The Registry case has three inactive interfaces, in states
+  15,16,14. No auxiliary enter/exit callback was invoked during these helper probes.
+- Native invocation context, possession catalog, source clock and registration
+  service remain explicitly supplied. Full helper completion, native host policy,
+  prediction/rollback, main mission hosting, cinematics and enemy AI remain open.
+  Full 100B startup stays at D38D0035/node106. No deployment/client acceptance.
+
+Local evidence under verification/retribution, outside Git:
+helper-BD02-interface-methods.txt, helper-BD02-base-interfaces.txt,
+helper-BD02-lifetime.txt, helper-BD02-component-context.txt,
+helper-BD02-exit-dispatch.txt, scope-native-validation.json,
+scope-validation.json, scope-tests.log and scope-server-tests.log.

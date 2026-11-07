@@ -82,6 +82,12 @@ Evidence and limits
   host remain open. Cinematics and enemy AI remain unaccepted. No deployment or
   new original-client acceptance is claimed.
 
+Subsequent auxiliary-interface extension
+With an explicitly declared subgraph registration context, actual 0EC6 entry
+now begins state2 and creates its five numeric rows before the next failure at
+582E0D5F/node4. This extends the isolated-node evidence above. Registration still
+does not supply native trigger policy; see AUXILIARY_SUBGRAPHS.txt.
+
 Local evidence stays outside Git in verification/retribution:
 modifier-record-wrappers.txt, modifier-record-storage.txt, modifier-resolution.txt,
 modifier-operations.txt, modifier-arithmetic.txt, modifier-cleanup-spans.txt,

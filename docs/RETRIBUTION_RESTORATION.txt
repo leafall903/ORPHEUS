@@ -216,3 +216,18 @@ Numeric property modifier service, 2026-11-08:
   cinematics and enemy AI remain open. See NUMERIC_MODIFIERS.txt.
 - Passed 476 runtime/expression/VM/body/bot/entrance/replication/replay checks,
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary subgraph interfaces, 2026-11-08:
+- Model BD02E168's separate enter/exit interface. Register on object creation
+  when an explicit host service is declared; release at object destruction.
+  Ordinary state hooks do not imply custom subgraph dispatch. Missing host
+  declarations stay strict errors; known no-service is separately represented.
+- Native callbacks agree with 256 isolated argument-preparation cases with
+  explicit library stubs. Thirteen checks cover the local lifetime/dispatch API.
+- Actual helper entry now begins registered state0 and numeric state2, producing
+  five numeric rows before stopping at 582E0D5F/node4. Three interface objects
+  remain inactive; these probes do not derive or invoke native host dispatch.
+- Full root remains at D38D0035. Mission, cinematics and AI remain unaccepted;
+  no new client/deployment. See AUXILIARY_SUBGRAPHS.txt for scope and evidence.
+- Passed 489 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.

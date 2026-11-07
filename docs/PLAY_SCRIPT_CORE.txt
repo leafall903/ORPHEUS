@@ -184,3 +184,8 @@ Subsequent numeric modifier extension, 2026-11-08
 0EC6 state2 now constructs and queues its begin. Entry-driven execution next
 stops at BD02E168/node33 before states0/2 begin. A separate explicit activation
 of actual state2 verifies its five numeric rows; see NUMERIC_MODIFIERS.txt.
+
+Subsequent auxiliary-interface extension, 2026-11-08
+An explicitly declared registration context permits the actual helper to begin
+states0/2 and produce the numeric rows. Next is 582E0D5F/node4. Interface dispatch
+timing and complete helper execution remain open; see AUXILIARY_SUBGRAPHS.txt.
