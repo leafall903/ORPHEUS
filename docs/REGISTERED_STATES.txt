@@ -61,6 +61,11 @@ outside this state's lifecycle also remain unimplemented. Full mission startup
 still stops at D38D0035/node106. Match hosting/routing, component observers,
 cinematics and enemy AI remain open; no candidate deployment is claimed.
 
+Subsequent numeric modifier extension
+Subsequent numeric modifier support constructs/queues 0EC6 state2 as well. The
+next entry-driven failure is BD02E168/node33 before states0/2 begin. The isolated
+state2 numeric-row probe has a different scope; see NUMERIC_MODIFIERS.txt.
+
 Local-only evidence
 helper-9028-construct.txt, helper-9028-hooks.txt, helper-9028-list.txt,
 linked-state-initialize.txt, linked-state-C1-refs.txt, registered-validation.json,

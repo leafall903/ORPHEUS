@@ -336,6 +336,13 @@ class World:
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
+    def property_modifiers(self, entity: int):
+        """An explicitly known native component 31, None if absent, or unknown."""
+        return NotImplemented
+
+    def script_failed(self, component: "Component") -> None:
+        """Discard external effects of a component that strict execution poisoned."""
+
     def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
@@ -443,6 +450,7 @@ class Component:
     def _fail(self, error: ScriptBudgetError | UnsupportedScriptError) -> None:
         if self.fault is None:
             self.fault = error
+            self.world.script_failed(self)
             self.shots.clear()
             self.held.clear()
             self.code_states.clear()

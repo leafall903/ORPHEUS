@@ -13,7 +13,7 @@ import struct
 import uuid
 from dataclasses import dataclass
 
-from ow174.game.script import expr, graph, play, runtime
+from ow174.game.script import expr, graph, modifiers, play, runtime
 
 CLIENT_PLACEABLE = 0xC0000000
 SERVER_PLACEABLE = 0x80000000
@@ -85,6 +85,7 @@ class SceneWorld(runtime.World):
         self.definitions: dict[int, dict] = {}
         self.possessors: set[int] | None = None  # None means component availability is unknown.
         self.primary_possessors: dict[int, int] = {}
+        self.modifier_components: dict[int, modifiers.NumericModifiers | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -107,6 +108,7 @@ class SceneWorld(runtime.World):
     def unbind(self, entity: int) -> SceneEntity | None:
         """Forget a query binding after its owner has retired the entity."""
         record = self.entities.pop(entity, None)
+        self.modifier_components.pop(entity, None)
         if record is not None and record.reference.int:
             del self.references[record.reference]
         if record is not None and self.possessors is not None:
@@ -119,7 +121,24 @@ class SceneWorld(runtime.World):
 
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
-            raise ValueError("possession entity must already be bound")
+            raise ValueError("entity must already be bound")
+
+    def set_property_modifiers(self, entity: int, component: modifiers.NumericModifiers | None) -> None:
+        """Declare component 31 and its clock; UUID bindings do not imply it."""
+        self._bound_entity(entity)
+        if component is not None and type(component) is not modifiers.NumericModifiers:
+            raise ValueError("expected numeric modifier component or known absence")
+        self.modifier_components[entity] = component
+
+    def property_modifiers(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.modifier_components.get(entity, NotImplemented)
+
+    def script_failed(self, component: runtime.Component) -> None:
+        backend = self.modifier_components.get(component.entity)
+        if backend is not None:
+            backend.records.clear()
 
     def set_possessions(self, *, possessors=(), primary=()) -> None:
         """Install a complete known possession catalog, separately from UUIDs.

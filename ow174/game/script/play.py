@@ -213,7 +213,7 @@ def resolve_resource(instance, node) -> Resource | None:
                 or _select(instance, node, node.field("m_script")))
 
 
-def _scalar(instance, cfg, *, initial, depth=0):
+def _scalar(instance, cfg, *, initial, depth=0, watcher=None):
     """The +20 path, including 06610EBC's first config and no-output failure."""
     instance.component.consume_work("played graph scalar evaluation")
     if depth >= MAX_CONFIG_DEPTH:
@@ -222,14 +222,15 @@ def _scalar(instance, cfg, *, initial, depth=0):
         return initial
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         configs = cfg.get("m_configVars") or ()
-        return _scalar(instance, configs[0], initial=initial, depth=depth + 1) if configs else initial
-    return instance.evaluate(cfg, initial=initial)
+        return (_scalar(instance, configs[0], initial=initial, depth=depth + 1, watcher=watcher)
+                if configs else initial)
+    return instance.evaluate(cfg, watcher, initial=initial)
 
 
-def evaluate_scalar(instance, cfg, *, initial=None):
+def evaluate_scalar(instance, cfg, *, initial=None, watcher=None):
     """A native +20 caller's destination, including first-config array failure."""
     with instance.component.operation():
-        return _scalar(instance, cfg, initial=initial)
+        return _scalar(instance, cfg, initial=initial, watcher=watcher)
 
 
 def resolve_request(instance, node, resource: Resource, *, context_provider) -> Request | None:

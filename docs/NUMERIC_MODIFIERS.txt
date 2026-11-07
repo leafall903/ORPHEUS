@@ -1,0 +1,89 @@
+Numeric property modifiers — partial mission component service
+Target: original Overwatch 1.74.0.0.104319. Addresses below are module RVAs.
+
+Native 316CFEF2 lifecycle
+- This class has its own priority-1 registration 2F8B850 and vtable 2670DF8.
+  Normal begin D39590 evaluates m_485109CB once, defaults false, then calls
+  D3C1E0. Tick D39E30 and dependency callback D39E40 also call D3C1E0. Cleanup
+  D399C0 uses the current activation's row identities to retire records.
+- BC0440 selects component bit31. Missing component skips row evaluation and
+  disables ticking. A present component's mutation methods separately check
+  its definition pointer at +1538; a null definition does not mutate records.
+- Source record identity packs instance ID, raw state index, activation counter
+  and row position. Per-frame mode adds low16(frame * total row count) before
+  adding the full row index. Null rows still contribute to count/position.
+- Records begin at uint32(source frame + 1). Persistent mode keeps an unlimited
+  end until cleanup sets uint32(source frame + 1). Per-frame mode schedules each
+  record to end at uint32(source frame + 2), giving it one frame of validity.
+  Validity is the native unsigned start <= read_frame < end comparison; an end
+  of FFFFFFFF does not create a wraparound interval.
+- The source clock is reached via component +528 / virtual +48. Existing
+  WaitFrames instead reads component +1D0 through 1B71860. These are not assumed
+  to be identical. The new backend's source_frame and each resolve read frame
+  are supplied explicitly by its world owner; native clock integration is open.
+
+Numeric array and operations
+C33F20 constructs numeric records and C2EC10 maintains component +6E0's array.
+Upsert searches backward by (kind, identity). Same start updates in place even
+when priority changes. A changed start removes the old record and reinserts it.
+Every upsert resets end to FFFFFFFF. Retirement marks end without deleting the
+record; erase is a separate operation. Expired history is retained by this core;
+the future component host still needs the native retention/collection policy.
+
+C2FAA0 orders ascending f32 priority. Priorities within f32(0.004), including the
+native unordered comparison branch, are ordered by unsigned start then identity.
+The epsilon comparator is not transitive; the implementation follows the native
+binary search instead of sorting the complete array with a different algorithm.
+
+C32FB0 applies active matching fields in array order through C32ED0:
+  0 add, 1 multiply, 2 replace, 3 minimum, 4 maximum, 5 clamp.
+Clamp is max(min(base, max(lower, upper)), lower), including reversed bounds.
+All arithmetic rounds to f32. MINSS/MAXSS keep the second operand for unordered
+or equal inputs, including signed zero. Numeric modifiers do not choose gameplay
+property names or supply implicit base values.
+
+Implemented boundary
+modifiers.NumericModifiers stores the numeric subarray and resolves a supplied
+field/base/read frame. ready mirrors the definition gate on mutations.
+SceneWorld.set_property_modifiers(entity, service_or_None) explicitly declares a
+bound entity's component or known absence. A bound but undeclared entity stays
+unknown. Unbinding removes the declaration; reused IDs need fresh declarations.
+
+nodes.NumericPropertyModifiers supports the six numeric row classes:
+  4CB0950F add, D8CC6B10 multiply, 56DEE1BB replace,
+  C61711C8 minimum, F197CFBF maximum, 0A019882 clamp.
+Priority/value configs use scalar +20, preserve native defaults on failure and
+register the state's variable dependencies. Clamp evaluates priority, upper,
+then lower, matching the native call order. Per-frame mode ticks; persistent
+mode updates on dependency changes. Real strict execution requires the declared
+backend; typed-value/filter rows remain unsupported. Legacy body prediction
+retains its existing passive policy for this class.
+
+State storage includes its per_frame flag. SceneWorld and the component service
+remain outside the body-VM world whitelist. A strict component fault asks its
+world to discard external effects; SceneWorld clears that entity's numeric
+records. This is reconstruction failure containment, not an invented native hook.
+
+Evidence and limits
+- Isolated original x64 emulation agrees on 3,030 arithmetic cases and 4,900
+  insertion cases. Non-NaN arithmetic agrees bit for bit, including signed zero.
+  NaN class is compared; NaN payload bits are not claimed. MXCSR is explicitly
+  1F80. This validates the selected instructions, not a live client's FP state.
+- Directly activating actual 0EC6 state2 on an explicitly supplied backend
+  produces its five numeric rows. Fields 17..21 resolve to zero at supplied
+  frame21; ending it at source frame21 retires them at frame22. History remains.
+  This is an isolated authored node, not invocation of the complete helper entry.
+- Actual 0F45 node48 -> 0EC6 now constructs/queues states0 and2 and next stops at
+  BD02E168/node33. Both queued states have not begun at that frontier. The helper
+  still has not demonstrated those callbacks within its entry-driven execution.
+- Full 100B startup remains at D38D0035/node106. Typed/filter rows, prediction
+  modes, rollback restoration, property base/default data, native clocks, record
+  collection, gameplay consumers/physics, network integration and the mission
+  host remain open. Cinematics and enemy AI remain unaccepted. No deployment or
+  new original-client acceptance is claimed.
+
+Local evidence stays outside Git in verification/retribution:
+modifier-record-wrappers.txt, modifier-record-storage.txt, modifier-resolution.txt,
+modifier-operations.txt, modifier-arithmetic.txt, modifier-cleanup-spans.txt,
+modifier-clock-and-ticking.txt, modifier-frame-clock-source.txt,
+modifier-native-validation.json, modifier-validation.json and modifier-tests.log.

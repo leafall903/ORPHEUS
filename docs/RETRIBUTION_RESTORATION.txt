@@ -201,3 +201,18 @@ Type-registered state lifecycle, 2026-11-08:
   host/routing, cinematics and enemy AI remain open. See REGISTERED_STATES.txt.
 - Passed 462 runtime/expression/VM/body/bot/entrance/replication/replay checks,
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Numeric property modifier service, 2026-11-08:
+- Implement numeric records, native insertion order and exclusive frame ranges,
+  with six f32 operations. Original x64 emulation agrees on 3,030 arithmetic and
+  4,900 insertion cases. This is instruction evidence, not gameplay acceptance.
+- 316CFEF2 supports numeric rows on an explicitly declared SceneWorld component
+  and source clock. Typed/filter rows remain strict errors. Existing body
+  prediction keeps its passive policy; gameplay consumers remain open.
+- Isolated actual 0EC6 state2 produces five rows and resolves fields17..21 to
+  zero, then retires them at the expected supplied frame. The complete helper
+  entry instead stops at BD02E168/node33 before queued states0/2 begin.
+- Full 100B stays at D38D0035. Clocks, collection, gameplay/physics, mission host,
+  cinematics and enemy AI remain open. See NUMERIC_MODIFIERS.txt.
+- Passed 476 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.

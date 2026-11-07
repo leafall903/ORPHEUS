@@ -12,7 +12,7 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from types import NotImplementedType
 
-from ow174.game.script import expr
+from ow174.game.script import expr, modifiers, play
 from ow174.game.script.expr import (
     EPSILON,
     Asset,
@@ -63,6 +63,111 @@ def seconds_to_ms(value) -> int:
 
 
 # --- states --------------------------------------------------------------------------------------
+
+
+_NUMERIC_ROWS = {
+    "STU_4CB0950F": (0, 0.0), "STU_D8CC6B10": (1, 1.0), "STU_56DEE1BB": (2, 0.0),
+    "STU_C61711C8": (3, f32(3.4028234663852886e38)),
+    "STU_F197CFBF": (4, f32(2 ** -126)), "STU_0A019882": (5, f32(2 ** -126)),
+}
+
+
+@state_class("STU_316CFEF2")
+class NumericPropertyModifiers(State):
+    """D39590/D399C0/D3C1E0: numeric rows on an explicit component-31 backend.
+
+    The backend clock is native component +528/vt48's frame, not an assumed
+    alias of Component.frame. Typed-value and filter rows remain strict errors.
+    Legacy body prediction keeps its previous passive behavior.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.per_frame = False
+
+    def backend(self):
+        component = self.instance.component
+        backend = component.world.property_modifiers(component.entity)
+        if backend is not None and type(backend) is not modifiers.NumericModifiers:
+            component.unsupported(self.instance, "property modifier component", self.node.cls, self.node)
+        return backend
+
+    def rows(self):
+        rows = _field(self, "m_BC5E91CF") or ()
+        if not isinstance(rows, (list, tuple)):
+            self.instance.component.unsupported(
+                self.instance, "numeric property modifier rows", self.node.cls, self.node,
+            )
+        for row in rows:
+            if row is None:
+                continue
+            if (not isinstance(row, dict) or row.get("$") not in _NUMERIC_ROWS
+                    or type(row.get("m_A9561CA0", 0)) is not int
+                    or not 0 <= row.get("m_A9561CA0", 0) <= 0xFFFFFFFF):
+                self.instance.component.unsupported(
+                    self.instance, "numeric property modifier row", str(row.get("$")
+                    if isinstance(row, dict) else type(row)), self.node,
+                )
+        return rows
+
+    def number(self, cfg, default):
+        failed = object()
+        value = play.evaluate_scalar(self.instance, cfg, initial=failed, watcher=self)
+        return default if value is failed else f32(expr.to_float(value, default))
+
+    def on_begin(self):
+        if not self.instance.component.strict:
+            return
+        value = play.evaluate_scalar(self.instance, _field(self, "m_485109CB"), initial=False, watcher=self)
+        self.per_frame = truthy(value)
+        self.publish()
+
+    def publish(self):
+        if not self.instance.component.strict:
+            return
+        backend = self.backend()
+        if backend is None:
+            if self in self.instance.ticking:
+                self.instance.ticking.remove(self)
+            return
+        rows = self.rows()
+        frame = backend.source_frame
+        offset = frame * len(rows) if self.per_frame else 0
+        for index, row in enumerate(rows):
+            self.instance.component.consume_work("numeric property modifier")
+            if row is None:
+                continue
+            operation, default = _NUMERIC_ROWS[row["$"]]
+            priority = self.number(row.get("m_priority"), 0.0)
+            upper = self.number(row.get("m_8213EB22"), f32(3.4028234663852886e38)) if operation == 5 else 0.0
+            value = self.number(row.get("m_8AD739CE" if operation == 5 else "m_9B7A63EA"), default)
+            key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
+            backend.upsert(modifiers.Record(1, key, (frame + 1) & 0xFFFFFFFF,
+                row.get("m_A9561CA0", 0), operation, value, priority, upper))
+            if self.per_frame:
+                backend.retire(1, key, (frame + 2) & 0xFFFFFFFF)
+        if self.per_frame:
+            self.ticks()
+
+    def dependency_changed(self):
+        self.publish()
+
+    def tick(self):
+        self.publish()
+
+    def on_cleanup(self):
+        if not self.instance.component.strict:
+            return
+        backend = self.backend()
+        if backend is None:
+            return
+        rows = self.rows()
+        frame = backend.source_frame
+        offset = frame * len(rows) if self.per_frame else 0
+        for index, row in enumerate(rows):
+            if row is not None:
+                key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
+                backend.retire(1, key, (frame + 1) & 0xFFFFFFFF)
 
 
 @state_class("STU_9028E035")

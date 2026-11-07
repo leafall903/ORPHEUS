@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Numeric property modifier records
+
+- Implement the numeric component-31 subarray: native f32 priority ordering,
+  in-place updates versus reinsertion, exclusive uint32 frame windows and six
+  arithmetic operations. Preserve signed-zero and SSE unordered min/max rules.
+- Support 316CFEF2's numeric rows on an explicitly declared SceneWorld backend
+  and source clock. Scalar values retain native defaults on failure and watch
+  their variables. Per-frame records use distinct identities and timed expiry.
+  Typed/filter rows and undeclared components remain strict failures.
+- Retire rows at cleanup, remove declarations on entity retirement and discard
+  numeric effects when strict execution poisons the owning component. Store the
+  state's per-frame flag; SceneWorld storage remains unsupported.
+- Isolated original x64 emulation agrees on 3,030 arithmetic and 4,900 insertion
+  cases. Direct activation of actual 0EC6 state2 resolves its five rows and
+  retires them at the supplied frame. Source clocks are explicit, not derived.
+- Actual 0F45 -> 0EC6 entry execution next stops at BD02E168/node33 before
+  queued states0/2 begin. Full 100B stays at D38D0035. No full helper, mission,
+  cinematics or enemy AI acceptance; no candidate deployment or new client run.
+- Passed 476 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks. Property
+  names/bases, native clocks, collection, rollback, gameplay consumers and mission
+  hosting remain open. The required publication helper is still missing.
+
 #### Registered state lifecycle and successor links
 
 - Implement 9028E035's authoritative per-type component registry, in begin

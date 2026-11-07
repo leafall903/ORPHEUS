@@ -179,3 +179,8 @@ Subsequent registered-state extension, 2026-11-08
 0EC6 state 0 now constructs and queues its begin. The next strict diagnostic is
 316CFEF2/node2, before that queued begin executes. The helper still has not run
 its full lifecycle. See REGISTERED_STATES.txt for type-list and wire-link support.
+
+Subsequent numeric modifier extension, 2026-11-08
+0EC6 state2 now constructs and queues its begin. Entry-driven execution next
+stops at BD02E168/node33 before states0/2 begin. A separate explicit activation
+of actual state2 verifies its five numeric rows; see NUMERIC_MODIFIERS.txt.
