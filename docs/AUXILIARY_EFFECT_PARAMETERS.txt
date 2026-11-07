@@ -106,4 +106,6 @@ Subsequent allocation milestone:
 - effect_allocation models retained list entries and low-level retirement.
   Specialized component262C010 has non-null scope registration slots, unlike
   the previously examined contexts. Its native scheduling is not inferred.
-  See AUXILIARY_EFFECT_ALLOCATION.txt. The VM/mission gates above remain open.
+  See AUXILIARY_EFFECT_ALLOCATION.txt for that milestone. Subsequent concrete
+  State callbacks/routes are in AUXILIARY_EFFECT_STATE.txt; the full mission,
+  native host timing and engine-consumer gates remain open.

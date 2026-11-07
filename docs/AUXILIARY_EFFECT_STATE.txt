@@ -1,0 +1,92 @@
+Auxiliary effect state — explicit VM callbacks and routes, partial mission host
+Target: original Overwatch 1.74.0.0.104319. Addresses are module RVAs.
+
+STU_582E0D5F now uses nodes.AuxiliaryEffect. Cold construction follows the same
+explicit scope registration contract as BD02E168: SceneWorld declares a Registry
+or known no registration service. Unknown registration still fails. Ordinary
+begin/end/tick do not invent auxiliary enter/exit, native +88 phase or +120
+reconstruction. A legacy passive body keeps empty local effect fields.
+
+Explicit inputs and target routing
+SceneWorld.set_effect_context binds effect_routing.Context or known absent
+engine context (None). A bound but undeclared context remains unknown. Context
+contains the independently supplied native owner, opaque engine handle, vt+C8
+capability, optional global fallback list and per-Instance flag declarations.
+Its owner is not guessed from Component.entity, source or possession. Instance
+objects key the flag declarations, so numeric ID reuse cannot inherit them.
+
+SceneWorld.set_effect_target binds a component43 Target or known component
+absence (None) on an existing entity. Target supplies its own native owner,
+opaque context and EffectList. A UUID binding alone does not declare component43.
+Unknown/unbound target lookup stays strict rather than invoking a global fallback.
+Context and target services remain stable until the entity is retired.
+
+The scope-enter interface models 9D1C80 ->9D2140:
+1. Ask for engine context before evaluating the authored target. Known engine
+   absence returns immediately; unknown availability is a strict error.
+2. Evaluate +188/m_481B15D1 using scalar +20, including first-array casting.
+   A valid Entity is selected. Failed, null, non-Entity or invalid results use
+   the explicitly supplied native owner. No search of later array items occurs.
+3. A known component43 selects its Target's list/context/owner. Its own context
+   may differ from the source engine context. Instance flags are not needed here.
+4. For known component absence, native instance +318 bit3 suppresses allocation.
+   Otherwise select the explicit global fallback list, engine context and invalid
+   target index0. Unknown flags or fallback services remain strict errors.
+5. Allocate and bind the descriptor before initial authored parameter evaluation.
+   Initialize its fields and then refresh, preserving the verified evaluation
+   order. A failure after binding retires the local effect and clears observers.
+
+Callbacks, release and local containment
+- refresh_effect models the existing-effect guard and 9D2E70 parameter update.
+  No current effect means no context/config evaluation. The callback is allowed
+  for an inactive State while its instance is still live.
+- effect_lost models observer9D1D20: only a non-null matching current object is
+  released. A notification about an older object cannot retire the newer one.
+- scope_exit updates C4/C8, clears the observer, retires the list entry, then
+  clears the current binding. Retirement retains the descriptor in its list.
+  Global target0 or a false +2E8 gate needs no orientation-return path.
+- For a valid target with +2E8 true, orientation cleanup remains a strict error.
+  Native +20B/consumer observations and orientation restoration are not modeled;
+  an unverified no-op is not substituted. This is a partial implementation.
+- Object retirement, strict failure and entity/target retirement discard local
+  records without more authored plugs. Superseded objects are included. Shared
+  target lists keep effects owned by unaffected components. These containment
+  rules are not a claim to reproduce native rollback/destructor callback policy.
+- on_failed and on_effect_abandoned are local bookkeeping hooks. Retired instance
+  callbacks are rejected, and entity reuse requires fresh service declarations.
+  Passive body storage now observes 29 concrete State models. SceneWorld and
+  live effect-list storage/restoration remain unsupported.
+
+Evidence and current mission frontier
+- Twenty routing/lifecycle checks cover unknown versus absent services, explicit
+  owner/target precedence, bit3/global fallback, scalar casts, observer identity,
+  parameter refresh/retirement, strict orientation gating, fault/destruction,
+  shared lists, entity/instance ID reuse, work budgets and passive storage.
+- Passed 533 related runtime/expression/VM/body/bot/entrance/replication/replay
+  checks and 15 server snapshot/research-injection checks, Ruff and diff checks.
+- Original scope-enter, target cast/guards, flags branch, allocation/initialization,
+  matching observer and non-orientation release match 416 cases, including 156
+  allocations and 156 matching retirements. Active/inactive State inputs agree.
+  Native owner/entity/encrypted component lookup, fallback and retirement-list
+  resolution, allocator/constructor and config inputs are explicit adapters.
+  No actor catalog derivation, native host timing or live client is proven.
+- Actual0F45 node48 ->0EC6 now passes entry execution under known-no-service and
+  explicit Registry declarations, with variable41=(17,). Unknown registration
+  still fails atBD02E168/node33. No interface callbacks are injected into this
+  helper entry/time probe, so no engine effect descriptors are created by it.
+- With an explicitly supplied modifier clock mapping20+inputframe, the helper
+  reaches frame500 (8015ms) without unsupported execution. Timers at750/1500/2250ms
+  end their authored states; by frame140 its pending queue is empty. States10/15/16
+  remain active. This is a bounded VM path, not complete helper/native acceptance.
+- A separate actual node4 test constructs the real AuxiliaryEffect State, then
+  explicitly calls enter/refresh/matching lost. Scalars C4/C8/F4/F8/FC/2E4 are
+  0/.75/5/5/5/0, with retained retirement and a cleared observer. It does not run
+  alongside an original client or establish when native host callbacks should run.
+- Full100B still stops atD38D0035/node106. Native scope-history dispatch, +88/+120
+  phases, engine consumers, orientation return, actual component routing/lifetimes,
+  Match hosting, cinematics and enemy AI remain open. No deployment/new client.
+
+Local evidence outside Git under verification/retribution:
+effect-state-native-validation.json, effect-state-validation.json,
+effect-state-root-summary.txt, effect-state-tests.log, effect-state-server-tests.log,
+helper-582E-queued-state-journal.txt and the earlier helper-582E native research.

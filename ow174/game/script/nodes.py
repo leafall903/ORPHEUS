@@ -12,7 +12,7 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from types import NotImplementedType
 
-from ow174.game.script import expr, modifiers, play, scopes
+from ow174.game.script import effect_parameters, effect_routing, expr, modifiers, play, scopes
 from ow174.game.script.expr import (
     EPSILON,
     Asset,
@@ -107,6 +107,114 @@ class ScopedSubgraph(State):
 
     def scope_exit(self):
         self.instance.exit_subgraph(self.node, "m_5B10D01F")
+
+
+@state_class("STU_582E0D5F")
+class AuxiliaryEffect(ScopedSubgraph):
+    """Separate scope/observer callbacks; ordinary State hooks stay inherited.
+
+    Native target routing and descriptor initialization are implemented against
+    explicit world inputs. Engine consumers, orientation return and native
+    frame/reconciliation scheduling are not inferred from State begin/end.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.effect = None
+        self.effect_list = None
+        self.owned_effects = []  # Local failure/retirement containment, not native wire storage.
+
+    def context(self):
+        component = self.instance.component
+        context = component.world.auxiliary_effect_context(component.entity)
+        if context is not None and type(context) is not effect_routing.Context:
+            component.unsupported(self.instance, "auxiliary effect context", self.node.cls, self.node)
+        return context
+
+    def _check_live(self):
+        instance = self.instance
+        if (instance.stopped or instance.teardown
+                or instance.component.instances.get(instance.id) is not instance):
+            raise ValueError("auxiliary effect callback needs its live instance")
+
+    def scope_enter(self):
+        with self.instance.component.operation():
+            self._check_live()
+            context = self.context()
+            if context is None:  # 9D1C80's engine-context guard precedes target evaluation.
+                return
+            selected = effect_routing.select(
+                self, context, self.instance.component.world.auxiliary_effect_target,
+            )
+            if selected is None:
+                return
+            if type(context.enabled) is not bool:
+                self.instance.component.unsupported(
+                    self.instance, "auxiliary effect capability", self.node.cls, self.node,
+                )
+            effect = selected.entries.allocate(
+                context=selected.context, target=selected.target, observer=self,
+            )
+            self.owned_effects.append((selected.entries, effect))
+            self.effect, self.effect_list = effect, selected.entries
+            effect_parameters.initialize(self, effect.parameters, context_enabled=context.enabled)
+
+    def refresh_effect(self):
+        with self.instance.component.operation():
+            self._check_live()
+            if self.effect is None:
+                return
+            context = self.context()
+            if context is None or type(context.enabled) is not bool:
+                self.instance.component.unsupported(
+                    self.instance, "auxiliary effect capability", self.node.cls, self.node,
+                )
+            effect_parameters.refresh(self, self.effect.parameters, context_enabled=context.enabled)
+
+    def scope_exit(self):
+        with self.instance.component.operation():
+            self._check_live()
+            effect = self.effect
+            if effect is None:
+                return
+            values = effect.parameters.values
+            values[0xC4] = effect_parameters._number(self, "m_F5C94645", 0.5)
+            values[0xC8] = effect_parameters._number(self, "m_63FFE8DF", 0.5)
+            if self.context() is None:
+                self.instance.component.unsupported(
+                    self.instance, "auxiliary effect retirement context", self.node.cls, self.node,
+                )
+            if expr.valid_entity(effect.target) and values[0x2E8]:
+                self.instance.component.unsupported(
+                    self.instance, "auxiliary effect orientation cleanup", self.node.cls, self.node,
+                )
+            # 9D2630 clears the observer before list retirement and the current pointer.
+            effect.observer = None
+            self.effect_list.retire(effect)
+            self.on_effect_abandoned(effect)
+
+    def effect_lost(self, effect):
+        # +210 observer9D1D20 only releases its matching current object.
+        with self.instance.component.operation():
+            self._check_live()
+            if self.effect is not None and self.effect is effect:
+                self.scope_exit()
+
+    def on_effect_abandoned(self, effect):
+        self.owned_effects = [(owner, item) for owner, item in self.owned_effects if item is not effect]
+        if self.effect is effect:
+            self.effect = self.effect_list = None
+
+    def on_failed(self):
+        for owner, effect in self.owned_effects:
+            effect.observer = None
+            owner.retire(effect)
+        self.owned_effects.clear()
+        self.effect = self.effect_list = None
+
+    def on_destroyed(self):
+        self.on_failed()
+        super().on_destroyed()
 
 
 @state_class("STU_316CFEF2")

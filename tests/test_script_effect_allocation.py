@@ -136,14 +136,14 @@ class EffectInitializationTests(unittest.TestCase):
         self.assertEqual(block.values[0x20C], 0)
         self.assertEqual((block.values[0xF4], block.values[0xF8], block.values[0xFC]), (2, 2, 2))
 
-    def test_unknown_initial_config_stays_strict_and_a_valid_init_does_not_register_the_state_class(self):
+    def test_unknown_initial_config_stays_strict_and_a_valid_init_does_not_construct_a_state(self):
         component, _, state, block = setup({'m_1A76C130': {'$': 'UnknownEffectCreationInput'}})
         with self.assertRaises(runtime.UnsupportedScriptError):
             parameters.initialize(state, block, context_enabled=True)
         self.assertIsNotNone(component.fault)
         _, _, state, block = setup({'m_6A79BD98': integer(5)})
         parameters.initialize(state, block, context_enabled=True)
-        self.assertNotIn('STU_582E0D5F', runtime.STATE_CLASSES)
+        self.assertEqual(list(state.instance.states), [0])
         self.assertEqual(block.values[0xF8], expr.f32(5))
 
 

@@ -75,3 +75,9 @@ tables above, its +198/+1A0 register/remove real interface State pointers throug
 helper+5C0. Cold removal swaps the last element into the removed slot. Pending
 history, prediction and callback timing remain distinct work; Registry's explicit
 local API is not silently changed into that host. See AUXILIARY_EFFECT_ALLOCATION.txt.
+
+Subsequent effect-state integration shares this explicit Registry contract.
+582E0D5F's custom callbacks allocate/refresh/retire effect descriptors instead
+of following BD02E168's custom plug. Actual0EC6 entry/time paths now pass with
+declared services; native scope-history dispatch remains separate. See
+AUXILIARY_EFFECT_STATE.txt for the bounded evidence and remaining mission gates.

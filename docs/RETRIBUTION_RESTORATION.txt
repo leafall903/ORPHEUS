@@ -270,3 +270,23 @@ Auxiliary effect allocation/initialization core, 2026-11-08:
   See AUXILIARY_EFFECT_ALLOCATION.txt for ownership, adapters and pending work.
 - Passed 513 runtime/expression/VM/body/bot/entrance/replication/replay checks,
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary effect State and explicit routes, 2026-11-08:
+- Register582E0D5F with separate enter/refresh/matching-observer/exit callbacks.
+  Explicit contexts/owners, component43 targets and instance flags select native
+  target/fallback routes. Unknown services remain strict, with no implicit
+  begin/end/tick dispatch. Orientation cleanup/engine consumers remain open.
+- Bound-before-initialization effects are contained on strict failure, object
+  destruction and entity retirement. Shared lists preserve unaffected sources;
+  reused IDs need fresh declarations. Passive body storage covers29 State types.
+- Original routing/callback instructions match416 cases, with156 allocations and
+  matching retirements, using explicit owner/entity/component/allocator adapters.
+- Actual0F45->0EC6 entry now passes; with a supplied clock mapping it reaches
+  frame500 without fault, drains its2250ms timer, and keeps states10/15/16 active.
+  No interface dispatch is injected into that path. Separate actual node4
+  enter/refresh/lost calls produce and retire the expected descriptor.
+- Full100B remainsD38D0035/node106. Native dispatch/history and +88/+120 phases,
+  gameplay consumers, Match host, all cinematics and enemy AI remain unaccepted.
+  No deployment/new client session. See AUXILIARY_EFFECT_STATE.txt for limits.
+- Passed 533 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.

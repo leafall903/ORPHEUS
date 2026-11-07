@@ -344,6 +344,14 @@ class World:
         """Known auxiliary-interface registration service, known no service, or unknown."""
         return NotImplemented
 
+    def auxiliary_effect_context(self, entity: int):
+        """Known native context, known absent engine context, or unknown."""
+        return NotImplemented
+
+    def auxiliary_effect_target(self, entity: int):
+        """Known component43 descriptor, known component absence, or unknown."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 
@@ -467,6 +475,7 @@ class Component:
                 instance.deferred.clear()
                 instance.ticking.clear()
                 for state in instance.states.values():
+                    state.on_failed()
                     state.active = False
         raise self.fault
 
@@ -1275,6 +1284,12 @@ class State:
 
     def on_destroyed(self) -> None:
         """Release object-lifetime services without following authored plugs."""
+
+    def on_failed(self) -> None:
+        """Abandon local external-effect bookkeeping without authored callbacks."""
+
+    def on_effect_abandoned(self, effect) -> None:
+        """A world binding retired an effect without invoking native graph code."""
 
     def on_begin(self) -> None:
         """OnBegin (vt+0xB8): before the base plugs."""

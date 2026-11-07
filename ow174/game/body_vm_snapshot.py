@@ -49,6 +49,7 @@ _STATE_LAYOUTS = {
     nodes.RegisteredState: ((), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
+    nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),

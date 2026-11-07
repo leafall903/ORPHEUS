@@ -13,7 +13,8 @@ import struct
 import uuid
 from dataclasses import dataclass
 
-from ow174.game.script import expr, graph, modifiers, play, runtime, scopes
+from ow174.game.script import effect_routing, expr, graph, modifiers, play, runtime, scopes
+from ow174.game.script.effect_allocation import EffectList
 
 CLIENT_PLACEABLE = 0xC0000000
 SERVER_PLACEABLE = 0x80000000
@@ -87,6 +88,8 @@ class SceneWorld(runtime.World):
         self.primary_possessors: dict[int, int] = {}
         self.modifier_components: dict[int, modifiers.NumericModifiers | None] = {}
         self.scope_components: dict[int, scopes.Registry | None] = {}
+        self.effect_contexts: dict[int, effect_routing.Context | None] = {}
+        self.effect_targets: dict[int, effect_routing.Target | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -108,6 +111,7 @@ class SceneWorld(runtime.World):
 
     def unbind(self, entity: int) -> SceneEntity | None:
         """Forget a query binding after its owner has retired the entity."""
+        self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
         self.modifier_components.pop(entity, None)
         scope = self.scope_components.pop(entity, None)
@@ -152,6 +156,57 @@ class SceneWorld(runtime.World):
         if entity not in self.entities:
             return None
         return self.scope_components.get(entity, NotImplemented)
+
+    def set_effect_context(self, entity: int, context: effect_routing.Context | None) -> None:
+        self._bound_entity(entity)
+        if context is not None:
+            if type(context) is not effect_routing.Context:
+                raise ValueError("expected native effect context or known engine absence")
+            self._bound_entity(context.owner)
+        if entity in self.effect_contexts and self.effect_contexts[entity] is not context:
+            raise ValueError("retire the entity before replacing its effect context")
+        self.effect_contexts[entity] = context
+
+    def auxiliary_effect_context(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.effect_contexts.get(entity, NotImplemented)
+
+    def set_effect_target(self, entity: int, target: effect_routing.Target | None) -> None:
+        self._bound_entity(entity)
+        if target is not None:
+            if type(target) is not effect_routing.Target:
+                raise ValueError("expected component43 descriptor or known absence")
+            self._bound_entity(target.owner)
+        if entity in self.effect_targets and self.effect_targets[entity] is not target:
+            raise ValueError("retire the entity before replacing its effect target")
+        self.effect_targets[entity] = target
+
+    def auxiliary_effect_target(self, entity: int):
+        # Missing entity evidence is not a known component-43 absence.
+        return self.effect_targets.get(entity, NotImplemented)
+
+    def _retire_effect_bindings(self, entity: int) -> None:
+        sources = {entity} | {source for source, context in self.effect_contexts.items()
+                              if context is not None and context.owner == entity}
+        retiring = {target.entries for key, target in self.effect_targets.items()
+                    if target is not None and (key == entity or target.owner == entity)}
+        owners = retiring | {target.entries for target in self.effect_targets.values() if target is not None}
+        owners.update(context.fallback for context in self.effect_contexts.values()
+                      if context is not None and type(context.fallback) is EffectList)
+        for owner in owners:
+            for entry in owner.entries:
+                effect, observer = entry.effect, entry.effect.observer
+                source = observer.instance.component.entity if isinstance(observer, runtime.State) else None
+                if owner in retiring or source in sources or effect.target == entity:
+                    effect.observer = None
+                    owner.retire(effect)
+                    if isinstance(observer, runtime.State):
+                        observer.on_effect_abandoned(effect)
+        self.effect_contexts = {key: context for key, context in self.effect_contexts.items()
+                                if key not in sources}
+        self.effect_targets = {key: target for key, target in self.effect_targets.items()
+                               if key != entity and (target is None or target.owner != entity)}
 
     def script_failed(self, component: runtime.Component) -> None:
         backend = self.modifier_components.get(component.entity)

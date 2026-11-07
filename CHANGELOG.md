@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Auxiliary effect state callbacks and routes
+
+- Register 582E0D5F with explicit scope enter, refresh, matching observer and
+  non-orientation exit callbacks. Native owner/context, component-43 targets,
+  instance flags and global fallback lists are declared inputs. Unknown services
+  remain strict; begin/end/tick do not invent host dispatch or reconstruction.
+- Bind descriptors before initial evaluation and discard their local effects on
+  fault, object or entity retirement. Preserve unaffected sources in shared lists
+  and reject stale instance callbacks. Passive VM storage covers 29 State models.
+  Live SceneWorld/effect storage and native orientation cleanup remain unsupported.
+- Original routing/callback instructions match 416 cases with 156 allocations
+  and matching retirements, using explicit lookup/allocator/constructor adapters.
+- Actual 0F45 -> 0EC6 now passes entry and reaches frame 500 with supplied services
+  and clock mapping, draining its 750/1500/2250ms timers. No interface dispatch is
+  injected into that path; three states remain active. A separate actual node4
+  test explicitly enters, refreshes and retires its concrete effect State.
+- Passed 533 related runtime/expression/VM/body/bot/entrance/replication/replay
+  checks, 15 server snapshot/research-injection checks, Ruff and diff checks.
+  Full 100B remains D38D0035/node106. Native dispatch/history, engine consumers,
+  complete story/cinematics/enemy AI remain unaccepted. No deployment/new client.
+  Required publication helper remains missing.
+
 #### Auxiliary effect list ownership and initialization
 
 - Add explicit effect descriptors and native serial-sorted list membership.

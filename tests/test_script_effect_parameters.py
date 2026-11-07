@@ -165,13 +165,13 @@ class EffectParameterTests(unittest.TestCase):
             refresh(state, block)
         self.assertIsNotNone(component.fault)
 
-    def test_unsupported_state_stays_unimplemented_and_parameter_blocks_have_no_scheduler(self):
+    def test_missing_scope_host_keeps_auxiliary_state_creation_strict(self):
         model = graph([node(0, 'STU_582E0D5F', state=0)])
         component = runtime.Component(OWNER, strict=True)
         instance = component.create(model, init=False)
-        with self.assertRaises(runtime.UnsupportedScriptError):
+        with self.assertRaises(runtime.UnsupportedScriptError) as error:
             instance.state(0)
-        self.assertNotIn('STU_582E0D5F', runtime.STATE_CLASSES)
+        self.assertEqual(error.exception.diagnostic['feature'], 'subgraph scope registration')
 
 
 if __name__ == '__main__':
