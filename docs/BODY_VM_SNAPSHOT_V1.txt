@@ -150,7 +150,12 @@ transport-sync flags to be zero; other strict paths remain unsupported.
 Instance required fields:
 
   component id graph parent parent_state vars states queue ticking deferred params
-  stopped teardown initialized start
+  stopped teardown initialized start disabled_start_entries
+
+disabled_start_entries retains one-shot PlayScript start-entry suppression by
+node position. Pending native parameter/source writes are ASSIGN events; their
+assignment tuple contains scope, variable identifier and the evaluated value.
+Exporting either never invokes an entry, applies an assignment or starts a graph.
 
 State base required fields, inherited by every concrete State class:
 
@@ -220,7 +225,7 @@ Other exact stored records:
 
   Var             key base links watchers
   Link            state slot priority above stack
-  Event           time seq kind state op param node button pressed message transient
+  Event           time seq kind state op param node button pressed message assignment transient
   EventSequence   _next_value
 
 All Event fields are retained, including transient events and ENTRY, MESSAGE or

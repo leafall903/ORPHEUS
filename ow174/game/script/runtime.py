@@ -7,7 +7,8 @@ Read in the client (the addresses are in the docstrings below):
   step 0x7FF78AA9DE30). An update drains the instance's events up to now, ticks the ticking states and
   runs the deferred list, until the deferred list is empty (0x7FF78AAA27C0).
 - Events (dispatcher 0x7FF78AAA1690): 0 a state op (begin, finish, abort), 1 a timer, 2 a deferred
-  completion check, 3 an Entry, 8 a button edge, 9 "a watched variable changed". Inserted after every event
+  completion check, 3 an Entry, 4 a variable assignment, 8 a button edge, 9 "a watched variable changed".
+  Inserted after every event
   of the same time (FIFO), never in the past.
 - A plug walk (0x7FF78AA83FA0) follows the links in order. A state target only gets a begin (or abort)
   request: an event at now, so a state never begins inside a walk. Actions and conditions run at once.
@@ -37,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -166,6 +167,7 @@ class Event:
     pressed: bool = False
     message: tuple | None = None  # (message GUID, params, sender)
     transient: bool = False  # a re-check at now, never in an owner frame's event list
+    assignment: tuple | None = None  # (scope, variable identifier, evaluated value)
 
     def key(self):
         return self.time, self.seq
@@ -332,6 +334,15 @@ class World:
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
+
+    def play_script(self, instance: "Instance", node: Node) -> None:
+        """Resolve a native PlayScript request against the world's entity/resource services.
+
+        A backend may use Component.play_loaded_graph after resolving the target,
+        graph, overrides, source context and replication policy. The base world
+        cannot silently accept a strict mission request.
+        """
+        instance.component.unsupported(instance, "native PlayScript request", node.cls, node)
 
     def code_changed(self, component: "Component", token: int) -> None:
         """Deliver an explicitly registered native-service notification."""
@@ -576,6 +587,41 @@ class Component:
         del self.instances[instance.id]
         self.destroyed.append(instance)
 
+    def play_loaded_graph(
+        self, definition: Graph, *, source: int, params=(), policy: int = 0,
+    ) -> "Instance | None":
+        """Invoke an already-resolved graph on this component (64D2C0, 64CD10).
+
+        Policies: 0 skip an existing graph; 1 create; 2 reuse its first instance
+        or create; 3 retire all matching instances before creating. This core does
+        not resolve world targets, resources, request overrides or wire flags.
+        The native start context must supply source explicitly. This core uses
+        context kind zero; entries declaring another kind do not match it.
+        """
+        self.ensure_valid()
+        if type(policy) is not int or policy not in range(4):
+            raise ValueError("unknown PlayScript instance policy")
+        if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
+            raise ValueError("PlayScript source must be a 32-bit entity identifier")
+        params = tuple(params)
+        if any(type(key) is not int or not 0 <= key <= 0xFFFFFFFFFFFFFFFF for key, _ in params):
+            raise ValueError("PlayScript parameter keys must be 64-bit identifiers")
+        with self.operation():
+            matches = []
+            for instance in self.instances.values():
+                self.consume_work("played graph lookup")
+                if instance.graph.index == definition.index:
+                    matches.append(instance)
+            if matches and policy == 0:
+                return None
+            if policy == 3:
+                for instance in matches:
+                    self.consume_work("replace played graph")
+                    self.destroy(instance)
+            instance = matches[0] if matches and policy == 2 else self.create(definition)
+            instance.start_entries(params, source)
+            return instance
+
     # --- time --------------------------------------------------------------------------------------
 
     def next_event_time(self) -> int | None:
@@ -651,6 +697,7 @@ class Instance:
         self.teardown = False
         self.initialized = False
         self.start = 0
+        self.disabled_start_entries: set[int] = set()
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -749,6 +796,52 @@ class Instance:
             if node is not None and not node.client_only and node.cls in ENTRY_CLASSES:
                 self.post(Event(self.start, 0, ENTRY, node=node))
 
+    def start_entries(self, params: tuple, source: int) -> int:
+        """Queue native BB4AC733 start-entry bindings before each entry (1B95950).
+
+        Named parameters find the first matching writable row; key zero uses the
+        parameter's position. Missing parameters leave previous variables intact.
+        A nonzero FDBDCB70 disables that entry for later invocations.
+        """
+        count = 0
+        with self.component.operation():
+            if self.stopped:
+                return count
+            for node in self.graph.entries:
+                if (node is None or node.client_only or node.cls != "STU_BB4AC733"
+                        or node.pos in self.disabled_start_entries):
+                    continue
+                self.component.consume_work("script start entry")
+                if node.field("m_5AEA0A51"):
+                    continue
+                rows = node.field("m_params") or []
+                for position, (key, value) in enumerate(params):
+                    for row_position, row in enumerate(rows):
+                        self.component.consume_work("script start parameter binding")
+                        if row is None:
+                            continue
+                        match = (expr.guid_of(row.get("m_B5051BCE")) == key
+                                 if key else row_position == position)
+                        if not match or row.get("m_out_Var") is None:
+                            continue
+                        target = expr.dynamic(row["m_out_Var"])
+                        if target is None:
+                            self.component.unsupported(self, "script start parameter target", node.cls, node)
+                        if target[1]:
+                            self.post(Event(self.component.now, 0, ASSIGN, assignment=(*target, value)))
+                        break
+                source_config = node.field("m_B60ABDA4")
+                if source_config is not None and expr.valid_entity(source):
+                    target = expr.dynamic(source_config)
+                    if target is None:
+                        self.component.unsupported(self, "script start source target", node.cls, node)
+                    self.post(Event(self.component.now, 0, ASSIGN, assignment=(*target, Entity(source))))
+                if node.field("m_FDBDCB70"):
+                    self.disabled_start_entries.add(node.pos)
+                self.post(Event(self.component.now, 0, ENTRY, node=node))
+                count += 1
+        return count
+
     def update(self) -> None:
         """One update at the component's now (0x7FF78AAA27C0)."""
         with self.component.operation():
@@ -805,6 +898,9 @@ class Instance:
                 state.dependency_changed()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
+        elif event.kind == ASSIGN:
+            scope, identifier, value = event.assignment
+            self.write((scope, identifier), value)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:

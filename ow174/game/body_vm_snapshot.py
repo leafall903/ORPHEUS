@@ -26,7 +26,7 @@ _COMPONENT = frozenset((
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
-    "deferred", "params", "stopped", "teardown", "initialized", "start",
+    "deferred", "params", "stopped", "teardown", "initialized", "start", "disabled_start_entries",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -73,7 +73,7 @@ _VALUE_LAYOUTS = {
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
-                    "message", "transient"),
+                    "message", "assignment", "transient"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
 }
 
@@ -157,6 +157,7 @@ class _Export:
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
         _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("disabled_start_entries",), set, "instance")
         if fields["component"] is not self.component:
             raise BodyVMSnapshotError("foreign component instance reference")
         number = _integer(fields["id"], "instance")

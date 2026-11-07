@@ -1572,6 +1572,22 @@ def send_game_message(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_BB4AC733")
+def script_start_entry(instance: Instance, node, caller) -> bool:
+    # Native 1B6EC40 only follows the entry's output. Bindings were queued by
+    # the invocation path before this event, not evaluated while following it.
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STUStatescriptActionPlayScript")
+def play_script(instance: Instance, node, caller) -> bool:
+    if instance.component.strict:
+        instance.component.world.play_script(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 def no_op(instance: Instance, node, caller) -> bool:
     """Actions with no effect on the server's graph state (effects, stats, client-only messages)."""
     instance.follow(node, "m_outPlug", None)
@@ -1584,7 +1600,6 @@ for _name in (
     "STU_CEBDAF17",  # TrackStat
     "STU_100EF8C2",  # SendClientOnlyGameMessage
     "STUStatescriptActionSendClientGlobalGameMessage",
-    "STUStatescriptActionPlayScript",
     "STU_7106C356",
     "STU_C43F9944",
 ):

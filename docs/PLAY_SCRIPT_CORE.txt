@@ -1,0 +1,71 @@
+Loaded-graph PlayScript core — partial native service restoration
+Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
+
+Problem
+PlayScript was registered as an unconditional no-op. The authored Retribution
+mode/controller/body reference closure contains 23 non-client-only uses. Silently
+following their success plugs cannot establish that helper scripts ran.
+
+Native evidence
+- The complete captured registration chain has 1,735 records. PlayScript's own
+  registration 2F647F0 has priority 2, constructors 90BC30/90C140 and native
+  handler vtable 26225F0. Execute is 906D50.
+- 906DC4..6E33 tries the graph-with-overrides config, then the fallback graph
+  config. 906E49..6F3E collects valid target entities in order. The request also
+  retains a source context, graph overrides, evaluated parameters and wire flags.
+- 64D2C0 skips an existing graph for policy 0; policy 3 retires matching graphs
+  before requesting a replacement. 64CD10 reuses the first matching instance
+  for policy 2. Policy 1 creates another instance. Resource availability and
+  deferred request processing are separate from these allocation decisions.
+- 1B920B0 selects STU_BB4AC733 entries, excluding disabled entries and entries
+  whose declared context kind differs. 1B95950 queues their parameter writes,
+  valid source binding and then the entry event. 1BA7B80 finds the first writable
+  named parameter row, or uses the request parameter's position for key zero.
+  Missing parameters leave variables unchanged. A zero output identifier is not
+  assigned. 1B954F0 marks a nonzero FDBDCB70 entry disabled for later starts.
+- BB4AC733 execute 1B6EC40 only follows its output. The bindings are queued by
+  the invocation path, not interpreted during plug traversal.
+
+Implemented boundary
+Component.play_loaded_graph(definition, source=entity_id, params=ordered_pairs,
+                            policy=0) -> Instance or None
+
+This is the allocation/start core for a graph already resolved by a world backend.
+The caller supplies the explicit start-context caller entity (+98), used by the
+entry's B60ABDA4 binding. This is distinct from context +9C, the instigator
+selected by m_6D7701B7. No instigator/source fallback is invented.
+It supports context kind zero, the four allocation policies, named/positional
+parameter bindings, queued source binding, one-shot start entries and ordinary
+initialization before the separately queued start bindings. Dynamic instances
+are independent roots, rather than lifetime-bound SubScript children.
+
+Replacement uses the existing Component.destroy teardown. Native deferred
+deletion during an active callback, asynchronous resource requests, graph/schema
+overrides, request target selection, source-context derivation, transported
+instance/flag behavior and client acceptance remain outside this core.
+
+Strict PlayScript actions call World.play_script(instance, node). A concrete
+world backend must resolve and perform the request before its output is followed.
+The base world explicitly fails this request. Legacy permissive body behavior
+remains passive. No mission host is attached to Match by this change.
+
+Pending assignment events and disabled start-entry positions are included in the
+read-only VM storage boundary. Export never applies writes or invokes entries.
+
+Local authored probe
+0F45 node 48 references 0EC6. Its parameter 0A4000000000000A maps through the
+actual BB4AC733 entry at position 8 to instance variable 41. An explicit test
+value 17 reaches that variable; execution then stops at an unimplemented world
+query STU_DB742151. The unresolved action itself now fails with a native
+PlayScript request diagnostic. This does not establish mission startup, actual
+request resolution, cinematics, enemy behavior or original-client acceptance.
+
+Other current startup evidence
+The full 100B probe still stops at STU_D38D0035. Its typeinfo is 2DDB1F8 and its
+STU vtable is 2738A90 (2738A98 is the typeinfo getter slot, not the vtable base).
+The full registration chain contains no own handler for it; it resolves through
+the Action parent. Component notification/authority behavior still needs evidence,
+so this parent fallback is not accepted as the missing server implementation.
+
+Local-only native registry, disassembly and authored-probe records live under
+verification/retribution. Game data and module captures remain outside Git.

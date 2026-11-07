@@ -57,14 +57,15 @@ COMPONENT_FIELDS = {
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
-    "deferred", "params", "stopped", "teardown", "initialized", "start",
+    "deferred", "params", "stopped", "teardown", "initialized", "start", "disabled_start_entries",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
     "watched", "flags_changed", "flags_check", "polled", "natives",
 }
 EVENT_FIELDS = {
-    "time", "seq", "kind", "state", "op", "param", "node", "button", "pressed", "message", "transient",
+    "time", "seq", "kind", "state", "op", "param", "node", "button", "pressed", "message",
+    "assignment", "transient",
 }
 TRANSPORT_FIELDS = {"stream", "create_arrived", "first_owner_frame", "reports", "report_count"}
 
@@ -195,18 +196,19 @@ class BodyVMSnapshotTests(unittest.TestCase):
 
     def test_complete_event_records_include_nonstate_and_transient_events_in_fifo_order(self):
         component, instance = fixture()
-        kinds = (runtime.MESSAGE, runtime.ENTRY, runtime.BUTTON, runtime.CHECK, runtime.CHANGED,
-                 runtime.TIMER, runtime.STATE_OP)
+        kinds = (runtime.MESSAGE, runtime.ENTRY, runtime.BUTTON, runtime.ASSIGN, runtime.CHECK,
+                 runtime.CHANGED, runtime.TIMER, runtime.STATE_OP)
         for number, kind in enumerate(kinds):
             instance.queue.append(runtime.Event(
                 30, number, kind, instance.states[0] if number > 2 else None, op=2, param=number + 9,
                 node=instance.graph.nodes[0], button=20, pressed=True,
                 message=(0x123, {None: b"\x00\xff"}, 7), transient=True,
+                assignment=(0, 41, expr.Entity(123)),
             ))
         data = raw(export_component_vm(component))
         events = [dict(item["fields"]) for item in elements(fields(data, ["instance", 1])["queue"])]
         self.assertEqual([event["kind"] for event in events], list(kinds))
-        self.assertEqual([event["seq"] for event in events], list(range(7)))
+        self.assertEqual([event["seq"] for event in events], list(range(len(kinds))))
         for index, event in enumerate(events):
             self.assertEqual(set(event), EVENT_FIELDS)
             self.assertEqual((event["time"], event["op"], event["param"]), (30, 2, index + 9))
@@ -214,6 +216,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
             self.assertEqual((event["button"], event["pressed"], event["transient"]), (20, True, True))
             self.assertEqual(event["state"], None if index < 3 else ref("state", 1, 0))
             self.assertEqual(elements(elements(event["message"])[1]), [[None, b"\x00\xff"]])
+            self.assertEqual(elements(event["assignment"])[:2], [0, 41])
 
     def test_observation_does_not_consume_sequence_rng_shots_or_execute_graph_methods(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))

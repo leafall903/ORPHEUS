@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-08
+
+#### Loaded script invocation core
+
+- Add the loaded-graph PlayScript core: skip/create/reuse/replace policies,
+  ordered native parameter and source assignments, BB4AC733 start entries and
+  one-shot entry suppression. Preserve pending assignments and disabled entries
+  in read-only VM storage. Strict PlayScript actions now require an explicit
+  world backend before following their output; legacy bodies remain passive.
+- Passed 162 related runtime/expression/bot/entrance/replication/VM checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks. The
+  authored 0F45 node 48 -> 0EC6 start-entry mapping receives a supplied value in
+  variable 41 before stopping at unsupported STU_DB742151.
+- World target/resource resolution, source-context derivation, schema overrides,
+  asynchronous requests and native deferred deletion remain open. Full 100B
+  initialization still stops at STU_D38D0035. No mission deployment or new
+  original-client acceptance is claimed; cinematics, enemy AI and full story
+  playthrough remain unaccepted. Publication requires the missing helper.
+
 ### 2026-11-07
 
 #### Complete map component research inputs

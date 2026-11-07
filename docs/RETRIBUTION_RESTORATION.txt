@@ -100,3 +100,22 @@ Full map component inputs, 2026-11-07:
 - Passed 42 focused extraction checks and Ruff. These are data inputs only;
   native mission services, world instantiation, cinematics and enemy AI remain
   open. See MAP_WORLD_INPUTS.txt. No candidate deployment is claimed.
+
+Loaded script invocation core, 2026-11-08:
+- Full native registration traversal identifies PlayScript's dedicated handler.
+  The Retribution reference closure contains 23 non-client-only uses; the former
+  no-op behavior did not start their target graphs.
+- Add explicit loaded-graph allocation policies, queued native parameter/source
+  binding and BB4AC733 start entries. Retain one-shot entry suppression and
+  pending assignments in VM storage. Strict actions require a World backend;
+  legacy bodies retain passive behavior. See PLAY_SCRIPT_CORE.txt for scope.
+- The actual 0F45 node 48 -> 0EC6 entry 8 binding receives a supplied test value
+  in variable 41, then stops at STU_DB742151. Resource/target resolution, request
+  overrides, source derivation and native deferred deletion are still open.
+- Full 100B initialization still stops at D38D0035, with no own registration in
+  the captured chain. Its component/authority behavior remains unverified.
+  The correct STU vtable base is 2738A90, not its getter slot 2738A98.
+- No mission deployment, full startup or new original-client acceptance is
+  claimed. Cinematics, correct enemy AI and complete mission playthrough remain open.
+- Passed 162 related expression/runtime/bot/entrance/replication/VM checks and
+  15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
