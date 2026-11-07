@@ -131,8 +131,13 @@ subclass or silently discard its extra storage.
 Component required fields:
 
   entity frame_ms world rng frame now instances vars held button disabled seq
-  next_id destroyed shots owner_dead fault
+  next_id destroyed shots owner_dead fault strict
   _operation_depth _follow_depth _work_left
+
+The strict policy stops unsupported mission nodes, states and base-world native
+queries instead of applying the compatibility fallbacks. Its value is stored even
+when false. Terminal UnsupportedScriptError storage includes its diagnostic
+mapping and exception args; exporting it does not resume graph execution.
 
 Instance required fields:
 

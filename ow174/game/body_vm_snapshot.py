@@ -22,7 +22,7 @@ TRANSPORT_FIELDS = frozenset(("stream", "create_arrived", "first_owner_frame", "
 _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
-    "_follow_depth", "_work_left",
+    "_follow_depth", "_work_left", "strict",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -373,6 +373,11 @@ class _Export:
             _layout(obj, set())
             return {"class": _name(kind), "identity": self.identity(obj),
                     "fields_identity": self.identity(vars(obj)), "args": self.value(obj.args)}
+        if kind is runtime.UnsupportedScriptError:
+            fields = _layout(obj, {"diagnostic"})
+            return {"class": _name(kind), "identity": self.identity(obj),
+                    "fields_identity": self.identity(fields), "fields": self.value(fields),
+                    "args": self.value(obj.args)}
         if kind in _VALUE_LAYOUTS:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}

@@ -52,7 +52,7 @@ STATE_MODELS = (
 COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
-    "_follow_depth", "_work_left",
+    "_follow_depth", "_work_left", "strict",
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -380,6 +380,19 @@ class BodyVMSnapshotTests(unittest.TestCase):
             fault = dict(raw(export_component_vm(component))["component"])["fault"]
         self.assertTrue(fault["class"].endswith(".ScriptBudgetError"))
         self.assertEqual(fault["args"], {"kind": "tuple", "items": ["terminal probe"]})
+
+    def test_strict_policy_and_terminal_diagnostic_are_preserved_without_running(self):
+        component, instance = fixture()
+        ordinary = snapshot_digest(export_component_vm(component))
+        component.strict = True
+        self.assertNotEqual(snapshot_digest(export_component_vm(component)), ordinary)
+        component.fault = runtime.UnsupportedScriptError(instance, "node", "UnimplementedEncounter")
+        with mock.patch.object(runtime.Component, "ensure_valid", side_effect=AssertionError("called")):
+            exported = dict(raw(export_component_vm(component))["component"])
+        self.assertTrue(exported["strict"])
+        fault = exported["fault"]
+        self.assertTrue(fault["class"].endswith(".UnsupportedScriptError"))
+        self.assertIn("UnimplementedEncounter", str(fault["fields"]))
 
     def test_known_state_fields_and_types_cannot_be_transplanted_to_another_node_model(self):
         component, instance = fixture()

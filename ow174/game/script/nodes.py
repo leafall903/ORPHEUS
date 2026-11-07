@@ -1090,6 +1090,10 @@ class SubScript(State):
         index = self.graph_index()
         found = graphs.graph(index) if index is not None else None
         if found is None:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(
+                    self.instance, "SubScript graph", f"{index or 0:04X}", self.node,
+                )
             expr.warn_once(f"sub{index}", "SubScript graph %s is not in the data", f"{index or 0:04X}")
             return
         values = {}
@@ -1437,6 +1441,8 @@ def button_held(instance: Instance, node, caller) -> bool:
 
 @handler("STU_4E2BCAAB")
 def unknown_condition(instance: Instance, node, caller) -> bool:
+    if instance.component.strict:
+        instance.component.unsupported(instance, "condition", node.cls, node)
     expr.warn_once(node.cls, "condition %s is not modelled: false", node.cls)
     return branch(instance, node, caller, False)
 

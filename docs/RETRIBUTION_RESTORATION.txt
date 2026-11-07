@@ -1,0 +1,62 @@
+Retribution story restoration — active, not accepted
+Target: original build 1.74.0.0.104319, Rialto Archives map 079F, story mode 0025.
+
+The required outcome is the complete story mission: authored progression from
+start to extraction/results, its cinematics and control handoffs, and correct
+enemy behavior. The completed entrance milestone does not establish any of these.
+Normal difficulty is the first full-playthrough target; the other story difficulty
+cards need subsequent progression/combat regression checks before broader claims.
+
+Acceptance still required:
+- Run the authored mode, team/controller/body and placed-world scripts together.
+  Preserve their variable scopes, overrides, messages, trigger conditions, entity
+  lifetimes and terminal success/failure behavior. A forced phase advance or
+  timer-only encounter substitute does not establish mission correctness.
+- Restore story hero eligibility and mission start/restart/leave behavior.
+- Verify cinematic assets and every required authored trigger, actor binding,
+  camera/control transition and return to playable state, including the ending.
+- Restore enemy spawning, authored routes/navigation, target acquisition,
+  visibility/range gates, attacks, damage, death and removal, with enemy-specific
+  behavior for the mission's actual Trooper, Enforcer, Sniper, Assassin and Heavy
+  Assault encounters. Candidate asset names alone do not establish encounter use.
+- Verify complete original-client playthroughs with stage/event evidence and
+  visible AI/cinematic behavior; retain failures and unfinished paths explicitly.
+
+2026-11-07 implementation evidence:
+- The existing mode/controller/body asset-reference closure contains 98 graphs,
+  but no mission runtime is attached to Match. The entrance uses a prepared
+  readiness frame. Existing bot support is chiefly training-bot behavior.
+- The 079F instance dump contains 145 placed statescript entities. Their 13 graph
+  roots were absent from the accepted entrance runtime. Including their closure
+  adds 16 graphs, with no new missing graphs or reported XML ownership problems.
+- The extractor now accepts --map-entities HEX_MAP_INDEX=ENTITIES_XML and retains
+  component graph order and overrides. DragonML IDs are resolved independently
+  per component, because separately serialized components reuse those IDs.
+  Instance XML does not contain transforms or entity-definition defaults; both
+  remain required world inputs. Generated assets remain outside this repository.
+- Optional strict Component execution stops on unmodelled nodes/states, missing
+  plug/SubScript targets and unsupported base-world queries. It records the
+  graph/node/frame and invalidates queued work instead of accepting a compatibility
+  fallback as successful mission progress. This is diagnostic enforcement, not
+  proof that registered handlers or native-world services implement the mission.
+- The actual 100B startup probe stops at node 158, STU_CD46AF93 (ForCodeSynced),
+  frame zero. Its state-to-native-code binding still needs implementation.
+  A previously authorized client image exposes its specialized native methods;
+  their registration/removal/update roles are under investigation. The native
+  implementation must be read before assigning mission semantics to its values.
+- Snapshot observations retain the strict policy and terminal diagnostic without
+  invoking graph callbacks. Existing player/body execution remains permissive by
+  default; the candidate is isolated and has not replaced the accepted runtime.
+- The raw ENTITY chunk and XML agree on all 2,464 entity definitions, transforms
+  and component counts. All 186 referenced entity-definition XML inputs exist;
+  their initial script roots are covered by the candidate. Other native
+  components and encounter configurations still require interpretation.
+- Passed 158 focused extraction/runtime/expression/bot/snapshot/fault tests and
+  Ruff. These checks do not establish cinematic or enemy behavior.
+
+Local research records: verification/retribution/authored-script-audit.json,
+candidate-script-audit.json, candidate-manifest.json and for-code-synced-native.txt.
+Candidate preparation: verification/build_retribution_candidate.py.
+Current next step: interpret definition/encounter components, implement the first
+unsupported native script services and attach the real mission host. Cinematic
+and enemy-AI acceptance has not started.

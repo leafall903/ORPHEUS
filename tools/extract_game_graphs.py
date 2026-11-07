@@ -148,9 +148,9 @@ def guid_index(text: str) -> int:
 class StuXml:
     """One DataTool XML file with its object references resolved."""
 
-    def __init__(self, path: Path, enums: EnumTables) -> None:
+    def __init__(self, path: Path, enums: EnumTables, *, root: ET.Element | None = None) -> None:
         self.enums = enums
-        self.root = ET.parse(path).getroot()
+        self.root = ET.parse(path).getroot() if root is None else root
         self.objects = {}
         for element in self.root.iter():
             key = element.get(ID)
@@ -648,13 +648,50 @@ def mode_scripts(folder: Path, enums: EnumTables) -> dict[str, dict]:
     return modes
 
 
+def map_script_instances(path: Path, enums: EnumTables) -> tuple[list[dict], set[int]]:
+    """Retain placed graph order/overrides, resolving each component's DragonML IDs locally.
+
+    This XML contains component instance data, not transforms or entity-definition
+    defaults. It supplies script roots; it is not a complete spawnable world.
+    """
+    root = ET.parse(path).getroot()
+    if root.tag != "entities":
+        raise ValueError(f"{path}: expected an entities dump")
+    records, roots, seen = [], set(), set()
+    for entity in root:
+        index = int(entity.attrib["index"])
+        if index < 0 or index in seen:
+            raise ValueError(f"{path}: duplicate/invalid entity index {index}")
+        seen.add(index)
+        components = []
+        for component in entity:
+            if component.tag != "STUStatescriptComponentInstanceData":
+                continue
+            xml = StuXml(path, enums, root=component)
+            value = xml.value(component)
+            components.append(value)
+            for item in component.iter():
+                reference = item.get("GUID")
+                if reference and reference.endswith(".01B"):
+                    roots.add(guid_index(reference))
+        if components:
+            records.append({"entity_index": index, "definition": guid_text(entity.attrib["definition"]),
+                            "components": components})
+    return records, roots
+
+
 def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
-    *, ai_spawners: Path | None = None,
+    *, ai_spawners: Path | None = None, map_entities: dict[int, Path] | None = None,
 ) -> dict:
     variables = mode_variables(mode_xml, enums) if mode_xml is not None else None
     mode_roots = mode_graph_roots(mode_xml) if mode_xml is not None else set()
     ai_roots = ai_graph_roots(ai_spawners) if ai_spawners is not None else set()
+    map_scripts, map_roots = {}, set()
+    for map_index, path in sorted((map_entities or {}).items()):
+        records, used = map_script_instances(path, enums)
+        map_scripts[f"0x{0x0800000000000000 | map_index:016X}"] = records
+        map_roots.update(used)
     heroes = json.loads(HEROES.read_text(encoding="utf-8"))
     bodies, reason, queue = {}, {}, []
     for hero, entry in heroes.items():
@@ -674,6 +711,7 @@ def collect(
     queue += list(ROOT_GRAPHS.items())
     queue.extend((index, "map AI spawners") for index in sorted(ai_roots))
     queue.extend((index, "game mode scripts") for index in sorted(mode_roots))
+    queue.extend((index, "placed map scripts") for index in sorted(map_roots))
     graphs, missing = {}, set()
     while queue:
         index, why = queue.pop(0)
@@ -694,7 +732,8 @@ def collect(
         queue += [(child, why) for child in sorted(xml.graph_refs())]
     data = {
         "version": 1,
-        "roots": {"bodies": sorted(bodies), "graphs": sorted(ROOT_GRAPHS.keys() | ai_roots | mode_roots)},
+        "roots": {"bodies": sorted(bodies),
+                  "graphs": sorted(ROOT_GRAPHS.keys() | ai_roots | mode_roots | map_roots)},
         "bodies": bodies,
         "missing": sorted(missing),
         "graphs": [graphs[index] for index in sorted(graphs)],
@@ -702,6 +741,8 @@ def collect(
     }
     if entities:
         data["entities"] = entities
+    if map_scripts:
+        data["map_scripts"] = map_scripts
     if variables is not None:
         data["mode_variables"] = variables
         data["mode_scripts"] = mode_scripts(mode_xml, enums)
@@ -714,6 +755,13 @@ def entity_index(text: str) -> int:
     return int(text, 16)
 
 
+def map_source(text: str) -> tuple[int, Path]:
+    index, separator, path = text.partition("=")
+    if not separator or not path:
+        raise argparse.ArgumentTypeError("use HEX_MAP_INDEX=ENTITIES_XML, for example 079F=079F-entities.xml")
+    return entity_index(index), Path(path)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--xml", type=Path, required=True, help="DataTool XML dump")
@@ -724,6 +772,8 @@ def main() -> None:
                         help="directory of .0C5 XML files for mode variables and script roots")
     parser.add_argument("--ai-spawners", type=Path,
                         help="include local map spawner graph roots and AI weapon controls")
+    parser.add_argument("--map-entities", action="append", type=map_source, default=[],
+                        help="placed script roots/overrides as HEX_MAP_INDEX=ENTITIES_XML, repeatable")
     parser.add_argument("--output", type=Path, help="destination bundle")
     args = parser.parse_args()
     output = args.output or OUT
@@ -732,10 +782,16 @@ def main() -> None:
     for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners)):
         if source is not None and (args.output is None or output.resolve().is_relative_to(ROOT)):
             parser.error(f"{option} requires --output outside the repository")
+    if args.map_entities:
+        if args.output is None or output.resolve().is_relative_to(ROOT):
+            parser.error("--map-entities requires --output outside the repository")
+        if len(dict(args.map_entities)) != len(args.map_entities):
+            parser.error("--map-entities repeats a map index")
     enums = EnumTables(args.owlib / "TankLib" / "STU" / "Types")
     try:
         data = collect(
             args.xml, enums, tuple(args.entity), mode_xml=args.mode_xml, ai_spawners=args.ai_spawners,
+            map_entities=dict(args.map_entities),
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))

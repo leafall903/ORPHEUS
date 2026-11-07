@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### Retribution mission dependency and execution diagnostics
+
+- Include placed map script roots, graph order and component overrides in
+  optional external graph extraction. Resolve DragonML IDs per component and
+  require generated map inputs outside the repository. A local Rialto candidate
+  retains 145 script placements and adds their 16-graph closure without new missing
+  graphs; it has not replaced the accepted entrance runtime.
+- Add optional strict runtime diagnostics for unmodelled nodes/states, missing
+  plug/SubScript targets and unsupported base-world queries. Stop queued work on
+  failure and preserve the policy/diagnostic in read-only VM snapshots. Existing
+  body prediction keeps its permissive default. The real 100B startup now exposes
+  its unimplemented ForCodeSynced state at node 158 instead of treating it as a
+  generic state. Registered handlers are not proof of complete mission semantics.
+- Passed 158 focused extraction/runtime/expression/bot/snapshot/fault tests and Ruff.
+  Full story progression, native code bindings, cinematics and enemy AI remain
+  open. No new client acceptance or mission deployment is claimed. Required
+  publication synchronization remains unavailable while its helper is absent.
+
 #### PVE entrance acceptance and local deployment
 
 - All 47 Archives/Junkenstein cards passed original build-104319 client menu,

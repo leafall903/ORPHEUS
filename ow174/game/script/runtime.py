@@ -58,6 +58,22 @@ class ScriptBudgetError(RuntimeError):
     """The component could not complete its simulation within a work/recursion limit."""
 
 
+class UnsupportedScriptError(RuntimeError):
+    """An authored mission path needs semantics the server has not implemented."""
+
+    def __init__(self, instance: "Instance", feature: str, cls: str, node: Node | None = None) -> None:
+        component = instance.component
+        self.diagnostic = {
+            "entity": component.entity, "instance": instance.id, "graph": instance.graph.index,
+            "frame": component.frame, "time_ms": component.now,
+            "feature": feature, "class": cls, "node": node.pos if node is not None else None,
+        }
+        super().__init__(
+            f"graph {instance.graph.index:04X}, instance {instance.id}, node {self.diagnostic['node']}, "
+            f"frame {component.frame}: unsupported {feature} {cls}"
+        )
+
+
 class EventSequence:
     """The next FIFO sequence number, observable without advancing the iterator."""
 
@@ -310,6 +326,8 @@ class World:
     def native(self, cfg: dict, instance: "Instance"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
+        if instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
+            instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
@@ -320,8 +338,14 @@ class Component:
     """The statescript component of one entity: its clock, its instances (in creation order) and its
     entity-scope variables."""
 
-    def __init__(self, entity: int, frame_ms: int = 16, world: World | None = None, seed: int = 1) -> None:
+    def __init__(
+        self, entity: int, frame_ms: int = 16, world: World | None = None, seed: int = 1,
+        *, strict: bool = False,
+    ) -> None:
         self.entity = entity
+        # Mission reconstruction cannot advance through placeholder native nodes.
+        # Existing player/body prediction keeps its current compatibility policy.
+        self.strict = strict
         self.frame_ms = frame_ms
         self.world = world or World()
         self.rng = expr.random.Random(seed)
@@ -338,7 +362,7 @@ class Component:
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
-        self.fault: ScriptBudgetError | None = None
+        self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
         self._follow_depth = 0
         self._work_left = MAX_SCRIPT_WORK
@@ -349,10 +373,16 @@ class Component:
 
     def budget_exceeded(self, message: str) -> None:
         """Fail the whole body, without running more graph callbacks or retaining shots."""
+        self._fail(ScriptBudgetError(
+            f"entity {self.entity:08X}, frame {self.frame}, time {self.now} ms: {message}"
+        ))
+
+    def unsupported(self, instance: "Instance", feature: str, cls: str, node: Node | None = None) -> None:
+        self._fail(UnsupportedScriptError(instance, feature, cls, node))
+
+    def _fail(self, error: ScriptBudgetError | UnsupportedScriptError) -> None:
         if self.fault is None:
-            self.fault = ScriptBudgetError(
-                f"entity {self.entity:08X}, frame {self.frame}, time {self.now} ms: {message}"
-            )
+            self.fault = error
             self.shots.clear()
             self.held.clear()
             for instance in self.instances.values():
@@ -595,7 +625,11 @@ class Instance:
         if found is None:
             node = self.graph.state(index)
             if node is None:
+                if self.component.strict:
+                    self.component.unsupported(self, "state reference", str(index))
                 return None
+            if self.component.strict and node.cls not in STATE_CLASSES and node.cls != "STUStatescriptState":
+                self.component.unsupported(self, "state", node.cls, node)
             found = self.states[index] = STATE_CLASSES.get(node.cls, State)(self, node, index)
         return found
 
@@ -754,6 +788,8 @@ class Instance:
                 break
             target = self.graph.node(position) if position is not None else None
             if target is None:
+                if self.component.strict:
+                    self.component.unsupported(self, "plug target", str(position), node)
                 taken = True
                 continue
             if not self.accepts(target):
@@ -802,6 +838,8 @@ class Instance:
             if accepted is not NotImplemented:
                 return accepted
         if node.cls not in ENTRY_CLASSES and node.cls not in MESSAGE_ENTRIES:
+            if self.component.strict:
+                self.component.unsupported(self, "node", node.cls, node)
             expr.warn_once(node.cls, "node class %s has no model: it only follows m_outPlug", node.cls)
         self.follow(node, "m_outPlug", None)
         return True

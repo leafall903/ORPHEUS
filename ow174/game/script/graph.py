@@ -26,6 +26,8 @@ The file is gzip JSON:
 - "mode_scripts" (optional): per 0C5 mode GUID, its primary/shared graphs, loading flag and team scripts.
 - "mission_scripts" (optional): per map and mode GUID, a configured mission graph with its mode graph,
   source asset and schema overrides. These bindings come from external map/mission inputs.
+- "map_scripts" (optional): per map GUID, placed statescript component instances in entity order,
+  including graph order and schema overrides. This is not entity-definition defaults or transforms.
 - "missing": graph indexes referenced but not in the dump.
 
 Which states a frame carries (read in the client at 0x7FF78991BE30):
