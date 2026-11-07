@@ -336,10 +336,18 @@ class World:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
 
     def play_script(self, instance: "Instance", node: Node) -> None:
-        """Resolve a native PlayScript request against the world's entity/resource services.
+        """Select a native PlayScript resource, then ask the world to route it."""
+        from ow174.game.script.play import resolve_resource
+
+        resource = resolve_resource(instance, node)
+        if resource is not None:
+            self.play_resolved_script(instance, node, resource)
+
+    def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
+        """Route/load a resource selected in the caller's evaluation context.
 
         A backend may use Component.play_loaded_graph after resolving the target,
-        graph, overrides, source context and replication policy. The base world
+        graph, source context and replication policy. The base world
         cannot silently accept a strict mission request.
         """
         instance.component.unsupported(instance, "native PlayScript request", node.cls, node)
@@ -588,13 +596,14 @@ class Component:
         self.destroyed.append(instance)
 
     def play_loaded_graph(
-        self, definition: Graph, *, source: int, params=(), policy: int = 0,
+        self, definition: Graph, *, source: int, params=(), overrides=(), policy: int = 0,
     ) -> "Instance | None":
         """Invoke an already-resolved graph on this component (64D2C0, 64CD10).
 
         Policies: 0 skip an existing graph; 1 create; 2 reuse its first instance
         or create; 3 retire all matching instances before creating. This core does
-        not resolve world targets, resources, request overrides or wire flags.
+        not resolve world targets, resources or wire flags. Evaluated overrides
+        follow public schema defaults, before the separately queued start inputs.
         The native start context must supply source explicitly. This core uses
         context kind zero; entries declaring another kind do not match it.
         """
@@ -604,8 +613,10 @@ class Component:
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise ValueError("PlayScript source must be a 32-bit entity identifier")
         params = tuple(params)
-        if any(type(key) is not int or not 0 <= key <= 0xFFFFFFFFFFFFFFFF for key, _ in params):
-            raise ValueError("PlayScript parameter keys must be 64-bit identifiers")
+        overrides = tuple(overrides)
+        for name, pairs in (("parameter", params), ("override", overrides)):
+            if any(type(key) is not int or not 0 <= key <= 0xFFFFFFFFFFFFFFFF for key, _ in pairs):
+                raise ValueError(f"PlayScript {name} keys must be 64-bit identifiers")
         with self.operation():
             matches = []
             for instance in self.instances.values():
@@ -618,7 +629,9 @@ class Component:
                 for instance in matches:
                     self.consume_work("replace played graph")
                     self.destroy(instance)
-            instance = matches[0] if matches and policy == 2 else self.create(definition)
+            reused = bool(matches and policy == 2)
+            instance = matches[0] if reused else self.create(definition)
+            instance.play_schema(overrides, reorder_entries=not reused)
             instance.start_entries(params, source)
             return instance
 
@@ -795,6 +808,49 @@ class Instance:
         for node in self.graph.entries:
             if node is not None and not node.client_only and node.cls in ENTRY_CLASSES:
                 self.post(Event(self.start, 0, ENTRY, node=node))
+
+    def play_schema(self, overrides: tuple, *, reorder_entries: bool) -> None:
+        """BE90C0: queue callee defaults, then the already-evaluated request values.
+
+        Default evaluation uses this instance without a watcher. Writes remain
+        queued, so later defaults read the pre-assignment variable values. A new
+        instance moves ordinary entries behind other events at the same time
+        (1B93D40); a reused instance keeps its existing event order.
+        """
+        from ow174.game.script.play import evaluate_value
+
+        with self.component.operation():
+            schema = self.graph.fields.get("m_publicSchema")
+            if schema is not None:
+                if (not isinstance(schema, dict)
+                        or schema.get("$") not in ("STUStatescriptSchema", "STU_77990ED7")
+                        or schema.get("m_89EAAC40") is not None):
+                    self.component.unsupported(self, "played graph schema", str(schema.get("$")
+                                               if isinstance(schema, dict) else type(schema)))
+                for row in schema.get("m_entries") or ():
+                    self.component.consume_work("played graph schema evaluation")
+                    if not isinstance(row, dict):
+                        self.component.unsupported(self, "played graph schema row", str(type(row)))
+                    config = row.get("m_value")
+                    if config is not None:
+                        failed = object()
+                        value = evaluate_value(self, config, initial=failed)
+                        # BE9AC0 skips a failed +28 evaluation. This differs
+                        # from D058D0's explicit int-zero override fallback.
+                        if value is failed:
+                            continue
+                        identifier = expr.guid_of(row.get("m_0D09D2D9")) & 0xFFFF
+                        self.post(Event(self.component.now, 0, ASSIGN,
+                                        assignment=(INSTANCE, identifier, value)))
+            for key, value in overrides:
+                self.component.consume_work("played graph override assignment")
+                self.post(Event(self.component.now, 0, ASSIGN, assignment=(INSTANCE, key & 0xFFFF, value)))
+            if reorder_entries and (schema is not None or overrides):
+                for event in self.queue:
+                    self.component.consume_work("played graph initialization order")
+                    if event.kind == ENTRY:
+                        event.seq = next(self.component.seq)
+                self.queue.sort(key=Event.key)
 
     def start_entries(self, params: tuple, source: int) -> int:
         """Queue native BB4AC733 start-entry bindings before each entry (1B95950).

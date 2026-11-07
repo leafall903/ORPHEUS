@@ -119,3 +119,21 @@ Loaded script invocation core, 2026-11-08:
   claimed. Cinematics, correct enemy AI and complete mission playthrough remain open.
 - Passed 162 related expression/runtime/bot/entrance/replication/VM checks and
   15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
+
+Played resource/schema extension, 2026-11-08:
+- Strict World.play_script now selects primary/fallback resources before the
+  explicit world-routing boundary. Fresh inline identifier-map construction
+  preserves native low-key replacement, physical bucket iteration and growth.
+- Loaded invocation queues callee schema defaults, then evaluated caller
+  overrides before ordinary initialization and the separate start bindings.
+  Failed defaults are skipped; failed inline overrides use int 0. The native
+  collecting array-config path is implemented only for these value callers.
+  General first-item array evaluation remains unsupported in strict mode.
+- 21 of 23 actual resource configs resolve in isolation. The remaining 100B
+  nodes 281/285 need EntityReference. Actual 121D node 5 -> 119F maps four seeded
+  caller variables correctly. Target schemas still need world-dependent values;
+  this is not entity routing or a mission host. See PLAY_SCRIPT_CORE.txt.
+- Passed 208 related runtime/expression/VM/alias/bot/entrance/replication checks
+  and 15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
+  Full root startup still stops at D38D0035. Mission progression, cinematics and
+  enemy AI remain open; no deployment or new original-client acceptance claimed.

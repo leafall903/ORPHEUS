@@ -148,7 +148,10 @@ class PlayLoadedTests(unittest.TestCase):
         for strict in (True, False):
             component = runtime.Component(123, strict=strict)
             instance = component.create(graph([
-                node(0, 'STUStatescriptActionPlayScript', m_outPlug=plug((1, 'm_inPlug'))),
+                node(0, 'STUStatescriptActionPlayScript',
+                     m_script={'$': 'STU_105E1BCC', 'm_resourceKey': None,
+                               'm_graph': '0x0580000000000002'},
+                     m_outPlug=plug((1, 'm_inPlug'))),
                 setter(1, 99),
             ]), init=False)
             if strict:

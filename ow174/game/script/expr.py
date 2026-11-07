@@ -373,6 +373,7 @@ RESOURCES = {
     "STUConfigVarLoadout": "m_loadout",
     "STUConfigVarHardPoint": "m_hardPoint",
     "STUConfigVarGameMode": "m_gamemode",
+    "STU_105E1BCC": "m_graph",  # Graph: keep an empty resource typed as Asset(0).
     "STU_BCD1C634": "m_id",  # Enumeration: an identifier of an enum type
     "STU_8A491388": "m_priority",  # StackPriority: a .024 asset
 }

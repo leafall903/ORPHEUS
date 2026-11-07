@@ -1,4 +1,4 @@
-Loaded-graph PlayScript core — partial native service restoration
+PlayScript resources and loaded-graph core — partial native service restoration
 Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
 
 Problem
@@ -28,7 +28,7 @@ Native evidence
 
 Implemented boundary
 Component.play_loaded_graph(definition, source=entity_id, params=ordered_pairs,
-                            policy=0) -> Instance or None
+                            overrides=ordered_pairs, policy=0) -> Instance or None
 
 This is the allocation/start core for a graph already resolved by a world backend.
 The caller supplies the explicit start-context caller entity (+98), used by the
@@ -36,17 +36,21 @@ entry's B60ABDA4 binding. This is distinct from context +9C, the instigator
 selected by m_6D7701B7. No instigator/source fallback is invented.
 It supports context kind zero, the four allocation policies, named/positional
 parameter bindings, queued source binding, one-shot start entries and ordinary
-initialization before the separately queued start bindings. Dynamic instances
+initialization before the separately queued start bindings. Public schema and
+request override assignments precede ordinary initialization on a new instance.
+Dynamic instances
 are independent roots, rather than lifetime-bound SubScript children.
 
 Replacement uses the existing Component.destroy teardown. Native deferred
-deletion during an active callback, asynchronous resource requests, graph/schema
-overrides, request target selection, source-context derivation, transported
+deletion during an active callback, asynchronous resource requests, linked schemas,
+request target selection, source-context derivation, transported
 instance/flag behavior and client acceptance remain outside this core.
 
 Strict PlayScript actions call World.play_script(instance, node). A concrete
-world backend must resolve and perform the request before its output is followed.
-The base world explicitly fails this request. Legacy permissive body behavior
+world backend must perform a valid request before its output is followed.
+The base world selects its resource, then explicitly fails at play_resolved_script.
+A request with neither a usable primary nor fallback resource follows output
+without a world request, matching 906E15. Legacy permissive body behavior
 remains passive. No mission host is attached to Match by this change.
 
 Pending assignment events and disabled start-entry positions are included in the
@@ -69,3 +73,47 @@ so this parent fallback is not accepted as the missing server implementation.
 
 Local-only native registry, disassembly and authored-probe records live under
 verification/retribution. Game data and module captures remain outside Git.
+
+Resource/schema extension, 2026-11-08
+- play.resolve_resource(instance, node) tries 69F4B52C then m_script. Empty inline
+  graph configs do not evaluate their overrides. Ordinary resources are evaluated
+  a second time if the first value was not a usable map; 8F6A90 accepts only .01B.
+  The map branch instead accepts any nonzero Asset (or first nested array item).
+  Resource readiness/loading is still a world responsibility.
+- Inline STU_9DB46B98 / STUStatescriptGraphWithOverrides is interpreted through
+  D058D0: insert the graph under identifier 4065, evaluate overrides in caller
+  order without a watcher, substitute int 0 for missing/failed override configs.
+  Successful null remains null. Zero map keys are invisible; duplicate low-32
+  keys replace in place. The local fresh-map builder uses 8 buckets, linear
+  probing and doubling/reinsertion in old physical bucket order. D055D0 consumes
+  that physical order and reconstructs identifier GUIDs, omitting graph key 4065.
+  This does not change legacy general VM Map construction/mutation. Duplicate
+  low-key storage in an existing legacy map and signed-negative map keys fail
+  explicitly; their native memory behavior is not invented.
+- BE90C0 evaluates a loaded graph's public defaults in the callee, then queues
+  evaluated request overrides, using the low 16 bits as instance variable IDs.
+  BE9AC0 skips missing or failed defaults, unlike D058D0's int-zero fallback.
+  All writes are queued: a later default still reads pre-assignment variables.
+  1B93D40 moves ordinary ENTRY events behind other events at the same time for
+  new instances; reused instances keep existing event order. Start parameter
+  writes and BB4AC733 entries are queued afterward. Skip policy evaluates none.
+- play.evaluate_value implements the collecting +28 path for STU_06610EBC
+  (1B779E0), used by overrides/defaults. 1B803D0/1B7F700 flatten nested config
+  groups and value arrays in order. Scalar null, absent and failed configs yield
+  no iterator item; null members of existing arrays remain. Work/depth bounds
+  poison the component on exhaustion. Resource selection's second evaluation
+  instead uses the first-config +20 behavior (1B77980/B8), including failure of
+  an absent first config. Other expression callers retain their strict failure
+  for this class; they do not receive a collecting result by accident.
+- STUStatescriptSchema and unlinked STU_77990ED7 defaults are supported. Linked
+  schemas, keyed ordinary graph resources and unknown world/default configs
+  remain explicit failures. No source/instigator context or wire flags are guessed.
+
+Authored extension probes
+21 of 23 original resource configurations resolve with an empty isolated world.
+100B nodes 281/285 stop at STUConfigVarEntityReference; no fake entity IDs are
+supplied. Actual 121D node 5 -> 119F receives four explicitly seeded caller
+variables in its evaluated override list. Default initialization of 121D/1412
+still stops at EntityReference, and 119F at STU_357DABBB. These are resource and
+queue probes, not target routing or a running mission. Full 100B startup remains
+at D38D0035; no candidate deployment or new original-client acceptance is claimed.

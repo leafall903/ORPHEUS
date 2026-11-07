@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Played resource selection and schema initialization
+
+- Resolve primary/fallback PlayScript resources and ordered inline overrides
+  with native low-key map replacement, bucket enumeration and growth. Keep
+  empty ordinary graph resources typed. Distinguish collecting array values
+  from the resource fallback's first-config evaluation, including failure.
+- Queue callee public defaults, then caller-evaluated overrides before new
+  instances' ordinary entries; retain reused-instance event order and separate
+  start bindings. Failed defaults are skipped; failed inline overrides use int 0.
+  Keep world routing, context, resource readiness and wire policy explicit.
+- Passed 208 related runtime/expression/VM/alias/bot/entrance/replication checks,
+  15 server snapshot/research-injection checks (253.208 seconds), Ruff and Git
+  diff checks. 21 of 23 actual resource configurations resolve in isolation;
+  two need EntityReference. Actual 121D node 5 -> 119F binds four supplied caller
+  variables. World-dependent target schemas remain strict failures.
+- Full 100B startup still stops at D38D0035. World instantiation, full story,
+  cinematics and enemy AI remain unaccepted. No candidate deployment or new
+  original-client acceptance claimed. Publication still needs the missing
+  work/sync_orpheus_publication.py helper.
+
 #### Loaded script invocation core
 
 - Add the loaded-graph PlayScript core: skip/create/reuse/replace policies,
