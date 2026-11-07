@@ -85,3 +85,18 @@ Empty config evaluation work, 2026-11-07:
 - Passed 149 related expression/runtime/bot/entrance/replication/snapshot tests.
   The client research session returned to the menu and closed normally; the
   candidate was not deployed and full story/cinematic/AI acceptance remains open.
+
+Full map component inputs, 2026-11-07:
+- tools/extract_map_world.py exports the raw transforms and ordered instance
+  fields together with complete definition component maps, retaining nested map
+  keys and independent component reference namespaces. Defaults and overrides
+  remain separate until their native merge rules are known.
+- All 2,750 component types match XML and binary roots across the 2,464 placed
+  entities. All 186 definitions export successfully, retaining 454 components.
+  All placed transforms and fields agree with the earlier independent audit.
+- Immutable DUTS component blobs use STU V1: their +4 field is InstanceCount,
+  not a version number. The new extractor validates the instance table and root
+  offsets; the older spawner extractor's format comment is corrected.
+- Passed 42 focused extraction checks and Ruff. These are data inputs only;
+  native mission services, world instantiation, cinematics and enemy AI remain
+  open. See MAP_WORLD_INPUTS.txt. No candidate deployment is claimed.

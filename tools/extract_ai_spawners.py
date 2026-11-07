@@ -9,8 +9,8 @@ The ENTITY chunk (map chunk type 0x0B), as TankLib's teMapChunk reads it: {u32 p
 instance data offset, u32 placeable offset, u32}; per placeable a 24-byte header {uuid, u16, u8, u8 type,
 u32 size} and the body {u64 definition, u64 identifier 1, u64 identifier 2, f32 translation[3], scale[3],
 rotation[4], u32 instance count, ...}; from body +112 one {u32 type, u32 offset from that entry} per
-instance, each an STUv2 blob ("DUTS", u32 version, u32 offset of the instance). An AI spawner is the
-instance STUECAISpawnerInstanceData (0x99257985): +8 the hero (075; an asset ref, its GUID in the second
+instance, each an immutable STU V1 blob ("DUTS", u32 instance count, first instance offset). An AI spawner
+is the instance STUECAISpawnerInstanceData (0x99257985): +8 the hero (075; asset ref, GUID in the second
 half), +24 an identifier (01C; 0 = in every mode), +40 the offset of {u64 count, u64 offset} of its
 STUStatescriptGraphWithOverrides (40 bytes each: the graph's GUID at +8, at +16 the offset of {count,
 offset} of the overrides' offsets), +56 the team (TeamIndex: 0 blue, 1 red), +60 and +61 two flags (both 1

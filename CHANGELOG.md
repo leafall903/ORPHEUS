@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### Complete map component research inputs
+
+- Add an external map-world exporter that correlates ordered ENTITY/XML inputs,
+  exact transforms, immutable STU V1 component type hashes and full definition
+  component maps. Retain nested map keys, component-local references and source
+  hashes. Keep defaults and placed overrides separate; reject inconsistent or
+  incomplete sources and output paths within the repository.
+- Rialto exports 2,464 entities, 2,750 matching component instances and 186 full
+  definitions with 454 components. The earlier independent transform audit agrees
+  with all placed fields. Correct the older AI extractor's DUTS format comment:
+  its +4 field is an instance count, not a version number.
+- Passed 42 extraction checks, Ruff and Git diff checks. The export is research
+  data, not an executable world. Mission services, full startup, cinematics and
+  enemy AI remain unaccepted; no deployment or new client acceptance is claimed.
+  Publication still requires the missing work/sync_orpheus_publication.py helper.
+
 #### Empty resource evaluation and assignment
 
 - Preserve the observed empty STU_7BD2CA19 evaluator's no-output failure:
