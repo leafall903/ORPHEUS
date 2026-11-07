@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Ordinary auxiliary scopes before deferred notifications
+
+- Add an explicit ForwardHost frame runner that processes all VM due times,
+  drains auxiliary history once, then notifies ForCode channel1 once. Edges
+  created by that notification wait for the next ordinary auxiliary phase.
+  Preserve the manual/legacy APIs and explicit native clock ownership.
+- Original D0D350/1B8C910 place +48/+58 inside ordinary +50, before channel1.
+  Thirty native executable cases verify bounded ordering/clock writes; six
+  two-frame comparisons execute native history writes from the deferred boundary
+  and match the production runner's delayed begin/end scope callbacks.
+- Eleven behavior checks cover actual ForCode notifications, authored timers,
+  queued/direct edges, lifetime, both failure phases and a shared work budget.
+  Actual0F45->0EC6 starts through the runner and reaches frame500 with supplied
+  services/clocks, effect creation/retirement and three States still active.
+- Passed565 related checks,15 server snapshot/research-injection checks, Ruff
+  and diff checks. No new persistent VM fields or wire schema. Full100B remains
+  D38D0035/node106; full clock/phase mapping, Match hosting, engine consumers,
+  complete story/cinematics/enemy AI remain unaccepted. No deployment/new client;
+  required publication helper remains missing.
+
 #### Normal-forward auxiliary scope history
 
 - Add an explicitly selected per-Component ForwardHost. Record native +100/+118

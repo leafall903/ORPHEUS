@@ -307,3 +307,17 @@ Normal-forward auxiliary scope history, 2026-11-08:
 - Full100B stillD38D0035/node106. Match host, native phase placement, rollback,
   engine consumers, +88/+120 phases, orientation, all cinematics and enemy AI remain
   unaccepted. No deployment/new client. See AUXILIARY_SCOPE_HISTORY.txt.
+
+Ordinary scope end-phase order, 2026-11-08:
+- Add ForwardHost.run_frame to place one scope drain after all VM due times and
+  before one deferred ForCode channel1 pass. Notifications' new edges remain
+  pending until the next auxiliary end phase; manual/legacy policies remain.
+- Original1B8C910 nests +48/+58 inside ordinary+50; D0D350 notifieschannel1 only
+  afterward. Thirty original cases establish the bounded ordering/clock writes;
+  six native two-frame cases match production deferred begin/end edge lifetimes.
+- Actual0F45->0EC6 starts through the new runner with supplied services/clocks;
+  frames0..500 pass, including effect creation/retirement. Three States remain
+  active. Native +88/+120, full clock mapping, engineconsumer and rootD38 remain.
+- Eleven new behavior checks,565 related checks,15 server checks, Ruff/diff pass.
+  No new client/deployment. Complete story/cinematics/enemy AI remain unaccepted.
+  See ORDINARY_SCOPE_PHASE.txt for the native adapters and ownership limits.

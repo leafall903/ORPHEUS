@@ -96,3 +96,8 @@ ForwardHost records begin/end history and drives interface callbacks at an
 explicit owner-selected boundary. Actual0EC6 now creates its descriptor atframe0
 and retires it atframe46 without injecting callbacks. Native phase placement,
 engine consumption and fullmission acceptance remain open. See AUXILIARY_SCOPE_HISTORY.txt.
+
+The ordinary scope phase now precedes deferred channel1 when the owner selects
+ForwardHost.run_frame. Effects created there are contained even if the following
+notification fails. No automatic Match policy or engineconsumer is implied.
+See ORDINARY_SCOPE_PHASE.txt.

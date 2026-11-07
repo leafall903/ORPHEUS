@@ -88,3 +88,8 @@ and drains A087E0/A0B460 history parity at an owner-supplied frame/phase boundar
 Plain Registry remains manual. Actual0EC6 uses this service throughframe500 with
 callbacks/effect lifetime matching an original-code bridge; full native phase
 placement, rollback and mission acceptance remain open. See AUXILIARY_SCOPE_HISTORY.txt.
+
+The subsequent ForwardHost.run_frame runner places the ordinary auxiliary drain
+before deferred ForCode channel1, as 1B8C910/D0D350 do. A notification's new edges
+wait for the next ordinary end phase. Full clock/host/mission acceptance remains
+open; see ORDINARY_SCOPE_PHASE.txt for native comparisons and authored probes.

@@ -701,9 +701,12 @@ class Component:
             for instance in list(self.instances.values()):
                 instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
 
-    def run_frame(self, frame: int, buttons: list[tuple[int, bool]] = ()) -> None:
+    def run_frame(self, frame: int, buttons: list[tuple[int, bool]] = (), *, end_phase=None) -> None:
         """Command frame `frame`: its edges at 16F, then an update at every due event time in [16F, 16F+15]
-        and one at 16F+15."""
+        and one at 16F+15. An explicit ordinary end phase runs once after those
+        events and before deferred channel 1 (104319 1B8C910/D0D350)."""
+        if end_phase is not None and not callable(end_phase):
+            raise ValueError("ordinary end phase must be callable")
         with self.operation():
             self.frame = frame
             self.now = frame * self.frame_ms
@@ -712,7 +715,10 @@ class Component:
             for _ in range(MAX_COMPONENT_UPDATES):
                 due = self.next_event_time()
                 self.now = end if due is None or due > end else max(due, self.now)
-                self.update()
+                if end_phase is None:
+                    self.update()
+                else:
+                    self._update_instances()
                 if self.now >= end:
                     due = self.next_event_time()
                     if due is None or due > end:
@@ -720,6 +726,9 @@ class Component:
             else:
                 self.budget_exceeded(f"component frame update budget {MAX_COMPONENT_UPDATES} exhausted")
             self.now = end
+            if end_phase is not None:
+                end_phase()
+                self.notify_code(1)
 
     def run_now(self) -> None:
         """Update every instance at the current time until nothing more is due now (spawn)."""
@@ -736,13 +745,16 @@ class Component:
 
     def update(self) -> None:
         with self.operation():
-            self.consume_work("component update")
-            for instance in list(self.instances.values()):
-                if instance.id in self.instances:
-                    instance.update()
+            self._update_instances()
             # The native component override D0D350 calls the ordinary update,
             # then drains deferred channel 1 through D0D370.
             self.notify_code(1)
+
+    def _update_instances(self) -> None:
+        self.consume_work("component update")
+        for instance in list(self.instances.values()):
+            if instance.id in self.instances:
+                instance.update()
 
 
 class Instance:

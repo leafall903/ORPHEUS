@@ -1,0 +1,77 @@
+Ordinary auxiliary end phase — before deferred native notifications
+Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
+
+Problem and resulting behavior
+The initial ForwardHost probe ran Component.run_frame and then host.drain. The
+VM had already notified deferred ForCode channel1 during that frame. Native
+D0D350 instead calls 1B8C910, including its auxiliary end phase, before D0D370
+notifies channel1. A deferred callback that begins/ends a scoped State therefore
+must leave a new edge pending until the next ordinary auxiliary phase.
+
+ForwardHost.run_frame now selects that ordering: process the VM's due times,
+drain auxiliary history once at the end, then notify channel1 once. Changes
+made by that notification are not drained again in the same frame. The legacy
+Component.run_frame/update/run_now and manual Registry policies remain available.
+Selecting a host still requires an exact live Component/world/entity binding.
+
+Native sequence and limits
+- D0D350 ->1B8C910 ->D0D370(channel1).
+- Inside1B8C910: component+40, setup1B8E970, component+48 preparation,
+  due-event/poll loop, copy1E8 endtime to1E0, component+58, instance post phase,
+  component+60. Specialized +58=97A850 calls1B8DAB0, then helperA091B0.
+- Known ordinary A091B0 path733=false drains A0B460 when dirty. Optional43A
+  handling can drain again through A08E00, still before deferred channel1.
+- +48/+58 are nested in ordinary+50 here. Earlier speculation that they must
+  be separate external updates was incorrect. Separate State+88 phase1B8C820
+  and its external placement remain open; +120 reconstruction is also separate.
+- Instance post1B92860 updates flags/dirty bookkeeping and optionally invokes
+  Instance+218. The new scope boundary does not claim the whole native instance
+  post protocol, journal preparation, engine memberships or rollback behavior.
+
+API and ownership
+  host.set_frame(explicit_native_history_frame)
+  host.run_frame(vm_frame, buttons)
+
+The host passes its drain as Component.run_frame's explicit end_phase. That
+path reuses the same due-event loop and instance update core, withholding
+channel1 until after the end phase. All phases share one Component operation
+and work budget. No new persistent Component/State fields or wire schema are
+added. Faults in the VM/end phase prevent later notification; notification
+faults contain effects that the preceding scope phase created.
+
+Native clock and input mapping remain explicit
+AE1500 calls A09BA0(bodyBase+690,inputRecord,inputFrame) for positive stepcount,
+then scriptComponent(bodyBase+D0)+50 with frame/steps. A09BA0 ignores frame0;
+nonzero frame copies28 input bytes and writes helperC4. Native positive-step
+1B8C910 writes component1D0 and the frame time range; its zero-step branch can
+leave1D0 unchanged while updating time. 1B71860 reads component1D0 for modifiers.
+The new runner does not silently identify the VM frame, history frame, modifier
+source frame or native microsecond clock. Input flag effects, zero-step/replay
+clock policy and interval discovery require a separate host implementation.
+
+Evidence
+- Thirty original executable cases exercise input/frame writes and the original
+  D0D350->1B8C910->97A850->A091B0->A0B460 ordering with supplied services. Empty
+  event source, preparation/journal/ordinary services and deferred effects are
+  explicit adapters; interval16000 is supplied. This is not a live client trace.
+- Six two-frame comparisons execute original A087E0 from the native deferred
+  callback boundary. Deferred begin/end edges remain pending after the first
+  drain, then enter/exit at the next end phase, matching the production runner.
+- Eleven behavior checks use actual ForCode States/notifications, authored wait
+  timers, custom subgraph plugs and effects. They cover visibility/order, multiple
+  due times, direct/queued edges, clocks, lifetime, both failure phases and budgets.
+- Actual0F45/node48 ->0EC6, variable41=17, now starts directly through the host
+  runner without a preceding run_now or external callback drain. Frames0..500
+  pass; scope/effect observations match the earlier bounded bridge. One descriptor
+  is created atframe0 and retired atframe46; states10/15/16 remainactive atframe500.
+  Modifier20+frame and other scene services are still supplied; this does not
+  establish complete helper, whole-host or mission acceptance.
+- Passed565 related and15 server snapshot/research-injection checks, Ruff/diff.
+  No new client session/deployment. Full100B remainsD38D0035/action-node106.
+  All story stages, cinematics, five enemy AIs and extraction/results remain open.
+
+Local evidence outside Git under verification/retribution:
+host-update-order-native-validation.json, ordinary-scope-native-validation.json,
+ordinary-scope-helper-validation.json, ordinary-scope-tests.log,
+ordinary-scope-server-tests.log, host-update-order-next.txt,
+ordinary-instance-post-phase.txt and host-ordinary-frame-update.txt.

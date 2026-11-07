@@ -60,9 +60,11 @@ class History:
 class ForwardHost(Registry):
     """104319 A087E0/A0B460 normal-forward history for one explicit component.
 
-    The owner must set the native frame before transitions, then call drain at
-    its chosen phase boundary. Selecting this service does not install a Match
-    host, infer frame mapping, run +88/+120 phases or implement rewind journals.
+    The owner must set the native frame before transitions. run_frame places
+    drain at the verified ordinary end phase, before deferred channel 1; drain
+    also remains available for an explicit interface phase. Selecting this
+    service does not install a Match host, infer frame mapping, run +88/+120
+    phases or implement rewind journals.
     Only the two implemented interfaces with a null +18 callback are supported.
     """
 
@@ -88,6 +90,18 @@ class ForwardHost(Registry):
         if self.frame is not None and frame < self.frame:
             raise ValueError("scope history rewind is not implemented")
         self.frame = frame
+
+    def run_frame(self, frame: int, buttons=()) -> None:
+        """Run the VM frame, one ordinary scope end phase, then deferred channel 1.
+
+        The VM frame is not silently substituted for the explicit native history
+        frame. Component.update/run_now and the manual Registry keep their own
+        existing policies; Match must select and own this service separately.
+        """
+        component = self.component
+        if component.world.subgraph_scopes(component.entity) is not self:
+            raise ValueError("ordinary scope frame needs its current world binding")
+        component.run_frame(frame, buttons, end_phase=self.drain)
 
     def register(self, state):
         if state.instance.component is not self.component:

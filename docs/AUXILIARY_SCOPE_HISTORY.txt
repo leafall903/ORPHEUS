@@ -91,3 +91,11 @@ Validation and scope
 Local evidence outside Git: verification/retribution/scope-host-native-validation.json,
 scope-host-helper-validation.json, scope-host-tests.log, scope-host-server-tests.log,
 scope-history-next.txt and scope-history-finish-order.txt.
+
+Subsequent ordinary end-phase correction
+ForwardHost.run_frame now uses the derived ordinary scope-before-channel1
+boundary. The earlier run_frame-then-drain probe above remains historical;
+its unverified boundary must not be used as the final mission driver. New
+two-frame native comparisons verify deferred edges wait for the next end phase.
+Clock mapping, other native phases and fullmission acceptance remain open.
+See ORDINARY_SCOPE_PHASE.txt.
