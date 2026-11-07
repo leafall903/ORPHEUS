@@ -183,16 +183,19 @@ def parse_player_name(value) -> str:
 
 
 def parse_events(value) -> list:
-    """The lobby event list: empty, or one event id. The page sends a list, a plain form a
-    comma-separated string."""
+    """Validate the lobby event list, including simultaneous PVE event groups.
+
+    The lobby and Arcade already support multiple events; restricting the API to one made
+    Archives missions/challenges and Junkenstein mutually exclusive.
+    """
     if isinstance(value, str):
         value = [part.strip().lower() for part in value.split(",") if part.strip()]
-    if not isinstance(value, list) or len(value) > 1:
+    if not isinstance(value, list):
         raise ApiError("Pick an event from the list.")
     for event_id in value:
         if not isinstance(event_id, str) or event_id not in EVENT_PRESETS:
             raise ApiError("Pick an event from the list.")
-    return list(value)
+    return list(dict.fromkeys(value))
 
 
 def is_owl_item(unlock) -> bool:

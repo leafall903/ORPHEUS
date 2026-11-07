@@ -29,6 +29,7 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Extract and integrity-check local collision caches for all 95 catalog maps and handle missing caches explicitly.
   - [ ] Verify placement, team permissions, transitions and visible effects in authored spawn rooms. Reproduce out-of-bounds death and respawn on each applicable map.
 - [ ] **Modes and match rules.** Verify objectives, scoring, timers, overtime, round transitions, victory conditions and results across supported modes.
+  - [ ] Restore and verify entry through all 47 Archives/Junkenstein difficulty and challenge cards. Simultaneous event configuration and PVE graph-root extraction have regressions; mode loading, authored spawns, original-client entry and return remain unverified.
 - [ ] **Bots and scripted scenarios.** Verify training and tutorial behavior, including target identity, routes, combat, spawning, death, respawn and resets.
 - [ ] **Models, skins and animation.** Verify first- and third-person models, skins, weapon handling, aiming, ability animations, and spawn, death and respawn sequences.
 - [ ] **HUD, menus and visual feedback.** Verify health, ammo, overhead bars, reticles, hit markers, material-specific effects, elimination names, kill feed, on-fire meter, scoreboards and match screens.

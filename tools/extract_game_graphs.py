@@ -10,7 +10,7 @@ graph reference (a GUID of type 01B anywhere in a kept graph).
 
 Additional entity definitions can be added to a separate bundle with repeated --entity options.
 Use --mode-xml <0C5 directory> with --output outside the repository to also export the mode entity's
-initial variables from the mode definitions.
+initial variables and include its mode, controller and body script roots.
 Use --ai-spawners <ai_spawners_174.json> with an external --output to include the graphs placed on maps
 and the AI weapon buttons on additional entity definitions.
 
@@ -257,16 +257,26 @@ class GraphXml(StuXml):
             yield from self.plugs_below(self.resolve(child), prefix + key)
 
     def plugs_below(self, element: ET.Element, path: str):
-        kind = tag(element)
-        if kind in ("null", "ref") or id(element) in self.nodes or id(element) in self.items:
-            return
-        if kind == "array":
-            for number, child in enumerate(element):
-                yield from self.plugs_below(self.resolve(child), f"{path}[{number}]")
-        elif self.is_plug(element):
-            yield path, element
-        else:
-            yield from self.plugs_in(element, path + ".")
+        # Walk each acyclic field path: non-node objects may alias themselves.
+        # Preserve alternative owners and array order without recursive descent.
+        pending = [(element, path, frozenset())]
+        while pending:
+            current, name, ancestors = pending.pop()
+            kind = tag(current)
+            if (kind in ("null", "ref") or id(current) in self.nodes or id(current) in self.items
+                    or id(current) in ancestors):
+                continue
+            if self.is_plug(current):
+                yield name, current
+                continue
+            parents = ancestors | {id(current)}
+            if kind == "array":
+                children = [(self.resolve(child), f"{name}[{number}]", parents)
+                            for number, child in enumerate(current)]
+            else:
+                children = [(self.resolve(child), name + "." + child.get(NAME), parents)
+                            for child in current if child.get(NAME) is not None]
+            pending.extend(reversed(children))
 
     def plug(self, element: ET.Element) -> dict:
         out = super().plug(element)
@@ -573,11 +583,34 @@ def ai_graph_roots(path: Path) -> set[int]:
     return roots
 
 
+def mode_graph_roots(folder: Path) -> set[int]:
+    """Include the mode, controller and body scripts referenced by the supplied 0C5 assets.
+
+    Mode variables alone are insufficient to restore scripted modes: the fixed hero/PvP roots
+    omit their initial graphs. Missing files remain in the bundle's explicit missing list.
+    """
+    roots = set()
+    for path in sorted(folder.iterdir()):
+        if not path.is_file() or not path.name.upper().endswith(".0C5.XML"):
+            continue
+        for element in ET.parse(path).getroot().iter():
+            reference = element.get("GUID", "").upper()
+            if reference.endswith(".01B"):
+                if not re.fullmatch(r"[0-9A-F]{1,12}\.01B", reference):
+                    raise ValueError(f"{path.name}: invalid mode graph reference {reference}")
+                index = guid_index(reference)
+                if not 0 < index <= 0xFFFF:
+                    raise ValueError(f"{path.name}: mode graph must have a nonzero 16-bit index")
+                roots.add(index)
+    return roots
+
+
 def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
     *, ai_spawners: Path | None = None,
 ) -> dict:
     variables = mode_variables(mode_xml, enums) if mode_xml is not None else None
+    mode_roots = mode_graph_roots(mode_xml) if mode_xml is not None else set()
     ai_roots = ai_graph_roots(ai_spawners) if ai_spawners is not None else set()
     heroes = json.loads(HEROES.read_text(encoding="utf-8"))
     bodies, reason, queue = {}, {}, []
@@ -597,6 +630,7 @@ def collect(
         queue.extend((graph, name) for graph in sorted(used))
     queue += list(ROOT_GRAPHS.items())
     queue.extend((index, "map AI spawners") for index in sorted(ai_roots))
+    queue.extend((index, "game mode scripts") for index in sorted(mode_roots))
     graphs, missing = {}, set()
     while queue:
         index, why = queue.pop(0)
@@ -606,15 +640,18 @@ def collect(
         if not path.is_file():
             missing.add(index)
             continue
-        xml = GraphXml(path, enums)
-        graphs[index] = xml.record(index)
+        try:
+            xml = GraphXml(path, enums)
+            graphs[index] = xml.record(index)
+        except (ValueError, KeyError, RecursionError) as exc:
+            raise ValueError(f"graph {index:04X}: {exc}") from exc
         reason[index] = why
         for problem in sorted(set(xml.problems)):
             print(f"  {index:04X}: {xml.problems.count(problem)} x {problem}")
         queue += [(child, why) for child in sorted(xml.graph_refs())]
     data = {
         "version": 1,
-        "roots": {"bodies": sorted(bodies), "graphs": sorted(ROOT_GRAPHS.keys() | ai_roots)},
+        "roots": {"bodies": sorted(bodies), "graphs": sorted(ROOT_GRAPHS.keys() | ai_roots | mode_roots)},
         "bodies": bodies,
         "missing": sorted(missing),
         "graphs": [graphs[index] for index in sorted(graphs)],
@@ -639,7 +676,8 @@ def main() -> None:
     parser.add_argument("--owlib", type=Path, required=True, help="the OWLib checkout that made the dump")
     parser.add_argument("--entity", action="append", type=entity_index, default=[],
                         help="additional 003 asset index such as 1403, repeatable")
-    parser.add_argument("--mode-xml", type=Path, help="directory of .0C5 XML files to export mode variables")
+    parser.add_argument("--mode-xml", type=Path,
+                        help="directory of .0C5 XML files for mode variables and script roots")
     parser.add_argument("--ai-spawners", type=Path,
                         help="include local map spawner graph roots and AI weapon controls")
     parser.add_argument("--output", type=Path, help="destination bundle")

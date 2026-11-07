@@ -80,6 +80,33 @@ class ModeVariableExtractionTests(unittest.TestCase):
                 self.write("000000000018.0C5.xml", xml)
                 self.read()
 
+    def test_mode_scripts_are_roots_and_missing_scripts_remain_explicit(self):
+        self.write("000000000025.0C5.xml", f'''<STUGameMode {NS}>
+          <dragon:ref dragon:name="m_CF63B633" GUID="00000000100B.01B" />
+          <dragon:array dragon:name="m_teams"><STUGameModeTeam>
+            <dragon:ref dragon:name="m_controllerScript" GUID="000000000F44.01B" />
+            <dragon:ref dragon:name="m_bodyScript" GUID="000000000F45.01B" />
+          </STUGameModeTeam></dragon:array>
+        </STUGameMode>''')
+        self.write("heroes.json", "{}")
+        with (
+            patch.object(extractor, "HEROES", self.root / "heroes.json"),
+            patch.object(extractor, "ROOT_GRAPHS", {}),
+        ):
+            bundle = extractor.collect(self.root, self.enums, mode_xml=self.root)
+        self.assertEqual(bundle["roots"]["graphs"], [0xF44, 0xF45, 0x100B])
+        self.assertEqual(bundle["missing"], [0xF44, 0xF45, 0x100B])
+        self.assertEqual(bundle["graphs"], [])
+
+    def test_mode_graphs_must_fit_the_replication_descriptor(self):
+        for reference in ("000000000000.01B", "000000010000.01B", "garbage.01B"):
+            with self.subTest(reference=reference):
+                self.write("000000000025.0C5.xml", f'''<STUGameMode {NS}>
+                  <dragon:ref dragon:name="m_CF63B633" GUID="{reference}" />
+                </STUGameMode>''')
+                with self.assertRaisesRegex(ValueError, "mode graph"):
+                    extractor.mode_graph_roots(self.root)
+
     def test_duplicate_mode_aliases_fail(self):
         self.write("000000000018.0C5.xml", mode())
         self.write("0018.0C5.xml", mode())

@@ -100,6 +100,22 @@ class LinkEvidenceTests(unittest.TestCase):
 
 
 class EntityRootTests(unittest.TestCase):
+    def test_plug_walk_ignores_reference_cycles_and_keeps_alias_paths(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / "graph.xml"
+            path.write_text('''<Root xmlns:dragon="https://yretenai.com/dragonml/v1">
+              <Container dragon:id="1" dragon:name="a">
+                <dragon:ref dragon:id="1" dragon:name="self" />
+                <Plug dragon:name="input" m_links="{null}" m_parentNode="{null}" />
+              </Container>
+              <dragon:ref dragon:id="1" dragon:name="b" />
+            </Root>''', encoding="utf-8")
+            xml = extractor.StuXml(path, EnumTables(root))
+            xml.plugs_below = GraphXml.plugs_below.__get__(xml)
+            paths = [name for name, _ in GraphXml.plugs_in(xml, xml.root, "")]
+            self.assertEqual(paths, ["a.input", "b.input"])
+
     def test_optional_entity_roots_preserve_initial_order_and_follow_shared_graph_references(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
