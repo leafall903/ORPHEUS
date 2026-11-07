@@ -217,10 +217,21 @@ class InstanceContext(Context):
         component = self.instance.component
         if entity == component.entity:
             return self._read(component.entity_var(var, create=self.watcher is not None))
-        return component.world.entity_var(entity, var)
+        value = component.world.entity_var(entity, var)
+        if value is NotImplemented:
+            if component.strict:
+                component.unsupported(self.instance, "entity variable service", f"{entity:08X}:{var}")
+            return None
+        return value
 
     def position(self, entity: int):
-        return self.instance.component.world.position(entity)
+        component = self.instance.component
+        value = component.world.position(entity)
+        if value is None:
+            if component.strict:
+                component.unsupported(self.instance, "entity position", f"{entity:08X}")
+            return expr.Vec3(0.0, 0.0, 0.0)
+        return value
 
     def ruleset(self, key: int):
         found = self.var(ENTITY, key)

@@ -40,6 +40,9 @@ log = logging.getLogger("ow174.script")
 EPSILON = 1.1920928955078125e-05  # the compares' and equality's tolerance (dword_7FF78B50B054)
 INSTANCE, ENTITY = 0, 1  # variable scopes (STUConfigVarDynamic.m_60DB8F99)
 INVALID_ENTITY = 0
+# Native evaluators can fail without writing their destination. This is a
+# provider result, never a stored VM value; evaluate consumes it below.
+EVALUATION_FAILED = object()
 
 
 def f32(value: float) -> float:
@@ -306,7 +309,11 @@ class Context:
         return True
 
     def native(self, cfg: dict):
-        """A config var the server cannot compute (a world query, the UI): its default."""
+        """A world query; EVALUATION_FAILED means a known no-output failure.
+
+        Successful null is None. The compatibility base returns defaults for
+        unimplemented queries; strict runtime worlds reject unknown services.
+        """
         return default_native(cfg)
 
 
@@ -374,6 +381,7 @@ RESOURCES = {
     "STUConfigVarHardPoint": "m_hardPoint",
     "STUConfigVarGameMode": "m_gamemode",
     "STU_105E1BCC": "m_graph",  # Graph: keep an empty resource typed as Asset(0).
+    "STU_357DABBB": "m_7D7C86A1",  # TargetTag, same native resource evaluator (1B85C30).
     "STU_BCD1C634": "m_id",  # Enumeration: an identifier of an enum type
     "STU_8A491388": "m_priority",  # StackPriority: a .024 asset
 }
@@ -410,6 +418,9 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         value = evaluate(cfg.get("m_value"), ctx)
         return contains_value(container, value)
     if cls in RESOURCES:
+        if cls == "STU_357DABBB" and cfg.get("m_resourceKey") is not None:
+            result = ctx.native(cfg)
+            return initial if result is EVALUATION_FAILED else result
         return Asset(guid_of(cfg.get(RESOURCES[cls])))
     if cls == "STU_B5A0CAF0":  # GetOwner
         return ctx.owner()
@@ -437,7 +448,8 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         for key, value in cfg.items():
             if key != "m_resourceKey" and guid_of(value):
                 return Asset(guid_of(value))
-    return ctx.native(cfg)
+    result = ctx.native(cfg)
+    return initial if result is EVALUATION_FAILED else result
 
 
 def cooldown_duration(cfg: dict, ctx: Context) -> float:

@@ -117,3 +117,11 @@ variables in its evaluated override list. Default initialization of 121D/1412
 still stops at EntityReference, and 119F at STU_357DABBB. These are resource and
 queue probes, not target routing or a running mission. Full 100B startup remains
 at D38D0035; no candidate deployment or new original-client acceptance is claimed.
+
+Subsequent scene query service, 2026-11-08
+SceneWorld now resolves the authored waypoint UUIDs using native client_id
+identities, backed by original-client read-only observations. This supersedes
+the resource-only probe's 21/23 limitation above: all 23 configurations resolve,
+and queued defaults for 121D/1412/119F complete with typed empty TargetTags and
+proper missing-reference failures. This is not target routing or execution of
+the helper scripts. Full root remains at D38D0035. See SCENE_QUERY_WORLD.txt.

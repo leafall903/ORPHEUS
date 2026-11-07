@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Map entity identity and UUID queries
+
+- Add an isolated SceneWorld query service using native client_id identities
+  for mode-selected client placements and explicit existing server-create IDs.
+  Keep definition/instance data separate. Bind and retire UUIDs explicitly;
+  missing positions and unavailable foreign component variables stop strict
+  callers. The service does not activate components or attach itself to Match.
+- Preserve native EntityReference no-output failure without confusing it with
+  successful null. Keep empty TargetTags typed as Asset(0). All 23 actual
+  PlayScript resource configurations now resolve; queued public initialization
+  succeeds for 121D (8 assignments), 1412 (8) and 119F (4).
+- Native construction and an authorized original-client read-only probe agree
+  on 10 waypoint identities. The client entered Story Normal as Reaper, left
+  and closed normally. This verifies identities, not candidate mission behavior.
+  The selected mode has 2,303 query bindings (2,066 client and 237 server).
+- Passed 226 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks (256.667 seconds), Ruff and Git
+  diff checks. Full 100B startup still stops at D38D0035 node 106. Mission
+  scheduling, component execution, cinematics and enemy AI remain unaccepted;
+  no candidate deployment is claimed. Publication requires the missing
+  work/sync_orpheus_publication.py helper.
+
 #### Played resource selection and schema initialization
 
 - Resolve primary/fallback PlayScript resources and ordered inline overrides

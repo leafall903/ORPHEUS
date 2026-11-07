@@ -137,3 +137,20 @@ Played resource/schema extension, 2026-11-08:
   and 15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
   Full root startup still stops at D38D0035. Mission progression, cinematics and
   enemy AI remain open; no deployment or new original-client acceptance claimed.
+
+Map entity query service, 2026-11-08:
+- SceneWorld binds mode-selected map UUIDs using native client_id identities;
+  explicit server-create indexes retain the existing Match namespace. Input
+  defaults and instance data remain separate. Missing references preserve the
+  evaluator destination; missing positions stop strict callers.
+- Native construction and a separately authorized original-client read-only
+  probe agree on 10 waypoint identities. The client entered Story Normal as
+  Reaper, then left and closed normally. This is identity evidence, not acceptance
+  of candidate mission code. See SCENE_QUERY_WORLD.txt for the exact boundary.
+- The current mode binds 2,303 entities: 2,066 client placements and 237 explicit
+  existing server creates. All 23 resource configs now resolve; queued schema
+  initialization succeeds for 121D, 1412 and 119F. Empty TargetTags stay Asset(0).
+- Passed 226 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
+- SceneWorld is not attached to Match and does not activate components or route
+  requests. Full root still stops at D38D0035; story, cinematics and AI remain open.
