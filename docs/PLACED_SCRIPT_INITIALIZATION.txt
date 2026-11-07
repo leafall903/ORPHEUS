@@ -217,6 +217,20 @@ Next implementation boundary
 - Keep rootD38D0035/node106 strict. Native authority, clocks, State+88/+120,
   complete mission hosting, cinematics, enemy AI and results remain unaccepted.
 
+Entity-control rule implementation, 2026-11-08
+The66 State33A46033 stops share actual120E/node9 (raw State2, remote1).
+Its strict model now preserves native cache/type-list/update/consumer ordering
+against explicit engine services. Native comparisons cover4514 aggregation,
+448 cache and512 dispatch cases, plus8 native model recursion cases. The actual
+graph completes frame0 with declared service fixtures and its active State
+passes a73-bit remote codec round trip. See ENTITY_CONTROL_STATE.txt for adapters.
+
+The unchanged actual scene probe still completes45/123 nonempty first frames;
+66 now stop at missing entity control context, and the other12 retain previous
+State/action stops. No context is declared absent merely to pass those objects.
+Real engine effects, new client activation acceptance and Match hosting remain
+open. Read-only snapshot storage includes the seven new cached State fields.
+
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,
 component-pending-init-native-validation.json, placed-component-startup-validation.json,

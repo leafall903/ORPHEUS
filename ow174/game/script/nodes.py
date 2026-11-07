@@ -12,7 +12,7 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from types import NotImplementedType
 
-from ow174.game.script import effect_parameters, effect_routing, expr, modifiers, play, scopes
+from ow174.game.script import effect_parameters, effect_routing, entity_control, expr, modifiers, play, scopes
 from ow174.game.script.expr import (
     EPSILON,
     Asset,
@@ -352,6 +352,46 @@ class RegisteredState(State):
             if not following.node.server_only:
                 return {"link": (following.instance.id, following.index)}
         return {}
+
+
+@state_class("STU_33A46033")
+class EntityControl(RegisteredState):
+    """Native cached type-list rules; engine services require an explicit context.
+
+    Strict begin/cleanup keep the native registration order and refresh consumers.
+    Legacy permissive bodies retain their passive behavior. Incoming prediction
+    reconciliation and the actual engine implementations remain owner services.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.control_radius = 0.0
+        self.control_bypass = False
+        self.control_inverse_a = self.control_inverse_b = False
+        self.control_targets = ()
+        self.control_previous = False
+        self.control_generation = 0
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            super().on_begin()
+            entity_control.refresh(self)
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            super().on_cleanup()
+            entity_control.refresh(self)
+
+    def tick(self):
+        if self.instance.component.strict:
+            entity_control.refresh(self)
+
+    def dependency_changed(self):
+        if self.instance.component.strict:
+            entity_control.refresh(self)
+
+    def payload(self):
+        return super().payload() if self.instance.component.strict else {}
 
 
 @state_class("STUStatescriptStateBooleanSwitch")

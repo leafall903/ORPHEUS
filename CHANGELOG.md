@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native placed entity-control State rules
+
+- Implement strict33A46033 cache/type-list lifecycle, ordered rule aggregation
+  and guarded engine dispatch. Retain capability/query inputs across callbacks.
+  Require explicit engine services; unknown context/consumers still fault.
+  Bind contexts to actual entities and revoke dependent bindings on retirement.
+- Original instructions match4514 rule,448 cache and512 dispatch cases with
+  declared pointer/config/spatial/engine adapters; eight further native cases
+  inspect recursive model-bit updates. See ENTITY_CONTROL_STATE.txt for scope.
+- Actual120E/node9 (raw State2, remote1) completes frame0 with declared service
+  fixtures, requests entity/model changes and passes a73-bit active-state codec
+  round trip. Engine effects and new original-client activation remain unaccepted.
+- Add22 behavior checks, including sampled-input regressions and retirement;
+  pass613 related and15 server checks, Ruff/diff. VM storage includes seven
+  cached fields; wire formats and permissive body policy remain unchanged.
+- All146 selected components configure; the strict actual-scene first-frame
+  probe still completes45/123 nonempty components. Sixty-six stop on missing entity-control
+  context;12 retain other State/action faults. No absent-context shortcut,
+  deployment or full mission/cinematic/enemy-AI/results acceptance. RootD38
+  stays strict. Publication helper missing; no GitHub push.
+
 #### Typed literal configs for placed script startup
 
 - Evaluate unkeyed VoiceStimulus, Animation, Hero, entityDef and SkinTheme as

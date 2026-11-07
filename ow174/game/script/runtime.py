@@ -352,6 +352,10 @@ class World:
         """Known component43 descriptor, known component absence, or unknown."""
         return NotImplemented
 
+    def entity_control_context(self, entity: int):
+        """Known native engine context/consumers, known absence, or unknown."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 

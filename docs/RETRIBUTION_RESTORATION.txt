@@ -385,3 +385,18 @@ Placed schema literal completion, 2026-11-08:
 - Six new behavior checks;591 related and15 server checks, Ruff/diff pass. Root
   100B remains strictD38D0035/action106. Normal inputs unchanged; no new client
   acceptance/deployment for this change. Story/cinematics/enemy AI/results open.
+
+Placed entity-control State, 2026-11-08:
+- Implement33A46033's strict type-list registration, scalar/target caches,
+  generation/tick/dependency refresh, guarded rule aggregation and consumer
+  dispatch. Explicit engine services distinguish known absence from unknown.
+  Permissive bodies keep their passive policy; cached fields enter VM storage.
+- Original instructions match4514 aggregation,448 cache and512 dispatch cases;
+  eight native recursive-model cases supplement the comparison. Actual120E/node9
+  completes frame0 with declared service fixtures and active raw State2 passes
+  a73-bit remote codec round trip. See ENTITY_CONTROL_STATE.txt for adapters.
+- The unmodified strict scene probe still has45 completed frames/78 faults:
+  66 now require a real entity-control context instead of an unknown State model.
+  Supplied service fixtures do not accept physical/render effects, client
+  activation or complete mission behavior. No new client/deployment. RootD38,
+  hosting/lifetimes, cinematics, enemy AI and results remain open.

@@ -13,7 +13,7 @@ import struct
 import uuid
 from dataclasses import dataclass
 
-from ow174.game.script import effect_routing, expr, graph, modifiers, play, runtime, scopes
+from ow174.game.script import effect_routing, entity_control, expr, graph, modifiers, play, runtime, scopes
 from ow174.game.script.effect_allocation import EffectList
 
 CLIENT_PLACEABLE = 0xC0000000
@@ -90,6 +90,7 @@ class SceneWorld(runtime.World):
         self.scope_components: dict[int, scopes.Registry | None] = {}
         self.effect_contexts: dict[int, effect_routing.Context | None] = {}
         self.effect_targets: dict[int, effect_routing.Target | None] = {}
+        self.control_contexts: dict[int, entity_control.Context | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -114,6 +115,7 @@ class SceneWorld(runtime.World):
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
         self.modifier_components.pop(entity, None)
+        self._retire_control_contexts(entity=entity)
         scope = self.scope_components.pop(entity, None)
         if scope is not None:
             scope.clear()
@@ -189,6 +191,32 @@ class SceneWorld(runtime.World):
         # Missing entity evidence is not a known component-43 absence.
         return self.effect_targets.get(entity, NotImplemented)
 
+    def set_entity_control_context(self, entity: int, context: entity_control.Context | None) -> None:
+        """Declare real native services; UUID/component existence does not imply them."""
+        self._bound_entity(entity)
+        if context is not None:
+            if type(context) is not entity_control.Context:
+                raise ValueError("expected entity control context or known engine absence")
+            target = context.component
+            if target is not None and (not isinstance(target, runtime.Component) or target.world is not self):
+                raise ValueError("entity control target belongs to another world")
+            if target is not None:
+                self._bound_entity(target.entity)
+        if entity in self.control_contexts and self.control_contexts[entity] is not context:
+            raise ValueError("retire the entity before replacing its entity control context")
+        self.control_contexts[entity] = context
+
+    def entity_control_context(self, entity: int):
+        return self.control_contexts.get(entity, NotImplemented)
+
+    def _retire_control_contexts(self, *, entity=None, component=None):
+        for source, context in list(self.control_contexts.items()):
+            target = context.component if type(context) is entity_control.Context else None
+            if (source == entity or (component is not None and source == component.entity)
+                    or (isinstance(target, runtime.Component)
+                        and (target.entity == entity or target is component))):
+                self.control_contexts.pop(source, None)
+
     def _retire_effect_bindings(self, entity: int) -> None:
         sources = {entity} | {source for source, context in self.effect_contexts.items()
                               if context is not None and context.owner == entity}
@@ -212,6 +240,7 @@ class SceneWorld(runtime.World):
                                if key != entity and (target is None or target.owner != entity)}
 
     def script_failed(self, component: runtime.Component) -> None:
+        self._retire_control_contexts(component=component)
         backend = self.modifier_components.get(component.entity)
         if backend is not None:
             backend.records.clear()

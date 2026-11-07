@@ -48,6 +48,8 @@ _VAR = ("base", "key", "links", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
+                           "control_targets", "control_previous", "control_generation"), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),

@@ -1,0 +1,110 @@
+Placed entity control rules — scoped native implementation
+Target: original Overwatch1.74.0.0.104319; addresses are module RVAs.
+
+Actual selected scene
+Sixty-six current first-frame faults share graph120E/node9, raw State index2,
+remote index1, class33A46033. Original factory8F5AA0/inplace8F7990 install vtable
+26217E0. This class has real entity/model consumers; a passive State is insufficient.
+The selected node has true381879C1,7E42F868,D82DB14B configs and six absent configs.
+
+Cache and refresh order
+Native B8/8F7180 appends the State through1B72530, enables its update interface,
+then calls8F93C0. C0/8F7510 removes it through1B725C0 before the same refresh.
+Tick70/8F7530, dependency C8/8F7720 and reconciliation158/8F6D90 also refresh.
+Incoming reconciliation's base work remains outside this server implementation.
+The inherited150/1B72A80 link payload uses the ordered same-class State list.
+
+8F93C0 increments the generation byte, skipping255, then invokes C8D540. The
+cache evaluates069FD7A5 as float with default-1,72FD7742 as bool defaultfalse,
+and inverted381879C1/7E42F868 bool caches defaulttrue. C3E68133 is an ordered
+entity iterator: invalid IDs/nonentities are rejected and duplicates survive.
+The new native comparison covers an absent target iterator; nonempty production
+iteration reuses the existing config iterator and explicit entity conversion.
+If radius >=0 the refresh requests ticking. Unknown engine context still faults;
+an explicitly absent native context returns only after cache/tick preparation.
+
+Ordered native rule aggregation
+With a native context, refresh offers the State to route6, then obtains the native
+capability flag and, only when that flag is true, its permission result. Their
+conjunction seeds a; b starts as not-a, c as true, d/e as false. 8FED10 looks up
+the actual target's component47 type-list for33A46033. Known missing component47
+returns failure before consuming these outputs. Unresolved graph resources skip
+their State; graph availability is not inferred from a UUID.
+
+For each loaded State, the native helper resolves its model/distance predicate
+before reading3C443404 with defaulttrue. The first four combinations below run
+only if cached72FD7742 is false, the distance predicate is false and that gate
+is true. D82DB14B is evaluated regardless of these three gates.
+
+Output  Config     Operation                       Absent/failed default
+a       381879C1   a = a and not value             not a
+b       7E42F868   b = b and not value             not b
+c       DFD8E2EA   c = c and value                 not c
+e       6771D268   e = e or value                  e
+d       D82DB14B   d = d or value                  d
+
+8F60F0 retains the supplied default for absent configs or a failed evaluator;
+successful null/false overwrites it. Production uses the callee/watcher context
+for every read, preserving variable dependencies. Native list order and exact
+field read order match. Mutation of the type list during a callback is explicitly
+gated until native reentrancy behavior is implemented; it is not snapshot replay.
+
+Consumer dispatch
+After successful aggregation, c plus a clear native capability and a present
+extra entity service allow the C1C0E0 query. A true result sets b true. The
+protected6CA4B0 entity consumer is called with b. Its full physical engine effects
+are not implemented here. Native code reaches model flag masks200000000000/8000,
+but these numbers alone do not establish complete renderer/collision behavior.
+The native capability flag is retained across permission/rule callbacks, and the
+extra entity service is retained across rule callbacks. Production preserves both
+samples. Two original-instruction callback cases exposed and verified these
+read-time distinctions; rereading mutable context fields would change the result.
+
+Only a present model component with nonnull+250 updates the source State's218
+cached d value. CA8570 is called only on a change, with d and recursive flag e.
+Its native1B049E0 setter changes model24E bit0; recursive dispatch walks child290
+before sibling298. A missing+250 returns from that invocation. Engine queues,
+parent propagation and model ownership remain actual engine services, not flags
+stored in a Python dictionary and accepted as full game behavior.
+
+Implementation and ownership
+nodes.EntityControl implements strict begin/cleanup registration, cache refresh,
+dependency/tick updates and the inherited link payload. entity_control.Context
+requires explicit target component, capability/permission, distance, extra query and
+entity/model consumers. Each consumed boolean service must return a real bool.
+Known absent context/component and unknown service remain separate. Permissive
+legacy bodies keep their passive policy. SceneWorld binds contexts explicitly,
+retires dependent bindings with entities/failure, and rejects another world's
+component. Callback owner retirement faults before further consumer calls.
+Read-only VM observations include the seven persistent cached fields.
+
+Validation and limits
+Original instructions match production in4514 aggregation,448 scalar-cache and
+512 outer-dispatch cases, with eight further original recursive model cases.
+Adapters are explicit: context getters, encrypted component/model resolution,
+scalar config providers, transform/distance services, empty target iterator,
+security cookie, tick membership, route observer, capability/permission/extra-query
+services, protected entity consumer and engine notification queues.
+
+Twenty-two behavior checks cover the State lifecycle, watcher/tick updates,
+sampled inputs, unknown/absent services, callback/registry retirement, dependent
+context cleanup, legacy policy and read-only snapshots. All613 related and15
+server snapshot/research checks pass, with Ruff and diff checks. No new client
+acceptance is claimed.
+
+The actual120E definition/placement graph completes frame0 when supplied declared
+service fixtures: capabilityfalse, distancefalse, modelreadytrue, and recorded
+route/entity/model requests. It requests b=false and d=true/e=false. Its active
+raw State2 encodes with the existing link codec and independently decodes on from
+a73-bit remote full frame. This is a script/request/codec probe, not engine effects
+or new original-client acceptance. Without invented context declarations, the
+actual scene still has45 completed first frames and78 faults;66 now identify
+the exact missing entity control context instead of an unknown State class.
+
+Full engine consumers, Match hosting/lifetimes, clock/phase mapping, incoming
+reconciliation, rootD38D0035/action106, cinematics, enemy AI and results remain
+unaccepted. No normal runtime inputs or network formats are changed or deployed.
+Local-only evidence: verification/retribution/entity-control-native-validation.json,
+entity-control-actual-graph-validation.json, placed-component-entity-control-validation.json,
+the entity-control test logs, and the native function/slice records. Code captures,
+runtime inputs, probes and generated reports stay outside Git.

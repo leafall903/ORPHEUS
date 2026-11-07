@@ -26,6 +26,7 @@ from ow174.game.script.driver import BodyScript
 STATE_MODELS = (
     ("STU_TestPlainState", runtime.State),
     ("STU_9028E035", nodes.RegisteredState),
+    ("STU_33A46033", nodes.EntityControl),
     ("STU_316CFEF2", nodes.NumericPropertyModifiers),
     ("STU_BD02E168", nodes.ScopedSubgraph),
     ("STU_582E0D5F", nodes.AuxiliaryEffect),
@@ -154,7 +155,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 29)
+        self.assertEqual(len(STATE_MODELS), 30)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
