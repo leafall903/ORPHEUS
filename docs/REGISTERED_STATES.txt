@@ -1,0 +1,68 @@
+Type-registered states and successor links — partial mission runtime
+Target: original Overwatch 1.74.0.0.104319; addresses below are module RVAs.
+
+STU_9028E035 has a priority-2 runtime implementation, not a plain-state fallback.
+Its C812D0/C82320 constructors use 1B6F890, allocate 1F8 bytes and install vtable
+2621228. Registry slot +10 (D26D40) returns that size; it is not a destructor.
+The executable lifecycle differences from plain State are registration, cleanup
+and link serialization. Its authored m_type is data, not a second registry key.
+
+Native registration and order
+- 1B717F0 caches the authored node's typeinfo from its +8 virtual. For this class
+  that is 2DE0AC8, reached through the raw STU vtable 273B128. 1B8D5E0 finds or
+  creates the component's registry for that exact type. Records retain their
+  type key, endpoints and count. All instances on the component share the list.
+- Normal authoritative begin (1B72530, edx != 1) appends to the tail. The state
+  +1C0 field points backward; +1C8 points forward. The old tail's +1C8 is set to
+  the new state, whose +1C0 becomes the old tail and whose +1C8 is cleared.
+- Both abort and finish call cleanup C0 (1B725C0) through 1B71740, after the class
+  end hooks and before authored end plugs. Cleanup unlinks both neighbors and
+  updates endpoints/count. An already-active begin does not append again.
+- Writer 1B72A80 follows +1C8, so the wire link names the next eligible state,
+  not the preceding one. It skips runtime byte +C1. 1B91460 copies that byte
+  from authored +7B, whose STU field is m_serverOnly. Earlier local research
+  notes that called this a predecessor link were corrected before implementation.
+- 1B739D0 writes instance ID and raw m_states index for H=1. For H=0 it writes
+  the target node's m_remoteSyncNodes index using that graph's remote width.
+
+Implemented local authoritative path
+nodes.RegisteredState supports STU_9028E035. Component.state_registries records
+its per-type ordered membership. on_begin registers before authored begin plugs;
+the separate State.on_cleanup hook removes it after class end hooks and before
+authored end plugs. Removal preserves remaining order; a subsequent begin moves
+the state to the tail. Destroying an instance removes its states. A failed VM
+clears the registry along with the rest of its unusable execution state.
+
+The state payload supplies (instance_id, raw_state_index) for its next eligible
+member, skipping server-only states. An empty link still writes one zero bit.
+Owner delta and remote full/delta writers now preserve explicit link values.
+They use the linked instance's actual graph width, translate H=0 indexes and
+reject absent/invalid metadata or nonnetworked/unrepresentable targets. No null
+link is substituted for an explicitly supplied unknown target.
+
+Read-only VM storage includes the new dictionary and RegisteredState type. Its
+export traverses original membership/order without invoking payload resolution.
+This extends storage observation, not incoming network replay or restoration.
+SceneWorld remains outside the body-VM world whitelist.
+
+Authored helper probe and limits
+An isolated actual 0F45 node 48 -> 0EC6 invocation retains parameter (17,) in
+variable 41. State 0 now constructs and queues its begin. Strict execution next
+stops while constructing STU_316CFEF2 at node 2. At that point state 0 has not
+begun: it is still in the queue and the type registry is empty. The actual helper
+has therefore not demonstrated its registration callback or completed behavior.
+Independent lifecycle tests cover registration/order/cleanup; codec-table reads
+cover the emitted owner and remote links. Neither is original-client acceptance.
+
+Client prediction begin mode edx=1 dispatches instance virtual E8. Incoming reader
+1B71D80 reconciles link order and pending cross-instance identities. Those client
+services are not added to this authoritative server runtime. Consumers of m_type
+outside this state's lifecycle also remain unimplemented. Full mission startup
+still stops at D38D0035/node106. Match hosting/routing, component observers,
+cinematics and enemy AI remain open; no candidate deployment is claimed.
+
+Local-only evidence
+helper-9028-construct.txt, helper-9028-hooks.txt, helper-9028-list.txt,
+linked-state-initialize.txt, linked-state-C1-refs.txt, registered-validation.json,
+registered-tests.log and registered-server-tests.log are outside Git, under
+verification/retribution. Game data, native captures and process contexts stay local.

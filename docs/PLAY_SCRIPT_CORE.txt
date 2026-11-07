@@ -174,3 +174,8 @@ also resolves to the supplied controller. Native context derivation, submission,
 full helper execution and the mission host remain open. Full 100B still stops at
 D38D0035. See ENTITY_POSSESSION_QUERIES.txt for the authorized original-client
 relationship/switch evidence and the explicit catalog boundary.
+
+Subsequent registered-state extension, 2026-11-08
+0EC6 state 0 now constructs and queues its begin. The next strict diagnostic is
+316CFEF2/node2, before that queued begin executes. The helper still has not run
+its full lifecycle. See REGISTERED_STATES.txt for type-list and wire-link support.

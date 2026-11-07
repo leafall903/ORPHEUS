@@ -23,6 +23,7 @@ _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
+    "state_registries",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -45,6 +46,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    nodes.RegisteredState: ((), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
@@ -115,7 +117,7 @@ class _Export:
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
-        _containers(fields, ("instances", "vars", "disabled"), dict, "component")
+        _containers(fields, ("instances", "vars", "disabled", "state_registries"), dict, "component")
         _containers(fields, ("held", "destroyed", "shots", "code_states", "code_pending", "code_observers"),
                     list, "component")
         _integer(fields["entity"], "component")

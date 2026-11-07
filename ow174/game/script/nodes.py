@@ -65,6 +65,33 @@ def seconds_to_ms(value) -> int:
 # --- states --------------------------------------------------------------------------------------
 
 
+@state_class("STU_9028E035")
+class RegisteredState(State):
+    """1B72530/1B725C0: the local authoritative linked-state lifecycle.
+
+    The native runtime class has no additional execution hooks. m_type remains
+    authored data for native consumers; its enum does not split the type list.
+    Prediction-mode registration and incoming link reconciliation are separate
+    client services, not simulated by this server's begin/end requests.
+    """
+
+    def on_begin(self) -> None:
+        self.instance.component.state_registries.setdefault(self.node.cls, []).append(self)
+
+    def on_cleanup(self) -> None:
+        self.instance.component.state_registries[self.node.cls].remove(self)
+
+    def payload(self) -> dict:
+        # 1B72A80 skips +C1, copied from authored +7B (m_serverOnly) by 1B91460.
+        states = self.instance.component.state_registries.get(self.node.cls, ())
+        if self not in states:
+            return {}
+        for following in states[states.index(self) + 1:]:
+            if not following.node.server_only:
+                return {"link": (following.instance.id, following.index)}
+        return {}
+
+
 @state_class("STUStatescriptStateBooleanSwitch")
 class BooleanSwitch(State):
     """OnBegin 0x7FF78AAA8F50: evaluate m_condition (its variables become watched), follow the true or the

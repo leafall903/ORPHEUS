@@ -336,10 +336,10 @@ class World:
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
-    def native(self, cfg: dict, instance: "Instance"):
+    def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
-        if instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
+        if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
@@ -404,6 +404,8 @@ class Component:
         self.code_pending: list[list[int]] = [[], []]
         # A token identifies one backend callback/context pair; None matches any identifier.
         self.code_observers: list[tuple[int, int | None]] = []
+        # 1B8D5E0: per authored type, in native linked-state registration order.
+        self.state_registries: dict[str, list[State]] = {}
         self.frame_ms = frame_ms
         self.world = world or World()
         self.rng = expr.random.Random(seed)
@@ -444,6 +446,7 @@ class Component:
             self.shots.clear()
             self.held.clear()
             self.code_states.clear()
+            self.state_registries.clear()
             for pending in self.code_pending:
                 pending.clear()
             for instance in self.instances.values():
@@ -1202,6 +1205,7 @@ class State:
         self.instance.cancel(self)
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        self.on_cleanup()
         self.unwatch()
         self.polled = False
         if self in self.instance.ticking:
@@ -1262,6 +1266,9 @@ class State:
 
     def on_end(self, finished: bool) -> None:
         """OnFinish/OnAbort and OnEnd (vt+0xA0/0xA8, vt+0xB0)."""
+
+    def on_cleanup(self) -> None:
+        """1B71740 / vt+C0: after the class end hooks, before authored end plugs."""
 
     def timer(self, param: int) -> None:
         """A timer of an active state (vt+0x90)."""

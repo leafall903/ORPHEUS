@@ -487,7 +487,36 @@ def write_var(out: BitWriter, value, bindings, own: int, graphs: dict) -> None:
     write_bindings(out, bindings, own, graphs)
 
 
-def write_payload(out: BitWriter, cls: str, payload: dict, frame_time: int, frame_ms: int) -> None:
+def _write_state_link(out: BitWriter, link, graphs, *, owner: bool) -> None:
+    """1B739D0: raw state identity, translated to a remote index only for H=0."""
+    if link is None:
+        out.bit(0)
+        return
+    if (type(link) is not tuple or len(link) != 2
+            or any(type(value) is not int for value in link)
+            or not 0 < link[0] < 1 << 16 or link[1] < 0):
+        raise ValueError("state link must name a uint16 instance and raw state index")
+    instance, index = link
+    definition = graphs.get(instance) if graphs is not None else None
+    node = definition.state(index) if definition is not None else None
+    if node is None or not node.is_networked:
+        raise ValueError("state link needs a known networked target")
+    if owner:
+        width = definition.states_bits
+    else:
+        index, width = node.remote, definition.remote_bits
+        if index < 0 or definition.remote_node(index) is not node:
+            raise ValueError("remote state link target has no remote index")
+    if type(width) is not int or not 0 <= width <= 32 or not 0 <= index < 1 << width:
+        raise ValueError("state link index does not fit its graph's wire width")
+    out.bit(1)
+    out.w_u16(instance)
+    out.bits(index, width)
+
+
+def write_payload(
+    out: BitWriter, cls: str, payload: dict, frame_time: int, frame_ms: int, *, graphs=None,
+) -> None:
     """A state's payload in an owner frame (H = 1, a delta). `frame_time` is 16 * CmFD: the client takes
     the volley's start and the chase's and ability's last tick relative to it."""
     kind = family(cls)
@@ -521,7 +550,9 @@ def write_payload(out: BitWriter, cls: str, payload: dict, frame_time: int, fram
     elif kind == "message":
         out.bit(0)  # no sender
         out.bit(payload.get("stacked", False))
-    elif kind in ("send", "link"):
+    elif kind == "link":
+        _write_state_link(out, payload.get("link"), graphs, owner=True)
+    elif kind == "send":
         out.bit(0)
     elif kind == "hits":
         out.w_u16(0)  # no hits: the server does not detect them
@@ -701,7 +732,7 @@ def _instance_vars(out: BitWriter, item: InstanceWire, graphs: dict, presence_on
     out.w_var(0)
 
 
-def _instance_states(out: BitWriter, item: InstanceWire, frame_time: int, frame_ms: int) -> None:
+def _instance_states(out: BitWriter, item: InstanceWire, frame_time: int, frame_ms: int, graphs) -> None:
     nodes = item.graph.states
     mask(out, len(nodes), set(item.states))
     for index in sorted(item.states):
@@ -712,11 +743,11 @@ def _instance_states(out: BitWriter, item: InstanceWire, frame_time: int, frame_
         if state.cls in codecs.stec_classes():
             out.bit(1)  # X
             out.bit(state.active)
-            write_payload(out, state.cls, state.payload, frame_time, frame_ms)
+            write_payload(out, state.cls, state.payload, frame_time, frame_ms, graphs=graphs)
         else:
             out.bit(state.active)
             if state.active:
-                write_payload(out, state.cls, state.payload, frame_time, frame_ms)
+                write_payload(out, state.cls, state.payload, frame_time, frame_ms, graphs=graphs)
 
 
 def write_events(out: BitWriter, events: list[EventWire], frame_time: int, states_bits: int) -> None:
@@ -774,7 +805,7 @@ def owner_delta(
     for item in ordered:
         if item.listed and not item.gone:
             _instance_vars(body, item, graphs, presence_only=False)
-            _instance_states(body, item, frame_time, frame_ms)
+            _instance_states(body, item, frame_time, frame_ms, graphs)
     lists = [item for item in ordered if item.events is not None and not item.gone]
     body.bit(bool(lists))
     if lists:
@@ -872,19 +903,22 @@ def remote_fields(cls: str, payload: dict) -> dict:
     if kind == "flags13":
         value = get("value", 0)
         return {"value": value}
-    if kind in ("none", "stack", "send", "link", "subscript", "targets", "frames"):
+    if kind == "link":
+        return {"link": get("link")}
+    if kind in ("none", "stack", "send", "subscript", "targets", "frames"):
         return dict(payload) if kind == "frames" else {}
     raise ValueError(f"no H=0 payload for {cls}")
 
 
-def write_remote_payload(out: BitWriter, cls: str, payload: dict, full: bool) -> None:
+def write_remote_payload(out: BitWriter, cls: str, payload: dict, full: bool, *, graphs=None) -> None:
     item = codecs.codec(cls)
     if item is None or not item.verified:
         raise ValueError(f"no verified codec for {cls}")
-    codecs.write(out, item.layout, remote_fields(cls, payload), owner=False, full=full, value=write_value)
+    codecs.write(out, item.layout, remote_fields(cls, payload), owner=False, full=full, value=write_value,
+                 link=lambda writer, value: _write_state_link(writer, value, graphs, owner=False))
 
 
-def _remote_state(out: BitWriter, state: "StateWire | None", full: bool) -> None:
+def _remote_state(out: BitWriter, state: "StateWire | None", full: bool, graphs) -> None:
     """One remote-synced state: in a full frame X, then Y for an StEC class (off goes as X = 0); in a delta X
     for an StEC class; then StAc (StEC) or A and the payload."""
     stec = state is not None and state.cls in codecs.stec_classes()
@@ -899,11 +933,11 @@ def _remote_state(out: BitWriter, state: "StateWire | None", full: bool) -> None
         out.bit(1)  # X
     if stec:
         out.bit(state.active)  # StAc
-        write_remote_payload(out, state.cls, state.payload, full)
+        write_remote_payload(out, state.cls, state.payload, full, graphs=graphs)
     else:
         out.bit(state.active)  # A
         if state.active:
-            write_remote_payload(out, state.cls, state.payload, full)
+            write_remote_payload(out, state.cls, state.payload, full, graphs=graphs)
 
 
 def remote_full_frame(instances: list[InstanceWire], entity_vars: dict, graphs: dict) -> BitWriter:
@@ -925,7 +959,7 @@ def remote_full_frame(instances: list[InstanceWire], entity_vars: dict, graphs: 
     for item in ordered:
         _instance_vars(out, item, graphs, presence_only=True)
         for node in item.graph.remote_states():
-            _remote_state(out, item.states.get(node.state), full=True)
+            _remote_state(out, item.states.get(node.state), full=True, graphs=graphs)
     out.bits(0, 2)  # no frame events
     return out
 
@@ -961,6 +995,6 @@ def remote_delta(instances: list[InstanceWire], entity_vars: dict, graphs: dict)
                 chosen[index] = item.states[node.state]
         mask(out, len(nodes), set(chosen))
         for index in sorted(chosen):
-            _remote_state(out, chosen[index], full=False)
+            _remote_state(out, chosen[index], full=False, graphs=graphs)
     out.bits(0, 2)  # no frame events
     return out

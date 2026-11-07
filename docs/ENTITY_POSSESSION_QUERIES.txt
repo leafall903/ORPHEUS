@@ -72,6 +72,12 @@ Authored verification and boundary
   cinematics and enemy AI remain open. SceneWorld stays outside the body-VM
   storage whitelist. There are no new persistent Instance/Component fields.
 
+Subsequent registered-state extension
+Subsequent RegisteredState support permits constructing 0EC6 state 0 and queuing
+its begin; execution now stops at 316CFEF2/node2 before that begin is dispatched.
+See REGISTERED_STATES.txt for the exact queue and lifecycle boundary. This later
+change adds a Component registry field; it does not add SceneWorld storage support.
+
 Local-only evidence
 live-possession-before-switch.json, live-possession-after-switch.json,
 live-entity-id-candidates.json, possession-validation.json, possession-tests.log,

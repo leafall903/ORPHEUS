@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Registered state lifecycle and successor links
+
+- Implement 9028E035's authoritative per-type component registry, in begin
+  order across graph instances. Clean up after class end hooks and before
+  authored end plugs; preserve order on removal and clear failed VM membership.
+- Native +1C8 names the successor. Skip server-only successors and retain
+  explicit links in owner delta and remote full/delta frames using the linked
+  graph's raw state/remote indexes and widths. Reject unknown link metadata.
+- Read-only VM storage now includes the registry and concrete state type,
+  without invoking payload callbacks. SceneWorld storage stays unsupported.
+- Actual 0F45 -> 0EC6 retains parameter (17,), constructs state 0 and queues
+  its begin. Next is 316CFEF2/node2, before that begin dispatches. Lifecycle and
+  codec tests do not establish helper completion or native gameplay acceptance.
+- Preserve standalone World.native queries without an Instance; real strict
+  instances still reject unknown services. This fixes two existing mode tests
+  found by expanding the regression group.
+- Passed 462 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+  Full 100B still stops at D38D0035. Prediction/link reconciliation, mission
+  host/routing, cinematics and enemy AI remain open. No candidate deployment or
+  new original-client session. Publication helper remains missing.
+
 #### Primary possessor entity queries
 
 - Implement DB742151 using an explicitly known SceneWorld possession catalog:

@@ -186,3 +186,18 @@ Primary possessor entity query, 2026-11-08:
   See ENTITY_POSSESSION_QUERIES.txt.
 - Passed 246 related runtime/expression/VM/bot/entrance/replication checks and
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Type-registered state lifecycle, 2026-11-08:
+- Implement 9028E035's authoritative type-list registration and cleanup across
+  graph instances. Native writer links name eligible successors, skipping
+  server-only states. Owner delta and remote full/delta writers retain those
+  links with the target graph's correct raw index namespace and width.
+- VM storage observes the new registry and concrete state class without running
+  payload callbacks. Unknown SceneWorld storage remains unsupported.
+- Actual 0F45 -> 0EC6 now creates state 0 and queues its begin; next is 316CFEF2
+  at node 2, before the queued state begins. This is creation/queue evidence,
+  not helper completion or demonstrated native gameplay. Context stays explicit.
+- Full 100B remains at D38D0035. Client prediction/link reconciliation, mission
+  host/routing, cinematics and enemy AI remain open. See REGISTERED_STATES.txt.
+- Passed 462 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
