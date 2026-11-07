@@ -4,6 +4,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-06
+
+#### Ultimate charge from combat
+
+- Credited the ultimate's charge for the damage a body dealt, the healing it did, and its eliminations
+  (combat.py through the new ult_charge.py). The rates are a data table, `game_ult_charge_174.json`: a
+  hero fills the meter with its `damage_to_full` / `heal_to_full` of HP and gets `kill_bonus_percent` of
+  a full meter per elimination, converted against the cost #338e its own Entries carry, so the meter is
+  right in whatever scale a hero's graphs use.
+- OW1 computed these rates in its server code rather than in data: the hero's entity definition has no
+  charge component (its components are health, weapon, mover, model, first-person, statescript, target
+  tags and voice) and the generic settings carry no charge keys. The shipped table is therefore marked
+  `placeholder` and holds community-measured values (380 damage for Soldier: 76's full meter, a 20 %
+  elimination bonus); replace them from the original server before trusting the balance.
+- Added the generating tool `tools/extract_game_ult_charge.py`; the table joins `MATCH_RUNTIME_DATA`, so
+  the runtime pack has to carry it (the loader keeps the fallback and says so if the file is absent).
+- Added 12 tests: the rule's arithmetic, its defaults and fallback, the shipped table's shape, and the
+  credit at the damage, elimination and healing sites. The full suite (1347) passed, Ruff and Git diff
+  checks passed. Client acceptance for the charge climbing under fire is pending.
+- Logs report when a body's passive charge rule blocks, and when the meter stops moving although the
+  rule runs, with what the client acknowledged (frames, ack, pending). On the target client this told a
+  blocked rule from a stalled owner stream: the meter froze on the client while every owner frame was
+  acknowledged and the server meter reached its cost; suppressing the combat notices (25001, 25005)
+  behind the new `OW174_NO_COMBAT_NOTICES=1` lever makes the same scenario run correctly, which pins
+  the stall to the notice records sent while the victim's body is retired.
+
 ### 2026-11-05
 
 #### Project setup
