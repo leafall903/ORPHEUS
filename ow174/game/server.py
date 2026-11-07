@@ -199,6 +199,11 @@ class Client:
         """20304 with 0 = leave for good (0x7FF7896E6830): the game goes back to the menu and closes its
         link. GameServer._tick drops it after LEAVE_GRACE_SECONDS if it does not."""
         if self.leaving_since is None:
+            self.unreliable.clear()
+            self.entities.clear()
+            self._pending_possessions.clear()
+            for _, records in self.in_flight.values():
+                records.clear()
             self._pending_mode_frame = None
             self._display_notices.clear()
             self.queue_reliable(LEAVE_GAME, {"+0x78": 0, "+0x79": False})
@@ -206,11 +211,6 @@ class Client:
 
     def drain_clock(self, now: float) -> None:
         """Discard obsolete world data while preserving reliable ordinals and packet ACKs."""
-        self.unreliable.clear()
-        self.entities.clear()
-        self._pending_possessions.clear()
-        for _, records in self.in_flight.values():
-            records.clear()
         self.go_home(now)
 
     # --- queues --------------------------------------------------------------------------------
@@ -594,6 +594,8 @@ class Client:
             )
 
     def queue_unreliable(self, msg_id: int, value: dict) -> None:
+        if self.leaving_since is not None:
+            return
         self.unreliable.append(messages.encode(msg_id, value))
 
     def cancel_entity_record(self, update: world.EntityUpdate) -> None:
@@ -618,6 +620,8 @@ class Client:
             self.queue_entities([update])
 
     def queue_entities(self, updates: list) -> None:
+        if self.leaving_since is not None:
+            return
         # A destroy retires all older records of this entity for this client, including
         # reliable creates/chunks awaiting ACK. A later reuse of the id is a new generation.
         lifecycles = getattr(self, "_entity_lifecycles", None)
@@ -768,6 +772,9 @@ class Client:
         return records
 
     def send_frame(self, tick: int, now: float, *, reliable_only: bool = False) -> None:
+        # Leave tears the client's world down. Keep the ordered reliable prefix and its
+        # retransmissions, but never attach world data to or after that transition.
+        reliable_only = reliable_only or self.leaving_since is not None
         queued = []
         own = None
         if reliable_only:

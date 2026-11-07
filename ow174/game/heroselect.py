@@ -24,7 +24,7 @@ More of the screen (read in the graphs and the client):
 from dataclasses import dataclass, replace
 
 from ow174.game.bits import BitWriter
-from ow174.game.content import PRACTICE_RANGE_MODE, heroes
+from ow174.game.content import PRACTICE_RANGE_MODE, SOLDIER, TUTORIAL_MODE, heroes
 from ow174.game.script import graph as scripts
 from ow174.game.statescript import (
     CONTROLLER,
@@ -35,6 +35,7 @@ from ow174.game.statescript import (
     TEAM_ENTRY,
     Asset,
     Bool,
+    Entity,
     Graph,
     Instance,
     Value,
@@ -84,16 +85,30 @@ PRACTICE = Controller(CONTROLLER, 5, 25, 37, 43, 36, 42)
 PVP = Controller(PVP_CONTROLLER, 19, 1, 103, 119)
 
 
-def controller_of(mode_guid: int) -> Controller:
+@dataclass(frozen=True)
+class FixedController:
+    """Tutorial's own controller: a fixed hero, without the shared hero-selection tree."""
+
+    graph: Graph
+    hero: int
+    hero_bit: int
+
+
+def controller_of(mode_guid: int) -> Controller | FixedController:
     if mode_guid == PRACTICE_RANGE_MODE:
         return PRACTICE
     mode = scripts.mode_scripts(mode_guid)
     if mode is None or not mode.get("pve"):
+        if mode_guid == TUTORIAL_MODE:
+            raise ValueError("Tutorial mode scripts are unavailable")
         return PVP
-    reference = (mode.get("teams", {}).get("0") or {}).get("controller")
+    team = "1" if mode_guid == TUTORIAL_MODE else "0"
+    reference = (mode.get("teams", {}).get(team) or {}).get("controller")
     if reference is None:
-        raise ValueError(f"PVE mode {mode_guid:#x} has no team 0 controller")
+        raise ValueError(f"PVE mode {mode_guid:#x} has no team {team} controller")
     index = int(reference, 16) & 0xFFFF
+    if mode_guid == TUTORIAL_MODE and index != 0x13A4:
+        raise ValueError("Tutorial needs its authored controller 13A4")
     if index == PVP.graph.index:
         return PVP
     if index == PRACTICE.graph.index:
@@ -101,6 +116,15 @@ def controller_of(mode_guid: int) -> Controller:
     source = scripts.graph(index)
     if source is None:
         raise ValueError(f"PVE controller graph {index:04X} is unavailable")
+    if mode_guid == TUTORIAL_MODE:
+        hero_states = [number for number, node in enumerate(source.states)
+                       if node is not None and node.is_networked and node.cls == "STUStatescriptStateHero"]
+        if len(hero_states) != 1:
+            raise ValueError("Tutorial needs one verified fixed-hero state")
+        return FixedController(
+            Graph(source.index, len(source.owner_states()), len(source.presence_vars())),
+            SOLDIER, source.owner_slot(hero_states[0]),
+        )
     # Archives and Junkenstein controllers host the common controller as an authored SubScript.
     # Keep the actual parent/state in the network tree; sending 0C90 alone loses that relationship.
     states = [
@@ -117,13 +141,14 @@ def controller_of(mode_guid: int) -> Controller:
 
 
 def controller_frame(
-    controller: Controller,
+    controller: Controller | FixedController,
     cmfd: int,
     select_open: bool,
     skins: bool = False,
     hide_assemble: bool = False,
     presence: dict[int, Value] | None = None,
     hero: int | None = None,
+    body: int | None = None,
 ):
     """The owner full frame for the player's entity: the controller (1) with hero select 288A (2) ->
     288B (3) under it, 13C1's HUD 20E4 (4), and 288A's team list entry 288D (the next index).
@@ -132,6 +157,14 @@ def controller_frame(
     is the hero he plays (None before the first pick): v940, which retail's controller graph sets on
     the server. The F1 hero info (288A's client-only 2931) shows v940's hero while hero select is
     closed (2931 st3: v14152 = v31435 ? the browsed hero : v940)."""
+    if isinstance(controller, FixedController):
+        variables = {CURRENT_HERO: Asset(hero)} if hero else {}
+        # Match owns body creation and possession. Keep the authored controller and body
+        # reference without starting the Hero state's separate body lifecycle.
+        instance = Instance(1, controller.graph)
+        if body is not None:
+            instance.extra[8370] = Entity(body)  # 13A4's Hero state reads its possessed body here.
+        return owner_full_frame(cmfd, [instance], variables)
     root = 2 if controller.parent is not None else 1
     host_id, screen_id = root + 1, root + 2
     active = {controller.hero_select_bit: None, controller.select_bit: subscript(host_id)}

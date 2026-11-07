@@ -464,7 +464,8 @@ class Match:
         tournament: bool,
         card: dict | None = None,
     ) -> Player:
-        hero = heroes().get(hero_guid) or heroes()[SOLDIER]
+        fixed = self.controller.hero if isinstance(self.controller, heroselect.FixedController) else None
+        hero = heroes().get(fixed or hero_guid) or heroes()[SOLDIER]
         quanta = TOURNAMENT_QUANTA if tournament else RETAIL_QUANTA
         player = Player(self, len(self.players), account_lo, name, hero, team, quanta, card)
         self.players.append(player)
@@ -914,7 +915,14 @@ class Match:
                 self.assemble_ends = now + ASSEMBLE_SECONDS
                 log.info("[game] %s: assemble your team, %d s", self.label(), ASSEMBLE_SECONDS)
         if player.steps_done == 3 and waited >= SEND_CONTROLLER:
+            if isinstance(self.controller, heroselect.FixedController) and not client.controller_ready:
+                return
             player.steps_done = 4
+            if isinstance(self.controller, heroselect.FixedController):
+                if not self.switch_hero(player, player.hero):
+                    player.steps_done = 3
+                    return
+                player.select_open = False
             self.send_controller(player)
             self.combat.spawned(player)
         elif player.steps_done == 4 and not player.script.data_last:
@@ -966,7 +974,8 @@ class Match:
         switch = self.notices.presence(player)  # the last hero switch for the chat line (notices.py)
         hero = player.controller_hero = player.hero.guid if player.has_body else None
         frame = heroselect.controller_frame(
-            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero
+            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero,
+            body=player.body if player.has_body else None,
         )
         update = player.script.full_frame(frame)
         # A switch notice is a separate event, even when the menu is already closed.
@@ -1125,6 +1134,8 @@ class Match:
             value.get("+0xB0"),
             parameters.hex(" "),
         )
+        if isinstance(self.controller, heroselect.FixedController):
+            return  # Tutorial has no hero picker or reopen request.
         if message == heroselect.PICK_HERO:
             hero = heroes().get(heroselect.picked_hero(parameters) or 0)
             if hero is None:

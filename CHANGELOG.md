@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-07
 
+#### Tutorial entry and world delivery on leave
+
+- Route the native Training > Tutorial request to its authored solo red team,
+  Tutorial map and fixed Soldier: 76 controller. Wait for controller creation ACK
+  before body creation and possession; keep the shared hero picker closed.
+- Stop sending queued, in-flight or newly produced world records once a client
+  leaves. Preserve reliable message ordinals, retransmissions and packet ACKs,
+  including when the leave packet is lost. Clock draining uses the same cleanup.
+- Passed 141 focused tests, Ruff and Git diff checks. All 47 PVE card/map loading
+  and controller frames still passed independent offline decoding.
+- Eight activity cards and Practice Range have original-client entry/return
+  evidence. The current Tutorial candidate completed five consecutive world and
+  menu cycles in one original-client process, followed by Practice Range and
+  normal client closure. Earlier candidates had intermittent cleanup crashes;
+  this observation does not establish their complete cause or wider stability.
+- The remaining 39 activity cards and normal-service deployment remain open.
+  Tutorial guidance, mission AI and objective execution are outside this entry
+  acceptance. Publication remains unavailable because the required
+  work/sync_orpheus_publication.py helper is absent; assets and evidence stay local.
+
 #### PVE controller and loading states
 
 - Preserve the mode/team script associations in external graph bundles. Replicate

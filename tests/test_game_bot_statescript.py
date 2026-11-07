@@ -861,16 +861,16 @@ class BotStatescriptTests(unittest.TestCase):
         self.assertEqual(self.chunks(after, old), [])
 
     def test_late_killer_possession_ack_does_not_admit_feed_after_go_home(self):
-        lost = self.kill_with_lost_shooter_possession()
+        self.kill_with_lost_shooter_possession()
         watcher, old = self.watching_peer, self.bot.entity
         watcher.client.go_home(10.0)
         watcher.ack()  # The old loss is still processed while leaving.
         _, reliable, retry = self.send(watcher)
         self.assertIn(LEAVE_GAME, [msg_id for _, msg_id, _ in reliable])
-        self.assertEqual(self.shooter_possession(retry), lost)
+        self.assertEqual(self.shooter_possession(retry), [])
         self.assertEqual(self.chunks(retry, old), [])
 
-        watcher.ack()  # Positive ACK of the current association after go_home.
+        watcher.ack()  # ACK the leave; the old association must stay retired.
         _, _, after = self.send(watcher)
         self.assertEqual(self.chunks(after, old), [])
         self.assertEqual(watcher.feed_pulses, [])

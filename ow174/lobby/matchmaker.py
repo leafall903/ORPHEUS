@@ -37,7 +37,7 @@ import time
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
-from ow174.game.content import PRACTICE_RANGE, game_map
+from ow174.game.content import PRACTICE_RANGE, TUTORIAL_MAP, TUTORIAL_MODE, game_map
 from ow174.game.match import CARD_RANK, CARD_ROLE
 from ow174.jam.groups import CHAT_IN, HANDOFF, MATCH_LOBBY, QUEUE
 from ow174.lobby import lineup
@@ -354,6 +354,7 @@ class Matchmaker:
         self.found_seconds = FOUND_SECONDS  # 0: queue matches go to the game at once
         self.found: dict[int, Found] = {}  # account -> its player in "Game Found!"
         self._deferred_practice: dict[int, object] = {}  # account -> original live session
+        self._deferred_tutorial: dict[int, object] = {}
         self.schedule = _later  # (seconds, function): runs the function later on its own thread
         self.lock = threading.RLock()
 
@@ -391,7 +392,7 @@ class Matchmaker:
                 self._try_match(waiting)
 
     def clock_ready(self) -> None:
-        """Retry waiting matches and Practice Range requests after the game clock reopens."""
+        """Retry waiting matches and training requests after the game clock reopens."""
         with self.lock:
             while self.tickets:
                 waiting = len(self.tickets)
@@ -401,9 +402,11 @@ class Matchmaker:
             game = self.server.game
             if game is None:
                 return
-            for account, session in list(self._deferred_practice.items()):
-                if not self._online(session) or game.in_match(account) or self._practice(session):
-                    del self._deferred_practice[account]
+            for pending, start in ((self._deferred_practice, self._practice),
+                                   (self._deferred_tutorial, self._tutorial)):
+                for account, session in list(pending.items()):
+                    if not self._online(session) or game.in_match(account) or start(session):
+                        del pending[account]
 
     # --- the queue -----------------------------------------------------------------------------
 
@@ -423,9 +426,10 @@ class Matchmaker:
             self.tickets = [ticket for ticket in self.tickets if ticket.party is not party]
             members = {member.account_lo for member in party.members}
             for account in members:
-                session = self._deferred_practice.get(account)
-                if session is not None and not self._online(session):
-                    del self._deferred_practice[account]
+                for pending in (self._deferred_practice, self._deferred_tutorial):
+                    session = pending.get(account)
+                    if session is not None and not self._online(session):
+                        del pending[account]
             for account_lo, found in list(self.found.items()):
                 if account_lo in members and not self._online(found.session):
                     del self.found[account_lo]
@@ -556,6 +560,7 @@ class Matchmaker:
             if not self._online(session):
                 return
             account = session.account.account_lo
+            self._deferred_tutorial.pop(account, None)
             if self._practice(session) or self.server.game is None:
                 self._deferred_practice.pop(account, None)
             else:
@@ -574,6 +579,27 @@ class Matchmaker:
         practice_range = replace(PRACTICE_RANGE, team_sizes=(len(members), 0))
         roster = Roster([[(ticket, member, 0) for member in members]])
         return self._start(practice_range, roster, popped=False)
+
+    def tutorial(self, session) -> None:
+        """Training > Tutorial: its requesting player alone on the authored red team."""
+        with self.lock:
+            if not self._online(session):
+                return
+            account = session.account.account_lo
+            self._deferred_practice.pop(account, None)
+            if self._tutorial(session) or self.server.game is None:
+                self._deferred_tutorial.pop(account, None)
+            else:
+                self._deferred_tutorial[account] = session
+
+    def _tutorial(self, session) -> bool:
+        scene = game_map(TUTORIAL_MAP, TUTORIAL_MODE, "Tutorial", team_sizes=(0, 1))
+        if scene is None:
+            session.log("[MM] Tutorial map inputs are unavailable")
+            return True  # missing inputs cannot be repaired by a clock retry
+        party = self.server.social.party_of(session.account)
+        ticket = Ticket(party, {}, 0, time.time(), [(session.account, [])])
+        return self._start(scene, Roster([[], [(ticket, session.account, 0)]]), popped=False)
 
     def _start(self, game_map, roster: Roster, popped: bool = True, card: int = 0) -> bool:
         server = self.server
