@@ -99,3 +99,11 @@ effect-parameters-native-validation.json, effect-parameters-authored-validation.
 effect-parameters-root-summary.txt, helper-582E-methods.txt,
 helper-582E-interfaces.txt, helper-582E-refresh-dispatch.txt, helper-582E-phase.txt,
 helper-582E-backend.txt and helper-582E-getter-result.txt.
+
+Subsequent allocation milestone:
+- effect_parameters.initialize now models the initial authored writes before
+  refresh, including separately preserved F8/FC baselines and repeated F4 input.
+- effect_allocation models retained list entries and low-level retirement.
+  Specialized component262C010 has non-null scope registration slots, unlike
+  the previously examined contexts. Its native scheduling is not inferred.
+  See AUXILIARY_EFFECT_ALLOCATION.txt. The VM/mission gates above remain open.

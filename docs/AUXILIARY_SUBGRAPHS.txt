@@ -68,3 +68,10 @@ helper-BD02-interface-methods.txt, helper-BD02-base-interfaces.txt,
 helper-BD02-lifetime.txt, helper-BD02-component-context.txt,
 helper-BD02-exit-dispatch.txt, scope-native-validation.json,
 scope-validation.json, scope-tests.log and scope-server-tests.log.
+
+Subsequent specialized-host evidence:
+Constructor9776F0 establishes primary vtable262C010. Unlike the library/game
+tables above, its +198/+1A0 register/remove real interface State pointers through
+helper+5C0. Cold removal swaps the last element into the removed slot. Pending
+history, prediction and callback timing remain distinct work; Registry's explicit
+local API is not silently changed into that host. See AUXILIARY_EFFECT_ALLOCATION.txt.

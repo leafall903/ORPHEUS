@@ -54,6 +54,27 @@ def _vector(state, field):
     return expr.Vec3(*(expr.f32(part) for part in value))
 
 
+def initialize(state, block: Parameters, *, context_enabled: bool) -> None:
+    """9D253B..9D2608: initial authored writes, then the complete refresh.
+
+    Native allocation and binding of State+218 precede this sequence. The caller
+    owns those operations; this function neither allocates nor begins a State.
+    """
+    if type(block) is not Parameters or type(context_enabled) is not bool:
+        raise ValueError("expected effect parameters and explicit boolean context capability")
+    with state.instance.component.operation():
+        for offset, name in ((0x208, "m_0C4BE468"), (0x209, "m_F4669F53")):
+            value = _value(state, name)
+            block.values[offset] = expr.truthy(value) if value is not FAILED else False
+        block.values[0x20C] = _number(state, "m_1A76C130", 0.0)
+        value = _value(state, "m_494A6B1F")
+        block.values[0x22C] = expr.truthy(value) if value is not FAILED else False
+        value = _number(state, "m_6A79BD98", 2.0)
+        for offset in (0xF4, 0xF8, 0xFC):
+            block.values[offset] = value
+        refresh(state, block, context_enabled=context_enabled)
+
+
 def refresh(state, block: Parameters | None, *, context_enabled: bool) -> None:
     """Write the existing block; no block means no evaluation (native +218 guard).
 

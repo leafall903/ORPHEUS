@@ -249,3 +249,24 @@ Auxiliary effect parameter core, 2026-11-08:
   client session. See AUXILIARY_EFFECT_PARAMETERS.txt for the mapping and limits.
 - Passed 503 runtime/expression/VM/body/bot/entrance/replication/replay checks,
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary effect allocation/initialization core, 2026-11-08:
+- Model 9D1D50's explicit context/target/observer descriptor, serial-sorted list
+  entries and 6B8E20 retirement. Retired entries/observer references remain held;
+  retirement does not imply deletion or consumer completion. Equal-key tie order
+  after a complete serial cycle remains an explicit unresolved case.
+- Add initial authored writes before parameter refresh. F8/FC retain the first
+  scalar evaluation while F4 can take its independently evaluated second value.
+- Original allocation/sort/reference/retire instructions match192/76 operations;
+  original initialization/refresh/casts match192 cases and7488 field comparisons.
+  Allocator/constructor and engine inputs remain explicit adapters.
+- Specialized ctor9776F0 proves component vtable262C010 has real scope registration
+  and removal slots. Seventeen cold original register/removal cases establish
+  append/swap removal. Native pending-history callback scheduling remains open.
+- Actual node4's isolated allocated descriptor has scalar values0/.75/5/5/5/0.
+  Its route was supplied; no authored VM State or engine object is constructed.
+  Helper entry remains582E0D5F/node4; full100B remainsD38D0035/node106.
+- Full mission/cinematics/enemy AI remain unaccepted. No deployment/new client.
+  See AUXILIARY_EFFECT_ALLOCATION.txt for ownership, adapters and pending work.
+- Passed 513 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.

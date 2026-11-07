@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Auxiliary effect list ownership and initialization
+
+- Add explicit effect descriptors and native serial-sorted list membership.
+  Retirement clears a live bit while retaining the entry and observer; it
+  does not imply deletion, callback dispatch or consumer completion. Preserve
+  uint32 wrap and unsigned ordering; unresolved serial ties fail before mutation.
+- Add initial authored writes before parameter refresh. F8/FC keep the first
+  scalar evaluation while F4 can take a separately evaluated second value.
+- Original allocation/reference/sort/retire instructions agree on192 allocation
+  and76 retirement operations; initialization/refresh/casts agree on192 cases
+  and7488 field comparisons. Allocator/constructor/engine inputs are adapters.
+- Establish specialized component262C010 from its constructor, with non-null
+  scope registration/removal slots. Seventeen original cold register/removal
+  cases confirm append/swap removal. Pending-history dispatch remains open.
+- Actual0EC6/node4 builds an isolated descriptor with supplied route inputs,
+  then retains it after retirement. No authored VM State or engine object is
+  constructed. Helper remains582E0D5F/node4; full100B remainsD38D0035/node106.
+- Passed513 related runtime/expression/VM/body/bot/entrance/replication/replay
+  checks,15 server snapshot/research-injection checks, Ruff and diff checks.
+  Mission/cinematics/enemy AI remain unaccepted. No deployment/new client.
+  Required publication helper is still missing.
+
 #### Auxiliary effect parameter updates
 
 - Add 582E0D5F's isolated existing-effect parameter core: native f32 defaults,
