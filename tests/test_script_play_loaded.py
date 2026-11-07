@@ -151,13 +151,14 @@ class PlayLoadedTests(unittest.TestCase):
                 node(0, 'STUStatescriptActionPlayScript',
                      m_script={'$': 'STU_105E1BCC', 'm_resourceKey': None,
                                'm_graph': '0x0580000000000002'},
+                     m_targets={'$': 'STU_B5A0CAF0'},
                      m_outPlug=plug((1, 'm_inPlug'))),
                 setter(1, 99),
             ]), init=False)
             if strict:
                 with self.assertRaises(runtime.UnsupportedScriptError) as raised:
                     instance.run_node(instance.graph.node(0), None)
-                self.assertEqual(raised.exception.diagnostic['feature'], 'native PlayScript request')
+                self.assertEqual(raised.exception.diagnostic['feature'], 'native PlayScript request context')
                 self.assertNotIn(7, instance.vars)
             else:
                 instance.run_node(instance.graph.node(0), None)

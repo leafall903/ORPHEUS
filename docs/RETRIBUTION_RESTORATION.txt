@@ -154,3 +154,18 @@ Map entity query service, 2026-11-08:
   15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
 - SceneWorld is not attached to Match and does not activate components or route
   requests. Full root still stops at D38D0035; story, cinematics and AI remain open.
+
+PlayScript request construction, 2026-11-08:
+- Construct native ordered targets, explicit caller/owner/instigator context,
+  scalar source fallback, ordered array parameters, allocation policy and wire
+  byte. Empty targets skip later services; real requests require context and
+  submission backends before following output. No owner/source fallback is guessed.
+- Actual 0F45 node 48 constructs the supplied value 17 as parameter array (17,).
+  An explicit handoff to the loaded 0EC6 core writes its variable 41 = (17,), then
+  stops at DB742151. This is request/value evidence, not native context derivation,
+  target component routing or a running AI helper. See PLAY_SCRIPT_CORE.txt.
+- Passed 237 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+- New D38D0035 references remain type/factory code, without server-effect evidence.
+  Full 100B startup still stops there. Match host, component lifecycle, cinematics
+  and enemy AI remain open; no deployment or new original-client acceptance.

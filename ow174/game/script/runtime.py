@@ -355,11 +355,28 @@ class World:
             self.play_resolved_script(instance, node, resource)
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
-        """Route/load a resource selected in the caller's evaluation context.
+        """Construct the native request before asking the backend to submit it.
 
-        A backend may use Component.play_loaded_graph after resolving the target,
-        graph, source context and replication policy. The base world
-        cannot silently accept a strict mission request.
+        Empty target iterators follow output without asking for unavailable
+        context/transport services. A real request requires both services.
+        """
+        from ow174.game.script.play import resolve_request
+
+        request = resolve_request(
+            instance, node, resource, context_provider=lambda: self.play_script_context(instance, node),
+        )
+        if request is not None:
+            self.submit_script_request(instance, node, request)
+
+    def play_script_context(self, instance: "Instance", node: Node):
+        """Supply native caller, owner and inherited instigator without guessing."""
+        instance.component.unsupported(instance, "native PlayScript request context", node.cls, node)
+
+    def submit_script_request(self, instance: "Instance", node: Node, request) -> None:
+        """Resolve actual target components/resources, clock and transport policy.
+
+        Request construction alone cannot create instances or accept wire flags.
+        A concrete mission owner must implement this service.
         """
         instance.component.unsupported(instance, "native PlayScript request", node.cls, node)
 

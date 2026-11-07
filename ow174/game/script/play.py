@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from ow174.game.script import expr
 from ow174.game.script.graph import GRAPH_TYPE
+from ow174.game.script.graph import guid as parse_guid
 
 GRAPH_KEY = 0x4065
 IDENTIFIER_TYPE = 0x0D80000000000000
@@ -20,6 +21,25 @@ MAX_CONFIG_DEPTH = 64
 class Resource:
     guid: int
     overrides: tuple = ()  # evaluated (identifier GUID, value), native bucket order
+
+
+@dataclass(frozen=True)
+class InvocationContext:
+    """Explicit native context inputs; caller (+98) and instigator (+9C) differ."""
+
+    caller: int
+    owner: int
+    instigator: int
+
+
+@dataclass(frozen=True)
+class Request:
+    resource: Resource
+    targets: tuple[int, ...]
+    context: InvocationContext
+    params: tuple
+    policy: int
+    wire_flag: int
 
 
 def evaluate_value(instance, cfg, *, initial=0):
@@ -191,3 +211,72 @@ def resolve_resource(instance, node) -> Resource | None:
     with instance.component.operation():
         return (_select(instance, node, node.field("m_69F4B52C"))
                 or _select(instance, node, node.field("m_script")))
+
+
+def _scalar(instance, cfg, *, initial, depth=0):
+    """The +20 path, including 06610EBC's first config and no-output failure."""
+    instance.component.consume_work("played graph scalar evaluation")
+    if depth >= MAX_CONFIG_DEPTH:
+        instance.component.budget_exceeded("played graph scalar config depth exhausted")
+    if cfg is None:
+        return initial
+    if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
+        configs = cfg.get("m_configVars") or ()
+        return _scalar(instance, configs[0], initial=initial, depth=depth + 1) if configs else initial
+    return instance.evaluate(cfg, initial=initial)
+
+
+def resolve_request(instance, node, resource: Resource, *, context_provider) -> Request | None:
+    """906E49..9070D0: targets, explicit context, then ordered array parameters.
+
+    No usable target means no request and no context/parameter evaluation.
+    The world supplies the three native entity inputs without an owner/source
+    guess. Resource readiness, per-target component lookup and transport are
+    the submitter's responsibility; construction does not execute a callee.
+    """
+    with instance.component.operation():
+        targets = []
+        for value in _iter_values(instance, node.field("m_targets")):
+            entity = expr.to_entity(value)
+            if expr.valid_entity(entity):
+                targets.append(entity)
+        if not targets:
+            return None
+        context = context_provider()
+        if (not isinstance(context, InvocationContext)
+                or any(type(value) is not int or not 0 <= value <= 0xFFFFFFFF
+                       for value in (context.caller, context.owner, context.instigator))):
+            instance.component.unsupported(instance, "played graph invocation context", node.cls, node)
+        candidate = context.instigator
+        config = node.field("m_6D7701B7")
+        if config is not None:
+            value = _scalar(instance, config, initial=_FAILED)
+            if value is not _FAILED:
+                candidate = expr.to_entity(value)
+        # 1BA7E60 first seeds +9C from +98; 1BA7E30 accepts only valid overrides.
+        instigator = candidate if expr.valid_entity(candidate) else context.caller
+        context = InvocationContext(context.caller, context.owner, instigator)
+        params = []
+        for row in node.field("m_params") or ():
+            instance.component.consume_work("played graph parameter collection")
+            if row is None:
+                continue
+            if not isinstance(row, dict):
+                instance.component.unsupported(instance, "played graph parameter row", node.cls, node)
+            identifier = row.get("m_B5051BCE")
+            if identifier is None:
+                continue  # Native 9070A9 ignores an absent identifier pointer.
+            key = parse_guid(identifier)
+            if key is None:
+                instance.component.unsupported(instance, "played graph parameter identifier", node.cls, node)
+            # 1BA7C60 always allocates an array, even for one item or no items.
+            params.append((key, tuple(_iter_values(instance, row.get("m_value")))))
+        policy = node.field("m_AA4DE426")
+        wire_flag = node.field("m_7ABA409C")
+        policy = 0 if policy is None else policy
+        wire_flag = 1 if wire_flag is None else wire_flag
+        if type(policy) is not int or policy not in range(4):
+            instance.component.unsupported(instance, "played graph instance policy", node.cls, node)
+        if type(wire_flag) is not int or not 0 <= wire_flag <= 0xFF:
+            instance.component.unsupported(instance, "played graph wire flag", node.cls, node)
+        return Request(resource, tuple(targets), context, tuple(params), policy, wire_flag)

@@ -1,4 +1,4 @@
-PlayScript resources and loaded-graph core — partial native service restoration
+PlayScript requests and loaded-graph core — partial native service restoration
 Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
 
 Problem
@@ -43,14 +43,17 @@ are independent roots, rather than lifetime-bound SubScript children.
 
 Replacement uses the existing Component.destroy teardown. Native deferred
 deletion during an active callback, asynchronous resource requests, linked schemas,
-request target selection, source-context derivation, transported
+target component routing, source-context derivation, transported
 instance/flag behavior and client acceptance remain outside this core.
 
 Strict PlayScript actions call World.play_script(instance, node). A concrete
 world backend must perform a valid request before its output is followed.
-The base world selects its resource, then explicitly fails at play_resolved_script.
+The base world selects its resource, collects targets, then requires explicit
+play_script_context and submit_script_request services for a nonempty request.
 A request with neither a usable primary nor fallback resource follows output
-without a world request, matching 906E15. Legacy permissive body behavior
+without a world request, matching 906E15. An empty valid-target iterator likewise
+follows output before evaluating source/parameters, matching 906F1A..3E.
+Legacy permissive body behavior
 remains passive. No mission host is attached to Match by this change.
 
 Pending assignment events and disabled start-entry positions are included in the
@@ -125,3 +128,41 @@ the resource-only probe's 21/23 limitation above: all 23 configurations resolve,
 and queued defaults for 121D/1412/119F complete with typed empty TargetTags and
 proper missing-reference failures. This is not target routing or execution of
 the helper scripts. Full root remains at D38D0035. See SCENE_QUERY_WORLD.txt.
+
+Request construction extension, 2026-11-08
+- play.resolve_request(instance, node, resource, context_provider=callable)
+  constructs a Request or returns None for an empty valid-target iterator. It
+  preserves typed entity order and duplicates through the native +28 iterator;
+  integer/asset/null/invalid-entity values do not become targets. Native F64C20
+  confirms Entity conversion, with first-element recursion for an array value.
+- The provider returns InvocationContext(caller, owner, instigator), three
+  explicit uint32 native entity inputs. The implementation does not derive them
+  from the runtime owner. A missing m_6D7701B7 or no-output +20 failure retains
+  the inherited instigator. Successful values use Entity conversion. 1BA7E60
+  seeds +9C from caller +98; 1BA7E30 replaces it only with a valid candidate.
+  Thus a successful null/nonentity value falls back to caller, rather than
+  retaining a different inherited instigator. Config arrays use their first
+  config on this scalar path, including that first config's failure.
+- 907080..C6 skips absent parameter rows/identifier pointers, preserves row order
+  and duplicate keys, and calls 1BA7C60 for each retained row. That helper always
+  constructs an array and collects its iterator: one value becomes (value,),
+  and no values becomes (). A scalar null is omitted; null array members remain.
+  Context/source evaluation precedes parameter collection. Policy and the full
+  wire byte are retained in Request, without accepting transport semantics.
+- World.play_resolved_script now constructs this request before calling
+  submit_script_request. A nonempty request cannot follow its output when either
+  context or submission is unavailable. SceneWorld query bindings supply neither
+  service by themselves. No new persistent VM fields or storage types are added.
+- An authored 0F45 node 48 probe supplies caller variable 10334 = 17, constructs
+  parameter 0A4000000000000A as (17,), then explicitly passes that request to the
+  already-loaded 0EC6 core. Its actual start entry writes variable 41 = (17,)
+  before stopping at DB742151. This extends the earlier scalar-input core probe;
+  it does not establish automatic native context, component routing or AI.
+- The uninitialized-caller inventory has 5 constructed requests, 11 with empty
+  targets and 7 strict missing services. These counts do not describe live
+  mission state. Full 100B startup remains at D38D0035; no candidate deployment
+  or new client acceptance. Local evidence: request-validation.json,
+  request-tests.log, request-server-tests.log, playscript-owner-source.txt,
+  playscript-context-setters.txt, playscript-parameter-array-type.txt,
+  entity-value-conversion.txt and the original
+  functions-906D50.txt / playscript-context-native.txt exports outside Git.

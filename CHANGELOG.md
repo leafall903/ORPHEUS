@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native PlayScript request construction
+
+- Collect valid typed target entities in native order, retaining duplicates.
+  Skip context/parameter services when targets are empty. Keep caller, owner
+  and inherited instigator explicit; distinguish scalar source failure from
+  successful null/nonentity values and retain the native caller fallback.
+- Collect every request parameter as an array, including one-item and empty
+  arrays. Retain ordered duplicate keys, allocation policy and the wire byte.
+  World backends must provide context and submit real requests before output
+  follows. Scene query bindings alone do not grant routing or transport.
+- An authored 0F45 node 48 probe supplies caller variable 10334 = 17, constructs
+  parameter (17,), and explicitly hands it to loaded 0EC6. Its start entry writes
+  variable 41 = (17,) before stopping at DB742151. This verifies the request/core
+  boundary, not automatic context derivation, target routing or running AI.
+- Passed 237 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, Ruff and Git diff checks. Full
+  100B startup remains at D38D0035. Mission host, component lifecycle, context,
+  resource readiness, transport, cinematics and enemy AI remain unaccepted.
+  No candidate deployment or new original-client acceptance is claimed.
+  Publication still requires the missing work/sync_orpheus_publication.py helper.
+
 #### Map entity identity and UUID queries
 
 - Add an isolated SceneWorld query service using native client_id identities
