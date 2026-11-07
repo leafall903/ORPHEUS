@@ -1203,6 +1203,7 @@ class State:
             self.reentry()
             return
         self.counter = (self.counter + 1) & 0xFFFF
+        self.on_beginning()
         indexes = self.node.fields.get("m_exclusiveStateIndices") or []
         exclusive = [self.instance.state(index) for index in indexes]
         for state in exclusive:
@@ -1226,6 +1227,7 @@ class State:
         if not self.active or self.ending:
             return
         self.ending = True
+        self.on_ending()
         self.instance.cancel(self)
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
@@ -1293,6 +1295,12 @@ class State:
 
     def on_begin(self) -> None:
         """OnBegin (vt+0xB8): before the base plugs."""
+
+    def on_beginning(self) -> None:
+        """Component +100: after counter increment, before exclusives/active=true."""
+
+    def on_ending(self) -> None:
+        """Component +118: before child/end cleanup, while active and ending."""
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""

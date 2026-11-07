@@ -290,3 +290,20 @@ Auxiliary effect State and explicit routes, 2026-11-08:
   No deployment/new client session. See AUXILIARY_EFFECT_STATE.txt for limits.
 - Passed 533 runtime/expression/VM/body/bot/entrance/replication/replay checks,
   15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Normal-forward auxiliary scope history, 2026-11-08:
+- Add explicit per-Component ForwardHost. Component+100/+118 history writes
+  precede active-bit changes; an owner-driven drain uses first-edge snapshot and
+  pending parity to enter/exit. Plain Registry and knownNone retain their policies.
+- Frame and phase boundaries remain supplied. Correct previous +220 inference:
+  A0A2E0 queries pending/returns Instance; A087E0 actually marks the helper dirty.
+- Original instructions match the production host in386 writer/wrapper/drain/
+  unregister/mutation cases, with documented service/callback adapters.
+- Actual0F45->0EC6 production host reachesframe500 without injected callbacks.
+  Frame0 creates one effect descriptor, frame46 retires it, frame140 exits scope14;
+  states10/15/16 remainactive. Teardown clears history/registrations without new effects.
+- Twenty-one behavior checks cover normal edges/parity, ordering, clocks, mutation,
+  retirement/failure/budgets. Passed554 related and15 server checks, Ruff and diff.
+- Full100B stillD38D0035/node106. Match host, native phase placement, rollback,
+  engine consumers, +88/+120 phases, orientation, all cinematics and enemy AI remain
+  unaccepted. No deployment/new client. See AUXILIARY_SCOPE_HISTORY.txt.

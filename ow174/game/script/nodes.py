@@ -91,7 +91,7 @@ class ScopedSubgraph(State):
         if not component.strict:
             return
         registry = component.world.subgraph_scopes(component.entity)
-        if registry is not None and type(registry) is not scopes.Registry:
+        if registry is not None and type(registry) not in (scopes.Registry, scopes.ForwardHost):
             component.unsupported(self.instance, "subgraph scope registration", self.node.cls, self.node)
         if registry is not None:
             registry.register(self)
@@ -99,8 +99,20 @@ class ScopedSubgraph(State):
 
     def on_destroyed(self):
         if self.scope_registry is not None:
-            self.scope_registry.unregister(self)
+            if type(self.scope_registry) is scopes.ForwardHost:
+                self.scope_registry.discard(self)
+            else:
+                self.scope_registry.unregister(self)
             self.scope_registry = None
+
+    def on_beginning(self):
+        if type(self.scope_registry) is scopes.ForwardHost:
+            self.scope_registry.record(self, True)
+
+    def on_ending(self):
+        if (type(self.scope_registry) is scopes.ForwardHost
+                and not self.instance.teardown and not self.instance.stopped):
+            self.scope_registry.record(self, False)
 
     def scope_enter(self):
         self.instance.follow(self.node, "m_5B10D01F", self)

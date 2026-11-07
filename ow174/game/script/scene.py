@@ -146,8 +146,11 @@ class SceneWorld(runtime.World):
     def set_subgraph_scopes(self, entity: int, registry: scopes.Registry | None) -> None:
         """Declare interface registration without guessing the host's dispatch policy."""
         self._bound_entity(entity)
-        if registry is not None and type(registry) is not scopes.Registry:
+        if registry is not None and type(registry) not in (scopes.Registry, scopes.ForwardHost):
             raise ValueError("expected subgraph scope registry or known no service")
+        if (type(registry) is scopes.ForwardHost
+                and (registry.component.entity != entity or registry.component.world is not self)):
+            raise ValueError("scope host belongs to another world or entity")
         if entity in self.scope_components and self.scope_components[entity] is not registry:
             raise ValueError("retire the entity before replacing its subgraph scope service")
         self.scope_components[entity] = registry

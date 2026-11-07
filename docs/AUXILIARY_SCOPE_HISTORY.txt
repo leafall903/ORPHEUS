@@ -1,0 +1,93 @@
+Auxiliary scope history — explicit normal-forward host
+Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
+
+Problem and resulting behavior
+Manual Registry callbacks established the BD02E168/582E0D5F interfaces, but the
+real helper's ordinary State transitions did not dispatch them. ForwardHost is
+now an explicit service for one script Component. State transitions record the
+native history protocol; an owner-driven drain dispatches its pending parity.
+It is not automatically attached to Match, SceneWorld entities or body prediction.
+
+Native evidence
+- Specialized component constructor9776F0 installs vtable262C010 and helper+5C0.
+  Component +100=97A1E0 records true through A087E0, then journals A0A0D0.
+  Component +118=97A310 records false, then journals A09D40.
+- Statebegin1B70790 calls +100 at1B709E1 after its counter increment, before
+  exclusive-state cleanup and active=true. Abort1B70480 calls +118 at1B705FB;
+  finish1B70B10 calls it at1B70C8B. Both precede child/end cleanup/active=false.
+  Active reentry uses +108=97A280, which does not enqueue this history.
+- A087E0 snapshots State.active into scope+40 only when pending count is zero.
+  Append an eight-byte entry with signedint frame at+0 and bool payload at+4;
+  increment scope+18 and mark helperE8 dirty. Normal frame comes from helperC4;
+  helper733 chooses component1D0 instead during native reconciliation.
+- Component +120/+128/+130 wrappers can also record history. Those component
+  slots are distinct from a State vtable's +120 reconstruction phase.
+- A0B460 clears dirty, scans the current registered State array in order, skips
+  InstanceID0 or empty history, and invokes interface+18. For these two interfaces
+  that slot is a nullsub. Read the current count: odd with initial snapshotfalse
+  enters; odd with snapshottrue exits. Write dispatched scope+48 after callback.
+  Even parity dispatches neither. Stored payload bools are retained but not read
+  by this normal-forward parity decision.
+- Inactive States have native memberships cleared; pending count is reset after
+  the callback, consuming even edges appended during it. Repeat the scan if dirty
+  was set again. Registrations appended during a scan can be visited in that scan.
+- A0A140 processes one State's pending history through A0B760 before swap-removing
+  its registration. A0B760 leaves the host dirty flag unchanged.
+- Correction: component +220=97B1E0->A0A2E0 checks pending and returns Instance
+  through21EB2E0. It does not set dirty. A087E0 is the demonstrated dirty writer.
+
+Implemented service
+  host = scopes.ForwardHost(component)
+  world.set_subgraph_scopes(component.entity, host)
+  host.set_frame(explicit_native_frame)
+  ... owner runs the VM phase ...
+  host.drain()
+
+The host is bound to the exact Component object and its SceneWorld/entity.
+An entity ID or UUID alone cannot supply that ownership. A missing frame is a
+strict script failure before the first record. Frames must be signedint32 and
+monotonic for this forward-only service; rewind is rejected. The owner chooses
+when to advance it and drain. Component.run_frame/run_now do not invent a drain
+boundary or native frame mapping. Unknown services and knownNone retain their
+previous strict/passive meanings; plain Registry remains manually dispatched.
+
+State.on_beginning records after counter increment and before exclusive aborts.
+State.on_ending records while active/ending, before child cleanup. Active reentry
+and inactive/repeated end do not enqueue extra records. Registration stays cold.
+Only the verified BD02E168/582E0D5F null+18 interfaces are accepted by ForwardHost.
+All scans/callbacks share the VM work budget; callback cycles fail the Component.
+
+Live explicit unregister processes pending history and uses native swap removal.
+VM destruction, failure and entity retirement use local discard/clear without
+running additional authored callbacks. This containment is distinct from full
+native destruction/reconciliation. Self-unregister during its pending callback
+remains a strict unsupported gate. Callback instance/entity retirement abandons
+the current local history safely. Passive body VM storage gains no State fields;
+live SceneWorld/host storage and restoration remain unsupported.
+
+Validation and scope
+- Twenty-one behavioral checks cover explicit drain, parity cancellation, native
+  hook ordering, reentry, clock gates, swap order, callback mutations, retirement,
+  reuse, fault containment and work limits.
+- Original writer/wrappers/drain/pending cleanup match production ForwardHost in
+  386 cases:96 writer,20 wrapper,224 drain,20 unregister and26 callback mutations.
+  Interface getters/effects, node/time lookup, inactive engine membership helpers,
+  journal persistence and callback memory effects are explicit adapters. Capacity
+  growth and native engine memberships are not reproduced by this oracle.
+- Actual0F45/node48 ->0EC6, parameter41=17, now uses the production host without
+  injecting interface callbacks or VM begin/end wrappers. Supplied frame and drain
+  boundary produce the same callbacks and observations as the original-code bridge:
+  frame0 enters scopes15/16/14/4 and creates one effect descriptor; frame46 exits
+  scope4 and retires it; frame140 exits scope14. Frame500 still has10/15/16 active.
+  Teardown clears host history and registrations without creating another effect.
+- This helper probe supplies frame=commandframe, modifier clock20+commandframe,
+  and drain after run_frame. Native phase placement is not derived or accepted.
+  No actual renderer/consumer, live client, candidate deployment or full mission
+  completion is claimed. Full100B remains D38D0035/action-node106.
+- Passed554 related checks and15 server snapshot/research-injection checks, Ruff
+  and diff checks. Full Match hosting, rollback journals, filtered A0B5F0 dispatch,
+  +88/+120 State phases, orientation cleanup, cinematics and enemy AI remain open.
+
+Local evidence outside Git: verification/retribution/scope-host-native-validation.json,
+scope-host-helper-validation.json, scope-host-tests.log, scope-host-server-tests.log,
+scope-history-next.txt and scope-history-finish-order.txt.

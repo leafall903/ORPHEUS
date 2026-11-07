@@ -90,3 +90,9 @@ Local evidence outside Git under verification/retribution:
 effect-state-native-validation.json, effect-state-validation.json,
 effect-state-root-summary.txt, effect-state-tests.log, effect-state-server-tests.log,
 helper-582E-queued-state-journal.txt and the earlier helper-582E native research.
+
+Subsequent explicit forward-host integration:
+ForwardHost records begin/end history and drives interface callbacks at an
+explicit owner-selected boundary. Actual0EC6 now creates its descriptor atframe0
+and retires it atframe46 without injecting callbacks. Native phase placement,
+engine consumption and fullmission acceptance remain open. See AUXILIARY_SCOPE_HISTORY.txt.

@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Normal-forward auxiliary scope history
+
+- Add an explicitly selected per-Component ForwardHost. Record native +100/+118
+  history before active-bit changes, then dispatch pending parity at the owner's
+  explicit frame/phase boundary. Preserve manual Registry and knownNone policies;
+  unknown frame, clock rewind and undecoded self-unregister remain strict gates.
+- Preserve first-edge snapshots, stored frame/payload, cold registration,
+  live pending cleanup/swap removal and callback mutations. Bound repeated scans
+  to the VM work budget; terminal teardown/failure discards local history without
+  more authored callbacks. No State storage fields or wire schema are added.
+- Original writer/wrapper/drain/unregister instructions match the production host
+  in 386 cases, including 26 callback-mutation cases, with explicit adapters.
+  Correct the earlier +220 inference: A0A2E0 queries; A087E0 marks history dirty.
+- Actual 0F45 -> 0EC6 reaches frame500 using the production host, with no injected
+  interface callbacks or VM transition wrappers. Its descriptor is created at
+  frame0 and retired at frame46; states10/15/16 remain active at frame500.
+  Clock/service inputs and the post-update drain boundary are still supplied.
+- Passed 554 related checks, 15 server snapshot/research-injection checks,
+  Ruff and diff checks. Full100B remains D38D0035/node106. Match hosting, native
+  phase placement, rollback, engine consumers, cinematics and enemy AI remain
+  unaccepted. No deployment/new client; required publication helper is missing.
+
 #### Auxiliary effect state callbacks and routes
 
 - Register 582E0D5F with explicit scope enter, refresh, matching observer and

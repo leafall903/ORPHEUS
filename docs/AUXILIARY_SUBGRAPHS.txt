@@ -81,3 +81,10 @@ Subsequent effect-state integration shares this explicit Registry contract.
 of following BD02E168's custom plug. Actual0EC6 entry/time paths now pass with
 declared services; native scope-history dispatch remains separate. See
 AUXILIARY_EFFECT_STATE.txt for the bounded evidence and remaining mission gates.
+
+Subsequent normal-forward history integration:
+An explicitly selected scopes.ForwardHost now records component+100/+118 edges
+and drains A087E0/A0B460 history parity at an owner-supplied frame/phase boundary.
+Plain Registry remains manual. Actual0EC6 uses this service throughframe500 with
+callbacks/effect lifetime matching an original-code bridge; full native phase
+placement, rollback and mission acceptance remain open. See AUXILIARY_SCOPE_HISTORY.txt.
