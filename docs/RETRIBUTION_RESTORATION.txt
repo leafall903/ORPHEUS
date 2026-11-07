@@ -334,3 +334,21 @@ Placed scene creation boundary, 2026-11-08:
   graph descriptors/frames were sent. Creation alone is insufficient.
 - Candidate remains isolated; normal runtime unchanged. Mission/cinematics/AI
   and rootD38 remain unaccepted. See PLACED_SCRIPT_INITIALIZATION.txt.
+
+Explicit placed component startup, 2026-11-08:
+- Add owner-selected ComponentStartup for already-created entities/loaded graphs:
+  public/definition values, first-match instance overrides, then additional graphs.
+  Schema writes remain queued; normal initialization prepares all pending graphs
+  before due events at the first supplied update clock. Legacy init=False stays
+  inert. Nonempty component schemas, clientOnly and graph flags remain gated.
+- 108 native queue/evaluation comparisons and36 native preparation comparisons
+  pass with explicit allocator/resource/role/event-storage adapters. Complete
+  native allocation, source bindings, clock mapping and Match policy remain open.
+- Actual isolated371-create input:137/146 components configure, including114
+  nonempty/114 graphs/432 queued writes. Nine unknown configs stop startup.
+  Of114 configured nonempty components,43 complete one frame;71 stop on four
+  unknown State classes. This is independent strict probing, not a mission host.
+- Nineteen behavior checks plus a read-only pending-snapshot check;585 related
+  and15 server regressions, Ruff/diff pass. VM storage includes the pending flag;
+  network schema unchanged. No new client/replication acceptance or deployment.
+  RootD38, story/cinematics, five enemy AI types and results remain unaccepted.

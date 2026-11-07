@@ -471,6 +471,7 @@ class Component:
                 pending.clear()
             for instance in self.instances.values():
                 instance.stopped = True
+                instance.initialization_pending = False
                 instance.queue.clear()
                 instance.deferred.clear()
                 instance.ticking.clear()
@@ -645,6 +646,7 @@ class Component:
         for state in list(instance.states.values()):
             state.on_destroyed()
         instance.stopped = True
+        instance.initialization_pending = False
         instance.queue.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
@@ -712,6 +714,7 @@ class Component:
             self.now = frame * self.frame_ms
             end = self.now + self.frame_ms - 1
             self.edges(list(buttons))
+            self._initialize_pending()
             for _ in range(MAX_COMPONENT_UPDATES):
                 due = self.next_event_time()
                 self.now = end if due is None or due > end else max(due, self.now)
@@ -733,6 +736,7 @@ class Component:
     def run_now(self) -> None:
         """Update every instance at the current time until nothing more is due now (spawn)."""
         with self.operation():
+            self._initialize_pending()
             for _ in range(MAX_COMPONENT_UPDATES):
                 self.update()
                 due = self.next_event_time()
@@ -745,10 +749,18 @@ class Component:
 
     def update(self) -> None:
         with self.operation():
+            self._initialize_pending()
             self._update_instances()
             # The native component override D0D350 calls the ordinary update,
             # then drains deferred channel 1 through D0D370.
             self.notify_code(1)
+
+    def _initialize_pending(self) -> None:
+        # 1B8E970 prepares all instances before the ordinary due-event loop.
+        for instance in list(self.instances.values()):
+            if instance.initialization_pending and not instance.stopped:
+                self.consume_work("component pending initialization")
+                instance.init()
 
     def _update_instances(self) -> None:
         self.consume_work("component update")
@@ -775,6 +787,7 @@ class Instance:
         self.stopped = False
         self.teardown = False
         self.initialized = False
+        self.initialization_pending = False
         self.start = 0
         self.disabled_start_entries: set[int] = set()
 
@@ -871,6 +884,7 @@ class Instance:
     def init(self) -> None:
         """Init (0x7FF78AAA3F00): every Entry that runs on the server is queued at the start time."""
         self.initialized = True
+        self.initialization_pending = False
         self.start = self.component.now
         for node in self.graph.entries:
             if node is not None and not node.client_only and node.cls in ENTRY_CLASSES:

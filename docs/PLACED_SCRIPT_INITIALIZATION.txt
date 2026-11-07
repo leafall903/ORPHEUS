@@ -43,6 +43,88 @@ already-loaded resources, null component schemas and override evaluation are
 explicit adapters. Full allocation/entry ordering and nonempty component schema
 behavior are not established by these cases.
 
+Explicit normal component startup implementation, 2026-11-08
+ow174.game.script.startup.ComponentStartup accepts a fresh Component, its exact
+STUStatescriptComponent, optional STUStatescriptComponentInstanceData and an
+already-loaded graph lookup. The caller explicitly supplies authority, actual
+entity creation and services. This is an offline/native-backed startup layer;
+it does not attach a world to Match or allocate/replicate network entities.
+
+The starter preflights definition/additional resources, creates definition
+graphs in order, queues each graph's public defaults followed by definition
+rows, applies instance rows only to the first existing matching graph, then
+creates additional graphs. Unmatched overrides neither allocate nor evaluate.
+Schema evaluation uses the callee before queued assignments execute. A zero
+full identifier or absent config is skipped; a failed evaluation queues no write,
+while a successful null queues null. Writes retain the native low16 identifier.
+Unknown used config classes poison the strict component instead of passing it.
+Nonempty component-level schemas, clientOnly startup and nonzero graph flags
+are rejected explicitly. No selected Rialto input needs those gated features.
+
+An extended108-case native comparison executes BE9DE0/BEA2D0/BE9AC0/BE9CB0,
+1B8D150 and actual first-instance lookup. It matches production assignment
+queue order and callee evaluation order for public/definition/instance values,
+duplicate graphs, absent/failed/null configs and additional graphs. Allocation,
+loaded resource/config-value backends, event list storage, key descriptor copy,
+scalar disposal and entity/authority services are declared adapters. The native
+scalar variant copy executes. This does not derive the complete native allocator.
+
+Pending initialization and first-frame ordering
+Original977F20 allocates/registers the native graph instance and, for normal
+startup, calls1B95230 to set instance318 bit8. With VM439 clear, it does not run
+1B94E90 immediately. BE9DE0 and BEA2D0 therefore queue schema writes before
+ordinary Entry events. Full allocator journals, ID namespaces, built-in source
+bindings, async resources, replication and lifetime policy are still external.
+
+Ordinary1B8C910 supplies the current clock, calls1B8E970 before due-event
+selection, and only then processes events. 1B8E970 prepares all instances via
+1B94E90. That resolves the graph and invokes1B93F00 for uninitialized instances.
+1B93F00 records VM1E0 time and1D0 frame into instance50/58, initializes caches,
+filters entries, and queues ordinary Entry events at that initialization time.
+Authored Entry callbacks do not run inside this initialization function.
+
+The production starter marks new graphs initialization_pending and leaves both
+assignments and authored callbacks queued. Component.run_frame prepares every
+pending graph at frame start before choosing the next event time. Direct update
+and run_now prepare at their explicitly supplied current time. Legacy manually
+created init=False instances keep their existing inert policy. Destroy/failure
+clear the pending flag; the read-only VM exporter includes it without executing.
+The starter is once-only for its owner-selected component lifetime; its returned
+tuple is not a registry of live instances after the owner retires the component.
+
+Thirty-six executable native comparisons run original1B8E970,1B94E90 and1B93F00
+for frames0/3/17, one/two graphs, zero/one/two entries and both server-role gates.
+Entry timestamps, graph preparation order and repeat-update no-replay behavior
+match production. All graphs initialize before the first authored callback.
+Loaded graph resolution, role/handler gates, event allocation/list insertion,
+preallocated cache backing, node-count lookup, memcpy and stack-cookie TLS are
+explicit adapters. No complete clock-unit mapping, async allocator or mission
+semantics is claimed by this bounded initialization-phase comparison.
+
+Actual selected scene offline probe
+The owner explicitly supplies the isolated371-create candidate, yielding2437
+SceneWorld entity bindings. These are candidate owner IDs; the earlier two
+native client samples do not validate all134 extra identities or their lifetime.
+Using the unmodified selected definitions, placement overrides and loaded graph
+bundle, strict startup succeeds for137/146 components. Of those,114 are nonempty
+and create114 graphs with432 queued writes;23 are empty. Nine other components
+stop during schema evaluation: VoiceStimulus(3), Animation(1), Hero(4), BD6CC023(1).
+Graphs partially allocated in a faulted component are not counted as successful.
+
+With normal node registration, a separate one-frame attempt completes43/114
+nonempty components and stops71: STU_33A46033(66), STU_B1FA9C2A(3),
+STUStatescriptStateDataFlowMapping(1), STU_7D71FDF3(1). Those failures are retained;
+no world services or unknown actions are replaced by no-ops. Each component is
+probed independently; this is neither cross-component mission execution nor
+proof that a component completing one frame implements its full authored life.
+Normal map/graph input hashes are unchanged. No new client session or placed
+graph replication has been accepted for this implementation.
+
+Validation:19 startup behavior tests and one read-only pending-snapshot check;
+585 related regressions,15 server snapshot/research-injection checks, Ruff and
+Git diff checks pass. Network wire formats are unchanged; VM snapshot storage
+now includes the persistent initialization_pending field.
+
 Separate original-client smoke, 2026-11-08
 An isolated runtime added the134 missing script placements to the237 creates,
 for371 total; the normal runtime and source graph bundle were not modified.
@@ -66,14 +148,18 @@ The isolated candidate has not been promoted to normal service.
 Next implementation boundary
 - Add an explicit owner-managed creation/lifetime catalog for the selected
   gameplay placements; preserve the required-loading list's narrower meaning.
-- Establish complete initial graph allocation/entry and schema behavior, then
-  allocate/replicate actual graph instances on their created entity components.
+- Complete the explicit startup's gated schemas/resource semantics and native
+  allocator details; replicate actual instances on their created components.
+- Resolve the nine real schema failures and the four first-frame State classes
+  above from original-build evidence; retain strict stops until they are known.
 - Preserve definition defaults and first-matching instance overrides in order;
   retire the VM, world services and streams with the owning scene/entity.
 - Keep rootD38D0035/node106 strict. Native authority, clocks, State+88/+120,
   complete mission hosting, cinematics, enemy AI and results remain unaccepted.
 
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
-placed-script-initialization-inputs.json, placed-script-native-init.txt and
-placed-script-native-overrides.txt; verification/placed-script-session contains
+placed-script-initialization-inputs.json, component-startup-native-validation.json,
+component-pending-init-native-validation.json, placed-component-startup-validation.json,
+component-startup-tests.log, component-startup-server-tests.log and the original
+initialization/allocation disassemblies; verification/placed-script-session contains
 preparation.json, session.json, server.log and placed-client-components.json.

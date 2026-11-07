@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Explicit placed component graph startup
+
+- Add an owner-selected starter for fresh components and loaded graphs. Queue
+  public/definition values, first-match instance overrides, then additional
+  graphs. Prepare all pending graphs at the first update clock before due events.
+  Keep manual init=False inert and discard pending work on destroy/failure.
+- Match108 original schema/evaluation cases and36 original initialization cases
+  with declared allocator/resource/role/event-storage adapters. Full native
+  allocation, source bindings, async resources and Match policy remain external.
+- Strict actual-scene probing with an explicit isolated371-create catalog:
+  137/146 components configure;114 nonempty components create114 graphs and432
+  queued writes. Nine unknown configs stop startup. One frame completes43/114
+  configured nonempty components;71 stop on four unknown State classes.
+- Add19 behavior checks and a read-only pending-snapshot check; pass585 related
+  and15 server snapshot/research-injection checks, Ruff and diff checks. VM
+  storage includes initialization_pending; wire formats unchanged. Normal runtime
+  inputs unchanged. No new client/replication acceptance or deployment; rootD38,
+  full story/cinematics/enemy AI/results remain open. Publication helper missing.
+
 #### Rialto placed script creation and initialization boundary
 
 - Identify that the required-loading create list omits every nonempty placed

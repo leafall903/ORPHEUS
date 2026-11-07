@@ -62,7 +62,8 @@ COMPONENT_FIELDS = {
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
-    "deferred", "params", "stopped", "teardown", "initialized", "start", "disabled_start_entries",
+    "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
+    "disabled_start_entries",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -120,6 +121,22 @@ def digest(component):
 
 
 class BodyVMSnapshotTests(unittest.TestCase):
+    def test_pending_initialization_exports_without_running_or_changing_queued_work(self):
+        component, instance = fixture()
+        instance.initialization_pending = True
+        instance.post(runtime.Event(0, 0, runtime.ASSIGN, assignment=(graph.INSTANCE, 7, 42)))
+        queued = list(instance.queue)
+        with mock.patch.object(runtime.Instance, "init", side_effect=AssertionError("init called")):
+            document = export_component_vm(component)
+        stored = fields(raw(document), ["instance", 1])
+        self.assertIs(stored["initialization_pending"], True)
+        self.assertIs(stored["initialized"], False)
+        self.assertEqual(instance.queue, queued)
+        self.assertEqual(instance.vars, {})
+        self.assertTrue(instance.initialization_pending)
+        instance.initialization_pending = False
+        self.assertNotEqual(snapshot_digest(document), digest(component))
+
     def test_all_allocated_states_and_component_storage_are_present_without_activation(self):
         component, instance = fixture(("STU_TestPlainState",) * 3, allocation=(2, 0, 1))
         data = raw(export_component_vm(component))

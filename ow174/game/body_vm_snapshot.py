@@ -27,7 +27,8 @@ _COMPONENT = frozenset((
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
-    "deferred", "params", "stopped", "teardown", "initialized", "start", "disabled_start_entries",
+    "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
+    "disabled_start_entries",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
