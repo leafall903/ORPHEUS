@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Typed literal configs for placed script startup
+
+- Evaluate unkeyed VoiceStimulus, Animation, Hero, entityDef and SkinTheme as
+  typed resource references; preserve signed32 TeamIndex. Nonzero resource keys
+  still delegate availability to context and fault in the strict base world.
+- Original factory/vtable links and evaluator/setter instructions match3096
+  scalar cases without executed service stubs. Availability services and owning
+  destination disposal remain outside this scope. See CONFIG_EVALUATION.txt.
+- All146 selected components now configure in the unchanged isolated371-create
+  catalog:23 empty,123 nonempty,124 graphs and542 queued writes. Independent
+  first frames complete45/123 nonempty components;78 retain strict State/action
+  stops. Full root100B still stops at D38D0035/action106.
+- Add six behavior checks;591 related and15 server snapshot/research-injection
+  checks pass, with Ruff/diff checks. Normal inputs unchanged; no new client
+  acceptance or deployment for this code change. The preceding two-sample client
+  acceptance covers frozen graph baselines only. Mission hosting, cinematics,
+  enemy AI/results remain open. Publication helper missing; no GitHub push.
+
 #### Two actual placed graph baseline samples
 
 - An authorized isolated original-client session completes two consecutive

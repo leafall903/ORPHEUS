@@ -370,3 +370,18 @@ Actual placed graph baseline delivery, 2026-11-08:
 - These are two frozen baseline samples. Production Match integration, authored
   execution, live State replication and complete gameplay entity lifetimes remain
   open. No full story/cinematic/enemy-AI/results acceptance; rootD38 stays strict.
+
+Placed schema literal completion, 2026-11-08:
+- Verify native resource/tag4 evaluators for VoiceStimulus, Animation, Hero,
+  entityDef and SkinTheme, and signed32/tag2 TeamIndex. Null/zero resource keys
+  use exact stored fields; nonzero keys still delegate availability to context.
+  Original evaluator/setter instructions match3096 scalar cases without service
+  stubs. See CONFIG_EVALUATION.txt for excluded availability/disposal behavior.
+- The same explicit isolated371-create inputs now configure146/146 components:
+  23 empty,123 nonempty,124 graphs,542 queued writes. The previous schema stops
+  are resolved. No Entry/State callback runs while these writes are configured.
+- Independent first frames complete45/123 nonempty components;78 still stop on
+  five State classes and one action. No cross-component mission host is present.
+- Six new behavior checks;591 related and15 server checks, Ruff/diff pass. Root
+  100B remains strictD38D0035/action106. Normal inputs unchanged; no new client
+  acceptance/deployment for this change. Story/cinematics/enemy AI/results open.

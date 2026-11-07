@@ -182,14 +182,36 @@ complete entity lifetime catalog or all-placement replication acceptance. The
 candidate remains isolated. Full story, cinematics, enemy AI and results remain
 unaccepted, and rootD38D0035/node106 remains strict.
 
+Typed literal schema completion, 2026-11-08
+The subsequent literal change verifies five resource config evaluators and the
+TeamIndex evaluator from original registration/factory/vtable links. Unkeyed
+VoiceStimulus, Animation, Hero, entityDef and SkinTheme produce resource/tag4
+values; TeamIndex preserves signed32/tag2. Nonzero resource keys still require
+context availability services. See CONFIG_EVALUATION.txt for native scope.
+
+With the same explicit371-create catalog, every selected component configures:
+146 total,23 empty and123 nonempty, creating124 graphs and542 queued writes.
+The previous nine schema stops and the subsequently exposed entityDef/SkinTheme
+stops are resolved. All new writes remain queued before authored Entry execution.
+This does not establish native authority, full allocation or resource loading.
+
+Independent strict first-frame execution completes45/123 nonempty components.
+The other78 retain these exact stops: State33A46033(66), StateB1FA9C2A(3),
+action0F647E55(1), State9D7BF987(5), StateDataFlowMapping(2), State7D71FDF3(1).
+Every component is still probed separately; one completed frame does not prove
+its authored lifetime or cross-component mission behavior. Original evaluator
+comparisons pass3096 cases, along with six new behavior checks,591 related and
+15 server checks, Ruff/diff. Root100B remains strictD38D0035/node106. No later
+client session, live State replication, deployment or full mission acceptance.
+
 Next implementation boundary
 - Add an explicit owner-managed creation/lifetime catalog for the selected
   gameplay placements; preserve the required-loading list's narrower meaning.
 - Complete the explicit startup's gated schemas/resource semantics and native
   allocator details; extend the two-sample frozen transport to owner-managed
   live instance/State replication with actual server execution.
-- Resolve the nine real schema failures and the four first-frame State classes
-  above from original-build evidence; retain strict stops until they are known.
+- Resolve the five first-frame State classes and one action listed in the latest
+  probe from original-build evidence; retain strict stops until they are known.
 - Preserve definition defaults and first-matching instance overrides in order;
   retire the VM, world services and streams with the owning scene/entity.
 - Keep rootD38D0035/node106 strict. Native authority, clocks, State+88/+120,
@@ -204,3 +226,5 @@ preparation.json, session.json, server.log and placed-client-components.json.
 verification/placed-graph-session contains preparation.json, transport.jsonl,
 cycle1/2-native-components.json, their validated reports, session.json and
 validation.json. These captures, runtime data and research scripts stay outside Git.
+Latest literal/startup evidence: verification/retribution/startup-literals-native-validation.json,
+placed-component-literals-validation.json and startup-literals-related/server-tests.log.

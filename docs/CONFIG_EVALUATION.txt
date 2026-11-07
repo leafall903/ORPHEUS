@@ -1,4 +1,4 @@
-Native config evaluation — observed empty resource case
+Native config evaluation — verified scoped paths
 Target: original Overwatch 1.74.0.0.104319. Addresses below are module RVAs.
 
 The authored Retribution 100B node 322 assigns entity variable 6751 from an
@@ -43,3 +43,51 @@ live-resource-pointers.json, functions-1B6D300.txt and config-failure-validation
 The search retained bounded match contexts, not a full private-memory dump.
 The isolated authored-node probe and strict root initialization probe do not
 instantiate the mission world, players, team components or queue overrides.
+
+Placed startup literal values, 2026-11-08
+Six additional config classes have verified scalar literal paths. Original
+registration typeinfo/factory links and their evaluator vtables identify:
+
+Class                         Native evaluator vtable   +20 evaluator  Field
+STUConfigVarVoiceStimulus      27AE480                    1B85C30        m_voiceStimulus
+STUConfigVarAnimation          27ADE28                    1B85C30        m_animation
+STUConfigVarHero               27AE608                    1B85C30        m_hero
+STU_43CF7A79                  27AE758                    1B85C30        m_entityDef
+STUConfigVarSkinTheme          27AEB48                    1B85C30        m_skinTheme
+STU_BD6CC023                  26636C8                    1B860F0        m_6CE7A900
+
+For an unkeyed resource config,1B85C30 reads the stored GUID at config+28 and
+calls F67090, producing native tag4 even for GUID zero. A nonnull resource-key
+pointer at+18 additionally calls availability service171B8D0; that service is
+not implemented by this change. The five new resource classes use their exact
+field when the exported key is null/zero. A nonzero key delegates to the supplied
+context and still faults with the strict base world. This adds no generic class
+fallback. Entity-definition and skin-theme values are resource references;
+evaluating them does not instantiate an entity, equip a skin or play media.
+
+For TeamIndex,1B860F0 reads the dword at config+10 and calls F66E10, producing
+native tag2. The implementation preserves the signed32 value, including -1;
+this literal is not a live team membership query.
+
+Original evaluators and scalar variant setters match production in3096 cases:
+774 actual/edge configurations with previous destination tags255/2/3/4. No
+executed service is stubbed in those unkeyed cases. Key availability and disposal
+of owning destination types are outside the comparison. Source types/exported
+field names alone are not used as evidence of evaluator behavior.
+
+Six behavior checks cover typed/empty resources, signed team values, nonzero-key
+delegation/failure, strict fault propagation and ordered pending startup writes.
+591 related and15 server snapshot/research-injection checks, Ruff/diff pass.
+The earlier two-sample original-client transport acceptance predates this code;
+no new client acceptance or deployment is claimed for the literal change.
+
+With unchanged isolated371-create inputs, all146 selected components now finish
+configuration:23 empty,123 nonempty,124 graphs,542 queued writes. Independent
+first-frame execution completes45/123 nonempty components and faults78. Root100B
+still stops at D38D0035/action106. Full story/cinematics/enemy AI remain open.
+See PLACED_SCRIPT_INITIALIZATION.txt for the remaining State/action diagnostics.
+
+Local-only records: startup-literal-inputs.json, startup-literals-native-validation.json,
+placed-component-literals-validation.json, startup-literals-related-tests.log,
+startup-literals-server-tests.log and startup-literals-root-audit.log under
+verification/retribution. Captured code, game inputs and reports remain outside Git.

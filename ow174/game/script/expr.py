@@ -371,6 +371,7 @@ CONSTANTS = {
     "STUConfigVarInt": lambda cfg: _number(cfg, i32),
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
+    "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
 }
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
@@ -380,10 +381,21 @@ RESOURCES = {
     "STUConfigVarLoadout": "m_loadout",
     "STUConfigVarHardPoint": "m_hardPoint",
     "STUConfigVarGameMode": "m_gamemode",
+    "STUConfigVarVoiceStimulus": "m_voiceStimulus",
+    "STUConfigVarAnimation": "m_animation",
+    "STUConfigVarHero": "m_hero",
+    "STU_43CF7A79": "m_entityDef",
+    "STUConfigVarSkinTheme": "m_skinTheme",
     "STU_105E1BCC": "m_graph",  # Graph: keep an empty resource typed as Asset(0).
     "STU_357DABBB": "m_7D7C86A1",  # TargetTag, same native resource evaluator (1B85C30).
     "STU_BCD1C634": "m_id",  # Enumeration: an identifier of an enum type
     "STU_8A491388": "m_priority",  # StackPriority: a .024 asset
+}
+# These verified literal paths use 1B85C30. A real resource key also invokes
+# native availability services; leave that path to the supplied context.
+KEYED_RESOURCES = {
+    "STUConfigVarVoiceStimulus", "STUConfigVarAnimation", "STUConfigVarHero",
+    "STU_43CF7A79", "STUConfigVarSkinTheme",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 
@@ -418,7 +430,9 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         value = evaluate(cfg.get("m_value"), ctx)
         return contains_value(container, value)
     if cls in RESOURCES:
-        if cls == "STU_357DABBB" and cfg.get("m_resourceKey") is not None:
+        if (cls == "STU_357DABBB" and cfg.get("m_resourceKey") is not None) or (
+            cls in KEYED_RESOURCES and guid_of(cfg.get("m_resourceKey"))
+        ):
             result = ctx.native(cfg)
             return initial if result is EVALUATION_FAILED else result
         return Asset(guid_of(cfg.get(RESOURCES[cls])))
