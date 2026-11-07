@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Two actual placed graph baseline samples
+
+- An authorized isolated original-client session completes two consecutive
+  Story/Normal Rialto entries as Reaper and settled-menu returns. Actual0F65 and
+  120E descriptors and frozen schema values are queued after entity create ACKs;
+  both graph streams are acknowledged and retired on leave in each connection.
+- Read-only native inspection in both matches confirms the two exact graph/ID1
+  instances and all eight authored values/type tags. Native builtin sources also
+  match owners, without deriving the server allocator. Two offline codec round
+  trips, both native comparisons and the transport/lifetime aggregate pass.
+- Client closes normally; isolated server stops and releases ports. Normal
+  runtime inputs unchanged; candidate not deployed. Production code remains
+  a8234f4 with its585+15 regression results. Documentation diff checks pass.
+- Scope is two frozen baselines with remote States off and no authored server
+  execution. Match hosting, live State replication, full entity lifetimes,
+  rootD38, complete story/cinematics/enemy AI/results remain open. Publication
+  helper missing; no GitHub push.
+
 #### Explicit placed component graph startup
 
 - Add an owner-selected starter for fresh components and loaded graphs. Queue

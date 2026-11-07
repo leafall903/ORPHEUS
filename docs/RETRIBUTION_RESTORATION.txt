@@ -352,3 +352,21 @@ Explicit placed component startup, 2026-11-08:
   and15 server regressions, Ruff/diff pass. VM storage includes the pending flag;
   network schema unchanged. No new client/replication acceptance or deployment.
   RootD38, story/cinematics, five enemy AI types and results remain unaccepted.
+
+Actual placed graph baseline delivery, 2026-11-08:
+- In a subsequent authorized isolated client session, configure actual0F65 and
+  120E on the two previously sampled created entities. Send their real graph
+  descriptors and frozen authored initial values after create ACKs. Authored
+  server Entry/State callbacks remain unexecuted; all remote States are off.
+- Two consecutive Story/Normal matches enter first-person Rialto as Reaper and
+  return to settled menus. Both graph streams are acknowledged in each fresh
+  connection and retired on leave. Read-only native inspection in each match
+  confirms both exact graph/ID1 instances and all eight authored variable values
+  and type tags. Native builtin source001B also matches each owner, without
+  establishing the server allocator. See PLACED_SCRIPT_INITIALIZATION.txt.
+- Two offline codec round trips, two native capture comparisons and the
+  transport/lifetime aggregate pass. Client closes normally; isolated server
+  stops and releases ports. Normal inputs unchanged; candidate not deployed.
+- These are two frozen baseline samples. Production Match integration, authored
+  execution, live State replication and complete gameplay entity lifetimes remain
+  open. No full story/cinematic/enemy-AI/results acceptance; rootD38 stays strict.
