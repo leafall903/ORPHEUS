@@ -321,3 +321,16 @@ Ordinary scope end-phase order, 2026-11-08:
 - Eleven new behavior checks,565 related checks,15 server checks, Ruff/diff pass.
   No new client/deployment. Complete story/cinematics/enemy AI remain unaccepted.
   See ORDINARY_SCOPE_PHASE.txt for the native adapters and ownership limits.
+
+Placed scene creation boundary, 2026-11-08:
+- Current237 required creates omit all123 nonempty placed script components
+  (124 definition graphs). The12 already-bound script components have no graphs.
+- OriginalBE8E10/BEA2D0 use definition graphs, matching first-instance overrides,
+  then additional graphs. Empty overrides preserve defaults;90 bounded original
+  executable cases pass. Full allocation/entry/schema behavior remains open.
+- Separate134-extra-create candidate (371 total) passed original-client world
+  entry and settled-menu return/normal close. Two sampled component47 identities
+  match actual created entities; both VM instance lists are empty. No placement
+  graph descriptors/frames were sent. Creation alone is insufficient.
+- Candidate remains isolated; normal runtime unchanged. Mission/cinematics/AI
+  and rootD38 remain unaccepted. See PLACED_SCRIPT_INITIALIZATION.txt.

@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Rialto placed script creation and initialization boundary
+
+- Identify that the required-loading create list omits every nonempty placed
+  script component: 123 components / 124 definition graphs are unbound. The
+  twelve bound script components have empty initial graph lists.
+- Ninety original executable cases verify definition graph creation, first-match
+  instance overrides, additional graphs and the once-only guard, with explicit
+  engine/allocation/evaluation adapters. Empty overrides preserve defaults.
+- An authorized isolated client loaded a 134-extra-create candidate, entered
+  Rialto as Reaper, returned to a settled menu and closed normally. Two sampled
+  entities have the expected native component47/owner, but zero graph instances.
+  No placed graph descriptors/frames were sent; script execution is unaccepted.
+- Document the missing creation/graph-host boundary and its remaining work.
+  Normal runtime inputs unchanged; candidate not promoted. Documentation diff
+  checks pass; production code remains the 565+15-tested 428fd13 version.
+  Full mission, cinematics, AI and rootD38 remain open. Publication helper missing.
+
 #### Ordinary auxiliary scopes before deferred notifications
 
 - Add an explicit ForwardHost frame runner that processes all VM due times,

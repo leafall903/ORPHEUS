@@ -1,0 +1,79 @@
+Rialto placed scripts — creation and initialization boundary
+Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
+
+Why the mission host needs another creation path
+game_maps_174.json's placeables_by_mode is the set required to empty the native
+loading gate: definitions with component58 or94. It is not the full set of
+server-authored gameplay entities. SceneWorld.from_map binds only client_id
+placements and the caller's explicitly supplied server creates; that policy is
+deliberate, and UUID presence must not silently allocate the missing objects.
+
+With the current normal Retribution inputs (map079F, mode0025):
+- 237 server creates plus2066 client placements give2303 bound entities.
+- The selected definitions contain146 script components. Twelve are bound, but
+  all twelve have empty initial graph lists. The other134 are unbound and have
+  client_id zero;123 of them have nonempty scripts, totaling124 definition graphs.
+- Thus every nonempty placed script component is absent from current bindings.
+  Loading/hero-selection acceptance cannot establish that these scripts ran.
+- The nonempty graph definitions have97 schema rows. Instance data contains123
+  matching graph configurations with72 override rows, and no additional graphs.
+  Eighteen empty override lists correspond to48 existing definition schema rows;
+  those defaults must survive. Selected component-level schemas, clientOnly and
+  graph flags are all empty/zero in this bounded input catalog.
+
+Original initialization order
+BE8E10, after its explicit native availability/authority gates and once-only CC
+guard, obtains the definition and calls BE9DE0 for its B634821A graphs in order.
+It applies the definition's component schema through BE98C0, then obtains the
+75526BC2 instance data and calls BEA2D0. Finally it calls BE9DE0 for the instance
+84D0983B additional graphs. This is not replacement of the definition list by
+the instance's6D10093E list.
+
+BEA2D0 processes6D10093E configurations in order. Actual1B8D510 finds the first
+existing instance whose1E8 resource GUID matches. A missing match is skipped;
+it does not allocate a new graph. A matching configuration's1EB5A024 entries
+call BE9AC0 with that instance. An empty entry list produces no writes. The
+instance component schema is processed afterward, before the additional graphs.
+
+Ninety original-executable cases run BE8E10/BEA2D0/1B8D510, covering duplicate
+definitions, missing/duplicate matches, empty overrides, additional graphs and a
+second initialization call. Native control flow/iteration/first-match selection
+run unchanged. Authority/entity/type queries, decoded definition, graph allocation,
+already-loaded resources, null component schemas and override evaluation are
+explicit adapters. Full allocation/entry ordering and nonempty component schema
+behavior are not established by these cases.
+
+Separate original-client smoke, 2026-11-08
+An isolated runtime added the134 missing script placements to the237 creates,
+for371 total; the normal runtime and source graph bundle were not modified.
+Retribution Story/Normal loaded, Reaper entered the actual first-person Rialto
+world, then the client returned to a settled menu and closed normally. The
+isolated service was stopped afterward. Inspection used read-only process access
+without a debugger; startup used the existing local relay launcher.
+
+Bounded read-only inspection validated two newly created entity IDs against
+their original flat map indexes:800001A8/index5 and800001AE/index11. Both have
+component47, its decoded owner points back to the exact entity, and its vtable
+is2611F68. Original64CF80 establishes that the VM lies at component+D0. Both
+VM instance lists are empty at observation time. No script instance descriptors
+or server graph frames were sent for these placements by this candidate.
+
+This is evidence for the sampled map-create/component identity path, not for
+all134 component identities, schema delivery, script execution or full mission
+acceptance. Extra map creates alone do not restore authored graph instances.
+The isolated candidate has not been promoted to normal service.
+
+Next implementation boundary
+- Add an explicit owner-managed creation/lifetime catalog for the selected
+  gameplay placements; preserve the required-loading list's narrower meaning.
+- Establish complete initial graph allocation/entry and schema behavior, then
+  allocate/replicate actual graph instances on their created entity components.
+- Preserve definition defaults and first-matching instance overrides in order;
+  retire the VM, world services and streams with the owning scene/entity.
+- Keep rootD38D0035/node106 strict. Native authority, clocks, State+88/+120,
+  complete mission hosting, cinematics, enemy AI and results remain unaccepted.
+
+Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
+placed-script-initialization-inputs.json, placed-script-native-init.txt and
+placed-script-native-overrides.txt; verification/placed-script-session contains
+preparation.json, session.json, server.log and placed-client-components.json.
