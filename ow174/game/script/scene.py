@@ -13,7 +13,7 @@ import struct
 import uuid
 from dataclasses import dataclass
 
-from ow174.game.script import expr, graph, runtime
+from ow174.game.script import expr, graph, play, runtime
 
 CLIENT_PLACEABLE = 0xC0000000
 SERVER_PLACEABLE = 0x80000000
@@ -71,7 +71,7 @@ class SceneWorld(runtime.World):
 
     Missing references return the native no-output failure (CCDFF0), rather than
     a successful null or a fabricated identifier. Other native services retain
-    World's strict diagnostics, including dynamic script routing and relations.
+    World's strict diagnostics, including dynamic routing and undeclared relations.
     Static positions are exposed only for bound entities.
     """
 
@@ -83,6 +83,8 @@ class SceneWorld(runtime.World):
         self.references: dict[uuid.UUID, int] = {}
         self.placements: dict[int, Placement] = {}
         self.definitions: dict[int, dict] = {}
+        self.possessors: set[int] | None = None  # None means component availability is unknown.
+        self.primary_possessors: dict[int, int] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -107,7 +109,79 @@ class SceneWorld(runtime.World):
         record = self.entities.pop(entity, None)
         if record is not None and record.reference.int:
             del self.references[record.reference]
+        if record is not None and self.possessors is not None:
+            self.possessors.discard(entity)
+            self.primary_possessors.pop(entity, None)
+            self.primary_possessors = {
+                target: owner for target, owner in self.primary_possessors.items() if owner != entity
+            }
         return record
+
+    def _bound_entity(self, entity: int) -> None:
+        if type(entity) is not int or entity not in self.entities:
+            raise ValueError("possession entity must already be bound")
+
+    def set_possessions(self, *, possessors=(), primary=()) -> None:
+        """Install a complete known possession catalog, separately from UUIDs.
+
+        possessors declares entities with native component 44. primary contains
+        the reverse registry's (possessable, primary possessor) pairs. Neither
+        identity nor mere script ownership can imply these relationships.
+        """
+        known = set()
+        for entity in possessors:
+            self._bound_entity(entity)
+            known.add(entity)
+        rows = primary.items() if isinstance(primary, dict) else primary
+        relations = {}
+        for entity, owner in rows:
+            self._bound_entity(entity)
+            self._bound_entity(owner)
+            if owner not in known:
+                raise ValueError("primary possessor must have component 44")
+            if entity in relations:
+                raise ValueError("duplicate primary possession relation")
+            relations[entity] = owner
+        self.possessors, self.primary_possessors = known, relations
+
+    def set_possessor(self, entity: int, present: bool) -> None:
+        """Reflect actual component 44 creation/removal, without allocating an entity."""
+        self._bound_entity(entity)
+        if self.possessors is None:
+            raise ValueError("possession catalog has not been initialized")
+        if type(present) is not bool:
+            raise ValueError("possessor presence must be a bool")
+        if present:
+            self.possessors.add(entity)
+        else:
+            self.possessors.discard(entity)
+            self.primary_possessors = {
+                target: owner for target, owner in self.primary_possessors.items() if owner != entity
+            }
+
+    def set_primary_possessor(self, entity: int, owner: int | None) -> None:
+        """Reflect a reverse-registry update; None removes the existing relation."""
+        self._bound_entity(entity)
+        if self.possessors is None:
+            raise ValueError("possession catalog has not been initialized")
+        if owner is None:
+            self.primary_possessors.pop(entity, None)
+            return
+        self._bound_entity(owner)
+        if owner not in self.possessors:
+            raise ValueError("primary possessor must have component 44")
+        self.primary_possessors[entity] = owner
+
+    def primary_possessor(self, entity: int):
+        """DA7F10: direct component 44 first, otherwise the reverse registry."""
+        if self.possessors is None:
+            return NotImplemented
+        if entity not in self.entities:
+            return 0
+        if entity in self.possessors:
+            return entity
+        owner = self.primary_possessors.get(entity, 0)
+        return owner if owner in self.entities and owner in self.possessors else 0
 
     def position(self, entity: int):
         record = self.entities.get(entity)
@@ -120,6 +194,9 @@ class SceneWorld(runtime.World):
         return NotImplemented
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if cfg.get("$") == "STU_DB742151" and self.possessors is not None:
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
+            return expr.Entity(self.primary_possessor(expr.to_entity(value)))
         if cfg.get("$") == "STUConfigVarEntityReference":
             try:
                 reference = _reference(cfg.get("m_4A2AD74A"))

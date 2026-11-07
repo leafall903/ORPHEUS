@@ -169,3 +169,20 @@ PlayScript request construction, 2026-11-08:
 - New D38D0035 references remain type/factory code, without server-effect evidence.
   Full 100B startup still stops there. Match host, component lifecycle, cinematics
   and enemy AI remain open; no deployment or new original-client acceptance.
+
+Primary possessor entity query, 2026-11-08:
+- Implement DB742151 for an explicitly known SceneWorld possession catalog:
+  direct component 44 resolves to self, otherwise the reverse registry names
+  an existing primary possessor. Missing results are typed Entity(0), not null.
+  Remove stale relations on component/entity retirement and keep unknown catalog
+  availability distinct. The UUID catalog does not imply component activation.
+- A separately authorized original client entered Rialto Story Normal as Reaper,
+  switched to Genji, then left and closed normally. Read-only component/registry
+  observations confirm the controller and old/new body mappings. This is native
+  relationship evidence on the accepted entrance service, not candidate acceptance.
+- Actual 0F45 -> 0EC6 now passes the query and stops at state 9028E035. Actual
+  121D node 5 -> 119F resolves its target controller. Context and handoff remain
+  explicit. Full 100B stays at D38D0035; mission, cinematics and AI remain open.
+  See ENTITY_POSSESSION_QUERIES.txt.
+- Passed 246 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.

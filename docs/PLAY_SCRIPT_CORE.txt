@@ -166,3 +166,11 @@ Request construction extension, 2026-11-08
   playscript-context-setters.txt, playscript-parameter-array-type.txt,
   entity-value-conversion.txt and the original
   functions-906D50.txt / playscript-context-native.txt exports outside Git.
+
+Subsequent possession query extension, 2026-11-08
+With a separately declared native possession catalog, 0F45 -> 0EC6 now passes
+DB742151 and stops at state 9028E035, node 0. The actual 121D node 5 -> 119F target
+also resolves to the supplied controller. Native context derivation, submission,
+full helper execution and the mission host remain open. Full 100B still stops at
+D38D0035. See ENTITY_POSSESSION_QUERIES.txt for the authorized original-client
+relationship/switch evidence and the explicit catalog boundary.

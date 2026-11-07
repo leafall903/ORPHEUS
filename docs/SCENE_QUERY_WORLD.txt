@@ -81,7 +81,7 @@ Remaining boundary
 This service is not attached to Match. It does not activate native components,
 merge component defaults/overrides, move actors, spawn enemies, schedule mission
 components or implement transported state. Dynamic script routing/context,
-DB742151 entity relations, asynchronous resources, deferred deletion and network
+native component observers, asynchronous resources, deferred deletion and network
 flags remain open. SceneWorld is outside the body-VM storage whitelist; no new
 world snapshot/restoration support is implied.
 
@@ -90,6 +90,13 @@ not accepted as evidence that the server action has no effect. Full story,
 cinematics, hero restrictions and enemy AI remain unaccepted. The original-client
 session above verified native identity only; it did not run the candidate code.
 No candidate deployment is claimed.
+
+Subsequent primary-possessor query extension, 2026-11-08
+An explicit possession catalog now enables DB742151 queries with direct component
+44 lookup and reverse primary-possession relationships. The catalog is separate
+from these UUID bindings and does not activate components. An authorized original
+client confirmed the relation and its update on a Reaper-to-Genji switch. See
+ENTITY_POSSESSION_QUERIES.txt for semantics, lifecycle, evidence and open services.
 
 Local-only evidence
 verification/retribution/scene-validation.json, live-map-identity-validation.json,

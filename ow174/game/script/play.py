@@ -226,6 +226,12 @@ def _scalar(instance, cfg, *, initial, depth=0):
     return instance.evaluate(cfg, initial=initial)
 
 
+def evaluate_scalar(instance, cfg, *, initial=None):
+    """A native +20 caller's destination, including first-config array failure."""
+    with instance.component.operation():
+        return _scalar(instance, cfg, initial=initial)
+
+
 def resolve_request(instance, node, resource: Resource, *, context_provider) -> Request | None:
     """906E49..9070D0: targets, explicit context, then ordered array parameters.
 

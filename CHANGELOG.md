@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Primary possessor entity queries
+
+- Implement DB742151 using an explicitly known SceneWorld possession catalog:
+  direct component 44 first, then reverse primary-possession lookup. Return a
+  typed invalid Entity for absent results. Keep unknown catalog availability
+  distinct and clean both ends of relations before an entity ID is reused.
+- Evaluate the input through native scalar +20, including first-config failure.
+  Preserve strict failures for unknown services. Correct the swapped entity/AI
+  predicate comments in the legacy driver's trusted-query list.
+- An authorized original client entered Rialto Story Normal as Reaper, switched
+  to Genji, left and closed normally. Read-only component/registry observations
+  confirm the controller and old/new body relationships. This researches native
+  semantics on the accepted entrance service, not candidate mission behavior.
+- Actual 0F45 -> 0EC6 passes the query and stops next at state 9028E035. Actual
+  121D node 5 -> 119F resolves its target controller. Context/catalog/handoff
+  remain explicit. Full 100B startup still stops at D38D0035.
+- Passed 246 related runtime/expression/VM/bot/entrance/replication checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks. Mission
+  host, component observers/routing, cinematics and enemy AI remain unaccepted.
+  No candidate deployment is claimed. Publication still requires the missing
+  work/sync_orpheus_publication.py helper.
+
 #### Native PlayScript request construction
 
 - Collect valid typed target entities in native order, retaining duplicates.
