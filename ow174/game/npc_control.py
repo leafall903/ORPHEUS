@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import bots, combat, npc
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -92,8 +92,13 @@ def update_input(fight, bot):
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and (fight.match.game_map.free_for_all or target.team != bot.team))
     if enabled:
-        origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
-        point = fight._eye(target)
+        body = next((body for body in fight._targets() if body.owner is target), None)
+        if body is None:
+            enabled = False
+    if enabled:
+        eye = bot.combat_geometry[2] if bot.combat_geometry else combat.EYE
+        origin = (bot.position[0], bot.position[1] + eye, bot.position[2])
+        point = (body.feet[0], body.feet[1] + body.height * 0.5, body.feet[2])
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
         enabled = 0 < distance <= AIM_RANGE
@@ -101,9 +106,7 @@ def update_input(fight, bot):
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
             enabled = wall is None or wall >= distance
-            bot.yaw = float(bots.heading(dx, dz))
-            bot.pitch = float(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
-            bot.moved_tick = fight.tick
+            npc.aim_at(fight.match, bot, point)
     value = button(bot)
     component = bot.body_script.component
     if bot.attack_input != enabled or (value in component.held) != enabled:

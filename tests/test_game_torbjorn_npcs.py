@@ -11,7 +11,7 @@ from pathlib import Path
 
 import test_game_torbjorn as torbjorn
 
-from ow174.game import combat, npc
+from ow174.game import combat, npc, npc_control
 from ow174.game.script import graph
 
 
@@ -121,6 +121,7 @@ class TorbjornNpcTests(unittest.TestCase):
                                               target.feet[2]))
                     button = bot.body_script.component.world.weapon_buttons["0"]
                     bot.body_script.component.edges([(button, True)])
+                    bot.attack_target = owner.entity
                     bot.firing = True
                     for _ in range(200):
                         run.step({})
@@ -143,6 +144,36 @@ class TorbjornNpcTests(unittest.TestCase):
                 self.assertTrue(vitals.dead)
                 self.assertEqual(vitals.killer, bot.entity)
                 self.assertTrue(owner.body_script.component.owner_dead)
+
+    def test_actual_manual_engagement_stop_and_restart_for_three_working_attackers(self):
+        for name in ("Trooper", "Sniper", "Heavy Assault"):
+            with self.subTest(npc=name):
+                key = next(key for key, row in self.catalog.items() if row.name == name)
+                run, owner, bot, _ = self.arena(key)
+                for viewer in run.match.players:
+                    viewer.client.bot_stream = lambda *args: None
+                while run.frame < bot.records_from:
+                    run.step({})
+                hp = run.match.combat.vitals[owner.body]
+                self.assertEqual(npc_control.start(run.match, owner), bot.entity)
+                for _ in range(200):
+                    run.step({})
+                    if hp.total < 250.0:
+                        break
+                self.assertLess(hp.total, 250.0)
+                npc_control.stop(run.match)
+                before = hp.total
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(hp.total, before)
+                self.assertFalse(bot.firing)
+                self.assertIsNone(bot.attack_target)
+                self.assertEqual(npc_control.start(run.match, owner), bot.entity)
+                for _ in range(200):
+                    run.step({})
+                    if hp.total < before:
+                        break
+                self.assertLess(hp.total, before)
 
     def test_all_five_manual_npc_corpses_survive_the_respawn_deadline(self):
         for key in self.catalog:

@@ -81,9 +81,11 @@ Cross-hero acceptance (each source/target direction)
 --------------------------------------------------
 Health/armour/shield pools: basic pool mechanism exists; Torbjorn incoming
 armour/player death and outgoing per-pellet/player damage tested here.
+Reconstructed Flashbang control now has Torbjorn player interruption/recovery
+evidence, with explicit Overload cast preservation; see the control section.
 Barriers, Zarya bubbles, Deflect, Defense Matrix, invulnerability, damage
-modifiers, control/interrupts, ability denial, knockback, status expiry and
-death cleanup: OPEN. Combat._damage currently calls Vitals.damage directly;
+modifiers, broader control/interrupts, knockback, native immunity/cleansing and
+general status policy: OPEN. Combat._damage currently calls Vitals.damage directly;
 there is no complete authoritative protection/status policy at that boundary.
 Allied turret/repair and team eligibility: OPEN. Existing general enemy
 filtering must be retained; support/repair must not become hostile damage.
@@ -314,3 +316,36 @@ inactive afterward. Another100frames holding fire/Q cannot launch more ultimate
 projectiles. This passes separately from the earlier16-area-test batch. Early
 release/repress, interruption/death and full charge-generation policies remain
 open; this closes only the held-fire exhaustion/end/non-bypass case.
+
+Flashbang and manual-controller integration
+-----------------------------------------
+Parent fbcaf76/64bf71c are reviewed and imported locally as aecb71d/110cffd.
+They retain their authorship; the parent already owns original commits. The
+unrelated companion HTTP/browser console is not imported. This remains manual
+engagement policy, not native autonomous AI. Control clamps player input/motion,
+releases attacks and stops running ability scopes; deadlines are body-specific.
+
+The old controller aimed at generic eye height, above Torbjorn's short combat
+capsule. Manual aim now selects the actual target capsule centre and respects
+the NPC's explicit muzzle height through npc.aim_at. Allied filtering, static LOS
+and100m sandbox selection rules remain. The three working actual NPC attackers
+(Trooper/Sniper/Heavy) hit Torbjorn through this controller, stop without later
+damage over80frames, and can explicitly restart. Enforcer/Assassin remain open.
+The older direct-input fixture now also supplies the explicit engagement target.
+
+An actual Flashbang input applies20damage through Torbjorn armour and50ticks of
+control. Six Torbjorn-specific scenarios cover movement/attack/skill denial and
+recovery, hammer pre-hit interruption and later attacks, full-charge ultimate
+startup refusal/recovery, active ultimate fire suppression/resumption within its
+original duration, and ongoing owned turret/ground-pool damage during stun.
+
+The first imported implementation stopped1721/19 during Overload. Its authored
+short wait owns the cast/cooldown path, whereas pool3/lifetime lie outside that
+scope: stopping it allowed early recasting when the buff expired. The selected
+hero policy preserves this already-applied cast while control still clamps
+input/movement. Actual testing preserves100temporary armour minus20Flashbang
+damage, retains the same pool source without refill, expires the original pool,
+rejects repeated skill input through14.4s and permits another cast by16s.
+This is an explicit server reconstruction; native CC host dispatch, animation,
+immunity, cleansing, overlapping controls and all other cross-hero protection
+requirements remain unaccepted. Do not treat this as complete status handling.

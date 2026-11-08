@@ -510,7 +510,8 @@ class Combat:
             for state in list(instance.states.values()):
                 if isinstance(state, nodes.Ability):
                     state.presses.clear()
-                    state.stop()  # use authored exit/cooldown paths for running channels
+                    if not hero_torbjorn.preserve_cast_during_control(state):
+                        state.stop()  # use authored exit/cooldown paths for running channels
         component.run_now()
         component.shots.clear()
 

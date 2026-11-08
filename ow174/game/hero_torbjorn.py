@@ -16,6 +16,20 @@ TURRET = 0x04000000000028B7
 log = logging.getLogger("ow174.game")
 
 
+def preserve_cast_during_control(state):
+    """Selected control policy for an already-applied Overload buff.
+
+    1721/19 owns the short cast wait, while3 and its lifetime live outside that
+    scope. Stopping the cast skips its normal cooldown path and permits early
+    recasting after the buff expires. Preserve that authored path while the
+    control host separately suppresses input/movement. Native CC dispatch and
+    animation interruption remain unverified; this is a reconstructed policy.
+    """
+    instance = state.instance
+    buff = instance.states.get(3)
+    return instance.graph.index == 0x1721 and state.index == 19 and buff is not None and buff.active
+
+
 @dataclass
 class Turret:
     owner: object

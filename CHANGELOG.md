@@ -1,5 +1,27 @@
 # Changelog
 
+### Torbjorn lane: control interactions and manual NPC aim
+
+- Review/import parent manual-controller fbcaf76 and Flashbang64bf71c into the
+  isolated branch, preserving authorship and resolving snapshot fields alongside
+  this lane's armour/turret/area state. Do not replay local aliases to parent.
+- Fix manual NPC aim passing above Torbjorn: use the combat capsule centre and
+  the existing explicit NPC muzzle/aim helper. Three actual attackers can engage,
+  stop for80frames without later damage, and restart; allies remain excluded.
+- Add six actual-input Torbjorn Flashbang scenarios: damage/50-tick movement and
+  action denial/recovery, hammer interruption, ultimate startup denial and active
+  fire pause/resumption, persistent turret/pool damage and Overload lifecycle.
+- Preserve the already-applied Overload cast's authored cooldown path during
+  control. Stopping that short scope skipped normal cooldown progression and
+  allowed early recasting. Its buff now survives damage without refill, expires,
+  rejects early skill spam and recovers. This is an explicit reconstructed CC
+  policy; native immunity/cleansing, host/animation timing, broader protection
+  interactions and full hero/original-client acceptance remain open.
+- Pass199 related combat/NPC/controller/Flashbang tests, one selected stored
+  server-snapshot test (including control-deadline hash sensitivity), the stronger
+  active-ultimate duration assertion, Ruff and diff checks. No client launched,
+  shared-main merge or publication performed. Full hero goal remains active.
+
 ### Torbjorn lane: incoming NPC input and ultimate exhaustion evidence
 
 - Review/reuse parent d1286b7/6debff3/7cd1ed7 on the isolated branch, preserving
