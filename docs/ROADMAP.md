@@ -20,7 +20,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Lane 0040 repairs shared direct-projectile falloff/critical application with
   pool-damage regressions and reconstructs the authored timed self-heal consumer.
   A charged ultimate can kill a player in an offline real-input audit. Pellet
-  counts/spread, cooldown/status/defense/NPC matrix and complete hero acceptance
+  count25 and a reconstructed primary ring pattern now have real damage,
+  miss/team/wall tests; Breather cooldown rejection/expiry also has evidence.
+  Native spread, full cooldown/status/defense/NPC matrix and complete hero acceptance
   stay open. Original-client acceptance is separate from the static goal.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

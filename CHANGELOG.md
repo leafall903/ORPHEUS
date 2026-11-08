@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: primary ring projectile count and cooldown regression
+
+- Emit each of primary node26's 25 authored ring pellets through ordinary
+  collision/damage, while consuming one round. Ring counts/radii and spread are
+  resource-backed; tangent-cone projection, even phases and omitted native jitter
+  remain reconstructed differences. Secondary and other heroes retain their
+  existing path. Complete weapon fidelity remains open.
+- Pass 114 combat/projectile/Roadhog/ability/body-driver tests. Real-input
+  regressions cover 25 hits/165 damage at close range, ammo consumption, misses,
+  allied targets and actual triangle-wall occlusion. Breather's authored eight
+  second cooldown rejects repeated presses and permits healing after expiry.
+  Ruff and diff checks pass; no client acceptance or publication.
+
 #### Roadhog lane: reconstructed timed self healing
 
 - Connect only authored 0240/node18 to authoritative self healing: distribute

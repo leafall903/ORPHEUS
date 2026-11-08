@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, spread, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -617,13 +617,6 @@ class Combat:
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None,
     ) -> None:
-        node = state.node
-        shot_frame = time // state.instance.component.frame_ms
-
-        def field(name, default=None):
-            cfg = node.field(name)
-            return default if cfg is None else _number(state.evaluate(cfg, watch=False), default)
-
         npc = isinstance(shooter, bots.Bot)
         if npc:
             x, y, z = shooter.position
@@ -631,6 +624,23 @@ class Combat:
             origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), 0)
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
+        for pellet in spread.directions(state, direction):
+            self._shoot_pellet(
+                shooter, command, state, time, origin, pellet, activation=activation, snapshot=snapshot,
+            )
+
+    def _shoot_pellet(
+        self, shooter, command, state, time, origin, direction,
+        *, activation: tuple[int, int], snapshot: Snapshot | None = None,
+    ) -> None:
+        node = state.node
+        shot_frame = time // state.instance.component.frame_ms
+        npc = isinstance(shooter, bots.Bot)
+
+        def field(name, default=None):
+            cfg = node.field(name)
+            return default if cfg is None else _number(state.evaluate(cfg, watch=False), default)
+
         direct = hit_def(state, node.field("m_6396149F"))
         speed = field("m_projectileSpeed")
         if speed:

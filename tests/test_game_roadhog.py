@@ -1,16 +1,66 @@
 """Roadhog lane regressions; these do not establish complete hero/client acceptance."""
 
 import unittest
+from dataclasses import replace
+from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, Run
 
 from ow174.game import combat, stats
+from ow174.game.collision import World
 from ow174.game.content import heroes
 
 ROADHOG = 0x02E0000000000040
 
 
 class RoadhogProjectileTests(unittest.TestCase):
+    def test_real_primary_volley_hits_with_25_pellets_and_consumes_one_round(self):
+        run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
+        match = run.match
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        hog, enemy = run.players
+        match.switch_hero(hog, heroes()[ROADHOG])
+        x, y, z = hog.mover.position
+        enemy.mover.position = [x, y, z + 2]
+        fight = match.combat
+        vitals = fight.vitals_of(next(t for t in fight._targets() if t.owner is enemy))
+        weapon = next(i for i in hog.body_script.component.instances.values() if i.graph.index == 0x01C6)
+        ammo = weapon.vars[53].value()
+        run.step({hog: (0, 0, 1)})
+        self.assertEqual(len(fight.rockets), 25)
+        self.assertEqual(weapon.vars[53].value(), ammo - 1)
+        for _ in range(15):
+            run.step({})
+        self.assertAlmostEqual(200 - vitals.total, 25 * 6.6, places=4)
+        self.assertEqual(len(hog.client.messages(combat.HIT)), 25)
+
+    def test_primary_miss_team_filter_and_real_wall_do_not_damage(self):
+        for mode in ("miss", "ally", "wall"):
+            with self.subTest(mode=mode):
+                run = Run(replace(KANEZAKA_DM, free_for_all=False), ("Roadhog", "Target"))
+                match = run.match
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                hog, enemy = run.players
+                match.switch_hero(hog, heroes()[ROADHOG])
+                if mode == "ally":
+                    enemy.team = hog.team
+                x, y, z = hog.mover.position
+                enemy.mover.position = [x, y, z + 2]
+                fight = match.combat
+                vitals = fight.vitals_of(next(t for t in fight._targets() if t.owner is enemy))
+                wall = World([
+                    (x - 5, y, z + 1, x + 5, y, z + 1, x + 5, y + 5, z + 1),
+                    (x - 5, y, z + 1, x + 5, y + 5, z + 1, x - 5, y + 5, z + 1),
+                ])
+                with patch.object(fight, "_collision", return_value=wall if mode == "wall" else None):
+                    run.step({hog: (-32768 if mode == "miss" else 0, 0, 1)})
+                    for _ in range(20):
+                        run.step({})
+                self.assertEqual(vitals.total, 200.0)
+                self.assertEqual(hog.client.messages(combat.HIT), [])
+
     def pellet_hit(self, distance, *, critical=1.0, head=False, gap=False):
         run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
         match = run.match
@@ -125,6 +175,28 @@ class RoadhogSelfHealTests(unittest.TestCase):
         self.assertTrue(vitals.dead)
         self.advance(run, hog, 150)
         self.assertEqual(vitals.total, 0)
+
+    def test_breather_cooldown_rejects_repress_and_expires_before_reuse(self):
+        run, hog, _, _, vitals = self.session()
+        run.step({hog: (0, 0, 16)})
+        self.advance(run, hog, 180)
+        instance = next(i for i in hog.body_script.component.instances.values() if i.graph.index == 0x0240)
+        heal = next(s for s in instance.states.values() if s.node.pos == 18)
+        ability = next(s for s in instance.states.values() if s.node.pos == 1)
+        self.assertEqual(heal.counter, 1)
+        self.assertEqual(instance.find_var(0, 61).base, 8.0)
+        self.assertGreater(ability.remaining(), 0.0)
+        for _ in range(5):
+            run.step({hog: (0, 0, 16)})
+            run.step({hog: (0, 0, 0)})
+        self.assertEqual(heal.counter, 1)
+        self.assertAlmostEqual(vitals.total, 500.0)
+        self.advance(run, hog, 450)
+        self.assertEqual(ability.remaining(), 0.0)
+        run.step({hog: (0, 0, 16)})
+        self.advance(run, hog, 180)
+        self.assertEqual(heal.counter, 2)
+        self.assertEqual(vitals.total, 600.0)
 
 
 if __name__ == "__main__":
