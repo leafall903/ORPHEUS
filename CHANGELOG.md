@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: integrate manual NPC attack admission
+
+- Merge parent fbcaf76 into the private lane. Preserve manual targeting, primary
+  input, pitch and new bot storage fields. Resolve weapon scheduling so caught
+  NPCs still advance their body clocks, release primary input and discard their
+  blocked volleys; this prevents release-time replay of attacks from the hold.
+- Pass30 NPC control/catalog-body, Roadhog Hook and damage modifier tests.
+  A real five-catalog input probe now observes Trooper120 and Heavy Assault180
+  damage over180 ticks through manual start/ordinary weapon reports. Enforcer,
+  Sniper and Assassin still deal0 in that probe and remain open. This is manual
+  attack admission, not autonomous native AI/special behavior. Ruff/diff pass.
+- Merge resolutions carry lane code, so integration must use the cumulative
+  diff or reviewed lane history; individual non-merge format-patches omit those
+  resolution-only lines. Shared original source and service remain untouched.
+
 #### Roadhog lane: consume authored incoming damage scale
 
 - Apply live entity variable8243 before the existing reconstructed pool pipeline.
@@ -158,6 +173,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Private lane only; no original-client session or publication. The workspace's
   required publication helper is absent, and this lane must deliver patches
   without merging or pushing the original source.
+
+#### Manual NPC console commands and engagement input
+
+- Implement console command semantics for menu/selection, explicit removal,
+  crosshair-selected engagement and stop-all. Spawn requires visible floor;
+  selection/aim uses reconstructed sandbox distance and static-visibility policy.
+  No native console hook, keyboard frontend or production mounting is installed.
+- Drive actual slot0 input, target-player yaw/pitch and input release on target
+  loss/occlusion. Stop cancels pending/consumed input and owned projectiles;
+  idle manual VMs advance while damaging reports are suppressed. Track queued
+  input separately to cancel a press before its first VM update. Preserve new
+  target/input/pitch state in snapshots and movement output.
+- Pass136 related and13 server-snapshot tests (149 total), including9 new control
+  tests, Ruff and diff checks. Actual body data emits primary damage for Trooper
+  and Heavy Assault with no later damage in the80-frame stop probe. Enforcer,
+  Sniper and Assassin emit no shots and retain unresolved query/behavior gates.
+- A separate original104319 console-option probe fails relay loading with Windows
+  access denied and times out login. No console window or grave-key overlay is
+  observed on that screen; post-login console availability remains unknown.
+  Full navigation/specials/McCree skills/ultimate/client combat remain open.
+  No normal deployment; mandatory publication helper remains missing.
 
 #### Prepared PvE enemy base-pool catalog
 
