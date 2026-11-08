@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Enforcer controller readiness experiments
+
+- Execute the unmodified original F525E0 type-to-component mapping for5255
+  OWLib STU types through return, using only an external synthetic virtual28
+  metadata getter.89 types yield nonzero indices;5166 yield the zero fallback.
+  Confirm76AF64F0 maps to5C, DB08D4C1 to2B and AIBehavior to57. Components44/4B
+  were not identified from these definitions; allocation/lifetime remain open.
+- Execute27 truth-table cases for Enforcer13EB/node1's actual expression:
+  `(!controller.#7681 && controller.#9134) || B96(body)`. Isolate authored13EA
+  entry32 -> stack31; it writes9134=true and pops the value on destruction.
+- In an external experiment, supply an explicit reconstructed body/controller
+  relation and real controller VM variable slots. The authored weapon then
+  shoots twice in200 ticks, leaving Hanzo196HP; ally/wall/110m cases do not fire.
+  All four host cases short-circuit B96, with zero fallback calls. The baseline
+  has no shots and still uses permissive unresolved services. No direct shot,
+  health-gate bypass or B96 override is supplied.
+- This is causal, isolated-entry evidence, not production NPC controller
+  allocation or Enforcer incoming acceptance. Full controller initialization,
+  damage/pellet fidelity, specials, Assassin and original-client checks remain
+  open. Experiments and game inputs remain external; server behavior unchanged.
+
 #### Optional NPC associated-AI extraction evidence
 
 - Add `extract_pve_npcs.py --include-ai-evidence` to retain the body's explicit

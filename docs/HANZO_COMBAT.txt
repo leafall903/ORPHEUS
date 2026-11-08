@@ -366,6 +366,21 @@ Explicit five-NPC fixtures (test_game_hanzo_npc.py):
 - Enforcer receives the fire edge but produces no volley; Assassin's body uses
   target/ModifyHealth actions rather than a weapon volley. Both incoming paths
   and all five special/AI behaviors remain OPEN.
+- An external Enforcer experiment now establishes the missing causal path:
+  associated AI graph13EA entry32 starts stack31, setting controller entity
+  variable9134=true until destruction. The actual13EB/node1 gate is
+  (!controller.#7681 && controller.#9134) || B96(body), verified across27 cases.
+  An explicit reconstructed relation plus the real controller VM slots permits
+  two authored shots in200 ticks (Hanzo200 ->196HP). Ally/wall/110m scenarios
+  do not fire; all host cases short-circuit B96 with zero fallback calls.
+  Only entry32 is executed; other initial entry events are removed. Full AI
+  initialization, native relation allocation/lifetime and damage/pellet fidelity
+  remain OPEN. These experimental inputs are not installed in the server.
+- Original F525E0 mapping execution confirms STU_76AF64F0 -> component5C,
+  STU_DB08D4C1 ->2B and STUAIBehaviorComponent ->57. All five associated AI
+  definitions contain76AF64F0. Therefore AI definition presence cannot justify
+  forcing B96 true (its proven true path excludes5C). Runtime components44/4B
+  have not been identified from this STU mapping experiment.
 
 Acceptance matrix (P = partial headless evidence, O = open):
 Action                              Player Trooper Enforcer Sniper Assassin Heavy
@@ -401,6 +416,9 @@ Concrete blockers:
   acquired and no client was launched, stopped, injected or controlled here.
   No new original-client evidence or normal-service deployment is claimed.
 
-Use the private clone with explicit PYTHONPATH and ORPHEUS_RUNTIME_DIR pointing
-to the shared read-only runtime-104319. Keep game assets and test output off Git.
+Use the private clone with explicit PYTHONPATH. NPC geometry tests require the
+read-only43-row NPC mover input; the lane's navigation-test-runtime composes that
+data with runtime-104319 collision/bnet inputs through read-only-use junctions.
+The old38-row mover table cannot establish NPC capsule acceptance. Keep game
+assets and test output off Git; never write through the input junctions.
 Parent owns patch integration; no root changes, merge or manual push by this lane.
