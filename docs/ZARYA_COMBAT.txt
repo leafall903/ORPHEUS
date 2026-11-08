@@ -260,6 +260,41 @@ resource/cadence interactions remain open. Native-client behavior remains untest
 The affected180-test run passes in119.125s with external NPC data enabled and
 zero skips; Ruff/diff checks pass. The wall-impact reproduction failed before the fix.
 
+Actual Zarya weapons against both barriers (2026-11-09)
+-----------------------------------------------------
+Two actual Zarya bodies execute weapon commands against personal and projected
+protection. The projected recipient is an allied Soldier body; damage/energy
+retain victim/caster/source roles. These cases no longer infer the Zarya-weapon
+interaction solely from a Soldier rifle or direct host damage call.
+
+Both barriers absorb primary60 over .8s for12 energy; energy100 primary136 for27.2;
+secondary47 for9.4; and melee30 for6. They consume the same capacity amounts,
+preserve the protected body's pools and retain the actual attacking source ID.
+The high-energy primary breaks either200-capacity barrier before duration ends,
+then damages the body; only the200 absorbed contributes40 energy, the exhausted
+pool retires and the authored cooldown starts. Actual Graviton impact and initial
+field damage are blocked; later field damage reaches the body after barrier ends.
+This proves damage interception, not native bubble geometry or pull/control immunity.
+
+Resource0242/node7 waits1 second after absorption; node12 ChaseVar approaches0 at
+rate1.8/s. Actual secondary absorption feeds the timer and variable. Tests check
+no early decay, elapsed-time numeric decay with the shared ChaseVar's float32/
+epsilon tolerance, decay continuing during a later projectile's flight, restarting
+only on actual absorption, zero clamping and new-body energy/pool retirement after
+death. The new-body undefined numeric variable evaluates as0; no client HUD proof
+is inferred. Status232 gating and full projected re-absorption/control semantics
+remain open. All complete-static and original-client gates remain open.
+A separate real-NPC fixture projects onto an allied Soldier while Trooper, Sniper
+and Heavy Assault execute their actual button20 weapon paths. With explicit cast
+timing and no observer projectile transport, the ally stays at200 health over120
+post-cast frames, the caster gains energy, and source ID remains the actual NPC.
+Enforcer/Assassin and all five autonomous/special behavior paths remain open.
+Validation:187 affected tests pass in138.378s, plus the additional three-NPC
+method passes in4.329s; zero skips, Ruff/diff pass. The initial expanded run
+accessed an already-retired exhausted pool in a new assertion; the corrected
+fixture requires retirement and all187 are rerun. No production behavior was
+changed to satisfy the new fixtures.
+
 Original client and publication
 -------------------------------
 A historical process/title observation is not current client-state evidence. No

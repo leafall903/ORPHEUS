@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Zarya actual weapon/barrier and energy lifecycle acceptance (partial)
+
+- Execute primary, secondary, melee and initial Graviton damage from an enemy
+  Zarya against both personal and projected protection. Verify capacity use,
+  absorbed-energy values, frozen source identity, high-energy beam exhaustion,
+  post-break body damage and cooldown. No native geometry/control claim is added.
+- Verify authored energy delay1s/rate1.8 per second, continued decay during later
+  projectile flight, re-absorption delay reset, zero clamping and new-body reset.
+  Actual Trooper/Sniper/Heavy weapon paths now exercise projected protection of an
+  allied Soldier with energy/source credit retained by the correct actors.
+- Pass187 affected tests in138.378s plus one additional three-NPC method in4.329s;
+  external NPC data enabled, zero skips, Ruff/diff pass. An initial expanded run
+  exposed a fixture accessing an already-retired exhausted pool; correct it to
+  require pool retirement and rerun all187 successfully. No failed run is relabeled.
+- These11 new methods retain explicit input/timing and observer-transport limits.
+  Native pet/status/cleanse/immunity, charge generation, remaining NPC attacks and
+  all specials/autonomous AI remain open. Shared Flashbang control is awaiting
+  review/import at the next fixed-source boundary. Full goal stays ACTIVE.
+
 #### Zarya secondary splash static-wall occlusion (partial static acceptance)
 
 - Reproduce actual secondary fire dealing47 through a static wall. Require static

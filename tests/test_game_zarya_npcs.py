@@ -251,6 +251,39 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 self.assertEqual(run.match.combat.vitals_of(target).total, 400)
                 self.assertGreater(player.body_script.component.entity_var(87).value(), 0)
 
+    def test_projected_barrier_blocks_trooper_sniper_heavy_attacks_on_ally(self):
+        for definition in self.catalog.values():
+            if definition.name not in {"Trooper", "Sniper", "Heavy Assault"}:
+                continue
+            with self.subTest(npc=definition.name):
+                run = Run(names=("Caster", "Ally"))
+                caster, ally = run.players
+                for player in run.players:
+                    player.client = NpcClient(player)
+                match = run.match
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                self.assertTrue(match.switch_hero(caster, heroes()[ZARYA]))
+                ally.team = caster.team
+                caster.mover.position[:] = [0, 1, 0]
+                ally.mover.position[:] = [0, 1, 5]
+                bot = npc.spawn(match, definition, (0, 1, 10), team=1)
+                bot.yaw, bot.firing = -32768, True
+                bot.body_script.component.run_frame(run.frame, [(20, True)])
+                # Explicit reactive timing puts Sniper's first shot within the
+                # actual two-second projection; no AI/barrier automation implied.
+                self.fire(run, caster, 20, 0)
+                self.fire(run, caster, 1, 16)
+                target = next(t for t in match.combat._targets() if t.owner is ally)
+                vitals = match.combat.vitals_of(target)
+                before = vitals.total
+                self.fire(run, caster, 120, 0)
+                self.assertEqual(vitals.total, before)
+                self.assertGreater(caster.body_script.component.entity_var(87).value(), 0)
+                energy = next(i for i in caster.body_script.component.instances.values()
+                              if i.graph.index == 0x0242)
+                self.assertEqual(energy.vars[392].value().id, bot.entity)
+
     def test_ultimate_deals_25_and_pulls_each_actual_enemy_body(self):
         for definition in self.catalog.values():
             with self.subTest(npc=definition.name):
