@@ -10,7 +10,7 @@ native target filters, competing controls and defense services remain open.
 import math
 from dataclasses import dataclass
 
-from ow174.game import bots
+from ow174.game import bots, defenses
 from ow174.game.commands import Command
 from ow174.game.mover import Mover, mover_data
 from ow174.game.script import expr, graph, nodes
@@ -182,6 +182,9 @@ class Hooks:
                         self.cancel_owner(body)
                     continue
                 flight.target, flight.caught_at = best[1], fight.now
+                if defenses.protection(flight.target.owner)[0]:
+                    self.cancel_owner(body)
+                    continue
                 flight.separation = max(flight.separation,
                                         targets[body].radius + flight.target.radius + flight.gap)
                 fight._damage(flight.owner, flight.target, flight.damage.amount, False,

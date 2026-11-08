@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Roadhog lane: consume four scoped defensive casts
+
+- Reuse Reaper/Pharah lane callback/defense designs for actual Wraith, Fade,
+  Cryo-Freeze and Transcendence. Advance only their checked zero-delay entry
+  callbacks; existing authored graphs own lifetime. Treat Wraith/Fade as ghost
+  bodies and Cryo/Transcendence as solid protected interceptors, explicitly
+  reconstructed rather than native-server filter/hitbox semantics.
+- Real primary/slug/secondary fragments/melee/Hook/running Whole Hog reject
+  protected damage/control and grant no charge for intercepted damage. Ghost
+  phases permit rear hits; ammo and Hook cooldown still apply. Live in-flight
+  casts, expiry/body replacement, Mei cancel and actual Flashbang immunity
+  have direct tests. Active cast snapshots prohibit evaluation/callback reentry.
+- Register defense mapping in model manifests. Full native timing/filters,
+  cleanse, barriers/reflect/absorb, knockback and the remaining full static goal
+  stay open. No original-client acceptance or publication.
+- Pass192 combat/hero/NPC/route checks, including9 new defensive methods with
+  45 concrete scenes, plus15 manifest/stored-state checks. Explicit external
+  five-NPC inputs are used with no skips. Ruff/diff pass.
+
 #### Roadhog lane: integrate enemy Flashbang skill interruption
 
 - Merge reviewed parent64bf71c into private main, preserving Hook control,

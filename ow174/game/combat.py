@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, hook, observers, pools, projectiles, spread, stats, voicelines, world
+from ow174.game import bots, defenses, hook, observers, pools, projectiles, spread, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -450,7 +450,8 @@ class Combat:
 
     def _hit_effect(self, target: Target, effect: int | None) -> None:
         """Resource-backed stun reconstruction; native immunity/presentation remain unverified."""
-        if effect != FLASHBANG_EFFECT or self.vitals_of(target).dead:
+        if (effect != FLASHBANG_EFFECT or self.vitals_of(target).dead
+                or defenses.protection(target.owner)[0]):
             return
         variables = graph.mode_variables(self.match.game_map.mode_guid) or {}
         duration = 1.7 if expr.truthy(variables.get(FLASHBANG_MODE_FLAG)) else 0.8
@@ -489,6 +490,7 @@ class Combat:
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.is_dead(player) or self.is_stunned(player):
             return
+        defenses.advance_entry(player)
         self.hooks.command(player, command)
         if command is not None:
             for state, number, time, activation in shots:
@@ -621,6 +623,8 @@ class Combat:
         source = _source_entity(shooter)
         found = []
         for target in self._targets():
+            if defenses.protection(target.owner)[1]:
+                continue
             if target.owner is shooter or target.entity == source:
                 continue
             if not free_for_all and target.team == shooter.team:
@@ -964,7 +968,7 @@ class Combat:
         *, world_tick: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
-        if vitals.dead or amount <= 0.0:
+        if vitals.dead or amount <= 0.0 or defenses.protection(target.owner)[0]:
             return
         dealt = vitals.damage(amount * self.incoming_damage_scale(target.owner))
         if dealt <= 0.0:

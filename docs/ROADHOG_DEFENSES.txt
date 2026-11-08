@@ -1,0 +1,46 @@
+Roadhog versus scoped defensive casts -- build1.74.0.0.104319
+
+The adapter reuses Reaper/Pharah lane designs. It does not execute the native
+damage-filter service or assign global semantics to a class/variable token.
+Mapping tuples use STATE indexes, not graph item positions:
+  Reaper Wraith:0020, entry1, live10467e Stack, intangible
+  Moira Fade:0F7C, entry1, live10467e Stack, intangible
+  Mei Cryo-Freeze:05FE, entry41, self D07EBF01 state17, solid
+  Zen Transcendence:017B, entry13, self D07EBF01 state8, solid
+
+Only these four zero-delay54FEB21C entries are advanced on actual player combat
+commands. The extracted zero/absent duration and lack of output/auxiliary scopes
+are checked before request_finish; the authored graph then owns duration/end.
+Strict VM execution is not overridden. Native8E5A90/8E5F50 evidence from the
+Reaper lane motivated the bounded server callback bridge; it is not native
+server equivalence. No new state class or hidden mutable defense clock exists.
+
+Reconstructed combat policy
+- Wraith/Fade bodies are omitted from enemy hit candidates. Pellets, close slug,
+  expired secondary fragments, hitscan Whole Hog and Hook can reach a rear enemy.
+- Cryo/Transcendence retain their ordinary capsule and intercept shots/Hook.
+  Actual protected damage is rejected before stats, notices, healing deficit or
+  ultimate gain. Hook ends without damage/control and does not stop the defender's
+  protection graph. Normal weapon ammo and Hook cooldown still apply.
+- Mapped protection rejects the shared Flashbang status callback. This is scoped
+  control immunity, not generic invulnerability or a cleanse implementation.
+- Damage/protection checks use live impact-time state. An already launched
+  projectile observes a cast started before arrival. Expiry, Mei's real primary
+  cancel and body replacement restore ordinary damage/collision admission.
+- Exporting an active cast is read-only: no variable evaluation or callback
+  reentry is permitted by the regression. Server/model manifest coverage includes
+  the adapter's exact mapping and existing authored state storage.
+
+Direct evidence
+Real Roadhog primary, close slug, secondary fragments, melee, Hook and running
+Whole Hog are tested against all four actual defensive casts. Tests retain high
+health targets for repeated damage; this does not alter retail hero definitions.
+Real Flashbang immunity, expiry/replacement, in-flight transitions, Mei cancel,
+ammo/cooldown/charge rejection and active snapshot checks supplement these cases.
+
+Open scope
+Native hitbox/phase/filter defaults, exact cast simultaneity and historical phase
+lag compensation, cleanse, every control type, all barriers/reflect/absorb and
+other immunity sources remain open. NPCs receive no inferred protection from
+these human hero mappings. Other heroes' complete kits are not accepted here.
+No original-client HUD, effects, animation, sound or prediction acceptance.

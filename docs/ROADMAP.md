@@ -55,6 +55,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Flashbang on the Hook owner cancels flight and active player/five-NPC pulls
   immediately. NPC pull cleanup also clears stale forced velocity. Other status
   kinds and native immunity/cleanse/competing control semantics remain open.
+  Four scoped defensive casts now have actual Roadhog attack evidence: Wraith/
+  Fade admit rear hits, Cryo/Transcendence intercept without damage/control;
+  primary/slug/fragments/melee/Hook/Whole Hog, in-flight cast, expiry, Mei cancel,
+  replacement, Flashbang immunity and passive snapshot checks execute. This is
+  reconstructed filter/collision policy, not complete native defenses/cleanse.
+  See [defense evidence](ROADHOG_DEFENSES.txt).
   Breather's live0.5 incoming damage multiplier now affects actual hits/death,
   restores at end/interrupt and applies to in-flight player and actual NPC shots.
   Fortify/Ironclad share the consumer. Combined caps/armor-order fidelity remain open.
