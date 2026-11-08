@@ -335,6 +335,17 @@ class Target:
 
 
 @dataclass
+class FragmentBurst:
+    """Resolved Roadhog slug child volley; emission-on-expiry is reconstructed."""
+
+    directions: tuple
+    speed: float
+    lifetime: float
+    direct: HitDef | None
+    blast: HitDef | None
+
+
+@dataclass
 class Rocket:
     """A projectile in flight."""
 
@@ -349,6 +360,7 @@ class Rocket:
     shot: object = None  # its projectiles.Shot: told when it ends
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
+    burst: FragmentBurst | None = None
 
 
 class Combat:
@@ -675,6 +687,7 @@ class Combat:
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
+                        burst=self._fragment_burst(state, direction),
                     )
                 )
             return
@@ -708,16 +721,56 @@ class Combat:
             world_tick=self.tick if npc else None,
         )
 
-    def _fly(self, rocket: Rocket) -> None:
+    @staticmethod
+    def _fragment_burst(state, direction) -> FragmentBurst | None:
+        # Do not generalize unknown projectile callback classes. This exact resource
+        # has an embedded25-pellet volley. Lifetime expiry emits it; a prior impact
+        # keeps only the slug's direct hit. Native callback timing remains inferred.
+        if state.instance.graph.index != 0x01C6 or state.node.pos != 29:
+            return None
+        callback = state.node.field("m_747ECB51") or {}
+        child = callback.get("m_volley")
+        if callback.get("$") != "STU_DB5FDC79" or not isinstance(child, dict):
+            return None
+
+        def field(name, default):
+            cfg = child.get(name)
+            return default if cfg is None else _number(state.evaluate(cfg, watch=False), default)
+
+        speed = field("m_projectileSpeed", 0.0)
+        if speed <= 0:
+            return None
+        lifetime = min(field("m_projectileLifetime", 5.0), field("m_FEC435C6", RANGE) / speed)
+        return FragmentBurst(
+            spread.directions(state, direction, fields=child), speed, lifetime,
+            hit_def(state, child.get("m_6396149F")), hit_def(state, child.get("m_D2D11CE9")),
+        )
+
+    def _expired(self, rocket: Rocket, remaining: float = 0.0) -> None:
+        self._landed(rocket)
+        burst = rocket.burst
+        if burst is not None:
+            for direction in burst.directions:
+                child = Rocket(
+                    rocket.shooter, rocket.team, rocket.position, direction, burst.speed,
+                    burst.lifetime, burst.direct, burst.blast, last_tick=self.tick,
+                )
+                self.rockets.append(child)
+                if remaining > 0:
+                    self._fly(child, seconds=remaining)
+
+    def _fly(self, rocket: Rocket, *, seconds: float | None = None) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
         # Player input can arrive immediately before the scheduler accounts for a gap.
-        elapsed = 1 if rocket.last_tick is None else self.tick - rocket.last_tick
-        if elapsed <= 0:
-            return
+        if seconds is None:
+            elapsed = 1 if rocket.last_tick is None else self.tick - rocket.last_tick
+            if elapsed <= 0:
+                return
+            seconds = elapsed * TICK
         rocket.last_tick = self.tick
-        duration = min(elapsed * TICK, rocket.left)
+        duration = min(seconds, rocket.left)
         if duration <= 0.0:
-            self._landed(rocket)
+            self._expired(rocket, seconds)
             return
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
@@ -735,7 +788,7 @@ class Combat:
             rocket.flown += duration
             rocket.left -= duration
             if rocket.left <= 0.0:
-                self._landed(rocket)
+                self._expired(rocket, max(0.0, seconds - duration))
             return
         t, struck = best
         rocket.flown += t / rocket.speed

@@ -103,6 +103,17 @@ class RoadhogFiveNpcTests(unittest.TestCase):
                 self.assertLess(vitals.total, before)
                 self.assertGreater(len(hog.client.messages(combat.HIT)), 0)
 
+    def test_secondary_expiry_fragments_hit_all_five_authored_npcs(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, hog, _, vitals, angles = self.session(definition, distance=12)
+                before = vitals.total
+                run.step({hog: (*angles, 2)})
+                for _ in range(50):
+                    run.step({hog: (*angles, 0)})
+                self.assertLess(vitals.total, before)
+                self.assertGreater(len(hog.client.messages(combat.HIT)), 1)
+
     def test_primary_kill_retains_every_manual_npc_corpse_after_respawn_deadline(self):
         for definition in self.definitions.values():
             with self.subTest(npc=definition.name):

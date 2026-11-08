@@ -223,6 +223,68 @@ class RoadhogSelfHealTests(unittest.TestCase):
         self.assertEqual(vitals.total, 600.0)
 
 
+class RoadhogSecondaryTests(unittest.TestCase):
+    def session(self, distance):
+        run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
+        match = run.match
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        hog, enemy = run.players
+        match.switch_hero(hog, heroes()[ROADHOG])
+        x, y, z = hog.mover.position
+        enemy.mover.position = [x, y, z + distance]
+        fight = match.combat
+        vitals = fight.vitals_of(next(t for t in fight._targets() if t.owner is enemy))
+        return run, hog, vitals
+
+    def test_close_slug_and_post_expiry_burst_have_distinct_damage_without_extra_ammo(self):
+        for distance, expected, hits in ((5, 50.0, 1), (10, 25 * 6.6, 25)):
+            with self.subTest(distance=distance):
+                run, hog, vitals = self.session(distance)
+                weapon = next(i for i in hog.body_script.component.instances.values()
+                              if i.graph.index == 0x01C6)
+                ammo = weapon.vars[53].value()
+                run.step({hog: (0, 0, 2)})
+                for _ in range(40):
+                    run.step({})
+                self.assertAlmostEqual(200 - vitals.total, expected, places=4)
+                self.assertEqual(len(hog.client.messages(combat.HIT)), hits)
+                self.assertEqual(weapon.vars[53].value(), ammo - 1)
+
+    def test_prior_wall_hit_does_not_emit_fragments_through_wall(self):
+        run, hog, vitals = self.session(10)
+        x, y, z = hog.mover.position
+        wall = World([
+            (x - 5, y, z + 4, x + 5, y, z + 4, x + 5, y + 5, z + 4),
+            (x - 5, y, z + 4, x + 5, y + 5, z + 4, x - 5, y + 5, z + 4),
+        ])
+        with patch.object(run.match.combat, "_collision", return_value=wall):
+            run.step({hog: (0, 0, 2)})
+            for _ in range(40):
+                run.step({})
+        self.assertEqual(vitals.total, 200)
+        self.assertEqual(run.match.combat.rockets, [])
+        self.assertEqual(hog.client.messages(combat.HIT), [])
+
+    def test_world_gap_carries_parent_expiry_remainder_into_fragment_flight(self):
+        results = []
+        for skipped in (False, True):
+            run, hog, vitals = self.session(10)
+            run.step({hog: (0, 0, 2)})
+            run.step({})  # Admit one normal projectile step before the scheduler gap.
+            if skipped:
+                frame = run.frame + 40
+                run.match.update(frame * combat.TICK, frame)
+            else:
+                for _ in range(40):
+                    run.step({})
+            results.append((
+                vitals.total, len(hog.client.messages(combat.HIT)), len(run.match.combat.rockets),
+            ))
+        self.assertEqual(results[0], results[1])
+        self.assertAlmostEqual(results[0][0], 35, places=4)
+
+
 class WholeHogTests(unittest.TestCase):
     def session(self, *, charged=True):
         run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))

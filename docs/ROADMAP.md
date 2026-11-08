@@ -28,6 +28,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   retained-death bodies for all five, plus one admitted Heavy Assault volley into
   Roadhog. AI acquisition, other four incoming attacks, skills and full two-way
   interaction remain open; base pools are not complete authored difficulty totals.
+  Secondary node29's embedded25-pellet expiry volley now causes real player and
+  five-NPC damage, preserves one-ammo consumption, rejects prior wall/body impact
+  emission and matches skipped-tick flight. Callback timing remains reconstructed.
   Native spread, full cooldown/status/defense/NPC matrix and complete hero acceptance
   stay open. Original-client acceptance is separate from the static goal.
 

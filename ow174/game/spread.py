@@ -10,10 +10,11 @@ import math
 from ow174.game.script import expr
 
 
-def directions(state, forward):
-    if state.instance.graph.index != 0x01C6 or state.node.pos not in (26, 33):
+def directions(state, forward, *, fields=None):
+    if fields is None and (state.instance.graph.index != 0x01C6 or state.node.pos not in (26, 33)):
         return (forward,)
-    config = state.node.field("m_5EC1EB38") or {}
+    fields = state.node.fields if fields is None else fields
+    config = fields.get("m_5EC1EB38") or {}
     if config.get("$") != "STU_613BDDB0":
         return (forward,)
 
@@ -22,7 +23,7 @@ def directions(state, forward):
 
     rings = [(number(r["m_6425FFB9"]), int(number(r["m_B19BD35D"])))
              for r in config.get("m_0D30E40C") or ()]
-    count = int(number(state.node.field("m_numProjectilesPerShot")))
+    count = int(number(fields.get("m_numProjectilesPerShot")))
     if count < 1 or count > 256 or sum(n for _, n in rings) != count:
         raise ValueError("Roadhog ring counts do not match authored projectile count")
     width = math.tan(math.radians(number(config.get("m_spread"))))

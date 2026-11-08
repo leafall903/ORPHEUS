@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: authored secondary expiration volley
+
+- Correct the earlier missing-resource diagnosis: node29 already embeds the
+  secondary fragment volley at m_747ECB51.m_volley. The slug's60 speed and0.15s
+  lifetime lead to a25-pellet,80-speed volley with authored damage/falloff/rings.
+  Resolve that configuration on firing, consume only the slug's one ammo, and
+  emit fragments at the terminal position. A prior body/world impact keeps the
+  slug direct hit and emits no fragments. Emission-on-expiry and pattern phase
+  are reconstructed server semantics; original-client agreement stays open.
+- Carry the unused fraction of a skipped scheduler step into fragment flight.
+  Ordinary and skipped ticks agree on actual health loss, hit count and survivors.
+  Close player hits deal50 once; a10m player takes25 fragment hits/~165 damage.
+  A prior triangle wall prevents both slug damage and fragment emission. Real
+  secondary input also hits all five authored Talon bodies with multiple fragments.
+- Pass88 combat/Roadhog/five-NPC/projectile tests and48 NPC/catalog/ability/driver
+  tests (136 total). Ruff/diff pass. Full static acceptance remains open.
+
 #### Roadhog lane: shared melee world occlusion
 
 - Reject quick-melee sphere candidates when static geometry lies before their
