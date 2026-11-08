@@ -100,6 +100,28 @@ native passive generation and damage-generated charge remain OPEN. Tests of that
 policy prove current code gates, not retail charge speed. Graviton full acceptance
 and the complete static goal remain OPEN.
 
+Shield recovery increment
+-------------------------
+The common0033 graph specifies shield pool type2, a delay3 at node66, and a30/s
+healing expression at node5. Its live default Stacks68/69 supply1 for delay scalar
+21868 and rate scalar21869. The host bridge now applies these values to Zarya's
+authoritative shield pool after real body damage. Fully intercepted barrier hits
+do not restart the body-damage delay. Recovery never heals white health, exceeds
+the shield maximum, adds hit notices or awards combat stats. HUD health updates
+through the ordinary body-health path.
+
+The service consumes world ticks once, integrates only time after the delay,
+handles skipped updates, and discards clocks for dead/retired bodies. An undeclared
+scalar does not invent a recovery rate. Explicit Stack modifier fixtures exercise
+rate/delay changes, cancellation, zero rates and restoration of the authored
+default. These fixtures test real VM Stack execution and resulting pool changes;
+they are not native hero-buff or client-presentation acceptance.
+Reconstruction remains in the bridge's damage-event/shield-only/time policy;
+native0033 delayed-State hosting, broader healing modifiers and visual effect
+agreement remain open. Original-client acceptance is still separate.
+The affected combat/projectile/ultimate/five-NPC/server-snapshot run passes169
+tests in412.168s, including17 recovery behavior cases; Ruff/diff checks pass.
+
 Required combat matrix
 ----------------------
 Operation             Enemy player    Enemy NPC         Ally semantics
@@ -112,6 +134,7 @@ Projected barrier     HP/time/CD/     Allied five       Ally selection/protectio
                       target tests
 Energy passive        Absorb/cap/     OPEN              Both barrier sources; HUD OPEN
                       decay model
+Shield recovery       3s/30 per sec   Zarya only        Self shield pool, no allied healing conversion
 Graviton Surge       5+20/pull/time   Five bodies:25    No allied damage/pull tested
 Incoming attacks      Rifle->shields  Trooper/Heavy     Healing retains allied semantics
 Death/lifetime        Stops beam      Five bodies       Manual NPCs retain corpse; player respawn separate

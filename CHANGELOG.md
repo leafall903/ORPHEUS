@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zarya authoritative shield recovery (partial static acceptance)
+
+- Bridge0033's shield pool,3-second delay and30/s healing expression to actual
+  Zarya vitals. Read its live default modifier Stacks rather than inventing values.
+  Reset delay only after body pool loss, retain recovery behind an absorbing
+  barrier, and heal only the shield pool up to its maximum.
+- Integrate authoritative world ticks once, handle skipped updates, discard old
+  body/death clocks, update HUD health and register all recovery state in strict
+  snapshots. Explicit VM modifier fixtures cover changing and ending modifiers;
+  no native hero-buff or original-client proof is claimed from those fixtures.
+- Pass169 affected combat/ultimate/projectile/NPC/snapshot tests in412.168s,
+  including17 recovery behavior cases. Ruff/diff checks pass.
+  The complete static goal remains ACTIVE:
+  ultimate generation, aura/field/pet hosting, defenses/control/immunity and
+  three incoming NPC attack chains/specials remain open.
+
 #### Zarya Graviton damage and pull service (partial static acceptance)
 
 - Follow the target-client00A3 aura reference to the missing0261 effect graph.

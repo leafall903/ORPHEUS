@@ -97,7 +97,13 @@ class ServerSnapshotTests(unittest.TestCase):
         consumed = snapshot_digest(self.capture(session))
         self.assertNotEqual(consumed, shielded)
         fight.beam_seen[player.body] = ((1, 1, 16), 32)
-        self.assertNotEqual(snapshot_digest(self.capture(session)), consumed)
+        clocked = snapshot_digest(self.capture(session))
+        self.assertNotEqual(clocked, consumed)
+        fight.zarya_recovery.bodies[player.body] = zarya.Recovery(1, 2)
+        recovering = snapshot_digest(self.capture(session))
+        self.assertNotEqual(recovering, clocked)
+        fight.zarya_recovery.bodies[player.body].processed_tick = 3
+        self.assertNotEqual(snapshot_digest(self.capture(session)), recovering)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()

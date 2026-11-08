@@ -1,6 +1,6 @@
 """Reconstructed Zarya combat services driven by the target build's authored States.
 
-Target selection and damage interception use declared host services. Pet entity
+Target selection, damage interception and shield recovery use host services. Pet entity
 hosting, control immunity and original-client presentation remain open.
 """
 
@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from ow174.game import bots
 from ow174.game.script import expr, graph, runtime
+from ow174.game.world import SHIELDS_POOL
 
 HERO = 0x02E0000000000068
 
@@ -17,6 +18,74 @@ HERO = 0x02E0000000000068
 class Barrier:
     activation: tuple
     remaining: float
+
+
+@dataclass
+class Recovery:
+    damaged_tick: int
+    processed_tick: int
+
+
+class ShieldRecovery:
+    """0033 shield regeneration bridged to authoritative pools for Zarya.
+
+    Node66 supplies delay3 times21868e, node5 supplies rate30 times21869e.
+    Nodes68/69 supply the authored default scalars1. Undeclared scalars do not
+    regenerate. Reconstruction: actual body pool loss resets delay, a fully
+    intercepted barrier hit does not, and only shields regenerate.
+    """
+
+    def __init__(self, combat):
+        self.combat = combat
+        self.bodies: dict[int, Recovery] = {}
+
+    def retire(self, body: int) -> None:
+        self.bodies.pop(body, None)
+
+    def damaged(self, owner, tick: int) -> None:
+        if getattr(getattr(owner, "hero", None), "guid", None) != HERO:
+            return
+        previous = self.bodies.get(owner.body)
+        if previous is not None:
+            tick = max(tick, previous.damaged_tick, previous.processed_tick)
+        self.bodies[owner.body] = Recovery(tick, tick)
+
+    @staticmethod
+    def scalar(component, identifier):
+        var = component.entity_var(identifier, create=False)
+        value = None if var is None else var.value()
+        return None if value is None else max(0.0, expr.to_float(value))
+
+    def update(self, tick: int) -> None:
+        current = {p.body: p for p in self.combat.match.players if p.has_body and not p.gone}
+        for body, recovery in list(self.bodies.items()):
+            player = current.get(body)
+            vitals = self.combat.vitals.get(body)
+            if (self.combat.match.ended or player is None or vitals is None or vitals.dead
+                    or player.hero.guid != HERO):
+                self.retire(body)
+                continue
+            previous = recovery.processed_tick
+            recovery.processed_tick = max(previous, tick)
+            script = player.body_script
+            if script is None or tick <= previous:
+                continue
+            base = graph.graph(0x0033)
+            delay = base.node(66).field("m_7130456B.m_expression.m_D99EF254")[0]
+            rate = base.node(5).field("m_modifyHealth.m_amount.m_expression.m_D99EF254")[1]
+            delay_scalar = self.scalar(script.component, 21868)
+            rate_scalar = self.scalar(script.component, 21869)
+            if delay_scalar is None or rate_scalar is None:
+                continue
+            delay *= delay_scalar
+            rate *= rate_scalar
+            since = max(previous, recovery.damaged_tick + delay / 0.016)
+            amount = rate * max(0.0, tick - since) * 0.016
+            amount = min(amount, vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
+            if amount > 0:
+                vitals.now[SHIELDS_POOL] += amount
+                vitals.changed.add(SHIELDS_POOL)
+                self.combat._sync_body_health(player, vitals)
 
 
 class Barriers:

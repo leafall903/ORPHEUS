@@ -370,6 +370,7 @@ class Combat:
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.beam_seen: dict[int, tuple] = {}  # body -> authored activation and consumed command time
         self.zarya_barriers = zarya.Barriers(self)
+        self.zarya_recovery = zarya.ShieldRecovery(self)
         self.zarya_gravitons = graviton.Gravitons(self)
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
@@ -401,6 +402,7 @@ class Combat:
         self.melee_seen.pop(player.body, None)
         self.beam_seen.pop(player.body, None)
         self.zarya_barriers.retire(player.body)
+        self.zarya_recovery.retire(player.body)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -553,6 +555,7 @@ class Combat:
             self._bot_weapons(at)
             self.zarya_gravitons.update(at)
         self.projectiles.update(tick, first_tick=retained)
+        self.zarya_recovery.update(tick)
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
@@ -885,6 +888,7 @@ class Combat:
         dealt = vitals.damage(amount)
         if dealt <= 0.0:
             return
+        self.zarya_recovery.damaged(target.owner, self.match.tick if world_tick is None else world_tick)
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0
