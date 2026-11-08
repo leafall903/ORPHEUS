@@ -305,13 +305,40 @@ def graph_indexes() -> list[int]:
 
 def bodies() -> dict[int, dict]:
     """Hero body (003 GUID) -> {"hero", "name", "graphs": [{"graph", "m_1EB5A024", ...}], "manager",
-    "weapons"}."""
+    "weapons"}; new bundles also retain "script_component" (definition or known absence)."""
     return {int(key, 16): record for key, record in _data()["bodies"].items()}
 
 
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
+
+
+def entity_script_component(definition: int):
+    """Actual entity component dict, known absence None, or unknown old/missing data.
+
+    Both selected non-player entities and hero bodies use the same preserved
+    field. A legacy flattened graph list cannot declare component absence.
+    """
+    if (type(definition) is not int or not 0 < definition < 1 << 64
+            or definition >> 48 != 0x0400 or not definition & 0xFFFFFFFFFFFF):
+        raise ValueError('script component definition must be a nonzero .003 entity resource')
+    key = f'0x{definition:016X}'
+    sections = (_data().get('bodies', {}), _data().get('entities', {}))
+    if any(not isinstance(section, dict) for section in sections):
+        raise ValueError('invalid entity script component catalog')
+    records = [section[key] for section in sections if key in section]
+    if any(not isinstance(record, dict) for record in records):
+        raise ValueError('invalid entity script component record')
+    if not records or any('script_component' not in record for record in records):
+        return NotImplemented
+    component = records[0]['script_component']
+    if any(record['script_component'] != component for record in records[1:]):
+        raise ValueError('conflicting entity script component definitions')
+    if component is not None and (not isinstance(component, dict)
+                                  or component.get('$') != 'STUStatescriptComponent'):
+        raise ValueError('unsupported entity script component definition')
+    return component
 
 
 @cache

@@ -594,3 +594,26 @@ Native array actions in the voice chain, 2026-11-08:
   Full actors, services/replication, cinematics, enemy AI, extraction/results and
   original-client acceptance remain open. No new client run or deployment.
   See ARRAY_ACTIONS.txt for evidence and remaining storage/consumer boundaries.
+
+Entity script component definitions and actual controller ownership, 2026-11-08:
+- Retain full script_component metadata in selected entity/hero records, including
+  empty defaults, schemas, flags and graph dependencies through shared DragonML
+  objects. Do not borrow a child entity's component. Runtime lookup distinguishes
+  unknown legacy/missing records, known absence and actual component definitions;
+  malformed, conflicting and unsupported definitions remain explicit errors.
+- SceneHost.add_entity_scripts owns an already-created entity's real component
+  in the initial catalog through existing ComponentStartup. Missing data cannot
+  create an empty substitute. Known absence cannot accept overrides/values.
+  Initial catalog sealing, identity checks and failure/close cleanup remain intact.
+- Actual000E has an existing empty script component; mode0025/team0 supplies
+  controller0F44/body0F45 separately. A dedicated external bundle changes only
+  000E component metadata. Isolated0F44 startup retains9D7BF987/node33. The
+  faulted but bound controller still rejects0EC6/node22's message061A after
+  parameter41. A16-graph literal scan does not establish all message consumers.
+- Real GameServer/Match prepares146 placements, mode100B and one actual controller,
+  plus148 queues. RootD38/node106 fails before controller execution; all queues/
+  bindings retire. Mode-root additions, creation/possession and scheduling remain
+  explicit owner inputs. Automatic native mode mounting, complete controller/body/
+  actor lifetimes, engine/phases/replication, cinematics, enemy AI and mission
+  results remain open. No new original-client run or deployment. See
+  ENTITY_SCRIPT_COMPONENTS.txt for evidence and the unbypassed startup faults.

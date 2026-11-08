@@ -93,3 +93,14 @@ scene-host-related-tests.log, scene-host-server-tests.log and scene-host-ruff.lo
 The prior server run invalidated by a concurrent source edit is preserved as
 scene-host-server-tests.initial-failure.log. Source remains unchanged during the
 authoritative regression runs. See CHANGELOG.md for the final test totals.
+
+Preserved entity component definitions, 2026-11-08
+add_entity_scripts now reads actual .003 component metadata for an already-created
+entity. It distinguishes unknown old/missing data, known absence and an existing
+empty component; initial catalog sealing and ownership checks remain enforced.
+Actual000E plus an explicitly selected0F44 root stops at9D7BF987/node33 in the
+isolated host. A real Match factory now also prepares one actual controller:
+148 components/queues, with rootD38/node106 still preventing its execution and
+all bindings/queues retired. Default Match policy, native mode mounting,
+dynamic actor lifetimes, replication/readiness and full mission remain open.
+See ENTITY_SCRIPT_COMPONENTS.txt for extraction, inputs and acceptance limits.

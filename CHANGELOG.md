@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Preserved entity script component definitions and controller hosting
+
+- Retain complete entity/hero script components, including empty defaults,
+  schemas, policy flags and graph dependencies through shared XML references.
+  Distinguish unknown legacy/missing data, known absence and existing components.
+  Reject ambiguous ownership, conflicting records and unsupported definitions.
+- Add SceneHost.add_entity_scripts for already-created entities in its initial
+  catalog, using existing strict startup/override/scheduling and owned cleanup.
+  Unknown data cannot publish an empty substitute. Preserve sealing and reject
+  overrides/values on known absence. Add22 behavior tests;863 related and33 server
+  tests pass, with Ruff/diff checks. No normal input or default Match policy change.
+- Actual000E plus explicit mode0025/team0 root0F44 retains9D7BF987/node33 during
+  controller startup. Its bound failed receiver still rejects0EC6/node22 after
+  parameter41; failure is not treated as absence. A literal16-graph scan does
+  not establish all native/dynamic message consumers. Full startup remains open.
+- Real Match prepares146 placements, mode100B and one actual controller with148
+  queues, retainingD38/node106 before controller execution and retiring bindings.
+  The external bundle changes only000E component metadata. Native mode mounting,
+  body/controller/actor lifetimes, services/phases/replication, cinematics, enemy
+  AI and complete mission results remain unaccepted. No new client run or
+  deployment. Preserve unrelated working changes. See ENTITY_SCRIPT_COMPONENTS.txt.
+  Required publication helper missing; no GitHub push.
+
 #### Native unkeyed array insertion and typed clear actions
 
 - Restore strict4C3509FB append/insert/unique behavior and1C2CC6D5 fresh typed

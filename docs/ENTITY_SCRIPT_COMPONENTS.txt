@@ -1,0 +1,77 @@
+Preserved entity script component definitions and initial hosting
+Target: original build104319; partial controller/body data integration.
+
+Flattened graph lists do not establish whether an entity owns a script component.
+Actual player definition000E has a STUStatescriptComponent with empty graph
+defaults, empty component schema and clientOnly0. Mode0025/team0 separately names
+controller0F44 and body0F45. Empty defaults cannot justify dropping its messages.
+
+Extraction
+tools/extract_game_graphs.py retains script_component in each selected hero body
+or additional entity record. A dictionary preserves the actual graph ordering,
+overrides, schema and client policy. None means known component absence. Missing
+fields in older bundles remain unknown. Duplicate owners are rejected; a child
+entity's component is not assigned to its parent. Known derived types remain
+preserved as derived data, requiring separate runtime support.
+
+Resolve DragonML references before collecting retained graph dependencies: a
+shared schema serialized elsewhere in the document can contribute graph roots.
+Direct component children in existing extractor fixtures remain readable. The
+optional field does not require rewriting normal inputs or changing old graph
+records. Generated asset data and source XML remain outside Git.
+
+Lookup and ownership
+graph.entity_script_component accepts a full nonzero .003 GUID, looking in both
+hero-body and selected-entity records. It returns an actual component dictionary,
+known absence None, or unknown NotImplemented. Malformed catalogs, conflicting
+records and unsupported component kinds raise errors. A legacy empty graphs
+list cannot silently become an empty component or an absence declaration.
+
+SceneHost.add_entity_scripts(entity, definition, placed=None, values=None) reads
+the definition for an already-bound, actually created entity. Known components
+use existing strict ComponentStartup: definition defaults, explicit instance
+overrides/additions, initial entity values and ordinary scheduling. Known absence
+binds None without allocating a VM and cannot accept overrides or values. Unknown
+data fails before publishing a component. Existing lifecycles cannot be replaced.
+Initial sealing after startup, PlayScript configuration, failure or close applies.
+Existing queue, dependency and shared-world cleanup still owns accepted units.
+
+Creation/possession, mode/team root selection, source identity, native mounting
+order and dynamic join/respawn/actor lifetimes remain owner inputs or unfinished
+work. This API does not create network actors, automatically attach controllers
+in the default Match or replace its prepared controller frames. Replication,
+shared storage and client readiness remain unavailable.
+
+Actual evidence
+A separate external bundle extends the Rialto candidate with only actual000E
+component metadata. Graphs, other metadata and other entity records remain
+unchanged. Normal runtime, source candidate, map-world and000E/0025 XML hashes
+are preserved. No candidate is deployed.
+
+The isolated host reads000E from that bundle and receives an explicitly selected
+additional0F44 from mode0025/team0. It allocates the real root, retaining strict
+9D7BF987/node33/frame0 during startup. It is not a working controller. Close
+retires bindings. In a separate body/helper fixture this controller stays bound
+but faulted;0EC6 parameter41 executes, then node22's message061A still stops at
+the target-component boundary. The failed receiver is not declared absent and
+the source queue/context retire. A literal061A scan of16 statically referenced
+controller graphs finds no matching node field; this does not establish dynamic,
+keyed or native engine message consumers. Dropping061A cannot be acceptance.
+
+A real in-memory GameServer/Match factory prepares146 placed components, mode100B
+and one actual player controller:148 components and148 PlayScript queues. It uses
+the actual Match player entity identity. Root100B still faults atD38/node106
+before controller execution. All queues/bindings retire. Controller0F44 was
+prepared, not run. The collision world, expanded371-create catalog and explicit
+mode additions remain research inputs.
+
+Neither9D7/node33 norD38/node106 was bypassed. A PC parent fallback is not proof
+of authoritative no-op behavior. Full controller/body/actor mounting and source
+lifetimes, native services/phases, message routing, replication/ACK/readiness,
+cinematics, five enemy AI types, extraction and results remain open. There was
+no new original-client session, socket bind or deployment.
+
+Local evidence outside Git: controller-component-preparation.json,
+controller-component-host/match-validation.json, component-definition-final-
+validation.json and component-definition-related/server-tests.log and ruff.log
+under verification/retribution. See CHANGELOG.md for final regression totals.

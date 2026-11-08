@@ -400,12 +400,56 @@ def graph_ref(xml: StuXml, element: ET.Element, name: str) -> int | None:
     return guid_index(ref.get("GUID")) if ref is not None else None
 
 
+def entity_script_component(xml: StuXml) -> tuple[dict | None, set[int]]:
+    """Retain the entity's actual component definition, including empty defaults.
+
+    A flattened graph list cannot distinguish missing component data, known
+    component absence and an existing empty component such as player000E.
+    Inspect this entity's map only; child entity definitions do not belong to it.
+    """
+    component_map = xml.field(xml.root, "m_componentMap")
+    candidates = []
+    for entry in component_map if component_map is not None else xml.root:
+        element = xml.field(entry, "dragon:value") if component_map is not None else entry
+        if element is None:
+            continue
+        cls, seen = tag(element), set()
+        while cls and cls not in seen and cls != "STUStatescriptComponent":
+            seen.add(cls)
+            cls = xml.enums.bases.get(cls)
+        if cls == "STUStatescriptComponent":
+            candidates.append(element)
+    if len(candidates) > 1:
+        raise ValueError("entity has ambiguous statescript component ownership")
+    if not candidates:
+        return None, set()
+    component = candidates[0]
+    record = xml.value(component)
+    references = set()
+
+    def collect(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+        elif isinstance(value, str) and re.fullmatch(r"0x0580[0-9A-Fa-f]{12}", value):
+            references.add(int(value, 16) & 0xFFFFFFFFFFFF)
+
+    # Resolve shared DragonML objects before collecting: a component can refer
+    # to a schema serialized elsewhere in the same entity's XML document.
+    collect(record)
+    return record, references
+
+
 def body_record(
     path: Path, enums: EnumTables, hero: str | None, name: str, *, include_ai_weapons: bool = False,
 ) -> tuple[dict, set[int]]:
     """A body definition (003): its statescript component's initial graphs in order, with their schema
-    overrides, and its weapon component's scripts."""
+    overrides, its full script component definition, and its weapon scripts."""
     xml = StuXml(path, enums)
+    component, component_refs = entity_script_component(xml)
     graphs, weapons, manager = [], [], None
     for element in xml.root.iter():
         kind = tag(element)
@@ -419,10 +463,11 @@ def body_record(
             weapon_list = xml.field(element, "m_weapons")
             for weapon in weapon_list if weapon_list is not None else []:
                 weapons.append(graph_ref(xml, xml.resolve(weapon), "m_script"))
-    record = {"hero": hero, "name": name, "graphs": graphs, "manager": manager, "weapons": weapons}
+    record = {"hero": hero, "name": name, "graphs": graphs, "manager": manager, "weapons": weapons,
+              "script_component": component}
     if include_ai_weapons and (buttons := _ai_weapon_buttons(path, xml)):
         record["ai_weapon_buttons"] = buttons
-    used = {entry["graph"] for entry in graphs} | {manager, *weapons}
+    used = {entry["graph"] for entry in graphs} | {manager, *weapons} | component_refs
     return record, {graph for graph in used if graph is not None}
 
 

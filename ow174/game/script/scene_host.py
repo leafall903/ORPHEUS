@@ -45,6 +45,27 @@ class SceneHost:
         self.units[entity] = Unit(component, boot)
         return component
 
+    def add_entity_scripts(self, entity: int, definition: int, placed: dict | None = None, *, values=None):
+        """Use preserved .003 data for an already-created entity in the initial catalog.
+
+        The owner still supplies any actual instance additions and mode/team
+        root selection; no default graph or empty substitute is invented.
+        """
+        if self.prepared or self.closed or self.error is not None or self.play_requests_configured:
+            raise ValueError('initial scene component catalog is already sealed')
+        self.world._bound_entity(entity)
+        if entity in self.world.script_components:
+            raise ValueError('scene already has this component lifecycle binding')
+        component = graph.entity_script_component(definition)
+        if component is NotImplemented:
+            raise ValueError('entity script component definition data is unavailable')
+        if component is None:
+            if placed is not None or values:
+                raise ValueError('component absence cannot accept startup overrides or values')
+            self.world.bind_script_component(entity, None)
+            return None
+        return self.add(entity, component, placed, values=values)
+
     @classmethod
     def from_map(cls, data, *, entity_start, server_placeables, kept_identifiers=(), mode,
                  mode_component=None, mode_values=None, frame_ms=16, seed=1, graph_loader=graph.graph):
