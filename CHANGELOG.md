@@ -47,6 +47,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   teleport fallback was added. Full static goal ACTIVE;
   shared-main integration, publication and original-client acceptance remain open.
 
+#### Native state-input joins and Deadeye timing
+
+- Implement1113EBD5 distinct-input joins from the104319 input handler rather
+  than permissively following output. Track producer/plug arrivals, ignore
+  duplicates, request sibling completion checks, clear registrations before
+  output and abort active referenced states only after accepted output. Resolve
+  states after callbacks; missing states are not allocated as a side effect.
+- Include pending arrivals and current traversal context in VM/server causal
+  snapshots, restore nested traversal context and clear arrivals on teardown.
+  Update the snapshot storage contract test for these new fields.
+- Pass945 relevant tests (932 script/VM/NPC/projectile/McCree plus13 server
+  snapshot), including10 new join and actual Deadeye command tests. Forty
+  offline native-handler arrivals match Python return values, registry order,
+  completion checks and aborts; engine lookup/output/event services are adapters.
+  Ruff and diff checks pass. No original-client acceptance was run.
+- Deadeye now survives warmup, retains the resource's six-second window and
+  supports repeated secondary cancel without normal ammunition loss. Test charge
+  is explicitly filled. Target acquisition/per-target charging/damage and the
+  full ultimate remain open; no replacement damage formula is installed.
+- Manifest-verified research resolves the per-target effect053/0056 to01EE in
+  an external bundle. Normal runtime data/services and original working changes
+  remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
+  McCree/cross-hero and original-client combat acceptance remain open.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
