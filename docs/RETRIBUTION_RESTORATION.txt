@@ -535,3 +535,20 @@ PlayScript source/context identity, 2026-11-08:
 - Full shared Match remainsD38/node106. Loader/transport, native phases, dynamic
   actors, cinematics, enemy AI and results remain open. No new client run or
   deployment; normal inputs are preserved. See PLAY_SOURCE_CONTEXT.txt.
+
+Component PlayScript queue and automatic lifetime, 2026-11-08:
+- Add explicit resource providers and real component queues, preserving native
+  submit policies, immediate/reverse flush, capacity boundary, reused identity,
+  pending resource/startup waits and queued schema/initialization/start bindings.
+- Verify277 original submit/flush and2688 automatic-lifetime cases with declared
+  adapters. Byte0 enables Instance318 bit11's transient lifetime checks. Record
+  initialization frame and pending bit22; events, entries and active States keep
+  required graphs alive. VM storage observes the new fields without executing.
+- Actual0F45/node48 now creates0EC6 through the installed queue. Its caller then
+  retains strict40E05F6B/node39 before helper parameter execution. A separate
+  isolated service submission assigns array41 and stops at controller-message
+  component/node22. Full body/controller/helper startup remains unaccepted.
+- Real Match configures/cleans147 initial queues and retainsD38/node106. Stale
+  source faults cannot clear replacement services. Native loader/allocator/
+  deletion/phases, full replication, actors, cinematics, enemy AI and results
+  remain open. No new client run/deployment. See PLAY_SCRIPT_QUEUE.txt.

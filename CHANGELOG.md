@@ -6,6 +6,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Component PlayScript queues and transient graph lifetimes
+
+- Route authored requests to actual scene components through explicit resource
+  providers and owned queues. Preserve skip/replace/reuse order, immediate and
+  reverse flush, resource/startup waits, native1500 boundary and real queued
+  schema/initialization/start bindings. Reentrancy, active self replacement and
+  lost ready namespaces remain strict boundaries. Normal host policy is unchanged.
+- Verify277 original submit/flush cases, including reverse batches, and2688
+  automatic-lifetime cases with declared adapters. Request byte0 sets Instance318
+  bit11's automatic retirement policy. Events, enabled entries, frame age and
+  active States govern retirement; passive VM storage records its three fields.
+- Actual0F45/node48 now creates0EC6 through its installed queue and queues array17
+  for variable41. The caller's following path retains strict40E05F6B/node39 before
+  helper update. Separate isolated service submission assigns array41 and stops
+  at controller-message component/node22. No manual loaded-core handoff is used.
+  Fixture body/controller/input/resource services do not establish full startup.
+- Real in-memory Match configures and retires147 queues, retaining rootD38/node106.
+  Failure, leave and stop cancel pending work. Fix stale source failure clearing
+  replacement engine services; revalidate identity around request callbacks.
+  Add25 behavior tests;770 related and33 server tests pass, with Ruff/diff.
+- Full allocator/loader/physical deletion, native phases, actor/body/controller
+  lifetimes, live replication/readiness, cinematics, enemy AI and mission results
+  remain open. No new client run, deployment or full mission acceptance. Normal
+  inputs and unrelated working changes are preserved. See PLAY_SCRIPT_QUEUE.txt.
+  Publication helper missing; no GitHub push.
+
 #### Native PlayScript source and entity-instance context
 
 - Derive live SceneWorld entity-instance caller/owner from its actual component

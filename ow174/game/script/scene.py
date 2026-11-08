@@ -23,6 +23,7 @@ from ow174.game.script import (
     model_look,
     modifiers,
     play,
+    play_queue,
     runtime,
     scopes,
 )
@@ -107,6 +108,7 @@ class SceneWorld(runtime.World):
         self.look_contexts: dict[int, model_look.Context] = {}
         self.data_flow_contexts: dict[int, data_flow.Context] = {}
         self.script_components: dict[int, runtime.Component | None] = {}
+        self.play_queues: dict[int, play_queue.Queue] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -191,6 +193,9 @@ class SceneWorld(runtime.World):
         if component is not None and self.script_components.get(entity) is not component:
             raise ValueError('script component binding belongs to another lifecycle')
         previous = self.script_components.pop(entity, None)
+        queue = self.play_queues.pop(entity, None)
+        if queue is not None:
+            queue.retire()
         if previous is not None:
             self._notify_script_retired(previous)
 
@@ -235,6 +240,46 @@ class SceneWorld(runtime.World):
                 or component.instances.get(instance.id) is not instance or instance.stopped):
             component.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
         return play.InvocationContext(component.entity, component.entity, inherited)
+
+    def set_play_queue(self, entity: int, queue: play_queue.Queue) -> None:
+        self._bound_entity(entity)
+        if (type(queue) is not play_queue.Queue or queue.component.world is not self
+                or self.script_components.get(entity) is not queue.component or queue.closed):
+            raise ValueError('PlayScript queue must belong to the actual live script component')
+        if entity in self.play_queues and self.play_queues[entity] is not queue:
+            raise ValueError('retire the existing PlayScript queue before replacement')
+        self.play_queues[entity] = queue
+
+    def submit_script_request(self, instance, node, request):
+        source = instance.component
+        if (self.script_components.get(source.entity) is not source
+                or source.instances.get(instance.id) is not instance or instance.stopped):
+            source.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
+        source.ensure_valid()
+        for entity in request.targets:
+            if entity not in self.entities:
+                continue
+            receiver = self.script_components.get(entity, NotImplemented)
+            if receiver is None:
+                continue
+            if receiver is NotImplemented or receiver.fault is not None:
+                source.unsupported(instance, 'scene PlayScript target component', node.cls, node)
+            if (request.policy == 3 and receiver is source
+                    and request.resource.guid == (graph.GRAPH_TYPE << 48) | instance.graph.index):
+                source.unsupported(instance, 'scene PlayScript active self replacement', node.cls, node)
+            queue = self.play_queues.get(entity)
+            if queue is None:
+                source.unsupported(instance, 'scene PlayScript queue', node.cls, node)
+            try:
+                queue.submit(request)
+            except ValueError as error:
+                source.unsupported(instance, 'scene PlayScript queue', str(error), node)
+            if (self.script_components.get(entity) is not receiver
+                    or self.play_queues.get(entity) is not queue or receiver.fault is not None):
+                source.unsupported(instance, 'scene PlayScript target lifecycle', node.cls, node)
+            if (self.script_components.get(source.entity) is not source
+                    or source.instances.get(instance.id) is not instance or instance.stopped):
+                source.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
 
     def set_property_modifiers(self, entity: int, component: modifiers.NumericModifiers | None) -> None:
         """Declare component 31 and its clock; UUID bindings do not imply it."""
@@ -378,7 +423,13 @@ class SceneWorld(runtime.World):
                                if key != entity and (target is None or target.owner != entity)}
 
     def script_failed(self, component: runtime.Component) -> None:
+        actual = self.script_components.get(component.entity, NotImplemented)
+        if actual is not NotImplemented and actual is not component:
+            return  # A stale source cannot retire its replacement's engine services.
         if self.script_components.get(component.entity) is component:
+            queue = self.play_queues.pop(component.entity, None)
+            if queue is not None:
+                queue.retire()
             self._notify_script_retired(component)
         mapping = self.data_flow_contexts.pop(component.entity, None)
         if mapping is not None:

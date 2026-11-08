@@ -202,3 +202,14 @@ hands its request explicitly to0EC6. Parameter41 is assigned, then the helper
 retains a strict node22 message-target-component diagnostic. Automatic submission,
 loader/transport semantics and full body/controller startup remain open. The full
 shared Match still stops atD38/node106. See PLAY_SOURCE_CONTEXT.txt for scope.
+
+Component request queue and transient graph lifetime, 2026-11-08
+SceneWorld now submits requests through explicitly configured component queues.
+The actual0F45/node48 action creates0EC6 automatically and queues its start inputs;
+the caller's following path now exposes strict40E05F6B/node39 before helper update.
+A separate isolated service submission reaches the helper's controller-message
+component stop/node22. Native277 submit/flush cases and2688 lifetime cases pass
+with documented adapters. The request byte's zero value enables automatic
+retirement via Instance318 bit11; it is not accepted as a network-only flag.
+Loader/allocator/physical deletion, callback self replacement, native phases and
+full mission remain open. See PLAY_SCRIPT_QUEUE.txt for provider and lifetime scope.

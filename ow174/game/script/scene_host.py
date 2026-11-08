@@ -6,7 +6,7 @@ This installs no guessed engine consumers or auxiliary scope/rewind phases.
 
 from dataclasses import dataclass
 
-from ow174.game.script import graph, runtime, scene, startup
+from ow174.game.script import graph, play_queue, runtime, scene, startup
 
 
 @dataclass
@@ -29,10 +29,11 @@ class SceneHost:
         self.prepared = False
         self.closed = False
         self.error: dict | None = None
+        self.play_requests_configured = False
 
     def add(self, entity: int, definition: dict, placed: dict | None = None, *, values=None):
         """Bind every component before evaluating any component's startup schema."""
-        if self.prepared or self.closed or self.error is not None:
+        if self.prepared or self.closed or self.error is not None or self.play_requests_configured:
             raise ValueError('initial scene component catalog is already sealed')
         if entity in self.units:
             raise ValueError('scene already has this component lifecycle')
@@ -89,6 +90,8 @@ class SceneHost:
                     unit.startup.start()
                 self.prepared = True
             for unit in self.units.values():
+                if (queue := self.world.play_queues.get(unit.component.entity)) is not None:
+                    queue.flush()
                 unit.component.run_frame(frame)
         except (runtime.UnsupportedScriptError, runtime.ScriptBudgetError, ValueError) as error:
             self.error = {'error': str(error), 'frame': frame}
@@ -102,6 +105,8 @@ class SceneHost:
         if self.closed:
             return
         self.closed = True
+        for queue in tuple(self.world.play_queues.values()):
+            queue.retire()
         for unit in reversed(tuple(self.units.values())):
             component = unit.component
             if component.fault is not None:
@@ -121,6 +126,20 @@ class SceneHost:
                 'client_ready': self.client_ready,
                 'error': self.error, 'components': len(self.units),
                 'instances': sum(len(unit.component.instances) for unit in self.units.values())}
+
+    def configure_play_requests(self, acquire) -> None:
+        """Install an explicit resource provider for this initial component catalog."""
+        if self.prepared or self.closed or self.error is not None or not callable(acquire):
+            raise ValueError('PlayScript resources must be configured before scene startup')
+        if self.play_requests_configured or any(entity in self.world.play_queues for entity in self.units):
+            raise ValueError('scene already has configured PlayScript queues')
+        if any(self.world.script_components.get(entity) is not unit.component
+               or unit.component.fault is not None
+               for entity, unit in self.units.items()):
+            raise ValueError('scene component lifecycle changed before PlayScript configuration')
+        for entity, unit in self.units.items():
+            self.world.set_play_queue(entity, play_queue.Queue(unit.component, acquire))
+        self.play_requests_configured = True
 
     @property
     def client_ready(self):

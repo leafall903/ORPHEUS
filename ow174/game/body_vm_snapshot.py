@@ -28,7 +28,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "cached_source_entity",
+    "disabled_start_entries", "cached_source_entity", "auto_retire", "initialized_frame",
+    "retirement_pending",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -172,6 +173,11 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        frame = fields['initialized_frame']
+        if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance initialization frame')
+        if any(type(fields[key]) is not bool for key in ('auto_retire', 'retirement_pending')):
+            raise BodyVMSnapshotError('invalid instance automatic lifetime flags')
         if fields["component"] is not self.component:
             raise BodyVMSnapshotError("foreign component instance reference")
         number = _integer(fields["id"], "instance")

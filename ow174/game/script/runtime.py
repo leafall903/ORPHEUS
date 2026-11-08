@@ -827,6 +827,9 @@ class Instance:
         self.start = 0
         self.disabled_start_entries: set[int] = set()
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
+        self.initialized_frame = 0  # Native Instance+58.
+        self.retirement_pending = False  # Native Instance318 bit22.
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -940,8 +943,10 @@ class Instance:
         self.initialized = True
         self.initialization_pending = False
         self.start = self.component.now
+        self.initialized_frame = self.component.frame & 0xFFFFFFFF
         for node in self.graph.entries:
             if node is not None and not node.client_only and node.cls in ENTRY_CLASSES:
+                self.disabled_start_entries.add(node.pos)
                 self.post(Event(self.start, 0, ENTRY, node=node))
 
     def play_schema(self, overrides: tuple, *, reorder_entries: bool) -> None:
@@ -1036,6 +1041,7 @@ class Instance:
     def update(self) -> None:
         """One update at the component's now (0x7FF78AAA27C0)."""
         with self.component.operation():
+            self.retirement_pending = False
             if self.stopped or not self.initialized:
                 return
             for _ in range(MAX_INSTANCE_UPDATES):
@@ -1051,6 +1057,23 @@ class Instance:
                 self.component.budget_exceeded(
                     f"instance {self.id} update budget {MAX_INSTANCE_UPDATES} exhausted"
                 )
+            self.check_auto_retirement()
+
+    def check_auto_retirement(self) -> None:
+        """1B95440/1B935D0: no events, no enabled keepalive entries, then age/states."""
+        if not self.auto_retire or self.queue or self.stopped or not self.initialized:
+            return
+        for node in self.graph.entries:
+            self.component.consume_work('automatic script lifetime entry')
+            if (node is not None and node.pos not in self.disabled_start_entries
+                    and node.cls not in ('STU_BB4AC733', 'STU_8A7E9DA8')):
+                return
+        if (self.initialized_frame+1) & 0xFFFFFFFF >= self.component.frame & 0xFFFFFFFF:
+            self.retirement_pending = True
+            return
+        if any(state.active for state in self.states.values()):
+            return
+        self.component.destroy(self)
 
     def drain(self) -> None:
         with self.component.operation():

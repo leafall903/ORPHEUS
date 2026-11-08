@@ -21,6 +21,13 @@ Entity-instance PlayScript context now derives from the actual live component
 and the native builtin001B source cache, with lifecycle checks around evaluation.
 It does not grant request submission or readiness. See PLAY_SOURCE_CONTEXT.txt.
 
+An owner can now configure explicit PlayScript resource providers and actual
+component queues. Immediate submission and pre-frame flush use loaded graph
+schema/start primitives; pending work retires with its component. Stale component
+failure cannot clear replacement services. This extends the initial host's
+submission boundary; readiness and complete engine/phase/transport acceptance
+remain open. See PLAY_SCRIPT_QUEUE.txt for queues and automatic graph lifetime.
+
 InstanceContext.member reads a live foreign component's Var slot, including its
 effective links and typed values. Reads with a State dependency subscribe to the
 actual slot. Ordinary changes use existing watcher notification and queue rules.

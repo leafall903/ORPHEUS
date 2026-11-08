@@ -122,7 +122,7 @@ class ScenePlayContextTests(unittest.TestCase):
         world.bind(123)
         active, action = requesting(world=world)
         world.bind_script_component(123, active.component)
-        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'native PlayScript request '):
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'scene PlayScript queue'):
             active.run_node(action, None)
         self.assertNotIn(7, active.vars)
 

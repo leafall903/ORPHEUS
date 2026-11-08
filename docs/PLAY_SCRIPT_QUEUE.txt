@@ -1,0 +1,112 @@
+Component-owned PlayScript requests and transient lifetimes
+Target: original Overwatch 1.74.0.0.104319; 2026-11-08.
+
+Installed execution path
+SceneWorld.submit_script_request now routes ordered target entities to their
+actual script components and explicitly installed play_queue.Queue services.
+Known missing entities/components drop requests; unknown components/resources
+remain strict failures. Source and target lifecycles are checked around callbacks.
+Submission does not evaluate the source context a second time. A stale source's
+failure cannot clear a replacement component's queues or engine service records.
+
+SceneHost.configure_play_requests(acquire) installs a queue for every component
+in its initial catalog and seals further catalog additions. The owner supplies
+resource availability; the default normal server still does not install this host
+or provider. Host advances flush pending work before each component's ordinary
+frame. Failure/leave/server stop retires the queues. Close retires queues before
+VM teardown, so cleanup cannot allocate new graphs through a closing queue.
+Client readiness remains false and shared-world storage is still unsupported.
+
+Explicit resource contract
+acquire(full_guid) returns Load('pending'), Load('ready', Graph), Load('failed'),
+or None for an explicitly failed acquisition. NotImplemented/unknown objects,
+missing ready namespaces and resource identity mismatches are errors. The owner
+can change a pending Load to ready/failed as its resource service advances.
+These Python references are not native CASC handles, pin counts or an asynchronous
+game asset loader. A ready asset lost after allocation and namespace replacement
+remain unsupported. Complete native asset ownership/transport is not claimed.
+
+Native submit/flush policy
+64D2C0 checks policy0's existing graph before acquiring a resource. Policy3 retires
+matching graphs first, even if acquisition subsequently fails. Successful requests
+are appended only when the native instance count is <=1500, then64CD10 flushes
+immediately. Above1500, pending work is cleared. The limit is checked before the
+flush loop, so equality permits another allocation; it is not a per-request cap.
+
+64CD10 walks requests from last to first. Removal shifts later rows, preserving
+the order of remaining pending rows. Policy2 refreshes its instance ID from the
+first current graph match at every flush. An available graph allocates only when
+no ID exists. Schema/default/override application precedes the new allocation's
+ordinary preparation and its separately queued start-entry bindings. Reuse keeps
+the existing allocation source and lifetime flags. A pending resource allocates
+nothing; failed resources and missing allocated IDs remove their pending request.
+
+The loaded backend creates independent runtime instances, seeds their instigator,
+queues actual graph schema and evaluated overrides, prepares pending ordinary
+initialization and queues BB4AC733 starts with the caller and array parameters.
+Unprepared reused startup remains pending until its owner prepares it. Exact
+native namespace availability, local/global phase selection and resource pinning
+remain explicit boundaries. Reentrant queue mutation and replacement of the
+currently executing source graph stop before unsafe teardown; native deferred
+deletion during such callbacks has not been implemented.
+Self replacement compares the full graph GUID. Another asset type with the same
+index follows its resource provider, including an explicitly failed acquisition.
+
+The request byte also controls automatic lifetime
+Request.wire_flag retains its previous API name.64CD10 passes byte==0 through
+64C9E0/977F20 into1B90800's Instance318 bit11. The verified consumer1B95440 uses
+that bit for automatic retirement; it does not establish a network-only switch.
+New queued instances set auto_retire only for byte0. Reused instances keep their
+old setting, regardless of the new request byte.
+
+1B95440 first requires no queued events, no teardown and no enabled keepalive
+entries.1B935D0/F5B660 exempt BB4AC733 and8A7E9DA8; other nonnull enabled entries
+keep the graph alive. Ordinary initialization entries disable when their event is
+queued, matching1B954F0. The storage field disabled_start_entries now also records
+these ordinary disabled positions. Native Instance+58 records initialization frame.
+
+For an initialized transient graph, unsigned(initialized_frame+1) >= current_frame
+sets the pending-retirement bit22 before inspecting active States. After that
+age gate, active States keep it alive; otherwise the existing component teardown
+retires the instance and children. Instance.update clears pending bit22 before
+each ordinary update, as1B927C0 does. auto_retire, initialized_frame and
+retirement_pending are observed passively in VM storage, with exact scalar checks.
+
+Evidence and remaining scope
+277 original submit/flush cases cover policies, resource waits/failures, reused
+and new IDs, missing namespace waits, reverse batch processing and1500's boundary.
+Original64D2C0/64CD10/1B8D510/1EB9300/64CBC0 execute; resource/handle storage,
+vector copies/destruction, allocation/schema/start callbacks, existing teardown,
+ID lookup and ordinary/local-frame preparation are declared adapters. Capacity
+cases also use explicit null-slot counts. These comparisons do not derive the
+complete native allocator/loader/physical deletion or global phase driver.
+
+2688 original1B95440/1B935D0/F5B660 cases match the lifetime decision, pending bit,
+unsigned frame wrap, entry kinds/disabled positions, events and active States.
+Entry descriptor lookup and the final virtual retirement request are adapters.
+Physical engine destruction and original-client descriptor retirement need later
+acceptance. See CHANGELOG.md for the final automated regression totals.
+
+Actual0F45/node48 now submits through the installed queue, without a manual
+loaded-core handoff or replacement context provider. It creates0EC6, seeds001B,
+sets transient lifetime and queues parameter array17 for variable41. Following
+the caller's authored output reaches a strict40E05F6B/node39 in0F45 before the
+helper drains. No parameter-execution or full-helper claim is made for that run.
+A separate service-level fixture submits the collected request without walking
+the caller's output plug:0EC6 assigns array41 and retains the strict controller
+message-target-component stop at node22. Both failures retire their queues.
+Body/controller identities, possession, allocation source, caller input17,
+isolated action/service invocation and a loaded resource provider remain fixtures.
+
+A real in-memory Match configures147 queues for146 placements plus100B, then
+retains rootD38D0035/node106/frame0 and retires all147 queues and world bindings.
+Normal inputs remain unchanged. Full body/controller startup, dynamic actor
+ownership, engine services, scene replication/ACK/readiness, native phases,
+cinematics, five enemy AI types, extraction and results remain unaccepted. This
+step has no new original-client session, socket bind or candidate deployment.
+
+Local evidence outside Git under verification/retribution: play-queue-native-validation.json,
+play-retirement-native-validation.json, play-queue-actual/root-validation.json,
+play-queue-related/server-tests.log and play-queue-ruff.log. The initial actual
+probe logs preserve the mistaken expectation that the helper would run before
+the caller's newly reachable strict State; the final report separates those runs.
