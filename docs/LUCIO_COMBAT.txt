@@ -1,0 +1,86 @@
+Lucio combat lane 0079 -- build 1.74.0.0.104319 -- OPEN
+====================================================
+
+Hero GUID: 02E0000000000079. Baseline: 100c66c.
+Runtime bundle: external runtime-104319, read only. No copied game data.
+
+Evidence boundary
+-----------------
+The 0079 body initializes 0033/004B/0043/0263/0266/0277/073A/08B6,
+weapon manager 0015 and weapon 0776. Actual secondary commands activate
+0776/st11 once; its authored ModifyHealth evaluates to 25 and loadout 00A3.
+The associated st10 radius evaluates to 7 and angle field m_A30B383E to 70.
+Existing TrackTargets always returns an empty payload, so no target receives
+this damage without an explicit server consumer.
+
+This patch consumes st11 activations through the ordinary Combat.command path,
+reads damage/range/angle from the actual states, uses rewind target poses,
+enemy selection, static occlusion and existing damage/death/health replication.
+It does not replace cooldowns with raw button timers. Body retirement removes
+the existing per-body activation cache.
+
+Reconstruction assumptions: 70 is a full cone angle; angular selection uses
+the capsule centre, range uses capsule surface, and sight uses the centre ray.
+Those geometric choices need native comparison. This is a bounded damage
+implementation, not a completed Soundwave implementation. Knockback, its
+client correction and barrier/status/absorption/deflection semantics are open.
+
+Acceptance matrix
+-----------------
+H = headless actual-input/shared-health evidence; O = open, no acceptance.
+All original-client columns are O, including apparently functional graphs.
+
+Action                  Enemy player   Enemy NPC       Ally/self semantics
+Sonic Amplifier fire    H damage       O five types    O headshots/intercepts
+Reload/burst cadence    O              O               O HUD/audio/timing
+Quick melee             O              O               O no friendly damage
+Soundwave damage        H              H training Bot H ally exclusion, FFA
+Soundwave knockback     O              O               O control/immunity
+Crossfade healing       O              O               O ally/self only
+Crossfade speed         O              O               O ally/self only
+Amp It Up heal/speed    O              O               O ally/self only
+Sound Barrier           O              O               O ally/self shields
+Wall Ride/wall jump     O              O               O movement/presentation
+Taking damage/death     H player src   H training src  O client death/respawn
+
+Five requested Archives NPCs are NOT substituted by training Bot evidence:
+Trooper:       all player/NPC bidirectional attacks, specials, control = O
+Enforcer:      all player/NPC bidirectional attacks, specials, control = O
+Sniper:        all player/NPC bidirectional attacks, specials, control = O
+Assassin:      all player/NPC bidirectional attacks, specials, control = O
+Heavy Assault: all player/NPC bidirectional attacks, specials, control = O
+Manual NPC death must retain corpse, with no automatic respawn/cleanup.
+The shared Bot.retain_corpse path is tested; these five live bodies are open.
+
+Cross-hero matrix (all need original-client + authoritative-state evidence)
+-------------------------------------------------------------------------
+Armour/base shields: H Soundwave pool loss/order; native comparison O.
+Barriers: O projectile blocking, Soundwave penetration and team rules.
+Deflect/absorb: O projectile ownership, damage credit and cancellation.
+Invulnerability: O damage/healing suppression, death prevention.
+Stun/hack/silence: O ability cancellation and aura/Sound Barrier restrictions.
+Healing denial/boost: O Crossfade/Amp self vs ally rates, no enemy healing.
+Death: H Soundwave cannot fire while dead; aura/barrier retirement O.
+Environmental knockback kills and persistent five-type NPC corpses: O.
+
+Test scope
+----------
+tests/test_lucio_combat.py uses the external target-build graphs in real Match
+and BodyScript command execution. It verifies one Soundwave hit during held
+input, ally/self exclusion, same-team FFA damage, cone/range rejection, static
+occlusion (collision distance boundary injected), shield/armour pool changes,
+training NPC retained death, primary projectile damage, player and training
+NPC damage to Lucio and dead-Lucio attack suppression. Training NPC damage to
+Lucio is injected through Combat._damage, not an AI acquisition/fire proof.
+No dummy graph or serialization-only claim is used as combat acceptance.
+
+Client evidence
+---------------
+No session acquired. Existing Overwatch PID12292/window was observed read only.
+No lease, client controls, captures, startup, service changes or port changes.
+Current lack of a lease does not authorize controlling that existing client.
+
+Integration
+-----------
+Only the private 0079 source clone is modified. Parent applies reviewed patch.
+Do not publish this lane independently or mark the hero/milestone complete.

@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Lucio Soundwave damage reconstruction (0079 lane)
+
+- Consume actual 0776/st11 activations in Combat.command, using authored damage,
+  range and angle, rewind enemy poses, static sight checks and shared health/death
+  handling. Deduplicate held input and retain team/free-for-all semantics.
+- Nine target-build Lucio tests pass with real input and health pools, including
+  player damage, training Bot retained death, armour/shields, ally exclusion,
+  cone/range, occlusion and dead-shooter suppression. The injected NPC attack
+  check does not establish AI acquisition or the five Archives NPC archetypes.
+- Regressions pass: 28 shared combat, 37 projectile and 22 NPC statescript tests
+  (96 total with Lucio). Ruff and diff checks pass.
+- Cone angle/centre selection is reconstructed. Soundwave knockback, Crossfade,
+  Amp It Up, Sound Barrier, wall ride, interception/status interactions and all
+  original-client acceptance remain open. No client lease or publication run;
+  parent owns integration/publication. See docs/LUCIO_COMBAT.txt.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

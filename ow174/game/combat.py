@@ -430,8 +430,9 @@ class Combat:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         try:
             self._melee(player, command, script)
+            self._soundwave(player, command, script)
         except Exception:
-            log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
+            log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
 
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
@@ -466,6 +467,55 @@ class Combat:
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
                     self._damage(player, target, amount, False, loadout, command.frame)
+
+    def _soundwave(self, player, command, script) -> None:
+        """0079's 0776 st11 health operation, once per authored activation.
+
+        Radius and damage come from the target build's st10/st11 configuration.
+        Reconstruction: st10's angle 70 is treated as a full cone angle, with
+        capsule-centre angular selection and static line of sight. Native filter
+        semantics, knockback and cross-hero interception remain unaccepted.
+        """
+        if player.hero.guid != 0x02E0000000000079:
+            return
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x0776:
+                continue
+            state, search = instance.states.get(11), instance.states.get(10)
+            if state is None or search is None:
+                continue
+            counters = self.melee_seen.setdefault(script.entity, {})
+            key = (instance.id, state.index)
+            seen = counters.get(key, 0)
+            counters[key] = state.counter
+            if state.counter == seen or not state.active or command is None:
+                continue
+            hit = hit_def(state, {"m_modifyHealth": state.node.field("m_modifyHealth")})
+            radius = _number(search.evaluate(search.node.field("m_radius"), watch=False), 0.0)
+            angle = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
+            if hit is None or hit.amount <= 0 or radius <= 0 or not 0 < angle <= 360:
+                continue
+            origin, direction = self._eye(player), aim(*command.aim())
+            threshold = math.cos(math.radians(angle / 2))
+            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            for target in self._enemies(player):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                if segment_distance(origin, a, b) - shown.radius > radius:
+                    continue
+                centre = (shown.feet[0], shown.feet[1] + shown.height / 2, shown.feet[2])
+                offset = _sub(centre, origin)
+                length = math.sqrt(_dot(offset, offset))
+                if length > EPSILON:
+                    toward = tuple(value / length for value in offset)
+                    if _dot(toward, direction) < threshold:
+                        continue
+                    wall = ray_world(self._collision(), origin, toward, length)
+                    if wall is not None and wall < length:
+                        continue
+                self._damage(player, target, hit.amount, False, hit.loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
