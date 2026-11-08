@@ -1,0 +1,50 @@
+McCree / Cassidy combat (104319): partial static evidence, goal active
+
+The target hero resource is0042, body02A3. Content labels it Cassidy; the user
+requested McCree. Complete static and original-client combat acceptance are open.
+
+Executed actual-input frontier (external graph bundle, flat collision, adapter
+transport and permissive body VM; target is Heavy Assault at8m unless stated):
+- Primary held131 frames deals350, leaving one round from six.
+- Secondary held131 frames deals300 and finishes with six rounds after its
+  observed refill cycle. Full manual/automatic reload and cancel timing remain
+  to be checked independently.
+- Primary depletion followed by manual reload restores six rounds.
+- Primary depletion followed by Combat Roll restores six rounds. The probe's
+  position delta includes ordinary movement, so it does not prove roll motion.
+- Quick melee at2m deals30 once. New source tests execute real McCree commands
+  against an enemy player and a training NPC, with visible, full-wall, allied
+  and out-of-range cases. An external actual-five-Talon probe separately passes
+  all ten visible/wall cases:30 damage visible, zero damage behind the wall.
+- Flashbang at3m deals25. This does not prove stun, gravity/bounce, immunity,
+  interruption, barriers, cooldown lifecycle or presentation.
+- Deadeye activation changes the authored ability flags, but the subsequent
+  primary shot deals ordinary70 and consumes one normal round. Acquisition,
+  charged damage, release, cancel and charge economy are not accepted.
+
+Melee geometry policy:
+The existing authored melee reach/sphere and viewed target capsule are retained.
+A static ray from the attacker's eye to the nearest target capsule surface must
+be unobstructed before damage and hit notices. This is reconstructed server
+geometry, not recovered native melee hitbox/occlusion equivalence. Moving cover,
+barriers, reflect/absorb/invulnerability and all native-client visuals stay open.
+
+Flashbang status-resource research:
+The actual explosion ModifyHealth names effect resource053/0079. A read-only
+manifest-verified extraction resolves its graph0228, whose PlayScript overrides
+invoke common graph224E with duration0.8 (1.7 under the authored mode condition).
+The external research bundle adds0228;224E was already present. No normal runtime
+bundle or data file was replaced. No game assets or dumps belong in this repo.
+Directly injecting224E with the wrapper's evaluated schema/start parameters does
+not reach the stun control variables in the current permissive VM. Therefore
+neither the graph injection nor the duration discovery establishes working stun.
+Hit-effect routing, invocation metadata, status lifetime/interrupt/immunity and
+client replication remain required. There is no forced-control production fix.
+
+Remaining complete static scope:
+Primary/secondary hit/miss/critical/falloff/range/LOS/team/ammo and recovery;
+reload/quick-melee cast/cancel/cooldown; Combat Roll motion/resources/cooldown;
+Flashbang damage/control/flight/immunity/interrupt/cooldown; Deadeye target
+selection/charge/use/damage/release/cancel/end; all applicable enemy player,
+five-Talon and cross-hero cases. Native client/HUD/animation/audio acceptance is
+separate and remains open for every row. No McCree hero completion is claimed.
