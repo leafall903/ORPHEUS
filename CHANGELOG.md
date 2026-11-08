@@ -6,6 +6,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Winston Tesla Cannon damage restoration
+
+- Connect active original 00FE target-search/ModifyHealth states to actual
+  player/NPC damage, team filtering, multi-target cone/occlusion checks,
+  death notices and retained-corpse lifetimes. Deduplicate command frames.
+- Add a separate reconstructed continuous-beam armour rule; keep ordinary
+  discrete damage unchanged. Geometry and armour semantics remain inferred.
+- Validation: 12 Winston behavior tests, 28 existing combat tests and Ruff pass.
+  No original-client combat acceptance. Jump Pack, Barrier Projector, Primal
+  Rage, five PVE classes and cross-hero status/barrier interactions remain open.
+  See docs/WINSTON_COMBAT_LANE.md for the explicit acceptance matrix.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

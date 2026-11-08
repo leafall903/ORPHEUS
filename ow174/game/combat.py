@@ -192,7 +192,7 @@ class Vitals:
     def total(self) -> float:
         return sum(self.now.values())
 
-    def damage(self, amount: float) -> float:
+    def damage(self, amount: float, *, beam: bool = False) -> float:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
         left = max(0.0, amount)
@@ -201,7 +201,9 @@ class Vitals:
             if left <= 0.0:
                 break
             if kind == ARMOUR_POOL and self.now[kind] > 0.0:
-                left = max(left - ARMOUR_BLOCK, left / 2)
+                # Reconstructed OW1 beam rule; do not apply the per-hit five-point
+                # subtraction to each simulation frame of continuous damage.
+                left = left * 0.8 if beam else max(left - ARMOUR_BLOCK, left / 2)
             take = min(left, self.now[kind])
             if take > 0.0:
                 self.now[kind] -= take
@@ -365,6 +367,7 @@ class Combat:
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
+        self.tesla_frames: dict[int, int] = {}  # body -> last consumed command frame
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -393,6 +396,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.tesla_frames.pop(player.body, None)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -432,6 +436,59 @@ class Combat:
             self._melee(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
+        try:
+            self._tesla(player, command, script)
+        except Exception:
+            log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
+
+    def _tesla(self, player, command, script) -> None:
+        """Reconstruct 00FE's continuous ModifyHealth using the actual active states.
+
+        DATA: st10 searches eight metres, angle var243=40; st13 amount=60.
+        Inference: angle is a cone half-angle and amount is damage per second.
+        Native target payloads, barriers and status filters are still unaccepted.
+        """
+        if player.hero.guid != 0x02E0000000000009 or command is None:
+            return
+        if command.frame <= self.tesla_frames.get(player.body, -1):
+            return
+        self.tesla_frames[player.body] = command.frame
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x00FE:
+                continue
+            search, damage = instance.states.get(10), instance.states.get(13)
+            if search is None or damage is None or not (search.active and damage.active):
+                continue
+            reach = _number(search.evaluate(search.node.field("m_radius"), watch=False), 0.0)
+            angle = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
+            definition = hit_def(damage, {"m_modifyHealth": damage.node.field("m_modifyHealth")})
+            if definition is None or definition.amount <= 0 or reach <= 0 or not 0 < angle < 90:
+                continue
+            origin, direction = self._eye(player), aim(*command.aim())
+            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            for target in self._enemies(player):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                # Aim at the closest capsule-axis point in height. Capsule radius
+                # gives targets at the cone boundary their physical width.
+                point = (a[0], max(a[1], min(b[1], origin[1])), a[2])
+                offset = _sub(point, origin)
+                distance = math.sqrt(_dot(offset, offset))
+                if distance - shown.radius > reach:
+                    continue
+                forward = _dot(offset, direction)
+                lateral = math.sqrt(max(0.0, distance * distance - forward * forward))
+                if forward < 0 or lateral > forward * math.tan(math.radians(angle)) + shown.radius:
+                    continue
+                if distance > EPSILON:
+                    ray = tuple(value / distance for value in offset)
+                    wall = ray_world(self._collision(), origin, ray, distance)
+                    if wall is not None and wall < max(0.0, distance - shown.radius):
+                        continue
+                self._damage(player, target, definition.amount * player.quanta / 1e6,
+                             False, definition.loadout, command.frame, beam=True)
 
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
@@ -783,12 +840,12 @@ class Combat:
 
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
-        *, world_tick: int | None = None,
+        *, world_tick: int | None = None, beam: bool = False,
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
             return
-        dealt = vitals.damage(amount)
+        dealt = vitals.damage(amount, beam=beam)
         if dealt <= 0.0:
             return
         killed = vitals.now[HEALTH_POOL] <= EPSILON
