@@ -232,6 +232,7 @@ def _file(base: Path, relative: str, logical: str) -> dict:
 def capture_manifest(
     *, root: Path, data_dir: Path, configuration: dict,
     runtime: dict | None = None, dependencies: dict | None = None,
+    table_overrides: dict | None = None,
 ) -> dict:
     """Read explicitly rooted source/table bytes and seal a detached JSON-compatible manifest."""
     root, data_dir = Path(root), Path(data_dir)
@@ -245,7 +246,18 @@ def capture_manifest(
         for path in sorted(folder.rglob("*.py")):
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
-    files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    overrides = {} if table_overrides is None else table_overrides
+    if (type(overrides) is not dict or any(name not in DATA_FILES for name in overrides)
+            or any(not isinstance(path, (str, Path)) for path in overrides.values())):
+        raise ManifestError("table overrides must explicitly name known model files and paths")
+    for name in DATA_FILES:
+        if name in overrides:
+            path = Path(overrides[name]).resolve()
+            # Keep logical identities stable across relocations. Seal bytes from
+            # the actual explicit input, without publishing its absolute path.
+            files.append(_file(path.parent, path.name, f"data/{name}"))
+        else:
+            files.append(_file(data_dir, name, f"data/{name}"))
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

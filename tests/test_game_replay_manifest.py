@@ -66,6 +66,26 @@ class ReplayManifestTests(unittest.TestCase):
         self.assertNotIn(str(self.root), json.dumps(captured))
         self.assertNotIn(str(self.data), json.dumps(captured))
 
+    def test_explicit_external_table_override_seals_actual_bytes_without_leaking_path(self):
+        original = self.capture()
+        path = self.base / "external-graphs.gz"
+        path.write_bytes(b"selected effect closure")
+        captured = self.capture(table_overrides={"game_graphs_174.json.gz": path})
+        rows = {row["path"]: row for row in captured["files"]}
+        self.assertEqual(rows["data/game_graphs_174.json.gz"]["sha256"],
+                         hashlib.sha256(path.read_bytes()).hexdigest())
+        self.assertNotIn(str(path), json.dumps(captured))
+        with self.assertRaises(manifest.ManifestMismatch):
+            manifest.assert_compatible(original, captured)
+        self.assertEqual(self.capture(), original)  # base table was not replaced
+
+    def test_table_override_rejects_unknown_names_and_missing_inputs(self):
+        for overrides in ({"other.json": self.data}, {"game_graphs_174.json.gz": None}, []):
+            with self.subTest(overrides=overrides), self.assertRaises(manifest.ManifestError):
+                self.capture(table_overrides=overrides)
+        with self.assertRaises(manifest.ManifestError):
+            self.capture(table_overrides={"game_graphs_174.json.gz": self.base / "missing"})
+
     def test_relocation_mtime_map_and_set_order_do_not_change_identity(self):
         first = self.capture()
         other = self.base / "elsewhere"

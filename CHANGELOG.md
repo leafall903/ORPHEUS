@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Mercy reconstructed staff selection, healing and outgoing boost
+
+- Mount an explicit target service for006B's staff states. Bind real entity
+  arrays through acquisition/hold, publish target payloads and recover after
+  friendly body replacement. Document reconstructed angle/settings, geometry,
+  output handoff and loss-grace policies; other target modes remain unmounted.
+- Consume the authored0019 amount parameter into actual friendly pools/HUD and
+  healing statistics once per simulated frame. Read0016's0.3 modifier from the
+  extracted006C effect graph and capture bonus damage at attack creation for
+  direct/splash projectiles. Keep damage on the attacker and avoid compound
+  Mercy stacking. Missing effect definitions grant no inferred bonus.
+- Preserve target and pending-heal fields in both passive storage formats,
+  including the earlier self-healing field missing from body-only storage.
+  Read-only parent NPC catalogs/graphs supply all five actual body fixtures.
+- Pass170 staff/boost/NPC/combat/projectile/driver/ability/body-storage controls,
+  including real blaster reloads, kills and persistent corpses for all five
+  base-pool NPC bodies. A fixed-source stored journal lifecycle replay passes;
+  seventeen manifest/journal controls also pass after sealing explicit external
+  graph-pack bytes. Ruff and diff checks pass. No generated assets enter Git.
+- Full static acceptance remains OPEN: modifiers/filter tags, heal/boost charge
+  and assists, other abilities/ultimate, enemy AI attacks and original-client
+  presentation remain unaccepted. Native geometry and effect-owner fidelity are
+  not established by these reconstructed controls. No deployment/push/merge.
+
 #### Selected engine effect-script closure extraction
 
 - Add an external-bundle extension tool for selected053 definitions. Follow

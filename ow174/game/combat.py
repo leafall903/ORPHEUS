@@ -48,14 +48,14 @@ What the server decides here:
 import logging
 import math
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
 from ow174.game.mover import mover_data
-from ow174.game.script import expr, graph, nodes, regeneration, runtime
+from ow174.game.script import expr, graph, nodes, regeneration, runtime, support
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
@@ -421,6 +421,7 @@ class Combat:
             return
         shots, script.component.shots[:] = list(script.component.shots), []
         healing, script.self_healing = script.self_healing, 0.0
+        support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
             return
         if healing > 0.0:
@@ -429,6 +430,8 @@ class Combat:
                 vitals = self.vitals_of(target)
                 vitals.heal(healing)
                 self._sync_body_health(player, vitals)
+        for frame, entity, amount in support_healing:
+            self.heal_target(player, entity, amount, frame)
         if command is not None:
             for state, number, time, activation in shots:
                 try:
@@ -460,6 +463,7 @@ class Combat:
                 continue
             modify = state.node.field("m_modifyHealth") or {}
             amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0.0) if modify else 0.0
+            amount *= self.damage_scale(player)
             loadout = (
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
@@ -518,6 +522,57 @@ class Combat:
                 del table[entity]
 
     # --- targets -----------------------------------------------------------------------------------
+
+    def script_targets(self, source: int, state):
+        """Reconstructed Mercy staff selection, restricted to its actual query states.
+
+        Radius and cone angle are evaluated from104319 fields. Capsule-centre
+        aim ranking/occlusion and half-angle interpretation await native/client
+        comparison. Other target geometries and status filters remain unmounted.
+        """
+        if state.instance.graph.index != 0x006B or state.index not in (4, 5, 51):
+            return NotImplemented
+        player = next((p for p in self.match.players if p.has_body and p.body == source), None)
+        if player is None or player.hero.guid != regeneration.MERCY:
+            return NotImplemented
+        if self.is_dead(player) or self.match.game_map.free_for_all:
+            return ()
+        radius = _number(state.evaluate(state.node.field("m_radius"), watch=False), 0.0)
+        angle = _number(state.evaluate(state.node.field("m_A30B383E"), watch=False), 360.0)
+        origin = self._eye(player)
+        direction = aim(player.mover.yaw, player.mover.pitch)
+        retained = None
+        if state.index == 5:
+            selected = state.instance.find_var(graph.INSTANCE, 375).value()
+            retained = {item.id for item in selected if isinstance(item, expr.Entity)} if isinstance(
+                selected, tuple) else set()
+        else:
+            hold = state.instance.states.get(5)
+            if hold is not None and hold.active:
+                # A retiring hold cancels its queued begins. Let its authored
+                # reset finish before the acquisition state hands off again.
+                return ()
+        candidates = []
+        for target in self._targets():
+            if target.entity == source or target.team != player.team or self.vitals_of(target).dead:
+                continue
+            if retained is not None and target.entity not in retained:
+                continue
+            centre = (target.feet[0], target.feet[1] + target.height * 0.5, target.feet[2])
+            offset = _sub(centre, origin)
+            distance = math.sqrt(_dot(offset, offset))
+            if distance > radius or distance <= EPSILON:
+                continue
+            forward = tuple(value / distance for value in offset)
+            alignment = _dot(direction, forward)
+            if angle < 360 and alignment < math.cos(math.radians(max(0.0, angle) * 0.5)):
+                continue
+            wall = ray_world(self._collision(), origin, forward, distance)
+            if wall is not None and wall < distance:
+                continue
+            candidates.append((-alignment, distance, target.entity))
+        candidates.sort()
+        return tuple(row[2] for row in candidates[:1])
 
     def _targets(self) -> list[Target]:
         found = []
@@ -592,6 +647,31 @@ class Combat:
 
     # --- shots -------------------------------------------------------------------------------------
 
+    def damage_scale(self, shooter) -> float:
+        """Capture an eligible friendly staff bonus at attack creation, not impact.
+
+        Multiple Mercy sources use the greatest bonus, not a compounded stack.
+        These are reconstructed outgoing-damage rules; full combat-tag filtering,
+        assists, boost statistics and other amplification effects remain open.
+        """
+        if self.match.game_map.free_for_all:
+            return 1.0
+        entity = _source_entity(shooter)
+        bonus = 0.0
+        for healer in self.match.players:
+            script = healer.body_script
+            if (healer is shooter or healer.team != shooter.team or script is None
+                    or self.is_dead(healer)):
+                continue
+            amount = support.boost_amount(script, entity)
+            if amount <= 0:
+                continue
+            instance = next((i for i in script.component.instances.values() if i.graph.index == 0x006B), None)
+            hold = instance.states.get(5) if instance is not None else None
+            if hold is not None and hold.active and entity in self.script_targets(healer.body, hold):
+                bonus = max(bonus, amount)
+        return 1.0 + bonus
+
     def _bot_weapons(self, tick: int) -> None:
         """Advance the weapon bodies of the map's firing bots and consume their volley reports."""
         for bot in self.match.bots:
@@ -639,6 +719,9 @@ class Combat:
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))
+        scale = self.damage_scale(shooter)
+        if direct is not None and scale != 1.0:
+            direct = replace(direct, amount=direct.amount * scale)
         speed = field("m_projectileSpeed")
         if speed:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
@@ -646,6 +729,8 @@ class Combat:
             if reach:
                 lifetime = min(lifetime, reach / speed)
             blast = hit_def(state, node.field("m_D2D11CE9"))
+            if blast is not None and scale != 1.0:
+                blast = replace(blast, amount=blast.amount * scale)
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
             definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
             shot = None
@@ -771,6 +856,29 @@ class Combat:
                 continue
             healer.stats.add(stats.HEALING, given)
             self._sync_body_health(target.owner, vitals)
+
+    def heal_target(self, healer, entity: int, amount: float, frame: int) -> float:
+        """Apply a reported friendly-target heal to the same live body lifecycle.
+
+        The staff selector owns range/occlusion. Shared anti-heal/amplification
+        and engine status services remain open and are not bypassed by a claim
+        that these unmodified-health controls establish full hero acceptance.
+        """
+        if self.match.game_map.free_for_all or entity == healer.body or amount <= 0:
+            return 0.0
+        if self.replacement_ticks.get(entity, frame) > frame:
+            return 0.0
+        target = next((target for target in self._targets() if target.entity == entity), None)
+        if target is None or target.team != healer.team:
+            return 0.0
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            return 0.0
+        given = vitals.heal(amount)
+        if given > 0:
+            healer.stats.add(stats.HEALING, given)
+            self._sync_body_health(target.owner, vitals)
+        return given
 
     @staticmethod
     def _sync_body_health(owner, vitals: Vitals) -> None:

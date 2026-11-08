@@ -13,6 +13,20 @@ the regeneration branch and whose node91 owns the one-second restart timer.
 No team-healing credit or ultimate charge is granted for this passive.
 Stored snapshots include the pending self-healing amount.
 
+The body world supplies reconstructed target queries for actual staff006B
+states4/5/51. TrackTargets binds entity arrays, hands acquisition to the hold
+state, reports target payloads and reacquires a replaced friendly body.
+The authored active0019 effect reports parameter002A once per simulated frame;
+Combat applies55/s from variable6578 to the same living friendly body lifecycle,
+updates its real pools/HUD and credits only health actually restored.
+
+With an explicit extracted effect bundle, active0016 reads006C's0.3 modifier.
+Rifle/projectile damage captures that outgoing multiplier at attack creation.
+Projectiles keep it across later beam release/attachment. Multiple sources use
+the greatest bonus, not a compounded stack; damage credit stays on the attacker.
+Effect-tag exclusions, boost assists/statistics and heal/damage ult charge remain
+open. This is a narrow consumer, not the complete native effect-script owner.
+
 Provenance and limits
 ---------------------
 Graph IDs, node links, the one-second wait and amount20 are extracted from the
@@ -28,6 +42,14 @@ Input gaps use the driver's existing bounded command simulation; unprocessed
 time is not granted an unbounded heal. With no simulated commands no passive
 health is accumulated, consistent with current owner-body scheduling.
 Valkyrie's native activation and variable842 binding remain unaccepted.
+
+Staff host policies are reconstructed:9583 angular scale is explicitly1, cone
+fields are full angles, aim ranks capsule centres, static occlusion/range loss
+stops healing immediately, search output persists through the hold handoff,
+and the local006B use of4E2BCAAB interprets its0.1s field as an empty-target
+reacquisition grace. Other uses remain strict unknowns. Native geometry,
+settings/FOV, loss grace, filter tags and target ages still need comparison.
+Beam/audio/client presentation and general effect/status behavior remain open.
 
 Repeatable controls
 -------------------
@@ -49,18 +71,33 @@ Ten headless controls cover actual health and input, not only serialization:
 * Actual quick-melee input deals30 once to an enemy player.
 Training NPC evidence does not establish the five requested PvE NPC types.
 
+Additional staff controls use actual input and health: friendly heal/cap/stats,
+release/repress, enemy/missed aim, death, duplicate input, body replacement,
+handoff/storage, FFA/self exclusion, swap, range, occlusion, caster death, team
+changes and held-beam reacquisition. Actual Soldier rifle/Helix controls cover
+bonus values, source attribution, release, launch-time snapshots, missing pack,
+occlusion, caster death, team change and non-compounding dual Mercy sources.
+
+The parent-provided five-body catalog and graph pack are read-only inputs to
+test_game_mercy_npc. Flat collision, default mover capsules and permissive VMs
+are explicit limits. Friendly healing, hostile healing rejection, blaster
+damage/reload/death/corpse lifetime and incoming NPC-source damage events are
+exercised across Trooper/Enforcer/Sniper/Assassin/Heavy Assault. Incoming events
+are injected through Combat, not enemy AI attacks. Base pools omit the catalog's
+unapplied difficulty/conditional nodes; instance221 is shields, not armour.
+
 Acceptance matrix
 -----------------
 Columns: enemy player / Trooper / Enforcer / Sniper / Assassin / Heavy Assault.
 No column has original-client acceptance. P means partial headless evidence;
 O means open. Rows with ally semantics need a separate friendly-target fixture.
 
-Blaster damage          P O O O O O
+Blaster damage          P P P P P P
 Quick melee damage      P O O O O O
-Incoming damage/death   P O O O O O
-Passive regeneration   P O O O O O
-Healing beam            O O O O O O -- friendly recipients only
-Damage boost beam       O O O O O O -- friendly sources only
+Incoming damage/death   P P P P P P -- NPC-source events, not AI attacks
+Passive regeneration   P P P P P P
+Healing beam            P P P P P P -- friendly recipients only
+Damage boost beam       P O O O O O -- friendly sources only
 Guardian Angel          O O O O O O -- ally/corpse selection not supplied points
 Resurrect               O O O O O O -- friendly dead player lifecycle, not enemy NPCs
 Angelic Descent         O O O O O O
@@ -71,16 +108,16 @@ Required interaction controls still open: armor/shields, barriers, projectile
 reflect/absorb, invulnerability, anti-heal/amplification, stun/silence, knockback,
 cast interruption, death/respawn, damage-boost attribution/stacking, chained
 target loss, line of sight, distance limits, allies/enemies and observer views.
-Manual PvE deaths must retain corpses without respawn/cleanup. Parent owns the
-five-enemy factory/navigation/attack integration; this lane has no accepted
-Trooper/Enforcer/Sniper/Assassin/Heavy Assault spawning control.
+Manual PvE corpses persist in headless controls. Parent owns factory/navigation/
+attack integration. Its reviewed NPC lifecycle/catalog commits are cherry-picked
+in this lane; AI/navigation/specials and original-client behavior remain open.
 
 Concrete remaining code dependencies
 ------------------------------------
-TrackTargets in nodes.py still returns an empty target payload. Staff006B
-states4/5/51, Guardian Angel006E and the resurrection selector cannot be
-accepted with this stub. Staff006B also uses engine states431F3FCC (states33/35)
-and0DB9E66B (state20), whose real beam health/modifier consumers are absent.
+TrackTargets has an explicit service mounted only for staff006B states4/5/51.
+Guardian Angel006E and resurrection still have no target service. Staff431F3FCC
+has narrow health/outgoing-bonus consumers; the complete effect owner,
+0DB9E66B state20 and shared modifier/status semantics remain absent.
 Resurrection00CA target acquisition and Valkyrie10DA/C1BA7545 engine consumers remain
 unimplemented. Native modifier storage alone is not effective gameplay.
 These must be restored with real target services and cross-hero status rules,
@@ -101,8 +138,12 @@ missing or unread graph inputs. Starting with effects0016/0019 recovered four
 effect bindings (also02CC/02CD) and623 total graphs in the lane research output.
 The tool preserves the base bundle and rejects an output inside the repository
 or one replacing the base. Six focused controls and16 existing graph extraction
-controls pass. The generated bundle is not installed in runtime-104319 and no
-effect gameplay consumer or original-client effect playback is claimed.
+controls pass. The generated bundle is not installed in runtime-104319. Use
+ORPHEUS_GRAPH_BUNDLE for an explicit external graph pack; other data still come
+from read-only ORPHEUS_RUNTIME_DIR. RecordingServerSession seals that actual
+graph input under its logical data identity, not the normal pack's bytes.
+Explicit table overrides validate known names and missing inputs. Absolute
+research paths do not enter the manifest. Original-client playback is unaccepted.
 
 Reproduce the external pack, from the lane source cwd with PYTHONPATH there:
 python -B -m tools.extract_effect_scripts

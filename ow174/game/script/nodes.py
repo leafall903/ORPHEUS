@@ -1813,12 +1813,65 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """An owner-supplied target search. Unmounted searches keep the legacy empty result.
+
+    Selection, output binding and transition timing are reconstructed host behavior;
+    the target list wire form comes from the native codec. This is not a generic
+    implementation of the engine's geometry, filters or ranking modes.
+    """
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.target_started = {}
+        self.target_var = None
+        self.target_empty_since = None
+
+    def on_begin(self):
+        selected = self.instance.component.world.track_targets(self)
+        if selected is NotImplemented:
+            return
+        self.targets = tuple(selected)
+        self.target_started = dict.fromkeys(self.targets, self.now)
+        self.target_empty_since = self.now if not self.targets else None
+        target = lvalue(_field(self, "m_8A2905A0"))
+        if target is not None:
+            self.target_var = self.link(target)
+        self.ticks()
+
+    def tick(self):
+        selected = self.instance.component.world.track_targets(self)
+        if selected is NotImplemented:
+            selected = ()
+        selected = tuple(selected)
+        if selected == self.targets:
+            self.try_complete()
+            return
+        before = self.target_var.value() if self.target_var is not None else None
+        self.target_started = {entity: self.target_started.get(entity, self.now) for entity in selected}
+        self.targets = selected
+        self.target_empty_since = self.now if not selected else None
+        if self.target_var is not None:
+            self.instance.changed(self.target_var, before)
+        self.try_complete()
+
+    def on_end(self, finished):
+        if self.target_var is not None:
+            var, self.target_var = self.target_var, None
+            self.unlink(var, bake=True)  # reconstructed handoff; authored reset actions clear the result
+        self.targets = ()
+        self.target_started.clear()
+        self.target_empty_since = None
+
+    def output(self, slot):
+        return tuple(Entity(entity) for entity in self.targets)
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        frame_ms = self.instance.component.frame_ms
+        return {"targets": tuple((entity, max(0, (self.now - self.target_started[entity]) // frame_ms))
+                                 for entity in self.targets)}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -2100,6 +2153,13 @@ def button_held(instance: Instance, node, caller) -> bool:
 
 @handler("STU_4E2BCAAB")
 def unknown_condition(instance: Instance, node, caller) -> bool:
+    if (isinstance(caller, TrackTargets) and caller.target_var is not None
+            and instance.graph.index == 0x006B and caller.index == 5):
+        # Reconstructed staff-loss grace. Preserve strict unknown behavior for
+        # every other use; the actual006B node supplies the0.1s threshold.
+        delay = max(0, round(to_float(instance.evaluate(node.field("m_AA6E611E"))) * 1000))
+        ready = caller.target_empty_since is not None and caller.now - caller.target_empty_since >= delay
+        return branch(instance, node, caller, ready)
     if instance.component.strict:
         instance.component.unsupported(instance, "condition", node.cls, node)
     expr.warn_once(node.cls, "condition %s is not modelled: false", node.cls)

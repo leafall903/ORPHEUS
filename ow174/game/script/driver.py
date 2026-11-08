@@ -28,7 +28,7 @@ from ow174.game import pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, regeneration, runtime
+from ow174.game.script import expr, graph, nodes, regeneration, runtime, support
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -135,8 +135,21 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def track_targets(self, state):
+        if self.match is not None:
+            return self.match.combat.script_targets(self.body, state)
+        return NotImplemented
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_E72F6348" and self.match is not None:
+            # Reconstructed live-body namespace. The native query backend still
+            # owns worlds that explicitly mount an entity-query Context.
+            value = instance.evaluate(cfg.get("m_entity"))
+            while isinstance(value, tuple):
+                value = value[0] if value else None
+            identifier = expr.to_entity(value)
+            return any(target.entity == identifier for target in self.match.combat._targets())
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -283,6 +296,11 @@ class BodyScript(ReplicatedBody):
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
         self.self_healing = 0.0  # authored regeneration from simulated frames, consumed by combat
+        self.support_healing = []  # (command frame, target body, amount), consumed once by combat
+        if hero == regeneration.MERCY:
+            # Reconstructed unscaled targeting-angle input. Native settings/FOV
+            # computation of9583 remains open;006B uses40 * this value.
+            self.component.set(9583, 1.0)
         self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
 
     def __repr__(self) -> str:
@@ -358,6 +376,7 @@ class BodyScript(ReplicatedBody):
     def _run(self, frame: int, edges: list) -> None:
         self.component.run_frame(frame, edges)
         self.self_healing += regeneration.report(self)
+        self.support_healing.extend(support.healing_reports(self, frame))
         self._report_shots()
         self._charge_ult()
 

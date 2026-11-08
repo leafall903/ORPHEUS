@@ -40,14 +40,16 @@ instance scope (0x7FF78991C270).
 
 import gzip
 import json
+import os
 import re
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from pathlib import Path
 
 from ow174.game.script.expr import Asset
 from ow174.paths import DATA_DIR
 
-GRAPHS_PATH = DATA_DIR / "game_graphs_174.json.gz"
+GRAPHS_PATH = Path(os.environ.get("ORPHEUS_GRAPH_BUNDLE") or DATA_DIR / "game_graphs_174.json.gz")
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -312,6 +314,11 @@ def bodies() -> dict[int, dict]:
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
+
+
+def effect_script(definition: int) -> dict | None:
+    """An explicitly extracted .053 binding; absent packs do not invent an effect."""
+    return (_data().get("effect_scripts") or {}).get(f"0x{definition:016X}")
 
 
 def entity_script_component(definition: int):

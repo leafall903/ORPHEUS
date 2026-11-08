@@ -391,6 +391,10 @@ class World:
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
+    def track_targets(self, state: "State"):
+        """Explicit owner target service, or unknown. Results are ordered body IDs."""
+        return NotImplemented
+
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented

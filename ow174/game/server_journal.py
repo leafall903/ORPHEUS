@@ -21,6 +21,7 @@ from ow174.game.environment import ExecutionEnvironment
 from ow174.game.environment_tape import RecordingEnvironment, ReplayEnvironment
 from ow174.game.match import RETAIL_QUANTA, no_skin
 from ow174.game.replay_manifest import assert_compatible, capture_manifest, runtime_configuration
+from ow174.game.script import graph
 from ow174.game.server import RECEIVE_BYTES, GameServer, Handoff
 from ow174.paths import DATA_DIR, ROOT
 
@@ -360,7 +361,8 @@ class _Session:
             quanta_us=RETAIL_QUANTA,
             run_options={"scope": self._scope(), "state_profile": self._state_profile},
         )
-        return capture_manifest(root=ROOT, data_dir=DATA_DIR, configuration=configuration)
+        return capture_manifest(root=ROOT, data_dir=DATA_DIR, configuration=configuration,
+                                table_overrides={"game_graphs_174.json.gz": graph.GRAPHS_PATH})
 
     def _scope(self):
         return SCOPE if self._state_profile == "wire-only" else STORED_SCOPE
