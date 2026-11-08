@@ -3,14 +3,38 @@
 157C's primary is TrackRay/ModifyHealth, not WeaponVolley. Populate its two
 ray results from the combat world and apply the authored damage per second.
 Capsule traces, the eye origin and per-command damage integration are server
-reconstructions. Charge-level modifiers, barriers and other defensive services
-are not supplied here and must not be inferred from this bridge's tests.
+reconstructions. The charge target queries below are a limited world adapter;
+barriers and other defensive services remain separate acceptance items.
 """
 
 from ow174.game.script import expr, graph
 
 HERO = 0x02E0000000000016
 WEAPON = 0x157C
+
+
+def target_query(world, cfg, instance):
+    """Supply 157C's charge gate only for registered combat bodies.
+
+    This reconstructs the exact state-25 target/filter profile, not arbitrary
+    native tag/filter evaluation. Unknown entities and other profiles retain
+    the ordinary world's unsupported answer. The graph owns charge and decay.
+    """
+    if world.hero != HERO or world.match is None or instance.graph.index != WEAPON:
+        return NotImplemented
+    queries = instance.graph.state(25).field("m_condition")["m_configVars"]
+    if cfg not in queries:
+        return NotImplemented
+    target = instance.evaluate(cfg.get("m_entity"))
+    if not isinstance(target, expr.Entity):
+        return False
+    fight = world.match.combat
+    if cfg.get("$") == "STU_E72F6348":
+        return any(body.entity == target.id for body in fight._targets())
+    if cfg.get("$") == "STU_AC829876":
+        owner = next((p for p in world.match.players if p.body == world.body), None)
+        return owner is not None and any(body.entity == target.id for body in fight._enemies(owner))
+    return NotImplemented
 
 
 def primary(combat, player, command):

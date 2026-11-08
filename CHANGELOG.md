@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Symmetra primary charge and decay world queries
+
+- Supply the exact 157C state-25 existence/filter query profile for registered
+  combat bodies. Previously its unsupported answers held normalized charge and
+  level at zero even while the actual beam damaged a living enemy.
+- Leave charge timing, level increment/clamp, damage Stacks and decay in the
+  unchanged authored graph: sustained input now deals 60, 120 and 180 DPS;
+  missing a target waits two seconds before .5/s normalized decay removes one
+  level at a time. Residual progress survives a level loss as authored.
+- Add actual command-to-pool tests for all levels, decay/reacquisition,
+  misses/range/wall/team, target death/change and hero-switch reset. Five real
+  NPC body/mover fixtures reach every level with explicit per-frame test healing
+  to preserve their authored maxima while keeping low-health targets alive.
+- Pass 49 primary/base/driver tests, 542 game regressions, 18 sentry/preceding
+  NPC tests and all eight extended five-NPC resource tests. Changed-file Ruff
+  and whitespace checks pass.
+- The target/filter adapter is a reconstruction limited to this exact profile;
+  it does not implement general native tag filters, barriers, armor cadence,
+  barrier ammo refill or the cross-hero defense/control matrix. Full static and
+  original-client acceptance remain open. No client control or publication.
+
 #### Symmetra sentry world execution (partial static evidence)
 
 - Add an explicit read-only supplemental graph/entity loader and a fingerprinted

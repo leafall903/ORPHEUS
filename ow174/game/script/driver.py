@@ -136,6 +136,12 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls in {"STU_E72F6348", "STU_AC829876"}:
+            from ow174.game import symmetra
+
+            answer = symmetra.target_query(self, cfg, instance)
+            if answer is not NotImplemented:
+                return answer
         if cls in {"STU_783B4CF0", "STU_68883EAC"} and self.match is not None:
             # Reconstructed current/maximum pool queries used by 0033's shield
             # recovery condition. Resolve only known owned-body combat pools.

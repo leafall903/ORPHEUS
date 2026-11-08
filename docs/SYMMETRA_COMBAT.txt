@@ -85,8 +85,8 @@ encoding remains covered by the other driver tests.
 
 Full acceptance matrix (partial evidence never checks a full item):
 Action              Static status and remaining requirements
-Primary             PARTIAL: base damage/target/LOS/team/death/resource tested;
-                    level ramp/decay, armor cadence, barrier refill and all
+Primary             PARTIAL: damage/target/LOS/team/death/resource, authored
+                    level ramp/decay tested; armor cadence, barrier refill and all
                     cross-hero defenses/control/interruption remain OPEN.
 Secondary orb       PARTIAL: charge/release/flight/damage tested; full cancel,
                     cadence, ammo exhaustion, collision radius, splash LOS,
@@ -141,3 +141,26 @@ Sentry external inputs and reconstructed world host
 - Photon Barrier's live initialized ULT_COST (entity 338) is 1680 in this mode,
   despite schema base 1200; 1680 admits actual 156B states 20/33. Deployment
   and complete ultimate acceptance remain OPEN.
+
+Primary charge/decay query adapter
+- 157C state 25 asks existence for selected target 536, a target filter, and
+  existence for secondary target 38. Ordinary BodyWorld answered unsupported
+  or false, preventing charge while the world bridge still dealt base damage.
+- Resolve this exact profile only: existence means membership in registered
+  combat bodies (including retained dead bodies); the filter accepts a current
+  living enemy under the match's existing team/FFA policy. Other profiles keep
+  their unsupported answers. This is a reconstructed host policy, not a general
+  implementation or native proof of the referenced tag/filter semantics.
+- Unchanged authored ChaseVar state 27 charges variable 2004 at .75/s;
+  completed charge advances level 59 to a maximum of two. Stacks 30/31 multiply
+  base damage variable 499 by two/three. In the 16ms fixture, levels change on
+  commands 85/169. State 28 waits two seconds after target loss, then state 26
+  decays normalized progress at .5/s and authored actions remove one level.
+  Progress resets to one on level loss; it can remain at base level and must
+  finish decaying before a completely fresh charge cycle. No server timer or
+  hard-coded DPS-level multiplier substitutes for those graph states.
+- tests/test_symmetra_primary_charge.py uses a declared durable player pool to
+  observe all levels, pool damage, misses/walls/team, target changes and reset.
+  The extra five-NPC case keeps original maxima, capsules and graphs and heals
+  each measured hit explicitly so low-HP targets survive to the third level.
+  This does not add NPC attack AI, shield interception or defense fidelity.

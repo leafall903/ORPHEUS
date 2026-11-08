@@ -70,6 +70,27 @@ class SymmetraNpcResourceTests(unittest.TestCase):
                 fire(run, player, 4)
                 self.assertAlmostEqual(before - health(run, bot).total, 4 * 60 * .016, places=4)
 
+    def test_primary_charge_levels_execute_against_every_actual_npc_body(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot, _target = self.create(definition)
+                weapon = next(i for i in player.body_script.component.instances.values()
+                              if i.graph.index == 0x157C)
+                rates = set()
+                vitals = health(run, bot)
+                for _ in range(180):
+                    before = vitals.total
+                    fire(run, player)
+                    rate = weapon.find_var(0, 499).value()
+                    loss = before - vitals.total
+                    self.assertAlmostEqual(loss, rate * .016, places=4)
+                    rates.add(rate)
+                    # Explicit test healing keeps low-HP authored targets alive;
+                    # no maximum pool, mover, graph or damage rate is replaced.
+                    self.assertAlmostEqual(vitals.heal(loss), loss, places=4)
+                    run.match.combat._sync_body_health(bot, vitals)
+                self.assertEqual(rates, {60, 120, 180})
+
     def test_charged_orb_commands_fly_and_remove_actual_pools_for_every_npc(self):
         for definition in self.definitions.values():
             with self.subTest(npc=definition.name):

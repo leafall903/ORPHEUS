@@ -32,12 +32,14 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [ ] Complete Symmetra static combat acceptance. Primary base-DPS target
     selection and charged-orb release/flight/damage have command-to-pool tests;
     authored shield recovery and melee static LOS now affect actual pools.
+    A limited world target/filter adapter now lets unchanged 157C charge/decay
+    produce actual 60/120/180 DPS against players and all five NPC bodies.
     External five-NPC body/mover fixtures cover outgoing weapon damage, filters
     and retained death; incoming attack AI and specials remain unverified.
     Sentry input now executes launch, attachment, boot, beam damage, stacked
     aura slow, charges/recovery and destruction in static world fixtures,
     including five NPCs. Client Pet reconciliation and surface hit geometry,
-    level modifiers, other deployables, ultimate and cross-hero/five-NPC
+    armor cadence/barrier refill, other deployables, ultimate and cross-hero/five-NPC
     matrices remain open. Original-client acceptance is separate and pending.
     See [Symmetra combat](SYMMETRA_COMBAT.txt).
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
