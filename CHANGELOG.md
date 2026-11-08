@@ -6,6 +6,63 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Authored NPC weapon component mounting
+
+- Share body weapon-root allocation between player and NPC scripts: preserve
+  sparse slots, seed slot bindings and allocate manager/weapons before entries.
+  This restores the Sniper body's omitted manager and two weapon graphs without
+  replacing authored attack damage or timing.
+- Pass107 relevant tests (23 NPC script,15 NPC control/lifecycle,27 driver,
+  5 body-script and37 projectile), Ruff and diff checks. The new test exercises
+  sparse-slot firing and decodes the NPC observer baseline with mounted roots.
+- Actual five-body offline data now yields Sniper damage100 against McCree225;
+  Trooper20 and Heavy Assault5 still work. All three stop damage for80 further
+  frames after stop. Enforcer and Assassin remain unable to damage in200 frames.
+  The adapter omits NPC observer projectile transport; native visuals, autonomous
+  AI/navigation/specials and complete McCree acceptance remain open. No client
+  launched, normal data/deployment unchanged, no completed hero lane merged.
+
+#### Companion NPC console and locked server API
+
+- Add a dark companion NPC console linked from the dashboard Server page. Its
+  page-local keys and buttons call the real loopback API; account text input does
+  not trigger shortcuts. Serialize rapid menu/selection requests, show refused
+  commands and never automatically retry mutations.
+- Resolve the chosen account's Match and execute commands under GameServer.lock.
+  Reject invalid keys/menu state, absent players, missing catalog and frozen-clock
+  mutations. Load an explicit external ORPHEUS_NPC_CATALOG and optional startup
+  ORPHEUS_GRAPH_BUNDLE without replacing normal runtime data.
+- Pass51 Python HTTP/dashboard/NPC tests and5 JavaScript request tests (56 total),
+  Ruff and diff checks. Real HTTP fixture requests complete all25 five-body menu,
+  spawn, engagement-command, stop and removal operations. This fixture has no
+  native client and no running game clock; it does not establish actual attacks.
+- Browser preview initialization fails waiting for Statsig configuration. Visual
+  and real keyboard acceptance remain open. The isolated fixture closes with no
+  NPCs remaining; normal services/data and original working changes are preserved.
+  Full enemy navigation/specials/McCree skills/client combat and normal deployment
+  remain open. No complete hero lane is merge-ready. Publication helper is absent.
+
+#### Manual NPC console commands and engagement input
+
+- Implement console command semantics for menu/selection, explicit removal,
+  crosshair-selected engagement and stop-all. Spawn requires visible floor;
+  selection/aim uses reconstructed sandbox distance and static-visibility policy.
+  No native console hook, keyboard frontend or production mounting is installed.
+- Drive actual slot0 input, target-player yaw/pitch and input release on target
+  loss/occlusion. Stop cancels pending/consumed input and owned projectiles;
+  idle manual VMs advance while damaging reports are suppressed. Track queued
+  input separately to cancel a press before its first VM update. Preserve new
+  target/input/pitch state in snapshots and movement output.
+- Pass136 related and13 server-snapshot tests (149 total), including9 new control
+  tests, Ruff and diff checks. Actual body data emits primary damage for Trooper
+  and Heavy Assault with no later damage in the80-frame stop probe. Enforcer,
+  Sniper and Assassin emit no shots and retain unresolved query/behavior gates.
+- A separate original104319 console-option probe fails relay loading with Windows
+  access denied and times out login. No console window or grave-key overlay is
+  observed on that screen; post-login console availability remains unknown.
+  Full navigation/specials/McCree skills/ultimate/client combat remain open.
+  No normal deployment; mandatory publication helper remains missing.
+
 #### Prepared PvE enemy base-pool catalog
 
 - Add an external XML catalog extractor that resolves actual NPC HealthPool
