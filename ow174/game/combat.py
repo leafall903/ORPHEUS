@@ -171,6 +171,13 @@ def ray_world(
 # --- health -------------------------------------------------------------------------------------------
 
 
+@dataclass
+class TemporaryShield:
+    pool_id: int
+    most: float
+    now: float
+
+
 class Vitals:
     """A body's pools as component 51 has them: health, armour, shields (world.health's ids and fields)."""
 
@@ -178,6 +185,7 @@ class Vitals:
         self.entity = entity
         self.most = {HEALTH_POOL: float(health), ARMOUR_POOL: float(armour), SHIELDS_POOL: float(shields)}
         self.now = dict(self.most)
+        self.temporary_shields: dict[int, TemporaryShield] = {}
         self.ids = {}
         pool_id = 1
         for kind in (SHIELDS_POOL, ARMOUR_POOL):  # world.health numbers them so
@@ -196,13 +204,60 @@ class Vitals:
 
     @property
     def total(self) -> float:
-        return sum(self.now.values())
+        return sum(self.now.values()) + sum(pool.now for pool in self.temporary_shields.values())
+
+    @property
+    def maximum(self) -> float:
+        return sum(self.most.values()) + sum(pool.most for pool in self.temporary_shields.values())
+
+    def grant_temporary_shields(self, tag: int, amount: float, limit: float) -> float:
+        """Reconstructed tagged shields: no healing refill, capped current amount.
+
+        Keep a stable component51 slot/ID even after depletion; an empty record
+        clears the previous value without borrowing the body's base shield pool.
+        """
+        if not math.isfinite(amount) or not math.isfinite(limit) or amount < 0 or limit < 0:
+            raise ValueError("temporary shields require finite nonnegative amount and limit")
+        if self.dead or amount == 0:
+            return 0.0
+        pool = self.temporary_shields.get(tag)
+        if pool is None:
+            if len(self.temporary_shields) >= POOLS - 1:
+                raise ValueError("temporary shield pool slots exhausted")
+            identifiers = [*self.ids.values(), *(p.pool_id for p in self.temporary_shields.values())]
+            pool = self.temporary_shields[tag] = TemporaryShield(max(identifiers, default=0) + 1, 0, 0)
+        given = min(amount, max(0.0, limit - pool.now))
+        if given > 0:
+            pool.now += given
+            pool.most = pool.now
+            self.changed.add(SHIELDS_POOL)
+        return given
+
+    def decay_temporary_shields(self, tag: int, amount: float) -> float:
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("shield decay requires a finite nonnegative amount")
+        pool = self.temporary_shields.get(tag)
+        if pool is None:
+            return 0.0
+        taken = min(amount, pool.now)
+        if taken > 0:
+            pool.now -= taken
+            if pool.now <= EPSILON:
+                pool.now, pool.most = 0.0, 0.0
+            self.changed.add(SHIELDS_POOL)
+        return taken
 
     def damage(self, amount: float) -> float:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
         left = max(0.0, amount)
         taken = 0.0
+        # Temporary shields are consumed before the body's ordinary shields.
+        # Newer tagged grants precede older ones (reconstructed server policy).
+        for tag in reversed(self.temporary_shields):
+            take = self.decay_temporary_shields(tag, left)
+            left -= take
+            taken += take
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
@@ -233,6 +288,9 @@ class Vitals:
         for kind in kinds:
             if kind in self.ids:
                 parts[kind * POOLS] = world.pool(self.ids[kind], kind, self.most[kind], self.now[kind])
+        start = 1 if SHIELDS_POOL in self.ids else 0
+        for slot, pool in enumerate(self.temporary_shields.values(), start):
+            parts[SHIELDS_POOL * POOLS + slot] = world.pool(pool.pool_id, SHIELDS_POOL, pool.most, pool.now)
         return {51: parts}
 
 
@@ -373,6 +431,8 @@ class Combat:
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
+        self.grasp_shields: dict[int, sigma.ShieldDecay] = {}
+        self.grasp_grants: dict[int, tuple[int, int]] = {}  # last instance/absorption activation
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -401,6 +461,8 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.grasp_shields.pop(player.body, None)
+        self.grasp_grants.pop(player.body, None)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -498,6 +560,7 @@ class Combat:
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
             self._bot_weapons(at)
+        sigma.update_shields(self)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
         if frames:
@@ -685,7 +748,7 @@ class Combat:
             t = ray_capsule(origin, direction, a, b, shown.radius)
             if t is not None and t <= reach and (best is None or t < best[0]):
                 best = (t, target, shown)
-        if state.instance.graph.index in sigma.GRASP_HITSCAN:
+        if (state.instance.graph.index, node.state) in sigma.GRASP_HITSCAN_VOLLEYS:
             limit = reach if best is None else best[0]
             wall = ray_world(self._collision(), origin, direction, limit)
             intercepted = sigma.grasp_intersection(
@@ -831,7 +894,7 @@ class Combat:
     def _sync_body_health(owner, vitals: Vitals) -> None:
         script = getattr(owner, "body_script", None)
         if script is not None:
-            script.set_health(vitals.total, sum(vitals.most.values()))
+            script.set_health(vitals.total, vitals.maximum)
 
     def _collision(self):
         from ow174.game.collision import CollisionError

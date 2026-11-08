@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Grasp temporary shields and NPC bullet interaction
+
+- Route only Sigma1D02/node34's declared self-target1D03 request from the
+  permissive body path. Read its actual converted amount/cap and authored3s
+  delay/5-per-second decay. Keep the strict native PlayScript backend unchanged.
+- Add separate tagged temporary shield pools to authoritative vitals and
+  component51. Spend them before base shields; ordinary healing cannot refill
+  them. Retire their decay and grant ownership with the body. Duplicate or
+  expired callbacks cannot grant again; legitimate later casts can add shields.
+- Nine behavioral tests execute60 absorbed ->36 shields, six actual Helix
+  attacks ->400 cap, damage/healing order, grace/decay, zero records, death,
+  replacement, replay rejection and a real second cast after cooldown.
+- Classify actual Trooper102E/state23 and Heavy114F/state25 bullets. The expanded
+  five-NPC audit passes44/50 rows. Heavy absorbs115 ->69 shields, then consumes
+  40 through valid post-Grasp hits. Six open rows are the three non-damaging NPC
+  primary paths and their unproven Grasp interaction. No-attack is never a pass.
+- Pass225 focused combat/NPC/PlayScript/driver regression tests and Ruff.
+  Shield aggregation, current-amount cap, damage priority, request dispatch
+  and decay scheduling are reconstructed services. The native1D03 HealthPool
+  State, full attack classification and original-client presentation remain
+  unaccepted; the full Sigma static goal remains active.
+
 #### Sigma actual five-NPC static audit (incomplete)
 
 - Review and reuse the parent NPC lifecycle/catalog changes in this private

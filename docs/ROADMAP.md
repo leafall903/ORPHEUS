@@ -18,7 +18,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   covers Hypersphere impact/expiry, quick melee, Accretion damage and incoming
   player rifle damage. Static wall occlusion and authored cooldown/Flux lifecycle
   checks pass. Grasp intercepts classified rifle/Helix/spheres with authored
-  accounting; temporary shields remain open. Full Barrier/Flux effects, control, cross-hero interactions,
+  accounting. Reconstructed temporary shields cover cap, damage/healing order,
+  decay, replay rejection and lifecycle; native pool behavior remains open.
+  Trooper/Heavy bullets pass absorption/conversion fixtures. Full Barrier/Flux effects, control, cross-hero interactions,
   five-NPC specials/bidirectional attacks and original-client acceptance remain
   open. Five actual base-pool NPC bodies pass limited outgoing damage and
   retained-corpse fixtures; three NPC manual primary-input paths still fail. See

@@ -168,6 +168,13 @@ class BodyWorld(runtime.World):
             return
         super().send_message(target, message, params, sender)
 
+    def play_compatible_script(self, instance, node) -> bool:
+        from ow174.game import sigma
+
+        if self.match is not None and self.hero == sigma.HERO:
+            return sigma.grant_shields(self.match.combat, self.body, instance, node)
+        return False
+
 
 @dataclass
 class Snapshot:

@@ -23,7 +23,7 @@ from extract_game_movers import mover_of  # noqa: E402
 from test_game_combat import KANEZAKA_DM, FakeClient, Run, aim  # noqa: E402
 from test_sigma_combat import SigmaCombatTests  # noqa: E402
 
-from ow174.game import mover, npc  # noqa: E402
+from ow174.game import mover, npc, sigma  # noqa: E402
 from ow174.game.commands import FIRE  # noqa: E402
 from ow174.game.content import heroes  # noqa: E402
 from ow174.game.script import graph  # noqa: E402
@@ -93,21 +93,57 @@ def scenario(definition, name):
             "base_pools_before": before, "remaining": vitals.total}
 
 
-def incoming(definition):
+def incoming(definition, *, grasp=False):
     """Explicit logical20 input into the actual NPC graph; no AI substitution."""
     run, player, bot = arena(definition, "incoming")
     fight, script = run.match.combat, bot.body_script
     target = next(t for t in fight._targets() if t.owner is player)
     vitals = fight.vitals_of(target)
     before = vitals.total
+    if grasp:
+        run.step({player: (0, 0, 0x08)})
+    grasp_instance = next((i for i in player.body_script.component.instances.values()
+                           if i.graph.index == sigma.GRASP), None)
+    damage_events = []
+    original_damage = fight._damage
+
+    def record_damage(shooter, target, amount, *args, **kwargs):
+        pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+        before_temporary = pool.now if pool else 0
+        before_total = vitals.total
+        active = bool(grasp_instance and grasp_instance.states.get(1) and grasp_instance.states[1].active)
+        original_damage(shooter, target, amount, *args, **kwargs)
+        if target.owner is player:
+            pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+            damage_events.append({"frame": run.frame, "amount": amount, "dealt": before_total - vitals.total,
+                                  "grasp_active": active, "temporary_before": before_temporary,
+                                  "temporary_after": pool.now if pool else 0})
+
     bot.firing = True
-    for frame in range(100):
-        # This fixture supplies manual input to the same graph lifecycle that
-        # Combat._bot_weapons consumes. NPC target acquisition is not restored.
-        script.component.run_frame(run.frame + 1, [(20, True)] if frame == 0 else [])
-        script.frame = run.frame + 1
-        script._report_shots()
-        run.step({})
+    with patch.object(fight, "_damage", side_effect=record_damage):
+        for frame in range(160 if grasp else 100):
+            # This fixture supplies manual input to the same graph lifecycle
+            # Combat._bot_weapons consumes; it does not restore target acquisition.
+            edges = [(20, True)] if frame == 0 else ([(20, False)] if frame == 100 else [])
+            script.component.run_frame(run.frame + 1, edges)
+            script.frame = run.frame + 1
+            script._report_shots()
+            run.step({})
+    if grasp:
+        absorbed = grasp_instance.vars[21312].value()
+        pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+        bonus = pool.now if pool else 0
+        base_damage = before - sum(vitals.now.values())
+        temporary_spent = sum(event["temporary_before"] - event["temporary_after"] for event in damage_events)
+        during_active = sum(event["dealt"] for event in damage_events if event["grasp_active"])
+        converted = min(400, absorbed * 0.6)
+        expected = max(0, converted - temporary_spent)
+        return {"scenario": "grasp_actual_npc_weapon_and_shield_conversion", "absorbed": absorbed,
+                "base_pool_damage": base_damage, "temporary_shields": bonus,
+                "converted_shields": converted, "expected_temporary_shields": expected,
+                "damage_events": damage_events, "damage_during_grasp": during_active,
+                "passed": absorbed > 0 and abs(during_active) < 1e-5 and abs(bonus - expected) < 1e-5,
+                "limits": "Manual NPC input; no emitted attack cannot establish absorption."}
     return {"scenario": "incoming_manual_logical20", "damage": before - vitals.total,
             "passed": vitals.total < before, "player_dead": vitals.dead,
             "body_vm_fault": str(script.component.fault),
@@ -167,6 +203,12 @@ def run_audit(catalog, graphs, body_xml):
                     results.append({"scenario": "incoming_manual_logical20", "passed": False,
                                     "error": f"{type(error).__name__}: {error}"})
                 try:
+                    results.append(incoming(definition, grasp=True))
+                except Exception as error:  # noqa: BLE001 -- preserve missing defensive-interaction evidence
+                    results.append({"scenario": "grasp_actual_npc_weapon_and_shield_conversion",
+                                    "passed": False,
+                                    "error": f"{type(error).__name__}: {error}"})
+                try:
                     results.append(corpse(definition))
                 except Exception as error:  # noqa: BLE001 -- preserve failed lifecycle evidence
                     results.append({"scenario": "primary_kill_retained_corpse", "passed": False,
@@ -179,7 +221,7 @@ def run_audit(catalog, graphs, body_xml):
             "scope": "Actual NPC bodies/base pools/movers, flat collision, fake transport, permissive VM.",
             "source_path": str(ROOT), "catalog_sha256": hashlib.sha256(catalog.read_bytes()).hexdigest(),
             "graphs_sha256": hashlib.sha256(graphs.read_bytes()).hexdigest(), "npcs": rows,
-            "remaining": ["All Barrier/Flux target effects and Grasp temporary shields",
+            "remaining": ["All Barrier/Flux target effects and remaining Grasp attack classifications",
                           "Full attack/status/cooldown/cancel and cross-hero matrix",
                           "NPC special abilities, target acquisition and native movement",
                           "Original-client corpse and combat acceptance"]}

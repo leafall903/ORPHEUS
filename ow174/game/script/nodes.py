@@ -2187,6 +2187,8 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.play_compatible_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
 

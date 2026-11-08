@@ -31,7 +31,7 @@ Action                 P evidence                  NPC evidence    Acceptance
 Hyperspheres           110 direct pair / 60 burst    base hit tests  OPEN
 Quick melee            30 once, actual input        base hit tests  OPEN
 Experimental Barrier   no interception test         all five OPEN   OPEN
-Kinetic Grasp          rifle/Helix/spheres absorbed  all five OPEN   OPEN
+Kinetic Grasp          scoped absorbs + temp shield two NPC weapons OPEN
 Accretion              70 damage only               base hit tests  OPEN
 Gravitic Flux          charge/cost/end/death only     all five OPEN   OPEN
 Incoming attacks       enemy Soldier rifle only     all five OPEN   OPEN
@@ -70,9 +70,32 @@ damage or later explosion, Accretion70 and melee30 allowed, and absorption endin
 with the authored State. The adapter evaluates bounds from1D02/state1 and feeds
 6584 plus its actual accumulator plug; graph node32 updates21312. The oriented
 eye-relative transform and nominal direct+blast accounting are reconstructed.
-Only Soldier rifle hitscan is currently classified; other hitscan/beam families
-remain open. Temporary-shield creation, cap, damage order, decay and component51
-replication are not implemented by this adapter and remain acceptance blockers.
+Soldier rifle and the actual Trooper102E/state23 and Heavy114F/state25 bullets
+are classified; other hitscan/beam families remain open. Native eligibility
+flags and geometry still require original-engine comparison.
+
+Reconstructed temporary-shield service
+--------------------------------------
+The ordinary permissive VM previously skipped the actual1D02/node34 PlayScript
+request. A narrowly scoped compatibility callback now interprets its self-only
+1D03 request. It consumes actual arguments (60% absorbed,400 cap) and the main
+graph's3-second wait/5-per-second decay fields. This does NOT execute the native
+1D03 HealthPool State or claim native PlayScript engine hosting is restored.
+
+Tagged temporary shields have a distinct authoritative pool/ID and component51
+slot. They are consumed before base shields and cannot be refilled by ordinary
+healing. Expiration emits a zero pool and updates script HUD health. Body
+replacement retires ownership; stale callbacks cannot restore depleted shields.
+The aggregate tag pool, cap against current shields, damage priority and elapsed
+time scheduler are reconstructed server policies; native pool-query/stacking
+details and client health-bar appearance remain open.
+
+Nine actual-behavior tests pass:60 absorbed becomes36 bonus; six actual Helix
+attacks give720 absorbed and cap at400; real torso fire consumes temporary first;
+healing cannot refill it;3-second grace then5-per-second decay clears the record;
+death prevents delayed grants and clears existing bonus; switching bodies removes
+the owner; replay cannot duplicate/restore a grant; a second cast after the real
+cooldown can add to a remaining bonus.225 focused regression tests pass.
 
 Actual five-NPC audit
 ---------------------
@@ -82,19 +105,23 @@ are read only; --output must be outside the repository. Actual mover fields
 are loaded from each body XML into the isolated fixture, not Soldier fallback.
 The parent lifecycle/catalog changes were reviewed and applied only here.
 
-45 limited scenarios executed:42 passed,3 failed. All five base-pool bodies
+The latest expanded50-scenario audit has44 passed and6 failed. All five base-pool bodies
 take110 primary impact,60 airburst,30 melee and70 Accretion damage; all reject
 miss, ally and obstructed primary cases. Every body can be killed by real
 primary fire and remains the same dead entity beyond3 seconds, with no respawn
 deadline and no further enemy targeting. Trooper and Heavy Assault manual
 logical20 weapon input damages Sigma. Enforcer, Sniper and Assassin input
-produces no damage; all three remain failed/open even with no VM fault.
+produces no damage; their primary and Grasp-interaction rows remain failed/open
+even with no VM fault. Trooper absorbs60 ->36 temporary shields. Heavy absorbs
+115 ->69 shields, with40 valid post-Grasp damage leaving29. The audit captures
+actual damage calls to distinguish active-Grasp leakage from valid later hits.
 
 These checks use flat collision, fake transport and permissive VM, with
 base-schema pools only. In particular instance221 is shields in these authored
 graphs; difficulty/conditional pool nodes in the catalog remain unapplied.
 Navigation, target acquisition, all specials and rendered corpses remain open.
-101 regression tests pass after the reviewed dependency integration. The
+101 regression tests passed at dependency integration;225 now pass with shield
+and PlayScript/driver coverage. The
 limited audit separately exits nonzero while any of its scenario rows fail.
 
 Required open interactions
@@ -104,8 +131,8 @@ Required open interactions
   and conservative single-ray splash policy do not establish those mechanics.
 - Barrier travel, stop/recall, health/regen/break, enemy shot interception,
   ally pass-through, shared cross-hero barrier behavior and replication.
-- Grasp front arc, absorptive eligibility, beams/melee/rock exceptions,
-  absorbed damage accounting, temporary shields, decay and client effects.
+- Full Grasp attack eligibility/beam families, native geometry and tagged-pool
+  semantics, three remaining NPC weapon interactions and client effects.
 - Accretion control/knockback, projectile gravity and cross-hero exceptions.
 - Flux charge/cost/targeting, flight, lift/immobilization, slam damage using the
   correct target maximum, interruption, immunity, death cleanup and presentation.

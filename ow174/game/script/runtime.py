@@ -492,6 +492,10 @@ class World:
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
 
+    def play_compatible_script(self, instance: "Instance", node: Node) -> bool:
+        """Optional explicit reconstructed body service; legacy unknown calls stay inert."""
+        return False
+
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
 
