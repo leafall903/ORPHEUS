@@ -63,6 +63,11 @@ interactions. Completion requires executed behavior evidence for every item.
 Validated lane commits/patches are reviewed and integrated serially by the parent;
 static completion does not imply original-client combat acceptance.
 
+Reviewed public array-selection support (6debff3):
+- STU_4BD39CFD now evaluates a scalar index and collecting container while
+  retaining variable watches. This removes an Enforcer zero-damage cause;
+  production control context and complete attacks remain OPEN. See
+  CONFIG_ARRAY_SELECTION.txt for native probe evidence and adapter limits.
 Still open: catalog production mounting/menu and input wiring, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
