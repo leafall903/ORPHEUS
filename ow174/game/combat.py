@@ -305,7 +305,10 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_start=value("m_EAD7F104"),
         falloff_end=value("m_157E5BC5"),
         falloff_floor=value("m_72A81154"),
-        critical=value("m_A872C70E", 1.0),
+        # 0164's two Orb volleys omit this config. Reconstructed OW1 behavior:
+        # both can headshot for 2x. Keep this fallback local to that weapon;
+        # the engine default for other omitted configs is still unverified.
+        critical=value("m_A872C70E", 2.0 if state.instance.graph.index == 0x0164 else 1.0),
         rings=tuple(sorted(rings)),
     )
 
@@ -722,8 +725,15 @@ class Combat:
         self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
+            direct = rocket.direct
+            critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW and direct.critical > 1.0
+            # As with hitscan, apply distance falloff and the hit's critical
+            # scalar before the target's shield/armour/health pools. Splash
+            # below remains a separate, noncritical hit.
+            distance = rocket.flown * rocket.speed
+            amount = direct.amount * direct.scale(distance) * (direct.critical if critical else 1.0)
             self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+                rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast

@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zenyatta projectile damage foundation (lane 0020, partial)
+
+- Apply direct projectile critical damage and distance falloff before target
+  pool damage; keep splash noncritical. Reconstruct the two graph0164 Orb
+  volleys' omitted critical scalar as2, scoped to Zenyatta and explicitly
+  pending native confirmation.
+- Eight extracted-graph combat tests cover actual damage, charged volleys,
+  reverse damage, melee, death gating, hit flags and armour/splash separation.
+  All79 combined hero/combat/projectile/health regressions pass; Ruff and
+  diff checks pass.
+- Original-client combat, all five mission NPCs, support auras and cross-hero
+  defenses remain OPEN. Actual ultimate execution stalls at017B/state13;
+  target tracking currently supplies no targets. See docs/ZENYATTA_COMBAT.txt.
+- No original-service changes, normal deployment, publication or push.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

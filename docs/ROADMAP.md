@@ -2,6 +2,11 @@
 
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
+- [ ] Zenyatta lane0020: verify full bidirectional player/five-NPC combat, every
+  ability and cross-hero defense in original clients. Eight actual offline
+  weapon/pool tests are partial evidence; support target acquisition, auras and
+  the ultimate017B/state13 handshake remain open. See [lane evidence](ZENYATTA_COMBAT.txt).
+
 | Milestone | Exit criteria | Current evidence |
 | --- | --- | --- |
 | M0 · Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |

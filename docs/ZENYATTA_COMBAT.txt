@@ -1,0 +1,70 @@
+Zenyatta combat lane 0020 -- build 1.74.0.0.104319 -- OPEN
+
+Hero 02E0000000000020; body 0400000000000216; weapon graph0164.
+This document records partial offline evidence, not complete hero acceptance.
+
+Implemented in this lane
+- Shared projectile direct hits now apply their hit definition's critical
+  multiplier and distance falloff before pool damage. Splash does not crit.
+- Graph0164's two Orb volleys get a narrowly scoped 2x critical fallback when
+  m_A872C70E is absent. This is reconstructed behavior, not a native comparison:
+  the asset contains m_66D29548=2 but this field's exact engine meaning is not
+  established. Do not extend that interpretation to unrelated heroes.
+- Eight actual combat tests execute extracted weapon/melee graphs against
+  player bodies: primary body/head hits and notices, five charged orbs,
+  reverse fire into 150 shields then 50 health, melee30, lethal headshots,
+  dead-owner suppression, explicit noncritical hits, and falloff/armour/splash.
+
+Resource-backed facts (external runtime, never added to Git)
+- 0164/state14: primary48, projectile0236, speed variable6368 (evaluates90),
+  lifetime3s, maximum range180m. State18: charged Orb48, separate loadout0033.
+- 02F3/node11 sets Harmony rate variable420=30. Both target graphs contain
+  radius40 searches and 3s waits. These do not prove an operational aura.
+- 0176/state4 applies aura0045; 02F3/state22 applies aura01B9 to variable1606.
+- 017B sets duration6s; runtime ultimate cost338e=2310 after modifiers (the
+  body schema1650 is not the final runtime cost). Its aura0067 targets375.
+
+Acceptance matrix (P=enemy player; NPC=T/E/S/A/H)
+Action                 P offline evidence       T E S A H original clients
+Primary body/head      48/96, notices, death     OPEN      OPEN
+Secondary full charge  5 independent48 hits      OPEN      OPEN
+Quick melee            30, no critical flag     OPEN      OPEN
+Receive enemy fire     shield before health     OPEN      OPEN
+Orb of Discord         no working acquisition   OPEN      OPEN
+Orb of Harmony         no working acquisition   OPEN      OPEN
+Transcendence          starts then stalls       OPEN      OPEN
+Death/respawn/corpse    player death gate only   OPEN      OPEN
+
+T=Trooper, E=Enforcer, S=Sniper, A=Assassin, H=Heavy Assault.
+Required support semantics: Harmony/Transcendence heal living allies and never
+damage enemies; Discord debuffs enemies. FFA players are not allies. Allied
+NPC healing must use the same team rules. These requirements remain OPEN.
+All five manual NPCs require retain_corpse=True; no NPC actor or respawn policy
+is changed by this patch. Parent owns manual spawning/control integration.
+
+Cross-hero matrix: health/shields/armour and player death have selected offline
+evidence. Barrier interception, Deflect, Defense Matrix/absorption, invulnerability,
+cleanse, anti-heal, heal amplification, damage boosts, Discord stacking/expiry,
+stun/interrupt and forced movement are OPEN. These are not implemented by
+merely checking a damage scalar; their authoritative lifetimes and replicated
+presentation must be verified with the relevant hero actors.
+
+Observed implementation blockers
+- nodes.TrackTargets.payload returns {targets: ()}; it has no actual acquisition.
+  Native aura/ModifyHealth service connections do not exist for these graphs.
+- Actual full-cost Q starts Ability28 (RUNNING) but reaches only017B states13
+  and23. State13 is STU_54FEB21C (node26), which is not implemented in nodes.py;
+  it remains active after430 command frames. No heal/invulnerability phase was
+  reached. This is an observed gameplay failure, not a successful VM test.
+- Baseline runtime ai_spawners only catalogs training/friendly bots, not the
+  five mission enemies. Their creation/control is a separate parent work item.
+- The original client PID12292/window 'Overwatch' (localized title) already
+  existed during inspection. No ownership was inferred from an absent lease.
+  This lane did not launch, control, close or claim acceptance from that client.
+
+Next acceptance work
+Implement verified target filtering/acquisition and aura services, resolve the
+017B/state13 engine handshake, integrate the five actual NPC actors, then take
+the atomic client lease for an owned isolated session after checking processes.
+Record each player/NPC/interaction result and visual/audio evidence separately.
+Full combat remains OPEN until that matrix passes in original clients.
