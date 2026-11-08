@@ -44,6 +44,19 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if self.hero == 0x02E00000000001CE and instance.graph.index == 0x13EB:
+            # Explicit manual-sandbox reconstructions for the Enforcer graph:
+            # declared attack input supplies its missing engine readiness, and
+            # shared native array selection supplies authored damage. No automatic
+            # mission difficulty or health-pool selection is inferred here.
+            if (cfg.get("$") == "STU_9B7648C3"
+                    and (cfg.get("m_entity") or {}).get("$") == "STU_B5A0CAF0"):
+                primary = self.ai_weapon_button(0)
+                return int(not instance.component.owner_dead and primary in instance.component.held)
+            if (cfg.get("$") == "STU_B96D3A98"
+                    and (cfg.get("m_entity") or {}).get("$") == "STU_B5A0CAF0"):
+                primary = self.ai_weapon_button(0)
+                return not instance.component.owner_dead and primary in instance.component.held
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE

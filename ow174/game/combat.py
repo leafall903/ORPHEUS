@@ -229,6 +229,46 @@ def capsule_visible(collision: World | None, origin, a, b, radius: float) -> boo
     return hit is None or hit + EPSILON >= reach
 
 
+def ring_directions(state, direction):
+    """Resource-authored radial projectile layout (613BDDB0), reconstructed phase.
+
+    Ring counts/radii and spread come from the volley. Spread is interpreted as
+    degrees and phase starts at local up; native angular phase/muzzle placement
+    and multi-pellet client transport are not accepted by this reconstruction.
+    """
+    config = state.node.field("m_5EC1EB38") or {}
+    if config.get("$") != "STU_613BDDB0":
+        return None
+    count = expr.to_int(state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False))
+    spread = expr.to_float(state.evaluate(config.get("m_spread"), watch=False))
+    if not 1 <= count <= 64 or not math.isfinite(spread) or not 0 <= spread < 90:
+        raise ValueError("unsupported radial volley count/spread")
+    horizontal = math.hypot(direction[0], direction[2])
+    right = ((-direction[2]/horizontal, 0, direction[0]/horizontal)
+             if horizontal > EPSILON else (-1, 0, 0))
+    up = (right[1]*direction[2]-right[2]*direction[1],
+          right[2]*direction[0]-right[0]*direction[2],
+          right[0]*direction[1]-right[1]*direction[0])
+    found = []
+    for ring in config.get("m_0D30E40C") or ():
+        radius = expr.to_float(state.evaluate(ring.get("m_6425FFB9"), watch=False))
+        amount = expr.to_int(state.evaluate(ring.get("m_B19BD35D"), watch=False))
+        if not math.isfinite(radius) or radius < 0 or not 1 <= amount <= 64:
+            raise ValueError("unsupported radial volley ring")
+        if not math.isfinite(spread*radius) or spread*radius >= 90:
+            raise ValueError("unsupported radial volley angular extent")
+        tangent = math.tan(math.radians(spread*radius))
+        for index in range(amount):
+            angle = index*2*math.pi/amount
+            vector = tuple(direction[k] + tangent*(right[k]*math.sin(angle)+up[k]*math.cos(angle))
+                           for k in range(3))
+            length = math.sqrt(_dot(vector, vector))
+            found.append(tuple(value/length for value in vector))
+    if len(found) != count:
+        raise ValueError("radial volley ring count does not match authored projectile count")
+    return found
+
+
 def ray_world(
     collision: World | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
@@ -705,7 +745,7 @@ class Combat:
 
     def _shoot(
         self, shooter, command, state, number: int, time: int,
-        *, activation: tuple[int, int], snapshot: Snapshot | None = None,
+        *, activation: tuple[int, int], snapshot: Snapshot | None = None, _direction=None,
     ) -> None:
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
@@ -721,6 +761,15 @@ class Combat:
             origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
+        if _direction is None:
+            directions = ring_directions(state, direction)
+            if directions is not None:
+                for pellet in directions:
+                    self._shoot(shooter, command, state, number, time, activation=activation,
+                                snapshot=snapshot, _direction=pellet)
+                return
+        else:
+            direction = _direction
         direct = hit_def(state, node.field("m_6396149F"))
         speed = field("m_projectileSpeed")
         if speed:

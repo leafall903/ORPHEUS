@@ -77,29 +77,46 @@ Use verification/retribution/npc-runtime/data. Definition variable221 maps to
 pool kind2 SHIELDS, not legacy armor. Conditional/difficulty pools are listed
 as unapplied by the catalog, so these are explicit base-pool fixtures.
 - All five: actual body scripts; Zen primary with Discord deals real damage;
-  friendly Harmony restores real pools. Manual actors use retain_corpse=True.
+  friendly Harmony restores real pools. Full secondary and melee damage actual
+  pools; melee static walls reject all five hits (before shared fix:30 each).
+  Transcendence heals each friendly body. Manual actors retain corpses.
 - Actual primary input kills each of the five; its same dead body and zero
   pools remain past the ordinary respawn deadline, with no scheduled respawn.
-- Trooper, Sniper and Heavy Assault: native logical button20 starts authored weapon
+- Trooper, Enforcer, Sniper and Heavy Assault: logical button20 starts authored weapon
   fire and damages Zen; Transcendence rejects subsequent attacks.
-- Enforcer: damage476 remains None and volley does not start under button20.
-  Sniper needs its authored wind-up before shooting; a100-frame probe was too
+- Enforcer13EB readiness queries9B7648C3/B96D3A98 are reconstructed from living
+  owner and primary input. Shared native array query4BD39CFD resolves damage476 from
+  variable9948. Manual start seeds absent index0, preserves indices0..3 and
+  rejects other values. This is explicit sandbox policy, not mission difficulty.
+  Volley config613BDDB0 specifies25 rays in rings(0,1),(.5,8),(1,16), spread4.
+  Degrees and up-first angular phase are reconstructed; all25 physical rockets
+  now execute. At fixed8m,14 pellets hit for28/56/84/112 across indices0..3.
+  Stop, wall,100m acquisition limit and team-change rejection execute. A durable
+  fixture takes8 volleys/224 damage across two magazines and authored reloads.
+  Multi-pellet native observer transport/muzzle/phase remain unaccepted.
+- Sniper needs its authored wind-up before shooting; a100-frame probe was too
   short. Extended input now causes real projectile damage with an explicit
   no-observer-stream transport adapter. AI acquisition/scoping remains open.
   Assassin: no ordinary weapon volley; targeted special attack remains open.
-  Enforcer/Assassin reverse attacks are NOT accepted.
+  Assassin reverse attack is NOT accepted. Read-only graph1157 diagnosis finds
+  logical36 and target536 derived from possessor member1650, with ModifyHealth
+  and pin/attachment states. Injecting a diagnostic target reaches those states
+  but proves neither damage nor control; no such injection is production code.
 - Flat collision and transport adapters remain explicit fixture inputs. Native
   navigation/acquisition/specials, complete difficulty behavior and client
   presentation are not proven by body creation or these combat tests.
 
 Still open for full STATIC goal
 Full ammo/reload control-interruption edges and secondary combinations,
-all NPC secondary/melee/ultimate combinations, Enforcer/Assassin reverse
-attacks/specials, barriers/Defense Matrix, remaining reflected geometry/multi-deflection/status cases, anti-heal/heal
+remaining NPC secondary/melee/ultimate edge combinations, Assassin reverse
+attack and NPC specials, barriers/Defense Matrix, remaining reflected geometry/multi-deflection/status cases, anti-heal/heal
 amplification, cleanse, damage-boost stacking, control/interrupt/forced movement,
 full FFA/death/replacement lifecycle matrix and reconstructed-rule corroboration.
 The broader native TrackTargets/ApplyAura engine services remain unimplemented;
 this hero uses explicit reconstructed Combat services instead.
+An actual Sigma Shift probe activates1D02's DeflectProjectiles state but a Zen
+Orb still deals48 damage (400->352). This is a reproduced absorption gap,
+not absorption acceptance. Its resource candidate and probe remain outside Git.
 
 Original-client gate
 No lane-owned client session was run. Existing PID12292 was inspected read-only;

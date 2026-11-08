@@ -22,6 +22,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   five-NPC AI/navigation/specials and original-client combat remain open. Normal
   inputs/services and original working changes are preserved; no hero lane merged.
 
+#### Reconstructed manual Enforcer volleys (lane0020, partial)
+
+- Integrate the parent's manual NPC attack controls and shared body weapon-root
+  mounting in the isolated lane. Enforcer13EB now evaluates two explicitly
+  reconstructed readiness queries from living-owner attack input and selects
+  its authored damage array. Manual start defaults an absent index to entry0;
+  preserve valid explicit indices and reject invalid values before starting.
+  This does not select native mission difficulty or conditional health pools.
+- Emit all25 authored Enforcer projectiles across its three resource rings.
+  Ring counts/radii are resource facts; degree interpretation and angular phase
+  are reconstructed. Fixed8m geometry executes28/56/84/112 damage for the four
+  array entries, one ammo per volley, stop/LOS/range/team rejection and repeated
+  reloads. Multi-pellet observer transport and original-client effects remain
+  unaccepted.
+- Pass14 actual-body NPC tests, adding five-body secondary/melee/ultimate-heal
+  execution and four ranged reverse attacks versus Transcendence. Reuse shared
+  native array selection and melee static-wall occlusion; all five real Zen
+  wall tests first reproduced30 damage and now require zero damage. Assassin
+  reverse damage/pin/control and broader defense/control interactions remain
+  open. Full static hero acceptance remains active; no client session or push.
+- Pass299 final-source focused regressions (22 NPC/array/melee and277 shared
+  combat/VM/ability cases) and14 complete server snapshot/replay tests on frozen
+  game model source. Ruff and staged diff checks pass.
+
 ### 2026-11-08
 
 #### Native array selection for PvE difficulty configs
