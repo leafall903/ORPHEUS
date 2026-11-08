@@ -162,19 +162,31 @@ class Bot:
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
 
-    def step(self, tick: int, seconds: float, collision=None) -> None:
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
         self._apply_status_speed()
         if not self.route:
+            if tick < paused_until:
+                self._pause(tick)
+                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            self._tick(at, seconds, collision)
+            if at < paused_until:
+                self._pause(at)
+            else:
+                self._tick(at, seconds, collision)
+
+    def _pause(self, tick: int) -> None:
+        self.pace = 0.0
+        self.velocity = (0.0, 0.0, 0.0)
+        self.held = (0, 0)
+        self.moved_tick = tick
 
     def _apply_status_speed(self) -> None:
         """Reconstruct the shared movement slow for server-driven NPC movement.

@@ -20,6 +20,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   lifetime policy is implemented. NPC scripts now mount authored weapon managers
   and sparse slots. Actual NPC creation, controls and original-client
   acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  Shared resource-backed Flashbang control has offline interruption/recovery
+  checks; native immunity/presentation and full hero acceptance remain open.
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
