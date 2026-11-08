@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Sombra lane canonical foundation reconciliation
+
+- Import reviewed parent weapon allocation, native-backed array selection and
+  static melee visibility into the isolated clone, preserving Sombra's health,
+  damage tags, status and EMP services. Remove duplicate NPC root allocation and
+  the lane-only numeric group shortcut. Static LOS now uses one canonical check.
+- Re-run actual Enforcer authored profile damage and all Sombra/NPC/EMP behavior
+  against the canonical services. Native controller/mission difficulty remains
+  unverified; resource schema restoration does not imply autonomous AI acceptance.
+- Pass305 distinct source checks:267 combat/NPC/shared-script checks and38
+  passive VM/server snapshot checks, including the complete stored replay with
+  final source fixed. The83-case targeted reconciliation run also passes and is
+  not counted twice. Ruff and staged diff checks pass; no client was controlled.
+- Locate the actual Translocator cast frontier: definition1575 resolves correctly,
+  but localPrediction=0 gives no owner lease and the player projectile service
+  rejects it. Output5875 stays0; recall fails. Correct an earlier resource-parser
+  hypothesis with actual fired-call/return evidence. No guessed lease/ballistic/
+  teleport fallback was added. Full static goal ACTIVE;
+  shared-main integration, publication and original-client acceptance remain open.
+
 #### McCree melee static-wall occlusion
 
 - Prevent quick melee from damaging targets through static walls: retain the

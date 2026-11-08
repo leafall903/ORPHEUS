@@ -78,14 +78,6 @@ class BotWorld(runtime.World):
                     owner = target.owner
                     return (getattr(owner, "spawner", {}).get("manual_spawn") is True
                             and not owner.dead and owner.firing)
-            if cfg.get("$") == "STU_4BD39CFD" and instance.graph.index in (0x13EB, 0x1122, 0x1134):
-                # Explicit manual-NPC numeric difficulty selection. The fixture
-                # supplies9948; absent selection uses the declared first profile.
-                values = cfg.get("m_814F8EC3") or {}
-                if values.get("$") == "STU_06610EBC":
-                    rows = values.get("m_configVars") or ()
-                    index = expr.to_int(instance.evaluate(cfg.get("m_index")))
-                    return instance.evaluate(rows[index]) if 0 <= index < len(rows) else None
             if cfg.get("$") == "STU_E72F6348" and instance.graph.index == 0x0B1F:
                 entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
                 return any(t.entity == entity for t in self.combat._targets())

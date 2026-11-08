@@ -176,10 +176,13 @@ mission/difficulty totals. Variable221 is shields, not armour. Initial OWN_HEALT
 now receives all pools rather than health alone. Sniper's declared manager and
 weapon slots are mounted by BotScript; its body roots alone contain no gun.
 
-The manual host provides three scoped query adapters only in13EB/1122/1134:
-living-body eligibility for the authored >0 check, explicit manual engagement
-permission, and indexed authored numeric profile rows. They are reconstructed
-host inputs, not general native query identities or autonomous AI acceptance.
+The manual host provides two scoped query adapters only in13EB/1122/1134:
+living-body eligibility for the authored >0 check and explicit manual engagement
+permission. These remain reconstructed host inputs, not general native query
+identities or autonomous AI acceptance. The former lane-only numeric profile
+shortcut is removed: the shared native-backed STU_4BD39CFD selector now evaluates
+its scalar index and collecting array container, with watchers and null/bounds
+semantics. A chosen profile is still explicit fixture data, not mission difficulty.
 The fixture explicitly sets9948=0. Enforcer's first actual pool loss is2 at
 profile0 and4 at profile1; complete shotgun pellets/spread are still OPEN.
 BotWorld uses the same explicit character-silence policy and stores its enclosing
@@ -254,6 +257,45 @@ path to damage, rather than a hidden hitscan report needing consumption. The
 actual damage nodes occur in1157 (button36/target536) and13C3 (message09C6),
 with native AI/dataflow/targeting services still absent. These paths remain OPEN;
 no flat primary damage or synthetic skill activation was added to hide the gap.
+
+Canonical parent foundation reuse
+----------------------------------
+Reviewed parent d1286b7 now provides create_body_graphs for both player and NPC
+bodies, including sparse slots, manager/weapon allocation before initialization
+and a default empty slot. The duplicated lane allocation block is removed.
+Parent6debff3 supplies the original-backed array selector (its independent native
+15-case comparison is described in CONFIG_ARRAY_SELECTION.txt); this lane reruns
+its5 Python tests and actual Enforcer profile/pool-loss cases. Parent7cd1ed7's
+capsule_visible now supplies the sole shared static melee LOS policy. The lane
+retains authored ModifyHealth damage tags, avoiding two separate LOS checks.
+All replays are confined to this clone; shared source and runtime are untouched.
+The reconciled checkpoint passes305 distinct checks:267 combat/NPC/shared-script
+and38 passive VM/server snapshot checks, including a final source-fixed complete
+stored replay (452.388s for the snapshot group). The83-case targeted suite also
+passes; those repeats are excluded from the total. Ruff and diff checks pass.
+
+Translocator execution frontier
+-------------------------------
+Actual command mask10 reaches0C19's cast and volley7. Its definition config
+STU_8556841E already evaluates to Asset(0400000000001575). The verified stop is
+later: m_45271E8C=0 means the projectile is not locally predicted, so no owner
+lease is allocated. Projectiles.fired rejects a player shot without that lease,
+returns None and creates no entity; output5875 stays0 and recall never moves the
+body. One real consumed volley report and one rejected fired call prove this
+frontier. An earlier interpretation blaming the resource wrapper was corrected
+by instrumenting the actual request/return; no resource parser was changed.
+The next missing service is server-owned, non-local-predicted player projectile
+lifecycle/replication, then live entity output/existence/position, authored physics/
+landing/bounce, lifetime/destruction and recall destination/actions. Do not enable
+a guessed owner lease or substitute straight Helix flight/flat teleport to hide
+the missing service. External evidence: translocator-frontier.json.
+Read-only existing XML also supplies entity1575's initial graph0C1A, absent from
+the normal runtime closure. Its45-node additive record is retained outside Git
+in translocator-entity-research.json. Plain-component startup reaches node23's
+HealthPool with authored amount5, but this is still a generic State and creates
+no live health pool. This confirms a second missing entity health service; it is
+not Match combat/physics acceptance. No game archive, shared input or runtime was
+copied or modified to produce this incremental research record.
 
 Reproduce offline tests (PowerShell, from this lane's source directory)
 --------------------------------------------------------------------

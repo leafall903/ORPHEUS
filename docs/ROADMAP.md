@@ -26,6 +26,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   pistol/melee damage, allies/LOS, timed Hack ownership and corpse persistence.
   Four firearm NPCs cause reverse damage; Assassin attacks remain open. Enforcer
   Hack requires an explicitly released host flag, whose native transition is open.
+  Canonical parent weapon allocation, native-backed numeric array selection and
+  static melee visibility now replace duplicated lane implementations.
   Eleven EMP methods and one simultaneous five-NPC pulse method exercise actual
   charge/cast/search/application timing, character-shield drain, source ownership,
   silence/expiry/recast and death-before-pulse. Body search and shield scope are
