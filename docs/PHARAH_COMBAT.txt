@@ -150,9 +150,23 @@ Reinhardt graph0095 declares max#587=1600, but current#586 remains0 after startu
 and shield input in the present VM. Its health initialization/regen/native bridge
 is not restored. Zarya self-Pet13F4/effect00A2.053 resolves to missing effect
 graph025D, now exported separately for inspection; no base bubble HP is inferred.
+Diagnostic override of only native query295F1CDE in graph0095 to explicit1.0
+lets the authored initializer set current#586 and saved#1616 to1600. Holding
+shield input reaches Pet state17, but output entity#38 stays None: the present
+VM has no Pet creator. This override is diagnostic only and is not production
+code or proof of a normal-game multiplier. On release #38 becomes0. Both the
+native scalar and real Pet/health bridge must be restored before interception.
 Physical shield placement, health, interception, projected bubbles and their
 resource/defense interactions remain OPEN. These three geometry tests and the
 selected-asset exporter are prerequisites, not completed skill interactions.
+
+Additional melee acceptance
+Four real-input tests cover friendly-player exclusion with no hit/charge,
+front edge +/-2mm and behind misses in the reconstructed sphere/capsule adapter,
+held-button versus rapid presses across recovery, and death ending the active
+damage state/rejecting fresh presses. All56 Pharah-module cases pass with the
+five-NPC pack and zero skips. The boundary test does not validate native hitboxes;
+melee defenses, control interruption and exact native tracking remain open.
 
 Original-client status
 Existing PID 12292 / window 守望先锋 was observed without an accompanying lane

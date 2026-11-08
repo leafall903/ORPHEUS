@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Additional Pharah melee acceptance
+
+- Four real-input tests cover ally exclusion without hit/charge, the reconstructed
+  sphere/capsule boundary and behind miss, held/spammed input recovery, and active
+  melee termination/new-press rejection on death. Native hitbox and defense/control
+  fidelity remain open; no combat behavior is substituted by these tests.
+- Diagnose Reinhardt0095 initialization: explicit diagnostic native-query295F1CDE
+  value1 lets authored current/saved health become1600, but Pet state17 creates no
+  entity. Record both missing bridges; do not install this scalar as native fact.
+- All56 Pharah-module cases pass with the external five-NPC pack and zero skips.
+  Ruff/diff checks pass. Full static goal, original-client acceptance and publication
+  remain open; this lane exports a candidate for parent integration.
+
 #### Attached shield geometry and selected-asset inspection
 
 - Add a selected-asset XML/raw reader with explicit local tool version, build104319
