@@ -49,7 +49,7 @@ Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
   without spending;1680 spends once, waits1000ms and emits one initial arrow.
   It removes125HP from an enemy player. Repeated Q creates no second arrow;
   Q release lets the cast finish. Death before emission prevents its damage.
-- Actual dragon continuation and charge-generation rules are still unaccepted.
+- Native dragon continuation and charge-generation rules are still unaccepted.
   The existing60s debug passive refill is not a verified native rule, and manual
   ultimate graphs currently lack a complete active-cast refill lockout.
 - The profile extractor follows104319 XML through0BA6/0132/status0040.053/0118.
@@ -58,6 +58,38 @@ Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
   preserve seven target trackers, literals20/12/4/5, core factor0.6 and damage
   quantities300/150. Damage-rate units, overlap refresh and target volume are
   explicitly unverified; this resource inspection does not prove dragon damage.
+
+Explicit reconstructed moving dragons (test_game_hanzo_dragons.py):
+- Load the separately extracted JSON using dragon.load_profile(path,
+  reconstructed_rates=True), then call match.combat.configure_dragonstrike(profile)
+  before active projectiles. No profile is mounted by normal startup yet. The
+  server host requires no game archive/DLL at runtime. JSON/source data stays
+  outside Git and outside the shared normal runtime.
+- Initial034F uses the source hit-limit literal99 as reconstructed body piercing:
+  hit multiple bodies once each, then transform after10m or static impact. A
+  fractional birth tick prevents duplicate-world-tick updates from prematurely
+  transforming the arrow and preserves delayed-scheduler flight time.
+- Reconstruct seven sphere centres,12m/s travel,4m radius,5m section spacing,
+  20s lifetime and a1m forward gate. Target capsules are the existing approximate
+  server hitboxes. Central300/outer150 amounts are interpreted as per-second
+  rates; the core radius is4*0.6. Per16ms midpoint sampling applies one status
+  dose per target even where sections overlap. These are declared reconstructed
+  geometry/rate/refresh rules, not native engine or status execution.
+- Actual Q input creates moving damage that kills an enemy player20m away and
+  damages all five catalog NPC bodies. Ally and off-axis cases take no damage.
+  An initial wall impact creates dragons that damage a Heavy Assault beyond it.
+  Centre and fringe doses are4.8/2.4HP per16ms in the unarmoured fixtures.
+- Launched damage survives caster death/body replacement and retains the original
+  source-body ID in health/death notices. Source leave and20s expiry retire it.
+  Stationary NPC fixtures agree under continuous and skipped updates; lifetime
+  does not restart at the late scheduler boundary. Terminal callbacks/corpse
+  retention continue through the existing NPC death path.
+- Profile values, source identity, birth time, hit identities and flight age are
+  registered in stored state. Changes to profile/age change the snapshot digest.
+- Remaining: normal startup/profile mounting, client dragon entities/effects,
+  native volume/rate/refresh fidelity, moving-target catch-up fidelity, armour
+  cadence and barrier/reflect/absorb/invulnerability/control interactions. This
+  does not establish complete Dragonstrike or full static hero acceptance.
 
 Explicit five-NPC fixtures (test_game_hanzo_npc.py):
 - Review/import parentc2d3ae1/a15d554 privately as0c05d99/307feba. Read only the
@@ -87,7 +119,8 @@ Storm count/body damage/death        P      P       P        P      P        P
 Sonic direct damage                  P      P       P        P      P        P
 Sonic reveal/faction/attachment       O      O       O        O      O        O
 Quick melee                          P      P       P        P      P        P
-Dragonstrike complete                O      O       O        O      O        O
+Dragonstrike arrow/moving damage     P      P       P        P      P        P
+Dragonstrike full interaction matrix O      O       O        O      O        O
 Incoming weapon damage/death          P      P       O        P      O        P
 Incoming abilities/ultimate/control  O      O       O        O      O        O
 Barrier/reflect/absorb/invulnerability O     O       O        O      O        O
@@ -97,10 +130,10 @@ audio, health/ultimate HUD, hit/kill feed and cross-client agreement are OPEN.
 No support/healing semantics are changed by this patch.
 
 Concrete blockers:
-- Dragonstrike's initial arrow now works through the explicit reconstructed
-  phase. The initial034F projectile is20m/s,10m range,125 direct damage; its
-  later dragon entity, travel, wall/barrier penetration and periodic damage
-  remain unhosted. Passing its initial arrow does not establish the ultimate.
+- Dragonstrike's initial arrow and explicit reconstructed moving damage now
+  execute. Native entities/effects, rate/volume/refresh fidelity, charge rules
+  and the defensive/status matrix remain open. The host must be configured
+  with the separate external profile; normal startup is not wired yet.
   Read-only research now identifies034F's missing graph0BA6, which creates
   entity02BA and plays0132 on it. Both graph records were extracted under lane
   storage for further research, never written to the shared runtime or Git.

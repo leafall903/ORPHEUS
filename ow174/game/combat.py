@@ -48,9 +48,9 @@ What the server decides here:
 import logging
 import math
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, dragon, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -350,6 +350,10 @@ class Rocket:
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
     gravity: float = 0.0  # authored E1A5B579 acceleration; +Y is up (reconstructed motion)
+    continuation: dragon.Profile | None = None
+    source_entity: int | None = None
+    started_tick: float | None = None
+    hit_entities: set[int] = field(default_factory=set)
 
 
 class Combat:
@@ -361,6 +365,8 @@ class Combat:
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
+        self.dragon_profile: dragon.Profile | None = None
+        self.dragons: list[dragon.Flight] = []
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.now = 0.0
@@ -371,6 +377,12 @@ class Combat:
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
+
+    def configure_dragonstrike(self, profile: dragon.Profile) -> None:
+        """Mount an explicit external reconstructed profile before combat starts."""
+        if not isinstance(profile, dragon.Profile) or self.rockets or self.dragons:
+            raise ValueError("configure a validated dragon profile before active projectiles")
+        self.dragon_profile = profile
 
     def is_dead(self, player) -> bool:
         vitals = self.vitals.get(player.body) if player.has_body else None
@@ -501,6 +513,7 @@ class Combat:
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
+            self.dragons[:] = [flight for flight in self.dragons if dragon.advance(self, flight, at)]
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
@@ -664,6 +677,11 @@ class Combat:
                 blast is not None and blast.amount > 0.0
             )
             if damaging or shot is not None:
+                continuation = self.dragon_profile
+                if (continuation is None or not isinstance(definition, expr.Asset)
+                        or definition.guid != continuation.initial_definition or npc
+                        or shooter.hero.guid != dragon.HANZO):
+                    continuation = None
                 gravity = 0.0
                 for motion in node.field("m_projectileMotions") or ():
                     if motion.get("$") == "STU_E1A5B579":
@@ -673,6 +691,9 @@ class Combat:
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
                         gravity=gravity,
+                        continuation=continuation, source_entity=_source_entity(shooter),
+                        started_tick=self.tick + time % state.instance.component.frame_ms
+                        / state.instance.component.frame_ms,
                     )
                 )
             return
@@ -713,9 +734,17 @@ class Combat:
         if elapsed <= 0:
             return
         rocket.last_tick = self.tick
+        if rocket.continuation is not None and getattr(rocket.shooter, "gone", False):
+            self._landed(rocket, continue_flight=False)
+            return
         duration = min(elapsed * TICK, rocket.left)
+        if rocket.started_tick is None:
+            rocket.started_tick = self.tick - elapsed
+        if rocket.continuation is not None:
+            duration = min(duration, max(0.0, (self.tick - rocket.started_tick) * TICK - rocket.flown))
         if duration <= 0.0:
-            self._landed(rocket)
+            if rocket.left <= 0.0:
+                self._landed(rocket)
             return
         # Approximate an authored ballistic path with at most one world tick per
         # chord, also across scheduler gaps. Constant acceleration uses the exact
@@ -737,6 +766,8 @@ class Combat:
         direction = tuple(value / step for value in displacement) if step > EPSILON else rocket.direction
         best = None
         for target in self._enemies(rocket.shooter):
+            if target.entity in rocket.hit_entities:
+                continue
             a, b = target.segment()
             t = ray_capsule(rocket.position, direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
@@ -756,17 +787,33 @@ class Combat:
                 self._landed(rocket)
             return
         t, struck = best
-        rocket.flown += duration * t / step if step > EPSILON else 0.0
-        self._landed(rocket)
+        travelled = duration * t / step if step > EPSILON else 0.0
+        rocket.flown += travelled
         point = _along(rocket.position, direction, t)
+        rocket.position = point
+        pierce = (struck is not None and rocket.continuation is not None
+                  and len(rocket.hit_entities) + 1 < rocket.continuation.initial_hit_limit)
+        if not pierce:
+            self._landed(rocket)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
+            impact_tick = (self.tick if rocket.continuation is None else min(
+                self.tick, math.ceil(rocket.started_tick + rocket.flown / TICK - EPSILON),
+            ))
             self._damage(
                 rocket.shooter, struck,
                 rocket.direct.amount * (rocket.direct.critical if critical else 1.0),
-                critical and rocket.direct.critical > 1.0, rocket.direct.loadout, self.tick,
-                world_tick=self.tick,
+                critical and rocket.direct.critical > 1.0, rocket.direct.loadout, impact_tick,
+                world_tick=impact_tick,
+                source_entity=rocket.source_entity,
             )
+        if pierce:
+            rocket.hit_entities.add(struck.entity)
+            rocket.left -= travelled
+            remaining = duration - travelled
+            if remaining > EPSILON:
+                self._fly_step(rocket, remaining)
+            return
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
@@ -777,13 +824,22 @@ class Combat:
             if scalar > 0.0:
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
-                    world_tick=self.tick,
+                    world_tick=self.tick, source_entity=rocket.source_entity,
                 )
 
-    def _landed(self, rocket: Rocket) -> None:
+    def _landed(self, rocket: Rocket, *, continue_flight: bool = True) -> None:
         """The projectile ended (hit, range, lifetime): the predicted one's release follows."""
         if rocket in self.rockets:
             self.rockets.remove(rocket)
+            if continue_flight and rocket.continuation is not None:
+                born = (self.tick if rocket.started_tick is None
+                        else rocket.started_tick + rocket.flown / TICK)
+                self.dragons.append(dragon.Flight(
+                    rocket.shooter, rocket.source_entity or _source_entity(rocket.shooter), rocket.team,
+                    rocket.position, rocket.direction, rocket.continuation, born,
+                    # Fractional birth tick lets a late scheduler catch up the
+                    # continuation instead of restarting its lifetime now.
+                ))
         if rocket.shot is not None:
             self.projectiles.flown(rocket.shot, rocket.flown)
 
@@ -824,7 +880,7 @@ class Combat:
 
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
-        *, world_tick: int | None = None,
+        *, world_tick: int | None = None, source_entity: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
@@ -835,9 +891,9 @@ class Combat:
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0
-            vitals.died_at = self.now
+            vitals.died_at = self.now if world_tick is None else self.now - (self.tick - world_tick) * TICK
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
-            vitals.killer = _source_entity(shooter)
+            vitals.killer = _source_entity(shooter) if source_entity is None else source_entity
         if not isinstance(shooter, bots.Bot):
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
@@ -845,11 +901,11 @@ class Combat:
         victim = target.owner
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
-            self._bot_died(shooter, victim, critical, loadout, vitals.death_tick)
+            self._bot_died(shooter, victim, critical, loadout, vitals.death_tick, source_entity=source_entity)
             return
         self._sync_body_health(victim, vitals)
         if killed:
-            self._died(shooter, victim, critical, loadout)
+            self._died(shooter, victim, critical, loadout, source_entity=source_entity)
 
     def _tell_hit(self, shooter, target: Target, dealt: float, flags: int, frame: int) -> None:
         """25001 to the shooter: the hit marker and the target's health bar (frame: the shot's)."""
@@ -859,13 +915,13 @@ class Combat:
         }
         self._queue_notice(shooter, target.owner, target.entity, HIT, value)
 
-    def _kill_notice(self, killer, victim) -> None:
+    def _kill_notice(self, killer, victim, *, source_entity: int | None = None) -> None:
         """25005 to the killer: "ELIMINATED: <name>" (1126.07C; +0x89 assist would be 01F0.07C, +0x88 a
         score shown when above 0). Its handler (0x7FF7895D2B50) reads only +0x84, +0x88 and +0x89."""
         entity = _source_entity(victim)
         notice = {
             "+0x78": 0,
-            "+0x80": {"+0x0": killer.body},
+            "+0x80": {"+0x0": killer.body if source_entity is None else source_entity},
             "+0x84": {"+0x0": entity},
             "+0x88": 0,
             "+0x89": False,
@@ -881,30 +937,33 @@ class Combat:
         client.queue_combat_notice(entity, msg_id, value)
 
     @staticmethod
-    def _death_parameters(killer, critical: bool, loadout) -> dict:
+    def _death_parameters(killer, critical: bool, loadout, source_entity: int | None = None) -> dict:
         return {
-            KILLER: expr.Entity(_source_entity(killer)),
+            KILLER: expr.Entity(_source_entity(killer) if source_entity is None else source_entity),
             CRIT: bool(critical),
             LOADOUT: expr.Asset(loadout) if loadout else None,
             ASSISTS: (),
         }
 
-    def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int) -> None:
+    def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int,
+                  *, source_entity: int | None = None) -> None:
         bot.died(tick)
         if not bot.retain_corpse:
-            self.respawns.append((self.now + BOT_RESPAWN, bot))
+            died_at = self.now - (self.tick - tick) * TICK
+            self.respawns.append((died_at + BOT_RESPAWN, bot))
         if not isinstance(killer, bots.Bot):
             killer.stats.add(stats.ELIMINATIONS)
-            self._kill_notice(killer, bot)
+            self._kill_notice(killer, bot, source_entity=source_entity)
         log.info("[game] %s: %s killed %s", self.match.label(), killer.name, bot.name)
         script = bot.body_script
         if script is None:
             return
         try:
-            params = self._death_parameters(killer, critical, loadout)
+            params = self._death_parameters(killer, critical, loadout, source_entity)
             if isinstance(script, BotScript):
                 tick = max(tick, script.frame)
-            event = script.die(tick, params, _source_entity(killer))
+            source = _source_entity(killer) if source_entity is None else source_entity
+            event = script.die(tick, params, source)
         except Exception:
             bot.body_script = None
             log.exception("[game] %s: %s's body script failed on %X", self.match.label(), bot.name, DIED)
@@ -928,16 +987,16 @@ class Combat:
                 if viewer.client is not None:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
-    def _died(self, killer, victim, critical: bool, loadout) -> None:
+    def _died(self, killer, victim, critical: bool, loadout, *, source_entity: int | None = None) -> None:
         """A player died: the notices, his body script's "died" (the kill feed line), and the respawn."""
         label = self.match.label()
         log.info("[game] %s: %s killed %s", label, killer.name, victim.name)
         victim.stats.add(stats.DEATHS)
         bot_killer = isinstance(killer, bots.Bot)
-        source = _source_entity(killer)
+        source = _source_entity(killer) if source_entity is None else source_entity
         if killer is not victim and not bot_killer:
             killer.stats.add(stats.ELIMINATIONS)
-            self._kill_notice(killer, victim)
+            self._kill_notice(killer, victim, source_entity=source_entity)
         if victim.client is not None:
             how = KILLED_BY if killer is not victim else 0
             notice = {"+0x78": how, "+0x7C": {"+0x0": source}}
@@ -949,14 +1008,16 @@ class Combat:
         if script is not None:
             try:
                 component = script.component
-                params = self._death_parameters(killer, critical, loadout)
+                params = self._death_parameters(killer, critical, loadout, source_entity)
                 if runtime.send_message(component, DIED, params, source):
                     # The server owns the death event. Run it before the observer snapshot even
                     # if the victim sends no further commands.
                     component.run_now()
             except Exception:
                 log.exception("[game] %s: %s's body script failed on %X", label, victim.name, DIED)
-        self.respawns.append((self.now + respawn_seconds(self.match), victim))
+        vitals = self.vitals.get(victim.body)
+        died_at = vitals.died_at if vitals is not None and vitals.died_at is not None else self.now
+        self.respawns.append((died_at + respawn_seconds(self.match), victim))
 
     def _respawn(self, who) -> None:
         if isinstance(who, bots.Bot):

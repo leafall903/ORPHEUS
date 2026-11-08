@@ -97,6 +97,10 @@ def extract(folder, enums, status_effect):
                                              "m_60DB8F99": 0, "m_EE729DCB": 0}]
             or len(ratio.get("m_D99EF254") or []) != 1):
         raise ValueError("dragon core-radius expression changed")
+    forward = fields(effect, 6, "STUStatescriptStateBooleanSwitch")["m_condition"]["m_expression"]
+    if (forward.get("m_opcodes") != [14, 0, 8, 0, 24, 8, 1, 55, 6, 0, 36, 0]
+            or len(forward.get("m_D99EF254") or []) != 1):
+        raise ValueError("dragon forward gate changed")
     return {
         "format_version": 1, "hero": "0x02E0000000000005", "source_sha256": sources,
         "cast_seconds_literal": constant(phase["m_ED97A97C"]),
@@ -106,6 +110,7 @@ def extract(folder, enums, status_effect):
             "range": constant(initial["m_FEC435C6"]),
             "lifetime": constant(initial["m_projectileLifetime"]),
             "damage": constant(initial["m_6396149F"]["m_modifyHealth"]["m_amount"]),
+            "body_hit_limit_literal": constant(initial["m_6396149F"]["m_B4454CD7"]),
         },
         "dragon": {
             "definition": create["m_entityDefinition"]["m_entityDef"],
@@ -113,6 +118,7 @@ def extract(folder, enums, status_effect):
             "tracking_nodes": sorted(tracks), "status_definition": effects[0],
             "status_graph": "0x0580000000000118",
             "core_radius_factor": ratio["m_D99EF254"][0],
+            "forward_gate_literal": forward["m_D99EF254"][0],
             "central_amount_literal": constant(central["m_amount"]),
             "outer_amount_literal": constant(outer["m_amount"]),
             "central_FB3F6CA9": central["m_FB3F6CA9"],

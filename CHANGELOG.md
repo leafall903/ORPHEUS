@@ -6,6 +6,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Explicit reconstructed moving Dragonstrike damage
+
+- Add a validated external profile loader and explicit per-Match mounting API.
+  Source literals drive a20s/12m/s,seven-section moving host. Declare300/150
+  per-second rates, sphere/capsule sampling and overlap deduplication as
+  reconstructed policy; no native0132/0118 engine execution is claimed.
+- Continue the initial arrow through distinct bodies using literal99, then
+  transform at10m/static impact. Dragons ignore static walls, exclude allies,
+  apply continuing damage through real health/death/NPC terminal paths and
+  preserve original source-body attribution after caster death/body changes.
+  Fractional birth/admission time prevents duplicate-tick early transformation
+  and lifetime extension across skipped updates. Register new causal state.
+- Fourteen new scenarios cover actual players/all five catalog NPCs, piercing,
+  hit/miss/faction/walls, core/fringe doses, overlap, lifetime, source leave,
+  caster death/body change, corpse retention and stored-state changes. Pass571
+  game tests with explicit external profile/NPC inputs and eight stored-state
+  tests. Pass79 focused combat/projectile/dragon tests after applying the same
+  fixed source identity to splash damage. Ruff/diff checks pass. Fix a found
+  no-vitals self-death-notice regression;
+  its focused check and duplicate-world-tick regression both pass.
+- Normal startup does not mount the profile yet. Native/client entity/effect
+  replication, volume/rate/refresh fidelity, moving-target catch-up, armour
+  cadence, barrier/reflect/absorb/invulnerability and full skills/charge rules
+  remain OPEN. The complete static goal stays active; no merge/publication.
+
 #### Reconstructed Hanzo initial Dragonstrike phase
 
 - Add an explicitly reconstructed54FEB21C literal-duration phase for the

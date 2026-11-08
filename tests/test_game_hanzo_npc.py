@@ -67,7 +67,7 @@ class HanzoCatalogNpcTests(unittest.TestCase):
         for module in (bodytrace, movelog):
             self.enterContext(patch.object(module, "ENABLED", False))
 
-    def arena(self, definition, action, situation):
+    def arena(self, definition, action, situation, *, distance=None, lateral=0):
         run = Run()
         match = run.match
         match.bots.clear()
@@ -76,8 +76,9 @@ class HanzoCatalogNpcTests(unittest.TestCase):
         hero.client = NpcFixtureClient(hero)
         match.switch_hero(hero, heroes()[HANZO])
         x, y, z = hero.mover.position
-        distance = 2 if action == "melee" else 5
-        bot = npc.spawn(match, definition, (x, y, z + distance),
+        if distance is None:
+            distance = 2 if action == "melee" else 5
+        bot = npc.spawn(match, definition, (x + lateral, y, z + distance),
                         team=hero.team if situation == "ally" else 1 - hero.team)
         self.assertEqual(bot.body, definition.body)
         self.assertIsNotNone(bot.body_script)
