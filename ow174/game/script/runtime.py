@@ -449,6 +449,17 @@ class World:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
+    def track_body_targets(self, state: "State"):
+        """Explicit reconstructed body search, or NotImplemented for unsupported searches."""
+        return NotImplemented
+
+    def track_body_ray(self, state: "State"):
+        """Explicit body ray result (visible, point), or NotImplemented."""
+        return NotImplemented
+
+    def play_body_script(self, instance: "Instance", node: Node) -> None:
+        """Optional reconstructed body routing, separate from strict scene services."""
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
 

@@ -15,10 +15,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 ## Project-wide checklist
 
 - [ ] Restore Sombra's complete player/five-NPC bidirectional combat and every
-  ability/ultimate/status with original-client presentation. Eighteen offline Match
+  ability/ultimate/status with original-client presentation. Twenty-six offline Match
   scenarios cover selected pistol/melee/pool/death behavior, including a shared
   static melee occlusion fix and authored damage-triggered Camo interruption.
-  Camo movement/cancel/cooldown gates have partial evidence. Hack, full Camo,
+  Camo movement/cancel/cooldown and Hack acquisition/channel/application/cooldown
+  gates have partial evidence. A real post-Hack enemy Helix still fires: actual
+  ability lockout is open. Complete Hack, full Camo,
   Translocator, EMP, headshots, dynamic
   defenses, actual five-NPC combat and native acceptance remain open. See
   [Sombra combat restoration](SOMBRA_COMBAT.txt).

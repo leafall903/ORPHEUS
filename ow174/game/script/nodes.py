@@ -1813,12 +1813,93 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Use an explicit body search service; unsupported searches retain the empty result.
+
+    Selection geometry and engine filters belong to the declared world service.
+    Only the result variable and target-list payload are hosted here.
+    """
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.selected_at = {}
+        self.target_var = None
+
+    def on_begin(self):
+        selected = self.instance.component.world.track_body_targets(self)
+        if selected is NotImplemented:
+            return
+        self.targets = tuple(selected)
+        self.selected_at = dict.fromkeys(self.targets, self.now)
+        target = lvalue(_field(self, "m_8A2905A0"))
+        if target is not None:
+            self.target_var = self.link(target)
+        self.ticks()
+
+    def tick(self):
+        selected = self.instance.component.world.track_body_targets(self)
+        if selected is NotImplemented:
+            return
+        selected = tuple(selected)
+        before = self.target_var.value() if self.target_var is not None else None
+        self.selected_at = {entity: self.selected_at.get(entity, self.now) for entity in selected}
+        self.targets = selected
+        if self.target_var is not None:
+            self.instance.changed(self.target_var, before)
+
+    def output(self, slot):
+        return tuple(expr.Entity(entity) for entity in self.targets)
+
+    def on_end(self, finished):
+        if self.target_var is not None:
+            var, self.target_var = self.target_var, None
+            self.unlink(var)
+        self.targets = ()
+        self.selected_at.clear()
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((entity, self.now - self.selected_at[entity]) for entity in self.targets)}
+
+
+@state_class("STUStatescriptStateTrackRay")
+class TrackBodyRay(State):
+    """Reconstructed body-ray outputs hosted only by an explicit world provider."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.result = (False, None)
+        self.outputs = []
+
+    def on_begin(self):
+        result = self.instance.component.world.track_body_ray(self)
+        if result is NotImplemented:
+            return
+        self.result = result
+        config = _field(self, "m_target") or {}
+        for slot, key in enumerate(("m_692DFF72", "m_F2F8606D")):
+            target = lvalue(config.get(key))
+            if target is not None:
+                self.outputs.append(self.link(target, slot))
+        self.ticks()
+
+    def tick(self):
+        result = self.instance.component.world.track_body_ray(self)
+        if result is NotImplemented:
+            return
+        before = [var.value() for var in self.outputs]
+        self.result = result
+        for var, value in zip(self.outputs, before, strict=True):
+            self.instance.changed(var, value)
+
+    def output(self, slot):
+        return self.result[slot]
+
+    def on_end(self, finished):
+        for var in self.outputs:
+            self.unlink(var)
+        self.outputs.clear()
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -2187,7 +2268,23 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.play_body_script(instance, node)
     instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_22926252")
+def retire_hack_application(instance: Instance, node, caller) -> bool:
+    """Reconstructed termination for Sombra's authored application graph only.
+
+    Its duration/death/replacement branches all terminate at this action. Full
+    native action semantics for other graphs remain outside this body adapter.
+    """
+    if instance.component.strict:
+        instance.component.unsupported(instance, "body application termination", node.cls, node)
+    if instance.graph.index == 0x0B1F:
+        instance.component.destroy(instance)
     return True
 
 

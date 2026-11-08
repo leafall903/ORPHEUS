@@ -594,6 +594,88 @@ class Combat:
             found.append(target)
         return found
 
+    def track_body_targets(self, player, state):
+        """Reconstructed capsule/LOS acquisition for Sombra's three weapon searches.
+
+        Hero/NPC bodies only. Authored health-pack/tag/engine immunity filters,
+        hardpoint geometry and aim-assist scoring still require separate services.
+        """
+        if (player.hero.guid != 0x02E000000000012E or state.instance.graph.index != 0x0B1B
+                or state.node.pos not in (50, 52, 68)):
+            return NotImplemented
+        if self.is_dead(player):
+            return ()
+        radius = _number(state.evaluate(state.node.field("m_radius"), watch=False), 0.0)
+        origin, direction = self._eye(player), aim(player.mover.yaw, player.mover.pitch)
+        locked = state.instance.find_var(graph.INSTANCE, 375).value()
+        locked_ids = {expr.to_entity(value) for value in locked} if isinstance(locked, tuple) else set()
+        found = []
+        for target in self._enemies(player):
+            if state.node.pos == 52 and target.entity not in locked_ids:
+                continue
+            a, b = target.segment()
+            nearest = (a[0], max(a[1], min(b[1], origin[1])), a[2])
+            offset = _sub(nearest, origin)
+            distance = math.sqrt(_dot(offset, offset))
+            if distance - target.radius > radius:
+                continue
+            if state.node.pos == 52:
+                if _dot(offset, direction) <= 0 or distance <= EPSILON:
+                    continue
+                ray = tuple(axis / distance for axis in offset)
+                hit = max(0.0, distance - target.radius)
+            else:
+                ray = direction
+                hit = ray_capsule(origin, ray, a, b, target.radius)
+                if hit is None or hit > radius:
+                    continue
+            wall = ray_world(self._collision(), origin, ray, hit)
+            if wall is None or wall >= hit:
+                found.append((hit, target.entity))
+        return tuple(entity for _, entity in sorted(found)[:1])
+
+    def prepare_body_targets(self, player, command):
+        """Reconstruct Sombra's client-owned preselection from authoritative aim.
+
+        0B1B/node68 is client-only. The legacy input protocol has no implemented
+        target-intent consumer, so only its body/capsule selection is reconstructed
+        here. The server's channel/cooldown/application plugs remain authored.
+        """
+        if player.hero.guid != 0x02E000000000012E or self.is_dead(player):
+            return
+        script = player.body_script
+        if script is None or not command.buttons & 2:
+            return
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x0B1B:
+                continue
+            ability = instance.state(53)
+            selected = instance.find_var(graph.INSTANCE, 375).value()
+            if ability.flags & nodes.Ability.RUNNING and selected:
+                return
+            search = instance.node_state(instance.graph._by_pos[68])
+            entities = self.track_body_targets(player, search)
+            instance.write((graph.INSTANCE, 375), tuple(expr.Entity(entity) for entity in entities))
+
+    def track_body_ray(self, player, state):
+        """Reconstructed Hack beam visibility; animated hardpoint selection remains open."""
+        if (player.hero.guid != 0x02E000000000012E or state.instance.graph.index != 0x0B1B
+                or state.node.pos != 59):
+            return NotImplemented
+        entity = expr.to_entity(state.instance.find_var(graph.INSTANCE, 8909).value())
+        target = next((target for target in self._enemies(player) if target.entity == entity), None)
+        if target is None:
+            return False, None
+        origin = self._eye(player)
+        point = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
+        offset = _sub(point, origin)
+        distance = math.sqrt(_dot(offset, offset))
+        if distance <= EPSILON:
+            return True, expr.Vec3(*point)
+        direction = tuple(axis / distance for axis in offset)
+        wall = ray_world(self._collision(), origin, direction, max(0.0, distance - target.radius))
+        return wall is None, expr.Vec3(*point)
+
     def seen(self, target: Target, view_tick: float) -> Target | None:
         """Interpolate retained poses or use the nearest sample for a body that already existed."""
         replaced_at = self.replacement_ticks.get(target.entity)

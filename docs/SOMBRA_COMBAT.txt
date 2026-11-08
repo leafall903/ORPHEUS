@@ -3,7 +3,7 @@ Target: 1.74.0.0.104319; hero02E000000000012E; body040000000000121C.
 
 Evidence scope
 --------------
-The eighteen tests in tests/test_game_sombra_combat.py run the extracted Sombra
+The twenty-six tests in tests/test_game_sombra_combat.py run the extracted Sombra
 graphs in a real Match, consume command/button input and assert health, ammo,
 notices, death flags and statistics. FakeClient acknowledges delivery immediately;
 this is offline server behavior, not a native-client presentation/transport proof.
@@ -28,7 +28,7 @@ Machine Pistol range/falloff      O          -       -       -       -       -
 Machine Pistol headshots          -          -       -       -       -       -
 Quick melee/repeated activation   O          -       -       -       -       -
 Taking damage/death/dead fire     O          -       -       -       -       -
-Hack/channel/interrupt/lockout    -          -       -       -       -       -
+Hack/channel/interrupt/lockout    O          -       -       -       -       -
 Camo/speed/visibility/reveal      O          -       -       -       -       -
 Translocator/flight/recall        -          -       -       -       -       -
 EMP/charge/cast/hack/pool effects -          -       -       -       -       -
@@ -55,6 +55,16 @@ Additional applicable interactions:
   Zero damage does not interrupt. Authored excluded tag191F is preserved and
   causes real10-point damage without exiting Camo. Visibility/proximity reveal
   and status cleanup still remain open; speed evidence is not invisibility proof.
+- O: Hack acquires a real enemy body from input aim, observes its authored
+  channel delay, and queues0B1F on that body's actual component with caster
+  identity. Its positive application starts the authored8-second cooldown;
+  a fresh press during cooldown cannot reapply, and expiry permits another
+  application. Misses, walls, out-of-range and allied bodies are rejected;
+  release before the delay cancels. Concurrent enemy fire while Hack remains
+  held deals real damage, interrupts the channel and starts the authored2-second
+  interruption cooldown. These are acquisition/application/cooldown checks.
+  The target is NOT yet ability-locked: a real enemy Helix after application
+  still deals120 damage in the recorded external probe. Hack effects remain OPEN.
 
 Authored data versus reconstruction
 ----------------------------------
@@ -79,14 +89,39 @@ sender and ordering are reconstructed. Other event parameters and complete
 native damage-event fidelity are not established. No graph is forcibly stopped
 and the191F exception follows the original authored Camo branches.
 
+Hack reconstruction boundary
+----------------------------
+The original0B1B/node68 and its startup entry69 are client-only. This lane does
+not change their role flags. Before a held-secondary command enters the body
+VM, a body-only capsule/range/static-LOS search reconstructs preselection375
+from authoritative aim. Existing native server states52/59 then retain the
+chosen target, observe16m channel tolerance and beam visibility. Their linked
+outputs are provided explicitly; other hero/graph searches retain empty results.
+Animated hardpoints, aim-assist scoring and full search/filter policy are open.
+
+Only the exact authored0B1B/node204 body filter is mounted: known live enemies
+are required, then its original expression evaluates with candidate parameter8
+and live foreign body variable slots. Unknown native prediction/tag queries
+still have legacy fallback values. This is a reconstructed partial filter,
+NOT native immunity/visibility acceptance and NOT a general filter service.
+
+The authored PlayScript141 request is resolved through existing resource,
+parameter, policy and allocation helpers, then routed to the chosen live body
+component. Original caster parameters and source are preserved. Non-Sombra
+legacy action routing is unchanged. The0B1F termination action22926252 is
+hosted as a reconstructed instance retirement so its timeout/death/replacement
+branches can unlink ownership and permit a later application. Other instances
+do not gain guessed termination semantics. Complete native action fidelity is open.
+
 Implementation blockers
 -----------------------
-nodes.TrackTargets currently returns an empty tuple and performs no acquisition.
-Sombra0B1B has three such states; EMP0B31/node40 and Camo0C9B/node128 also
-contain searches. Their full filters, outputs, timing and engine role policy
-cannot be replaced by a generic enemy-in-radius loop without losing authored
-health-pack, immunity and status semantics. The legacy passive-State fallback
-does not prove the additional entity/status actions have any server effect.
+TrackTargets now hosts explicit results only for the three reconstructed Sombra
+weapon searches. EMP0B31/node40 and Camo0C9B/node128 remain unhosted. Full
+filters, outputs, timing and engine roles remain open, including health packs,
+immunity and status semantics. Actual0B1F currently reaches its fallback
+termination path and sets an ownership marker without creating ability lockout.
+Body tag/category queries and disable/control services must be implemented;
+creating the application instance is not acceptance of its hit effect.
 Combat._damage currently has no hero barrier, reflection, absorption or immunity
 service. It changes pools directly. Those cross-hero requirements are unaccepted.
 The parent owns actual five-NPC creation/control; its integration is still open

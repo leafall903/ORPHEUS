@@ -58,6 +58,84 @@ class SombraCombatTests(unittest.TestCase):
     def camo(self):
         return next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0C9B)
 
+    def hack_applications(self):
+        return [i for i in self.b.body_script.component.instances.values() if i.graph.index == 0x0B1F]
+
+    def test_hack_channel_queues_authored_application_and_starts_cooldown(self):
+        self.press(2, 20)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertEqual(self.weapon().vars[375].value(), (expr.Entity(self.b.body),))
+        self.press(2, 80)
+        applications = self.hack_applications()
+        self.assertEqual(len(applications), 1)
+        self.assertEqual(applications[0].source_entity(), self.a.body)
+        self.assertEqual(applications[0].vars[41].value(), (expr.Entity(self.a.body),))
+        self.assertEqual(self.b.body_script.component.entity_var(6396).value(), expr.Entity(self.a.body))
+        self.assertGreater(self.weapon().state(53).remaining(), 6)
+        self.assertEqual(self.health(self.b), 200)  # Hack is a status skill, not replacement damage.
+
+    def test_hack_miss_does_not_apply_or_spend_cooldown(self):
+        for _ in range(100):
+            self.run.step({self.a: (16384, 0, 2)})
+        self.assertEqual(self.hack_applications(), [])
+        self.assertFalse(self.weapon().vars[375].value())
+        self.assertEqual(self.weapon().state(53).remaining(), 0)
+
+    def test_hack_wall_rejects_acquisition_and_application(self):
+        self.wall()
+        self.press(2, 100)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertFalse(self.weapon().vars[375].value())
+        self.assertEqual(self.weapon().state(53).remaining(), 0)
+
+    def test_hack_outside_authored_range_rejects_application(self):
+        self.b.mover.position[:] = [0.0, 0.0, 18.0]
+        self.b.mover.body = None
+        self.press(0, 3)
+        self.press(2, 100)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertFalse(self.weapon().vars[375].value())
+        self.assertEqual(self.weapon().state(53).remaining(), 0)
+
+    def test_hack_rejects_an_allied_player(self):
+        self.run.match.game_map = KANEZAKA_DM.__class__(**{
+            **KANEZAKA_DM.__dict__, "free_for_all": False,
+        })
+        self.b.team = self.a.team
+        self.press(2, 100)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertEqual(self.weapon().state(53).remaining(), 0)
+
+    def test_hack_release_before_channel_finishes_does_not_apply(self):
+        self.press(2, 20)
+        self.press(0, 50)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertFalse(self.weapon().state(53).flags & self.weapon().state(53).RUNNING)
+
+    def test_hack_actual_received_damage_interrupts_channel(self):
+        self.press(2, 10)
+        yaw_a, pitch_a = aim(self.run.match.combat._eye(self.a), (0, 1, 1.5))
+        yaw_b, pitch_b = aim(self.run.match.combat._eye(self.b), (0, 1, 0))
+        self.run.step({self.a: (yaw_a, pitch_a, 2), self.b: (yaw_b, pitch_b, FIRE)})
+        self.press(2, 55)
+        self.assertEqual(self.health(self.a), 180)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertGreater(self.weapon().state(53).remaining(), 0)
+        self.assertLess(self.weapon().state(53).remaining(), 2)
+
+    def test_hack_cooldown_refuses_fresh_press_and_expires_for_reuse(self):
+        self.press(2, 100)
+        first = self.hack_applications()[0].id
+        self.press(0, 30)
+        before = self.weapon().state(53).remaining()
+        self.press(2, 60)
+        self.assertLess(self.weapon().state(53).remaining(), before)
+        self.assertEqual([i.id for i in self.hack_applications()], [first])
+        self.press(0, 520)
+        self.assertEqual(self.weapon().state(53).remaining(), 0)
+        self.press(2, 100)
+        self.assertTrue(any(i.id != first for i in self.hack_applications()))
+
     def test_camo_taking_actual_enemy_damage_ends_the_ability(self):
         self.press(8)
         self.press(0, 60)

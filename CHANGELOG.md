@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Sombra Hack targeting and application hosting
+
+- Reconstruct Sombra's client-owned body preselection from authoritative input
+  aim, capsule range and static LOS without changing extracted client-only roles.
+  Host the explicit target list and beam outputs for its server channel graph.
+  Preserve authored channel, release, damage interruption and cooldown behavior.
+- Route the exact authored0B1F PlayScript application through existing resource,
+  request, parameter and allocation helpers to the actual target component.
+  Preserve caster/source identities and retire its authored terminal instance.
+  Foreign body variables resolve through actual live components. Other legacy
+  graph searches and PlayScript actions retain their previous unsupported path.
+- Add eight Match behavior cases for channel delay/application identity, miss,
+  wall/range/allied rejection, early release, simultaneous enemy-fire interruption,
+  cooldown rejection and expiry/reuse. The filter/geometry/routing adapters are
+  reconstructed. Full native search, filters, roles and action fidelity are open.
+- Pass 137 Sombra/combat/NPC-script/projectile/PlayScript checks and 77 additional
+  body/driver/runtime/codec checks (214 total). Ruff and diff checks pass.
+- Explicitly keep Hack hit effects OPEN: a post-application enemy Helix still
+  fires and deals120 damage. The existing application follows its fallback
+  lifetime, sets ownership and does not yet create ability lockout. Body tag/
+  category and control services are still required. No native-client acceptance,
+  deployment, integration into shared main or publication is claimed.
+
 #### Authored Sombra Camo damage interruption
 
 - Carry ModifyHealth identifier tags through hitscan, melee, projectile direct

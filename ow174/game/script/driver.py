@@ -134,6 +134,59 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def track_body_targets(self, state):
+        if self.match is None:
+            return NotImplemented
+        player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        return self.match.combat.track_body_targets(player, state) if player is not None else NotImplemented
+
+    def track_body_ray(self, state):
+        if self.match is None:
+            return NotImplemented
+        player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        return self.match.combat.track_body_ray(player, state) if player is not None else NotImplemented
+
+    def body_component(self, entity):
+        if self.match is None:
+            return None
+        for target in self.match.combat._targets():
+            if target.entity == entity:
+                script = getattr(target.owner, "body_script", None)
+                return getattr(script, "component", None)
+        return None
+
+    def entity_var_slot(self, entity, var, *, create=False):
+        component = self.body_component(entity)
+        return component.entity_var(var, create=create) if component is not None else NotImplemented
+
+    def play_body_script(self, instance, node):
+        # Explicit initial restoration scope: Sombra's authored Hack application.
+        # Full legacy body routing is not inferred from the scene request model.
+        if self.match is None or self.hero != 0x02E000000000012E or instance.graph.index != 0x0B1B:
+            return
+        from ow174.game.script import play
+
+        resource = play.resolve_resource(instance, node)
+        if resource is None or resource.guid != 0x0580000000000B1F:
+            return
+        context = play.InvocationContext(self.body, self.body, self.body)
+        request = play.resolve_request(instance, node, resource, context_provider=lambda: context)
+        if request is None:
+            return
+        definition = graph.graph(resource.guid & 0xFFFFFFFFFFFF)
+        if definition is None:
+            return
+        for target in self.match.combat._targets():
+            if target.entity not in request.targets or self.match.combat.vitals_of(target).dead:
+                continue
+            script = getattr(target.owner, "body_script", None)
+            if script is not None:
+                script.component.play_loaded_graph(
+                    definition, source=request.context.caller, params=request.params,
+                    overrides=resource.overrides, policy=request.policy,
+                    instigator=request.context.instigator,
+                )
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
@@ -157,6 +210,18 @@ class BodyWorld(runtime.World):
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            if (self.match is not None and self.hero == 0x02E000000000012E
+                    and instance.graph.index == 0x0B1B
+                    and cfg is instance.graph._by_pos[204].field("m_condition")):
+                # Explicit reconstructed body-only filter. Keep the authored
+                # condition and candidate parameter scope; full native tags and
+                # prediction/visibility queries remain unavailable.
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                player = next((p for p in self.match.players if p.body == self.body and p.has_body), None)
+                if player is None or not any(t.entity == entity for t in self.match.combat._enemies(player)):
+                    return False
+                with instance.component.parameter_scope({8: Entity(entity)}):
+                    return expr.truthy(instance.evaluate(cfg["m_filter"].get("m_condition")))
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
