@@ -15,6 +15,9 @@ Resource-backed facts:
   Photon Barrier uses 1571. Authoritative deployment services remain missing.
 - Shared 01CF compares 32E6E4D8 / 7D7D2470 against low-health fractions.
   157C node 93 requires 32E6E4D8(owner) > 0 before releasing the charged orb.
+- Shared 0033 state 27 configures a recovery delay of 3 * entity 556C seconds;
+  state 2 restores shields at 30 * entity 556D points/second. States 28/29
+  provide base multiplier 1. Current/max pool queries are 783B4CF0/68883EAC.
 
 Reconstructed semantics, not native proof:
 - Interpret 32E6E4D8 as current health for the owned body only, using the
@@ -28,6 +31,13 @@ Reconstructed semantics, not native proof:
 - Write actual target and hit flags into the authored ray output variables;
   existing graph stack/switch logic then enters ModifyHealth 86. This supplies
   target selection but not every native TrackRay output or modifier.
+- Reconstruct damage-free world-time scheduling for shield recovery. Read the
+  authored delay/rate and runtime Stack modifiers; clamp to missing shields,
+  leave health/armor unchanged, stop on death, reset the delay on actual damage.
+  This does not implement the unknown B591EBFE native State or claim its timing
+  contract. Pool queries resolve only the owned body's known combat Vitals.
+- Quick melee checks static LOS to the nearest capsule surface, in addition to
+  the existing authored target sphere. This is reconstructed combat geometry.
 
 Execution evidence: tests/test_symmetra_combat.py
 - Real Player.take_commands -> Match body graph -> combat -> actual enemy
@@ -41,6 +51,11 @@ Execution evidence: tests/test_symmetra_combat.py
 - Full-charge orb release creates flight, then removes 120 health on contact
   (60 direct + 60 splash); partial charge removes less; dead body cannot release.
 - Owned current health query follows current pool sum through damage/death.
+- Shield tests cross the 2.992/3.008-second boundary, cap at 125 shields without
+  restoring lost health, reset on damage, stop on death, reject duplicate time,
+  match one-gap and contiguous updates, and apply actual runtime Stack modifiers.
+- Hero quick melee tests prove one 30-point hit per activation, recovery before
+  reuse, miss/range/ally filtering and triangle-wall occlusion.
 
 Historical driver crash fixture freezes the old missing-health-query answer:
 its literal bit 2842 belongs to the historical server state. Current live frame
@@ -54,8 +69,10 @@ Primary             PARTIAL: base damage/target/LOS/team/death/resource tested;
 Secondary orb       PARTIAL: charge/release/flight/damage tested; full cancel,
                     cadence, ammo exhaustion, collision radius, splash LOS,
                     all defense interactions and five NPC classes remain OPEN.
-Quick melee         OPEN: hero-specific range/miss/wall/damage/resource/cadence.
-Shield regeneration OPEN: timing, interruption, caps, death and presentation.
+Quick melee         PARTIAL: range/miss/wall/team/damage/recovery tested;
+                    cross-hero control/defenses and five NPC classes OPEN.
+Shield regeneration PARTIAL: authored delay/rate, runtime modifiers, hit reset,
+                    caps, death and gap timing tested; client presentation OPEN.
 Sentry turret       OPEN: placement, hit/miss, pet health, max count, beams,
                     target/team/LOS, slow, stacking, cooldown and destruction.
 Teleporter          OPEN: valid/invalid placement, two ends, allied transit,

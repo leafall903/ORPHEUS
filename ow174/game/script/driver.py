@@ -136,6 +136,17 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls in {"STU_783B4CF0", "STU_68883EAC"} and self.match is not None:
+            # Reconstructed current/maximum pool queries used by 0033's shield
+            # recovery condition. Resolve only known owned-body combat pools.
+            target = instance.evaluate(cfg.get("m_entity"))
+            pool = cfg.get("m_7E8B666C") or {}
+            kind = pool.get("m_7E8B666C")
+            vitals = self.match.combat.vitals.get(self.body)
+            if (target == Entity(self.body) and pool.get("$") == "STU_297E1A30"
+                    and type(kind) is int and kind in (0, 1, 2) and vitals is not None):
+                values = vitals.now if cls == "STU_783B4CF0" else vitals.most
+                return values[kind]
         if cls == "STU_32E6E4D8":
             # Reconstructed current-health query: shared 01CF divides this by
             # 7D7D2470 for its low-health thresholds; 157C gates orb release on

@@ -154,6 +154,22 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
+def visible_capsule(collision, origin, target) -> bool:
+    """Reconstructed LOS to the nearest surface of a target's combat capsule."""
+    a, b = target.segment()
+    ab = _sub(b, a)
+    length = _dot(ab, ab)
+    t = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(_sub(origin, a), ab) / length))
+    delta = _sub(_along(a, ab, t), origin)
+    distance = math.sqrt(_dot(delta, delta))
+    reach = max(0.0, distance - target.radius)
+    if reach <= EPSILON:
+        return True
+    direction = tuple(axis / distance for axis in delta)
+    wall = ray_world(collision, origin, direction, reach)
+    return wall is None or wall >= reach - EPSILON
+
+
 def ray_world(
     collision: World | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
@@ -183,6 +199,8 @@ class Vitals:
         self.died_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
+        self.last_damage_at: float | None = None
+        self.shield_accounted_at: float | None = None
 
     @property
     def dead(self) -> bool:
@@ -458,14 +476,16 @@ class Combat:
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
-            centre = _along(self._eye(player), aim(*command.aim()), reach)
+            origin = self._eye(player)
+            centre = _along(origin, aim(*command.aim()), reach)
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and visible_capsule(self._collision(), origin, shown)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -491,6 +511,7 @@ class Combat:
                     self._fly(rocket)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
+        self._regenerate_shields()
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
@@ -512,6 +533,43 @@ class Combat:
                 del table[entity]
 
     # --- targets -----------------------------------------------------------------------------------
+
+    def _regenerate_shields(self) -> None:
+        """Integrate 0033's authored shield recovery after its damage-free delay.
+
+        The data supplies the 3 s delay, 30 DPS and their modifiers. Scheduling
+        damage-free world time here reconstructs the server's missing health
+        service; it does not implement the unknown B591EBFE native State.
+        """
+        for target in self._targets():
+            vitals = self.vitals.get(target.entity)
+            if (vitals is None or vitals.dead or vitals.last_damage_at is None
+                    or vitals.most[SHIELDS_POOL] <= 0):
+                continue
+            script = getattr(target.owner, "body_script", None)
+            if script is None:
+                continue
+            instance = next((i for i in script.component.instances.values()
+                             if i.graph.index == pools.BODY_GRAPH), None)
+            if instance is None:
+                continue
+            wait, heal = instance.state(27), instance.state(2)
+            delay = _number(wait.evaluate(wait.node.field("m_7130456B"), watch=False), 0.0)
+            previous = vitals.shield_accounted_at
+            if previous is not None and self.now <= previous:
+                continue
+            start = max(previous if previous is not None else self.now, vitals.last_damage_at + delay)
+            vitals.shield_accounted_at = self.now
+            if self.now <= start or vitals.now[SHIELDS_POOL] >= vitals.most[SHIELDS_POOL]:
+                continue
+            modify = heal.node.field("m_modifyHealth")
+            rate = _number(heal.evaluate(modify.get("m_amount"), watch=False), 0.0)
+            given = min(max(0.0, rate) * (self.now - start),
+                        vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
+            if given > 0:
+                vitals.now[SHIELDS_POOL] += given
+                vitals.changed.add(SHIELDS_POOL)
+                self._sync_body_health(target.owner, vitals)
 
     def _targets(self) -> list[Target]:
         found = []
@@ -792,6 +850,7 @@ class Combat:
         dealt = vitals.damage(amount)
         if dealt <= 0.0:
             return
+        vitals.last_damage_at = vitals.shield_accounted_at = self.now
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0

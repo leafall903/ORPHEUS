@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Authored shield recovery and melee visibility
+
+- Integrate 0033's 3-second shield-recovery delay and 30-point-per-second rate
+  with its actual runtime Stack modifiers. New damage resets the timer;
+  recovery stops on death, affects shields only, clamps to capacity and accounts
+  each interval once across skipped or repeated world ticks. Reconstruct owned
+  current/max pool queries from known combat Vitals without guessing other entities.
+- Require static-world LOS for the shared quick-melee sphere, so a nearby enemy
+  behind a wall no longer receives melee damage. Preserve authored activation
+  counters and cooldown handling.
+- Pass 17 Symmetra tests, 533 game regressions and 27 driver tests; changed-file
+  Ruff and diff checks pass. These include actual damage/recovery/reset/cap/death,
+  runtime modifier, miss/range/team/wall and melee-recovery execution.
+- This reconstructs missing health-service scheduling and capsule LOS from
+  resource-backed values; it is not proof of the unknown B591EBFE native State.
+  Complete hero static acceptance and original-client acceptance remain open.
+
 #### Symmetra weapon entry paths (partial static acceptance)
 
 - Bridge graph 157C's primary ray outputs into actual enemy target selection
