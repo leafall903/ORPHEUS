@@ -468,6 +468,10 @@ class Combat:
         if script is None:
             return
         component = script.component
+        # Resolve the hit's queued damage reactions before releasing input.
+        # Otherwise a held channel exits as a release and loses its authored
+        # damage-interruption cooldown (Sombra Hack is one such channel).
+        component.run_now()
         component.edges([(value, False) for value in tuple(component.held)])
         for instance in list(component.instances.values()):
             for state in list(instance.states.values()):

@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Sombra damage/control ordering and actual interruption checks
+
+- Import reviewed parent resource-backed Flashbang control only into this clone;
+  preserve authored damage tags alongside effects, Hack ownership/deadlines
+  alongside stuns, and both causal snapshot field sets.
+- Resolve the hit's queued damage reactions before forced input release/ability
+  stop. Actual Flashbang previously cancelled Hack without its authored2s damage
+  cooldown; a method-only in-memory comparison observes25 damage and0 cooldown
+  before,25 damage and1.984s after. Preserve original graph/exit/cooldown behavior.
+- Add8 real-input methods: selected Sombra weapon/movement/skill rejection,
+  resource preservation/recovery, Camo/Hack/EMP interruption, reverse Flashbang
+  refusal during Hack/EMP and recovery. All five actual NPCs preserve independent
+  EMP Hack/stun deadlines; four firearm primaries resume while Hack remains.
+- Pass321 distinct checks:283 combat/NPC/shared-script and38 complete passive
+  VM/server snapshot checks, including a source-fixed full stored replay. The
+  initial7-method control run and later2-method NPC overlap run also pass, with
+  repeats excluded from the total. Ruff and staged diff checks pass.
+- Native224E manager, immunity/cleanse/stacking, Assassin attacks/specials and full
+  control/defense matrix remain OPEN. No client/session, shared-main merge or
+  publication. Complete original hero goal remains ACTIVE.
+
 #### Sombra lane canonical foundation reconciliation
 
 - Import reviewed parent weapon allocation, native-backed array selection and

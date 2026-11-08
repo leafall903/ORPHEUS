@@ -32,6 +32,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   charge/cast/search/application timing, character-shield drain, source ownership,
   silence/expiry/recast and death-before-pulse. Body search and shield scope are
   reconstructed; full charge gain, engine filters/devices/barriers remain open.
+  Eight further actual-input control methods verify selected Flashbang/Sombra
+  interruption/resource/recovery behavior and independent NPC Hack/stun clocks.
+  Fix damage-before-control ordering to preserve Hack's authored2s interruption
+  cooldown. Native immunity/cleanse/stacking remains unaccepted.
   Complete Hack, full Camo, Translocator, full EMP, headshots, dynamic defenses, NPC
   specials/navigation/full bidirectional combat and native acceptance remain open. See
   [Sombra combat restoration](SOMBRA_COMBAT.txt).

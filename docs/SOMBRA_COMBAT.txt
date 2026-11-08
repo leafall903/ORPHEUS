@@ -11,6 +11,8 @@ Nine additional methods (40 NPC subcases) in test_game_sombra_npc.py use all
 five actual catalog bodies and their authored graphs in the same Match host.
 Eleven further methods in test_game_sombra_emp.py and one five-body NPC pulse
 method now execute the actual EMP cast and application graph chain.
+Eight further methods in test_game_sombra_control.py execute actual Flashbang
+interactions:6 player methods (7 cases), plus2 actual-NPC methods (9 cases).
 No live client session was acquired for this change. No skill is fully accepted.
 
 Extracted body roots: 0033,004B,0043,0B1A,0B31,0C19,0C9B,08B6.
@@ -38,6 +40,7 @@ Translocator/flight/recall        -          -       -       -       -       -
 EMP/charge/cast/hack/pool effects O          O       O       O       O       O
 Opportunist/passive detection     -          -       -       -       -       -
 Manual NPC corpse persistence   n/a          O       O       O       O       O
+EMP Hack/stun independent clocks O          O       O       O       O       O
 
 NPC Hack cells cover application/ownership/expiry only; they do not establish
 interruption of every NPC attack or special. Enforcer C is explained below.
@@ -257,6 +260,46 @@ path to damage, rather than a hidden hitscan report needing consumption. The
 actual damage nodes occur in1157 (button36/target536) and13C3 (message09C6),
 with native AI/dataflow/targeting services still absent. These paths remain OPEN;
 no flat primary damage or synthetic skill activation was added to hide the gap.
+
+Actual Flashbang / Sombra control checkpoint
+--------------------------------------------
+Reviewed parent64bf71c now supplies the resource-backed Flashbang policy from
+053/0079 ->0228 ->224E. Its explicit deadline is0.8s (or1.7s under mode flag13408),
+with real input release/Ability.stop, neutral player movement/input and paused
+NPC routes. The full native224E status manager, immunity/cleanse/stacking and
+presentation are unimplemented. The integration preserves both HitDef.tags and
+HitDef.effect, and both Hack ownership/deadlines and stun snapshot fields.
+
+Actual enemy Flashbang deals25 to Sombra, prevents pistol/melee/movement and
+prevents an EMP cast without spending full1400 charge. At expiry, actual pistol
+and paid EMP work again. Running Camo exits and retains its authored cooldown;
+running Hack cancels without applying; an EMP windup interrupted before its
+pulse spends its already-consumed charge and emits no late/free pulse. Both
+actual Hack and EMP refuse enemy McCree's Flashbang until silence expires, after
+which an actual throw damages/stuns Sombra. This is a narrow bidirectional check,
+not complete native status/control classification or Camo visibility acceptance.
+
+The first real Hack/Flashbang test failed: cooldown was0 instead of the authored
+2s damage interruption. The shared control path released input before queued
+damage reactions, turning the channel exit into an ordinary release. Combat now
+drains those hit reactions before releasing input/stopping abilities. An in-memory
+comparison swaps only the original method from isolated replay04bc48d: both
+versions deal25 and cancel Hack, but cooldown changes0 ->1.98399997s (2s less one
+processed frame), with no target application. No authored graph or assertion was
+relaxed. External causal comparison: stun-order-comparison.json.
+
+All five actual NPC bodies retain EMP-created Hack after actual25-damage Flashbang
+stun expires, and later retire Hack ownership/status independently at its own
+deadline. Trooper/Enforcer/Sniper/Heavy ordinary primary attacks resume after stun
+while Hack remains; previously emitted projectiles may still land and are not
+cancelled merely by control. Explicit first authored profile0 and manual target
+input remain reconstructed fixtures. Assassin's actual attacks/specials remain
+OPEN. NPC projectile observer streams are omitted, so this is no native wire proof.
+The final control checkpoint passes321 distinct checks:283 combat/NPC/shared
+script checks (207.981s) and38 passive VM/server snapshot checks (477.031s), with
+source fixed for the entire complete stored-journal replay. Ruff and staged diff
+checks pass. Comparison and all-five rows are retained outside Git in
+stun-order-comparison.json and control-overlap-evidence.json.
 
 Canonical parent foundation reuse
 ----------------------------------
