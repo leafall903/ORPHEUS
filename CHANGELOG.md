@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Preserve Genji's timed Dragonblade through reconstructed control (partial)
+
+- Scope the shared stun stop policy so0317's ultimate retains its authored
+  timer. Its resource has no continue condition or continuing stack priority;
+  stunned commands still suppress swings. This is explicit server reconstruction,
+  not full native224E control execution or a rule for other ultimates.
+- Pass six actual-input control methods: four dash interruption timings, command
+  suppression/recovery, Deflect interruption/cooldown, Dragonblade draw/active
+  recovery, unchanged natural expiry during stun, and death/replacement cleanup.
+  Keep the held-primary-across-draw edge open: a fresh post-draw press recovers,
+  but the held-input probe did not swing. Native control/status/immune/cleanse,
+  remaining defenses/NPCs and original-client acceptance remain open.
+- Pass162 combined Genji/Flashbang/combat/projectile/NPC/control regressions,
+  15 model-manifest/causal-snapshot checks and Ruff/diff checks. The preceding
+  frozen63f240c snapshot run passed37 tests; it is evidence for that earlier tree.
+
 #### Genji shared control dependency intake (partial)
 
 - Merge reviewed parent64bf71c into this isolated lane. Preserve Genji damage,

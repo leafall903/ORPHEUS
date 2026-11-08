@@ -486,7 +486,12 @@ class Combat:
             for state in list(instance.states.values()):
                 if isinstance(state, nodes.Ability):
                     state.presses.clear()
-                    state.stop()  # use authored exit/cooldown paths for running channels
+                    # Genji0317's persistent transform has no continue condition
+                    # or continuing stack priority. Preserve its authored timer;
+                    # the stunned command gate still blocks drawing new swings.
+                    # This scoped server control policy is reconstructed.
+                    if not (instance.graph.index == 0x0317 and state in script.ultimates):
+                        state.stop()  # authored exit/cooldown paths for running channels
         component.run_now()
         component.shots.clear()
 

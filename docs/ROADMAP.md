@@ -24,6 +24,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   execution evidence with explicit critical/partial-ammo reconstruction.
   Combat damage charging and authored dash reset entries have execution evidence;
   Sigma's authored absorption accumulation has reconstructed projectile admission;
+  resource-backed Flashbang has selected Genji suppression/recovery, dash stop
+  and persistent Dragonblade timer tests under explicit reconstructed policies;
   its temporary shield pool and native geometry remain open. Sniper now has
   manual incoming/stop evidence. Passive/mode charge policy, full five-NPC attacks/specials and cross-hero
   defenses/control remain open.

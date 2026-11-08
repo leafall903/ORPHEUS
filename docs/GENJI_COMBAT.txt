@@ -161,10 +161,17 @@ Shared parent64bf71c supplies resource-backed Flashbang control reconstruction.
 Two actual-input Genji tests prove temporary command suppression and subsequent
 firing, plus rear Flashbang interrupting Deflect, delayed authored cooldown and
 rejected reuse. The effect's native224E graph execution is still incomplete.
-A separate probe activates Dragonblade then casts Flashbang: Ability flags
-change1 to0. Selective persistent-ultimate control/draw/swing recovery remain
-OPEN; this probe is evidence of current behavior, not accepted native behavior.
-Dash interruption, frontal reflected status, immunity and cleansing remain open.
+The blanket Ability.stop hook incorrectly ended Dragonblade. Genji0317's
+ultimate has no continue condition or continuing stack priority: a scoped
+reconstructed control policy now keeps its authored timer while the command
+gate blocks swings. Actual Flashbang during draw/active phases permits a fresh
+swing after recovery; late control does not extend the original end tick or
+restart the ultimate. Death/body replacement still retire both control and Q.
+Four actual Flashbang/Strike timings stop displacement without resuming after
+expiry, with damage/cooldown assertions. Six control test methods now pass.
+Holding primary across an interrupted draw did not yield a swing in a probe;
+that input edge remains OPEN. Full native224E/selective control semantics,
+frontal reflected status, immunity and cleansing also remain open.
 
 Original client: not exercised by this change. Existing client PID12292 and
 OWNeacClient parent33924 were observed with no lease at initial inspection;
