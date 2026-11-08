@@ -34,7 +34,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     authored shield recovery and melee static LOS now affect actual pools.
     External five-NPC body/mover fixtures cover outgoing weapon damage, filters
     and retained death; incoming attack AI and specials remain unverified.
-    level modifiers, deployables, cooldowns, ultimate and cross-hero/five-NPC
+    Sentry input now executes launch, attachment, boot, beam damage, stacked
+    aura slow, charges/recovery and destruction in static world fixtures,
+    including five NPCs. Client Pet reconciliation and surface hit geometry,
+    level modifiers, other deployables, ultimate and cross-hero/five-NPC
     matrices remain open. Original-client acceptance is separate and pending.
     See [Symmetra combat](SYMMETRA_COMBAT.txt).
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.

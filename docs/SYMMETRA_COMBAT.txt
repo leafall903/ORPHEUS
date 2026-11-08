@@ -95,8 +95,10 @@ Quick melee         PARTIAL: range/miss/wall/team/damage/recovery tested;
                     cross-hero control/defenses and five NPC classes OPEN.
 Shield regeneration PARTIAL: authored delay/rate, runtime modifiers, hit reset,
                     caps, death and gap timing tested; client presentation OPEN.
-Sentry turret       OPEN: placement, hit/miss, pet health, max count, beams,
-                    target/team/LOS, slow, stacking, cooldown and destruction.
+Sentry turret       PARTIAL: real input launches/attaches/boots; health, beams,
+                    target/team/LOS, stacked slow, charges/recovery, destruction
+                    and owner lifecycle tested. Client Pet/projectile identity,
+                    oriented hit geometry and all defense interactions OPEN.
 Teleporter          OPEN: valid/invalid placement, two ends, allied transit,
                     enemies denied transit, enemy destruction, health,
                     duration/cancel/death/range and cooldown lifecycle.
@@ -115,3 +117,27 @@ Original client     OPEN: no client or lease used in this packet; an existing
                     shared original client was observed and left untouched.
 
 No complete-hero, mission, original-client or deployment claim is made.
+
+Sentry external inputs and reconstructed world host
+- Prepare a separate shard with tools/extract_graph_shard.py --base
+  RUNTIME/data/game_graphs_174.json.gz --xml XML --owlib OWLIB --entity 2658
+  --entity 26B0 --entity 26F2 --entity 272D --graph 01E7 --output EXTERNAL.json.
+  The four entity records and three missing graphs retain source SHA256s.
+  Set ORPHEUS_EXTRA_GRAPH_BUNDLES to this file (multiple files use os.pathsep).
+  The loader never rewrites canonical input and rejects conflicting records.
+- 157E state 12 owns actual launch/resource admission; 157F state 4 specifies
+  fixed .5-second boot duration. 1590 supplies 10 m range and actual mode damage
+  (40 DPS in the test mode). 0054.053 points to aura 01E7; message 000F with
+  parameter 002A=20 adds .2 to entity 23186 per instance. Removing one aura
+  removes only its share. Player 01C7 MovementMod admits changes on its next
+  command; server-driven NPC routes use an explicit reconstructed adapter.
+- Forward flight, normal offset, entity 478 deployed flag, nearest visible
+  target selection and ownership count including in-flight turrets are host
+  reconstructions. Long beam gaps are bounded to retained combat time. They
+  do not establish native Pet hosting, predictive projectiles or oriented
+  collision. Death keeps owned turrets; hero switch/leave retires them.
+- Eleven sentry tests and seven external five-NPC tests cover actual command,
+  pool, status and movement paths. Incoming NPC attacks remain dispatch fixtures.
+- Photon Barrier's live initialized ULT_COST (entity 338) is 1680 in this mode,
+  despite schema base 1200; 1680 admits actual 156B states 20/33. Deployment
+  and complete ultimate acceptance remain OPEN.

@@ -1247,6 +1247,8 @@ class Match:
             player.new_body(entity)
             self.combat.record_replacement(entity)
         player.hero = hero
+        if old_hero is not None and old_hero != hero.guid:
+            self.combat.sentries.retire_owner(player)
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:
@@ -1273,6 +1275,7 @@ class Match:
             return
         self.notices.left(player)
         player.gone = True
+        self.combat.sentries.retire_owner(player)
         player.client = None
         player.spawned = False
         self.stop_body_script(player)

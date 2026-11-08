@@ -134,6 +134,36 @@ class SymmetraNpcResourceTests(unittest.TestCase):
                 self.assertTrue(fight.is_dead(player))
                 self.assertEqual(health(run, player).killer, bot.entity)
 
+    @unittest.skipUnless(os.environ.get("ORPHEUS_EXTRA_GRAPH_BUNDLES"), "requires summon graph shard")
+    def test_sentry_hits_slows_and_restores_actual_npc_route_movement(self):
+        from test_symmetra_turrets import wall
+
+        from ow174.game.content import SOLDIER, heroes
+
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, owner, bot, _target = self.create(definition)
+                bot.position = (2, 1, 1)
+                fight = run.match.combat
+                before = health(run, bot).total
+                with patch.object(fight, "_collision", return_value=wall()):
+                    fire(run, owner, 40, buttons=8)
+                    fire(run, owner, 80, buttons=0)
+                    self.assertLess(health(run, bot).total, before)
+                    self.assertAlmostEqual(bot.body_script.component.entity_var(23186).value(), .2, places=5)
+                    self.assertAlmostEqual(bot.speed, definition.mover.run_forward * .8, places=5)
+                    bot.route = [(2, 1, 1), (2, 1, 9)]
+                    bot.target, bot.start, bot.wait = (2, 1, 9), bot.position, 0
+                    bot.direction = (0, 1)
+                    bot.keys = True
+                    old = bot.position
+                    fire(run, owner, 4, buttons=0)
+                    self.assertGreater(bot.position[2], old[2])
+                    run.match.switch_hero(owner, heroes()[SOLDIER])
+                    fire(run, owner, buttons=0)
+                    self.assertFalse(bot.body_script.component.entity_var(23186).value())
+                    self.assertEqual(bot.speed, definition.mover.run_forward)
+
 
 if __name__ == "__main__":
     unittest.main()

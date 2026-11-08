@@ -16,6 +16,7 @@ import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
 from ow174.game import mover as mover_module
+from ow174.game import npc
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
@@ -25,6 +26,7 @@ from ow174.game.script import runtime
 from ow174.game.script.driver import BodyScript, Snapshot
 from ow174.game.server_journal import RecordingServerSession, ServerJournalError, _ReplaySession
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state, snapshot_digest
+from ow174.game.symmetra_turrets import Sentry
 from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
@@ -76,6 +78,33 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(changed, initial)
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+
+    def test_sentry_timing_aura_identity_and_shield_timing_are_stored_read_only(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        bot = npc.spawn(player.match, npc.Definition(player.hero.guid, player.hero.body, "Fixture", 200),
+                        (0, 0, 0), team=1)
+        component = player.body_script.component
+        instance = next(iter(component.instances.values()))
+        sentry = Sentry(player, bot, (0, 0, 1), 20, 1,
+                        attached_at=0.5, target=player.body, slow=(component, instance))
+        fight.sentries.sentries.append(sentry)
+        bot.combat_owner = player
+        with (
+            mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no variable evaluation")),
+            mock.patch.object(runtime.Instance, "state", side_effect=AssertionError("no lazy allocation")),
+        ):
+            before = snapshot_digest(self.capture(session))
+            sentry.last_tick += 1
+            after = snapshot_digest(self.capture(session))
+            self.assertNotEqual(after, before)
+            sentry.slow = None
+            cleared = snapshot_digest(self.capture(session))
+            self.assertNotEqual(cleared, after)
+            vitals = fight.vitals[bot.entity]
+            vitals.last_damage_at = 17.0
+            self.assertNotEqual(snapshot_digest(self.capture(session)), cleared)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()

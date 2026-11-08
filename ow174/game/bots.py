@@ -124,6 +124,7 @@ class Bot:
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.combat_owner = None  # player attribution for an owned summoned body
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
         self.name = hero["name"]
@@ -131,6 +132,7 @@ class Bot:
         self.team = spawner["team"]
         self.health = hero["health"]
         self.movement_data = mover  # explicit prepared input for non-catalog bodies
+        self._status_speed = False
         values = mover or mover_data(self.body)
         self.speed = values.run_forward
         self.accel = values.accel_ground * values.run_forward  # m/s^2 up to full speed
@@ -159,7 +161,10 @@ class Bot:
 
     def step(self, tick: int, seconds: float, collision=None) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if not self.route or self.dead:
+        if self.dead:
+            return
+        self._apply_status_speed()
+        if not self.route:
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
@@ -167,6 +172,26 @@ class Bot:
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
             self._tick(at, seconds, collision)
+
+    def _apply_status_speed(self) -> None:
+        """Reconstruct the shared movement slow for server-driven NPC movement.
+
+        Player movers consume 01C7's authored MovementMod. NPC route movement
+        uses the same stacked percentage variables because it has no Player mover.
+        """
+        from ow174.game.script import expr
+
+        component = getattr(self.body_script, "component", None)
+        slow = 0.0
+        if component is not None:
+            for identifier in (23184, 23186):
+                var = component.entity_var(identifier, create=False)
+                if var is not None:
+                    slow = max(slow, expr.to_float(var.value()))
+        if slow > 0 or self._status_speed:
+            data = self.movement_data or mover_data(self.body)
+            self.speed = data.run_forward * max(0.0, 1.0 - slow)
+        self._status_speed = slow > 0
 
     def _tick(self, tick: int, dt: float, collision) -> None:
         before = (self.position, round(self.yaw))

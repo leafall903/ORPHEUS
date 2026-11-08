@@ -93,6 +93,15 @@ Use the build 104319 `003` and `01B` XML dumps and the pinned OWLib checkout to 
 
 The bundle's `entities` table holds the added definitions by full asset GUID. Their initial graphs retain definition order and use the same graph reference traversal as the hero catalog.
 
+For an immutable existing runtime, `tools/extract_graph_shard.py` accepts
+`--base <runtime>/data/game_graphs_174.json.gz`, the same `--xml`/`--owlib`,
+repeated `--entity` and optional `--graph` indexes, and an external `--output`.
+It writes entity definitions and only otherwise missing graph definitions,
+with input SHA256 fingerprints. Set `ORPHEUS_EXTRA_GRAPH_BUNDLES` to the separate
+JSON or gzip JSON file; multiple paths use the platform path separator (`;` on
+Windows). This opt-in loader refuses differing known graph/entity records and
+does not replace hero, map or mode records. Restart to change loaded inputs.
+
 Add `--mode-xml 'C:\path\to\xml\0C5'` to the same extraction command to include the initial mode entity variables from build 104319. The output must be outside the repository. The server resolves these members by mode GUID, independently of the hero and mode schema defaults. Supply the bundle through `--game-graphs` when preparing the runtime.
 
 To serve the bot spawn and death graphs from a prepared pack, include the six Practice Range bot body indexes `1403`, `143E`, `146E`, `14A9`, `14D2` and `14ED`, then pass the generated bundle to the runtime preparation tool. Point `ORPHEUS_RUNTIME_DIR` at the new pack when starting the server.

@@ -59,6 +59,7 @@ from ow174.game.script import expr, graph, nodes, runtime
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
+from ow174.game.symmetra_turrets import Turrets
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
 log = logging.getLogger("ow174.game")
@@ -386,6 +387,7 @@ class Combat:
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
+        self.sentries = Turrets(self)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -511,6 +513,7 @@ class Combat:
                     self._fly(rocket)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
+        self.sentries.update()
         self._regenerate_shields()
         self.match.deliver_body_messages()
         if frames:
@@ -610,6 +613,8 @@ class Combat:
         for target in self._targets():
             if target.owner is shooter or target.entity == source:
                 continue
+            if getattr(target.owner, "combat_owner", None) is shooter:
+                continue
             if not free_for_all and target.team == shooter.team:
                 continue
             if self.vitals_of(target).dead:
@@ -676,6 +681,8 @@ class Combat:
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None,
     ) -> None:
+        if command is not None and self.sentries.fired(shooter, command, state):
+            return
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
 

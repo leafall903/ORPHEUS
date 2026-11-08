@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Symmetra sentry world execution (partial static evidence)
+
+- Add an explicit read-only supplemental graph/entity loader and a fingerprinted
+  extractor for missing actor inputs; refuse changes to known canonical records.
+- Execute actual sentry input through launch, static-wall attachment, authored
+  half-second boot, target selection, beam damage, 30-point health, charges,
+  recovery and owner lifecycle. Read beam damage/range from 1590 and execute
+  actual 01E7 aura instances for stacked slow; server-driven NPC routes consume
+  the same slow percentage. Preserve manual NPC corpse removal boundaries.
+- Register summon ownership, timing, aura references, NPC mover data and shield
+  recovery timing in the read-only stored-state graph. Keep exact field auditing.
+- Pass 542 game regressions, 34 bot and three extractor tests, plus 33 combined
+  sentry/NPC/shard/existing snapshot tests and one added read-only causal-state
+  snapshot test. The resource tests use the separately reproduced graph shard;
+  changed-file Ruff and whitespace checks pass.
+- This reconstructs the world host, deployed flag, acquisition and flight count
+  policy. Surface-oriented hit geometry, client Pet/projectile reconciliation,
+  all cross-hero defenses and complete static hero acceptance remain open.
+  No original client was launched or controlled; no shared merge or publication.
+
 #### Symmetra tests against authored five-NPC bodies
 
 - Extend prepared NPC definitions with complete validated CharacterMover data.
