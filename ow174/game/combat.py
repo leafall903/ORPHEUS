@@ -87,6 +87,7 @@ RESPAWN_RETRY = 0.25  # s between attempts when all player body IDs are still re
 MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahead of the eye, radius): DATA
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
+GENJI_ASSIST_TICKS = math.ceil(5.0 / TICK)  # reconstructed damage-contribution credit window
 EPSILON = 1e-9
 
 
@@ -398,6 +399,7 @@ class Combat:
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
         self.genji_blades: dict[int, dict] = {}  # body -> (instance, tracker) -> (activation, victims)
+        self.genji_assists: dict[int, dict] = {}  # victim -> source body -> (Genji player, last damage tick)
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -428,10 +430,14 @@ class Combat:
         self.melee_seen.pop(player.body, None)
         self.genji_strikes.pop(player.body, None)
         self.genji_blades.pop(player.body, None)
-        # The owner's leased projectiles and their observer copies retire with the old body.
-        self.rockets[:] = [
-            rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
-        ]
+        self.genji_assists.pop(player.body, None)
+        for victim, sources in list(self.genji_assists.items()):
+            sources.pop(player.body, None)
+            if not sources:
+                del self.genji_assists[victim]
+        # Reconstructed ownership policy: body replacement/leave also retires
+        # nonleased authority; it cannot acquire the replacement body's credit.
+        self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not player]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
 
     def record_replacement(self, body: int) -> None:
@@ -685,7 +691,7 @@ class Combat:
                 self._respawn(who)
         self.voice.expire(now)
         current = {target.entity for target in self._targets()}
-        for table in (self.history, self.vitals, self.replacement_ticks):
+        for table in (self.history, self.vitals, self.replacement_ticks, self.genji_assists):
             for entity in [key for key in table if key not in current]:
                 del table[entity]
 
@@ -1010,7 +1016,18 @@ class Combat:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
+            enemy = target.owner is not shooter and (
+                self.match.game_map.free_for_all or target.team != shooter.team
+            )
+            script = getattr(shooter, "body_script", None)
+            if enemy and script is not None:
+                script.gain_ult_charge(dealt)
+            if enemy and getattr(getattr(shooter, "hero", None), "guid", None) == 0x02E0000000000029:
+                tick = self.match.tick if world_tick is None else world_tick
+                self.genji_assists.setdefault(target.entity, {})[shooter.body] = (shooter, tick)
         victim = target.owner
+        if killed:
+            self._genji_eliminations(target, shooter, vitals.death_tick)
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick)
@@ -1018,6 +1035,33 @@ class Combat:
         self._sync_body_health(victim, vitals)
         if killed:
             self._died(shooter, victim, critical, loadout)
+
+    def _genji_eliminations(self, target, killer, tick):
+        """Deliver authored reset entries for reconstructed kill/damage assists.
+
+        0093/parameter15 and169F/parameter45 both lead through the scoped body
+        predicate to SetVar61=0. Full native elimination event fan-out, credit
+        windows and payload/filter semantics remain unverified.
+        """
+        entity = target.entity
+        for body, (player, damaged) in self.genji_assists.pop(entity, {}).items():
+            if (not 0 <= tick - damaged <= GENJI_ASSIST_TICKS or player.body != body
+                    or player.gone or player not in self.match.players
+                    or player.hero.guid != 0x02E0000000000029):
+                continue
+            script = player.body_script
+            if script is None or script.retired or script.component.fault is not None:
+                continue
+            if player is not killer:
+                player.stats.add(stats.ELIMINATIONS)
+                self._kill_notice(player, target.owner)
+            instance = next((i for i in script.component.instances.values() if i.graph.index == 0x01DB), None)
+            if instance is not None:
+                message, parameter = (
+                    (0x0240000000000093, 0x15) if player is killer else (0x024000000000169F, 0x45)
+                )
+                runtime.send_instance_message(instance, message, {parameter: expr.Entity(entity)}, body)
+                script.component.run_now()
 
     def _tell_hit(self, shooter, target: Target, dealt: float, flags: int, frame: int) -> None:
         """25001 to the shooter: the hit marker and the target's health bar (frame: the shot's)."""

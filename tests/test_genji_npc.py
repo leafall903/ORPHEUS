@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from test_game_combat import aim
 from test_genji_combat import GenjiFixture
+from test_genji_ultimate import dash_instance
 
 from ow174.game import npc
 from ow174.game.script import graph
@@ -98,6 +99,31 @@ class GenjiNpcTests(GenjiFixture):
                     run.step({})
                 self.assertEqual(self.health(run, player), 200)
                 self.assertEqual(run.match.combat.vitals[bot.entity].total, before - expected)
+
+    def test_all_five_actual_npc_deaths_reset_dash_and_retain_corpses(self):
+        for key, definition in self.catalog.items():
+            with self.subTest(npc=definition.name):
+                run, player, bot = self.scene(key)
+                self.enterContext(patch.object(player.client, "queue_bot_death", create=True))
+                self.enterContext(patch.object(player.client, "queue_bot_death_update", create=True))
+                vitals = run.match.combat.vitals[bot.entity]
+                vitals.damage(vitals.total - 100)
+                run.match.combat._sync_body_health(bot, vitals)
+                for frame in range(40):
+                    run.step({player: (0, 0, 8 if frame == 0 else 0)})
+                self.assertGreater(dash_instance(player).state(0).var.value(), 7)
+                yaw, pitch = aim(run.match.combat._eye(player), (0, 2.55, 4))
+                for frame in range(60):
+                    run.step({player: (yaw, pitch, 1 if frame == 0 else 0)})
+                self.assertTrue(bot.dead)
+                self.assertIsNotNone(bot.body_script)
+                self.assertEqual(vitals.total, 0)
+                self.assertEqual(dash_instance(player).state(0).var.value(), 0)
+                self.assertFalse(any(who is bot for _, who in run.match.combat.respawns))
+                for _ in range(200):
+                    run.step({})
+                self.assertIn(bot, run.match.bots)
+                self.assertTrue(bot.retain_corpse)
 
 
 if __name__ == "__main__":

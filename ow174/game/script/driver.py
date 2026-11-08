@@ -20,6 +20,7 @@ chunks sent after it carried (the client may have applied them), so it needs no 
 """
 
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
@@ -95,9 +96,9 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# Ultimate charge #342e is server data; cost #338e comes from the Entries.
+# Combat credits effective damage separately. ULT_SECONDS remains the existing
+# diagnostic passive-fill policy (0 disables that fill), not a proven native rate.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -169,6 +170,18 @@ class BodyWorld(runtime.World):
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            cfg_filter = cfg.get("m_filter") or {}
+            signature = {k: v for k, v in cfg_filter.items() if v not in (None, 0)}
+            if (self.hero == 0x02E0000000000029 and self.match is not None
+                    and instance.graph.index == 0x01DB
+                    and signature == {"$": "STUConfigVarFilter", "m_84065FD1": 1}):
+                # Scoped reconstruction of the elimination target's hero/body
+                # predicate. Do not generalize unknown filters or tag masks.
+                target = instance.evaluate(cfg.get("m_entity"))
+                if isinstance(target, Entity) and target.id != self.body:
+                    return any(p.has_body and p.body == target.id for p in self.match.players) or any(
+                        b.entity == target.id for b in self.match.bots
+                    )
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -390,8 +403,25 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Set the ultimate's charge (#342e; cost #338e), including explicit GM overrides."""
         self.component.set(ULT_CHARGE, f32(points))
+
+    def gain_ult_charge(self, points: float) -> float:
+        """Reconstructed one-point-per-effective-damage credit, capped at cost.
+
+        The active ultimate generates no charge. Passive debug fill remains a
+        separate configured policy; this does not establish native charge rates.
+        """
+        if (self.retired or self.component.fault is not None or not math.isfinite(points) or points <= 0
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost <= 0 or before >= cost:
+            return 0.0
+        after = min(cost, f32(before + points))
+        self.set_ult_charge(after)
+        return after - before
 
     def _charge_ult(self) -> None:
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):

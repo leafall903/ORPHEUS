@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Combat ultimate credit and Genji elimination resets (partial)
+
+- Credit effective enemy damage to capped ultimate charge, with no generation
+  while the ultimate runs. Preserve overkill, self, miss and reflection ownership
+  distinctions. The existing diagnostic passive fill is not a native-rate claim.
+- Reconstruct Genji's recent-damage credit window and deliver the actual0093/
+  169F reset entries with target parameters and a narrowly scoped body predicate.
+  Keep the authored Q/05BE reset after the draw phase. Add contributor elimination
+  stats/notices, generation cleanup and manual-NPC removal cleanup. Retire all
+  owned projectile authority on body replacement/leave; posthumous same-body
+  hits still credit. Window/filter/ownership edge policies remain reconstructed.
+- Pass20 charge/reset tests, seven external-NPC fixture tests (including actual
+  five-body kills, dash reset and retained corpse/death-script checks), causal
+  contribution snapshots and247 combined Genji/shared/model-manifest tests.
+  Register passive helper configuration aliases in model identity. Native
+  passive/mode charge, defenses/control, three NPC incoming attacks/specials,
+  complete current-source snapshot regression and original client remain open.
+
 #### Genji weapon boundaries and shared projectile/melee fixes (partial)
 
 - Apply evaluated direct-projectile critical multipliers; reconstruct Genji's

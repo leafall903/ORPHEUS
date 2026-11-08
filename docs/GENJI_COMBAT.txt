@@ -58,14 +58,28 @@ eye/shape/filter semantics and dynamic barriers remain open. Ten command-path
 checks cover movement, hits/misses, walls, team, multiple victims, duplicate
 input, cancellation and 8-second cooldown rejection/reuse. An expired press
 keeps its original timestamp instead of refreshing while cooldown blocks it.
-Reset on elimination/ultimate, five NPCs and defense/status interactions remain open.
+The authored Q reset self-message05BE reaches dash after its roughly1s draw
+phase. Final blows and recent damage contributions now deliver authored0093
+or169F reset entries with their target parameters, through a narrowly scoped
+known-body predicate. The approximately5s/313-world-tick contribution window,
+event fan-out and filter semantics are explicitly reconstructed. Recent Genji
+damage contributors receive elimination stats/notices; native kill-feed assist
+payload completeness and full enemy AI/defense/status interactions remain open.
 Dragonblade's damage/target states are in weapon0304 (ModifyHealth21/22 and
 TrackTargets66/67). The Q ultimate is graph0317; E Deflect is graph03A3 (corrected
 from the initial graph identification). Sword target windows now apply evaluated
 amount110, range5 and angle90 once per target/window with static LOS. Cone and
 capsule geometry are reconstructed. Eight command-path tests cover charge gate,
 consumption, damage, kills, misses, walls, teams, multiple targets and ending.
-Current evaluated ultimate cost is1932. Charging from damage remains open.
+Current evaluated ultimate cost is1932. Effective enemy health/armor/shield
+damage credits one charge point per actual loss, including reflected hits;
+overkill/self-damage/misses generate no excess credit. Active ultimates generate
+none and charge caps at evaluated cost. These are reconstructed server rules.
+The existing ULT_SECONDS60 diagnostic passive-fill policy remains explicit and
+does NOT establish a native passive rate. Native/mode-specific charge rates
+remain open. Owned projectiles can credit after death before body retirement;
+body replacement/leave now retires unleased authority too, preventing replacement
+hero credit. This ownership-retirement edge policy is reconstructed.
 Deflect graph03A3 now admits frontal body-capsule hits while State10 is active.
 Volley hit tag003BF is reconstructed as eligible for reflected bullet/physical
 projectile attacks. Reflected hitscan re-traces the defender's aim (eight-bounce
@@ -81,7 +95,7 @@ cancel/cooldown/reuse, death and negative damage eligibility/splash behavior.
 Cross-hero acceptance remains OPEN for barrier interception, reflected and
 absorbed projectiles, nondeflectable beams, melee block, invulnerability,
 crowd control, armor/shields, health/death feedback, elimination/dash resets,
-ultimate charge from combat and friendly support/heal semantics.
+native passive/mode charge policy and friendly support/heal semantics.
 
 Passive mobility is reconstructed in genji.Mobility, kept on the player's body
 lifecycle and included in causal snapshots. An airborne fresh jump edge grants
@@ -115,6 +129,18 @@ transport/collision/poses are fixtures. Explicit button20/firing flags do not
 prove autonomous AI. Enforcer/Sniper/Assassin incoming attacks remain unresolved.
 Their initial pools are direct base-schema pools, not complete difficulty totals.
 Manual NPCs must opt into retain_corpse; no automatic cleanup or respawn.
+An additional fixture kills each of the five wounded real NPC bodies with
+actual Strike/shuriken commands, verifies dash reset and a surviving death
+script, then retains the corpse for200 further frames without a respawn entry.
+Transport remains a fixture; visible corpses are not client-accepted.
+
+Twenty charge/reset checks cover actual damage, head/armor/shield loss, overkill,
+caps, full/insufficient charge gates, active-ultimate exclusion, reflection,
+posthumous credit, replacement cleanup, death interruption, final blows,
+nonlethal hits, Q draw reset, recent/expired contributions and identity changes.
+Charge/contribution state and passive helper constants are part of the causal
+snapshot/model manifest. 247 combined Genji/shared VM/driver/combat/
+projectile/movement/NPC/model-manifest tests pass (247 total, not native cases).
 
 Original client: not exercised by this change. Existing client PID12292 and
 OWNeacClient parent33924 were observed with no lease at initial inspection;
