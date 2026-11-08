@@ -1,9 +1,11 @@
 """Authored Sonic Amplifier consumption/reload with real projectile damage."""
 
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 
 import test_lucio_combat as fixtures
+from test_game_combat import aim
 
 from ow174.game import combat
 from ow174.game.commands import FIRE, Command
@@ -106,3 +108,62 @@ class SonicAmplifierTests(unittest.TestCase):
             run.step({source: (0, 0, FIRE | RELOAD)})
         self.assertTrue(fight.is_dead(source))
         self.assertEqual(helper.health(run, enemy), 4980)
+
+    def test_death_during_reload_never_refills_the_retired_magazine(self):
+        _, run, source, enemy, weapon = self.scenario()
+        for _ in range(25):
+            run.step({source: (0, 0, FIRE)})
+        run.step({source: (0, 0, RELOAD)})
+        for _ in range(50):
+            run.step({source: (0, 0, FIRE | RELOAD)})
+        self.assertEqual(weapon.vars[53].value(), 16)
+        fight = run.match.combat
+        target = next(t for t in fight._targets() if t.owner is source)
+        fight._damage(enemy, target, 1000, False, None, run.frame)
+        with patch.object(fight, "_shoot", wraps=fight._shoot) as fired:
+            for _ in range(100):
+                run.step({source: (0, 0, FIRE | RELOAD)})
+        self.assertTrue(fight.is_dead(source))
+        self.assertEqual(len(fired.call_args_list), 0)
+        self.assertEqual(weapon.vars[53].value(), 16)
+
+    def test_body_replacement_during_reload_drops_old_timer_and_starts_full(self):
+        _, run, source, _, weapon = self.scenario()
+        for _ in range(25):
+            run.step({source: (0, 0, FIRE)})
+        run.step({source: (0, 0, RELOAD)})
+        old_body = source.body
+        run.match.switch_hero(source, source.hero)
+        self.assertNotEqual(source.body, old_body)
+        current = next(i for i in source.body_script.component.instances.values() if i.graph.index == 0x776)
+        self.assertEqual(current.vars[53].value(), 20)
+        for _ in range(130):
+            run.step({})
+        self.assertEqual(current.vars[53].value(), 20)
+        self.assertEqual(weapon.vars[53].value(), 16)
+
+    def test_primary_body_damage_has_no_falloff_and_stops_at_authored_reach(self):
+        for distance in (4, 50, 99, 101):
+            with self.subTest(distance=distance):
+                helper, run, source, enemy, weapon = self.scenario()
+                enemy.mover.position[:] = (0, 1, distance)
+                yaw, pitch = aim(run.match.combat._eye(source), (0, 1.8, distance))
+                run.step({source: (yaw, pitch, FIRE)})
+                for _ in range(160):
+                    run.step({})
+                self.assertEqual(helper.health(run, enemy), 5000 - (80 if distance < 100 else 0))
+                self.assertEqual(weapon.vars[53].value(), 16)
+                self.assertFalse(run.match.combat.rockets)
+
+    def test_primary_same_team_player_is_excluded_except_in_free_for_all(self):
+        for free_for_all in (False, True):
+            with self.subTest(free_for_all=free_for_all):
+                helper, run, source, enemy, weapon = self.scenario()
+                enemy.team = source.team
+                run.match.game_map = replace(run.match.game_map, free_for_all=free_for_all)
+                yaw, pitch = aim(run.match.combat._eye(source), (0, 1.8, 4))
+                run.step({source: (yaw, pitch, FIRE)})
+                for _ in range(35):
+                    run.step({})
+                self.assertEqual(helper.health(run, enemy), 4920 if free_for_all else 5000)
+                self.assertEqual(weapon.vars[53].value(), 16)

@@ -34,6 +34,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     Seven actual-input primary resource checks now cover burst consumption,
     automatic/manual reload, permission, replay and death. This partial evidence
     does not establish native timing, headshots or the full static gate.
+    Primary resource coverage now includes reload death/body retirement and
+    all five NPC bodies on both teams. Below-head range/no-falloff and player
+    team/FFA fixtures pass; projectile critical handling remains a known gap.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

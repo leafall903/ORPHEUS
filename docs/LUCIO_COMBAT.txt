@@ -31,8 +31,8 @@ H = headless actual-input/shared-health evidence; O = open, no acceptance.
 All original-client columns are O, including apparently functional graphs.
 
 Action                  Enemy player   Enemy NPC       Ally/self semantics
-Sonic Amplifier fire    H damage       H basic five    O headshots/intercepts
-Reload/burst cadence    H partial      O reload       O HUD/audio/native timing
+Sonic Amplifier fire    H body/range   H basic five    O headshots/intercepts
+Reload/burst cadence    H partial      H five bodies  O HUD/audio/native timing
 Quick melee             O player       H basic five    H ally exclusion/walls
 Soundwave damage        H              H basic five    H ally exclusion, FFA
 Soundwave cooldown      H 4s boundary  O five types    H repeated/replayed input
@@ -218,10 +218,34 @@ instance Stack processes the dependency event. Replayed commands consume no
 extra rounds. Death stops the remaining burst while an already spawned shot
 still impacts. These timings describe this host fixture, not native capture.
 
-Tests:test_lucio_weapon.py. Headshots, full NPC resource/reload coverage,
+Tests:test_lucio_weapon.py. Headshots, full NPC control/resource coverage,
 interception and original-client HUD/audio/timing remain open. No new speed
 multiplier is inferred from the0267 counters4734/6591: their native consumer
 and target-build multiplier are still unlocated. Full goal remains active.
+
+Primary range, retirement and five-body reload checkpoint (2026-11-09)
+--------------------------------------------------------------------
+Four further weapon tests bring test_lucio_weapon.py to11 methods. Death
+during reload stops refill/fire; replacing the body starts a fresh20-round
+magazine while the old16-round instance remains retired. Aiming explicitly
+below the unresolved head region lands80 total at4/50/99m and misses at101m
+after expiry. Same-team player bodies take no damage except in FFA.
+
+One additional PVE method adds10 subcases: all five actual archetypes on both
+teams. Each fixture exhausts20 shots away from the NPC, observes empty/fill
+boundaries, then moves the real body into the next burst's path. Enemies lose
+80 from authored base pools; allies lose0; ammo falls to16. No NPC health buff,
+injected damage or injected projectile is used. Combined PVE coverage is now
+10 methods/85 subcases. AI/return attacks/specials remain unaccepted.
+
+Read-only field audit: actual0776 direct amount20/loadout00A1, speed50m/s,
+lifetime5s, reach100m (therefore host flight bound2s), no authored falloff.
+m_A872C70E is absent; hit_def currently defaults it to1. m_66D29548 is2 but
+its native meaning is not established. Combat._fly always passes critical=False
+and unscaled direct amount. Thus a passing ordinary projectile test does not
+prove headshots. Native region geometry/defaults and projectile critical
+handling are missing, not accepted. No multiplier was invented in this patch.
+The range tests prove the host capsule model only, not native hitbox boundaries.
 
 Client evidence
 ---------------

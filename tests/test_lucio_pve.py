@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import test_lucio_combat as fixtures
-from test_game_combat import FakeClient
+from test_game_combat import FakeClient, aim
 
 from ow174.game import combat, npc
 from ow174.game.collision import World
@@ -84,6 +84,37 @@ class LucioPveTests(unittest.TestCase):
                 for _ in range(8):
                     run.step({})  # let the fourth authored projectile reach the NPC
                 self.assertEqual(before - helper.health(run, bot), 80)
+
+    def test_primary_auto_reload_resumes_against_every_real_body_and_respects_team(self):
+        for definition in self.definitions.values():
+            for team in (0, 1):
+                with self.subTest(npc=definition.name, team=team):
+                    helper, run, source, bot = self.scenario(definition, team=team, position=(20, 1, 4))
+                    weapon = next(i for i in source.body_script.component.instances.values()
+                                  if i.graph.index == 0x776)
+                    fight = run.match.combat
+                    before = helper.health(run, bot)
+                    with patch.object(fight, "_shoot", wraps=fight._shoot) as fired:
+                        # Exhaust the magazine away from the NPC; its authored
+                        # base pools stay intact without a synthetic health buff.
+                        for offset in range(388):
+                            run.step({source: (0, 0, FIRE)})
+                            if offset == 259:
+                                self.assertEqual(weapon.vars[53].value(), 0)
+                            if offset == 363:
+                                self.assertEqual(weapon.vars[53].value(), 20)
+                        self.assertEqual(len(fired.call_args_list), 20)
+                        self.assertEqual(helper.health(run, bot), before)
+                        bot.position = (0, 1, 4)
+                        # Aim below the unresolved native head region. This
+                        # test establishes resource/team/body damage only.
+                        yaw, pitch = aim(fight._eye(source), (0, 1.8, 4))
+                        for _ in range(45):
+                            run.step({source: (yaw, pitch, FIRE)})
+                    self.assertEqual(len(fired.call_args_list), 24)
+                    self.assertEqual(weapon.vars[53].value(), 16)
+                    self.assertEqual(before - helper.health(run, bot), 80 if team else 0)
+                    self.assertFalse(bot.dead)
 
     def test_soundwave_damages_all_five_but_never_allied_bodies(self):
         for definition in self.definitions.values():

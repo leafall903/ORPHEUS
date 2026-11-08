@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Lucio primary resource and range acceptance fixtures (0079 lane)
+
+- Add actual-input checks for death and body replacement during reload. Dead
+  bodies never refill the retired magazine; replacement bodies start with20
+  rounds and do not receive the old reload timer.
+- Exercise all five real NPC bodies on both teams after automatic reload:
+  exhaust20 rounds into empty space, reload, then land the next four rounds on
+  enemies for80 damage while allies retain their original pools. No synthetic
+  NPC health pool or injected shot is used. Their AI/return fire remain open.
+- Verify below-head player damage at4/50/99m without falloff, expiry before101m,
+  ordinary same-team exclusion and FFA damage. These use authored50m/s speed,
+  five-second lifetime and100m reach with reconstructed capsule geometry.
+- Pass12 selected tests across two runs:11 weapon tests plus one five-body
+  reload test with10 subcases. Ruff/diff checks pass. No runtime change here.
+- Audit confirms projectile direct hits always pass critical=False; actual0776
+  omits m_A872C70E, whose native default is unproved. Field m_66D29548=2 is not
+  sufficient evidence of a headshot multiplier. Headshots/native hit regions,
+  the full static goal and all original-client acceptance remain open.
+
 ### 2026-11-08
 
 #### Lucio ammo dependencies and authored reloads (0079 lane)
