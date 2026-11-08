@@ -33,7 +33,7 @@ Quick melee            30 once, actual input        all five OPEN   OPEN
 Experimental Barrier   no interception test         all five OPEN   OPEN
 Kinetic Grasp          no absorption/overhealth test all five OPEN   OPEN
 Accretion              70 damage only               all five OPEN   OPEN
-Gravitic Flux          no charged-ultimate test      all five OPEN   OPEN
+Gravitic Flux          charge/cost/end/death only     all five OPEN   OPEN
 Incoming attacks       enemy Soldier rifle only     all five OPEN   OPEN
 Death/lifetime         training-bot corpse only      all five OPEN   OPEN
 
@@ -43,11 +43,31 @@ The training bot is not a substitute for any of those five enemy definitions.
 Friendly Barrier/Grasp semantics must remain defensive; this patch introduces
 no offensive damage substitute for either skill.
 
+Additional static evidence (complete goal remains active)
+--------------------------------------------------------
+Actual input bits: primary01, Barrier02, Grasp08, Accretion10, Flux20, melee800.
+Flux is logical button37; bit04 is not its trigger. A previous external audit
+row named ultimate_not_charged used04 and is invalid as ultimate evidence.
+New executable Flux tests use20, refuse an uncharged cast, consume the extracted
+1960-point cost once, end the authored ability and stop it on authoritative
+death. No selected-target damage/lift/slam acceptance is inferred from those.
+Accretion's authored10-second cooldown blocks repeated input presses, then
+permits another70-point hit. Grasp's authored2-second phase starts a12-second
+cooldown, finishes, rejects an early recast and permits a later one. Absorption
+and temporary-shield behavior remain unimplemented/unaccepted.
+
+Three wall scenarios failed before the next fix (airburst140HP, impact140HP,
+melee170HP from200HP). Conservative static LOS now preserves all200HP in each.
+Blast rays start0.1mm on the incoming side of a wall collision and stop at the
+nearest capsule surface. This single-point policy can differ from native
+multi-point exposure around cover. Dynamic shields remain a separate open path.
+82 total Sigma/shared combat/projectile tests pass, including17 Sigma cases.
+
 Required open interactions
 --------------------------
-- Projectile wall bounce and full native projectile motion, splash occlusion,
+- Projectile wall bounce and full native projectile motion, native splash exposure,
   self damage/knockback and collision radius; the existing straight-line sweep
-  and unobstructed radius splash do not establish those mechanics.
+  and conservative single-ray splash policy do not establish those mechanics.
 - Barrier travel, stop/recall, health/regen/break, enemy shot interception,
   ally pass-through, shared cross-hero barrier behavior and replication.
 - Grasp front arc, absorptive eligibility, beams/melee/rock exceptions,

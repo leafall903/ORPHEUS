@@ -93,6 +93,7 @@ EPSILON = 1e-9
 # the native server expiry dispatcher is not available. Other projectiles keep
 # their existing expiry behavior until their individual policy is established.
 AIRBURST_VOLLEYS = {(0x187F, 20), (0x187F, 28)}
+BLAST_SURFACE_OFFSET = 1e-4  # reconstructed: retain the incoming side of an impact surface
 
 
 # --- geometry -----------------------------------------------------------------------------------------
@@ -470,7 +471,8 @@ class Combat:
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and self._unobstructed(self._eye(player), shown)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -748,11 +750,30 @@ class Combat:
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
-            if scalar > 0.0:
+            # A wall impact lies exactly on its collision plane. Trace from the
+            # incoming side so that a blast cannot start beyond a thin wall.
+            source = _along(point, rocket.direction, -BLAST_SURFACE_OFFSET)
+            if scalar > 0.0 and self._unobstructed(source, target):
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
                 )
+
+    def _unobstructed(self, source, target: Target) -> bool:
+        """Reconstructed damage LOS: static geometry to the nearest capsule surface.
+
+        This is a conservative single-sample policy, not native multi-point
+        explosion exposure. Dynamic shields/defenses have separate semantics.
+        """
+        a, b = target.segment()
+        nearest = (a[0], max(a[1], min(b[1], source[1])), a[2])
+        delta = _sub(nearest, source)
+        length = math.sqrt(_dot(delta, delta))
+        reach = length - target.radius
+        if reach <= EPSILON:
+            return True
+        direction = tuple(value / length for value in delta)
+        return ray_world(self._collision(), source, direction, reach) is None
 
     def _landed(self, rocket: Rocket) -> None:
         """The projectile ended (hit, range, lifetime): the predicted one's release follows."""

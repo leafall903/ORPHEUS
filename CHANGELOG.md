@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Damage occlusion and Sigma lifecycle evidence (static goal remains active)
+
+- Prevent quick melee and projectile explosions from damaging targets behind
+  static walls. Trace to the nearest capsule surface; offset wall impacts toward
+  their incoming side. This conservative single-sample exposure policy is a
+  reconstructed server rule, not proof of native multi-point blast exposure.
+- Reproduce three real-command failures before the fix: Sigma airburst behind
+  a side wall, impact explosion through a wall, and melee through a wall. All
+  three pass after the fix; 82 Sigma/shared combat/projectile tests pass.
+- Execute Accretion cooldown rejection and a second damaging cast after expiry,
+  Grasp duration/cooldown rejection/recovery, and Flux charge gate, 1960-point
+  cost, authored end and death interruption. Correct Flux input to logical37 /
+  button bit0x20. Lifecycle checks do not establish absorption or Flux damage.
+- Ruff and diff checks pass. The full static acceptance goal remains active;
+  five NPCs, defenses, control and full target effects still require work.
+  No original-client, publication, root-main merge or push is claimed.
+
 #### Sigma Hypersphere expiry damage (partial combat lane)
 
 - Resolve expiry explosions for Sigma graph 187F states 20/28 through the
