@@ -136,6 +136,13 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_32E6E4D8":
+            # Reconstructed current-health query: shared 01CF divides this by
+            # 7D7D2470 for its low-health thresholds; 157C gates orb release on
+            # this value > 0. Only the owned body's authoritative pools are known.
+            target = instance.evaluate(cfg.get("m_entity"))
+            if target == Entity(self.body):
+                return instance.component.entity_var(OWNER_HEALTH).value()
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)

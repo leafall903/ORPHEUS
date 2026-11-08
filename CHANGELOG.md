@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Symmetra weapon entry paths (partial static acceptance)
+
+- Bridge graph 157C's primary ray outputs into actual enemy target selection
+  and authored base-DPS pool damage. Preserve command view time, team filtering,
+  dead-target exclusion, static-wall occlusion and pose-gap boundaries.
+- Reconstruct owned-body current-health query 32E6E4D8 from resource use in
+  shared low-health graphs and the charged-orb release gate. Live charge/release
+  now produces projectile flight and direct/splash pool damage. Keep other
+  entity health queries unsupported; this is not a native-backed service claim.
+- Ten hero regression tests pass, covering real command-to-pool damage,
+  primary release/miss/range/wall/ammo/death/duplicates/gaps, friendly immunity,
+  incoming shield damage, retained training NPC death, full/partial orb charge
+  and dead-owner rejection. Preserve the historical crash fixture's old health
+  query behavior so its original bit offset remains reproducible.
+- Pass all 533 test_game regression tests and all 27 script-driver tests;
+  changed-file Ruff and whitespace checks pass.
+- Full static acceptance remains open: ramp/decay and defense modifiers,
+  melee/passive fidelity, sentries, teleporter, cooldowns, ultimate, cross-hero
+  and five Archives NPC interactions. No fresh original-client or deployment
+  acceptance. See docs/SYMMETRA_COMBAT.txt. No manual push or shared-main merge.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

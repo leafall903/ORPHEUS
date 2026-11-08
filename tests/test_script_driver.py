@@ -389,7 +389,17 @@ class BodyTests(unittest.TestCase):
         took the 32 bits after st120 as its frame, so instance 14's (02C5) variable mask picked an
         m_syncVars entry without an id, whose own-instance binding read the bag of a null variable
         (0x7FF78991D6DB, 'reading 0x90' at payload bit 2842 in both crash dumps)."""
-        with mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}):
+        current_native = driver_module.BodyWorld.native
+
+        def historical_native(world, cfg, instance):
+            # The captured server also lacked the later current-health query.
+            # Freeze that historical input so the crash's bit offset stays exact.
+            if cfg.get("$") == "STU_32E6E4D8":
+                return None
+            return current_native(world, cfg, instance)
+
+        with (mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}),
+              mock.patch.object(driver_module.BodyWorld, "native", historical_native)):
             body, client = spawned(9198)
             body.command(9199, 0)
             with without_payloads("STU_D74D4F47"):

@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, stats, symmetra, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -428,6 +428,7 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        symmetra.primary(self, player, command)
         try:
             self._melee(player, command, script)
         except Exception:

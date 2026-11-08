@@ -1,0 +1,77 @@
+Symmetra 104319 static combat work — OPEN
+=========================================
+
+Scope: hero 02E0000000000016. Complete static combat acceptance is the goal;
+original-client presentation/gameplay is a separate subsequent acceptance.
+The first packet restores weapon entry paths, not full hero combat fidelity.
+
+Resource-backed facts:
+- Weapon graph 157C primary uses TrackRay 100/101, target 0218 and ModifyHealth
+  86, amount 01F3, loadout 0038. Its default base amount is 60 and reach is 12.
+  TrackRay 101 defines a 0.2 m radius. Primary is not a WeaponVolley.
+- Secondary uses 157C WeaponVolley 43, projectile 26F1, 25 m/s default speed,
+  charge 14AC, direct amount 01DC and explosion rings 0.5 m/1, 2 m/0.25.
+- Turret launch uses 157E volley 12, projectile 2658; teleporter uses 156B;
+  Photon Barrier uses 1571. Authoritative deployment services remain missing.
+- Shared 01CF compares 32E6E4D8 / 7D7D2470 against low-health fractions.
+  157C node 93 requires 32E6E4D8(owner) > 0 before releasing the charged orb.
+
+Reconstructed semantics, not native proof:
+- Interpret 32E6E4D8 as current health for the owned body only, using the
+  authoritative current pool sum. Other entity queries keep existing fallback.
+  Do not mark this query trusted for client replication from static evidence.
+- Primary traces the existing combat capsules from the existing eye origin at
+  the command view time, preferring the narrow authored ray before its wider
+  fallback. Static walls occlude the ray. Apply authored base DPS per posed
+  input frame, using ordinary team/death/damage/notices/pool code. Missing
+  input poses never accumulate damage at a later endpoint.
+- Write actual target and hit flags into the authored ray output variables;
+  existing graph stack/switch logic then enters ModifyHealth 86. This supplies
+  target selection but not every native TrackRay output or modifier.
+
+Execution evidence: tests/test_symmetra_combat.py
+- Real Player.take_commands -> Match body graph -> combat -> actual enemy
+  player pools: ten primary frames remove 9.6 health and generate ten hits.
+- Release, miss, outside range, real triangle wall, empty ammo stop damage.
+- Ally protection outside FFA; incoming enemy damage drains Symmetra shields.
+- Dead shooter and duplicate input cannot add damage. A 200-frame gap applies
+  one posed endpoint damage interval, not accumulated damage during the gap.
+- Training NPC lethal beam retains the corpse, omits respawn and selects the
+  next living enemy on the next command. This is not five Archives NPC proof.
+- Full-charge orb release creates flight, then removes 120 health on contact
+  (60 direct + 60 splash); partial charge removes less; dead body cannot release.
+- Owned current health query follows current pool sum through damage/death.
+
+Historical driver crash fixture freezes the old missing-health-query answer:
+its literal bit 2842 belongs to the historical server state. Current live frame
+encoding remains covered by the other driver tests.
+
+Full acceptance matrix (partial evidence never checks a full item):
+Action              Static status and remaining requirements
+Primary             PARTIAL: base damage/target/LOS/team/death/resource tested;
+                    level ramp/decay, armor cadence, barrier refill and all
+                    cross-hero defenses/control/interruption remain OPEN.
+Secondary orb       PARTIAL: charge/release/flight/damage tested; full cancel,
+                    cadence, ammo exhaustion, collision radius, splash LOS,
+                    all defense interactions and five NPC classes remain OPEN.
+Quick melee         OPEN: hero-specific range/miss/wall/damage/resource/cadence.
+Shield regeneration OPEN: timing, interruption, caps, death and presentation.
+Sentry turret       OPEN: placement, hit/miss, pet health, max count, beams,
+                    target/team/LOS, slow, stacking, cooldown and destruction.
+Teleporter          OPEN: valid/invalid placement, two ends, allied transit,
+                    enemies denied transit, enemy destruction, health,
+                    duration/cancel/death/range and cooldown lifecycle.
+Photon Barrier      OPEN: ultimate charge/cost, release/orientation, infinite
+                    plane bounds, team filtering, health, duration, death,
+                    destruction, client entities/effects and all attacks.
+Enemy players       PARTIAL weapon proof only; all applicable interactions OPEN.
+Trooper             OPEN bidirectional attacks, skills, control and retained death.
+Enforcer            OPEN bidirectional attacks, skills, control and retained death.
+Sniper              OPEN bidirectional attacks, skills, control and retained death.
+Assassin            OPEN bidirectional attacks, skills, control and retained death.
+Heavy Assault       OPEN bidirectional attacks, skills, control and retained death.
+Cross-hero          OPEN shield/reflect/absorb/invulnerability/control/death matrix.
+Original client     OPEN: no client or lease used in this packet; an existing
+                    shared original client was observed and left untouched.
+
+No complete-hero, mission, original-client or deployment claim is made.
