@@ -29,6 +29,22 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_extra_shields_conversion_counter_and_decay_clock_are_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        vitals = fight.vitals_of(target)
+        before = snapshot_digest(self.capture(session))
+        vitals.bonus_shields = vitals.bonus_shields_max = 12.0
+        shield_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, shield_digest)
+        fight.sigma.conversions[(player.body, 1)] = 2
+        counter_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(shield_digest, counter_digest)
+        fight.sigma.last_tick = fight.tick + 1
+        self.assertNotEqual(counter_digest, snapshot_digest(self.capture(session)))
+
     def test_zenyatta_orb_recovery_and_los_history_are_causal_state(self):
         from ow174.game.zenyatta import HERO, Orb
 

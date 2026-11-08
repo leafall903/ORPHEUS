@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world, zenyatta
+from ow174.game import bots, observers, pools, projectiles, sigma, stats, voicelines, world, zenyatta
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -172,21 +172,22 @@ def ray_box(origin, direction, low, high, reach):
     return first
 
 
-def deflect_ray(target, origin, direction, reach):
+def projectile_box(target, origin, direction, reach, graph_index):
     """Authored active DeflectProjectiles boxes, reconstructed eye-space hosting.
 
-    Box values are evaluated from the real state. Local origin/orientation,
-    front incidence and redirection to current aim are reconstruction policies.
+    Box values are evaluated from the real state. Local origin/orientation and
+    front incidence are reconstruction policies; the caller selects the response.
     No hitscan, beam, shield or melee semantics are inferred by this helper.
     """
     player = target.owner
     script = getattr(player, "body_script", None)
+    component = getattr(script, "component", None)
     mover = getattr(player, "mover", None)
-    if script is None or mover is None:
+    if not isinstance(component, runtime.Component) or mover is None:
         return None
-    instances = [i for i in script.component.instances.values() if i.graph.index == 0x03A3]
+    instances = [i for i in component.instances.values() if i.graph.index == graph_index]
     if not instances:
-        return None  # this policy is Genji's Deflect, not absorption States
+        return None
     forward = aim(mover.yaw, mover.pitch)
     if _dot(direction, forward) >= 0:
         return None
@@ -212,9 +213,14 @@ def deflect_ray(target, origin, direction, reach):
                 if not isinstance(low, expr.Vec3) or not isinstance(high, expr.Vec3):
                     continue
                 t = ray_box(local_origin, local_direction, tuple(low), tuple(high), reach)
-                if t is not None and (best is None or t < best):
-                    best = t
+                if t is not None and (best is None or t < best[0]):
+                    best = (t, state)
     return best
+
+
+def deflect_ray(target, origin, direction, reach):
+    found = projectile_box(target, origin, direction, reach, 0x03A3)
+    return found[0] if found is not None else None
 
 
 def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
@@ -289,6 +295,8 @@ class Vitals:
         self.entity = entity
         self.most = {HEALTH_POOL: float(health), ARMOUR_POOL: float(armour), SHIELDS_POOL: float(shields)}
         self.now = dict(self.most)
+        self.bonus_shields = 0.0
+        self.bonus_shields_max = 0.0
         self.ids = {}
         pool_id = 1
         for kind in (SHIELDS_POOL, ARMOUR_POOL):  # world.health numbers them so
@@ -307,13 +315,17 @@ class Vitals:
 
     @property
     def total(self) -> float:
-        return sum(self.now.values())
+        return sum(self.now.values()) + self.bonus_shields
 
     def damage(self, amount: float) -> float:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
         left = max(0.0, amount)
-        taken = 0.0
+        taken = min(left, self.bonus_shields)
+        if taken:
+            self.bonus_shields -= taken
+            self.changed.add(SHIELDS_POOL)
+            left -= taken
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
@@ -344,6 +356,11 @@ class Vitals:
         for kind in kinds:
             if kind in self.ids:
                 parts[kind * POOLS] = world.pool(self.ids[kind], kind, self.most[kind], self.now[kind])
+        # A separate, unhealable extra-shield pool. Pool slot/id and its HUD
+        # byte17=0 over-health classification are explicit reconstruction policy.
+        if self.bonus_shields_max:
+            value = world.pool(4, SHIELDS_POOL, self.bonus_shields_max, self.bonus_shields)
+            parts[SHIELDS_POOL * POOLS + 1] = value[:17] + bytes((0,)) + value[18:]
         return {51: parts}
 
 
@@ -493,6 +510,7 @@ class Combat:
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
         self.zenyatta = zenyatta.Zenyatta(self)
+        self.sigma = sigma.Sigma(self)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -520,6 +538,7 @@ class Combat:
         self.melee_seen.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.stuns.pop(player.body, None)
+        self.sigma.retire(player.body)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -536,7 +555,10 @@ class Combat:
 
     def _hit_effect(self, target: Target, effect: int | None) -> None:
         """Resource-backed stun reconstruction; native immunity/presentation remain unverified."""
-        if effect != FLASHBANG_EFFECT or self.vitals_of(target).dead:
+        # The reconstructed Transcendence service rejects this control as well
+        # as its damage; this is not a generic native immunity/tag implementation.
+        if (effect != FLASHBANG_EFFECT or self.vitals_of(target).dead
+                or self.zenyatta.ultimate(target.owner)):
             return
         variables = graph.mode_variables(self.match.game_map.mode_guid) or {}
         duration = 1.7 if expr.truthy(variables.get(FLASHBANG_MODE_FLAG)) else 0.8
@@ -644,6 +666,7 @@ class Combat:
                     self._fly(rocket)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
+        self.sigma.update()
         self.zenyatta.update()
         self.match.deliver_body_messages()
         if frames:
@@ -884,13 +907,16 @@ class Combat:
             a, b = target.segment()
             t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
-                best = (t, target, False)
+                best = (t, target, "body", None)
             reflected = deflect_ray(target, rocket.position, rocket.direction, step)
             if reflected is not None and (best is None or reflected < best[0]):
-                best = (reflected, target, True)
+                best = (reflected, target, "reflect", None)
+            absorbed = projectile_box(target, rocket.position, rocket.direction, step, 0x1D02)
+            if absorbed is not None and (best is None or absorbed[0] < best[0]):
+                best = (absorbed[0], target, "absorb", absorbed[1])
         wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
         if wall is not None and (best is None or wall < best[0]):
-            best = (wall, None, False)
+            best = (wall, None, "body", None)
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
             rocket.flown += duration
@@ -898,9 +924,15 @@ class Combat:
             if rocket.left <= 0.0:
                 self._landed(rocket)
             return
-        t, struck, reflected = best
+        t, struck, interaction, defense_state = best
         rocket.flown += t / rocket.speed
-        if reflected:
+        if interaction == "absorb":
+            self.sigma.absorb(defense_state, rocket, rocket.flown * rocket.speed)
+            self.rockets.remove(rocket)
+            if rocket.shot is not None:
+                self.projectiles._end(rocket.shot, self.tick, False)
+            return  # consumed projectiles neither hit a body nor explode
+        if interaction == "reflect":
             point = _along(rocket.position, rocket.direction, t)
             rocket.left -= t / rocket.speed
             rocket.shooter, rocket.team = struck.owner, struck.team

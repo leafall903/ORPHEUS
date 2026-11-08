@@ -6,6 +6,35 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Sigma grasp versus Zenyatta and Flashbang control boundaries (lane0020, partial)
+
+- Reuse actual active1D02 DeflectProjectiles boxes to consume incoming physical
+  projectiles. Follow the authored per-hit output/sum path and retire prediction
+  records without damage, splash or a reflected return. Preserve Genji's distinct
+  reflection response. Eye-space geometry/front incidence remain reconstructed.
+- At the resource conversion boundary, grant60% of intercepted payload up to
+  the authored400 cap in a separate extra-shield pool. Run decay after actual
+  Wait71/ModifyHealth70. Extra-pool priority, unhealable policy, aggregate slot
+  and five-per-second interpretation are explicit reconstructions; the general
+  native PlayScript/HealthPool and projectile tag engine remain unimplemented.
+- Execute actual Orb/burst/three-Zen cap, wall/back, death/replacement, Discord,
+  skipped-clock and Flashbang-front-consume/back-interrupt cases. Resource sum240
+  becomes144 extra shields; three bursts sum720 and cap at400. Absorbed Orbs grant
+  no damage charge. Extra-shield state and conversion/decay bookkeeping are
+  registered in stored snapshots with a direct causal-digest check.
+- Actual Zen melee bypasses grasp for30 damage. Extra shields fully decay
+  without draining normal pools; a later actual cast resets the resource sum
+  and one new48 Orb grants28.8, without replaying the prior burst's shield gain.
+- Import parent64bf71c Flashbang control in the isolated lane. Actual Flashbang
+  cancels a charged Zen volley and permits later weapon recovery. Fix its new
+  ability to interrupt Transcendence despite rejected damage: this reconstructed
+  ultimate now rejects the control as well. Native immunity/status presentation
+  and full hero static acceptance remain open; no original-client session/push.
+- Pass400 combat/NPC/VM/movement regressions and15 complete server snapshot/
+  replay checks on frozen model source; Ruff and diff checks pass. The first
+  broad run exposed placeholder NPC scripts without a VM component: require
+  actual runtime components before polling and rerun the full checks afterward.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an

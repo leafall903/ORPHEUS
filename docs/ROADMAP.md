@@ -9,7 +9,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   execute; shared early-input expiry/recast has executed boundary evidence.
   Four NPC ranged reverse attacks now execute, including reconstructed Enforcer
   readiness and25-pellet rings. All-five secondary/melee/ultimate-heal fixtures
-  execute. Assassin reverse attack, remaining secondary control edges and broader
+  execute. Selected actual Sigma absorption/conversion/decay and Flashbang
+  charge-interrupt/Transcendence-immunity cases now execute. Assassin reverse
+  attack, remaining secondary control edges and broader
   defenses/control remain open. See [lane evidence](ZENYATTA_COMBAT.txt).
 
 | Milestone | Exit criteria | Current evidence |

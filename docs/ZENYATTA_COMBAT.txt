@@ -20,6 +20,10 @@ Production code in this lane
 - Orb targets, recovery deadlines, LOS history, regeneration damage time and
   update clock participate in passive server snapshots; the new gate is a
   registered stored VM state. No source/assets/runtime copies enter Git.
+- Actual Sigma1D02 boxes consume Orbs and their prediction records. Per-hit
+  output6584 and authored21312 sum drive reconstructed extra-shield conversion
+  at the graph's PlayScript34/Wait71 boundary. This is not generic native
+  HealthPool/PlayScript execution. Existing Genji03A3 keeps its reflect response.
 
 Resource-backed values (external data)
 0164: Orb48; primary and charged volleys; projectile0236; speed90; range180;
@@ -28,6 +32,9 @@ Resource-backed values (external data)
 0176 aura0045; 02F3 aura01B9. Target variable1606 survives as authored data.
 017B: duration6, radius10 times body size, actual modified cost2310 (body
   override1650 is not final cost); aura0067; self ModifyHealth1800 branch.
+Sigma1D02: duration2, box(-1,-1.6,.4)..(1,1.1,2.6) times body size;
+  per-hit6584, accumulated21312, conversion multiplier0.6, cap11218 (400 in
+  unmodified fixture), Wait71 delay3 then ModifyHealth70 amount5.
 
 Explicit reconstructions, not native engine comparisons
 2x omitted critical fallback;10-degree aim cone/angle-first selection;
@@ -36,6 +43,12 @@ zero cast gate completion; shield-only30/s after3s no damage; passive ultimate
 5/s and one point per actual damage/effective healing. Self restoration uses
 current maximum pools. Orb range/LOS expiry and owner-death cleanup are service
 policies. These values/policies require further native/client corroboration.
+Sigma absorbed payload uses direct falloff plus splash payload, without a
+fictional head hit or victim Discord multiplier. Aggregate unhealable extra
+shields precede normal pools; slot1/id4/type2 with over-health byte17=0 is
+explicit hosting policy. ModifyHealth70 is interpreted as5 shields/second.
+Flashbang control immunity during active Transcendence is reconstructed and
+does not implement general native aura/status immunity or cleanse semantics.
 
 Executed player subset
 - Primary body48/head96, misses/ammo,180m retirement, actual static wall,
@@ -71,6 +84,21 @@ Executed player subset
 - Full charged reflected burst kills Zen with Genji hit/kill attribution and
   retires owner effects/remaining projectiles. Discord targeting itself is not
   reflected and its victim debuff is not transferred with returned Orbs.
+- Sigma actual Shift absorbs Zen primary/full burst without hit notices,
+  reflected damage or damage ultimate charge. Sum240 converts to144 after
+  native duration; three actual Zens sum720 and reach the authored400 cap.
+  Extra shields take real Orb damage first, cannot be healed back, wait for
+  actual decay-state activation then lose5/s without changing normal pools.
+  Back/wall and death/body-replacement cancel or reject absorption/conversion.
+  Discord targeting itself bypasses grasp; swallowed Orbs do not gain its
+  victim-side damage multiplier. Skipped world time consumes each Orb once.
+  Front Flashbang is swallowed without splash/control and converts25 to15;
+  a back hit instead deals25 and interrupts grasp without granting shields.
+  Zen quick melee bypasses grasp for30 damage. Full decay leaves normal400
+  intact; a new actual grasp resets the sum and converts one new48 Orb to28.8.
+- Actual Flashbang cancels a charged Zen volley and suppresses shots until
+  expiry; a later primary input damages again. Active017B Transcendence rejects
+  both Flashbang damage and control, preserving its running ultimate state.
 
 Actual NPC subset (opt-in ORPHEUS_NPC_DATA; separate shared read-only input)
 Use verification/retribution/npc-runtime/data. Definition variable221 maps to
@@ -109,14 +137,20 @@ as unapplied by the catalog, so these are explicit base-pool fixtures.
 Still open for full STATIC goal
 Full ammo/reload control-interruption edges and secondary combinations,
 remaining NPC secondary/melee/ultimate edge combinations, Assassin reverse
-attack and NPC specials, barriers/Defense Matrix, remaining reflected geometry/multi-deflection/status cases, anti-heal/heal
+attack and NPC specials, barriers/Defense Matrix, remaining absorption and
+reflected geometry/multi-deflection/status cases, anti-heal/heal
 amplification, cleanse, damage-boost stacking, control/interrupt/forced movement,
 full FFA/death/replacement lifecycle matrix and reconstructed-rule corroboration.
 The broader native TrackTargets/ApplyAura engine services remain unimplemented;
 this hero uses explicit reconstructed Combat services instead.
-An actual Sigma Shift probe activates1D02's DeflectProjectiles state but a Zen
-Orb still deals48 damage (400->352). This is a reproduced absorption gap,
-not absorption acceptance. Its resource candidate and probe remain outside Git.
+The historical before-host Sigma Shift probe activated1D02 yet took Orb48
+(400->352). Current executed tests above replace that failed behavior; resource
+dumps and historical diagnostics remain outside Git. Native presentation,
+generic tags/filters/HealthPool/PlayScript services are still unaccepted.
+A separate actual D.Va input probe currently has only the150-health pilot body;
+secondary/Shift/E do not mount a mech and each takes Orb48 (150->102). Matrix
+acceptance requires the mech actor/possession path first; this probe does not
+claim a running Matrix failed to absorb. Its diagnostic is outside Git.
 
 Original-client gate
 No lane-owned client session was run. Existing PID12292 was inspected read-only;
