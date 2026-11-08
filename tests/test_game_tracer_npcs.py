@@ -13,7 +13,8 @@ from unittest.mock import patch
 import test_game_tracer as tracer_tests
 from test_game_combat import FakeClient, aim
 
-from ow174.game import combat, mover, npc
+from ow174.game import combat, mover, npc, npc_control, tracer
+from ow174.game.collision import World
 from ow174.game.commands import FIRE
 from ow174.game.script import graph
 from tools.extract_game_movers import mover_of
@@ -23,6 +24,9 @@ class NpcClient(FakeClient):
     def __init__(self, player):
         super().__init__(player)
         self.deaths = []
+
+    def bot_stream(self, entity):
+        return None  # authoritative combat fixture omits NPC projectile observer transport
 
     def queue_bot_death(self, entity, snapshot):
         self.deaths.append((entity, snapshot))
@@ -132,6 +136,91 @@ class TracerNpcTests(unittest.TestCase):
                     run.step({})
                 self.assertIn(bot, run.match.bots)
                 self.assertFalse(any(who is bot for _, who in run.match.combat.respawns))
+
+    def engage(self, definition):
+        run, player, bot, _, yaw, pitch = self.fight(definition)
+        player.mover.yaw, player.mover.pitch = yaw, pitch
+        self.assertEqual(npc_control.start(run.match, player), bot.entity)
+        victim = next(t for t in run.match.combat._targets() if t.owner is player)
+        return run, player, bot, run.match.combat.vitals_of(victim)
+
+    def test_three_actual_primary_attacks_damage_tracer_and_stop_without_late_damage(self):
+        # Controller eye aim hits the existing approximate head region: Heavy's5 becomes10.
+        expected = {"Trooper": (20, 29), "Sniper": (100, 128), "Heavy Assault": (10, 32)}
+        for definition in self.definitions.values():
+            if definition.name not in expected:
+                continue  # Enforcer/Assassin have explicit failed probe rows, not accepted passes.
+            with self.subTest(npc=definition.name):
+                run, _, bot, vitals = self.engage(definition)
+                start_frame = run.frame
+                for _ in range(200):
+                    run.step({})
+                    if vitals.total < 150:
+                        break
+                damage, first_frame = expected[definition.name]
+                self.assertEqual((150 - vitals.total, run.frame - start_frame), (damage, first_frame))
+                self.assertIsNotNone(bot.body_script)
+                self.assertIsNone(bot.body_script.component.fault)
+                self.assertEqual(npc_control.stop(run.match), 1)
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(vitals.total, 150 - damage)
+                self.assertFalse(bot.attack_input)
+                self.assertFalse(bot.body_script.component.shots)
+
+    def test_recall_protects_from_three_actual_npc_attacks_then_damage_resumes(self):
+        first_frames = {"Trooper": 29, "Sniper": 128, "Heavy Assault": 32}
+        for definition in self.definitions.values():
+            if definition.name not in first_frames:
+                continue
+            with self.subTest(npc=definition.name):
+                run, player, bot, vitals = self.engage(definition)
+                for _ in range(first_frames[definition.name] - 10):
+                    run.step({})
+                run.step({player: (0, 0, 16)})
+                self.assertTrue(tracer.recalling(player))
+                protected_frames = 0
+                for _ in range(100):
+                    if not tracer.recalling(player):
+                        break
+                    self.assertEqual(vitals.total, 150)
+                    run.step({})
+                    protected_frames += 1
+                self.assertGreater(protected_frames, 60)
+                self.assertFalse(tracer.recalling(player))
+                for _ in range(500):
+                    run.step({})
+                    if vitals.total < 150:
+                        break
+                self.assertLess(vitals.total, 150)
+                self.assertIsNotNone(bot.body_script)
+                npc_control.stop(run.match)
+
+    def test_wall_blocks_melee_to_all_five_actual_classes_without_damage_or_charge(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, player, _, target, yaw, pitch = self.fight(definition, distance=1.5)
+                x, floor, z = player.mover.position
+                face = z + 0.7
+                triangles = [
+                    (-1000, floor, -1000, -1000, floor, 1000, 1000, floor, 1000),
+                    (-1000, floor, -1000, 1000, floor, 1000, 1000, floor, -1000),
+                    (x-5, floor, face, x+5, floor, face, x+5, floor+4, face),
+                    (x-5, floor, face, x+5, floor+4, face, x-5, floor+4, face),
+                    (x-5, floor, face, x+5, floor+4, face, x+5, floor, face),
+                    (x-5, floor, face, x-5, floor+4, face, x+5, floor+4, face),
+                ]
+                run.match.collision_world = World(triangles, name="Tracer melee NPC wall")
+                for other in run.players:
+                    other.mover.use(world=run.match.collision_world)
+                vitals = run.match.combat.vitals_of(target)
+                before = vitals.total
+                run.step({player: (yaw, pitch, 0x800)})
+                for _ in range(40):
+                    run.step({})
+                self.assertEqual(vitals.total, before)
+                self.assertEqual(player.client.messages(combat.HIT), [])
+                self.assertEqual(player.body_script.component.entity_var(342).value(), 0)
 
     def test_pulse_bomb_deals_contact_and_blast_to_all_five_base_pools(self):
         for definition in self.definitions.values():

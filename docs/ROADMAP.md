@@ -29,7 +29,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   retain Recall/Pulse state. Long skipped-frame recovery and full native charge
   filters remain open. Complete Blink controls, Recall cleanse/native timing, critical
   defaults/spread, complete cross-hero effects and five-class NPC acceptance are
-  unaccepted. See [Tracer combat matrix](TRACER_COMBAT.md).
+  unaccepted. Three actual NPC primary graphs now damage Tracer and stop/restart
+  around Recall; Enforcer/Assassin still fail to attack. Five-class melee wall
+  exclusion passes; native spread-growth72-case execution supplies implementation
+  evidence but does not restore spread rays. See [Tracer combat matrix](TRACER_COMBAT.md).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

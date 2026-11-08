@@ -7,6 +7,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Tracer actual NPC incoming attacks, Recall and melee wall coverage
+
+- Review/reuse parent manual-controller, NPC weapon-root, array-selection and
+  melee-occlusion commits only in this private clone. Preserve lane damage tags
+  when resolving the melee conflict. Parent already owns those shared changes.
+- Execute actual Trooper, Sniper and Heavy Assault weapon graphs against Tracer:
+  first damage20/100/10 at29/128/32 frames. Heavy's authored5 doubles under the
+  existing approximate eye/head test. Stop blocks further damage for80 frames.
+  Recall blocks all three attacks while active and damage resumes afterward.
+  These are manual targeting/transport fixtures, not autonomous AI acceptance.
+- Add real static-wall melee exclusion for all five NPC capsules, with no hit
+  notice, health loss or charge gain. Eight actual-class tests now cover36 class
+  subcases. Enforcer/Assassin still cause zero damage in200 frames and are listed
+  as executed missing-attack failures, not hidden behind selected passing tests.
+- Pass245 regular regressions after fixing two test-fixture references, plus
+  14 server snapshot/replay tests on frozen source (259 distinct tests total).
+  No original-client work, shared-main merge, publication or full goal completion.
+- Execute captured native spread-growth functionD80A50 for72 combinations without
+  engine-service stubs. It adds count/denominator, with Tracer denominator3, not
+  a per-second growth rate. Production spread output/ray sampling, native seed/
+  muzzle correspondence and critical defaults remain open.
+
 #### Tracer authored ultimate gain and observable Recall/Pulse state
 
 - Route resolved damage and authored tags through graph0B8B's original damage

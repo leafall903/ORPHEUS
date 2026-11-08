@@ -78,7 +78,9 @@ NPC columns mean the specific requested class, not a training-bot substitute.
 | Ultimate spending / windup / end / cancel | S | O | O | O | O | O | O |
 | Ultimate selected passive / damage gain | S | S | S | S | S | S | O |
 | Ultimate full native eligibility / long skipped-frame recovery | O | O | O | O | O | O | O |
-| Incoming primary fire | S (Soldier) | O | O | O | O | O | O |
+| Incoming primary fire | S (Soldier) | S (manual) | F (no attack) | S (manual) | F (no attack) | S (manual) | O |
+| Recall protection from actual NPC primary | S | S (manual) | O | S (manual) | O | S (manual) | O |
+| Static-wall melee exclusion | O | S | S | S | S | S | O |
 | Incoming abilities / control / death | O | O | O | O | O | O | O |
 | Outgoing death / notices | S | S | S | S | S | S | O |
 | Manual NPC corpse retention | N/A | S | S | S | S | S | O |
@@ -193,6 +195,52 @@ execution during export, retain deterministic hashes, detect changed history/
 fuses and reject unknown fields. These are observation formats, not restorable
 checkpoints. The14-test server replay suite passes on frozen source; source edits
 mid-replay invalidate its pinned package manifest.
+
+## Actual NPC incoming and native spread evidence follow-up
+
+Reviewed shared parent commits fbcaf76 (manual engagement/controller), d1286b7
+(weapon manager and sparse slots),6debff3 (array selection) and7cd1ed7 (melee LOS)
+are reused only in this private clone. The parent owns integration of shared
+changes. The melee conflict retains this lane's authored damage-tag forwarding.
+
+Current follow-up:259 distinct tests pass (245 regular plus14 full server
+snapshot/replay); native72-case execution is counted separately.
+Eight actual-class tests cover36 class subcases. Manual controller input causes
+Trooper20 damage at frame29, Sniper100 at128 and Heavy Assault10 at32 against
+Tracer. Heavy's authored5 is doubled by the existing approximate head criterion;
+this does not validate native animation hitboxes. All three cease damage for80
+frames after stop. Casting Recall before their first shot blocks actual attack
+damage throughout its active phases; their real attacks damage Tracer afterward.
+Each NPC uses its actual body/weapon graphs and data; no direct-damage replacement
+is used. Observer projectile transport remains an explicit omitted adapter.
+Autonomous acquisition/navigation, specials and production mounting remain open.
+
+The fresh full-five-class audit records Enforcer and Assassin at zero damage in
+200 frames with scripts retained. They remain executed missing-attack failures.
+Array selection fixes Enforcer's config value but does not supply its missing
+controller context. These two failures are not converted into passing tests that
+assert no attack. Five-class melee tests use actual wall triangles and authored
+capsules: no through-wall loss, hit notice or ultimate gain. Existing clear-path
+melee tests still deal30 to every class.
+
+Offline execution of captured104319 native functionD80A50 passes72 combinations
+without engine-service stubs. It returns1 for a denominator below1e-7; otherwise
+min(1, initial + max(0,count)/denominator), with scalar float32 operations. The
+239B571E launch initializerD88673..D8869B maps its+38 field(m_AC20B1C1) to runtime
++28, used as that denominator. Tracer's value3 therefore means three shots to
+full normalized spread, not growth per second. D5FF60 passes zero-based shot
+index for firing; D5F920 passes shots_at(elapsed)+1 for the linked spread output.
+D5EAA0 interpolates authored min/max then converts degrees to radians. The0016
+recovery Chase moves231 toward0 at rate4 after the0.2-second6618 delay.
+
+The existing captured image SHA256 is
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+Lane-local SPREAD_NATIVE_EVIDENCE.json and SPREAD_NATIVE_VALIDATION.json retain
+provenance, RVAs and results outside Git. The native D80090 sampler uses indexed
+random tables and axis rotations; seed/table, anisotropy and dual-muzzle mapping
+remain unverified. Current production spread output and command rays are still
+constant; no spread acceptance is asserted. Tracer's null m_A872C70E critical
+field still lacks a verified native default. No game bytes enter this patch.
 
 ## Client and delivery status
 
