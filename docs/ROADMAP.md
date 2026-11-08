@@ -22,6 +22,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   A charged ultimate can kill a player in an offline real-input audit. Pellet
   count25 and a reconstructed primary ring pattern now have real damage,
   miss/team/wall tests; Breather cooldown rejection/expiry also has evidence.
+  Real-input magazine checks now cover held primary/secondary/both, mixed-mode
+  sharing of five rounds, cadence, empty refusal, automatic/manual reload and
+  resumed fire. Hook/Breather cancel reload without delayed refill; fresh reload
+  still succeeds. Duplicate/old commands and pre-respawn dead inputs cannot add
+  hits/ammo use or finish reload. Native timing agreement and wider loss remain open.
   Whole Hog's16-pellet path now executes charge consumption, repeated damage,
   end, uncharged rejection and death cancellation with miss/team/wall regressions.
   Explicit external five-Talon inputs now cover weapon/melee/ultimate damage and

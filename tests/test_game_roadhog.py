@@ -2,12 +2,14 @@
 
 import unittest
 from dataclasses import replace
+from itertools import pairwise
 from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, Run, aim
 
 from ow174.game import combat, stats
 from ow174.game.collision import World
+from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
@@ -138,6 +140,135 @@ class RoadhogProjectileTests(unittest.TestCase):
         )
         self.assertEqual(body_hits[-1]["+0x78"]["+0x8"] & combat.CRITICAL, 0)
         self.assertEqual(head_hits[-1]["+0x78"]["+0x8"] & combat.CRITICAL, combat.CRITICAL)
+
+
+class RoadhogWeaponResourceTests(unittest.TestCase):
+    def session(self):
+        run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
+        match = run.match
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        hog, enemy = run.players
+        match.switch_hero(hog, heroes()[ROADHOG])
+        x, y, z = hog.mover.position
+        enemy.mover.position = [x, y, z + 2]
+        weapon = next(i for i in hog.body_script.component.instances.values()
+                      if i.graph.index == 0x01C6)
+        # Retain a live enemy for several full volleys without changing the weapon.
+        vitals = combat.Vitals(enemy.body, 20000)
+        match.combat.vitals[enemy.body] = vitals
+        return run, hog, enemy, weapon, vitals
+
+    def test_held_primary_secondary_and_both_empty_reload_and_resume(self):
+        for button, node, amount in ((1, 26, 165), (2, 29, 50), (3, 26, 165)):
+            with self.subTest(button=button):
+                run, hog, _, weapon, vitals = self.session()
+                fight = run.match.combat
+                shoot = fight._shoot
+                shots, ammo = [], []
+
+                def trace(*args, shots=shots, run=run, shoot=shoot, **kwargs):
+                    shots.append((run.frame, args[2].node.pos))
+                    return shoot(*args, **kwargs)
+
+                start = run.frame
+                with patch.object(fight, "_shoot", side_effect=trace):
+                    for _ in range(430):
+                        run.step({hog: (0, 0, button)})
+                        ammo.append(weapon.vars[53].value())
+                self.assertEqual([n for _, n in shots], [node] * 6)
+                self.assertEqual(ammo[0], 4)
+                self.assertEqual(min(ammo), 0)
+                self.assertTrue(all(0 <= value <= 5 for value in ammo))
+                # The first magazine uses authored 0.85s recovery, quantized to
+                # 16ms frames; this tests graph execution, not native agreement.
+                gaps = [b[0] - a[0] for a, b in pairwise(shots[:5])]
+                self.assertTrue(all(gap in (53, 54) for gap in gaps))
+                empty = next(i for i, value in enumerate(ammo) if value == 0)
+                refill = next(i for i in range(empty + 1, len(ammo)) if ammo[i] == 5)
+                self.assertTrue(all(value == 0 for value in ammo[empty:refill]))
+                self.assertGreater(shots[5][0], start + refill + 1)
+                self.assertEqual(ammo[-1], 4)
+                self.assertAlmostEqual(20000 - vitals.total, amount * 6, places=3)
+
+    def test_manual_reload_fills_without_extra_shots_or_damage(self):
+        run, hog, _, weapon, vitals = self.session()
+        for frame in range(240):
+            button = 1 if frame == 0 else 0x400 if frame == 60 else 0
+            run.step({hog: (0, 0, button)})
+            if 1 <= frame < 60:
+                self.assertEqual(weapon.vars[53].value(), 4)
+        self.assertEqual(weapon.vars[53].value(), 5)
+        self.assertAlmostEqual(20000 - vitals.total, 165, places=3)
+        self.assertEqual(len(hog.client.messages(combat.HIT)), 25)
+
+    def test_alternating_primary_secondary_share_one_magazine(self):
+        run, hog, _, weapon, vitals = self.session()
+        for frame in range(255):
+            button = (1 if (frame // 60) % 2 == 0 else 2) if frame % 60 == 0 else 0
+            # Try the other firing mode immediately after the fifth round.
+            if frame == 248:
+                button = 2
+            run.step({hog: (0, 0, button)})
+        self.assertEqual(weapon.vars[53].value(), 0)
+        self.assertAlmostEqual(20000 - vitals.total, 3 * 165 + 2 * 50, places=3)
+        self.assertEqual(len(hog.client.messages(combat.HIT)), 3 * 25 + 2)
+
+    def test_hook_and_breather_cancel_reload_without_delayed_refill(self):
+        for interrupt in (8, 16):
+            with self.subTest(interrupt=interrupt):
+                run, hog, _, weapon, vitals = self.session()
+                for frame in range(280):
+                    button = (1 if frame == 0 else 0x400 if frame == 60
+                              else interrupt if frame == 90 else 0)
+                    run.step({hog: (0, 0, button)})
+                self.assertEqual(weapon.vars[53].value(), 4)
+                # Hook also deals30 to the close enemy; Breather does not.
+                self.assertAlmostEqual(20000 - vitals.total,
+                                       195 if interrupt == 8 else 165, places=3)
+                run.step({hog: (0, 0, 0x400)})
+                for _ in range(180):
+                    run.step({})
+                self.assertEqual(weapon.vars[53].value(), 5)
+
+    def test_duplicate_and_old_commands_cannot_spend_ammo_or_repeat_hits(self):
+        for button, amount, count in ((1, 165, 25), (2, 50, 1)):
+            with self.subTest(button=button):
+                run, hog, _, weapon, vitals = self.session()
+                old = None
+                for _ in range(120):
+                    run.step({hog: (0, 0, button)})
+                    current = Command(run.frame, buttons=button)
+                    if old is None:
+                        old = current
+                    before = (weapon.vars[53].value(), vitals.total,
+                              len(hog.client.messages(combat.HIT)), len(run.match.combat.rockets))
+                    hog.take_commands([current, current, old])
+                    after = (weapon.vars[53].value(), vitals.total,
+                             len(hog.client.messages(combat.HIT)), len(run.match.combat.rockets))
+                    self.assertEqual(before, after)
+                self.assertEqual(weapon.vars[53].value(), 2)
+                self.assertAlmostEqual(20000 - vitals.total, amount * 3, places=3)
+                self.assertEqual(len(hog.client.messages(combat.HIT)), count * 3)
+
+    def test_dead_owner_cannot_fire_or_finish_reload_before_respawn(self):
+        run, hog, enemy, weapon, vitals = self.session()
+        for frame in range(90):
+            button = 1 if frame == 0 else 0x400 if frame == 60 else 0
+            run.step({hog: (0, 0, button)})
+        self.assertEqual(weapon.vars[53].value(), 4)
+        fight = run.match.combat
+        target = next(t for t in fight._targets() if t.owner is hog)
+        fight._damage(enemy, target, 2000, False, None, run.frame)
+        self.assertTrue(fight.is_dead(hog))
+        ended = vitals.total
+        body = hog.body
+        for frame in range(180):
+            run.step({hog: (0, 0, 3 if frame % 2 else 0x400)})
+        self.assertEqual(hog.body, body)
+        self.assertTrue(fight.is_dead(hog))
+        self.assertEqual(weapon.vars[53].value(), 4)
+        self.assertEqual(vitals.total, ended)
 
 
 class RoadhogSelfHealTests(unittest.TestCase):

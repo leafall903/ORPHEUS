@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Roadhog lane: exercise magazine and reload lifecycle through combat
+
+- Add real-command, real-pool regressions for held primary/secondary/both-button
+  fire, alternating modes sharing five rounds, empty refusal, automatic refill
+  and resumed fire. The first magazine's recovery spans53/54 command frames
+  for authored0.85s at16ms. Both-button input admits primary only.
+- Verify manual reload adds no hits, Hook/Breather cancel it without a delayed
+  refill and a fresh reload works after either ability. Repeated current/old
+  commands cannot repeat hits or ammo use; a dead owner cannot finish reload
+  or fire during180 pre-respawn ticks. Damage reaches a retained live player.
+- These checks exercise existing authored graph behavior; no guessed native
+  knockback or ultimate-generation rules are added. Whole Hog knockback,
+  passives/charge gain, defenses/status and the complete static goal remain open.
+  Pass106 combat/projectile/ability/Roadhog/McCree tests and25 explicit-five-NPC,
+  Hook/modifier/stored-state tests. No original-client acceptance or publication.
+
 #### Roadhog lane: share canonical melee visibility
 
 - Merge reviewed parent7cd1ed7 and use its shared capsule_visible helper instead
