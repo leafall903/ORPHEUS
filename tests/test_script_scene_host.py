@@ -44,7 +44,7 @@ def message_model():
                        m_gameMessage={'$': 'STUConfigVarGameMessage', 'm_gameMessage': f'0x{MESSAGE:016X}'},
                        m_params=[{'m_B5051BCE': '0x0D80000000000007',
                                   'm_out_Var': {'$': 'STUConfigVarDynamic', 'm_identifier': 9}}],
-                       m_outPlug=plug((1, 'm_inPlug'))), setter(1, 23)])
+                       m_outPlug=plug((1, 'm_inPlug'))), setter(1, 23)], entries=[0])
 
 
 def sender_model():
@@ -127,9 +127,10 @@ class SharedSceneTests(unittest.TestCase):
         target.now = 400
         sender.run_node(sender.graph.node(0), None)
         self.assertEqual(sender.find_var(0, 7).value(), 31)
-        self.assertEqual(len(receiver.queue), 1)
+        self.assertEqual(len(receiver.queue), 2)
         self.assertEqual(receiver.queue[0].time, 400)
-        self.assertEqual(receiver.queue[0].message, (MESSAGE, {7: (17,)}, A))
+        self.assertEqual([event.kind for event in receiver.queue], [runtime.ASSIGN, runtime.ENTRY])
+        self.assertEqual(receiver.queue[0].assignment, (0, 9, (17,)))
         self.assertIsNone(receiver.find_var(0, 7, create=False))
         target.run_now()
         self.assertEqual(receiver.find_var(0, 7).value(), 23)

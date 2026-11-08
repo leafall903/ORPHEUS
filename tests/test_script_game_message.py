@@ -225,14 +225,26 @@ class GameMessageTests(unittest.TestCase):
                 execute(instance, action)
             self.assertIsNone(instance.find_var(0, 7, create=False))
 
-    def test_scene_transport_declines_unimplemented_instigator_or_repeated_parameter_delivery(self):
-        for fields in ({'m_8B34E9C3': literal(expr.Entity(OTHER))},
-                       {'m_params': [parameter(literal(1)), parameter(literal(2))]}):
-            world, _, instance, action = setup(**fields)
-            world.submit_game_message = scene.SceneWorld.submit_game_message.__get__(world)
-            with self.assertRaises(runtime.UnsupportedScriptError):
-                execute(instance, action)
-            self.assertIsNone(instance.find_var(0, 7, create=False))
+    def test_scene_transport_preserves_distinct_instigator_and_repeated_parameter_assignments(self):
+        world, component, instance, action = setup(m_8B34E9C3=literal(expr.Entity(OTHER)),
+            m_params=[parameter(literal(1)), parameter(literal(2))])
+        world.submit_game_message = scene.SceneWorld.submit_game_message.__get__(world)
+
+        def variable(identifier):
+            return {'$': 'STUConfigVarDynamic', 'm_identifier': identifier}
+
+        receiver = component.create(graph([node(0, 'STUStatescriptEntryGameMessage',
+            m_gameMessage=literal(expr.Asset(MESSAGE)), m_B60ABDA4=variable(41),
+            m_FF703F20=variable(42), m_params=[{'m_B5051BCE': f'0x{KEY:016X}',
+                                              'm_out_Var': variable(43)}])], entries=[0]), init=False)
+        receiver.initialized = True
+        execute(instance, action)
+        self.assertEqual([event.assignment for event in receiver.queue[:-1]], [
+            (0, 43, (1,)), (0, 43, (2,)), (0, 41, expr.Entity(OWNER)), (0, 42, expr.Entity(OTHER))])
+        component.run_now()
+        self.assertEqual(receiver.find_var(0, 43).value(), (2,))
+        self.assertEqual(receiver.find_var(0, 41).value(), expr.Entity(OWNER))
+        self.assertEqual(receiver.find_var(0, 42).value(), expr.Entity(OTHER))
 
 
 if __name__ == '__main__':

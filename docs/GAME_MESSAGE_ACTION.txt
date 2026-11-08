@@ -50,13 +50,11 @@ checking detach/replacement/stop/failure before and after callbacks. Traversal
 and parameter rows consume shared work budgets. A retired source cannot submit
 or follow the success plug.
 
-The current shared-scene backend can deliver unique low-identifier parameters
-when caller and instigator agree. Different instigators and repeated/colliding
-parameter identifiers remain strict delivery errors, before any target receives
-the request. Their information survives construction for a future complete
-consumer. Known missing targets/components retain the existing declared drop
-path; unknown or failed components remain errors. This backend policy is not
-claimed as recovered native server transport.
+The subsequent native Entry backend preserves distinct caller/instigator values
+and ordered repeated full parameter keys through binding and queueing. See
+MESSAGE_RECEIVE.txt for its scope, filter-service limits and native comparisons.
+Known missing targets/components retain the declared drop path; unknown or failed
+components remain errors. Complete native server forwarding remains unaccepted.
 
 In the captured PC action, external identities are collected but no foreign
 dispatch occurs. Only the self flag invokes1B8C580, whose body traverses the

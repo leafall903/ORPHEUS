@@ -10,7 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, message_receive, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -28,7 +28,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "cached_source_entity", "auto_retire", "initialized_frame",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "initialized_frame",
     "retirement_pending",
 ))
 _STATE = frozenset((
@@ -90,6 +91,8 @@ _VALUE_LAYOUTS = {
     runtime.Link: ("state", "slot", "priority", "above", "stack"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
                     "message", "assignment", "transient"),
+    message_receive.Packet: ("message", "caller", "instigator", "params"),
+    message_receive.ParamScope: ("instance", "node", "packet"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
 }
 
@@ -173,7 +176,7 @@ class _Export:
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
         _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
-        _containers(fields, ("disabled_start_entries",), set, "instance")
+        _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')

@@ -69,7 +69,8 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "cached_source_entity", "auto_retire", "initialized_frame",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "initialized_frame",
     "retirement_pending",
 }
 STATE_FIELDS = {

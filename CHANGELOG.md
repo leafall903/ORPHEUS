@@ -6,6 +6,36 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native game-message entry reception
+
+- Preserve full ordered packet parameters, repeated keys and separate caller/
+  instigator identities in shared-scene delivery. Select authored entry-array
+  nodes in context0 with scalar messages, one-shot indices and explicit filter
+  services. Unknown filter engines remain strict; no policy default is installed.
+- Queue native parameter/context assignments before Entry events at the receiver
+  clock. Match named/positional rows in incoming order; missing inputs keep old
+  values. Preserve Dynamic-only context casts, typed invalid identities and the
+  source-current-object getter's forward-possession/fallback behavior.
+- Add transient parameter scopes with builtin9/A/B and first-full-key lookup.
+  Remove scopes after selection/binding, including faults. Check source/receiver
+  lifetimes and shared budgets. Passive VM export includes disabled entry indices,
+  packets, scopes and queued writes without callbacks. Legacy transport and the
+  independent sending/receiving States remain outside native entry acceptance.
+- Pass1350 original queue/binding,3024 entry-selection,15 scope and60 subject
+  comparisons, plus one native null-namespace fault probe, with declared engine/
+  storage adapters. Fix actual named message entries retaining idle transient
+  scripts;2688 original lifetime cases also pass with the extracted class name.
+  Add25 behavior tests;992 related and33 server tests pass with
+  frozen hashes, plus Ruff/diff. See MESSAGE_RECEIVE.txt.
+- Actual100B's15 entry nodes pass isolated pre-init queue fixtures, including
+  caller bindings10110/10111/10112. Ordinary mode initialization and entry plugs
+  are not executed by those fixtures. Three explicit controller profiles still
+  retain the unknown06FF receiver; ordinary controller retains81A9AB10; real Match
+  retains rootD38/node106. Placed50/123 and failed-receiver cleanup remain unchanged.
+- No fresh original-client run, deployment or full story/cinematic/enemy-AI
+  acceptance is claimed. Normal inputs and unrelated work remain intact.
+  Publication helper missing; no GitHub push is performed.
+
 #### Native outgoing game-message construction
 
 - Restore strict ActionSendGameMessage scalar message selection, generic target

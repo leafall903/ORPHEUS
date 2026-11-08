@@ -24,6 +24,7 @@ from ow174.game.script import (
     expr,
     game_message,
     graph,
+    message_receive,
     model_look,
     modifiers,
     play,
@@ -257,18 +258,51 @@ class SceneWorld(runtime.World):
         source = self._game_message_component(instance, node)
         if type(request) is not game_message.Request or request.owner != source.entity:
             source.unsupported(instance, 'scene message request owner', node.cls, node)
-        if request.instigator != request.owner:
-            source.unsupported(instance, 'scene message instigator delivery', node.cls, node)
-        params = {}
-        for key, values in request.params:
-            identifier = key & 0xFFFF
-            if identifier in params:
-                source.unsupported(instance, 'scene message repeated parameter delivery', node.cls, node)
-            params[identifier] = values
+        packet = message_receive.Packet(request.message, request.owner, request.instigator, request.params)
         for target in request.targets:
-            self.send_script_message(instance, node, target, request.message, params, request.owner)
+            self.send_game_message_packet(instance, node, target, packet)
         if request.self_target:
-            self.send_script_message(instance, node, source.entity, request.message, params, request.owner)
+            self.send_game_message_packet(instance, node, source.entity, packet)
+
+    def send_game_message_packet(self, instance, node, target, packet):
+        source = self._game_message_component(instance, node)
+        if target not in self.entities:
+            return
+        receiver = self.script_components.get(target, NotImplemented)
+        if receiver is None:
+            return
+        if receiver is NotImplemented or receiver.fault is not None:
+            source.unsupported(instance, 'scene message target component', node.cls, node)
+        message_receive.deliver(receiver, packet)
+        self._game_message_component(instance, node)
+        if self.script_components.get(target) is not receiver or receiver.fault is not None:
+            source.unsupported(instance, 'scene message target lifecycle', node.cls, node)
+
+    def game_message_subject(self, instance, node, instigator):
+        component = self._game_message_component(instance, node)
+        context = self.query_contexts.get(component.entity, NotImplemented)
+        if (type(context) is not entity_queries.Context or context.retired
+                or context.owner != component.entity or context.namespace_present is not True
+                or not callable(context.lookup)):
+            component.unsupported(instance, 'scene message subject lookup', node.cls, node)
+        component.consume_work('game message subject lookup')
+        target = context.lookup(instigator)
+        self._game_message_component(instance, node)
+        if (self.query_contexts.get(component.entity) is not context or context.retired
+                or context.owner != component.entity or context.namespace_present is not True):
+            component.unsupported(instance, 'scene message subject lifecycle', node.cls, node)
+        if target is None:
+            return instigator
+        if type(target) is not entity_queries.Target or target.entity != instigator:
+            component.unsupported(instance, 'scene message subject lookup result', node.cls, node)
+        if target.possession is None:
+            return instigator
+        if type(target.possession) is not entity_queries.Possession:
+            component.unsupported(instance, 'scene message subject possession', node.cls, node)
+        current = target.possession.current
+        if type(current) is not int or not 0 <= current <= 0xFFFFFFFF:
+            component.unsupported(instance, 'scene message subject possession', node.cls, node)
+        return current if expr.valid_entity(current) else instigator
 
     def send_script_message(self, instance, node, target, message, params, sender):
         source = instance.component

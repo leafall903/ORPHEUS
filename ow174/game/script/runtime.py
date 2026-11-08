@@ -437,6 +437,13 @@ class World:
     def submit_game_message(self, instance: "Instance", node: Node, request) -> None:
         instance.component.unsupported(instance, 'game message submission', node.cls, node)
 
+    def game_message_filter(self, instance: "Instance", node: Node, config, caller: int):
+        """None: known absent compiled filter; bool: known predicate result."""
+        return NotImplemented
+
+    def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
+        instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
         from ow174.game.script.play import resolve_resource
@@ -870,6 +877,7 @@ class Instance:
         self.initialization_pending = False
         self.start = 0
         self.disabled_start_entries: set[int] = set()
+        self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
@@ -1110,7 +1118,7 @@ class Instance:
         for node in self.graph.entries:
             self.component.consume_work('automatic script lifetime entry')
             if (node is not None and node.pos not in self.disabled_start_entries
-                    and node.cls not in ('STU_BB4AC733', 'STU_8A7E9DA8')):
+                    and node.cls not in ('STU_BB4AC733', 'STU_8A7E9DA8', *MESSAGE_ENTRIES)):
                 return
         if (self.initialized_frame+1) & 0xFFFFFFFF >= self.component.frame & 0xFFFFFFFF:
             self.retirement_pending = True

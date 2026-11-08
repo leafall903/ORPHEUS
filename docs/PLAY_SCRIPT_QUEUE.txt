@@ -60,7 +60,8 @@ New queued instances set auto_retire only for byte0. Reused instances keep their
 old setting, regardless of the new request byte.
 
 1B95440 first requires no queued events, no teardown and no enabled keepalive
-entries.1B935D0/F5B660 exempt BB4AC733 and8A7E9DA8; other nonnull enabled entries
+entries.1B935D0/F5B660 exempt BB4AC733 and8A7E9DA8, including its extracted name
+STUStatescriptEntryGameMessage; other nonnull enabled entries
 keep the graph alive. Ordinary initialization entries disable when their event is
 queued, matching1B954F0. The storage field disabled_start_entries now also records
 these ordinary disabled positions. Native Instance+58 records initialization frame.

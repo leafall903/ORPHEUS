@@ -180,6 +180,7 @@ class AutomaticLifetimeTests(unittest.TestCase):
 
     def test_enabled_other_entries_keep_alive_but_start_entries_and_disabled_entries_do_not(self):
         for cls, disabled, retires in [('STU_BB4AC733', False, True), ('STU_8A7E9DA8', False, True),
+                                        ('STUStatescriptEntryGameMessage', False, True),
                                         ('STUStatescriptEntry', False, False),
                                         ('STUStatescriptEntry', True, True)]:
             component, active = self.active([node(0, cls)])
