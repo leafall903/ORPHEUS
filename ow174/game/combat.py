@@ -88,6 +88,7 @@ MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahea
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
 EPSILON = 1e-9
+BLAST_SURFACE_OFFSET = 1e-4  # m: keep a wall impact's query on the incoming side (reconstructed)
 
 
 # --- geometry -----------------------------------------------------------------------------------------
@@ -729,15 +730,39 @@ class Combat:
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
+        # A wall impact lies on the collision surface. Start just before it so the
+        # same face blocks targets behind it without hiding targets in front.
+        blast_origin = (
+            _along(rocket.position, rocket.direction, max(0.0, t - BLAST_SURFACE_OFFSET))
+            if struck is None else point
+        )
         for target in self._enemies(rocket.shooter):
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
-            if scalar > 0.0:
+            if scalar > 0.0 and self._blast_visible(blast_origin, target):
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
                 )
+
+    def _blast_visible(self, origin, target: Target) -> bool:
+        """Reconstructed splash LOS to the nearest point on the target capsule's axis.
+
+        This shares the current combat collision category. Retail's splash probe
+        points and collision mask still require target-build verification.
+        """
+        a, b = target.segment()
+        axis = _sub(b, a)
+        length = _dot(axis, axis)
+        share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(_sub(origin, a), axis) / length))
+        offset = _sub(_along(a, axis, share), origin)
+        distance = math.sqrt(_dot(offset, offset))
+        if distance <= EPSILON:
+            return True
+        direction = tuple(value / distance for value in offset)
+        wall = ray_world(self._collision(), origin, direction, distance)
+        return wall is None or wall >= distance
 
     def _landed(self, rocket: Rocket) -> None:
         """The projectile ended (hit, range, lifetime): the predicted one's release follows."""

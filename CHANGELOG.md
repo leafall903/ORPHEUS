@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Soldier lane static splash occlusion
+
+- Stop Helix splash through static collision for players and NPCs. Probe the
+  nearest capsule-axis point and offset wall impacts 0.1 mm toward the incoming
+  side so exposed targets still take damage. Probe points, offset and collision
+  category are reconstructed; retail partial-cover behavior remains open.
+- Pass 5 new pool-changing lane tests, 28 combat tests, 37 projectile tests and
+  12 ability tests (82 total), Ruff and diff checks. Verify unchanged 120-damage
+  direct Helix hits, front/rear wall targets, second-target occlusion, incoming
+  authored rifle damage and self/allied healing with enemy/dead exclusions.
+- NPC fixtures use a generic training body and Soldier rifle. All five actual
+  PvE actors, Tactical Visor targeting, cross-hero protection, ultimate charge
+  fidelity and original-client visuals remain open. No combat viability claimed.
+  See docs/SOLDIER_COMBAT_LANE.txt. Private lane only; no root merge or push.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.
