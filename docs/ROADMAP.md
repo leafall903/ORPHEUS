@@ -29,6 +29,7 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Lobby and match lifecycle.** Verify queues, team assignment, game setup, hero selection, match handoff, joining, leaving, reconnecting and returning to the lobby.
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
+  - [ ] Restore Mei's complete player/five-NPC combat and original-client presentation. Partial offline weapon, melee and incoming damage checks plus shared projectile critical/falloff handling are recorded in [Mei combat lane](MEI_COMBAT.txt). Freeze, Cryo-Freeze, Ice Wall, Blizzard, cross-hero defenses and all five actual NPCs remain open.
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.

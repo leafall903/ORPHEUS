@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Mei weapon combat and projectile impacts
+
+- Apply direct projectile critical multipliers at the swept impact point and
+  falloff at the entire flown distance. Preserve noncritical splash and the
+  existing capsule/head heuristic. Reconstruct the missing icicle multiplier
+  as2x only for Mei graph05E6/state16; this is not a native engine default.
+- Add12 offline real-Match checks for Mei spray/icicle/melee, incoming rifle
+  damage, ally filtering, death notices, shield/armour order, falloff, static
+  blocking, retained training NPC corpses and an injected NPC projectile path.
+  Pass28 existing combat,37 projectile and12 Soldier ability checks:89 total.
+  Ruff and diff checks pass. The NPC fixture is not any of the five requested
+  PvE enemy types and its injected shot does not establish authored AI.
+- No original-client acceptance or deployment is claimed. Freeze/penetration,
+  Cryo-Freeze, Ice Wall, Blizzard, cross-hero defenses and actual five-enemy
+  combat remain open in docs/MEI_COMBAT.txt and the roadmap. No client lease
+  was acquired; an existing client was left untouched. Deliver a private-lane
+  patch for parent review, without root merge or manual push. The required
+  publication helper is absent; GitHub synchronization is not performed.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

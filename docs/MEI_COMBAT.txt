@@ -1,0 +1,96 @@
+Mei combat lane (00DD), build 1.74.0.0.104319 -- OPEN
+==================================================
+
+Scope and isolation
+-------------------
+Hero02E00000000000DD; private main clone based on100c66c. External runtime
+104319 is read-only input. No normal service, original source, other lane or
+client process is changed. This document is an incomplete acceptance record.
+
+Evidence and reconstruction
+---------------------------
+The extracted body creates weapon05E6, Cryo-Freeze05FE, Ice Wall0622 and
+Blizzard064A. Real BodyScript commands emit spray state13:2.75 damage,20/s,
+speed40, range via variable1648, projectile08BE; icicle state16:75 damage,
+projectile108B, speed via6368, maximum range100. Spray explicitly supplies
+critical multiplier1. Icicle's multiplier is absent in the dump. This lane
+reconstructs2x ONLY for graph05E6/state16, not as a global native default.
+Retail's multiplier still requires target-build client acceptance.
+
+Combat._fly formerly discarded direct critical and falloff fields. It now
+uses the swept impact point for the same capsule-head heuristic as hitscan,
+and total flown distance for falloff. Splash is unchanged. Capsule hitboxes,
+head threshold, armour and interpolation retain the existing reconstructed
+semantics; these are not newly measured native behavior.
+
+12 real-Match offline regressions exercise authoritative health and notices:
+body75/head150 icicles, noncritical spray damage, enemy rifle -> Mei damage,
+team filtering, lethal notices, shield/armour/health order, whole-flight
+falloff (synthetic HitDef), quick melee, static blocking (mock collision),
+training NPC retained corpse after deadline, and NPC -> Mei projectile damage
+(explicit injected flight, NOT authored AI). They do not establish any of the
+five requested NPC's actual attacks/specials or rendering.
+
+Acceptance matrix
+-----------------
+P = partial offline player-path proof; O = open; no row is client-accepted.
+NPC columns: T Trooper; E Enforcer; S Sniper; A Assassin; H Heavy Assault.
+Action / mechanic                    Player   T E S A H
+Take enemy weapon/ability damage       P       O O O O O
+Primary spray damage                  P       O O O O O
+Primary slow/freeze/penetration        O       O O O O O
+Secondary body/head icicle             P       O O O O O
+Quick melee                           P       O O O O O
+Reload, ammo and cancellation          O       O O O O O
+Cryo-Freeze self heal/invulnerability   O       O O O O O
+Cryo cleanse/cancel/cooldown            O       O O O O O
+Ice Wall placement/rotation/cancel     O       O O O O O
+Ice Wall collision/pillars/damage      O       O O O O O
+Blizzard launch/flight/area            O       O O O O O
+Blizzard damage/slow/freeze/LOS        O       O O O O O
+Status movement/input/expiry/stacking  O       O O O O O
+Barrier/shield/reflect/absorb          O       O O O O O
+Invulnerability/cleanse/immunity       O       O O O O O
+Kill/death/corpse semantics            P       O O O O O
+Client weapon/VFX/audio/HUD feedback  O       O O O O O
+
+Allies must remain immune to offensive abilities. Cryo is self-only healing,
+not area damage; Ice Wall affects geometry with authored team permissions.
+Normal player respawn remains separate from manual PvE retain_corpse policy.
+Cross-hero acceptance must cover barriers, Zarya bubbles, Genji reflection,
+D.Va absorption, invulnerable/cleansed targets, dead targets and interrupted
+casts. Do not treat a green VM test as proof of these engine consumers.
+
+Concrete engine gaps and next work
+----------------------------------
+1. Spray metadata includes fieldB4454CD7=99 and freeze-related payloads,
+   but their field meaning, per-target hit history, thickness, barrier policy
+   and status consumers have not been proven. Current flight stops once.
+2. Cryo05FE reaches unknown State54FEB21C. The body driver is permissive;
+   reaching/remaining in this State does not invoke native services. Healing
+   ModifyHealth/state13 and the protection/cleanse consumers are absent.
+3. Wall0622 needs placement raycasts, five dynamic pillar entities, collision,
+   damage/expiry and replicated lifetimes; no such production service exists
+   in the baseline. Do not merely toggle its visual graph.
+4. Blizzard064A has a gravity-bearing projectile0946; the current rocket
+   flight is linear, and landing does not spawn its authoritative area.
+5. Mount actual five NPC definitions and parent-owned manual spawn/control
+   API before the five NPC rows can be tested. Training-bot tests are explicitly
+   narrower. Preserve retain_corpse and dead-target exclusion.
+6. After authoritative behaviors work, acquire client-lease.json exclusively,
+   verify owner/PID/window, run isolated ports with own cwd/PYTHONPATH and
+   external runtime, record each player/NPC interaction and release only own
+   lease after normal client close. No lease was acquired by this lane.
+
+Original-client evidence
+------------------------
+None. An existing Overwatch PID12292 was observed and left untouched. No new
+client startup, isolated service, screenshots, native probes or acceptance
+is claimed. Full Mei combat remains OPEN.
+
+Integration/publication
+-----------------------
+Deliver focused commit/patch through lane STATUS.txt; parent reviews shared
+combat.py edits and integrates them. No direct root merge or manual push.
+The project publication helper is absent from this workspace; do not publish
+an unaccepted hero lane as a finished restoration.

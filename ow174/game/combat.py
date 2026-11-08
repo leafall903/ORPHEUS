@@ -305,7 +305,12 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_start=value("m_EAD7F104"),
         falloff_end=value("m_157E5BC5"),
         falloff_floor=value("m_72A81154"),
-        critical=value("m_A872C70E", 1.0),
+        # Mei's icicle omits the multiplier in the extracted 104319 graph. Reconstruct
+        # its 2x headshot rule locally; this is not a measured native default for all
+        # STU_00D9C7E1 records. The spray explicitly supplies 1 and remains noncritical.
+        critical=value("m_A872C70E", 2.0 if (
+            state.instance.graph.index == 0x05E6 and state.index == 16
+        ) else 1.0),
         rings=tuple(sorted(rings)),
     )
 
@@ -722,8 +727,13 @@ class Combat:
         self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
+            direct = rocket.direct
+            critical = direct.critical > 1.0 and point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
+            amount = direct.amount * direct.scale(rocket.flown * rocket.speed)
+            if critical:
+                amount *= direct.critical
             self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+                rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast
