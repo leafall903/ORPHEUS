@@ -28,8 +28,10 @@ What the server decides here:
 - Damage from the volley's hit definition (the graph data, evaluated by the body script): the
   ModifyHealth amount (Soldier 20, Helix 40 and 80 splash, quick melee 30), unverified: falloff from
   m_EAD7F104 to m_157E5BC5 metres down to m_72A81154 (30 m, 50 m, 30 %), critical times m_A872C70E (2), splash
-  scaled between the explosion rings (1 m: 1.0, 3 m: 0.5). Shields, then armour (5 less a hit, at most half:
-  unverified, OW1's rule; the client has no damage code), then health.
+  scaled between the explosion rings (1 m: 1.0, 3 m: 0.5). Shields, then armour, then health.
+  Ordinary hits retain the existing5-less/at-most-half armour policy. Zarya beam uses the documented
+  OW1 scalar0.7 (2020-08-31 patch); Graviton field DOT uses1.0 (2019-03-19 patch). Native pool-boundary
+  timing is still reconstructed; no target-server damage routine has been executed.
 - Quick melee: 0043 st4 (ModifyHealth) on what its st5 TrackTargets would find (MELEE). The Biotic Field
   heals through heal_area (projectiles.py). A dead body's statescript takes no presses (the VM's
   owner_dead, as the client's LogicalButton 0x7FF78AAAC570), so the dead do not shoot.
@@ -86,6 +88,7 @@ BOT_RESPAWN = 3.0  # s a training bot lies dead (unverified: OW2 made two killed
 RESPAWN_RETRY = 0.25  # s between attempts when all player body IDs are still reserved
 MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahead of the eye, radius): DATA
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
+BEAM_ARMOUR_SCALAR = 0.7  # Blizzard2020-08-31 live patch: beam reduction30%
 TICK = 0.016
 EPSILON = 1e-9
 FLASHBANG_EFFECT = 0x04A0000000000079  # .053/0079 ->0228 ->224E
@@ -208,16 +211,20 @@ class Vitals:
     def total(self) -> float:
         return sum(self.now.values())
 
-    def damage(self, amount: float) -> float:
-        """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
-        while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
+    def damage(self, amount: float, *, armour_scalar: float | None = None) -> float:
+        """Consume pools; ordinary hits use flat armour reduction, beam/DOT supply a scalar.
+
+        Scalar applies only when reaching a nonempty armour pool. Overflow keeps
+        this pool service's reduced remainder; exact native boundary timing is open.
+        """
         left = max(0.0, amount)
         taken = 0.0
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
             if kind == ARMOUR_POOL and self.now[kind] > 0.0:
-                left = max(left - ARMOUR_BLOCK, left / 2)
+                left = (max(left - ARMOUR_BLOCK, left / 2) if armour_scalar is None
+                        else left * armour_scalar)
             take = min(left, self.now[kind])
             if take > 0.0:
                 self.now[kind] -= take
@@ -540,7 +547,7 @@ class Combat:
             if wall is not None and wall < distance:
                 return
             self._damage(player, target, direct.amount * (now - since) / 1000,
-                         False, direct.loadout, command.frame)
+                         False, direct.loadout, command.frame, armour_scalar=BEAM_ARMOUR_SCALAR)
             return
 
     def _melee(self, player, command, script) -> None:
@@ -948,6 +955,7 @@ class Combat:
         *, world_tick: int | None = None,
         source_entity: int | None = None,
         effect: int | None = None,
+        armour_scalar: float | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
@@ -955,7 +963,7 @@ class Combat:
         source = _source_entity(shooter) if source_entity is None else source_entity
         if self.zarya_barriers.intercept(target.owner, amount, source):
             return
-        dealt = vitals.damage(amount)
+        dealt = vitals.damage(amount, armour_scalar=armour_scalar)
         if dealt <= 0.0:
             return
         self.zarya_recovery.damaged(target.owner, self.match.tick if world_tick is None else world_tick)

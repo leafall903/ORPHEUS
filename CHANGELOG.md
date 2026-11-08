@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Zarya beam/DOT armour policy restoration (partial static acceptance)
+
+- Follow Blizzard's2019-03-19 and2020-08-31 live patch notes: primary beam uses
+ 30% armour reduction; Graviton field DOT bypasses armour. Keep ordinary hit
+ reduction and expose the scalar only during armour-pool consumption, after
+ raw barrier interception. Native exhaustion splitting/impact classification stay open.
+- Reproduce primary60 raw damage incorrectly losing only30 against Reinhardt's
+ authored200 armour. Actual energy0/50/100 beams now remove42/68.6/95.2, with
+ matching stats, server HUD and encoded pools. Field DOT removes20 over4s.
+ Projection on armoured Reinhardt still consumes raw60 for12 energy.
+- Pass282 expanded combat/driver/five-NPC tests in126.159s,6 health-pool encoding
+ tests in1.314s and the latest11 armour cases in5.263s; zero skips, Ruff/diff pass.
+ Four armour cases explicitly verify declared host pool-boundary policies rather
+ than claiming native boundary equivalence. No new mutable storage is introduced.
+- Native ultimate charge evidence was not established by fresh source searches;
+ the60-second placeholder is unchanged and remains OPEN. Conditional NPC armour,
+ complete defense/status interactions and original-client acceptance remain open.
+ The complete static goal stays ACTIVE; no parent merge or publication.
+
 #### Zarya Flashbang interception and control acceptance (partial)
 
 - Review/import parent manual NPC control and resource-backed Flashbang commits

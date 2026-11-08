@@ -59,6 +59,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     skill refusal, emitted-attack persistence and both barriers; projected
     protection also blocks damage/control for all five actual NPCs. General
     status cleanse/immunity and native control presentation remain open.
+    Documented OW1 beam/DOT armour policies now run on actual Reinhardt pools:
+    beam30% reduction and Graviton field DOT bypass, with raw barrier absorption.
+    Native exhaustion/impact classification and ultimate generation remain open.
     Graviton's actual cast now drives reconstructed ballistic impact,4-second
     damage/pull and release for players and five NPC bodies. Native aura/field
     actors, charge generation, force/immunity/escape and cross-defense cases remain open.

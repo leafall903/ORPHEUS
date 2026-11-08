@@ -28,7 +28,7 @@ No manual button-to-damage shortcut bypasses ammo or authored activation.
 Reconstructed assumptions: eye-origin beam; expanded capsule intersection;
 damage integrated over command time; instant target selection from current aim.
 Native muzzle transforms, TrackRay output bindings, target acquisition/loss timing,
-beam-specific armor rules and continuous hit-feedback cadence remain unaccepted.
+native armor-pool boundary timing and continuous hit-feedback cadence remain unaccepted.
 Existing shared damage rules are used; this does not prove their retail fidelity.
 
 Personal barrier and energy increment
@@ -329,6 +329,42 @@ server snapshot/replay tests pass in497.421s, and the latest8 control/five-NPC
 tests pass in7.394s. External NPC data is enabled with zero skips. Both initial
 barrier damage/control reproductions failed before the effect-delivery change.
 Ruff/diff pass. No complete-static, original-client or merged-state claim is made.
+
+Armour interaction policy (2026-11-09)
+--------------------------------------
+Blizzard's2019-03-19 live notes classify Zarya primary as beam damage and Graviton
+as damage over time, with DOT no longer reduced by armour. Its2020-08-31 live
+notes change beam armour reduction from20% to30%. These primary-source OW1
+policies inform this reconstruction; they are not execution of the target server.
+Sources:
+[2019-03-19 live notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2019/03/)
+[2020-08-31 live notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2020/8/)
+
+The previous per-command small beam damage used flat hit reduction and halved
+75 DPS to37.5 against armour. Actual Zarya commands now pass an armour scalar0.7
+into pool consumption; Graviton field DOT passes1.0. Scalars apply only after
+shields are consumed and only while armour remains. Barrier capacity and energy
+use original damage before body armour. Ordinary secondary/melee/impact hits
+retain the existing flat-hit policy.
+
+Actual Reinhardt bodies retain authored300 health/200 armour. Over .8s, Zarya
+energy0/50/100 primary removes42/68.6/95.2 armour, with matching damage stats,
+server HUD variable and encoded armour pool values. Secondary removes42 and
+melee25 under the existing discrete-hit rule. The4-second Graviton field removes
+20 armour after its separate impact. Projection on Reinhardt absorbs raw60 and
+gives12 energy, leaving armour intact. Four pool policy cases cover shields,
+no armour, DOT overflow and the declared reduced-remainder beam overflow rule.
+
+Exact native armour-exhaustion splitting and Graviton impact classification remain
+open; only the field's continuous DOT bypass was changed. Difficulty/conditional
+NPC armour, full defensive/boost modifiers and original-client feedback remain
+open. Ultimate charging is also still OPEN: fresh source searches did not establish
+a target-build primary reference for5/s or damage gain, and the current60-second
+fill placeholder is not relabeled as native behavior.
+Validation:282 affected combat/driver/five-NPC tests pass in126.159s,6 health-pool
+encoding tests pass in1.314s, and the latest11 armour cases pass in5.263s. External
+NPC data is enabled with zero skips. Ruff/diff pass. The initial zero-energy beam
+reproduction failed at30 armour lost instead of42 before the production change.
 
 Original client and publication
 -------------------------------

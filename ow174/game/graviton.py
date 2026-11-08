@@ -93,7 +93,8 @@ class Gravitons:
                         continue
                     self.combat._damage(field.shooter, target, DAMAGE_PER_SECOND * duration,
                                         False, LOADOUT, tick, world_tick=tick,
-                                        source_entity=field.source_entity)
+                                        source_entity=field.source_entity,
+                                        armour_scalar=1.0)  # Blizzard2019-03-19: Graviton DOT bypasses armour
                     if (isinstance(target.owner, bots.Bot) and not self.combat.vitals_of(target).dead
                             and target.entity not in moved):
                         bot = target.owner
