@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Attached shield geometry and selected-asset inspection
+
+- Add a selected-asset XML/raw reader with explicit local tool version, build104319
+  gate, disabled network/caches, fingerprints and external-output enforcement.
+  Export actual shield model and missing Zarya effect references outside Git.
+- Decode the known attached motion1/00066F4C native mesh path separately from static
+  map props. Preserve shape-local vertices, masks and node identity; do not infer
+  a barrier pose, health or rectangle. Actual shield model has98 vertices/192 faces.
+- Three real-model tests cover static exclusion, center/edge ray results and
+  malformed data.25 geometry/catalog/ray/CASC regressions pass with zero skips;
+  actual asset reads, output-path rejection, PowerShell parsing and Ruff pass.
+- Current shield-health initialization and bubble effect hosting remain missing.
+  This is a prerequisite checkpoint; hero behavior count stays52 and full static
+  goal/client acceptance remain open. See docs/PHARAH_COMBAT.txt.
 #### Partial state-derived Pharah defense interactions
 
 - Consult scoped active resource stacks for Reaper/Moira intangibility and Mei

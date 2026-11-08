@@ -236,5 +236,21 @@
       "NPC defenses/resistance",
       "Native reflected projectile and explosion presentation/transport"
     ]
+  },
+  "attached_geometry_research": {
+    "status": "prerequisite_only",
+    "passed": [
+      "Selected build104319 STU/raw reads with explicit tool version and fingerprints; external outputs only",
+      "Actual Reinhardt0A3C attached mesh98 vertices/192 triangles parsed; original static prop reader still excludes it",
+      "Shape-local center ray hit and outside width/height misses; malformed data rejects"
+    ],
+    "open": [
+      "Actor/node/hardpoint pose",
+      "Native barrier initialization/regen and damage consumption",
+      "Zarya bubble health/effect hosting and projected targeting",
+      "Full barrier/bubble combat interactions"
+    ],
+    "observation": "Reinhardt0095 #587=1600 but #586=0 after startup/shield input; Zarya13F4/effectA2 references previously missing025D effect graph. No HP/pose substitute is manufactured.",
+    "tests": "3 real-model tests;25 selected geometry/catalog/ray/CASC regressions pass with external asset path and zero skips."
   }
 }
