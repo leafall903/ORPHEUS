@@ -53,6 +53,7 @@ from dataclasses import dataclass
 from ow174.game import (
     bots,
     hero_torbjorn,
+    molten_core,
     observers,
     pools,
     projectile_patterns,
@@ -409,6 +410,7 @@ class Rocket:
     last_tick: int | None = None  # last world tick, or None before player input is simulated
     gravity: float = 0.0  # authored E1A5B579 downward acceleration, m/s^2
     distance: float = 0.0  # accumulated flight path, including the impact segment
+    spawn: int | None = None  # authoritative landing entity, independent of prediction/ACK tracking
 
 
 class Combat:
@@ -429,6 +431,8 @@ class Combat:
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
         self.turrets = {}  # controller entity -> reconstructed Torbjorn deployable state
+        self.molten_pools = {}
+        self.molten_burns = {}
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -537,7 +541,7 @@ class Combat:
             return
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
-        if self.tick and tick > self.tick + 1 and (self.turrets or any(
+        if self.tick and tick > self.tick + 1 and (self.turrets or self.molten_pools or any(
             bot.firing and not bot.dead and isinstance(bot.body_script, BotScript) for bot in self.match.bots
         )):
             first = retained
@@ -552,6 +556,7 @@ class Combat:
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
             hero_torbjorn.update_turrets(self)
+            molten_core.update(self)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
@@ -716,6 +721,9 @@ class Combat:
             )
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
             definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
+            spawn_cfg = (node.field("m_49CBA3BC") or {}).get("m_entityDefinition")
+            spawn_value = state.evaluate(spawn_cfg, watch=False) if spawn_cfg is not None else None
+            spawn = spawn_value.guid if isinstance(spawn_value, expr.Asset) else None
             shot = None
             if isinstance(definition, expr.Asset):
                 shot = self.projectiles.fired(
@@ -735,6 +743,7 @@ class Combat:
                         Rocket(
                             shooter, shooter.team, origin, flight_direction, speed, lifetime, direct, blast,
                             shot, last_tick=self.tick if npc else None, gravity=gravity,
+                            spawn=spawn,
                         )
                     )
             return
@@ -821,6 +830,7 @@ class Combat:
         self._landed(rocket)
         point = _along(rocket.position, direction, t)
         hero_torbjorn.projectile_impact(self, rocket, point, struck)
+        molten_core.projectile_impact(self, rocket, point, struck)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             direct = rocket.direct
             critical = struck.critical_allowed and point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW

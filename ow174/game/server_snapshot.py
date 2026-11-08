@@ -93,7 +93,7 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice turrets"
+        "projectiles observers voice turrets molten_pools molten_burns"
     ),
     combat.Vitals: _names("entity most now over_armour ids changed died_at death_tick killer"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
@@ -140,6 +140,7 @@ DATACLASSES = (
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     combat.TemporaryArmour,
     combat.hero_torbjorn.Turret,
+    combat.molten_core.Pool, combat.molten_core.Arrival, combat.molten_core.Burn,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

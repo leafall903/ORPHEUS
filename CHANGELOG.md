@@ -1,5 +1,24 @@
 # Changelog
 
+### Torbjorn lane: Molten Core area and burn status host
+
+- Resolve030C.053 to16DE in the external preparation tool and retain provenance.
+  Carry authoritative landing definitions separately from predicted shots, so
+  actual ultimate fire can create2903 areas. No game assets enter source.
+- Run16DD preparation/lifetime and16DE status graphs under an explicit legacy
+  auxiliary-scope host. Reconstruct flat area contact/LOS,160base plus90armour
+  damage per second, exact health-pool boundary integration and same-owner
+  overlap suppression. Remove status on exit/death/expiry; preserve caster-death
+  areas. Guard script delivery by create ACK and retirement.
+- Include live areas/burns/manual scope registries in passive snapshots. Pass16
+  area tests,173 related combat tests and68 VM/scope regressions, including actual player/five-NPC health
+  damage and empty-charge rejection. Document the observed9.996s active lifetime
+  on a16ms clock, rather than claiming exact native timing.
+- Full resource/end/cancel, surface/bounce, cross-owner status arbitration,
+  protections and original-client acceptance remain open. Static hero acceptance
+  remains incomplete; details and reproducible fixture commands are recorded in
+  TORBJORN_COMBAT.txt and the lane's external evidence records.
+
 ### Torbjorn lane: periodic damage and temporary armour priority
 
 - Correct the earlier Overload prototype: non-recoverable armour precedes

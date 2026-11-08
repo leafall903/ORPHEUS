@@ -28,7 +28,7 @@ def find_field(value, key):
             yield from find_field(child, key)
 
 
-def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path):
+def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path, status_xml: Path | None = None):
     if output.resolve().is_relative_to(ROOT):
         raise ValueError("prepared game data must be outside the source checkout")
     enums = extract.EnumTables(owlib / "TankLib/STU/Types")
@@ -38,6 +38,7 @@ def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path):
     pending = []
     sources = {str(base): hashlib.sha256(base.read_bytes()).hexdigest()}
     geometry = None
+    pool_height = None
     for body, name in ((0x28B7, "Torbjorn Turret"), (0x2903, "Molten Core Pool")):
         path = xml_folder / "003" / f"{body:012X}.003.xml"
         record, used = extract.body_record(path, enums, "0x02E0000000000006", name)
@@ -49,6 +50,24 @@ def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path):
             geometry = next((float(node.get("m_height")), float(node.get("m_radius")))
                             for node in xml.root.iter() if extract.tag(node) == "STU_50BA775C"
                             and node.get("m_radius") is not None)
+        else:
+            xml = extract.StuXml(path, enums)
+            pool_height = next(float(node.get("m_height")) for node in xml.root.iter()
+                               if extract.tag(node) == "STU_50BA775C" and node.get("m_height") is not None)
+    status_guid = None
+    status_graph = None
+    if status_xml is not None:
+        pool_graph = records[0x16DD]
+        apply = next(node for node in pool_graph["nodes"] if node["class"] == "STU_431F3FCC")
+        status_guid = apply["fields"]["m_A76A8CF6"]["m_A76A8CF6"]
+        guid = int(status_guid, 16)
+        kind = int(f"{guid >> 48:012b}"[::-1], 2) + 1
+        path = status_xml / f"{guid & 0xFFFFFFFFFFFF:012X}.{kind:03X}.xml"
+        xml = extract.StuXml(path, enums)
+        data.setdefault("status_effects", {})[status_guid] = xml.value(xml.root)
+        status_graph = extract.guid_index(xml.field(xml.root, "m_14AA219A").get("GUID"))
+        pending.append(status_graph)
+        sources[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
     seen = set(records)
     while pending:
         index = pending.pop(0)
@@ -77,6 +96,25 @@ def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path):
         "height": geometry[0], "radius": geometry[1], "gun_graph": 0x1689, "gun_state": 1,
         "geometry_source": "28B7/STU_50BA775C m_height/m_radius",
         "reconstruction": "linear build healing;nearest enemy;centre muzzle;native services incomplete"}}
+    if status_graph is not None:
+        pool_graph = records[0x16DD]
+        pool_nodes = pool_graph["nodes"]
+        radius = next(node["fields"]["m_radius"]["m_value"] for node in pool_nodes if node["state"] == 0)
+        arming = next(node["fields"]["m_timeout"]["m_value"] for node in pool_nodes if node["state"] == 1)
+        life = next(node["fields"]["m_value"]["m_value"] for node in pool_nodes
+                    if (node["fields"].get("m_out_Var") or {}).get("m_identifier") == 567)
+        states = [node for node in records[status_graph]["nodes"]
+                  if node["class"] == "STUStatescriptStateModifyHealth"]
+        first, bonus = sorted(states, key=lambda node: node["state"])
+        catalog["molten_core"] = {
+            "body": "0x0400000000002903", "area_graph": 0x16DD, "status": status_guid,
+            "status_graph": status_graph, "radius": radius, "height": pool_height,
+            "arming_seconds": arming, "lifetime_seconds": life,
+            "base_dps": first["fields"]["m_modifyHealth"]["m_amount"]["m_value"],
+            "armour_bonus_dps": bonus["fields"]["m_modifyHealth"]["m_amount"]["m_value"],
+            "loadout": first["fields"]["m_modifyHealth"]["m_loadout"]["m_loadout"],
+            "reconstruction": ("flat cylinder;armour-only rate bonus;per-owner overlap suppression;"
+                               "native status services incomplete")}
     data["deployables"] = catalog
     data["graphs"] = [records[index] for index in sorted(records)]
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -95,8 +133,9 @@ def main():
     parser.add_argument("--xml", type=Path, required=True)
     parser.add_argument("--owlib", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--status-xml", type=Path, help="external053 XML directory for Molten Core status")
     args = parser.parse_args()
-    report = prepare(args.base, args.xml, args.owlib, args.output)
+    report = prepare(args.base, args.xml, args.owlib, args.output, args.status_xml)
     args.output.with_suffix(".provenance.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps({key: value for key, value in report.items() if key != "source_sha256"}, indent=2))
 

@@ -10,7 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime, scopes
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -412,6 +412,13 @@ class _Export:
             _layout(obj, set())
             return {"class": _name(kind), "identity": self.identity(obj),
                     "fields_identity": self.identity(vars(obj)), "args": self.value(obj.args)}
+        if kind is scopes.Registry:
+            fields = _layout(obj, {"states"})
+            _containers(fields, ("states",), list, "auxiliary scope registry")
+            reference = self.identity(obj, scope)
+            return {"class": _name(kind), "identity": reference,
+                    "fields_identity": self.identity(fields, scope),
+                    "fields": self.value(fields, scope=scope)}
         if kind is runtime.UnsupportedScriptError:
             fields = _layout(obj, {"diagnostic"})
             return {"class": _name(kind), "identity": self.identity(obj),

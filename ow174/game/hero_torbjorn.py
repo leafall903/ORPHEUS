@@ -83,7 +83,8 @@ def destroy_turret(fight, owner, *, damaged=False):
 def projectile_impact(fight, rocket, point, struck):
     from ow174.game.script import graph
 
-    if rocket.shot is None or rocket.shot.spawn != TURRET or struck is not None:
+    spawn = rocket.spawn if rocket.spawn is not None else getattr(rocket.shot, "spawn", None)
+    if spawn != TURRET or struck is not None:
         return
     if (rocket.shooter.gone or rocket.shooter not in fight.match.players
             or not rocket.shooter.has_body or rocket.shooter.hero.guid != HERO):

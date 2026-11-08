@@ -26,7 +26,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   turret reconstructs persistent build/fire/repair/ownership/destruction with
   player/five-NPC damage and5/10second cooldown evidence. Native firing effects,
   combat redeploy lock, dismantle input, placement/scoring policies,
-  Molten Core areas, cross-hero protections and
+  Molten Core now hosts actual16DD/16DE area/status graphs with reconstructed
+  contact and periodic damage, including player/five-NPC hits, armour-only bonus,
+  overlap suppression, lifetime and cleanup evidence. Ultimate resources/end,
+  surfaces/bounce, cross-owner arbitration, cross-hero protections and
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
   Actual five-NPC fixtures cover four outgoing attacks, basic incoming identity/
   pool/death semantics, a manually aimed Heavy Assault volley and corpse retention.

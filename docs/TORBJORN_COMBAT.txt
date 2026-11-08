@@ -72,8 +72,10 @@ Overload           1721/st3 now grants its authored100 temporary armour pool
                    and cross-hero/client semantics remain OPEN.
 Molten Core        16DA/st17 launches direct25 projectiles after ultimate press
                    then fire (a server probe dealt125 across five launches).
-                   Persistent puddles, area/armour damage, lifetime, presentation
-                   and full native timing OPEN. No client acceptance inferred.
+                   Persistent areas/status now run actual16DD/16DE with
+                   reconstructed contacts/rates and lifetime cleanup tests.
+                   Complete resources/end/bounce/protection/presentation and
+                   native timing parity remain OPEN. See area evidence below.
 
 Cross-hero acceptance (each source/target direction)
 --------------------------------------------------
@@ -243,3 +245,48 @@ Resource GUID correction: full0x04A000000000030C decodes to030C.053 (type bits
 are reversed), not030C.04A. A lane-only DataTool053 extraction confirms it maps
 to the missing16DE graph, whose two periodic-health definitions contain160 and90.
 The graph and effect routing still require explicit host/area semantics.
+
+Molten Core area/status reconstruction
+-------------------------------------
+The external builder's optional --status-xml053-directory resolves the real
+030C.053 resource to16DE and adds that dependency without copying the runtime.
+The lane wrapper supplies it. This pack adds3graphs total; SHA256:
+9686b73c6f2da3843916fd93e86911fcb9e675138a4676ad9683c43fd6fa62bc.
+Actual16DA/st17 ultimate launches are authoritative even without a predicted
+Shot: landing metadata is now carried independently on the combat projectile.
+Ground impact creates2903 without a fabricated Health component. Each viewer
+receives the area script only after entity-create ACK; retirement prevents late
+ACKs from resurrecting its script. Native16DD runs preparation and lifetime.
+
+Contact is reconstructed as a flat2.4m-radius,1m-high volume with body-radius
+overlap and static ground-level LOS. Enemies receive a separate real16DE status
+instance with caster/target bindings. The legacy host explicitly dispatches the
+verified BD02E168 auxiliary scope to enter its authored common state2; client-
+only FX branches remain client-owned and have not been visually accepted. The
+manual scope registry is included in read-only VM snapshots. Native host timing
+and status arbitration are not established by this selected policy.
+
+Damage integrates160/sec plus90/sec while consuming armour only, splitting at
+temporary armour, shields, armour and health boundaries. It bypasses ordinary
+shot armour reduction. Same-owner overlapping intervals merge into one burn;
+cross-owner arbitration remains open. Health tags/bonus selection and flat
+contact are reconstructions, while rates/shape inputs come from104319 resources.
+On the16ms test clock, native-backed ChaseVar retires after9.996 active seconds
+following0.5s preparation, yielding1599.36 base damage. Nominal lifetime is10s;
+do not describe the observed quantized result as exact native timing parity.
+
+Sixteen area tests pass: actual ultimate input/charge consumption/ground pools,
+empty-charge rejection, player and all five NPC damage, pool-boundary armour
+bonus, Overload armour, self/team/range/height/real-wall filtering, movement out,
+same-owner overlap, caster-death persistence, victim-death attribution, explicit
+removal/expiry/status cleanup, delayed-ACK guards and active passive snapshots.
+Area/status timing and burn-duration mutations change the stored digest.
+Prepare with the earlier command plus --status-xml EXTERNAL_053_DIRECTORY;
+run python -B -m unittest test_game_torbjorn_molten -q with the explicit pack.
+
+Still open: ultimate ten-projectile resource/exhaustion/end/cancel matrix,
+charge generation, direct-hit deposition and wall/surface bounce, cross-owner
+arbitration, moving surfaces, shields/reflect/absorb/invulnerability/control,
+native health-tag consumers and original-client presentation. Hero switch and
+disconnect remove pools; caster death preserves them under the selected host.
+This is partial static evidence, not complete hero or client acceptance.
