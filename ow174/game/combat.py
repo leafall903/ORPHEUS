@@ -739,21 +739,22 @@ class Combat:
     # --- shots -------------------------------------------------------------------------------------
 
     def _bot_weapons(self, tick: int) -> None:
-        """Advance firing/explicit manual NPC bodies and consume their volley reports.
+        """Advance the weapon bodies of the map's firing bots and consume their volley reports."""
+        from ow174.game import npc_control
 
-        A manual NPC still needs its world clock while idle: foreign status
-        notifications and authored timers cannot run on its frozen spawn time.
-        This does not supply AI acquisition or synthesize attack input.
-        """
         for bot in self.match.bots:
             script = bot.body_script
-            if ((not bot.firing and bot.spawner.get("manual_spawn") is not True)
-                    or bot.dead or not isinstance(script, BotScript) or script.frame > tick):
+            controlled = npc_control.manual(bot)
+            if ((not bot.firing and not controlled) or bot.dead
+                    or not isinstance(script, BotScript) or script.frame > tick):
                 continue
             try:
+                allowed = npc_control.update_input(self, bot) if controlled else True
                 snapshot = script.advance_live(tick, bot.position)
                 shots, script.component.shots[:] = list(script.component.shots), []
                 for state, number, time, activation in shots:
+                    if not allowed:
+                        continue
                     self._shoot(
                         bot, None, state, number, time, activation=activation,
                         snapshot=snapshot or script.latest_live,
@@ -787,7 +788,7 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + eye_height(shooter.body), z), aim(round(shooter.yaw), 0)
+            origin, direction = (x, y + eye_height(shooter.body), z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))
