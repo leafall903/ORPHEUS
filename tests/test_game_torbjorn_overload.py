@@ -73,13 +73,29 @@ class TorbjornOverloadTests(unittest.TestCase):
         self.assertEqual(vitals.total, 0.0)
         self.assertTrue(owner.body_script.component.owner_dead)
 
-    def test_temporary_armour_preserves_shield_priority(self):
+    def test_temporary_armour_precedes_recoverable_shields(self):
         vitals = combat.Vitals(1, 200.0, 50.0, 25.0)
         vitals.set_over_armour((1, 1), 100.0)
         self.assertEqual(vitals.damage(40.0), 35.0)
-        self.assertEqual(vitals.now[world.SHIELDS_POOL], 0.0)
-        self.assertEqual(vitals.over_armour.amount, 90.0)
+        self.assertEqual(vitals.now[world.SHIELDS_POOL], 25.0)
+        self.assertEqual(vitals.over_armour.amount, 65.0)
         self.assertEqual(vitals.now[world.ARMOUR_POOL], 50.0)
+
+    def test_one_shot_crosses_temporary_armour_shield_and_armour_without_double_reduction(self):
+        vitals = combat.Vitals(1, 200.0, 50.0, 25.0)
+        vitals.set_over_armour((1, 1), 10.0)
+        self.assertEqual(vitals.damage(100.0), 95.0)
+        self.assertEqual(vitals.over_armour.amount, 0.0)
+        self.assertEqual(vitals.now, {world.HEALTH_POOL: 190.0, world.ARMOUR_POOL: 0.0,
+                                      world.SHIELDS_POOL: 0.0})
+
+    def test_periodic_damage_reaches_actual_overload_armour_without_per_tick_reduction(self):
+        run, _, enemy, target, vitals = self.arena()
+        fight = run.match.combat
+        for _ in range(10):
+            fight._damage(enemy, target, 2.56, False, None, run.frame, armour_reduction=False)
+        self.assertAlmostEqual(vitals.over_armour.amount, 74.4)
+        self.assertAlmostEqual(vitals.total, 324.4)
 
     def test_passive_snapshot_observes_temporary_pool_source_and_damage(self):
         from test_server_snapshot import ServerSnapshotTests

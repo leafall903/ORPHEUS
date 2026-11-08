@@ -1,5 +1,17 @@
 # Changelog
 
+### Torbjorn lane: periodic damage and temporary armour priority
+
+- Correct the earlier Overload prototype: non-recoverable armour precedes
+  recoverable shields under the target-era OW1 pool rule. Preserve a single
+  ordinary-hit armour reduction across temporary/permanent armour layers.
+- Add an explicit periodic-damage armour bypass at Vitals/Combat, preventing
+  per-frame ordinary-hit reduction from distorting damage-over-time rates.
+- Pass42 targeted tests (eight Overload and34 shared health/combat), including
+  actual periodic pool loss and a hit crossing temporary armour/shield/armour.
+  Molten Core area/effect hosting, broader interactions and client acceptance
+  remain open. Historical rule sources are recorded in TORBJORN_COMBAT.txt.
+
 ### Torbjorn lane: persistent combat turret and owned repair
 
 - Prepare external28B7/2903 body definitions and1688/1689 dependencies with

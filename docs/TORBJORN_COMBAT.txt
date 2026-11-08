@@ -131,8 +131,9 @@ Six Overload tests execute damage across temporary/permanent armour, ensure a
 consumed activation never refills, exclude healing of temporary armour, remove
 remaining armour at expiry, clear the replicated over-armour slot, reject
 repeated presses through cooldown and permit the next activation afterwards.
-Death clears the source and prevents reactivation. Shield-before-armour ordering
-is retained. Passive snapshot hashes observe amount and source changes, with the
+Death clears the source and prevents reactivation. Temporary armour precedes
+recoverable shields; ordinary shields still precede permanent armour. Passive
+snapshot hashes observe amount and source changes, with the
 new state included in the approved exporter fields. Temporary armour ordering
 and component flags are explicit server reconstructions; original-client bar
 appearance and native pool-consumer parity remain OPEN.
@@ -221,3 +222,24 @@ Set ORPHEUS_TORBJORN_GRAPH_BUNDLE to that external game_graphs_174.json.gz for
 the explicit static test fixture; production runtime graph selection is separate.
   python -B -m unittest test_game_torbjorn_turret -q
 The lane's full155-test related regression passes with explicit prepared inputs.
+
+Periodic damage and temporary pool correction
+---------------------------------------------
+The previous Overload prototype incorrectly placed its non-recoverable armour
+behind recoverable shields. OW1's February2019 update explicitly changed that
+priority. The corrected pool order consumes temporary armour first, then normal
+shields, armour and health; a projectile crossing both armour pools is reduced
+only once. Actual periodic damage now has an explicit armour-reduction bypass,
+matching the contemporary OW1 rule rather than halving each tiny tick.
+
+Eight Overload tests include a single hit crossing all three pool layers and
+actual Combat periodic hits reducing temporary armour by25.6 over ten2.56 hits.
+The shared rate path is infrastructure; Molten Core areas are not implemented
+merely by adding this option.
+Sources: https://overwatch.blizzard.com/en-us/news/patch-notes/live/2019/02/
+         https://overwatch.blizzard.com/en-us/news/patch-notes/ptr/2019/02/
+
+Resource GUID correction: full0x04A000000000030C decodes to030C.053 (type bits
+are reversed), not030C.04A. A lane-only DataTool053 extraction confirms it maps
+to the missing16DE graph, whose two periodic-health definitions contain160 and90.
+The graph and effect routing still require explicit host/area semantics.

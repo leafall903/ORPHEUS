@@ -227,22 +227,30 @@ class Vitals:
         self.changed.add(ARMOUR_POOL)
         return True
 
-    def damage(self, amount: float) -> float:
-        """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
-        while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
+    def damage(self, amount: float, *, armour_reduction: bool = True) -> float:
+        """Consume temporary armour before recoverable pools; reduce ordinary hits once.
+
+        OW1 periodic damage bypasses armour reduction. Other hits retain the
+        existing5-or-half reconstruction, even across multiple armour pools.
+        """
         left = max(0.0, amount)
         taken = 0.0
+        reduced = False
+        if left > 0.0 and self.over_armour.amount > 0.0:
+            if armour_reduction:
+                left = max(left - ARMOUR_BLOCK, left / 2)
+                reduced = True
+            over = min(left, self.over_armour.amount)
+            self.over_armour.amount -= over
+            self.changed.add(ARMOUR_POOL)
+            taken += over
+            left -= over
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
-            if kind == ARMOUR_POOL and self.now[kind] + self.over_armour.amount > 0.0:
+            if kind == ARMOUR_POOL and self.now[kind] > 0.0 and armour_reduction and not reduced:
                 left = max(left - ARMOUR_BLOCK, left / 2)
-                over = min(left, self.over_armour.amount)
-                if over > 0.0:
-                    self.over_armour.amount -= over
-                    self.changed.add(kind)
-                    taken += over
-                    left -= over
+                reduced = True
             take = min(left, self.now[kind])
             if take > 0.0:
                 self.now[kind] -= take
@@ -880,13 +888,13 @@ class Combat:
 
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
-        *, world_tick: int | None = None,
+        *, world_tick: int | None = None, armour_reduction: bool = True,
     ) -> None:
         shooter = getattr(shooter, "combat_owner", None) or shooter
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
             return
-        dealt = vitals.damage(amount)
+        dealt = vitals.damage(amount, armour_reduction=armour_reduction)
         if dealt <= 0.0:
             return
         killed = vitals.now[HEALTH_POOL] <= EPSILON
