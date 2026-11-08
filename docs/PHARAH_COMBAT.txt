@@ -3,32 +3,43 @@ Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
 Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
 
 Evidence boundary
-24 tests in tests/test_pharah*.py use real Match, player input,
+29 tests in tests/test_pharah*.py use real Match, player input,
 the extracted body graphs and Combat damage/death. They do not substitute
 hand-authored weapon definitions. They are headless server tests, not native
 client or five-PvE-NPC acceptance. Existing native VM proofs are not acceptance.
 
 Weapon/ability matrix
 Action               Enemy player          Five enemy NPCs          Client
-Rocket Launcher      partial offline       OPEN                    OPEN
+Rocket Launcher      partial offline       partial: five base pools OPEN
   0023               40 direct + 80 blast; no projectile headshot; second hit
                      kills; allies excluded; ammo/reload/range and armor/shield
                      pools tested. Full edge/defense matrix remains OPEN.
-Quick melee 0043     partial: hit/miss/wall/recast                    OPEN
+Quick melee 0043     partial: hit/miss/wall/recast; five NPC hits      OPEN
 Jump Jet 0027        partial: impulse/motion/cooldown/input buffer    OPEN
 Hover Jets 0025      partial: lift/fuel/recharge/empty/cap             OPEN
 Concussive 007B      partial: enemy/self push, zero damage/LOS/ally   OPEN
 Barrage 002B         partial: channel stops passive charge           OPEN
-Incoming attacks     partial enemy rifle  OPEN                    OPEN
-Death                partial offline      OPEN                    OPEN
+Incoming attacks     partial enemy rifle  Heavy trigger fixture   OPEN
+Death                partial offline      five retained bodies    OPEN
 
 Five enemy NPCs means Trooper, Enforcer, Sniper, Assassin, Heavy Assault,
 individually, including both directions of damage and their special attacks.
 The normal runtime's ai_spawners_174.json has eight Practice Range definitions.
 The parent has since supplied a separate read-only pve_npcs_174 catalog with
 actual five-enemy GUIDs and base pools. Its dynamic/conditional difficulty pools
-are not applied. Adoption and five-enemy behavior tests are pending. One real
-training-bot damage/death/retain_corpse test is not substituted for any of them.
+are not applied. Five actual body scripts load; real primary input causes120
+damage and melee input causes30 to each. Body creates encode; direct lethal
+health changes keep all five corpses beyond respawn deadline until removal.
+Heavy Assault's actual114F/state25 attack can damage and kill Pharah; NPC death
+stops its damage. This is an explicit attack-trigger fixture, not AI acquisition.
+Trooper/Enforcer preliminary uneventful volley evaluation lacks authored dynamic
+damage setup, and Sniper/Assassin attack paths were not reached. Their return
+attacks/specials remain OPEN. NPC physical impulses are still not implemented.
+
+Tests mount the separate graph pack through ORPHEUS_NPC_DATA_DIR and clear its
+graph caches on unmount; they do not copy/modify the normal runtime or import
+root source. They skip when the optional external pack is absent. An acceptance
+run must explicitly supply it and report zero skipped acceptance tests.
 
 Cross-hero matrix -- incomplete
 Reinhardt/Winston/Orisa/Sigma barriers; Zarya projected/personal bubbles;
@@ -84,3 +95,5 @@ Run from the lane clone with explicit cwd/PYTHONPATH and read-only
 ORPHEUS_RUNTIME_DIR=D:\overwatch 1.7.4\runtime-104319. Reuse the original .venv.
 python -B -m unittest discover -s tests -p test_pharah_combat.py -q
 python -B -m unittest test_pharah_combat test_pharah_weapon test_pharah_impulse test_pharah_movement -q
+ORPHEUS_NPC_DATA_DIR=<read-only npc-runtime/data>
+python -B -m unittest test_pharah_pve test_game_npc test_extract_pve_npcs -q

@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Pharah interaction with actual PvE enemy bodies
+
+- Mount the separately supplied read-only NPC graph/catalog pack in tests and
+  restore graph caches afterwards. Reuse reviewed parent lifecycle/catalog
+  commits c2d3ae1/a15d554 in the isolated source copy; no normal runtime changes.
+- Actual primary input deals120 and melee input deals30 to each of Trooper,
+  Enforcer, Sniper, Assassin and Heavy Assault using explicit base pools. Creates
+  encode; all five retain corpses beyond respawn deadline until explicit removal.
+- Heavy Assault's authored114F/state25 attack-trigger fixture deals three5-point
+  hits in ten frames, can kill Pharah, and stops damage after NPC death. This
+  does not establish AI acquisition, other attacks/specials or difficulty pools.
+- Five NPC tests plus nine parent lifecycle/extractor regressions pass (14 total),
+  with no skips using the external pack. Ruff/diff checks pass. Total Pharah
+  behavior coverage is29 tests; full static goal remains active. All native
+  client acceptance is separate and remains open. See docs/PHARAH_COMBAT.txt.
+
 #### Partial Pharah movement, impulses and cooldown regression
 
 - Connect Pharah's authored Jump Jet vector and Hover Jets force/cap to the
@@ -21,7 +37,7 @@ This log records tested changes and their acceptance status. Entries are grouped
 - 24 Pharah Match/input behavior tests pass, including ammo/manual and automatic
   reload, range, melee, real Reinhardt armor and Zenyatta shield pools. Ruff and
   diff checks pass. 80 shared combat/projectile/ability/ray tests also pass;
-  the separate snapshot regression is still running.
+  the earlier expanded110-test run including13 snapshot cases also passed.
   Full static goal and native client acceptance remain open; see PHARAH_COMBAT.
 
 #### Static explosion occlusion and partial Pharah combat coverage
