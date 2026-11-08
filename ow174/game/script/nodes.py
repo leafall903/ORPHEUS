@@ -1862,7 +1862,7 @@ def set_var(instance: Instance, node, caller) -> bool:
     # Native 1B6D325..353 skips assignment when either pointer is absent. The
     # value wrapper at 1B6D381 resets a failed evaluation to type 2 (int 0).
     if config is not None and target is not None:
-        value = instance.evaluate(config, initial=0)
+        value = play.evaluate_value(instance, config, initial=0)
         store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
     instance.follow(node, "m_outPlug", None)
     return True
@@ -1894,10 +1894,12 @@ def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> N
 
 @handler("STU_12F5D52D")
 def set_vars(instance: Instance, node, caller) -> bool:
-    """SetVars: every {m_out_Var, m_value} pair in order."""
+    """1B6B560: each present target gets its +28 value, or int0 for missing/failure."""
     for pair in node.fields.get("m_143D4C5B") or []:
-        if isinstance(pair, dict):
-            store(instance, pair.get("m_out_Var"), instance.evaluate(pair.get("m_value")))
+        if isinstance(pair, dict) and pair.get("m_out_Var") is not None:
+            config = pair.get("m_value")
+            value = play.evaluate_value(instance, config, initial=0) if config is not None else 0
+            store(instance, pair["m_out_Var"], value)
     instance.follow(node, "m_outPlug", None)
     return True
 

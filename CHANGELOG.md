@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Collected config-array values in variable assignments
+
+- Correct SetVar and SetVars to use the native +28 value interface. Config groups
+  now assign all collected values, including typed empty arrays. Preserve direct
+  dynamic arrays, nested iterator order, null-member handling and strict faults.
+- Match SetVars pointer rules: skip missing targets before evaluating values;
+  write integer0 for missing/failed values, while successful null remains null.
+  Earlier pair writes remain visible to later values. SetVar retains its different
+  rule of skipping either absent pointer. Indexed/keyed store routing is preserved.
+- Pass216 original execution cases, including212 value comparisons across both
+  actions and four guard/order cases. Replay100 real config inputs with declared
+  dynamic values; the635-graph bundle has108 direct array assignments, including
+  30 in the static Rialto closure. Adapters and full-engine limits are documented.
+- Add13 behavior tests;907 related and33 server tests pass, with Ruff/diff. The
+  isolated placed catalog remains50/123 first frames complete,73 strict faults.
+  Normal controller still retains81A9AB10; Match retains rootD38/node106 before
+  controller execution. Failed receiver/queue cleanup remains verified.
+- Original PC loader/cache and BooleanSwitch probes establish81A9AB10's no-output
+  client fallback, not its server meaning. No guessed default is installed.
+  Three explicit input profiles reach1AAB4B4F; its iterator remains open. No fresh
+  original-client session, normal deployment or full story/cinematic/enemy-AI
+  acceptance is claimed. See VARIABLE_ASSIGNMENTS.txt. Normal inputs and unrelated
+  work remain intact. The publication helper is missing; no GitHub push occurs.
+
 #### Native entity existence and current-possession queries
 
 - Implement E72F6348/0AC15F78 with explicit owner namespace/environment, complete
