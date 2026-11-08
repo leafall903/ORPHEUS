@@ -1,0 +1,81 @@
+Lucio native investigation -- build104319 -- incomplete
+======================================================
+
+Evidence inputs are the existing authorized pve-session/client-memory.bin and
+retribution/native-node-registry.json, both read only. No process attachment,
+game control, capture refresh or shared file mutation is part of this audit.
+Generated disassembly and the bounded inspection helper stay in lane0079,
+outside Git. Addresses below are RVAs, not absolute process addresses.
+
+Address correction
+------------------
+The mover.py research comment uses original image base00007FF788F10000.
+Its absolute movement-mod address00007FF789B4CBA0 therefore maps to00C3CBA0,
+not00B4CBA0 or01B4CBA0. The latter two earlier slices are not evidence about
+the movement-mod consumer. The existing authorized image has base7FF79FED0000;
+add the RVA to that base when following its absolute branch targets.
+
+00C3CBA0 is an exact unwind function start. Its first fragment ends00C3CBEE;
+the remainder consists of chained unwind entries. The lane helper resolves
+the unwind root and disassembles only its exact fragments. Reading just the
+first fragment, or reading bytes at the wrong RVA, cannot establish a native
+consumer's semantics. Correctly bounded code is now available for subsequent
+speed and Wall Ride investigation; it does not itself prove either feature.
+
+NPC release/end investigation
+-----------------------------
+The private NPC fixture currently has genuine failed end checks: after a
+released authored logical20, Sniper fires another shot later and Heavy Assault
+continues shooting. The component's held list is empty; Heavy's LogicalButton
+is active/down=False. Sniper's weapon LogicalButton is inactive at first hit.
+This rules out treating an uncleared held-button list as the sole explanation.
+It does not establish the correct server AI/control stop contract.
+
+In actual114F, LogicalButton state2's down subgraph lists state31. State31's
+onBegin output starts Stack state13 (node28), whose top subgraph owns the
+weapon/cooldown states. State31's own subgraph and end outputs are empty.
+The VM ends state31 on release, but this does not end the separately started
+Stack13. The same distinction must be respected when diagnosing1122.
+
+Read-only native evidence:
+- Base abort entry01B70480 has eight chained unwind fragments through01B7078A.
+  At01B70617 it calls01B6FC10, the explicit subgraph cleanup routine.
+- 01B6FC10 loads the authored state definition, reads its subgraph pointer at
+  definition+D8, walks that plug's integer state list and calls abort for each.
+  It then drops matching queued begins. It does not recursively traverse every
+  onBegin output as if that output were an owned subgraph.
+- Plain State factory01B702C0 leads to constructor01B6F760, which installs
+  vtable027AC800. Its OnFinish(+A0), OnAbort(+A8), OnEnd(+B0) and cleanup(+C0)
+  entries all point to no-op01CE5640 in this image.
+- WeaponVolley factory00AE41B0 leads to constructor00AE3280 and installs
+  vtable026547A8. Its enter/end/cleanup entries differ from plain State, so
+  changing generic State ownership to force this fixture green is unsupported.
+- D7F9E1C3 (AIFireWeapon) has no record in this captured client registry.
+  That absence does not identify its original server implementation.
+
+The current runtime's explicit subgraph ownership agrees with this inspected
+base cleanup path. There is no evidence here authorizing a generic rule that
+all states reached by onBegin must end with their caller. Such a rule could
+destroy intentionally persistent effects. No such runtime change was made.
+
+Open requirements
+-----------------
+Locate the target-build AI/weapon stop mechanism or the relevant native body
+callbacks before accepting release/end. Keep the current failed test and
+logs; do not call it a completed NPC interaction. Enforcer and Assassin still
+produce no incoming damage in the bounded explicit-input probe. Autonomous
+AI, specials and all five-type bidirectional acceptance remain open.
+
+Crossfade native speed consumers/multipliers, Wall Ride phase hooks, projectile
+critical defaults/regions and Sound Barrier native propagation/charge remain
+unaccepted. Corrected movement addresses guide the next offline investigation.
+This audit is evidence about specific code paths, not full hero acceptance.
+
+Local evidence files
+--------------------
+lucio-native-functions-corrected.log
+native-function-1B6FC10.txt; native-function-1B71740.txt
+native-function-1B702C0.txt; native-function-1B6F760.txt
+native-function-AE41B0.txt; native-function-AE3280.txt
+lucio-incoming-npc-release-probe.log; lucio-incoming-input-graph.log
+native_functions_lucio.py (read-only source image, lane-local output only)

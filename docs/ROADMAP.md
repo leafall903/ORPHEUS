@@ -40,6 +40,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     Lucio's actual first-person1.175/0.8225m offsets now replace generic combat
     eyes, with stance/projectile/real-wall/healing-sight tests. Native camera,
     muzzle/head regions and actual speed/movement behavior remain open.
+    Native audit corrects the movement consumer RVA and confirms explicit
+    subgraph cleanup; NPC logical-release failures remain unaccepted. See
+    [Lucio native audit](LUCIO_NATIVE_AUDIT.txt) before altering shared ownership.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

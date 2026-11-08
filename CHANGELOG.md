@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Lucio native address and NPC end-path audit (0079 lane)
+
+- Correct the mover research address conversion to RVA00C3CBA0. Earlier
+  00B4CBA0/01B4CBA0 slices do not establish movement-mod behavior. Inspect
+  exact chained-unwind fragments from the existing read-only image capture.
+- Verify base abort cleans the explicit subgraph at definition+D8; plain
+  State finish/abort/end/cleanup callbacks are no-ops in that image. This does
+  not support implicitly destroying every onBegin-linked state on caller end.
+- Preserve the uncommitted incoming-NPC end fixture with two failed subcases:
+  Sniper and Heavy Assault continue damage after logical20 is released. Their
+  held list is empty; the correct native server stop contract remains open.
+  Do not change generic ownership just to satisfy the unproved stop assumption.
+- No runtime change or new combat acceptance in this audit. Prior post-import
+  regressions remain153 core passes plus28 status/PVE passes and one optional
+  training-body skip. Ruff/diff checks pass; full static/client gates stay open.
+
 #### McCree melee static-wall occlusion
 
 - Prevent quick melee from damaging targets through static walls: retain the
