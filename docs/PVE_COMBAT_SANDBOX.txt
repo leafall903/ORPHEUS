@@ -68,3 +68,9 @@ navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;
 passing these lifetime tests does not establish a working mission or sandbox.
+
+- Difficulty-indexed config selection now uses the native scalar-index and
+  collecting-container interfaces (docs/CONFIG_ARRAY_SELECTION.txt). This fixes
+  a separate zero-damage cause in the Enforcer weapon, but its production control
+  context is still absent. A forced-controller external experiment is diagnostic
+  evidence only; the production three-of-five damage result remains unchanged.
