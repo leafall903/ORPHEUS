@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world, zarya
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -366,6 +366,7 @@ class Combat:
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.beam_seen: dict[int, tuple] = {}  # body -> authored activation and consumed command time
+        self.zarya_barriers = zarya.PersonalBarriers()
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -395,6 +396,7 @@ class Combat:
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
         self.beam_seen.pop(player.body, None)
+        self.zarya_barriers.retire(player.body)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -843,6 +845,8 @@ class Combat:
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
+            return
+        if self.zarya_barriers.intercept(target.owner, amount, _source_entity(shooter)):
             return
         dealt = vitals.damage(amount)
         if dealt <= 0.0:

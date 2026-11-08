@@ -31,7 +31,8 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
   - [ ] Accept Zarya's complete player/five-NPC combat and original-client presentation.
     The authored primary beam now deals server damage in command-driven tests;
-    barriers, energy generation/decay, ultimate pull, cross-hero defenses and
+    personal-barrier HP/time/cooldown and energy generation/cap/decay also have
+    command-driven coverage. Projected barrier, native pet actors, ultimate pull, cross-hero defenses and
     original-client acceptance remain open. See [Zarya combat](ZARYA_COMBAT.txt).
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.

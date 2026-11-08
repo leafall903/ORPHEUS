@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zarya personal barrier damage and energy services (partial static acceptance)
+
+- Connect the live authored personal-pet State to a per-activation barrier pool
+  evaluated from the target resource. Block body damage, retain bounded absorption
+  for energy, and schedule the existing duration/StopAbility/cooldown branch on
+  exhaustion. Deliver absorbed HP and attacker identity to the authored energy
+  message so its existing cap and decay States execute.
+- Mark whole-body interception, fully blocked breaking events and next-step
+  exhaustion as reconstructed server policies. Native barrier actors/geometry,
+  projected barrier, control immunity/cleanse and cross-hero defenses remain open.
+- Pass91 Zarya/combat/projectile tests, including actual damage interception,
+  cooldown rejection/reuse, held-input rejection, energy cap/decay, primary ammo
+  depletion/reload/resume and secondary25 ammo cost. Ruff and diff checks pass.
+  The complete static acceptance goal remains ACTIVE; no client acceptance,
+  shared-main merge or GitHub synchronization is claimed.
+
 #### Zarya primary beam damage bridge (independent lane)
 
 - Consume active0241/node28 continuous damage using its authored damage expression

@@ -9,6 +9,7 @@ from ow174.game import bots, combat
 from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
+from ow174.game.script import expr
 
 ZARYA = 0x02E0000000000068
 
@@ -70,6 +71,40 @@ class ZaryaBeamTests(unittest.TestCase):
         self.fire()
         self.assertEqual(self.health(), 200)
 
+    def test_aimed_miss_deals_no_damage(self):
+        for _ in range(51):
+            self.run.step({self.a: (16384, 0, 1)})
+        self.assertEqual(self.health(), 200)
+
+    def test_beam_spends_ammo_stops_for_reload_and_resumes(self):
+        target = next(t for t in self.fight._targets() if t.owner is self.b)
+        vitals = self.fight.vitals_of(target)
+        vitals.now[combat.HEALTH_POOL] = vitals.most[combat.HEALTH_POOL] = 10000
+        reloading = False
+        resumed = False
+        before_reload = None
+        for _ in range(500):
+            self.fire(1)
+            weapon = next(i for i in self.a.body_script.component.instances.values()
+                          if i.graph.index == 0x0241)
+            if weapon.vars[53].value() < 1 and not weapon.state(10).active:
+                reloading = True
+                if before_reload is None:
+                    before_reload = self.health()
+                self.assertEqual(self.health(), before_reload)
+            elif reloading and weapon.state(10).active:
+                resumed = True
+        self.assertTrue(reloading)
+        self.assertTrue(resumed)
+        self.assertLess(self.health(), before_reload)
+
+    def test_secondary_consumes_25_ammo_including_volley(self):
+        self.fire(1, 2)
+        weapon = next(i for i in self.a.body_script.component.instances.values()
+                      if i.graph.index == 0x0241)
+        # Authored SetVar subtracts24; the volley's default single shot spends1.
+        self.assertEqual(weapon.vars[53].value(), 75)
+
     def test_enemy_rifle_consumes_zarya_shields_before_health(self):
         self.b.mover.position[2] = -5
         before = self.health(self.a)
@@ -127,6 +162,122 @@ class ZaryaBeamTests(unittest.TestCase):
         self.fire(180)
         self.assertTrue(bot.dead)
         self.assertFalse(any(who is bot for _, who in self.fight.respawns))
+
+
+class ZaryaPersonalBarrierTests(unittest.TestCase):
+    setUp = ZaryaBeamTests.setUp
+    fire = ZaryaBeamTests.fire
+    health = ZaryaBeamTests.health
+
+    def barrier_instance(self):
+        return next(i for i in self.a.body_script.component.instances.values()
+                    if i.graph.index == 0x0244)
+
+    def activate(self):
+        self.run.step({self.a: (0, 0, 8)})
+        self.assertTrue(self.barrier_instance().state(2).active)
+
+    def hit(self, amount):
+        target = next(t for t in self.fight._targets() if t.owner is self.a)
+        self.fight._damage(self.b, target, amount, False, None, self.run.frame)
+
+    def energy(self):
+        return self.a.body_script.component.entity_var(87).value()
+
+    def test_actual_rifle_shots_are_blocked_and_generate_energy(self):
+        self.b.mover.position[2] = -5
+        self.activate()
+        for _ in range(12):
+            self.run.step({self.b: (0, 0, 1)})
+        self.assertEqual(self.health(self.a), 400)
+        self.assertGreater(self.energy(), 0)
+        self.assertFalse(self.b.client.messages(combat.HIT))
+
+    def test_exact_capacity_blocks_200_and_authored_message_gives_40_energy(self):
+        self.activate()
+        self.hit(100)
+        self.hit(100)
+        self.run.step({})
+        self.assertEqual(self.health(self.a), 400)
+        self.assertEqual(self.energy(), 40)
+        energy = next(i for i in self.a.body_script.component.instances.values()
+                      if i.graph.index == 0x0242)
+        self.assertEqual(energy.vars[392].value(), expr.Entity(self.b.body))
+        self.assertFalse(self.barrier_instance().state(2).active)
+        self.assertGreater(self.barrier_instance().vars[61].value(), 9.9)
+
+    def test_breaking_event_has_no_overflow_and_next_event_deals_damage(self):
+        self.activate()
+        self.hit(500)
+        self.assertEqual(self.health(self.a), 400)
+        self.hit(20)
+        self.assertEqual(self.health(self.a), 380)
+        self.run.step({})
+        self.assertEqual(self.energy(), 40)
+
+    def test_repeated_press_does_not_refill_current_activation(self):
+        self.activate()
+        self.hit(150)
+        self.run.step({})
+        self.run.step({self.a: (0, 0, 8)})
+        self.hit(100)
+        self.hit(20)
+        self.assertEqual(self.health(self.a), 380)
+        self.run.step({})
+        self.assertEqual(self.energy(), 40)
+
+    def test_duration_expires_and_damage_reaches_body(self):
+        self.activate()
+        self.fire(126, 0)
+        self.assertFalse(self.barrier_instance().state(2).active)
+        self.hit(20)
+        self.assertEqual(self.health(self.a), 380)
+
+    def test_cooldown_rejects_press_then_allows_new_activation(self):
+        self.activate()
+        self.hit(200)
+        self.run.step({})
+        counter = self.barrier_instance().state(2).counter
+        self.run.step({self.a: (0, 0, 8)})
+        self.assertFalse(self.barrier_instance().state(2).active)
+        self.assertEqual(self.barrier_instance().state(2).counter, counter)
+        self.fire(630, 0)
+        self.activate()
+        self.assertGreater(self.barrier_instance().state(2).counter, counter)
+        self.hit(100)
+        self.assertEqual(self.health(self.a), 400)
+
+    def test_held_button_cannot_bypass_cooldown(self):
+        self.activate()
+        self.hit(200)
+        self.fire(80, 8)
+        self.assertFalse(self.barrier_instance().state(2).active)
+        self.assertEqual(self.barrier_instance().state(2).counter, 1)
+
+    def test_authored_energy_message_caps_at_100(self):
+        self.activate()
+        self.a.body_script.component.set(87, 90.0)
+        self.hit(100)
+        self.run.step({})
+        self.assertEqual(self.energy(), 100)
+
+    def test_authored_energy_decays_after_absorption(self):
+        self.activate()
+        self.hit(100)
+        self.run.step({})
+        self.assertEqual(self.energy(), 20)
+        self.fire(380, 0)
+        self.assertGreater(self.energy(), 0)
+        self.assertLess(self.energy(), 20)
+
+    def test_body_replacement_drops_absorbed_pool(self):
+        self.activate()
+        self.hit(100)
+        old = self.a.body
+        self.run.match.switch_hero(self.a, self.a.hero)
+        self.assertNotIn(old, self.fight.zarya_barriers.active)
+        self.hit(20)
+        self.assertEqual(self.health(self.a), 380)
 
 
 if __name__ == "__main__":

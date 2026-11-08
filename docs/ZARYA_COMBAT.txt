@@ -31,15 +31,35 @@ Native muzzle transforms, TrackRay output bindings, target acquisition/loss timi
 beam-specific armor rules and continuous hit-feedback cadence remain unaccepted.
 Existing shared damage rules are used; this does not prove their retail fidelity.
 
+Personal barrier and energy increment
+------------------------------------
+The active0244 personal-pet State now intercepts hostile damage before body pools.
+Capacity is evaluated from0256/node0 (200 for the tested player profile). Each
+activation has one server pool; re-presses cannot refill it. Exhaustion schedules
+the authored parent duration to finish, which follows StopAbility and starts the
+existing cooldown. Natural duration and cooldown remain authored State behavior.
+The energy message comes from0242/node5; its existing expression adds20% of the
+absorbed HP, caps100, and its States implement the observed subsequent decay.
+The damage source is preserved in the authored message parameter0012.
+
+Reconstructed policies: whole-body damage interception while the personal pet
+State is active; the breaking damage event is entirely blocked; energy counts
+only remaining barrier HP; exhaustion finishes the parent duration next script
+step. These policies have behavior tests but no new native-server comparison.
+This does not host a real pet entity, reproduce barrier volume intersection,
+cleanse/control immunity, or prove cross-hero effects. Projected barrier stays open.
+
 Required combat matrix
 ----------------------
 Operation             Enemy player    Enemy NPC         Ally semantics
 Primary beam          Damage tested   Training bot only  No damage tested
 Secondary projectile  Damage tested   OPEN              No friendly fire via shared filter
 Quick melee           30 once tested  OPEN              No friendly fire via shared filter
-Personal barrier      OPEN            OPEN              Self protection only, no damage conversion
+Personal barrier      HP/time/CD      OPEN              Self protection only, no damage conversion
+                      model tests
 Projected barrier     OPEN            OPEN              Ally protection/selection; never enemy damage
-Energy passive        0/100 expression OPEN              Barrier charge/decay/HUD OPEN
+Energy passive        Absorb/cap/     OPEN              Projected sources and HUD OPEN
+                      decay model
 Graviton Surge        OPEN            OPEN              Enemy pull/control; allies excluded required
 Incoming attacks      Rifle->shields  OPEN              Healing retains allied semantics
 Death/lifetime        Stops beam      Training bot      Manual NPCs retain corpse; player respawn separate
@@ -54,9 +74,9 @@ of training bots is used as evidence for those types.
 Cross-hero matrix still OPEN: barriers and shield entities; reflect vs beam and
 projectile; absorption/deletion; invulnerability; stun/interrupt/cleanse; Graviton
 pull, escape and immunity; damage credit, death and restoration across these states.
-Personal/projected pet hosting and health/damage interception are absent in the
-current production damage target path. Ultimate field hosting/pull is also absent.
-The patch intentionally does not pretend active animation States implement these.
+Personal damage interception now uses the live authored State; personal/projected
+pet hosting, projected damage interception and ultimate field hosting/pull remain
+absent. Animation States alone do not establish those effects.
 
 Validation
 ----------
@@ -64,8 +84,15 @@ Command-driven tests use the production Match, body scripts, combat target and
 health/death path with a delivery-model client. They cover primary damage, energy
 expression, input duplication, release, allies, range, static walls, lifecycle,
 incoming rifle shields, melee, secondary projectile, death and training-bot corpse.
-78 tests pass: test_game_zarya (13), test_game_combat (28), test_game_projectiles (37).
+91 tests pass: test_game_zarya (26), test_game_combat (28), test_game_projectiles (37).
+Added cases exercise personal capacity/exhaustion, actual rifle blocking, energy
+generation/cap/decay, expiry, cooldown rejection/reuse, repeated/held inputs, body
+replacement, aimed miss, primary depletion/reload/resume and secondary25 ammo cost.
 Ruff and git diff --check pass. These are headless tests, not original-client proof.
+
+The independent goal remains ACTIVE until ALL static matrix items pass. This
+incremental commit is not full static acceptance and is not ready for the requested
+completion-triggered merge. Original-client acceptance is a separate later gate.
 
 Original client and publication
 -------------------------------
