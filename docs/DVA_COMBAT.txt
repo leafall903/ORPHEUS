@@ -1,0 +1,84 @@
+D.Va combat lane — target 1.74.0.0.104319
+========================================
+
+Acceptance: OPEN. No original-client D.Va combat acceptance is recorded.
+Hero GUID02E000000000007A enters through pilot body040A, not mech0407.
+The source-only lane starts from100c66c on main. Runtime inputs remain external
+and read only; generated bundles, logs and captures must stay outside Git.
+
+Authored data evidence
+---------------------
+The existing hero bundle has pilot026A and pistol02B8. Pilot026A nodes7/15
+use STU_B6E3C77D to create0407 and write its entity to instance variable38.
+The current hero runtime bundle has no additional entities table. A separate
+local extraction of0407 from the existing build104319 XML produced380 graphs
+with missing graph0F9C. This does not change the canonical runtime bundle.
+
+The mech definition contains initial graphs0033,004B,0276,02CC,047E,0043,
+0B2F,08B6,1128; manager0015; weapon050A in slot1. Its declared health/armour
+schema values are300/300. These values describe the input; they do not prove
+server creation, possession, health replication or transformation behavior.
+
+Weapon050A's volley declares11 projectiles per shot and2 damage each. Its
+STU_613BDDB0 shot pattern has radial entries(0,1),(0.5,4),(1,6). Existing combat
+code consumes only one centre-line ray per volley report and ignores this
+pattern. Multiplying damage by11 would lose independent armour, cover and
+critical results and is not an acceptable repair.
+
+Graph02CC declares secondary logical button29;047E declares button35;
+0B2F declares button37;1128 declares button36 and a missile volley with
+11 shots/second and speed40. Pilot02B8 declares projectile speed50 and
+direct damage14. Correct graph declaration is not evidence of ability execution.
+
+Pilot body probes after30 and400 idle frames, followed by held primary,
+produced zero volley reports. After400 idle frames, held melee and a Q press
+with explicitly supplied ultimate charge also produced no weapon reports.
+The pilot fire path reaches a BooleanSwitch using entity querySTU_F7262B36;
+its target binding/engine service remains unresolved. These isolated body
+probes do not establish the same visible behavior in an original client.
+
+Focused shared repair
+--------------------
+Projectile splash previously applied to every enemy capsule inside its rings,
+without checking static cover. The repair traces from the explosion to the
+nearest capsule-axis point, stopping at the capsule surface. A world impact
+keeps the blast1mm on the incoming side of the collision face. Tests verify
+actual player and NPC health: front-side damage80, protected target damage0;
+removing cover allows both targets to take splash, and allies remain excluded.
+
+This is a reconstruction using existing mover collision masks. Native damage
+trace masks, partial cover sampling, destructible and dynamic barriers, beam
+classification, Defense Matrix and reflect are not implemented by this fix.
+It repairs the existing projectile explosion path, not Self-Destruct hosting.
+
+Required acceptance matrix
+--------------------------
+Each row is OPEN separately for enemy players, Trooper, Enforcer, Sniper,
+Assassin and Heavy Assault, including original-client visuals and audio:
+
+Fusion Cannons: independent pellet directions/hits, armour, criticals, falloff,
+ammo semantics, sustained fire, barriers, reflect, absorption and invulnerability.
+Light Gun: projectile travel, criticals, reload, damage, cover and deflection.
+Melee in both forms: range, damage, walls, immunity, interruption and death.
+Boosters: movement, cancellation, collision damage/knockback and status effects.
+Defense Matrix: resource drain/regeneration, bounds, enemy bullet/projectile
+interception, friendly pass-through and non-absorbable beam/melee behavior.
+Micro Missiles: authored burst, cooldown, direct/splash damage, cover, simultaneous
+primary/boosters, reflect, absorption, barriers and presentation.
+Self-Destruct: ejection, detached/boosting mech, fuse, radial damage, cover/barriers,
+invulnerability, self/friendly semantics, elimination ownership and presentation.
+Call Mech: charge, summon/landing damage, possession, interruption, body lifetime,
+replication and owner/observer presentation.
+Incoming combat: armour, nonlethal demech, pilot death, healing/allied support,
+control/status effects, ultimate continuity and cross-hero interactions.
+Manual NPC death: persistent corpse with no automatic replacement or cleanup;
+normal player death/respawn remains a separate policy.
+
+Integration and publication
+---------------------------
+Only the shared splash fix, synthetic damage regression tests and documentation
+belong in the lane patch. The generated entity bundle is research input, not a
+Git artifact. No root-main merge, remote push, publication synchronization,
+service replacement or client control was performed for this lane's patch.
+The parent owns NPC creation/controls and patch integration. Full native
+entity creation/possession and original-client acceptance remain prerequisites.

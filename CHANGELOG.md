@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Static explosion cover and D.Va lane audit
+
+- Stop projectile splash at static cover, keeping wall-impact explosions on the
+  incoming side. Preserve enemy-only damage. This reconstructs capsule visibility
+  using existing mover collision masks; native trace masks, partial cover and
+  dynamic hero barriers remain open.
+- Pass four damage regression tests (including both player and NPC attackers/targets),
+  28 combat tests and 37 projectile tests. Ruff and diff checks pass.
+- Audit the actual D.Va pilot and separately extracted mech graph declarations.
+  Mech creation/possession, independent Fusion Cannon pellets, every ability,
+  transformations, cross-hero interactions and original-client acceptance remain
+  open. No hero-combat completion, live client session or publication is claimed.
+  See docs/DVA_COMBAT.txt. Deliver this isolated lane as a patch; no root merge
+  or manual push is performed.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

@@ -729,15 +729,39 @@ class Combat:
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
+        # A world hit lies on its collision face. Keep the blast on the incoming
+        # side so a ray starting on the face cannot leak damage through the wall.
+        if struck is None:
+            point = _along(rocket.position, rocket.direction, max(0.0, t - 0.001))
         for target in self._enemies(rocket.shooter):
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
-            if scalar > 0.0:
+            if scalar > 0.0 and self._blast_visible(point, target):
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
                 )
+
+    def _blast_visible(self, origin, target: Target) -> bool:
+        """Static cover to the nearest capsule axis point (reconstructed).
+
+        This uses the existing mover collision categories, not retail damage
+        trace masks or dynamic hero barriers. Partial-cover sampling remains open.
+        """
+        a, b = target.segment()
+        ab, ap = _sub(b, a), _sub(origin, a)
+        length = _dot(ab, ab)
+        share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
+        destination = _along(a, ab, share)
+        delta = _sub(destination, origin)
+        distance = math.sqrt(_dot(delta, delta))
+        reach = max(0.0, distance - target.radius)
+        if reach <= EPSILON:
+            return True
+        direction = tuple(value / distance for value in delta)
+        wall = ray_world(self._collision(), origin, direction, reach)
+        return wall is None or wall >= reach
 
     def _landed(self, rocket: Rocket) -> None:
         """The projectile ended (hit, range, lifetime): the predicted one's release follows."""
