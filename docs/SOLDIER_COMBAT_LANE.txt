@@ -13,7 +13,11 @@ Implementation checkpoint
   unobstructed direct+splash 120, direct impact shielding a second target,
   authored player and generic-NPC rifle damage to Soldier, and healing teams.
 - Generic NPC tests deliberately use the training-bot capsule and an authored
-  Soldier rifle. They do not validate the five requested PvE classes or AI.
+  Soldier rifle. A separate test_soldier_pve_static.py suite now mounts the five
+  actual NPC definitions, explicit base pools and extended graphs, plus mover
+  capsules extracted from their own XML. It does not substitute training bodies.
+  Permissive VMs, flat collision and recording transport remain fixture limits;
+  difficulty/conditional pools, enemy AI and original-client combat are open.
 - Actual rifle pool tests cover 20 body, 40 critical, 6 far-falloff damage,
   miss/ally/static-wall rejection and an empty magazine rejecting aimed fire
   until reload completes, followed by one 20-damage shot consuming one round.
@@ -33,29 +37,46 @@ Implementation checkpoint
   1.0 falloff floor. Target ranking, aim points and the cone interpretation
   are reconstructed rather than native search/filter code. Helix steering,
   target-list replication and client lock effects remain open.
+- All five actual bodies take rifle20, melee30, Helix120 and reconstructed
+  Visor20 damage, reject rifle/melee/Helix through full walls, follow allied-only
+  and dead-excluding healing, die from sustained rifle/reload input and remain
+  corpses beyond respawn until explicit removal. These are actual pool tests.
+- Explicit NPC slot input uses the asset button mapping and suppresses duplicate
+  presses. Trooper20, Sniper100 projectile and Heavy5 authored weapon paths
+  change Soldier health; allied/missed/wall-blocked attacks do not. Enforcer
+  and Assassin slot0 still do not yield attacks. No replacement weapon is assigned.
+  This input adapter does not implement acquisition, AI or special attacks.
+- NPC initialization now builds declared manager/weapon scripts through the
+  player allocator; missing Sniper weapon instances caused its prior lack of
+  fire. Player instance order is preserved. NPC initial health now includes all
+  explicit pools (Enforcer health250+shields100; variable221 is not armour).
+- Scoped current-NPC STU_9B7648C3 uses that authoritative total and tracks damage.
+  Existing capture evidence CEB6C0 -> D177C0 -> BCC870 selects component51.
+  Aggregate-getter semantics remain reconstructed, not instruction-compared;
+  foreign queries stay unsupported. This does not unblock Enforcer by itself.
 
 Acceptance matrix: each row applies to enemy player, Trooper, Enforcer, Sniper,
 Assassin and Heavy Assault. Every original-client cell remains OPEN.
 
 Feature             Server evidence                  Remaining acceptance
-Heavy Pulse Rifle   Authored 20/crit/falloff;          All six target classes,
-                    existing shot/ammo tests          reload/prediction, effects
-Quick melee         30 damage, range/miss/team/LOS,    Five PvE targets,
+Heavy Pulse Rifle   20 damage to all five bodies;     Full crit/falloff matrix,
+                    player crit/falloff/ammo tests    prediction and effects
+Quick melee         30 damage to all five bodies,     Five-body full range/team,
                     cooldown rejection and recovery   controls, presentation
-Helix Rockets       Authored 40+80; new static        All six targets, self-hit,
+Helix Rockets       40+80 to all five bodies, static  Self-hit, full team matrix,
                     occlusion pool tests              prediction/effects, cover
 Sprint              Existing input/flags tests        Actual speed, firing and
                                                      control interruptions
 Biotic Field        Team/dead filtering and actual    Authored field vs all five
                     healing lifecycle/repress tests   NPCs, placement, LOS,
                                                       visual/audio, heal charge
-Tactical Visor      Actual off-axis damage, startup,  Native filters/scoring,
-                    expiry, range/cone/team/LOS/dead   five NPCs, Helix, UI/audio
+Tactical Visor      Off-axis damage to all five;      Native filters/scoring,
+                    startup/expiry/range/cone/team/LOS Helix, UI/audio
                     checks on reconstructed policy
-Incoming attacks    Authored enemy rifle from         Five actual enemy weapons,
-                    player/generic NPC changes HP     specials, status and death
-Death/corpses       Existing retained generic bot     Five body death animations,
-                    lifetime tests                    visible persistent corpses
+Incoming attacks    Trooper20/Sniper100/Heavy5 plus    Enforcer/Assassin, AI,
+                    enemy player actual HP changes    specials, status and death
+Death/corpses       Five bodies killed by rifle and   Body death animations,
+                    retained until explicit removal   visible persistent corpses
 Cross-hero          Existing health/shield/armour     Barriers, reflect, absorb,
                     pool accounting only              invulnerability, control
 
@@ -70,13 +91,31 @@ Concrete implementation gaps
 - Ultimate charge in driver.py is still a configurable timed surrogate;
   damage/healing-derived charge and target-specific exclusions remain open.
 - Parent-owned five-NPC creation/control integration was absent at this
-  lane's baseline 100c66c. No placeholder renamed NPC is an acceptance result.
+  lane's baseline 100c66c. Reviewed c2d3ae1 and a15d554 are now imported in this
+  private main; they provide lifecycle/catalogs, not complete AI.
+
+Reproduce actual-body fixtures
+- Keep ORPHEUS_RUNTIME_DIR on the normal read-only runtime. Set
+  ORPHEUS_PVE_DATA_DIR to the prepared catalog/extended-graphs data folder.
+- tools/extract_game_movers.py <body XML folder> --base <prepared movers JSON>
+  --npc-catalog <pve_npcs_174.json> --output <new lane-owned movers JSON>
+  preserves the base and fails on missing NPC mover data. Set
+  ORPHEUS_PVE_MOVERS_FILE to the new output. Normal runtime stays unchanged.
+- From private source cwd with PYTHONPATH=<source>;<source>/tests, run
+  python -B -m unittest test_soldier_pve_static -q. Without configured inputs this
+  is an explicit skip, not acceptance. This lane supplies all required inputs.
 
 Validation checkpoint (external runtime read-only, source cwd/PYTHONPATH set)
 - 15 lane tests pass, including player/generic NPC acquisition and active-death
   attack rejection; wall test includes four player/NPC + side cases.
 - 28 game combat, 37 projectile, 12 script ability and 2 Sprint movement tests
   pass (94 total).
+- Current five-body checkpoint: 207 fixed-source aggregate tests plus 27 player
+  script tests pass (234 total). This includes 7 actual-NPC methods covering 20
+  outgoing weapon/body combinations, 15 static-wall cases, team/dead healing,
+  five sustained-rifle kills/corpse removals and three incoming weapon classes.
+  A prior aggregate run changed source during its manifest check and was
+  rejected; it is not counted as passing. Full goal still remains active.
 - Ruff and git diff --check pass. No original-client evidence is claimed.
 
 Integration/publication

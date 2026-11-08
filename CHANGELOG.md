@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Soldier five-body static interaction checkpoint
+
+- Import reviewed parent NPC lifecycle/catalog commits c2d3ae1 and a15d554 in
+  the private lane. Extend the mover extractor with explicit base/NPC/output
+  arguments; preserve input catalogs and reject missing NPC capsules. Generated
+  mover data stays outside Git and the normal runtime is unchanged.
+- Build declared NPC manager/weapon scripts with the same allocator as players,
+  preserving player instance order. This restores the missing Sniper weapon
+  instances. Add an explicit asset-mapped NPC weapon-slot input adapter with
+  duplicate-press suppression and validation. It does not implement enemy AI.
+- Initialize manual NPC script health from all explicit pools. Reconstruct only
+  the current NPC's STU_9B7648C3 query from that authoritative total; captured
+  component51 routing is known, aggregate-getter equivalence remains unproven.
+- All five actual bodies take rifle20/melee30/Helix120/reconstructed Visor20,
+  reject wall-blocked attacks, follow healing team/dead rules, die from rifle
+  inputs, retain corpses and allow explicit removal. Trooper20, Sniper100 and
+  Heavy5 authored incoming attacks pass hit/miss/team/wall tests; duplicate slot
+  input cannot increase damage. Enforcer/Assassin firing and specials stay open.
+- Pass 207 fixed-source aggregate tests plus 27 player-script tests (234 total),
+  Ruff and diff checks. A prior run was rejected for source-manifest mutation;
+  it is not counted. Explicit external data, permissive NPC VM, synthetic static
+  collision and recording transport are fixture limits. No difficulty scaling,
+  native-equivalence or client acceptance claim. Full static goal remains active.
+
 #### Soldier static skill acceptance checkpoint
 
 - Reconstruct rifle Visor acquisition from active 0259 search nodes using the

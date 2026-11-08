@@ -75,10 +75,10 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
     match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
-    match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match._prepare_bot_script(bot)
+    match.bots.append(bot)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:

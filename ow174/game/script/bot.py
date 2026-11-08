@@ -5,7 +5,15 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_initial_graphs
+from ow174.game.script.driver import (
+    DEFAULT_SLOT,
+    OWNER_HEALTH,
+    WEAPON_SLOTS,
+    ReplicatedBody,
+    Snapshot,
+    create_initial_graphs,
+    create_weapon_graphs,
+)
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -44,6 +52,17 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if cfg.get("$") == "STU_9B7648C3":
+            # 104319 CEB6C0 -> D177C0 selects component51 via BCC870.
+            # Reconstruct its numeric getter from the authoritative aggregate
+            # health input for this NPC only; foreign entities remain unsupported.
+            target = cfg.get("m_entity")
+            if (isinstance(target, dict)
+                    and instance.evaluate(target) == expr.Entity(instance.component.entity)):
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if type(value) in (int, float):
+                    return expr.f32(value)
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -90,8 +109,13 @@ class BotScript(ReplicatedBody):
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
+        weapons = record.get("weapons") or []
+        component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+        component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
         self.set_health(health, health)
-        for instance in create_initial_graphs(component, record):
+        created = create_initial_graphs(component, record)
+        created.extend(create_weapon_graphs(component, record))
+        for instance in created:
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -119,14 +143,32 @@ class BotScript(ReplicatedBody):
     def replicated_instances(self):
         return (instance for instance in super().replicated_instances() if instance is not self.behavior)
 
-    def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
-        """Advance a live weapon body and freeze its latest observer baseline."""
+    def advance_live(
+        self, frame: int, position: tuple | None = None, *, weapon_input: tuple[int, bool] | None = None,
+    ) -> Snapshot | None:
+        """Advance a live body, optionally delivering one explicit AI weapon-slot edge.
+
+        The catalog's ai_weapon_buttons owns the slot mapping. This input adapter
+        runs authored weapon graphs; it does not select targets or implement AI.
+        Duplicate held input cannot synthesize additional press edges.
+        """
+        edges = []
+        if weapon_input is not None:
+            if (type(weapon_input) is not tuple or len(weapon_input) != 2
+                    or type(weapon_input[0]) is not int or type(weapon_input[1]) is not bool):
+                raise ValueError("NPC weapon input needs an integer slot and a Boolean press")
+            slot, pressed = weapon_input
+            button = self.component.world.ai_weapon_button(slot)
+            if type(button) is not int:
+                raise ValueError("NPC body has no authored mapping for this weapon slot")
+            if pressed != (button in self.component.held):
+                edges = [(button, pressed)]
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
-        self.component.run_frame(frame)
+        self.component.run_frame(frame, edges)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:

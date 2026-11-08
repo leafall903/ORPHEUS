@@ -17,8 +17,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 - [ ] Accept Soldier: 76 against enemy players and all five manual PvE NPCs,
   including every skill, ultimate and cross-hero interaction. Static Helix and
   melee occlusion, cooldown recovery, field healing and reconstructed rifle
-  Visor acquisition have pool tests. Native targeting/protection, five actual
-  NPCs and original-client acceptance remain open. See [Soldier lane](SOLDIER_COMBAT_LANE.txt).
+  Visor acquisition have pool tests. All five actual NPCs now receive authored
+  attacks and retain corpses; Trooper, Sniper and Heavy attacks reach Soldier.
+  Enforcer/Assassin attacks, specials, native targeting/protection and original-
+  client acceptance remain open. See [Soldier lane](SOLDIER_COMBAT_LANE.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
