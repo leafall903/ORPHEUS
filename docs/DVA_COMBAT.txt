@@ -19,6 +19,13 @@ The mech definition contains initial graphs0033,004B,0276,02CC,047E,0043,
 schema values are300/300. These values describe the input; they do not prove
 server creation, possession, health replication or transformation behavior.
 
+Explicit alternate-body loading now preserves this record, its600 combined pools
+and0.7m capsule. With external additive inputs, six normal Match-command tests
+execute actual0407 primary and Micro Missile graphs, including damage, armour,
+miss/wall/team exclusion, simultaneous fire and cooldown refusal/reuse. The fixture
+selects0407 explicitly; it does not execute initial spawn, Q placement or a form
+transition. See BODY_FORM_INPUTS.txt for reproduced failures and remaining scope.
+
 Weapon050A's volley declares11 projectiles per shot and2 damage each. Its
 STU_613BDDB0 shot pattern has radial entries(0,1),(0.5,4),(1,6). Existing combat
 code consumes only one centre-line ray per volley report and ignores this

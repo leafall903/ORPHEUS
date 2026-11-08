@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Explicit body forms and authored mech command evidence
+
+- Load additive external graph/entity and mover supplements without replacing
+  accepted base records or writing the shared runtime. Resolve explicit body
+  scripts/pools, validate alternate inputs before retirement, and build movers
+  from the newly selected body. Preserve body-owner services in passive VM/server
+  snapshots, with known bound methods recorded without execution.
+- Pass nine form/loader tests and six real0407 command tests using read-only
+  local supplements:77 pellet hits/154 damage, independent armour, miss/cover/team
+  exclusion,18 Micro Missiles/126 damage, cooldown refusal/reuse and concurrent
+  primary fire. Pass163 related regressions. A51-case snapshot/health/form run
+  passed50 cases; after expanding its old world-field contract, the remaining
+  snapshot case passes separately. Ruff/diff checks pass.
+- The explicit form fixture bypasses initial spawn and Call Mech. Actual pilot Q
+  still stops at placement43DB06B1; Boosters lacks displacement, Matrix lacks
+  interception and Self-Destruct lacks a world explosion. Creation, transformations,
+  full NPC/cross-hero interactions and client acceptance remain open. See
+  docs/BODY_FORM_INPUTS.txt. Full static acceptance is still active/open.
+
 #### Direct body ownership and authored D.Va pilot fire
 
 - Implement F7262B36's direct component43 query separately from current possession

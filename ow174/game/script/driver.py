@@ -128,8 +128,11 @@ class BodyWorld(runtime.World):
         self.match: Match | None = None
         self._body_owner_context = body_owner.Context(
             body, True, True, lookup=self._lookup_body_owner,
-            watch_environment=lambda *_: None, watch_owner=lambda *_: None,
+            watch_environment=self._poll_body_owner, watch_owner=self._poll_body_owner,
         )
+
+    def _poll_body_owner(self, *_):
+        """Native dependency consumers refresh through the existing frame poll."""
 
     def _lookup_body_owner(self, entity):
         # Live match identities, not a guessed owner synthesized for unknown IDs.
@@ -284,10 +287,16 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        if body_definition is None:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        else:
+            record = graph.bodies().get(body_definition) or graph.entity_body(body_definition)
+            if record is not None and record.get("hero") not in (None, f"0x{hero:016X}"):
+                raise ValueError("selected body belongs to another hero")
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -307,7 +316,9 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        initial_pools = (pools.body_pools(hero) if body_definition is None
+                         else pools.active_pools(hero, body_definition))
+        self._spawn(start_frame, sum(initial_pools) if health is None else health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"

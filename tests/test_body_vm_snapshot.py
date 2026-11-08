@@ -507,12 +507,19 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        world = dict(body["world"]["fields"])
+        self.assertEqual(set(world), {"hero", "mode", "body", "throttles", "_body_owner_context"})
+        context = dict(world["_body_owner_context"]["fields"])
+        self.assertEqual(context["owner"], script.entity)
+        self.assertIs(context["instance_present"], True)
+        self.assertIs(context["retired"], False)
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):
             ignored_transport = export_body_vm(script)
         self.assertEqual(snapshot_digest(baseline), snapshot_digest(ignored_transport))
+        script.world._body_owner_context.retired = True
+        self.assertNotEqual(snapshot_digest(baseline), snapshot_digest(export_body_vm(script)))
         script.unknown_execution_state = 1
         with self.assertRaises(BodyVMSnapshotError):
             export_body_vm(script)

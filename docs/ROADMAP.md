@@ -24,6 +24,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Direct component43 ownership now permits authored pilot command fire and reload
   in static player/NPC-stand-in tests, backed by1056 original query comparisons;
   this does not accept the initial mech or both-form lifecycle.
+  Explicit alternate-body inputs now run real0407 primary/Micro Missile command
+  tests, including per-pellet armour, simultaneous fire and cooldown refusal/reuse.
+  Initial creation, placement and transformations remain open.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
