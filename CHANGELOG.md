@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Genji input-join dependency and actual defensive pools
+
+- Merge reviewed parent2ca9178 after the e4b86fa frozen-source boundary passed
+  all14 server snapshot tests in475.328s. Preserve structural watcher kinds and
+  include the parent's join_inputs/plug_source in causal storage. Pass273 combined
+  Genji/combat/NPC/control/VM/model-manifest/join tests after intake.
+- Pass three new methods with actual Reinhardt/Zarya body schemas, covering
+  primary cross-pool damage and charge, fan/melee/Strike/Blade, synchronized body
+  health, death and clipped overkill credit. Three primary bursts yield216 actual
+  loss against300 health/200 armour, or261 against200 health/200 shields. Low
+  fan aim and explicit noncritical assertions avoid point-blank head impacts.
+- Armour subtraction remains the existing reconstructed rule; this does not
+  accept barrier abilities, native hitboxes, shield regeneration, all defensive
+  statuses or client pool presentation. Full hero/static acceptance remains open.
+  Ruff and diff checks pass; original/shared main and client remain untouched.
+
 #### Reevaluate priority predicates after equal-valued stack edits
 
 - Distinguish structural priority dependencies from scalar variable watches.
@@ -76,6 +92,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Pass101 Genji/shared NPC/control/array/weapon/melee checks. The pre-merge63cae65
   frozen-source snapshot run passed14 tests in364.134s; it does not certify this
   new tree. Enforcer/Assassin, defenses/control and full static acceptance remain open.
+#### Native state-input joins and Deadeye timing
+
+- Implement1113EBD5 distinct-input joins from the104319 input handler rather
+  than permissively following output. Track producer/plug arrivals, ignore
+  duplicates, request sibling completion checks, clear registrations before
+  output and abort active referenced states only after accepted output. Resolve
+  states after callbacks; missing states are not allocated as a side effect.
+- Include pending arrivals and current traversal context in VM/server causal
+  snapshots, restore nested traversal context and clear arrivals on teardown.
+  Update the snapshot storage contract test for these new fields.
+- Pass945 relevant tests (932 script/VM/NPC/projectile/McCree plus13 server
+  snapshot), including10 new join and actual Deadeye command tests. Forty
+  offline native-handler arrivals match Python return values, registry order,
+  completion checks and aborts; engine lookup/output/event services are adapters.
+  Ruff and diff checks pass. No original-client acceptance was run.
+- Deadeye now survives warmup, retains the resource's six-second window and
+  supports repeated secondary cancel without normal ammunition loss. Test charge
+  is explicitly filled. Target acquisition/per-target charging/damage and the
+  full ultimate remain open; no replacement damage formula is installed.
+- Manifest-verified research resolves the per-target effect053/0056 to01EE in
+  an external bundle. Normal runtime data/services and original working changes
+  remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
+  McCree/cross-hero and original-client combat acceptance remain open.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an

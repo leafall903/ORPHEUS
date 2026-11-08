@@ -179,6 +179,23 @@ push/pop coverage and a causal snapshot check distinguish the dependency kinds.
 Full native224E/selective control semantics,
 frontal reflected status, immunity and cleansing also remain open.
 
+Reviewed parent2ca9178's native distinct-input join implementation is merged
+after the e4b86fa frozen server snapshot run passed14 tests in475.328s. The
+post-intake273-test regression includes all Genji suites, causal VM observations
+and the input-join tests. This earlier snapshot run does not certify the merged
+tree's full server snapshot suite.
+
+Three additional methods exercise actual Reinhardt300-health/200-armour and
+Zarya200-health/200-shield schemas. Primary crosses each defensive pool into
+health; fan/melee/Strike/Blade consume the appropriate pool. Body health vars,
+effective-damage charge, death and clipped overkill are checked. Three primary
+bursts leave Reinhardt284 health/0 armour (216 charge) or Zarya139 health/0
+shields (261 charge). Fan uses an explicit low aim and three noncritical-hit
+assertions, because point-blank torso aim can intersect Reinhardt's head first.
+The inherited5-point armour rule remains reconstructed. Barrier abilities,
+native hitbox equivalence, shield regeneration and client pool presentation
+remain OPEN.
+
 Original client: not exercised by this change. Existing client PID12292 and
 OWNeacClient parent33924 were observed with no lease at initial inspection;
 ownership was unknown, so the lane did not acquire/control/close that client.

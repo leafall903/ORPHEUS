@@ -28,6 +28,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   and persistent Dragonblade timer tests under explicit reconstructed policies;
   held primary now recovers across the draw gate after a shared structural
   priority-dependency notification fix;
+  actual Reinhardt/Zarya base pools now have Genji attack, cross-pool charge
+  and death checks; barrier skills and shield regeneration remain open;
   its temporary shield pool and native geometry remain open. Sniper now has
   manual incoming/stop evidence. Passive/mode charge policy, full five-NPC attacks/specials and cross-hero
   defenses/control remain open.
@@ -44,6 +46,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   for the partial attack frontier and open Flashbang/Deadeye requirements.
   Resource-backed Flashbang control has offline interruption/recovery/lifetime
   checks; native immunity/presentation and complete hero acceptance remain open.
+  Native input joins now preserve Deadeye's six-second timing and secondary
+  cancellation; target acquisition/charging/damage and full ultimate acceptance
+  remain open. See [state-input joins](STATE_INPUT_JOIN.txt).
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
