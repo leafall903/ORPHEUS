@@ -136,6 +136,7 @@ class Bot:
         self.direction = (0.0, 1.0)  # the way it walks now (x, z)
         self.position = tuple(spawner["position"])
         self.yaw = float(yaw_of(spawner["rotation"]))
+        self.pitch = 0.0  # explicit combat aim, in command-angle units
         self.velocity = (0.0, 0.0, 0.0)
         variables = spawner.get("vars", {})
         roots = {int(g, 16) for g in spawner["graphs"]}
@@ -316,7 +317,7 @@ class Bot:
         return Movement(
             self.position,
             s16(round(self.yaw)),
-            0,
+            s16(round(self.pitch)),
             self.velocity,
             DEAD if self.dead else 0,
             throttles=self.held,

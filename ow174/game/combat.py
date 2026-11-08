@@ -681,7 +681,7 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), 0)
+            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))

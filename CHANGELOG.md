@@ -1,5 +1,22 @@
 # Changelog
 
+### Torbjorn lane: five-body NPC combat fixtures and vertical aim
+
+- Review/import parent NPC lifecycle/catalog commits c2d3ae1/a15d554 into the
+  isolated clone, preserving their authorship. Use the prepared read-only NPC
+  graph/catalog inputs explicitly; keep normal runtime data unchanged.
+- All five actual bodies take70primary,125close secondary,30quick melee and55
+  hammer damage; friendly primary/secondary/quick melee are excluded. Basic
+  incoming identity/armour/death and retained terminal corpses pass static tests.
+- Add explicit NPC pitch to combat, movement and passive snapshots, plus a
+  controller/fixture aim_at helper that respects initial create eligibility.
+  A manually aimed actual Heavy Assault5damage volley hits Torbjorn for2.5
+  through armour. Autonomous acquisition and other NPC attacks remain open.
+- Pass48 NPC/catalog/bot tests,65 shared combat/projectile tests and a passive
+  snapshot smoke check. The earlier
+  complete13-test stored-snapshot suite passed before the pitch field addition.
+  Static hero/client acceptance remains OPEN; see docs/TORBJORN_COMBAT.txt.
+
 ### Torbjorn lane: authoritative temporary Overload armour
 
 - Mount authored1721/st3 as100 temporary armour while its graph state is active.

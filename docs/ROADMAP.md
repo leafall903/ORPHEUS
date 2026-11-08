@@ -25,6 +25,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   cooldown evidence; speed/fire/reload effects remain open. Combat turret,
   Molten Core areas, cross-hero protections and
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
+  Actual five-NPC fixtures cover four outgoing attacks, basic incoming identity/
+  pool/death semantics, a manually aimed Heavy Assault volley and corpse retention.
+  Complete NPC attack execution/AI, conditional difficulty pools and protection/
+  ability interactions remain open; these fixtures use permissive VM and adapters.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

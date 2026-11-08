@@ -50,6 +50,23 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
+def aim_at(match, bot: bots.Bot, point) -> tuple[int, int]:
+    """Explicit fixture/controller aim; autonomous acquisition is a separate service."""
+    if bot not in match.bots or bot.dead:
+        raise ValueError('aim needs a living NPC in this match')
+    point = tuple(point)
+    if len(point) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in point):
+        raise ValueError('NPC aim needs three finite coordinates')
+    x, y, z = bot.position
+    dx, dy, dz = point[0] - x, point[1] - y - combat.EYE, point[2] - z
+    if dx * dx + dy * dy + dz * dz < combat.EPSILON:
+        raise ValueError('NPC aim target coincides with muzzle')
+    bot.yaw = bots.s16(round(math.atan2(dx, dz) * 65536 / (2 * math.pi)))
+    bot.pitch = bots.s16(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
+    bot.moved_tick = match.tick
+    return bot.yaw, bot.pitch
+
+
 def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:

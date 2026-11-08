@@ -29,10 +29,16 @@ Acceptance matrix
 -----------------
 Every row requires enemy player AND Trooper, Enforcer, Sniper, Assassin and
 Heavy Assault; all original-client cells remain OPEN. Actual five-NPC bodies,
-attack/special behavior, team identity and manual corpse retention must be
-tested through the parent-owned sandbox once available.
+attack/special behavior and remaining interactions require the parent-owned
+sandbox. A prepared external catalog now supplies actual body/hero identities;
+the five-NPC static fixture below proves the listed subset only.
 
 Action             Server evidence / remaining implementation
+Passive            No separately named passive established by this audit yet;
+                   confirm absence/ownership-related mechanics from resources.
+                   Do not silently omit a passive from complete acceptance.
+Swap/reload        Weapon selection runs through actual manager graph15;
+                   full magazine/empty/reload/cancel/Overload interaction OPEN.
 Primary rivet      70 direct damage to player; authored gravity9.8 is consumed
                    by a reconstructed ballistic solver with 16ms sweeps;
                    critical defaults, true hitboxes and presentation OPEN.
@@ -125,3 +131,45 @@ is retained. Passive snapshot hashes observe amount and source changes, with the
 new state included in the approved exporter fields. Temporary armour ordering
 and component flags are explicit server reconstructions; original-client bar
 appearance and native pool-consumer parity remain OPEN.
+
+Prepared five-NPC static fixture (permissive VM, adapter transport)
+----------------------------------------------------------------
+Reviewed parent commits c2d3ae1/a15d554 were cherry-picked into this isolated
+main as5873a4d/dbf7b00. They supply manual lifecycle and explicit catalog loading.
+Read-only NPC data lives at verification/retribution/npc-runtime/data. The normal
+runtime path remains unchanged; tests explicitly select the additional graph
+bundle. The source clone's own PYTHONPATH is used throughout.
+
+Name           Base health    Shields    Armour
+Trooper        200            0          0
+Enforcer       250            100        0
+Sniper         300            0          0
+Assassin       400            100        0
+Heavy Assault  4000           0          0
+
+These are unconditional authored pools, not difficulty-scaled retail totals.
+Variable221 is routed to shield type2 by the actual NPC graphs.
+
+All five actual body scripts load and their creates encode. Actual Torbjorn
+commands deal70primary,125 close secondary,30quick melee and55hammer against
+each of the five bodies. Same-team NPCs take no primary/secondary/quick-melee
+damage. After lethal boundary damage all five remain dead as manual corpses
+beyond the ordinary respawn deadline, with live terminal script objects retained.
+This is a static lifetime check, not visual corpse/animation acceptance.
+
+All five NPC identities can damage/kill Torbjorn at Combat._damage with correct
+armour and killer/dead-state attribution. This boundary fixture does not prove
+their authored attack execution. An actual Heavy Assault114F/st25 weapon volley
+does5damage (2.5 absorbed by Torbjorn armour) under explicit fixture/controller
+aim. NPC combat now consumes and replicates an explicit pitch instead of forcing
+horizontal fire; npc.aim_at schedules an immediate movement record. Autonomous
+acquisition, native muzzles and animated aim remain OPEN.
+
+Trooper102E/st23 and Enforcer13EB/st14 evaluate zero current damage without
+their missing AI/difficulty inputs. Sniper/Assassin attacks require other native
+consumers. These are explicit incoming-attack blockers, not passing AI cases.
+
+To execute (not skip) the external-data tests, set ORPHEUS_NPC_CATALOG_DIR to the
+directory holding pve_npcs_174.json and game_graphs_174.json.gz, then run:
+  python -B -m unittest test_game_torbjorn_npcs test_game_npc test_extract_pve_npcs test_bots -q
+Keep ORPHEUS_RUNTIME_DIR at the normal read-only runtime-104319 directory.
