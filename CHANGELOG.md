@@ -29,6 +29,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native array selection for PvE difficulty configs
+
+- Implement STU_4BD39CFD with scalar index evaluation and collecting container
+  evaluation, array-only bounds checks and successful-null fallback. Preserve
+  nested value types and watched index/container updates; unknown child configs
+  still fail strict execution. No mission difficulty is invented.
+- Execute the original104319 selector/conversion/lookup offline:15 cases match
+  the Python runtime. Config providers and value storage/copy are adapters.
+  Pass178 relevant tests, including5 new array selection/watcher/failure checks;
+  Ruff and diff checks pass. Native-client acceptance was not run.
+- Resolve a zero-damage cause in Enforcer's authored weapon. An external
+  forced-controller experiment now emits resource-defined damage; its controller
+  assumption is unverified and is not production code. The ordinary five-body
+  probe still only proves Trooper/Sniper/Heavy damage; Enforcer/Assassin control,
+  navigation/specials and full McCree/client combat remain open. Normal inputs,
+  services and original working changes remain untouched; no hero lane merged.
+
 #### Authored NPC weapon component mounting
 
 - Share body weapon-root allocation between player and NPC scripts: preserve
