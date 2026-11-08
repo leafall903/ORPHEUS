@@ -184,6 +184,18 @@ class RoadhogFiveNpcTests(unittest.TestCase):
             run.step({})
         self.assertAlmostEqual(own.total, 595.0)
 
+    def test_breather_halves_actual_heavy_volley_damage(self):
+        definition = next(d for d in self.definitions.values() if d.name == "Heavy Assault")
+        run, hog, bot, _, _ = self.session(definition, distance=2.0)
+        bot.yaw = -32768.0
+        fight = run.match.combat
+        own = fight.vitals_of(next(t for t in fight._targets() if t.owner is hog))
+        state = next(i.state(n.state) for i in bot.body_script.component.instances.values()
+                     for n in i.graph.nodes if n and n.cls == "STUStatescriptStateWeaponVolley")
+        run.step({hog: (0, 0, 16)})
+        fight._shoot(bot, None, state, 0, run.frame * 16, activation=(0, 0))
+        self.assertAlmostEqual(own.total, 597.5)
+
 
 if __name__ == "__main__":
     unittest.main()

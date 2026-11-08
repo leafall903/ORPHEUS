@@ -188,11 +188,14 @@ class HookTests(unittest.TestCase):
         self.step(run, hog, enemy, shift=True)
         hooks = run.match.combat.hooks
         for _ in range(45):
+            before = vitals.total
             self.step(run, hog, enemy)
             if hooks.controlled(enemy.body):
                 break
         self.assertTrue(hooks.controlled(enemy.body))
         stopped = vitals.total
+        self.assertAlmostEqual(before - stopped, 15)
+        self.assertEqual(run.match.combat.incoming_damage_scale(enemy), 1.0)
         self.advance(run, hog, enemy, 80)
         self.assertEqual(vitals.total, stopped)
         instance = next(i for i in enemy.body_script.component.instances.values() if i.graph.index == 0x0240)

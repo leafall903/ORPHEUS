@@ -36,6 +36,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   death/replacement cleanup, plus real enemy Whole Hog/Breather interrupts.
   Native filters/defenses/control priority and arbitrary input-loss behavior stay
   open. Shared early-press retry timestamps now preserve their original expiry.
+  Breather's live0.5 incoming damage multiplier now affects actual hits/death,
+  restores at end/interrupt and applies to in-flight player and actual NPC shots.
+  Fortify/Ironclad share the consumer. Combined caps/armor-order fidelity remain open.
   Native spread, full cooldown/status/defense/NPC matrix and complete hero acceptance
   stay open. Original-client acceptance is separate from the static goal.
 

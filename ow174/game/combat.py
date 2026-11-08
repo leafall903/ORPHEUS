@@ -88,6 +88,7 @@ MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahea
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
 EPSILON = 1e-9
+INCOMING_DAMAGE_SCALE = 8243  # live graph multiplier: Breather0.5, Fortify0.6, Ironclad0.8; normal1.
 
 
 # --- geometry -----------------------------------------------------------------------------------------
@@ -878,6 +879,17 @@ class Combat:
 
     # --- damage and death --------------------------------------------------------------------------
 
+    @staticmethod
+    def incoming_damage_scale(owner) -> float:
+        """Consume the authored live stack, before the existing reconstructed pool pipeline."""
+        script = getattr(owner, "body_script", None)
+        component = getattr(script, "component", None)
+        if not isinstance(component, runtime.Component):
+            return 1.0
+        slot = component.entity_var(INCOMING_DAMAGE_SCALE, create=False)
+        scalar = _number(slot.value(), 1.0) if slot is not None else 1.0
+        return max(0.0, scalar)
+
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
         *, world_tick: int | None = None,
@@ -885,7 +897,7 @@ class Combat:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
             return
-        dealt = vitals.damage(amount)
+        dealt = vitals.damage(amount * self.incoming_damage_scale(target.owner))
         if dealt <= 0.0:
             return
         killed = vitals.now[HEALTH_POOL] <= EPSILON

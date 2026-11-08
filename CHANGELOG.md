@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: consume authored incoming damage scale
+
+- Apply live entity variable8243 before the existing reconstructed pool pipeline.
+  Real authored input supplies Breather0.5, Fortify~0.6 and Ironclad~0.8; normal
+  damage remains1. Missing VM modifier services preserve ordinary damage.
+- Actual rifle hits into Breather deal20 instead of40 and return to40 at end;
+  the multiplier changes a25-health death boundary. A real airborne Scrap Gun
+  pellet is reduced when Breather begins after launch, proving impact-time lookup.
+  Heavy Assault's actual5-damage volley is reduced to2.5. Hook deals15 while the
+  victim breathes, then interrupt restores multiplier1 and stops healing.
+- Cross-hero fixtures consume the same live stack for Fortify/Ironclad with
+  actual armor-pool losses19/27 versus35. Armor ordering and combined reduction
+  caps remain reconstructed/unverified, not complete cross-hero defense acceptance.
+- Pass104 relevant combat/Roadhog/five-NPC/projectile/modifier tests plus the
+  focused interrupt-order check; Ruff/diff pass. No client or publication claim.
+
 #### Roadhog lane: reconstructed chain-hook combat and press-buffer expiry
 
 - Consume the real01C8 launch state after ordinary input/windup. Use authored
