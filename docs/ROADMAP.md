@@ -29,7 +29,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Initial creation, placement and transformations remain open.
   Matrix resource activation/drain/release/cooldown/regeneration now execute through
   the authored graph after native-backed ruleset-reference fallback and live
-  possession resolution. Interception/filtering and complete Matrix acceptance
+  possession resolution. A reconstructed consumer now checks authored boxes,
+  external projectile tags, enemy rifle/Helix, release/exhaustion and collision
+  ordering. Native filter/attachment, complete Matrix acceptance
   remain open;1296 scalar comparisons do not accept the combat consumer.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

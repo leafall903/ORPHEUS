@@ -1,0 +1,76 @@
+D.Va Defense Matrix -- build 1.74.0.0.104319, partial static implementation
+========================================================================
+
+Inputs and native-proof boundary
+-------------------------------
+The actual mech0407 loads graph02CC. Its active DeflectProjectiles state3
+(STU0EC57928) supplies four scaled quarter boxes whose union at unit scale is
+[-1.25,-1,0.8] .. [1.25,1,10.25]. Bounds are evaluated through the original
+config expressions, including the existing entity-size service. Resource,
+minimum-hold, release, cooldown and exhaustion timing stay in that graph.
+
+The field m_3D667CE3 references raw0x0690000000000002. Its decoded file type is
+.097, NOT .069: GUID type bits are reversed. The extracted0002.097 profile is
+STU8EFC337B with mask281474976710656, category4, selector9 and its authored
+rule/category structures. The general native profile evaluator is NOT restored
+by this change. The state m_filter names raw0x0D60000000000145, tag0145.06C,
+and m_27CF71D5=2. Tags are identifiers; a separate .06C STU catalog is absent
+from this client's tracked files. Do not mistake the raw0D60 bits for .0D6.
+
+Local003 XML gives tag0145 on Mei's frost08BE and Moira's1C70, while Soldier
+rifle03D4, Helix072C and D.Va projectiles lack it. Treating0145 as an exclusion
+is a reconstruction consistent with these definitions, NOT a native filter
+polarity comparison. Dynamic target tags and the other filter fields remain
+unverified. No numerical damage threshold is used to classify attacks.
+
+Implementation
+--------------
+tools.extract_projectile_tags exports an external version1/build104319 catalog
+of all supplied003 definitions' STUTargetTagComponent arrays. It resolves
+shared XML arrays, removes duplicates, ignores an explicit null GUID and
+rejects other tag types. Game data and generated catalogs stay outside Git.
+Runtime requires ORPHEUS_PROJECTILE_TAGS before imports. Unknown definitions
+pass through Matrix; known WeaponVolley definitions lacking0145 are eligible.
+This catalog is required input, not evidence that every eligible weapon's
+runtime/ability has been restored.
+
+Combat checks live enemy player mechs with active02CC/st3. It reconstructs the
+attachment at the current combat eye and rotates boxes using current aim yaw
+and pitch. Eye attachment and aim frame are NOT native-verified. Rays starting
+inside a box intersect at0. Finite projectile sweeps compare the first Matrix
+intersection with the first body/static collision. Earlier bodies/walls win.
+Absorption removes the flight without direct/splash damage and retires its
+confirmed owner/observer copies without the explosion-release record. Future
+spawned fields are cancelled by removing their tracked shot. No resource cost
+per absorbed shot is added; authored elapsed-time drain controls the state.
+
+Hitscan pellets each perform their own box intersection. Hitscan target poses
+still use existing history, but Matrix uses its CURRENT pose and active state.
+Historical Matrix poses/activation timing, scheduler/input ordering and retail
+lag compensation remain open. Melee and non-Volley beam consumers bypass this
+path. The tag test covers a reconstructed frost projectile; it does not accept
+the full Mei/Moira beam simulation.
+
+Evidence and remaining work
+---------------------------
+test_game_dva_matrix executes authored mech commands against Soldier rifle and
+Helix, including release/minimum hold, resource exhaustion, aim-away and
+absence-of-Matrix controls. Other tests exercise actual bounds, enemy/allied
+selection, dead-target exclusion, excluded projectile/melee, finite box sweeps,
+static/body ordering and confirmed-projectile teardown without explosion.
+The extra collision target is a synthetic NPC fixture, NOT any of the five
+actual PvE NPC skill/AI acceptance cases. Authoritative health/no-hit notices
+are asserted; client rendering is not observed.
+
+The .097 evaluator, native attachment/filter polarity, all other eligible
+projectiles and secondary payloads, dynamic status/interrupt/defense effects,
+historical Matrix simulation, death/retirement delivery, unconfirmed local
+predictions and all five NPC bidirectional skill cases remain open. No client
+session was controlled. Full D.Va static_acceptance_complete remains false.
+
+Reproduce with existing external runtime,0407 graph/mover supplements and:
+  python -B -m tools.extract_projectile_tags <XML root> --output <external JSON>
+  set ORPHEUS_PROJECTILE_TAGS=<external JSON> before imports
+  python -B -m unittest test_game_dva_matrix -q
+Matrix command cases intentionally skip when the required external inputs are
+absent. A skipped run cannot be reported as combat acceptance.

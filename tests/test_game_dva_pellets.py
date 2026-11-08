@@ -12,6 +12,7 @@ from ow174.game import bots, dva
 from ow174.game.collision import World
 from ow174.game.combat import Vitals
 from ow174.game.commands import Command
+from ow174.game.content import find_hero
 from ow174.game.script import runtime
 
 
@@ -40,7 +41,9 @@ class DvaPelletTests(unittest.TestCase):
         run.match.bots.clear()
         run.match._pending_bot_scripts.clear()
         shooter, victim = run.players
-        shooter.hero = replace(shooter.hero, guid=dva.HERO)
+        # Synthetic volley consumer: keep a consistent hero/body pair for health
+        # serialization; this fixture does not execute the Fusion Cannon VM.
+        shooter.hero = find_hero("dva")
         shooter.mover.position = [0.0, 1.0, 0.0]
         victim.mover.position = [0.0, 1.0, distance]
         run.step({})

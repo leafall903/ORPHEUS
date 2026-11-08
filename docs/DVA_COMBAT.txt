@@ -87,6 +87,14 @@ It repairs the existing projectile explosion path, not Self-Destruct hosting.
 
 Required acceptance matrix
 --------------------------
+Matrix follow-up2026-11-09: authored02CC boxes now drive a reconstructed
+interception consumer with external003 target tags. Soldier rifle/Helix command
+tests cover active protection, release/minimum hold, exhaustion and aim-away;
+additional cases cover team/dead gates, exclusions/melee, bounds, body/world
+ordering and no-explosion removal. Native filter polarity/.097 evaluation,
+attachment and historical state remain unverified. See DVA_MATRIX.txt. This
+partial evidence does not close the following full-scope Matrix row.
+
 Each row is OPEN separately for enemy players, Trooper, Enforcer, Sniper,
 Assassin and Heavy Assault, including original-client visuals and audio:
 

@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, dva, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, deflection, dva, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -349,6 +349,7 @@ class Rocket:
     shot: object = None  # its projectiles.Shot: told when it ends
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
+    definition: int | None = None  #003 target-tag input; unknown attacks cannot be classified
 
 
 class Combat:
@@ -633,6 +634,9 @@ class Combat:
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))
+        entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
+        asset = state.evaluate(entity_def, watch=False) if entity_def is not None else None
+        definition = asset.guid if isinstance(asset, expr.Asset) else None
         speed = field("m_projectileSpeed")
         if speed:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
@@ -640,12 +644,10 @@ class Combat:
             if reach:
                 lifetime = min(lifetime, reach / speed)
             blast = hit_def(state, node.field("m_D2D11CE9"))
-            entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
-            definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
             shot = None
-            if isinstance(definition, expr.Asset):
+            if definition is not None:
                 shot = self.projectiles.fired(
-                    shooter, state, shot_frame, definition.guid, lifetime, origin, direction,
+                    shooter, state, shot_frame, definition, lifetime, origin, direction,
                     activation=activation, snapshot=snapshot,
                 )
             damaging = (direct is not None and direct.amount > 0.0) or (
@@ -656,6 +658,7 @@ class Combat:
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
+                        definition=definition,
                     )
                 )
             return
@@ -668,10 +671,10 @@ class Combat:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
         for ray in dva.pellet_directions(shooter, state, direction):
             self._hitscan(shooter, origin, ray, reach, direct, view_tick, shot_frame,
-                          world_tick=self.tick if npc else None)
+                          world_tick=self.tick if npc else None, definition=definition)
 
     def _hitscan(self, shooter, origin, direction, reach, direct, view_tick, shot_frame,
-                 *, world_tick=None) -> None:
+                 *, world_tick=None, definition=None) -> None:
         """Resolve one ray, including independent per-pellet armour and occlusion."""
         best = None
         for target in self._enemies(shooter):
@@ -688,6 +691,9 @@ class Combat:
         wall = ray_world(self._collision(), origin, direction, t)
         if wall is not None and wall < t:
             return
+        absorbed = self._matrix_hit(shooter, origin, direction, t, definition)
+        if absorbed is not None:
+            return
         hit_y = origin[1] + direction[1] * t
         critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
@@ -695,6 +701,28 @@ class Combat:
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
             world_tick=world_tick,
         )
+
+    def _matrix_hit(self, shooter, origin, direction, reach, definition):
+        """Nearest live enemy Matrix; current authoritative pose (reconstructed).
+
+        Callers compare this with the first body/static collision. Hitscan Matrix
+        history and retail attachment/filter semantics still require acceptance.
+        """
+        if not deflection.absorbable(definition):
+            return None
+        best = None
+        for target in self._enemies(shooter):
+            player = target.owner
+            if (isinstance(player, bots.Bot)
+                    or getattr(getattr(player, "hero", None), "guid", None) != dva.HERO):
+                continue
+            distance = deflection.matrix_distance(
+                player, origin, direction, reach, self._eye(player),
+                aim(player.mover.yaw, player.mover.pitch),
+            )
+            if distance is not None and (best is None or distance < best):
+                best = distance
+        return best
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
@@ -718,6 +746,16 @@ class Combat:
         wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
+        absorbed = self._matrix_hit(
+            rocket.shooter, rocket.position, rocket.direction,
+            best[0] if best is not None else step, rocket.definition,
+        )
+        if absorbed is not None:
+            rocket.flown += absorbed / rocket.speed
+            self.rockets.remove(rocket)
+            if rocket.shot is not None:
+                self.projectiles.absorbed(rocket.shot)
+            return
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
             rocket.flown += duration

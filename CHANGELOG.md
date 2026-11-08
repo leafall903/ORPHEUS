@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Reconstructed D.Va Matrix interception
+
+- Consume active authored02CC boxes against enemy hitscan pellets and ballistic
+  projectiles with external003 target-tag metadata. Preserve earlier world/body
+  collisions, allied pass-through and unknown/excluded projectile definitions.
+  Absorbed projectiles cause no direct/splash damage or explosion release.
+- Add a local target-tag exporter and command-level rifle/Helix checks, release,
+  minimum hold, exhaustion, aim, bounds, team/dead gates, exclusions, melee,
+  collision ordering and confirmed-copy teardown. Correct the older synthetic
+  pellet fixture's inconsistent hero/body pair exposed by broader regression.
+  The combined combat/projectile/pilot/mech/pellet/cover run passes106 tests.
+  A further22 Matrix/input and passive server-storage checks pass; Ruff and
+  whitespace checks pass. Counts overlap and do not establish hero completion.
+- Eye attachment, current-aim geometry and tag0145 exclusion are reconstructed.
+  Native filter polarity/.097 evaluator, historical Matrix state, full weapon,
+  status and five-NPC interaction coverage remain open. See docs/DVA_MATRIX.txt.
+  Original-client acceptance is unexecuted; the complete hero milestone stays open.
+
 ### 2026-11-08
 
 #### Ruleset reference fallback and Matrix resources
