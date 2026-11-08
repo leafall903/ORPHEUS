@@ -41,16 +41,36 @@ Observed through ordinary Match input and health pools (test_game_hanzo.py):
   and obey the0.1s lifetime. Explicit generic critical definitions distinguish
   body/head impact and critical notice flags.
 
+Explicit five-NPC fixtures (test_game_hanzo_npc.py):
+- Review/import parentc2d3ae1/a15d554 privately as0c05d99/307feba. Read only the
+  supplied external pve_npcs catalog and extended graph bundle; normal runtime
+  and root source stay unchanged. The base pools omit difficulty/conditional
+  scaling. NPC variable221 is type2 shields, not armour.
+- Execute80 direct-attack subcases: all five actual bodies receive bow125,
+  sonic125, five Storm Arrows totaling350 (clamped at death) and melee30.
+  Ally, off-axis and static-wall cases lose no health. Dead bodies have terminal
+  script callbacks, no respawn deadline and remain after1000 skipped ticks.
+- A declared logical fire edge bridges missing AI selection. Actual Trooper,
+  Sniper and Heavy Assault graphs produce volleys and damage Hanzo through the
+  shared Combat path. After200 ticks their hit cases leave20/100/0HP; miss,
+  ally and wall cases leave200HP. This does not establish AI or specials.
+- BotScript previously omitted weapon manager/slot graphs. Initializing those
+  authored graphs restores Sniper's actual volley and100 damage. Fixture death
+  callbacks are recorded, and real NPC projectile transport ACKs are absent.
+- Enforcer receives the fire edge but produces no volley; Assassin's body uses
+  target/ModifyHealth actions rather than a weapon volley. Both incoming paths
+  and all five special/AI behaviors remain OPEN.
+
 Acceptance matrix (P = partial headless evidence, O = open):
 Action                              Player Trooper Enforcer Sniper Assassin Heavy
-Bow draw/release/body damage         P      O       O        O      O        O
+Bow draw/release/body damage         P      P       P        P      P        P
 Bow headshot/shield/armour rules      O      O       O        O      O        O
-Storm count/body damage/death        P      O       O        O      O        O
-Sonic direct damage                  P      O       O        O      O        O
+Storm count/body damage/death        P      P       P        P      P        P
+Sonic direct damage                  P      P       P        P      P        P
 Sonic reveal/faction/attachment       O      O       O        O      O        O
-Quick melee                          P      O       O        O      O        O
+Quick melee                          P      P       P        P      P        P
 Dragonstrike complete                O      O       O        O      O        O
-Incoming weapon damage/death          P      O       O        O      O        O
+Incoming weapon damage/death          P      P       O        P      O        P
 Incoming abilities/ultimate/control  O      O       O        O      O        O
 Barrier/reflect/absorb/invulnerability O     O       O        O      O        O
 
@@ -70,7 +90,7 @@ Concrete blockers:
   storage for further research, never written to the shared runtime or Git.
 - The normal runtime's AI hero table has only eight training/friendly bot
   definitions. Parent has now supplied a separate explicit five-NPC catalog
-  and lifecycle candidate commitsc2d3ae1/a15d554 for this lane to review next.
+  and lifecycle commitsc2d3ae1/a15d554, reviewed and imported privately here.
   Its fixture and permissive body VM do not establish NPC AI/skill acceptance.
 - Existing client PID12292/window Overwatch was observed. No own lease was
   acquired and no client was launched, stopped, injected or controlled here.

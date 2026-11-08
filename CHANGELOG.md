@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Hanzo interaction with explicit Talon NPC bodies
+
+- Review and import the parent's manual-NPC lifecycle/catalog changes privately.
+  Initialize authored NPC weapon managers and slot scripts as well as body roots;
+  Sniper previously had no loaded weapon volley and now deals100 damage through
+  its real input/volley/projectile path.
+- Pass46 focused hero/NPC/body-script/extractor tests with external read-only
+  NPC data. The NPC fixture executes80 direct hit/miss/faction/wall subcases
+  across bow,sonic,storm,melee and all five bodies;12 incoming cases cover real
+  Trooper/Sniper/Heavy volleys, damage/death, misses, faction and static walls.
+  Corpse checks advance beyond the respawn deadline without replacement.
+  The final five-NPC tests also verify shields deplete before health;82 further
+  projectile/notice/health tests pass. Ruff and diff checks pass.
+- The fire edge is an explicit fixture bridge, transport uses an adapter and
+  body VMs remain permissive. Enforcer/Assassin incoming attacks, all NPC AI and
+  specials, defensive/status interactions and Hanzo's remaining skills/ultimate
+  are OPEN. This is partial static evidence, not complete hero or client
+  acceptance. Lane goal remains active; root integration/publication is not done.
+
 #### Partial Hanzo ballistic combat and skill lifetime corrections
 
 - Reconstruct authored projectile gravity using bounded ballistic collision
