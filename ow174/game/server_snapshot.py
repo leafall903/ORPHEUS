@@ -21,6 +21,7 @@ from ow174.game import (
     combat,
     correction,
     heroselect,
+    lucio,
     notices,
     observers,
     projectiles,
@@ -93,9 +94,12 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "projectiles observers voice lucio_auras lucio_barriers"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer next_pool_id "
+                          "temporary_shields temporary_used"),
+    lucio.Auras: _names("combat leases last_tick"),
+    lucio.Barriers: _names("combat seen leases"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -117,7 +121,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position match"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -138,6 +142,7 @@ OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    combat.TemporaryShield, lucio.Lease, lucio.BarrierLease,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

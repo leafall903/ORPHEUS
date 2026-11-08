@@ -165,6 +165,14 @@ def ray_world(
 # --- health -------------------------------------------------------------------------------------------
 
 
+@dataclass
+class TemporaryShield:
+    pool_id: int
+    slot: int
+    maximum: float
+    current: float
+
+
 class Vitals:
     """A body's pools as component 51 has them: health, armour, shields (world.health's ids and fields)."""
 
@@ -179,6 +187,9 @@ class Vitals:
                 self.ids[kind] = pool_id
                 pool_id += 1
         self.ids[HEALTH_POOL] = pool_id
+        self.next_pool_id = pool_id + 1
+        self.temporary_shields: dict[object, TemporaryShield] = {}
+        self.temporary_used = False
         self.changed: set[int] = set()  # pools that changed since the last update went out
         self.died_at: float | None = None
         self.death_tick: int | None = None
@@ -190,13 +201,58 @@ class Vitals:
 
     @property
     def total(self) -> float:
-        return sum(self.now.values())
+        return sum(self.now.values()) + sum(pool.current for pool in self.temporary_shields.values())
+
+    @property
+    def maximum(self) -> float:
+        return sum(self.most.values()) + sum(pool.maximum for pool in self.temporary_shields.values())
+
+    def grant_temporary_shields(self, key, amount: float) -> TemporaryShield | None:
+        """A separate non-healable shield pool; same-key grants replace, not stack."""
+        if type(amount) not in (int, float) or not math.isfinite(amount) or amount <= 0:
+            raise ValueError("temporary shields need a finite positive amount")
+        if self.dead:
+            return None
+        found = self.temporary_shields.get(key)
+        if found is None:
+            occupied = {pool.slot for pool in self.temporary_shields.values()}
+            slot = next((slot for slot in range(1, POOLS) if slot not in occupied), None)
+            if slot is None or self.next_pool_id > 0xFFFFFFFF:
+                raise ValueError("temporary shield pool capacity exhausted")
+            found = self.temporary_shields[key] = TemporaryShield(self.next_pool_id, slot, amount, amount)
+            self.next_pool_id += 1
+        else:
+            found.maximum = found.current = float(amount)
+        self.temporary_used = True
+        self.changed.add(SHIELDS_POOL)
+        return found
+
+    def remove_temporary_shields(self, key) -> None:
+        if self.temporary_shields.pop(key, None) is not None:
+            self.changed.add(SHIELDS_POOL)
+
+    def drain_temporary_shields(self, key, amount: float) -> float:
+        """Absorption/decay never spills into base pools and is never healing."""
+        pool = self.temporary_shields.get(key)
+        if pool is None or amount <= 0:
+            return 0.0
+        taken = min(pool.current, amount)
+        pool.current -= taken
+        if taken > 0:
+            self.changed.add(SHIELDS_POOL)
+        if pool.current <= EPSILON:
+            self.remove_temporary_shields(key)
+        return taken
 
     def damage(self, amount: float) -> float:
-        """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
+        """Take a hit from temporary shields, base shields, armour, then health (unverified: armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
         left = max(0.0, amount)
         taken = 0.0
+        for key in reversed(tuple(self.temporary_shields)):
+            absorb = self.drain_temporary_shields(key, left)
+            taken += absorb
+            left -= absorb
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
@@ -227,6 +283,18 @@ class Vitals:
         for kind in kinds:
             if kind in self.ids:
                 parts[kind * POOLS] = world.pool(self.ids[kind], kind, self.most[kind], self.now[kind])
+        if self.temporary_used:
+            # A complete shield-array replacement clears expired slots on every
+            # viewer, including a receiver retransmitting an older pool snapshot.
+            if SHIELDS_POOL not in self.ids:
+                parts[SHIELDS_POOL * POOLS] = world.pool(0, SHIELDS_POOL, 0, 0)
+            active = {pool.slot: pool for pool in self.temporary_shields.values()}
+            for slot in range(1, POOLS):
+                pool = active.get(slot)
+                parts[SHIELDS_POOL * POOLS + slot] = (
+                    world.pool(pool.pool_id, SHIELDS_POOL, pool.maximum, pool.current, overhealth=True)
+                    if pool else world.pool(0, SHIELDS_POOL, 0, 0)
+                )
         return {51: parts}
 
 
@@ -369,6 +437,7 @@ class Combat:
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
         self.lucio_auras = lucio.Auras(self)
+        self.lucio_barriers = lucio.Barriers(self)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -391,6 +460,7 @@ class Combat:
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
         self.lucio_auras.retire(player.body)
+        self.lucio_barriers.retire(player.body)
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
@@ -434,6 +504,7 @@ class Combat:
             self._melee(player, command, script)
             self._soundwave(player, command, script)
             self.lucio_auras.refresh()
+            self.lucio_barriers.command(player)
         except Exception:
             log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
 
@@ -557,6 +628,7 @@ class Combat:
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
         self.lucio_auras.update(tick)
+        self.lucio_barriers.update(tick)
         if frames:
             self.observers.update()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.
@@ -841,7 +913,7 @@ class Combat:
     def _sync_body_health(owner, vitals: Vitals) -> None:
         script = getattr(owner, "body_script", None)
         if script is not None:
-            script.set_health(vitals.total, sum(vitals.most.values()))
+            script.set_health(vitals.total, vitals.maximum)
 
     def _collision(self):
         from ow174.game.collision import CollisionError

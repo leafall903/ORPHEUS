@@ -181,6 +181,11 @@ class BodyWorld(runtime.World):
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            from ow174.game.lucio import barrier_owner_filter
+
+            result = barrier_owner_filter(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)

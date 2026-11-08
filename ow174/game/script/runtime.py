@@ -1539,7 +1539,8 @@ class State:
             self.dependency_changed()
 
     def dependency_changed(self) -> None:
-        """A watched variable changed (vt+0xC8)."""
+        """Host reconstruction: recheck transitions after a watched input changes."""
+        self.try_complete()
 
     def native_dependency(self, cfg) -> None:
         """1B72AD0: a native evaluator marked this dependency epoch as used."""

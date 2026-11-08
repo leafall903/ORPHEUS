@@ -28,6 +28,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     Nine actual five-body tests now cover75 outgoing damage, support, wall/miss
     and corpse/removal subcases. NPC return fire/specials and the remaining
     interaction matrix remain open; this does not complete the static gate.
+    Sound Barrier now has10 bounded behavior checks with actual073A/073B and
+    separate temporary pools. Charge generation, native scaling/propagation and
+    the remaining full interaction/movement matrix are still open.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

@@ -17,6 +17,7 @@ from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, p
 
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.combat import Vitals
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
 from ow174.game.match import Match
@@ -62,6 +63,22 @@ class ServerSnapshotTests(unittest.TestCase):
         actual = [(i.id, list(i.states), list(i.queue)) for i in component.instances.values()]
         self.assertEqual(actual, instances)
         self.assertFalse(first["restorable"])
+
+    def test_temporary_shield_capacity_absorption_and_retirement_are_stored(self):
+        session, _, players = self.scene()
+        player = players[0]
+        vitals = Vitals(player.body, 200)
+        player.match.combat.vitals[player.body] = vitals
+        empty = snapshot_digest(self.capture(session))
+        vitals.grant_temporary_shields("barrier", 750)
+        granted = snapshot_digest(self.capture(session))
+        self.assertNotEqual(granted, empty)
+        vitals.damage(200)
+        self.assertEqual(vitals.now[0], 200)
+        absorbed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(absorbed, granted)
+        vitals.remove_temporary_shields("barrier")
+        self.assertNotEqual(snapshot_digest(self.capture(session)), absorbed)
 
     def test_hidden_vm_counter_transport_and_physics_changes_change_digest(self):
         session, _, players = self.scene()

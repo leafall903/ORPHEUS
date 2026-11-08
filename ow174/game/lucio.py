@@ -12,6 +12,23 @@ from ow174.game.script import expr, graph
 
 HERO = 0x02E0000000000079
 CROSSFADE = 0x04A00000000000A4
+SOUND_BARRIER = 0x04A0000000000191
+BARRIER_KEY = "lucio_sound_barrier"
+
+
+def barrier_owner_filter(world, cfg, instance):
+    """Narrow reconstructed slam gate; not a generic native filter decoder."""
+    if instance is None or instance.graph.index != 0x073A or world.match is None:
+        return NotImplemented
+    target = cfg.get("m_entity") or {}
+    nonzero = {key: value for key, value in (cfg.get("m_filter") or {}).items() if value not in (None, 0)}
+    if (target.get("$") != "STU_B5A0CAF0"
+            or nonzero != {"$": "STUConfigVarFilter", "m_84065FD1": 0x3FFFFFFF, "m_4EA686DB": 16}):
+        return NotImplemented
+    if graph.status_definition(SOUND_BARRIER) is NotImplemented:
+        return False
+    owner = next((p for p in world.match.players if p.has_body and p.body == world.body), None)
+    return owner is not None and owner.mover.air_ticks == 0 and not world.match.combat.is_dead(owner)
 
 
 @dataclass
@@ -20,6 +37,16 @@ class Lease:
     target: object
     instance: object
     created_tick: int
+
+
+@dataclass
+class BarrierLease:
+    source: int
+    target: object
+    instance: object
+    capacity: float
+    duration: float
+    last_tick: int
 
 
 class Auras:
@@ -133,3 +160,121 @@ class Auras:
                 if given > 0:
                     lease.source.stats.add(stats.HEALING, given)
                     self.combat._sync_body_health(lease.target.owner, vitals)
+
+
+class Barriers:
+    """One-shot team shielding from authored slam and073B pool initialization.
+
+    Reconstruct a linear capacity/duration decay and immediate radial delivery.
+    Native propagation, time-scaling295F1CDE and health-pool flags need further
+    comparison. Applied shields persist if the caster subsequently dies.
+    """
+
+    def __init__(self, combat):
+        self.combat = combat
+        self.seen = {}
+        self.leases: dict[int, BarrierLease] = {}
+
+    def retire(self, entity):
+        for key in list(self.seen):
+            if key[0] == entity:
+                del self.seen[key]
+        if entity in self.leases:
+            self._drop(entity)
+
+    def _drop(self, entity):
+        lease = self.leases.pop(entity)
+        vitals = self.combat.vitals.get(entity)
+        if vitals is not None:
+            vitals.remove_temporary_shields(BARRIER_KEY)
+            self.combat._sync_body_health(lease.target.owner, vitals)
+        lease.instance.component.destroy(lease.instance)
+
+    def command(self, player):
+        from ow174.game.combat import EPSILON, _dot, _sub, ray_world, segment_distance
+        from ow174.game.script import runtime
+
+        if player.hero.guid != HERO:
+            return
+        script = player.body_script
+        if script is None or script.retired or self.combat.is_dead(player):
+            return
+        for instance in list(script.component.instances.values()):
+            if instance.graph.index != 0x073A:
+                continue
+            apply, search = instance.states.get(0), instance.states.get(8)
+            if apply is None or search is None:
+                continue
+            key = (player.body, instance.id)
+            previous = self.seen.get(key, 0)
+            self.seen[key] = apply.counter
+            if previous == apply.counter or not apply.active:
+                continue
+            definition = graph.status_definition(SOUND_BARRIER)
+            child_guid = graph.guid(definition.get("m_5A4051BC")) if isinstance(definition, dict) else None
+            child = graph.graph(child_guid & 0xFFFF) if child_guid is not None else None
+            if child is None or child.index != 0x073B:
+                raise ValueError("Sound Barrier requires actual073B status resources")
+            duration = expr.to_float(instance.context().var(graph.ENTITY, 1212))
+            radius = expr.to_float(search.evaluate(search.node.field("m_radius"), watch=False))
+            if duration <= 0 or radius <= 0:
+                continue
+            origin = self.combat._eye(player)
+            for target in self.combat._targets():
+                ally = not self.combat.match.game_map.free_for_all and target.team == player.team
+                if (target.owner is not player and not ally) or self.combat.vitals_of(target).dead:
+                    continue
+                receiver = getattr(target.owner, "body_script", None)
+                if receiver is None:
+                    continue
+                a, b = target.segment()
+                if segment_distance(origin, a, b) - target.radius > radius:
+                    continue
+                centre = (target.feet[0], target.feet[1] + target.height / 2, target.feet[2])
+                offset = _sub(centre, origin)
+                length = _dot(offset, offset) ** 0.5
+                if target.owner is not player and length > EPSILON:
+                    direction = tuple(value / length for value in offset)
+                    wall = ray_world(self.combat._collision(), origin, direction, length)
+                    if wall is not None and wall < length:
+                        continue
+                if target.entity in self.leases:
+                    self._drop(target.entity)
+                effect = receiver.component.create(
+                    child, values={(graph.INSTANCE, 27): expr.Entity(player.body)},
+                )
+                runtime.send_instance_message(effect, 0x024000000000000F, {0x2B: duration}, player.body)
+                effect.update()
+                state = effect.states.get(2)
+                capacity = (
+                    expr.to_float(state.evaluate(state.node.field("m_amount"), watch=False)) if state else 0
+                )
+                if state is None or not state.active or capacity <= 0:
+                    receiver.component.destroy(effect)
+                    continue
+                vitals = self.combat.vitals_of(target)
+                vitals.grant_temporary_shields(BARRIER_KEY, capacity)
+                self.leases[target.entity] = BarrierLease(
+                    player.body, target, effect, capacity, duration, self.combat.tick,
+                )
+                self.combat._sync_body_health(target.owner, vitals)
+
+    def update(self, tick):
+        from ow174.game.combat import TICK
+
+        live = {target.entity for target in self.combat._targets()}
+        for entity, lease in list(self.leases.items()):
+            vitals = self.combat.vitals.get(entity)
+            if entity not in live or vitals is None or vitals.dead:
+                self._drop(entity)
+                continue
+            elapsed = max(0, tick - lease.last_tick) * TICK
+            lease.last_tick = max(tick, lease.last_tick)
+            vitals.drain_temporary_shields(BARRIER_KEY, lease.capacity * elapsed / lease.duration)
+            pool = vitals.temporary_shields.get(BARRIER_KEY)
+            if pool is None:
+                self._drop(entity)
+                continue
+            lease.instance.write((graph.INSTANCE, 199), pool.current)
+            lease.instance.update()
+            self.combat._sync_body_health(lease.target.owner, vitals)

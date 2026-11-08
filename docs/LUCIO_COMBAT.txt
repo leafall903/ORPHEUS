@@ -41,7 +41,8 @@ Crossfade healing       H rates/LOS    H basic five    H ally/self only
 Crossfade speed         O              O               O ally/self only
 Amp It Up healing       H rates/end/CD H basic five    H ally/self only
 Amp It Up speed         O              O               O ally/self only
-Sound Barrier           O              O               O ally/self shields
+Sound Barrier           H partial      H five allies  H750/pool/end; notes below
+Ultimate charge gains   O              O               O real passive/combat gain
 Wall Ride/wall jump     O              O               O movement/presentation
 Taking damage/death     H player src   H training src  O client death/respawn
 
@@ -153,6 +154,38 @@ permissive. These are executable damage/healing proofs, not native AI or client
 proofs. Prepared base pools preserve shields as type2; unapplied difficulty and
 conditional pools are still outside these assertions. Initial instances of all
 five NPCs contain no WeaponVolley; return fire/AI/specials remain open.
+
+Sound Barrier reconstruction checkpoint
+--------------------------------------
+The actual073A Ability requires2940 charge and logical button37 (command0x20),
+consumes it at start and waits on its authored cast-state transition. A plain
+State formerly watched its timer but never retried its transition after change;
+the host now rechecks these plugs. A narrow filter adapter accepts only073A's
+literal owner/all-team/body16 query and adds real live/grounded mover gating.
+This is a host reconstruction, not a generic native filter decoder.
+
+After the authored0.66 cast check (frame41 in the16ms fixture), the host consumes
+the actual apply-state activation, selects allies/self within authored30m with
+static sight, and starts073B by its0F message with the actual duration parameter.
+The child initializes750/type2 shields. The host keeps a separate non-healable
+pool, absorbs it before base shields/armour/health and linearly drains750/6 per
+second without damaging health. Repeated casts replace rather than add this
+pool. Expired slots transmit zero IDs, avoiding a stale visible shield pool.
+
+Ten executed tests cover charge rejection/consumption, cast delay, real airborne
+landing, ally/enemy/FFA/range/triangle-wall selection, all five NPC ally/enemy
+pairs, absorption/base separation, no healing refill, six-second expiry, replay
+and repress rejection, overlapping casts, caster death before/after application,
+caster retirement retaining allies, and receiver retirement clearing the pool.
+The tests seed charge explicitly; they do not establish actual charge generation.
+
+Immediate radial delivery, ground/filter mapping, linear decay and overhealth
+display flags are reconstructed. Native295F1CDE scaling, wave propagation/late
+entry and cast leap/visual timing remain open. Passive/combat ultimate gain is
+still the existing placeholder model and is NOT accepted. Native status
+replication and cross-body rollback remain open. Fourteen stored-domain tests
+include capacity/absorption/retirement hashing; these are not restorable-world
+or original-client acceptance. Full static hero acceptance remains open.
 
 Rebuild the small external supplement using the source-only CLI:
 python -B -m tools.extract_game_graphs --xml <shared XML dump>

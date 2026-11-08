@@ -6,6 +6,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Sound Barrier and temporary shield pools (0079 lane)
+
+- Consume actual073A slam activations and073B message/pool initialization to
+  grant750 temporary shields for the authored six-second duration. A narrowly
+  matched owner filter supplies a reconstructed grounded/live-body gate; plain
+  States now recheck transitions when watched timer inputs change.
+- Keep temporary shields distinct from base pools. Damage consumes them first;
+  healing never refills them. Same-key grants refresh without stacking; expired
+  slots send zero IDs. Applied allied shields survive caster death/retirement;
+  receiver retirement clears its pool. Register managers/pools in the read-only
+  server stored-domain exporter, including NPC Match ownership.
+- Pass10 executed Sound Barrier tests: charge gate/consumption, cast delay,
+  team/range/real-wall/FFA selection, real airborne landing, absorption/base pool
+  separation, no healing refill, expiry/wire clear, replay/repress, overlapping
+  casts, death/retirement and five real NPC ally/enemy pairs. Charge is seeded
+  in these fixtures; actual charge generation remains open.
+- Pass14 server stored-domain tests (13 existing plus a pool case),13 VM runtime,
+  17 research runtime,12 ability,8 budget,27 driver,23 body VM,28 combat,11 prior
+  Lucio,8 aura and9 five-type NPC tests. One legacy training aura fixture skips
+  for absent body data. Ruff/diff checks pass.
+- Linear decay, immediate radial delivery, LOS, owner/ground filter and display
+  flags are reconstructed. Native295F1CDE time scaling, propagation/late entry,
+  cast leap/visual timing, passive/combat charge and the complete cross-hero
+  static matrix remain open. No client acceptance, shared merge or publication.
+
 #### Lucio five-type NPC damage/healing fixtures (0079 lane)
 
 - Review and import parent c2d3ae1/a15d554 in the private clone, preserving
