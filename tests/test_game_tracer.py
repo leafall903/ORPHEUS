@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, Run, aim
 
-from ow174.game import combat, stats
+from ow174.game import combat, stats, tracer
 from ow174.game.collision import World
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
@@ -172,7 +172,7 @@ class TracerPistolTests(unittest.TestCase):
         self.assertFalse(any(who is bot for _, who in run.match.combat.respawns))
 
 
-class TracerBlinkTests(unittest.TestCase):
+class TracerCommandFixture:
     def setUp(self):
         self.run, self.player, self.enemy, _ = TracerPistolTests().fight()
         self.blink = next(i for i in self.player.body_script.component.instances.values()
@@ -189,6 +189,8 @@ class TracerBlinkTests(unittest.TestCase):
         for _ in range(frames):
             self.step()
 
+
+class TracerBlinkTests(TracerCommandFixture, unittest.TestCase):
     def test_forward_blink_is_seven_point_five_and_corrects_same_frame(self):
         before = tuple(self.player.mover.position)
         self.step(8, pitch=16000)
@@ -282,6 +284,136 @@ class TracerBlinkTests(unittest.TestCase):
         self.step(8)
         self.assertAlmostEqual(math.dist(before, self.player.mover.position), 7.5, places=3)
         self.assertEqual(self.blink.vars[11].value(), 2)
+
+
+class TracerRecallTests(TracerCommandFixture, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.recall = next(i for i in self.player.body_script.component.instances.values()
+                           if i.graph.index == 0x1A)
+        self.target = next(t for t in self.run.match.combat._targets() if t.owner is self.player)
+        self.vitals = self.run.match.combat.vitals_of(self.target)
+
+    def hurt(self, amount):
+        self.run.match.combat._damage(self.enemy, self.target, amount, False, None, self.run.frame)
+
+    def test_restores_three_second_position_health_ammo_and_same_frame_correction(self):
+        for _ in range(200):
+            self.step(forward=127)
+        before = tuple(self.player.mover.position)
+        self.hurt(70)
+        weapon = next(i for i in self.player.body_script.component.instances.values()
+                      if i.graph.index == 0x16)
+        weapon.write((0, 53), 2)
+        self.step(16)
+        self.wait(80)
+        self.assertFalse(tracer.recalling(self.player))
+        self.assertLess(self.player.mover.position[2], before[2] - 15)
+        self.assertEqual(self.vitals.total, 150)
+        self.assertEqual(weapon.vars[53].value(), weapon.vars[198].value())
+        self.assertEqual(tuple(self.player.mover.position), self.player.mover.history[-1].position)
+        self.assertGreater(self.recall.vars[61].value(), 11.9)
+
+    def test_invulnerable_and_untargetable_during_both_phases_then_damage_resumes(self):
+        self.wait(2)
+        self.step(16)
+        for frames in (1, 30):
+            self.wait(frames)
+            self.assertTrue(tracer.recalling(self.player))
+            self.hurt(200)
+            self.assertEqual(self.vitals.total, 150)
+            self.assertFalse(any(t.owner is self.player
+                                 for t in self.run.match.combat._enemies(self.enemy)))
+        self.wait(60)
+        self.assertFalse(tracer.recalling(self.player))
+        self.hurt(20)
+        self.assertEqual(self.vitals.total, 130)
+
+    def test_translation_is_locked_until_restore_and_pistols_are_suppressed(self):
+        self.wait(2)
+        self.hurt(20)
+        before = tuple(self.player.mover.position)
+        self.step(16)
+        for _ in range(60):
+            self.step(FIRE, forward=127, right=127)
+            self.assertEqual(tuple(self.player.mover.position), before)
+        self.assertEqual(self.player.client.messages(combat.HIT), [])
+
+    def test_cooldown_rejects_spam_and_reenables_after_authored_twelve_seconds(self):
+        self.wait(2)
+        self.step(16)
+        self.wait(81)
+        before = self.recall.state(16).counter
+        for _ in range(20):
+            self.step(16)
+            self.step(0)
+        self.assertEqual(self.recall.state(16).counter, before)
+        self.assertFalse(tracer.recalling(self.player))
+        self.wait(720)
+        self.assertEqual(self.recall.vars[61].value(), 0)
+        self.step(16)
+        self.assertTrue(tracer.recalling(self.player))
+
+    def test_recall_never_lowers_recently_healed_health(self):
+        self.hurt(70)
+        self.wait(200)
+        self.vitals.heal(70)
+        self.step(16)
+        self.wait(81)
+        self.assertEqual(self.vitals.total, 150)
+
+    def test_dead_and_replacement_bodies_cannot_restore_old_history(self):
+        self.wait(2)
+        self.hurt(200)
+        self.step(16)
+        self.assertFalse(tracer.recalling(self.player))
+        self.assertTrue(self.vitals.dead)
+        self.run.match.switch_hero(self.player, self.player.hero)
+        self.assertFalse(hasattr(self.player.body_script.world, "recall_history"))
+        self.wait(2)
+        self.step(16)
+        self.wait(81)
+        target = next(t for t in self.run.match.combat._targets() if t.owner is self.player)
+        self.assertEqual(self.run.match.combat.vitals_of(target).total, 150)
+
+    def test_cancel_does_not_restore_health_or_bypass_cooldown(self):
+        for phase_frames in (1, 35):
+            with self.subTest(phase_frames=phase_frames):
+                self.setUp()
+                self.wait(2)
+                self.hurt(70)
+                self.step(16)
+                self.wait(phase_frames)
+                self.recall.state(16).stop()
+                self.wait(2)
+                self.assertFalse(tracer.recalling(self.player))
+                self.assertEqual(self.vitals.total, 80)
+                self.assertGreater(self.recall.vars[61].value(), 11)
+                self.step(16)
+                self.assertFalse(tracer.recalling(self.player))
+
+    def test_blink_and_secondary_cannot_move_or_spend_charges_during_recall(self):
+        self.wait(2)
+        self.step(16)
+        before = tuple(self.player.mover.position)
+        for button in (8, 2):
+            self.step(button)
+            self.step(0)
+        self.assertEqual(tuple(self.player.mover.position), before)
+        self.assertEqual(self.blink.vars[11].value(), 3)
+
+    def test_old_recall_timer_cannot_modify_a_replacement_body(self):
+        self.wait(2)
+        self.step(16)
+        old_script = self.player.body_script
+        self.run.match.switch_hero(self.player, self.player.hero)
+        target = next(t for t in self.run.match.combat._targets() if t.owner is self.player)
+        vitals = self.run.match.combat.vitals_of(target)
+        self.run.match.combat._damage(self.enemy, target, 20, False, None, self.run.frame)
+        before = tuple(self.player.mover.position)
+        old_script.component.run_frame(old_script.frame + 100)
+        self.assertEqual(vitals.total, 130)
+        self.assertEqual(tuple(self.player.mover.position), before)
 
 
 if __name__ == "__main__":

@@ -32,32 +32,49 @@ carry the displaced pose. Native step-up/edge behavior and control interactions
 are still open. The callback only handles the actual live, posed Tracer action;
 other heroes/graphs retain their previous unsupported behavior.
 
+Recall uses body-local posed history and the actual001A warmup/playback states.
+The resource's fade-in0.375 seconds completes the missing native54FEB21C gate;
+41B3FC2B playback uses its authored0.9 seconds. These completion policies are
+reconstructions. Successful playback restores the three-second-old position and
+beneficial health, refills the authored weapon capacity, and lets the existing
+graph write its12-second cooldown. Translation/fire/Blink are excluded during
+Recall, as are incoming target/damage resolution. Cancelled casts spend cooldown
+without restoring health. History/timers cannot modify replacement bodies.
+Cleanse, exact native event timing and the full cross-hero controls remain open.
+
 S = selected server fixture passed; O = open, including original-client result.
 NPC columns mean the specific requested class, not a training-bot substitute.
 
 | Action | Enemy player | Trooper | Enforcer | Sniper | Assassin | Heavy Assault | Original client |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Pulse Pistols body damage | S | O | O | O | O | O | O |
+| Pulse Pistols body damage | S | S | S | S | S | S | O |
 | Reload and subsequent fire | S | O | O | O | O | O | O |
 | Critical hits / spread | O | O | O | O | O | O | O |
 | Miss / range exclusion / far falloff floor | S | O | O | O | O | O | O |
-| Quick melee | S | O | O | O | O | O | O |
+| Quick melee | S | S | S | S | S | S | O |
 | Blink selected displacement / collision / charges | S | O | O | O | O | O | O |
 | Blink complete control / cancel / cross-hero matrix | O | O | O | O | O | O | O |
-| Recall position / health / ammo / cleanse | O | O | O | O | O | O | O |
-| Recall invulnerability / targeting | O | O | O | O | O | O | O |
+| Recall position / health / ammo / cooldown | S | O | O | O | O | O | O |
+| Recall cleanse / complete cross-hero controls | O | O | O | O | O | O | O |
+| Recall selected invulnerability / targeting | S | O | O | O | O | O | O |
 | Pulse Bomb throw / stick / fuse / explosion | O | O | O | O | O | O | O |
 | Ultimate gain / consumption | O | O | O | O | O | O | O |
 | Incoming primary fire | S (Soldier) | O | O | O | O | O | O |
 | Incoming abilities / control / death | O | O | O | O | O | O | O |
-| Outgoing death / notices | S | O | O | O | O | O | O |
-| Manual NPC corpse retention | N/A | O | O | O | O | O | O |
+| Outgoing death / notices | S | S | S | S | S | S | O |
+| Manual NPC corpse retention | N/A | S | S | S | S | S | O |
 
 The additional training-NPC fixture kills with a paired shot and retains the body
 past the normal respawn deadline. It disables NPC script delivery; it proves only
 damage/counting/lifetime integration, not one of the five PVE classes or its AI.
-The runtime AI spawner hero table inspected here contains training bots only.
-The parent lane owns the requested NPC spawn/control interface.
+The parent has since provided a separate five-class catalog/script bundle and
+NPC APIs (reviewed shared commitsc2d3ae1/a15d554, cherry-picked into this clone).
+Four additional opt-in tests execute20 class subcases using actual definitions,
+base pools, scripts and XML-extracted mover capsules mounted only in fixture
+memory. Normal runtime lacks these mover entries and is unchanged. Transport is
+an explicit adapter; production mounting, AI and reverse attacks remain open.
+The catalog records unapplied difficulty/conditional pools and is not a claim
+about retail difficulty totals. Variable221 routes to shields, not armour.
 
 | Cross-hero behavior | Evidence / remaining work |
 | --- | --- |
@@ -82,9 +99,11 @@ python -B -m unittest discover -s tests -p test_game_tracer.py -v
 python -B -m unittest discover -s tests -p test_game_combat.py
 python -B -m unittest discover -s tests -p test_game_projectiles.py
 python -B -m unittest discover -s tests -p test_script_driver.py
+python -B -m unittest discover -s tests -p test_game_tracer_npcs.py
+python -B -m unittest discover -s tests -p test_game_npc.py
 ```
 
-The 22 Tracer tests cover actual body graphs and player command processing:
+The31 Tracer tests cover actual body graphs and player command processing:
 paired damage, per-bullet armour, shields, lethal first bullet, whole magazine,
 wall occlusion, team filtering, explicit reload, melee, incoming Soldier fire,
 and retained training-NPC death. Added checks exercise missed/out-of-range shots,
@@ -93,14 +112,19 @@ same-frame correction, directional/diagonal input, three-charge exhaustion and
 recovery, actual wall collision, death rejection, secondary activation and enemy
 pass-through, held/duplicate input rejection, and recharge cap.
 
-Twenty-eight existing combat tests, 37 projectile tests and 27 body-driver tests
-also pass (114 total). Ruff and `git diff --check` pass.
+Nine Recall tests add history/health/ammo, same-frame pose, both-phase protection,
+motion/fire/Blink exclusion, cooldown reuse, cancellation, beneficial healing and
+body retirement. Twenty-eight combat,37 projectile,27 driver, four actual-class
+NPC and six shared NPC/catalog tests also pass (133 total;20 NPC class subcases
+within the four tests). Ruff and `git diff --check` pass. NPC fixtures require
+`ORPHEUS_PVE_NPC_DATA_DIR` and `ORPHEUS_NPC_XML_DIR`; a skip is not acceptance.
 
 The original pre-fix Blink probe found no movement. The lane-local executable
-`run_static_audit.py` now records failing Recall and Pulse Bomb scenarios in
+`run_static_audit.py` records Recall and Pulse Bomb execution in
 `STATIC_ACCEPTANCE.json` and intentionally exits1 while the full matrix is open.
-After three seconds of actual movement and 70 incoming damage, Recall leaves
-health80, does not restore the earlier position and leaves cooldown0. A bomb
+The earlier Recall position/health/cooldown failures now pass: the actual movement
+and70-damage scenario restores health150, historical position and starts cooldown.
+A bomb
 charged to the actual1260 cost consumes charge but leaves an unarmoured200-health
 enemy at195 after120 frames; the explosion is missing. The earlier900-point
 ultimate probe was undercharged and must not be treated as a full-charge test.

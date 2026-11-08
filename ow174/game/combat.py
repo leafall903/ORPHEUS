@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, stats, tracer, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -553,7 +553,7 @@ class Combat:
                 continue
             if not free_for_all and target.team == shooter.team:
                 continue
-            if self.vitals_of(target).dead:
+            if self.vitals_of(target).dead or tracer.recalling(target.owner):
                 continue
             found.append(target)
         return found
@@ -792,7 +792,7 @@ class Combat:
         *, world_tick: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
-        if vitals.dead or amount <= 0.0:
+        if vitals.dead or amount <= 0.0 or tracer.recalling(target.owner):
             return
         dealt = vitals.damage(amount)
         if dealt <= 0.0:

@@ -139,6 +139,16 @@ class BodyWorld(runtime.World):
 
         return tracer.blink(self, instance, node)
 
+    def recall_begin(self, state, playback):
+        from ow174.game import tracer
+
+        return tracer.begin_recall(self, state, playback)
+
+    def recall_end(self, state, playback, finished):
+        from ow174.game import tracer
+
+        tracer.end_recall(self, state, playback, finished)
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
@@ -358,7 +368,10 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
-        self.component.run_frame(frame, edges)
+        from ow174.game import tracer
+
+        tracer.remember(self.world, frame)
+        self.component.run_frame(frame, tracer.filter_edges(self.world, edges))
         self._report_shots()
         self._charge_ult()
 

@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Tracer reconstructed Recall and actual-class outgoing NPC fixtures
+
+- Reconstruct001A warmup/playback using resource timing and body-local posed
+  history. Restore beneficial health, position and authored ammo capacity; freeze
+  translation, reject Blink/fire and exclude incoming damage/target resolution
+  during Recall. Existing graph starts12-second cooldown on completion.
+  Cancellation spends cooldown without restoration; old timers cannot affect a
+  replacement body. These engine semantics are explicit reconstructions.
+- Pass31 Tracer, four actual-class NPC (20 class subcases), six shared NPC/catalog,
+  28 combat,37 projectile and27 driver tests (133 total), Ruff and diff checks.
+  NPC body XML supplies authored mover capsules in fixture memory. Reviewed parent
+  NPC commits were cherry-picked into this clone; normal runtime is unchanged.
+- Recall position/health/cooldown audit failures are retired. Cleanse, native event
+  timing, complete controls/status/cross-hero and NPC reverse attacks remain open.
+  Charged Pulse Bomb explosion still fails; full goal remains active. No original
+  client acceptance, publication or shared-main merge is claimed.
+
 #### Tracer reconstructed Blink action and full static goal
 
 - Add a narrowly scoped handler for actual graph0024/actionA807207A, using its

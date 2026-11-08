@@ -1148,6 +1148,34 @@ class WeaponVolley(State):
         return {"start": self.start, "offset": self.offset, "volleys": self.volleys, "counter": self.counter}
 
 
+class ReconstructedRecall(State):
+    """Only BodyWorld's Tracer graph opts in; other graphs retain plain State."""
+
+    playback = False
+
+    def on_begin(self):
+        self.reconstructed = False
+        callback = getattr(self.instance.component.world, "recall_begin", None)
+        delay = callback(self, self.playback) if callback is not None else None
+        if delay is not None:
+            self.reconstructed = True
+            self.request_finish(delay)
+
+    def on_end(self, finished):
+        if self.reconstructed:
+            self.instance.component.world.recall_end(self, self.playback, finished)
+
+
+@state_class("STU_54FEB21C")
+class RecallWarmup(ReconstructedRecall):
+    pass
+
+
+@state_class("STU_41B3FC2B")
+class RecallPlayback(ReconstructedRecall):
+    playback = True
+
+
 @state_class("STUStatescriptStateMoveTo")
 class MoveTo(State):
     """Expose a resolved fixed world target and speed for one state activation."""

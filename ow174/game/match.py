@@ -321,6 +321,12 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        from ow174.game import tracer
+
+        if tracer.recalling(self):
+            tracer.hold_pose(self, command)
+            self._advance_body_frame(command)
+            return
         script = self.body_script
         requests = []
         if script is not None:
