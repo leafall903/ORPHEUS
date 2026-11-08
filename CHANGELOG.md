@@ -84,6 +84,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 - No original-client session, normal-service deployment or publication is claimed.
   This private lane supplies a reviewed local commit/patch; parent integration and
   audited publication are separate under the lane's no-push instruction.
+#### Manual NPC console commands and engagement input
+
+- Implement console command semantics for menu/selection, explicit removal,
+  crosshair-selected engagement and stop-all. Spawn requires visible floor;
+  selection/aim uses reconstructed sandbox distance and static-visibility policy.
+  No native console hook, keyboard frontend or production mounting is installed.
+- Drive actual slot0 input, target-player yaw/pitch and input release on target
+  loss/occlusion. Stop cancels pending/consumed input and owned projectiles;
+  idle manual VMs advance while damaging reports are suppressed. Track queued
+  input separately to cancel a press before its first VM update. Preserve new
+  target/input/pitch state in snapshots and movement output.
+- Pass136 related and13 server-snapshot tests (149 total), including9 new control
+  tests, Ruff and diff checks. Actual body data emits primary damage for Trooper
+  and Heavy Assault with no later damage in the80-frame stop probe. Enforcer,
+  Sniper and Assassin emit no shots and retain unresolved query/behavior gates.
+- A separate original104319 console-option probe fails relay loading with Windows
+  access denied and times out login. No console window or grave-key overlay is
+  observed on that screen; post-login console availability remains unknown.
+  Full navigation/specials/McCree skills/ultimate/client combat remain open.
+  No normal deployment; mandatory publication helper remains missing.
+
 #### Prepared PvE enemy base-pool catalog
 
 - Add an external XML catalog extractor that resolves actual NPC HealthPool
