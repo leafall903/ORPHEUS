@@ -461,7 +461,8 @@ class Combat:
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
-            centre = _along(self._eye(player), aim(*command.aim()), reach)
+            origin = self._eye(player)
+            centre = _along(origin, aim(*command.aim()), reach)
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
@@ -469,6 +470,17 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                    # Reconstructed sight to the closest point on the target
+                    # capsule. A melee search sphere cannot reach through walls.
+                    closest = (a[0], max(a[1], min(origin[1], b[1])), a[2])
+                    offset = _sub(closest, origin)
+                    length = math.sqrt(_dot(offset, offset))
+                    if length > EPSILON:
+                        direction = tuple(value / length for value in offset)
+                        distance = max(0.0, length - shown.radius)
+                        wall = ray_world(self._collision(), origin, direction, distance)
+                        if wall is not None and wall < distance:
+                            continue
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def _soundwave(self, player, command, script) -> None:
@@ -640,10 +652,16 @@ class Combat:
     # --- shots -------------------------------------------------------------------------------------
 
     def _bot_weapons(self, tick: int) -> None:
-        """Advance the weapon bodies of the map's firing bots and consume their volley reports."""
+        """Advance firing/explicit manual NPC bodies and consume their volley reports.
+
+        A manual NPC still needs its world clock while idle: foreign status
+        notifications and authored timers cannot run on its frozen spawn time.
+        This does not supply AI acquisition or synthesize attack input.
+        """
         for bot in self.match.bots:
             script = bot.body_script
-            if not bot.firing or bot.dead or not isinstance(script, BotScript) or script.frame > tick:
+            if ((not bot.firing and bot.spawner.get("manual_spawn") is not True)
+                    or bot.dead or not isinstance(script, BotScript) or script.frame > tick):
                 continue
             try:
                 snapshot = script.advance_live(tick, bot.position)

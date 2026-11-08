@@ -25,6 +25,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     extraction is available. Actual0267 leases now execute bounded Crossfade/Amp
     healing with eight behavior checks. Speed, native status/rollback,
     interception and real NPC matrices remain open; this gate stays unchecked.
+    Nine actual five-body tests now cover75 outgoing damage, support, wall/miss
+    and corpse/removal subcases. NPC return fire/specials and the remaining
+    interaction matrix remain open; this does not complete the static gate.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

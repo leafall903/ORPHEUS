@@ -31,28 +31,31 @@ H = headless actual-input/shared-health evidence; O = open, no acceptance.
 All original-client columns are O, including apparently functional graphs.
 
 Action                  Enemy player   Enemy NPC       Ally/self semantics
-Sonic Amplifier fire    H damage       O five types    O headshots/intercepts
+Sonic Amplifier fire    H damage       H basic five    O headshots/intercepts
 Reload/burst cadence    O              O               O HUD/audio/timing
-Quick melee             O              O               O no friendly damage
-Soundwave damage        H              H training Bot H ally exclusion, FFA
+Quick melee             O player       H basic five    H ally exclusion/walls
+Soundwave damage        H              H basic five    H ally exclusion, FFA
 Soundwave cooldown      H 4s boundary  O five types    H repeated/replayed input
 Soundwave knockback     O              O               O control/immunity
-Crossfade healing       H rates/LOS    O five types    H ally/self only
+Crossfade healing       H rates/LOS    H basic five    H ally/self only
 Crossfade speed         O              O               O ally/self only
-Amp It Up healing       H rates/end/CD O five types    H ally/self only
+Amp It Up healing       H rates/end/CD H basic five    H ally/self only
 Amp It Up speed         O              O               O ally/self only
 Sound Barrier           O              O               O ally/self shields
 Wall Ride/wall jump     O              O               O movement/presentation
 Taking damage/death     H player src   H training src  O client death/respawn
 
 Five requested Archives NPCs are NOT substituted by training Bot evidence:
-Trooper:       all player/NPC bidirectional attacks, specials, control = O
-Enforcer:      all player/NPC bidirectional attacks, specials, control = O
-Sniper:        all player/NPC bidirectional attacks, specials, control = O
-Assassin:      all player/NPC bidirectional attacks, specials, control = O
-Heavy Assault: all player/NPC bidirectional attacks, specials, control = O
+Trooper:       outgoing primary/melee/Soundwave, ally healing, corpse = H
+Enforcer:      outgoing primary/melee/Soundwave, ally healing, corpse = H
+Sniper:        outgoing primary/melee/Soundwave, ally healing, corpse = H
+Assassin:      outgoing primary/melee/Soundwave, ally healing, corpse = H
+Heavy Assault: outgoing primary/melee/Soundwave, ally healing, corpse = H
+All five incoming attacks, AI, specials, control and full interaction = O.
 Manual NPC death must retain corpse, with no automatic respawn/cleanup.
 The shared Bot.retain_corpse path is tested; these five live bodies are open.
+The initial training-only checkpoint above is superseded by the actual-body
+fixtures below; full bidirectional and native-client behavior remain open.
 
 Cross-hero matrix (all need original-client + authoritative-state evidence)
 -------------------------------------------------------------------------
@@ -125,6 +128,31 @@ world-time integration are reconstructed. Speed, native status replication,
 source transitions inside skipped world intervals, cross-body VM rollback,
 healing denial/amplification and all five real Archives archetypes remain open.
 Native-client presentation is not accepted.
+
+Actual five-body fixture checkpoint
+----------------------------------
+Parent c2d3ae1 and a15d554 are imported only into the private clone as f2f299b
+and712c03e. External ORPHEUS_PVE_NPC_CATALOG and ORPHEUS_PVE_GRAPH_BUNDLE select
+the parent's read-only pve_npcs_174.json/game_graphs_174.json.gz for tests.
+The test class temporarily selects that graph path in this clone and clears
+graph caches on entry/exit; it never imports shared-root Python code.
+
+tests/test_lucio_pve.py executes9 methods/75 subcases over all five real GUIDs.
+It verifies four20-damage primary impacts (allowing travel after trigger release),
+Soundwave25 and melee30, team exclusion, aimed projectile misses, actual triangle
+wall blocking of primary/Soundwave/melee,16/s normal and52/s Amp healing for
+allied bodies only, death exclusion, retained corpses past3s and explicit removal.
+Manual bodies now advance with the world clock while idle. Without this, source
+member-change events remain queued beyond the NPC's frozen spawn time, so its
+status graph can never switch from speed to healing.
+
+Static melee sight uses the nearest capsule segment point and remains a
+reconstruction. Transport is an immediate adapter recording actual terminal
+snapshots; geometry is authored test triangles/flat floor, and NPC VMs are
+permissive. These are executable damage/healing proofs, not native AI or client
+proofs. Prepared base pools preserve shields as type2; unapplied difficulty and
+conditional pools are still outside these assertions. Initial instances of all
+five NPCs contain no WeaponVolley; return fire/AI/specials remain open.
 
 Rebuild the small external supplement using the source-only CLI:
 python -B -m tools.extract_game_graphs --xml <shared XML dump>

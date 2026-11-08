@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Lucio five-type NPC damage/healing fixtures (0079 lane)
+
+- Review and import parent c2d3ae1/a15d554 in the private clone, preserving
+  authorship and both changelog branches. Reuse the external prepared catalog
+  and graph package read only; do not copy or mutate the normal runtime.
+- Advance live manual NPC body clocks even when they are not firing. Their
+  status graph watchers otherwise retain spawn time and fail to consume source
+  song/Amp changes. Do not infer AI acquisition or inject automatic attacks.
+- Block shared quick melee on intervening static collision, using reconstructed
+  sight to the capsule's nearest segment point. Keep authored activation,
+  rewind pose, range, enemy selection and ordinary damage/death handling.
+- Pass9 executed tests spanning75 real-body subcases: four primary impacts
+  total80, Soundwave25, melee30, ally exclusion, aimed misses, real triangle-wall
+  blocking, ordinary16/s and Amp52/s allied healing, dead-target exclusion,
+  retained corpses beyond respawn deadline and explicit status cleanup.
+- Pass28 combat,6 manual NPC,3 NPC extractor,22 NPC script,37 projectile and11
+  prior Lucio regressions. Full-tree Ruff and diff checks pass. Flat collision,
+  adapter transport, base pools and permissive NPC VMs remain explicit fixtures.
+  Difficulty/conditional pools are not represented as final native difficulty.
+- Five-type return fire/AI/specials are still open: initial NPC instances contain
+  no WeaponVolley states, and body creation is not proof of executable attacks.
+  Lucio speed, Sound Barrier, Wall Ride and the complete interaction matrix
+  remain open. Static goal active; no client acceptance, shared merge or push.
+
 #### Reconstructed Crossfade and Amp healing (0079 lane)
 
 - Mount actual0267 with explicit source/target leases and live player/NPC body
