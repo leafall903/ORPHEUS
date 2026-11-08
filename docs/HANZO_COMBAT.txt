@@ -241,6 +241,47 @@ Explicit reconstructed moving dragons (test_game_hanzo_dragons.py):
   cadence and barrier/reflect/absorb/invulnerability/control interactions. This
   does not establish complete Dragonstrike or full static hero acceptance.
 
+Owner health-query service and Enforcer frontier:
+- Reviewed lane0015's native getter evidence and independently reran its offline
+  harness in this lane against the captured104319 image.768 comparisons across
+  256 synthetic48-record inputs match the complete original getter returns bit
+  for bit. No code/helper hooks, client process or shared runtime writes.
+- 9B7648C3 ->component51 virtual40 ->5BBC80 sums current values of nonzero-id
+  records.32E6E4D8/7D7D2470 ->virtual48/58 ->5BC080/5BC9B0 sum current/maximum
+  for byte17!=0 and byte18==0. Iterate48 slots at+D8,20-byte stride and round
+  every addition to float32. Do not infer these flags from hero or NPC names.
+- World receives explicit owner raw pool records. Standalone body totals seed
+  one ordinary pool; actual NPC spawning, damage and healing
+  bind the authoritative component51 records. Death zeros NPC current fields at
+  the existing terminal health boundary while preserving maxima/flags. Player
+  death uses the same actual Vitals sync as other damage. Body replacement owns
+  separate records. Missing/foreign services remain unknown, including strict
+  faults; no default living/attack-permission answer is installed.
+- All five NPCs' initial and actual125-damage arrow queries agree with their
+  real pools. A second Trooper hit kills it and its retained corpse returns0,
+  preserving200 maximum. Actual enemy Soldier Biotic Field heals after Hanzo
+  damage; incoming rifle damage/death and a new Hanzo body also update queries.
+  Raw pool values and flags are causal body/server snapshot inputs.
+- Enforcer now passes13EB/node18's actual health condition and activates node1.
+  Its input20 still emits no volley: F7262B36/B96D3A98 require a related native
+  control entity/components and foreign variables7681/9134. No guessed related
+  entity, unconditional true or body-equality shortcut is supplied. Incoming
+  Enforcer/Assassin attacks and all NPC autonomous/special behaviors remain OPEN.
+- Independently rerun512 original related-ID helper,128 namespace-resolution,
+  128 control-component-resolution and64 partial B96 predicate-block cases in
+  this lane. B96 requires a resolved controller with4B present and5C absent;
+  no high-level names are assigned to those components. Full F726/B96 evaluators
+  and actual NPC43/44 relationships/lifetimes remain unproved.
+- Pass634 game,832 script and54 full VM/server snapshot/journal checks. Thirty
+  focused transport/health cases cover the eight regressions caused by an added
+  Vitals-read callback; that unnecessary callback was removed. Mere Vitals reads
+  do not require a live health VM interface from transport-only fixtures.
+- Native full config/entity/component lookup, actual controller allocation,
+  nonfinite pool policy, over-health creation and original-client health/HUD
+  acceptance are outside the finite getter proof. The shared getter mechanism
+  overlaps the uncommitted lane0015 candidate and needs parent deduplication;
+  no other lane or root source was modified or integrated here.
+
 Explicit five-NPC fixtures (test_game_hanzo_npc.py):
 - Review/import parentc2d3ae1/a15d554 privately as0c05d99/307feba. Read only the
   supplied external pve_npcs catalog and extended graph bundle; normal runtime

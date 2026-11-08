@@ -979,7 +979,8 @@ class Combat:
     def _sync_body_health(owner, vitals: Vitals) -> None:
         script = getattr(owner, "body_script", None)
         if script is not None:
-            script.set_health(vitals.total, sum(vitals.most.values()))
+            script.set_health(vitals.total, sum(vitals.most.values()),
+                              health_pools=vitals.component(vitals.ids)[51])
 
     def _collision(self):
         from ow174.game.collision import CollisionError

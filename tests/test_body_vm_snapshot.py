@@ -508,7 +508,8 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
         world_fields = dict(body["world"]["fields"])
-        self.assertEqual(set(world_fields), {"hero", "mode", "body", "throttles", "hanzo_climb"})
+        self.assertEqual(set(world_fields), {"hero", "mode", "body", "throttles", "hanzo_climb",
+                                            "health_pools"})
         self.assertIsNone(world_fields["hanzo_climb"])
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())

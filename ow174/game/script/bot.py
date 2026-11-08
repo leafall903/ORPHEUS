@@ -172,6 +172,11 @@ class BotScript(ReplicatedBody):
         component.shots.clear()
         component.run_frame(self.frame)
         component.held.clear()
+        if component.world.health_pools is not None:
+            component.world.health_pools = tuple(
+                None if record is None else record[:8] + bytes(4) + record[12:]
+                for record in component.world.health_pools
+            )
         component.set(OWNER_HEALTH, 0.0)
         if not runtime.send_message(component, DIED, params, sender):
             return None

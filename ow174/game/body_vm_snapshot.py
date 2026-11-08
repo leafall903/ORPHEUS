@@ -387,7 +387,7 @@ class _Export:
         if kind in (runtime.World, BodyWorld, BotWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
-            fields = {"hero", "mode"}
+            fields = {"hero", "mode", "health_pools"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match", "hanzo_climb"))
             if kind is BotWorld:

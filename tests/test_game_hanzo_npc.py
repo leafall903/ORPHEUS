@@ -156,6 +156,50 @@ class HanzoCatalogNpcTests(unittest.TestCase):
     def test_static_wall_blocks_direct_attacks(self):
         self.exercise("wall")
 
+    def test_actual_npc_pool_queries_follow_hanzo_damage_and_expose_enforcer_controller_gate(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, hero, bot = self.arena(definition, "bow", "hit")
+                fight = run.match.combat
+                instance = next(iter(bot.body_script.component.instances.values()))
+
+                def query(cls, instance=instance):
+                    return instance.evaluate({"$": cls, "m_entity": {"$": "STU_B5A0CAF0"}})
+
+                total = definition.health + definition.armour + definition.shields
+                for cls in ("STU_9B7648C3", "STU_32E6E4D8", "STU_7D7D2470"):
+                    self.assertEqual(query(cls), total)
+                for _ in range(70):
+                    run.step({hero: (0, 0, 1)})
+                run.step({})
+                for _ in range(30):
+                    run.step({})
+                self.assertEqual(query("STU_9B7648C3"), total - 125)
+                self.assertEqual(query("STU_32E6E4D8"), total - 125)
+                self.assertEqual(query("STU_7D7D2470"), total)
+                self.assertEqual(tuple(fight.vitals[bot.entity].component(fight.vitals[bot.entity].ids)[51]),
+                                 bot.body_script.component.world.health_pools)
+                if definition.name == "Enforcer":
+                    weapon = next(i for i in bot.body_script.component.instances.values()
+                                  if i.graph.index == 0x13EB)
+                    self.assertTrue(weapon.states[1].active)  # node1: now beyond node18's health gate
+                    bot.firing = True
+                    bot.attack_target = hero.entity
+                    with patch.object(fight, "_shoot", wraps=fight._shoot) as fire:
+                        for _ in range(200):
+                            run.step({})
+                    self.assertFalse(fire.called)  # missing controller context remains explicit
+                if definition.name == "Trooper":
+                    for _ in range(70):
+                        run.step({hero: (0, 0, 1)})
+                    run.step({})
+                    for _ in range(30):
+                        run.step({})
+                    self.assertTrue(bot.dead)
+                    self.assertEqual(query("STU_9B7648C3"), 0)
+                    self.assertEqual(query("STU_7D7D2470"), total)
+                npc.remove_spawned(run.match)
+
     def test_authored_npc_controller_hit_range_faction_and_wall(self):
         # The public reconstructed manual controller supplies actual slot input
         # and aim. Native autonomous acquisition/specials remain unestablished.

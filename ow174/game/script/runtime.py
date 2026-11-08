@@ -369,6 +369,7 @@ class World:
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
+        self.health_pools: tuple[bytes | None, ...] | None = None
 
     def ruleset(self, key: int):
         from ow174.game.script import rulesets
@@ -451,6 +452,13 @@ class World:
         return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
+        from ow174.game.script import health_queries
+
+        getter = health_queries.GETTERS.get(cfg.get("$"))
+        if (getter is not None and instance is not None and self.health_pools is not None
+                and instance.evaluate(cfg.get("m_entity")) == Entity(instance.component.entity)):
+            maximum, normal_only = getter
+            return health_queries.pool_sum(self.health_pools, maximum=maximum, normal_only=normal_only)
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:

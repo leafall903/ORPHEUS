@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Native-backed owner health queries and Enforcer gate evidence
+
+- Review lane0015's finite health-getter work and independently rerun768 original
+  getter comparisons in lane0005; every result is bit-identical. Add owner-only
+  current/normal-current/normal-maximum queries over explicit component51 records,
+  with slot-order float32 rounding and the original flag/id filters.
+- Bind real NPC/player damage and healing pools, preserve terminal NPC maxima
+  while zeroing current values, and register raw values/flags in passive VM/server
+  snapshots. Missing/foreign services remain unknown. Actual arrows on all five
+  NPCs, enemy Biotic Field, incoming rifle death and replacement are exercised.
+- Enforcer passes its health condition but still cannot fire through its missing
+  related-controller context. No forced-ready predicate was added. Independently
+  rerun512 related-ID,128 entity and128 controller helper cases plus64 partial
+  B96 predicate-block cases; actual NPC bindings and full evaluators stay unknown.
+- Pass30 focused transport/health checks,634 game tests,832 script tests and54
+  full VM/server snapshot/journal checks. A new Vitals-read callback broke eight
+  transport fixtures; remove the unnecessary callback and rerun the full affected
+  sets. Health sync stays at creation/damage/healing/terminal boundaries. Ruff/diff
+  checks pass. Full NPC attacks/specials, native lookup/allocator semantics and
+  original-client acceptance remain OPEN; parent must deduplicate overlapping
+  uncommitted lane0015 getter work before any eventual integration.
+
 #### Hanzo manual-cast debug charge lockout
 
 - Hanzo0101's manual phases bypassed the standard Ability charge lock. Fast

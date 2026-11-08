@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import hanzo_control, hanzo_movement, pools
+from ow174.game import hanzo_control, hanzo_movement, pools, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -210,8 +210,11 @@ class ReplicatedBody:
     component: runtime.Component
     server_only: set[int]
 
-    def set_health(self, health: float, most: float) -> None:
+    def set_health(self, health: float, most: float, *, health_pools=None) -> None:
         """Update the shared health input. Player bodies also use the maximum for their HUD."""
+        self.component.world.health_pools = (tuple(health_pools) if health_pools is not None else
+                                            (world.pool(1, world.HEALTH_POOL, most, health),)
+                                            + (None,) * (3 * world.POOLS - 1))
         self.component.set(OWNER_HEALTH, float(health))
 
     def initial_exclusions(self) -> set[int]:
@@ -325,11 +328,11 @@ class BodyScript(ReplicatedBody):
                 if _reads(node.field("m_150F0D92"), ULT_CHARGE):  # the ultimate: starts on its charge
                     self.ultimates.append(instance.state(node.state))
 
-    def set_health(self, health: float, most: float) -> None:
+    def set_health(self, health: float, most: float, *, health_pools=None) -> None:
         """The owner's health: #253e for the graphs (01CF st13: 0 or less is dead), #1732e/#1737e for the
         HUD panel's number (no graph writes them: current and maximum). The
         body's pools added up, health, armour and shields (unverified: as OW1's HUD showed one number)."""
-        super().set_health(health, most)
+        super().set_health(health, most, health_pools=health_pools)
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
