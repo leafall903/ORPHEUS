@@ -131,7 +131,7 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw pitch velocity firing route index wait target start keys turning "
-        "held last_held input_tick moved_tick last_tick retain_corpse combat_geometry combat_owner"
+        "held last_held input_tick moved_tick last_tick retain_corpse combat_geometry combat_owner attack_target attack_input"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
