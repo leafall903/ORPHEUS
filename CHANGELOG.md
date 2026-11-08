@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Optional persistent NPC corpses
+
+- Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.
+  Death still sends normal notices and advances the bounded terminal script;
+  retained bodies receive no respawn deadline and reject stale replacement calls.
+  Keep the policy in passive server state. Existing training bots still respawn.
+- Pass 28 combat tests (including retained lifetime, dead-target exclusion and
+  terminal callbacks), 22 NPC script/transport tests and 13 server snapshot tests.
+  Ruff and diff checks pass. No fresh client or normal deployment is claimed.
+- Manual five-enemy spawning, console keys, navigation, specials, McCree combat
+  and visual corpse persistence remain open. See docs/PVE_COMBAT_SANDBOX.txt.
+  The complete combat sandbox remains unaccepted. Publication uses the required
+  helper; its existing absence still prevents synchronization.
+
 #### Native persistent receiving message State
 
 - Mount strict9D6CF8AC through explicit message contexts. Preserve dual receiver

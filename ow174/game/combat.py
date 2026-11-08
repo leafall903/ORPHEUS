@@ -495,6 +495,9 @@ class Combat:
             self.observers.update()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.
         self._send_health()
+        for bot in self.match.bots:
+            if bot.dead and bot.retain_corpse:
+                self._advance_bot_death(bot, tick)
         for when, who in list(self.respawns):
             if isinstance(who, bots.Bot) and who in self.match.bots:
                 self._advance_bot_death(who, tick)
@@ -847,7 +850,8 @@ class Combat:
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int) -> None:
         bot.died(tick)
-        self.respawns.append((self.now + BOT_RESPAWN, bot))
+        if not bot.retain_corpse:
+            self.respawns.append((self.now + BOT_RESPAWN, bot))
         if not isinstance(killer, bots.Bot):
             killer.stats.add(stats.ELIMINATIONS)
             self._kill_notice(killer, bot)
@@ -930,7 +934,7 @@ class Combat:
         """A new bot from the same spawner under a new entity (the client ignores a destroyed id for 30 s);
         the dead one goes."""
         match = self.match
-        if bot not in match.bots:
+        if bot not in match.bots or bot.retain_corpse:
             return
         entity = self.next_bot
         self.next_bot += 1

@@ -434,6 +434,30 @@ class ProjectileTimingTests(unittest.TestCase):
 
 
 class BotTests(unittest.TestCase):
+    @patch.object(graph, "entity_body", return_value=None)
+    def test_retained_corpse_survives_respawn_deadline_and_stale_respawn(self, _entity_body):
+        run = Run()
+        player = run.players[0]
+        fight = run.match.combat
+        target = next(target for target in fight._enemies(player) if isinstance(target.owner, bots.Bot))
+        bot = target.owner
+        bot.retain_corpse = True
+        fight._damage(player, target, bot.health + 100, False, None, run.frame)
+        self.assertTrue(bot.dead)
+        self.assertEqual(fight.vitals_of(target).total, 0)
+        self.assertFalse(any(who is bot for _, who in fight.respawns))
+        for _ in range(round(combat.BOT_RESPAWN / combat.TICK) + 10):
+            run.step({})
+        fight._respawn_bot(bot)  # an already queued or stale callback cannot replace this corpse
+        self.assertIn(bot, run.match.bots)
+        self.assertEqual(bot.movement(run.frame).flags, bots.DEAD)
+        self.assertFalse(any(target.owner is bot for target in fight._enemies(player)))
+        self.assertEqual(fight.vitals_of(target).total, 0)
+        script = bot.body_script = Mock()
+        script.advance_death.return_value = []
+        run.step({})
+        script.advance_death.assert_called_once_with(run.frame, int(combat.BOT_RESPAWN / combat.TICK))
+
     def test_bot_damage_and_death_use_the_attacker_entity(self):
         run = Run()
         (player,) = run.players

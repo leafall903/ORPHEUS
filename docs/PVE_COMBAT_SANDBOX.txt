@@ -1,0 +1,32 @@
+Rialto PvE combat sandbox (104319) -- active, not accepted
+
+Required outcome: McCree fights Trooper, Enforcer, Sniper, Assassin and Heavy
+Assault, with working navigation, acquisition, attacks, special behavior,
+bidirectional damage, abilities, ultimate and original-client presentation.
+Dead NPCs remain as corpses until explicitly removed. Missing authoritative
+behavior may be reconstructed from the available assets; record its assumptions
+and differences rather than claiming a native implementation.
+
+Requested controls (not implemented yet):
+= opens the console spawn interface; 1..5 select the five enemies in the order
+above; - removes manually spawned NPCs and their corpses; 0 starts attacks by
+the living NPC under the crosshair; { stops attacks by all spawned enemies.
+Native interactive console availability and keyboard delivery need validation.
+
+Implemented lifetime foundation:
+- Bot.retain_corpse defaults to false. The future manual NPC creator must enable
+  it explicitly. Existing training bots retain their normal respawn behavior.
+- A retained dead bot is not scheduled for respawn. Even a stale explicit
+  respawn callback cannot replace it. It stays in the entity/health catalog;
+  normal dead filtering excludes it from enemy acquisition.
+- Death event delivery remains unchanged. Ordinary updates still advance its
+  death script through the existing bounded terminal animation window. This
+  does not claim arbitrary long-running authored death effects or visual corpse
+  persistence: those need original-client checks for the actual enemy bodies.
+- Passive server state includes the policy, so it is not hidden causal state.
+
+Still open: manual spawn/removal and input wiring, actual enemy body replication,
+navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
+corpse appearance and full original-client combat verification. The older
+complete-story restoration goal and its root-node blocker are separate scope;
+passing these lifetime tests does not establish a working mission or sandbox.
