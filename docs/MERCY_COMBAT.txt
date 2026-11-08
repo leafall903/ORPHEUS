@@ -100,8 +100,8 @@ Healing beam            P P P P P P -- friendly recipients only
 Damage boost beam       P O O O O O -- friendly sources only
 Guardian Angel          P P P P P P -- friendly alive/corpse player; living NPC only
 Resurrect               P P P P P P -- friendly player revival; all NPC corpses rejected
-Angelic Descent         O O O O O O
-Valkyrie                O O O O O O -- flight, chain beams, ammo and self-regeneration
+Angelic Descent         P O O O O O -- actual falling/input/collision; NPC interactions open
+Valkyrie                P O O O O O -- lifecycle/ammo/self-heal; flight/chain beams open
 Statuses/presentation   O O O O O O
 
 Required interaction controls still open: armor/shields, barriers, projectile
@@ -151,14 +151,36 @@ The complete focused regression set passes247 tests in252.723s, including scope,
 body/server storage, staff/boost, combat/projectiles and NPC controls. Ruff and
 diff checks pass. Full static and original-client acceptance remain open.
 
+Descent and partial Valkyrie execution
+--------------------------------------
+Six actual-input descent controls confirm0071/state1 supplies terminal mod13
+SET2m/s. Real collision movement approaches that speed, release restores gravity
+and repress slows an existing fall. Landing stays grounded, duplicate frames
+do not move twice and dead bodies freeze. The old graph's descent state can
+remain active on its frozen corpse; a replacement body inherits no modifier.
+
+Nine actual-input Valkyrie controls cover10DA's1820 gate/spend,15s authored
+timer, rejected repeat/duplicate activation, passive-charge suspension and end
+recovery, death and hero replacement. Flag842 keeps0071's existing20/s self-heal
+active under repeated damage. The blaster generates more than20 actual shots
+while ammunition remains20; after expiry it consumes ammunition again. These
+fifteen tests pass in15.359s; no runtime changes were needed for these controls.
+Free flight, embedded mover-component replacement (ED2B22BD), C1BA7545 and
+chained effect ownership still need actual consumers and acceptance. The normal
+scalar movement-mod extractor skips the embedded mover component. Activation
+alone is not evidence of working flight or chains. NPC/status/native/client
+coverage and damage/healing ultimate charge remain open.
+
 Effect-script dependency recovery
 ---------------------------------------------------------------
 The selected engine resource definitions053/0019 and053/0016 resolve to
-healing0079 and damage-boost006C. Both are absent from the current external
-graph bundle. The healing graph receives amount parameter002A into instance499;
+healing0079 and damage-boost006C. Both are absent from the normal runtime pack
+and present in the selected research extension. The healing graph receives
+amount parameter002A into instance499;
 the staff passes its evaluated variable6578 (55 in the104319 default profile).
-Boost006C/node19 supplies0.3 to174 before its CombatModFilter. These are resource
-observations, not proof of applied healing/boost or stacking semantics.
+Boost006C/node19 supplies0.3 to174 before its CombatModFilter. These resource
+observations alone do not prove application or stacking; separate headless
+consumer controls are described above.
 
 tools/extract_effect_scripts.py extends a separate external bundle from existing
 DragonML, follows both nested01B and053 references and refuses conflicting,

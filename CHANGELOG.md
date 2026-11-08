@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Mercy descent and partial Valkyrie execution controls
+
+- Verify the existing0071 terminal-velocity modifier through actual falling:
+  held jump approaches2m/s, release restores gravity, repress slows the fall,
+  collision landing stays grounded and replacement bodies retire old modifiers.
+- Verify10DA's1820 charge gate/spend,15s duration, repeated/duplicate input,
+  suspended passive charge, end cleanup/recharge and death/hero replacement.
+  Actual blaster shots exceed a20-round magazine without depletion during
+  Valkyrie and resume consumption after expiry. Existing self-healing continues
+  under repeated damage while the ultimate's842 flag is active.
+- Pass fifteen new controls in15.359s (six descent and nine Valkyrie); Ruff and
+  diff checks pass. No runtime logic changes. Free flight, chained heal/boost,
+  full charge/status/NPC matrix and original-client acceptance remain OPEN.
+
 ### 2026-11-08
 
 #### Mercy Guardian Angel and reconstructed player resurrection

@@ -22,8 +22,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Guardian Angel has actual ally/corpse flight and cooldown controls. Authored
   resurrection cast/cooldown reaches reconstructed full-pool player revival,
   control/immunity windows and NPC-corpse rejection;247 regressions pass.
-  Full staff filters/statuses/charge, native resurrection effects, descent,
-  Valkyrie, NPC AI attacks and original-client acceptance remain open.
+  Six actual descent controls and nine Valkyrie lifecycle/ammo/self-heal controls
+  also pass. Full staff filters/statuses/charge, native resurrection effects,
+  Valkyrie free flight/chains, NPC AI and original-client acceptance remain open.
   See [Mercy combat](MERCY_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
