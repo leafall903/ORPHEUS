@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Pharah actual NPC primary-input acceptance
+
+- Reuse parent manual-control, authored weapon-root and native array-selection
+  commits in this isolated lane. Actual slot0 inputs now damage Pharah through
+  Trooper20, Sniper100 and Heavy Assault5 hit definitions. Replace Heavy's direct
+  state-start fixture with real input/windup; death and stop prevent further hits.
+- Five new tests cover three real return attacks, target-death input release,
+  five-body wall/team input gating and friendly primary/melee exclusions without
+  charge. Wall fixtures retain a floor so physics does not invalidate the LOS case.
+- All61 Pharah-module tests pass in57.087s with the external NPC pack and no skips;
+  74 NPC/control/weapon-root/array/driver regressions pass in22.274s and89 shared
+  combat/projectile/passive-VM regressions pass in26.253s. Ruff/diff checks pass.
+  No native-client or NPC projectile observer transport is accepted by this adapter.
+- Enforcer/Assassin return attacks, all autonomous AI/navigation/specials, physical
+  barriers and control/defense fidelity remain open. The full static goal remains
+  active; parent owns serial integration/publication, and shared main is untouched.
+
 ### 2026-11-08
 
 #### Native array selection for PvE difficulty configs

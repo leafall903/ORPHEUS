@@ -1,18 +1,20 @@
 """Actual five-body fixtures from an explicitly supplied read-only NPC data pack.
 
-These cases prove player attacks against base pools. They do not prove enemy AI,
-special attacks, NPC displacement, difficulty scaling or original-client visuals.
+These cases prove base-pool attacks and three manual return-input paths. They do
+not prove enemy AI, specials, NPC displacement, difficulty scaling or client visuals.
 """
 
 import os
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
 import test_game_combat as model
 import test_pharah_combat as primary
 
-from ow174.game import combat, npc, world
+from ow174.game import combat, npc, npc_control, world
+from ow174.game.collision import World
 from ow174.game.script import graph
 from ow174.paths import DATA_DIR
 
@@ -27,6 +29,9 @@ class NpcClient(model.FakeClient):
 
     def queue_bot_death_update(self, entity, event):
         self.deaths.append((entity, event))
+
+    def bot_stream(self, entity):
+        return None  # authoritative combat fixture; NPC projectile transport is not accepted here
 
 
 class PharahPveTests(unittest.TestCase):
@@ -116,14 +121,106 @@ class PharahPveTests(unittest.TestCase):
     def start_heavy_weapon(self):
         definition = next(row for row in self.catalog.values() if row.name == "Heavy Assault")
         run, player, bot = self.create(definition)
-        bot.yaw = -32768
-        bot.firing = True
-        weapon = next(i for i in bot.body_script.component.instances.values() if i.graph.index == 0x114F)
-        # Explicit attack-trigger fixture, not AI target acquisition. The attack,
-        # shot schedule and five-damage hit definition are the actual body graph.
-        weapon.state(25).begin()
-        weapon.component.run_now()
+        self.assertEqual(npc_control.start(run.match, player), bot.entity)
+        # Actual slot0 input runs the authored windup. Manual target selection
+        # remains a sandbox policy, not autonomous AI acquisition.
+        for _ in range(30):
+            run.step({})
+        self.assertEqual(self.health(run, player).total, 200)
         return run, player, bot
+
+    def test_three_actual_primary_inputs_damage_pharah_and_stop_without_late_hits(self):
+        for name, first_hit, damage in (("Trooper", 29, 20), ("Sniper", 129, 100),
+                                        ("Heavy Assault", 32, 5)):
+            with self.subTest(enemy=name):
+                definition = next(row for row in self.catalog.values() if row.name == name)
+                run, player, bot = self.create(definition)
+                self.assertEqual(npc_control.start(run.match, player), bot.entity)
+                for _ in range(first_hit - 1):
+                    run.step({})
+                self.assertEqual(self.health(run, player).total, 200)
+                run.step({})
+                self.assertEqual(self.health(run, player).total, 200 - damage)
+                self.assertEqual(npc_control.stop(run.match), 1)
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(self.health(run, player).total, 200 - damage)
+                self.assertFalse(bot.attack_input)
+                self.assertFalse(bot.firing)
+                self.assertNotIn(20, bot.body_script.component.held)
+
+    def test_three_actual_primary_inputs_release_when_pharah_dies(self):
+        for name in ("Trooper", "Sniper", "Heavy Assault"):
+            with self.subTest(enemy=name):
+                definition = next(row for row in self.catalog.values() if row.name == name)
+                run, player, bot = self.create(definition)
+                npc_control.start(run.match, player)
+                run.step({})
+                self.assertTrue(bot.attack_input)
+                fight = run.match.combat
+                target = next(t for t in fight._targets() if t.owner is player)
+                fight._damage(bot, target, 1000, False, None, run.frame)
+                run.step({})
+                self.assertFalse(bot.attack_input)
+                self.assertNotIn(20, bot.body_script.component.held)
+                for _ in range(150):
+                    run.step({})
+                self.assertEqual(self.health(run, player).total, 0)
+
+    def test_all_five_release_primary_when_static_wall_blocks_pharah(self):
+        for definition in self.catalog.values():
+            with self.subTest(enemy=definition.name):
+                run, player, bot = self.create(definition)
+                npc_control.start(run.match, player)
+                run.step({})
+                self.assertTrue(bot.attack_input)
+                y = player.mover.position[1]
+                wall = World([
+                    (-20, y, -20, -20, y, 20, 20, y, 20),
+                    (-20, y, -20, 20, y, 20, 20, y, -20),
+                    (-10, y - 5, 5, 10, y - 5, 5, 10, y + 5, 5),
+                    (-10, y - 5, 5, 10, y + 5, 5, -10, y + 5, 5),
+                ])
+                with patch.object(run.match, "collision_world", wall):
+                    for _ in range(160):
+                        run.step({})
+                    self.assertIsNone(npc_control.selected(run.match, player))
+                    self.assertFalse(bot.attack_input)
+                    self.assertNotIn(20, bot.body_script.component.held)
+                    self.assertEqual(self.health(run, player).total, 200)
+
+    def test_all_five_release_primary_when_pharah_becomes_friendly(self):
+        for definition in self.catalog.values():
+            with self.subTest(enemy=definition.name):
+                run, player, bot = self.create(definition)
+                npc_control.start(run.match, player)
+                run.step({})
+                self.assertTrue(bot.attack_input)
+                run.match.game_map = replace(run.match.game_map, free_for_all=False)
+                bot.team = player.team
+                for _ in range(160):
+                    run.step({})
+                self.assertIsNone(npc_control.selected(run.match, player))
+                self.assertFalse(bot.attack_input)
+                self.assertNotIn(20, bot.body_script.component.held)
+                self.assertEqual(self.health(run, player).total, 200)
+
+    def test_all_five_friendly_bodies_reject_pharah_primary_and_melee(self):
+        for definition in self.catalog.values():
+            with self.subTest(enemy=definition.name):
+                run, player, bot = self.create(definition, distance=1.8)
+                run.match.game_map = replace(run.match.game_map, free_for_all=False)
+                bot.team = player.team
+                player.body_script.ult_seconds = 0
+                player.body_script.set_ult_charge(0)
+                before = self.health(run, bot).total
+                self.fire_once(run, player)
+                run.step({player: (0, 0, 0x800)})
+                for _ in range(70):
+                    run.step({})
+                self.assertEqual(self.health(run, bot).total, before)
+                self.assertFalse(player.client.messages(combat.HIT))
+                self.assertEqual(player.body_script.component.entity_var(342).value(), 0)
 
     def test_heavy_actual_weapon_damages_pharah_then_npc_death_stops_attacks(self):
         run, player, bot = self.start_heavy_weapon()

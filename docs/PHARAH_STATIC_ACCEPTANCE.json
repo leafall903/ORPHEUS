@@ -146,12 +146,15 @@
       "passed": [
         "actual body/creates/base pools",
         "primary120/melee30",
-        "retained corpse after lethal health change"
+        "retained corpse after lethal health change",
+        "friendly body excludes Pharah primary/melee and grants no hit or ultimate credit",
+        "manual primary input releases on static wall or friendly-team change, no incoming damage over160 frames",
+        "actual slot0 input deals20 to Pharah first at fixture tick29; stop gives no late damage over80 more frames",
+        "Pharah death releases real primary input before authored attack fires"
       ],
       "open": [
-        "authored dynamic attack setup",
-        "return attacks/specials/AI",
-        "all skill/status/defense interactions"
+        "autonomous target acquisition/navigation and all specials",
+        "range/resistance/reflect/absorb and skill/status/defense interactions"
       ]
     },
     "npc_enforcer": {
@@ -159,7 +162,9 @@
       "passed": [
         "actual body/creates/base pools including shield-health routing",
         "primary120/melee30",
-        "retained corpse after lethal health change"
+        "retained corpse after lethal health change",
+        "friendly body excludes Pharah primary/melee and grants no hit or ultimate credit",
+        "manual primary input releases on static wall or friendly-team change, no incoming damage over160 frames"
       ],
       "open": [
         "authored dynamic attack setup",
@@ -172,11 +177,15 @@
       "passed": [
         "actual body/creates/base pools",
         "primary120/melee30",
-        "retained corpse after lethal health change"
+        "retained corpse after lethal health change",
+        "friendly body excludes Pharah primary/melee and grants no hit or ultimate credit",
+        "manual primary input releases on static wall or friendly-team change, no incoming damage over160 frames",
+        "actual slot0 input deals100 to Pharah first at fixture tick129; stop gives no late damage over80 more frames",
+        "Pharah death releases real primary input before authored attack fires"
       ],
       "open": [
-        "return attack path and specials/AI",
-        "all skill/status/defense interactions"
+        "autonomous target acquisition/navigation and all specials",
+        "range/resistance/reflect/absorb and skill/status/defense interactions"
       ]
     },
     "npc_assassin": {
@@ -184,7 +193,9 @@
       "passed": [
         "actual body/creates/base pools including shield-health routing",
         "primary120/melee30",
-        "retained corpse after lethal health change"
+        "retained corpse after lethal health change",
+        "friendly body excludes Pharah primary/melee and grants no hit or ultimate credit",
+        "manual primary input releases on static wall or friendly-team change, no incoming damage over160 frames"
       ],
       "open": [
         "return attack/grapple/control path and specials/AI",
@@ -197,12 +208,15 @@
         "actual body/creates/base pools",
         "primary120/melee30",
         "retained corpse after lethal health change",
-        "actual114F/state25 trigger causes15 damage/10frames, kills Pharah, stops on NPC death"
+        "actual slot0 windup then114F volley causes15 damage in next10 frames, kills Pharah, stops on NPC death",
+        "friendly body excludes Pharah primary/melee and grants no hit or ultimate credit",
+        "manual primary input releases on static wall or friendly-team change, no incoming damage over160 frames",
+        "actual slot0 input deals5 to Pharah first at fixture tick32; stop gives no late damage over80 more frames",
+        "Pharah death releases real primary input before authored attack fires"
       ],
       "open": [
-        "target acquisition/AI and all specials",
-        "range/LOS/team/reflect/absorb/resistance attack edge cases",
-        "all skill/status/defense interactions"
+        "autonomous target acquisition/navigation and all specials",
+        "range/resistance/reflect/absorb and skill/status/defense interactions"
       ]
     }
   },
@@ -257,5 +271,20 @@
     ],
     "observation": "Reinhardt0095 #587=1600 but #586=0 after startup/shield input; Zarya13F4/effectA2 references previously missing025D effect graph. No HP/pose substitute is manufactured. Diagnostic-only native295F1CDE=1 yields authored current/saved1600, but actual input reaches Pet state17 with output entity#38=None. Scalar meaning and Pet backend remain unresolved; no production override installed.",
     "tests": "3 real-model tests;25 selected geometry/catalog/ray/CASC regressions pass with external asset path and zero skips."
+  },
+  "npc_primary_input_checkpoint": {
+    "status": "partial",
+    "dependencies": [
+      "fbcaf76 manual control (79579d6)",
+      "d1286b7 weapon mounting (0b2c089)",
+      "6debff3 array selection (e753b85)"
+    ],
+    "evidence": "Three real primary-input attacks; five-body team/LOS gates and outgoing friendly exclusions. Immediate-ACK client omits NPC projectile transport. First-hit tick checks pin this executable fixture, not native timing.",
+    "open": [
+      "Enforcer and Assassin return damage",
+      "all autonomous AI/navigation/specials",
+      "NPC projectile observer transport and original client",
+      "difficulty/native damage/resistance fidelity"
+    ]
   }
 }

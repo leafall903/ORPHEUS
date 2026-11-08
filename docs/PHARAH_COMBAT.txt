@@ -3,7 +3,7 @@ Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
 Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
 
 Evidence boundary
-52 tests in tests/test_pharah*.py cover Match/player input, attack outcomes
+61 tests in tests/test_pharah*.py cover Match/player input, attack outcomes
 and an explicit passive-state export case using
 the extracted body graphs and Combat damage/death. They do not substitute
 hand-authored weapon definitions. They are headless server tests, not native
@@ -22,7 +22,7 @@ Jump Jet 0027        partial: impulse/motion/cooldown/input buffer    OPEN
 Hover Jets 0025      partial: lift/fuel/recharge/empty/cap             OPEN
 Concussive 007B      partial: enemy/self push, zero damage/LOS/ally   OPEN
 Barrage 002B         partial: channel stops passive charge           OPEN
-Incoming attacks     partial enemy rifle  Heavy trigger fixture   OPEN
+Incoming attacks     partial enemy rifle  Three primary inputs    OPEN
 Death                partial offline      five retained bodies    OPEN
 
 Five enemy NPCs means Trooper, Enforcer, Sniper, Assassin, Heavy Assault,
@@ -33,11 +33,20 @@ actual five-enemy GUIDs and base pools. Its dynamic/conditional difficulty pools
 are not applied. Five actual body scripts load; real primary input causes120
 damage and melee input causes30 to each. Body creates encode; direct lethal
 health changes keep all five corpses beyond respawn deadline until removal.
-Heavy Assault's actual114F/state25 attack can damage and kill Pharah; NPC death
-stops its damage. This is an explicit attack-trigger fixture, not AI acquisition.
-Trooper/Enforcer preliminary uneventful volley evaluation lacks authored dynamic
-damage setup, and Sniper/Assassin attack paths were not reached. Their return
-attacks/specials remain OPEN. NPC physical impulses are still not implemented.
+Actual primary-input tests now cover Trooper20, Sniper100 and Heavy Assault5
+damage to Pharah. First damage occurs at fixture ticks29/129/32 respectively.
+Stop prevents damage for80 further frames; Pharah death releases primary input.
+Heavy's helper now uses real slot0/windup rather than directly starting state25;
+its actual volley still kills Pharah and NPC death stops further damage.
+Manual target/aim policy is reconstructed, not autonomous AI acquisition. These
+first-hit ticks pin this fixture; no native timing comparison is claimed.
+All five release input with static wall/friendly-team changes and do not damage
+Pharah over160 frames. Friendly NPCs take no Pharah primary/melee damage or charge.
+The collision wall fixture includes a floor so target height remains stable.
+Enforcer/Assassin return attacks, all specials, AI and NPC impulses remain OPEN.
+The immediate-ACK client omits NPC projectile observer transport explicitly.
+Dependencies from parent main: fbcaf76 manual control, d1286b7 weapon components
+and6debff3 native array selection, isolated cherry-picks79579d6/0b2c089/e753b85.
 
 Tests mount the separate graph pack through ORPHEUS_NPC_DATA_DIR and clear its
 graph caches on unmount; they do not copy/modify the normal runtime or import
@@ -164,7 +173,7 @@ Additional melee acceptance
 Four real-input tests cover friendly-player exclusion with no hit/charge,
 front edge +/-2mm and behind misses in the reconstructed sphere/capsule adapter,
 held-button versus rapid presses across recovery, and death ending the active
-damage state/rejecting fresh presses. All56 Pharah-module cases pass with the
+damage state/rejecting fresh presses. The earlier56-case checkpoint passed with the
 five-NPC pack and zero skips. The boundary test does not validate native hitboxes;
 melee defenses, control interruption and exact native tracking remain open.
 
