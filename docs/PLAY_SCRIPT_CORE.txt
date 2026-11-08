@@ -223,3 +223,12 @@ retains4C3509FB/node40. Native973 comparisons establish shared callbacks, not
 the client audio engine or complete global poll driver. Ordinary script ticks
 do not poll voice progress. Full startup and mission acceptance remain open.
 See VOICE_STIMULUS_STATE.txt for services, timing and fixture limits.
+
+Unkeyed array insertion and clear, 2026-11-08
+Native-backed4C3509FB and1C2CC6D5 actions now allow actual0F45's isolated
+voice39->40/41->voice35->42 chain to finish with variable1839 cleared and no
+fault or pending voice registration. It retains explicit services, clocks and
+uninitialized source42.880 insertion and64 clear comparisons pass, plus2
+explicit native-limit gates. Keyed rows, linked insertion/checkpoints and the
+limit diagnostic consumer remain strict. Full startup, the helper's controller
+message/node22 and shared rootD38/node106 remain open. See ARRAY_ACTIONS.txt.

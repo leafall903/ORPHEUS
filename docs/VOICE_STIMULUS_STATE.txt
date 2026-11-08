@@ -113,3 +113,13 @@ Local evidence outside Git: verification/retribution/voice-stimulus-native/actua
 root/final-validation.json, voice-stimulus-related/server-tests.log and ruff.log.
 See CHANGELOG.md for automated regression totals and RETRIBUTION_RESTORATION.txt
 for the complete mission acceptance scope.
+
+Subsequent array-action progress, 2026-11-08
+Actual0F45/node40 and41 now append through native-backed unkeyed insertion.
+The isolated voice fixture reaches35, whose timer invokes the native-backed
+clear action42; variable1839 becomes a typed empty array. Both voice States
+finish with no remaining registrations, queued events or fault. Source variable42
+remains uninitialized in this explicit fixture; declared backend/clock responses
+do not establish real audio or full startup. The separate helper still stops
+at controller-message component/node22, and shared Match remainsD38/node106.
+See ARRAY_ACTIONS.txt for storage, notification and native-comparison limits.

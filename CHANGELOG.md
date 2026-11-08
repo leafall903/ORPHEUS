@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native unkeyed array insertion and typed clear actions
+
+- Restore strict4C3509FB append/insert/unique behavior and1C2CC6D5 fresh typed
+  empty-array assignment. Preserve int-zero gaps, float32 index conversion,
+  ordered providers, self-reference termination and normal clear notifications.
+  Permissive player/body components retain their previous output-only policy.
+- Verify880 original insertion comparisons and64 clear comparisons with declared
+  storage/iterator/notification adapters.2 additional cases retain the explicit
+  native-limit diagnostic gate. Keyed rows and linked insertion/checkpoints
+  remain strict. Add25 behavior tests;825 related and33 server tests pass,
+  with Ruff/diff checks.
+- Actual0F45's isolated voice39->array40/41->voice35->clear42 chain completes
+  with typed array1839 empty, no fault, queued events or voice registrations.
+  Authored flags/plugs are unchanged. Source42 is uninitialized and backend/
+  clock responses remain explicit fixture inputs; full startup/audio is open.
+- The separate helper still stops at controller-message component/node22 before
+  voice polling. Shared Match retainsD38/node106 and retires147 queues. Complete
+  actor/services/replication/phases, cinematics, enemy AI and mission results
+  remain unaccepted. No new original-client run or deployment. Normal inputs
+  and unrelated working changes are preserved. See ARRAY_ACTIONS.txt.
+  Required publication helper missing; no GitHub push.
+
 #### Shared voice stimulus lifecycle and separate polling
 
 - Implement40E05F6B shared begin/poll/timer/failure callbacks behind explicit

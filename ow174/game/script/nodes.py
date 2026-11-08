@@ -14,6 +14,7 @@ from types import NotImplementedType
 
 from ow174.game.script import (
     animation_alias,
+    array_actions,
     data_flow,
     effect_parameters,
     effect_routing,
@@ -1888,6 +1889,26 @@ def set_vars(instance: Instance, node, caller) -> bool:
         if isinstance(pair, dict):
             store(instance, pair.get("m_out_Var"), instance.evaluate(pair.get("m_value")))
     instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_4C3509FB")
+def insert_array(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """Native unkeyed insertion/merge; keyed storage and checkpoints stay explicit."""
+    if not instance.component.strict:
+        return NotImplemented
+    array_actions.insert(instance, node, caller)
+    instance.follow(node, 'm_outPlug', caller)
+    return True
+
+
+@handler("STU_1C2CC6D5")
+def clear_array(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """Assign a fresh empty array with the normal typed-value writer."""
+    if not instance.component.strict:
+        return NotImplemented
+    array_actions.clear(instance, node)
+    instance.follow(node, 'm_outPlug', caller)
     return True
 
 

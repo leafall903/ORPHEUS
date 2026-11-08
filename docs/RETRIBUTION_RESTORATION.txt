@@ -573,3 +573,24 @@ Shared VoiceStimulus callbacks, 2026-11-08:
   Full mission, native phases, real services, replication/readiness, cinematics,
   five enemy AI types, extraction and results remain open. No new client run
   or deployment. See VOICE_STIMULUS_STATE.txt for evidence and scope.
+
+Native array actions in the voice chain, 2026-11-08:
+- Restore strict4C3509FB unkeyed append/insert/unique handling, including scalar
+  destination coercion, int-zero gaps, native index conversion, ordered source
+  groups, self-reference termination and final writable-release notification.
+  Restore1C2CC6D5's fresh typed-empty-array assignment through the normal writer.
+  Permissive player/body policy retains its previous output-only fallback.
+- Native880 insertion comparisons and64 clear comparisons pass with declared
+  storage/iterator/notification adapters.2 further insertion cases confirm the
+  explicit overlimit diagnostic gate. Valid keyed rows and linked insertion/
+  checkpoints remain strict; these are partial array-family semantics.
+- Actual0F45's isolated voice39->array40/41->voice35->clear42 chain now completes
+  with array1839 empty and no remaining registered voice States, events or fault.
+  Original graph flags/plugs are unchanged. Source variable42 is uninitialized
+  and voice backend/clock responses remain declared inputs; full body startup,
+  native audio/phase execution and the complete mission are not established.
+- The separate helper still stops at controller-message component/node22 before
+  voice polling. Shared Match still retainsD38/node106 and retires147 queues.
+  Full actors, services/replication, cinematics, enemy AI, extraction/results and
+  original-client acceptance remain open. No new client run or deployment.
+  See ARRAY_ACTIONS.txt for evidence and remaining storage/consumer boundaries.
