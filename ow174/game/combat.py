@@ -349,6 +349,7 @@ class Rocket:
     shot: object = None  # its projectiles.Shot: told when it ends
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
+    gravity: float = 0.0  # authored E1A5B579 acceleration; +Y is up (reconstructed motion)
 
 
 class Combat:
@@ -465,6 +466,18 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                    ab = _sub(b, a)
+                    length2 = _dot(ab, ab)
+                    share = 0.0 if length2 <= EPSILON else max(
+                        0.0, min(1.0, _dot(_sub(centre, a), ab) / length2),
+                    )
+                    offset = _sub(_along(a, ab, share), self._eye(player))
+                    distance = math.sqrt(_dot(offset, offset))
+                    if distance > EPSILON:
+                        direction = tuple(value / distance for value in offset)
+                        wall = ray_world(self._collision(), self._eye(player), direction, distance)
+                        if wall is not None and wall < max(0.0, distance - shown.radius):
+                            continue
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -651,10 +664,15 @@ class Combat:
                 blast is not None and blast.amount > 0.0
             )
             if damaging or shot is not None:
+                gravity = 0.0
+                for motion in node.field("m_projectileMotions") or ():
+                    if motion.get("$") == "STU_E1A5B579":
+                        gravity += _number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
                 self.rockets.append(
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
+                        gravity=gravity,
                     )
                 )
             return
@@ -699,31 +717,54 @@ class Combat:
         if duration <= 0.0:
             self._landed(rocket)
             return
+        # Approximate an authored ballistic path with at most one world tick per
+        # chord, also across scheduler gaps. Constant acceleration uses the exact
+        # endpoint; collision and impact time within each chord are reconstructed.
+        while duration > EPSILON:
+            part = min(duration, TICK) if rocket.gravity else duration
+            self._fly_step(rocket, part)
+            if rocket not in self.rockets:
+                break
+            duration -= part
+
+    def _fly_step(self, rocket: Rocket, duration: float) -> None:
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
-        step = rocket.speed * duration
+        velocity = tuple(value * rocket.speed for value in rocket.direction)
+        displacement = tuple(value * duration for value in velocity)
+        displacement = (displacement[0], displacement[1] - 0.5 * rocket.gravity * duration**2,
+                        displacement[2])
+        step = math.sqrt(_dot(displacement, displacement))
+        direction = tuple(value / step for value in displacement) if step > EPSILON else rocket.direction
         best = None
         for target in self._enemies(rocket.shooter):
             a, b = target.segment()
-            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
+            t = ray_capsule(rocket.position, direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
-        wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
+        wall = ray_world(self._collision(), rocket.position, direction, step)
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
         if best is None:
-            rocket.position = _along(rocket.position, rocket.direction, step)
+            rocket.position = _along(rocket.position, direction, step)
+            velocity = (velocity[0], velocity[1] - rocket.gravity * duration, velocity[2])
+            rocket.speed = math.sqrt(_dot(velocity, velocity))
+            if rocket.speed > EPSILON:
+                rocket.direction = tuple(value / rocket.speed for value in velocity)
             rocket.flown += duration
             rocket.left -= duration
             if rocket.left <= 0.0:
                 self._landed(rocket)
             return
         t, struck = best
-        rocket.flown += t / rocket.speed
+        rocket.flown += duration * t / step if step > EPSILON else 0.0
         self._landed(rocket)
-        point = _along(rocket.position, rocket.direction, t)
+        point = _along(rocket.position, direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
+            critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
             self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+                rocket.shooter, struck,
+                rocket.direct.amount * (rocket.direct.critical if critical else 1.0),
+                critical and rocket.direct.critical > 1.0, rocket.direct.loadout, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast

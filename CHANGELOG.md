@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Hanzo ballistic combat and skill lifetime corrections
+
+- Reconstruct authored projectile gravity using bounded ballistic collision
+  chords. Apply explicit direct projectile critical multipliers and hit flags.
+  Keep Hanzo's null/default head multiplier unresolved rather than inventing it.
+- Recheck State transitions after watched-variable changes so Storm Arrows ends
+  after the target build's five arrows. Preserve buffered Ability press times
+  while cooldown rejects them, preventing expired presses from auto-casting.
+- Ten Hanzo headless scenarios cover actual bow/sonic/storm/melee health changes,
+  incoming rifle death, dead-fire rejection, five-arrow exhaustion,10s cooldown
+  rejection/reuse, ballistic misses/floor collision/lifetime and explicit generic
+  critical multipliers. Block quick melee through static collision while allowing
+  targets before the wall. Pass38 focused tests after this last correction;
+  the preceding808 script,542 game and13 frozen-source snapshot checks pass.
+  Ruff/diff checks pass. An earlier snapshot run correctly rejected a manifest
+  change during source editing; the frozen-source rerun passed.
+- Full static hero acceptance remains OPEN: Dragonstrike consumes charge but
+  emits no volley through its unsupported54FEB21C State; sonic reveal, movement,
+  actual headshots, defensive/status interactions and the five Talon NPCs remain
+  incomplete. No original-client acceptance, root integration or publication is
+  claimed. See docs/HANZO_COMBAT.txt. The lane goal remains active.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

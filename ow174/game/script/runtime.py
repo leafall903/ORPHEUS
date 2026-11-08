@@ -1217,6 +1217,7 @@ class Instance:
             state.flags_changed = False
             if state.active:
                 state.dependency_changed()
+                state.try_complete()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
         elif event.kind == ASSIGN:

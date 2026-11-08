@@ -1,0 +1,81 @@
+Hanzo combat lane0005 — build1.74.0.0.104319 — OPEN
+
+Hero02E0000000000005; body0400000000000141. This record describes partial
+server behavior. It does not establish original-client or complete hero acceptance.
+
+Implemented shared corrections:
+- Evaluate E1A5B579/m_599AB8D7 from a volley's projectile motions. Reconstruct
+  constant downward acceleration with exact endpoints and <=16ms collision
+  chords, including scheduler gaps and a partial final lifetime. Hanzo's bow
+  supplies9.8. Other motion types and E1A5B579/m_D0C4CF49 remain unsupported.
+- Apply explicitly configured direct projectile critical multipliers using the
+  existing approximate capsule/eye-height hit region. Explosion damage is separate.
+  Hanzo's m_A872C70E is null, so its native/default head multiplier remains OPEN;
+  do not report this generic fix as accepted Hanzo headshots.
+- After a watched-variable change, recheck the active State's transition plugs.
+  This lets authored146A/node11 finish when the arrow count reaches0. Without
+  this, holding fire emits further Storm Arrows after the count is exhausted.
+  The target data sets count1783 to5, not6. The shared lifecycle change has broad
+  headless regression evidence, but no fresh native callback comparison.
+- Preserve an Ability press's original timestamp while its cooldown rejects it.
+  Previously each failed retry renewed that timestamp and an expired edge could
+  start the ability automatically when cooldown eventually reached0.
+- Occlude quick melee against static collision before the target capsule; a
+  wall behind the target does not suppress the hit. Capsule/eye approximations
+  remain reconstructed, not a native hitbox proof.
+
+Observed through ordinary Match input and health pools (test_game_hanzo.py):
+- Full draw/release: one arrow at110m/s,125 damage to an enemy player,75HP left.
+- Storm Arrows: exactly5 projectile270F volleys under sustained fire. The first
+  three remove70/70/60HP and kill a200HP enemy player. A10s cooldown rejects an
+  early retry, lets that edge expire and allows five arrows after a fresh press.
+  Remaining cancel/interruption/HUD cases are OPEN.
+- Sonic Arrow: Shift selects0149/state53 and deals125 direct damage. Reveal,
+  attachment, team visibility and pulse duration OPEN.
+- Quick melee:30 damage, one hit notice for one activation; an intervening wall
+  blocks damage while a wall beyond the target does not.
+- Incoming Soldier rifle:20 damage per body hit, eventual Hanzo death; a dead
+  Hanzo cannot shoot. This is not incoming skill/control/ultimate acceptance.
+- Reconstructed ballistic drop misses a target a straight ray would hit and
+  collides with the floor. Skipped/continuous updates end at the same endpoint
+  and obey the0.1s lifetime. Explicit generic critical definitions distinguish
+  body/head impact and critical notice flags.
+
+Acceptance matrix (P = partial headless evidence, O = open):
+Action                              Player Trooper Enforcer Sniper Assassin Heavy
+Bow draw/release/body damage         P      O       O        O      O        O
+Bow headshot/shield/armour rules      O      O       O        O      O        O
+Storm count/body damage/death        P      O       O        O      O        O
+Sonic direct damage                  P      O       O        O      O        O
+Sonic reveal/faction/attachment       O      O       O        O      O        O
+Quick melee                          P      O       O        O      O        O
+Dragonstrike complete                O      O       O        O      O        O
+Incoming weapon damage/death          P      O       O        O      O        O
+Incoming abilities/ultimate/control  O      O       O        O      O        O
+Barrier/reflect/absorb/invulnerability O     O       O        O      O        O
+
+Climb010C, Lunge/midair movement, cooldowns, all first/third-person effects,
+audio, health/ultimate HUD, hit/kill feed and cross-client agreement are OPEN.
+No support/healing semantics are changed by this patch.
+
+Concrete blockers:
+- Dragonstrike0101 consumes a full1680-point charge but reports ZERO volleys
+  after180 ordinary input ticks in an isolated two-player match. Nodes29/37
+  use unimplemented STU_54FEB21C, currently a passive generic State. The declared
+  initial projectile034F is20m/s,10m range,125 direct damage; its later dragon
+  entity, travel, wall/barrier penetration and periodic damage are not hosted.
+  Implementing only its timer would not establish a working ultimate.
+  Read-only research now identifies034F's missing graph0BA6, which creates
+  entity02BA and plays0132 on it. Both graph records were extracted under lane
+  storage for further research, never written to the shared runtime or Git.
+- The normal runtime's AI hero table has only eight training/friendly bot
+  definitions. Parent has now supplied a separate explicit five-NPC catalog
+  and lifecycle candidate commitsc2d3ae1/a15d554 for this lane to review next.
+  Its fixture and permissive body VM do not establish NPC AI/skill acceptance.
+- Existing client PID12292/window Overwatch was observed. No own lease was
+  acquired and no client was launched, stopped, injected or controlled here.
+  No new original-client evidence or normal-service deployment is claimed.
+
+Use the private clone with explicit PYTHONPATH and ORPHEUS_RUNTIME_DIR pointing
+to the shared read-only runtime-104319. Keep game assets and test output off Git.
+Parent owns patch integration; no root changes, merge or manual push by this lane.

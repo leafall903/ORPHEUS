@@ -1304,14 +1304,18 @@ class Ability(State):
                 self.timer_at(0, 1, transient=True)
 
     def take_press(self, button: int) -> bool:
+        return self.pop_press(button) is not None
+
+    def pop_press(self, button: int) -> tuple[int, int, int] | None:
+        """Consume a buffered edge while preserving its original time and activation."""
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
 
     # starting and stopping
 
@@ -1358,10 +1362,10 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        press = None
         if start:
-            pressed = self.take_press(start)
-            if not pressed:
+            press = self.pop_press(start)
+            if press is None:
                 if not self.held(start):
                     self.flags &= ~self.HELD
                     return False
@@ -1376,8 +1380,8 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+            if press is not None:
+                self.presses.insert(0, press)  # keep the original early-press deadline
             return False
         if start:
             self.flags |= self.HELD
