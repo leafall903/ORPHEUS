@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: direct projectile distance scaling
+
+- Apply authored direct-hit falloff and critical multipliers to projectile pool
+  damage using total flight distance and the existing capsule head threshold.
+  Keep the critical hit notice consistent with applied damage. Geometry and
+  falloff interpolation remain reconstructed shared behavior.
+- Pass 68 combat/projectile/lane tests, including actual Roadhog primary-pellet
+  damage against player pools at three distances and skipped-tick equivalence.
+  Explicit critical fixtures verify the shared mechanism; no missing Roadhog
+  critical multiplier is invented. Ruff and diff checks pass.
+- Full Roadhog combat remains open: volley pellet count/spread, secondary burst,
+  hook, Breather, ultimate, five-enemy AI, cross-hero defenses and original-client
+  presentation are unaccepted. A real-input offline audit observes 6.6 primary
+  damage, 50 secondary damage, 30 melee damage, zero hook/ultimate damage and
+  no Breather healing. These are gap measurements, not acceptance evidence.
+- Private lane only; no original-client session or publication. The workspace's
+  required publication helper is absent, and this lane must deliver patches
+  without merging or pushing the original source.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

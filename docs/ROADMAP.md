@@ -14,6 +14,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Roadhog (02E0000000000040) against players and all five manual PvE
+  enemy types: primary/secondary/melee, hook, Breather, Whole Hog, incoming
+  damage, defenses/status interactions and original-client presentation.
+  Lane 0040 repairs shared direct-projectile falloff/critical application with
+  pool-damage regressions; pellet counts/spread and all hero acceptance stay open.
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse
