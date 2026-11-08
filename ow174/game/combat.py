@@ -468,7 +468,11 @@ class Combat:
         component.edges([(value, False) for value in tuple(component.held)])
         for instance in list(component.instances.values()):
             for state in list(instance.states.values()):
-                if isinstance(state, nodes.Ability):
+                if isinstance(state, nodes.LogicalButton):
+                    # A released early press can still be replayed when a guarded
+                    # weapon re-enters its button state during the stun.
+                    state.pressed_at = None
+                elif isinstance(state, nodes.Ability):
                     state.presses.clear()
                     state.stop()  # use authored exit/cooldown paths for running channels
         component.run_now()

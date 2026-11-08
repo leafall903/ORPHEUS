@@ -7,6 +7,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Tracer Flashbang interactions and buffered weapon interruption
+
+- Review/reuse parent64bf71c only in this private clone, preserving Recall pose
+  handling, per-bullet cones/tags, Pulse storage and strict snapshot fields when
+  resolving conflicts. Its053/0079 ->0228 ->224E duration/resource policy remains
+  a reconstructed server service, not complete native status-manager execution.
+- Fix a verified early-input leak: a released pistol re-press inside0016's guard
+  fired during stun and spent two rounds even though damage was suppressed.
+  Clear LogicalButton's early-press timestamp alongside ability buffers at stun
+  entry. The same real-input regression fails before the fix and passes after;
+  fresh post-expiry input still fires normally.
+- Thirteen Tracer input fixtures cover25 damage/50-tick expiry, rejection without
+  resource spending, momentum/fire/ammo interruption, Blink evasion/reuse,
+  Recall two-phase immunity/rejection/post-expiry healing, Pulse windup spending
+  without a delayed bomb, active-bomb survival, death/body replacement and
+  wall/team/range filtering. Ten actual NPC tests cover56 class subcases including
+  damage to all five controlled classes and controlled death/corpse retention.
+- Pass328 regular regressions plus14 full server snapshot/replay tests on the
+  fixed source (342 distinct tests). The additional five-class death fixture passes.
+  The earlier baseline snapshot run was deliberately stopped for this real
+  production fix, not restarted because of an observation timeout.
+- Full native immunity/cleanse/stacking/unstoppable, other controls, barriers,
+  reflect/absorb, dynamic mode status, native critical/RNG/muzzles and remaining
+  two NPC primary attacks/full specials remain open. Original-client acceptance,
+  shared-main integration and publication remain absent.
+
 #### Tracer native count-based bloom and reconstructed independent bullet cones
 
 - Execute native-validated count/3 normalization in actual0016 linked output and

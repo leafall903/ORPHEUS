@@ -85,7 +85,10 @@ NPC columns mean the specific requested class, not a training-bot substitute.
 | Incoming primary fire | S (Soldier) | S (manual) | F (no attack) | S (manual) | F (no attack) | S (manual) | O |
 | Recall protection from actual NPC primary | S | S (manual) | O | S (manual) | O | S (manual) | O |
 | Static-wall melee exclusion | O | S | S | S | S | S | O |
-| Incoming abilities / control / death | O | O | O | O | O | O | O |
+| Incoming Flashbang: selected expiry / interrupt / Recall | S (McCree) | O | O | O | O | O | O |
+| Damage to Flashbang-controlled targets | O | S | S | S | S | S | O |
+| Controlled death / retained NPC corpse | S | S | S | S | S | S | O |
+| Other incoming abilities / full controls | O | O | O | O | O | O | O |
 | Outgoing death / notices | S | S | S | S | S | S | O |
 | Manual NPC corpse retention | N/A | S | S | S | S | S | O |
 
@@ -110,7 +113,7 @@ about retail difficulty totals. Variable221 routes to shields, not armour.
 | Death | First lethal bullet gives one kill/death notice; second gives no extra damage. |
 | Barriers | O; health-pool shields do not establish barrier collision. |
 | Deflect / absorption | O; no reflected/absorbed-projectile acceptance. |
-| Invulnerability / status / control | O; generic `_damage` has no complete status gate. |
+| Invulnerability / status / control | Selected Recall/Flashbang fixtures pass; complete native status gates remain OPEN. |
 | Ally healing | No healing or team semantics changed by this patch. |
 
 ## Reproduction and results
@@ -286,6 +289,63 @@ a final multiplier2. Downstream hit-region/sentinel resolution remains OPEN;
 current critical handling is not accepted. CRITICAL_NATIVE_EVIDENCE.json and
 probe_critical_default_native.py retain the reproducible offline evidence outside
 Git. No live client or game startup was used.
+
+## Actual Flashbang control and early-input correction
+
+Reviewed parent64bf71c is reused in this clone as31911e6. Merge resolution keeps
+Tracer Recall pose locking, per-bullet cone/tag forwarding and both Pulse/stun
+snapshot storage. The effect ID is still read from the original hit definition;
+053/0079 resolves to0228, whose node7 supplies224E duration schema00D7 with the
+1.7/0.8 alternatives and mode flag13408. STUN_RESOURCE_EVIDENCE.json records a
+read-only review of the exact wrapper data and parent extraction provenance.
+This is the parent's reconstructed world-deadline control policy, not execution
+of the complete224E/native status manager.
+
+Thirteen actual-input Tracer control methods verify:
+- A real enemy Flashbang causes25 damage and an exclusive50-tick default stun.
+- Fire, melee, movement, Blink, Recall and Pulse inputs cannot spend resources or
+  damage during control. Existing horizontal momentum and pistol fire/ammo stop.
+  Expiry accepts fresh fire/Blink; Recall can restore the earlier Flash damage.
+- Blink performed before contact escapes the original projectile trajectory;
+  this is positional evasion, not a claim of native Blink invulnerability.
+- Both active Recall phases exclude actual Flashbang damage and control. Recall
+  starts cooldown normally afterward; an already-stunned player cannot cast it.
+- Flashbang interrupts the actual0.15-second Pulse windup: charge stays spent,
+  no late bomb appears, and a newly charged cast can work after expiry. A bomb
+  already released survives owner stun and still explodes against its target.
+- Actual lethal enemy primary and explicit body replacement retire old control.
+  Old deadlines do not inhibit the new body's Blink. Walls, allies and distant
+  targets receive no Flashbang damage/control.
+
+A further real-input edge probe found a resource leak despite blocked damage.
+Pistol frame1/release2, Flashbang7, early re-press10/release11 produces stun13;
+the original guard re-enters at14 and spends ammo38->36 during control. Ability
+buffers alone did not clear LogicalButton's early timestamp. Stun entry now
+clears that timestamp too. The new regression fails before this change and
+passes afterward: ammo stays38 throughout control, then a fresh post-expiry pair
+spends2 and damages the enemy. BUFFERED_STUN_REGRESSION.json retains the trace.
+
+Ten actual-class NPC methods cover56 class subcases. A real allied McCree casts
+Flashbang; Tracer's actual primary, melee and Pulse then damage all five controlled
+classes. Pulse attaches while control is active and later explodes normally.
+An additional wounded-body fixture gives each actual class26 health/no auxiliary
+pools; Flashbang leaves1 health and Tracer's real primary kills it, clears control,
+posts one kill and retains the corpse past the normal deadline. Actual bodies,
+scripts and authored capsules are retained; these are explicit wounded fixtures,
+not claims about difficulty pool totals or native AI. Current tests remain
+manual-controller/transport adapters.
+
+328 regular regressions and14 full server snapshot/replay tests pass on the
+fixed source (342 distinct tests), including the additional five-class death
+fixture. The superseded snapshot process was confirmed lane-owned and stopped
+specifically for the new production bug fix. No observation timeout caused a
+restart. No package source changes are made during the replacement replay run.
+Native immunity/cleanse/stacking/unstoppable, other control types, barriers,
+reflection/absorption, dynamic mode status and presentation are still OPEN.
+Parent2ca9178's native state-input join fix is reviewed but not yet applied;
+current initialized Tracer graphs contain no such node, which does not prove its
+absence from all later child/effect graphs. Reuse and full verification belong
+to the next fixed-source boundary.
 
 ## Client and delivery status
 

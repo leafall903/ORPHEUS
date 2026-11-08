@@ -35,7 +35,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   evidence. Nine further fixtures cover restored count-based bloom and
   reconstructed per-bullet cone rays, recovery and split wall occlusion. Native
   RNG/muzzle correspondence and critical sentinel resolution remain open.
-  See [Tracer combat matrix](TRACER_COMBAT.md).
+  Thirteen direct Flashbang/Tracer fixtures cover selected stun rejection,
+  interruption, Recall immunity and recovery; five actual NPC classes remain
+  damageable while controlled and retire control on death. Early logical-button
+  input is cleared to prevent ammunition loss during stun. Other native status
+  rules/controls remain open. See [Tracer combat matrix](TRACER_COMBAT.md).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

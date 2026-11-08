@@ -16,6 +16,7 @@ from test_game_combat import FakeClient, aim
 from ow174.game import combat, mover, npc, npc_control, tracer
 from ow174.game.collision import World
 from ow174.game.commands import FIRE
+from ow174.game.content import heroes
 from ow174.game.script import graph
 from tools.extract_game_movers import mover_of
 
@@ -221,6 +222,77 @@ class TracerNpcTests(unittest.TestCase):
                 self.assertEqual(vitals.total, before)
                 self.assertEqual(player.client.messages(combat.HIT), [])
                 self.assertEqual(player.body_script.component.entity_var(342).value(), 0)
+
+    def stunned_npc(self, definition, *, distance=5, wounded=False):
+        run, player, bot, target, yaw, pitch = self.fight(definition, distance=distance)
+        caster = next(p for p in run.players if p is not player)
+        self.assertTrue(run.match.switch_hero(caster, heroes()[0x02E0000000000042]))
+        caster.team = player.team
+        x, floor, z = player.mover.position
+        caster.mover.position[:] = (x+1, floor, z)
+        cyaw, cpitch = aim(run.match.combat._eye(caster),
+                          (bot.position[0], bot.position[1]+1, bot.position[2]))
+        fight = run.match.combat
+        vitals = fight.vitals_of(target)
+        if wounded:
+            # A wounded actual-class body, retaining its authored scripts/capsule.
+            vitals.now.update({combat.HEALTH_POOL: 26, combat.ARMOUR_POOL: 0, combat.SHIELDS_POOL: 0})
+        before = vitals.total
+        player.body_script.ult_seconds = 0
+        run.step({caster: (cyaw, cpitch, 16)})
+        for _ in range(50):
+            if fight.is_stunned(bot):
+                break
+            run.step({})
+        self.assertTrue(fight.is_stunned(bot))
+        self.assertEqual(vitals.total, before-25)
+        self.assertIsNotNone(bot.body_script)
+        self.assertIsNone(bot.body_script.component.fault)
+        return run, player, bot, target, yaw, pitch, before
+
+    def test_stunned_actual_npcs_remain_damageable_by_pistols_melee_and_pulse(self):
+        for attack in ("primary", "melee", "pulse"):
+            for definition in self.definitions.values():
+                with self.subTest(attack=attack, npc=definition.name):
+                    run, player, bot, target, yaw, pitch, before = self.stunned_npc(
+                        definition, distance=1.5 if attack == "melee" else 5)
+                    fight = run.match.combat
+                    vitals = fight.vitals_of(target)
+                    if attack == "pulse":
+                        script = player.body_script
+                        script.set_ult_charge(script.component.entity_var(338).value())
+                    buttons = {"primary": FIRE, "melee": 0x800, "pulse": 32}[attack]
+                    run.step({player: (yaw, pitch, buttons)})
+                    self.assertTrue(fight.is_stunned(bot))
+                    if attack == "pulse":
+                        for _ in range(45):
+                            run.step({})
+                            if fight.pulse_bombs.bombs and fight.pulse_bombs.bombs[0].attached == bot.entity:
+                                break
+                        self.assertEqual(fight.pulse_bombs.bombs[0].attached, bot.entity)
+                        self.assertTrue(fight.is_stunned(bot))
+                    for _ in range(120 if attack == "pulse" else 40):
+                        run.step({})
+                    damage = {"primary": 12, "melee": 30, "pulse": 355}[attack]
+                    self.assertEqual(vitals.total, max(0, before-25-damage))
+                    self.assertEqual(player.body_script.component.entity_var(342).value(),
+                                     0 if attack == "pulse" else damage)
+
+    def test_killing_each_stunned_actual_npc_clears_control_and_keeps_its_corpse(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot, target, yaw, pitch, _ = self.stunned_npc(definition, wounded=True)
+                self.assertEqual(run.match.combat.vitals_of(target).total, 1)
+                run.step({player: (yaw, pitch, FIRE)})
+                self.assertTrue(bot.dead)
+                self.assertNotIn(bot.entity, run.match.combat.stuns)
+                self.assertEqual(len(player.client.messages(combat.KILL_NOTICE)), 1)
+                for _ in range(200):
+                    run.step({})
+                self.assertIn(bot, run.match.bots)
+                self.assertTrue(bot.dead)
+                self.assertNotIn(bot.entity, run.match.combat.stuns)
+                self.assertFalse(any(owner is bot for _, owner in run.match.combat.respawns))
 
     def test_pulse_bomb_deals_contact_and_blast_to_all_five_base_pools(self):
         for definition in self.definitions.values():
