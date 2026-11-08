@@ -21,6 +21,7 @@ from ow174.game import (
     combat,
     correction,
     dragon,
+    hanzo_movement,
     heroselect,
     notices,
     observers,
@@ -114,7 +115,7 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles match hanzo_climb"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
@@ -139,7 +140,7 @@ OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
-    dragon.Profile, dragon.Flight,
+    dragon.Profile, dragon.Flight, hanzo_movement.Climb,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

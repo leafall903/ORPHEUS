@@ -126,6 +126,7 @@ class BodyWorld(runtime.World):
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
+        self.hanzo_climb: hanzo_movement.Climb | None = None
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -331,6 +332,9 @@ class BodyScript(ReplicatedBody):
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        if health <= 0 and self.world.hanzo_climb is not None:
+            self.world.hanzo_climb.active = False
+            self.component.set(1204, False)
 
     # --- running -----------------------------------------------------------------------------------
 
@@ -544,6 +548,8 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        if self.world.hanzo_climb is not None:
+            self.world.hanzo_climb.active = False
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

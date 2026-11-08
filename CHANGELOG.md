@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Reconstructed Hanzo wall-climb contact and lifetime host
+
+- Drive active010C/node21 through its actual held-jump/disable gates and the
+  existing capsule sweep. Explicitly interpret resource0.8/45 as chest-ray reach
+  and facing/normal angle, up/4.5/1.5 as vertical direction/speed/time budget.
+  Publish climbing, grounded reset and contact normal; retain graph-driven
+  cancellation and landing reset. Budget expiry, release, contact loss, ceiling,
+  death and body retirement stop the host. Native field meanings/phase hooks
+  remain unverified; strict mode refuses this reconstructed contact host.
+- Store budget/active/blocked/normal in both VM and server exports. Update the
+  explicit body-world storage assertion; Soldier retains a null climb host.
+  Nine new scenarios plus seven Lunge regressions pass, including profile
+  variation, duplicate commands and bounded32-frame input recovery. Pass594
+  game tests with explicit NPC/profile data,23 VM storage tests and eight server
+  snapshot tests. Ruff and diff checks pass.
+- Mantling/ledge traversal, native contact/timing parity, slopes/moving surfaces,
+  body collision, actual cross-hero control/knockback and complete NPC/status
+  interaction matrices remain OPEN. Review parent64bf71c's Flashbang foundation
+  read-only; it is not imported or accepted for Hanzo yet. Full static goal
+  remains active; original-client acceptance, integration and publication are
+  not performed by this lane.
+
 #### Reconstructed Hanzo Lunge input and mover bridge
 
 - Connect this body's airborne input and yaw basis to authored010C. Its real

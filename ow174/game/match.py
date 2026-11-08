@@ -344,7 +344,12 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        climb = hanzo_movement.climb_request(self, command, seconds, superseded=bool(requests))
+        if climb is not None:
+            start_y = self.mover.position[1]
+            self.mover.step_pose(command, seconds, tick, move_to=climb)
+            hanzo_movement.climbed(self, start_y)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
