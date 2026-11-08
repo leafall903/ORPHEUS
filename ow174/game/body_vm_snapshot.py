@@ -78,6 +78,7 @@ _STATE_LAYOUTS = {
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
+    nodes.ModifyHealth: (("heal_last", "heal_elapsed", "heal_duration", "heal_amount"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),

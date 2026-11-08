@@ -6,6 +6,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: reconstructed chain-hook combat and press-buffer expiry
+
+- Consume the real01C8 launch state after ordinary input/windup. Use authored
+  20m reach,60 outbound speed,0.5 sweep radius,30 damage,01C9's40 pull speed,
+  max(3,radii+1) separation,0.3 recovery and2s safety cap. Pull players/NPCs
+  through the collision mover, mask caught-player input and suppress NPC fire.
+  World occlusion, link break, death, hero replacement and explicit NPC removal
+  release owned control. Capsule/projection/phase semantics remain reconstructed;
+  native target filters, defense immunity and competing control priority are open.
+- Real input covers player hit/miss, ally/wall/exact sweep-front range boundary,
+  one damage application, pull/recovery,8s cooldown refusal/expiry/reuse, source
+  death/switch, victim death, new-wall break and interruption of enemy Whole Hog
+  and Breather. All five authored NPC bodies take30 damage and pull/release;
+  a retained40-tick NPC scheduler gap matches contiguous updates.
+- Fix shared Ability buffering: preserve the original rejected press timestamp.
+  Previously each retry refreshed it, allowing a long-expired SHIFT to auto-cast
+  when cooldown ended. Early melee presses now expire; a press inside the authored
+  0.15s window still buffers. Register hook/fragment/self-heal stored layouts and
+  initialize self-heal fields so dormant and active states are explicit.
+- Pass149 combat/hero/NPC/ability/driver tests and49 frozen-source stored-state,
+  replay and movement tests (198 total), including active hook/fragment read-only
+  hashing. Ruff/diff pass. The earlier overlapping source edit was correctly
+  rejected by the pinned manifest; it is not counted as a pass. No original-client
+  acceptance, publication or full hero completion.
+
 #### Roadhog lane: authored secondary expiration volley
 
 - Correct the earlier missing-resource diagnosis: node29 already embeds the

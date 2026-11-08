@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, spread, stats, voicelines, world
+from ow174.game import bots, hook, observers, pools, projectiles, spread, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -378,6 +378,7 @@ class Combat:
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
+        self.hooks = hook.Hooks(self)
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
 
@@ -401,6 +402,7 @@ class Combat:
 
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
+        self.hooks.retire(player.body)
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
@@ -434,6 +436,7 @@ class Combat:
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.is_dead(player):
             return
+        self.hooks.command(player, command)
         if command is not None:
             for state, number, time, activation in shots:
                 try:
@@ -496,9 +499,9 @@ class Combat:
             return
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
-        if self.tick and tick > self.tick + 1 and any(
+        if self.tick and tick > self.tick + 1 and (self.hooks.flights or any(
             bot.firing and not bot.dead and isinstance(bot.body_script, BotScript) for bot in self.match.bots
-        ):
+        )):
             first = retained
         for target in self._targets():
             history = self.history.setdefault(target.entity, deque(maxlen=HISTORY))
@@ -507,6 +510,7 @@ class Combat:
         # accepted just before the scheduler caught up joins only at the endpoint.
         for at in range(first, tick + 1):
             self.now, self.tick = now - (tick - at) * TICK, at
+            self.hooks.update(at)
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
@@ -611,7 +615,8 @@ class Combat:
         """Advance the weapon bodies of the map's firing bots and consume their volley reports."""
         for bot in self.match.bots:
             script = bot.body_script
-            if not bot.firing or bot.dead or not isinstance(script, BotScript) or script.frame > tick:
+            if (not bot.firing or bot.dead or self.hooks.controlled(bot.entity)
+                    or not isinstance(script, BotScript) or script.frame > tick):
                 continue
             try:
                 snapshot = script.advance_live(tick, bot.position)

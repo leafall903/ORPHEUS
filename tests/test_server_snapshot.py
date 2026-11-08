@@ -15,8 +15,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import combat, hook
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.commands import Command
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
 from ow174.game.match import Match
@@ -29,6 +31,33 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_active_hook_and_secondary_fragment_storage_is_read_only_and_hashed(self):
+        session, _, players = self.scene()
+        player = players[0]
+        match = player.match
+        session.apply("switch_hero", {"account": player.account_lo, "hero": 0x02E0000000000040})
+        script = player.body_script
+        for offset in range(12):
+            frame = script.frame + 1
+            match.tick = match.combat.tick = frame
+            script.command(frame, 8 if offset == 0 else 0)
+            match.combat.hooks.command(player, Command(frame))
+        self.assertTrue(match.combat.hooks.flights)
+        flight = match.combat.hooks.flights[player.body]
+        weapon = next(i for i in script.component.instances.values() if i.graph.index == 0x01C6)
+        state = weapon.state(weapon.graph._by_pos[29].state)
+        burst = match.combat._fragment_burst(state, (0.0, 0.0, 1.0))
+        self.assertIsNotNone(burst)
+        match.combat.rockets.append(combat.Rocket(
+            player, player.team, match.combat._eye(player), (0.0, 0.0, 1.0),
+            60.0, 0.15, combat.HitDef(50), None, burst=burst,
+        ))
+        with mock.patch.object(hook.Hooks, "update", side_effect=AssertionError("no hook simulation")):
+            before = snapshot_digest(self.capture(session))
+            self.assertEqual(snapshot_digest(self.capture(session)), before)
+            flight.travelled += 0.25
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()

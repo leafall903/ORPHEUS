@@ -11,6 +11,13 @@ from ow174.game.script.runtime import State
 
 
 class TimedSelfHeal(State):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.heal_last = 0
+        self.heal_elapsed = 0
+        self.heal_duration = 0
+        self.heal_amount = 0.0
+
     def on_begin(self) -> None:
         self.heal_last = self.now
         self.heal_elapsed = 0

@@ -93,6 +93,7 @@ def remove_spawned(match) -> tuple[int, ...]:
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
+        match.combat.hooks.retire(bot.entity)
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None
         if script is not None:

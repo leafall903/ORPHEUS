@@ -31,6 +31,7 @@ import logging
 import math
 from collections import deque
 from copy import deepcopy
+from dataclasses import replace
 
 from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
 from ow174.game.collision import (
@@ -293,6 +294,8 @@ class Player:
         if movelog.ENABLED:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
+            if self.match.combat.hooks.controlled(self.body):
+                command = replace(command, forward=0, right=0, buttons=0, action=0)
             if self.has_body:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
@@ -332,7 +335,10 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        forced = self.match.combat.hooks.forced_move(self.body)
+        if forced is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=forced)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),

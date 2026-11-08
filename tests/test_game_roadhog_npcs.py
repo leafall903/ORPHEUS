@@ -114,6 +114,42 @@ class RoadhogFiveNpcTests(unittest.TestCase):
                 self.assertLess(vitals.total, before)
                 self.assertGreater(len(hog.client.messages(combat.HIT)), 1)
 
+    def test_real_hook_damages_pulls_and_releases_every_authored_npc(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, hog, bot, vitals, angles = self.session(definition, distance=10)
+                before = vitals.total
+                run.step({hog: (*angles, 8)})
+                controlled = False
+                for _ in range(150):
+                    run.step({hog: (*angles, 0)})
+                    controlled |= run.match.combat.hooks.controlled(bot.entity)
+                self.assertTrue(controlled)
+                self.assertEqual(vitals.total, before - 30)
+                distance = ((bot.position[0] - hog.mover.position[0]) ** 2
+                            + (bot.position[2] - hog.mover.position[2]) ** 2) ** 0.5
+                self.assertLess(distance, 10)
+                self.assertGreaterEqual(distance, 2.8)
+                self.assertFalse(run.match.combat.hooks.controlled(bot.entity))
+
+    def test_hook_npc_pull_scheduler_gap_matches_retained_contiguous_ticks(self):
+        definition = next(d for d in self.definitions.values() if d.name == "Trooper")
+        results = []
+        for skipped in (False, True):
+            run, hog, bot, vitals, angles = self.session(definition, distance=10)
+            run.step({hog: (*angles, 8)})
+            for _ in range(12):
+                run.step({hog: (*angles, 0)})
+            if skipped:
+                frame = run.frame + 40
+                run.match.update(frame * combat.TICK, frame)
+            else:
+                for _ in range(40):
+                    run.step({hog: (*angles, 0)})
+            results.append((tuple(bot.position), vitals.total, run.match.combat.hooks.controlled(bot.entity)))
+        self.assertEqual(results[0], results[1])
+        self.assertEqual(results[0][1], definition.health - 30)
+
     def test_primary_kill_retains_every_manual_npc_corpse_after_respawn_deadline(self):
         for definition in self.definitions.values():
             with self.subTest(npc=definition.name):

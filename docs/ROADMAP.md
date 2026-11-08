@@ -31,6 +31,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Secondary node29's embedded25-pellet expiry volley now causes real player and
   five-NPC damage, preserves one-ammo consumption, rejects prior wall/body impact
   emission and matches skipped-tick flight. Callback timing remains reconstructed.
+  A real-launch hook consumer now executes30 damage, collision-backed pull and
+  recovery against players/all five NPCs, input control,8s cooldown, LOS/range and
+  death/replacement cleanup, plus real enemy Whole Hog/Breather interrupts.
+  Native filters/defenses/control priority and arbitrary input-loss behavior stay
+  open. Shared early-press retry timestamps now preserve their original expiry.
   Native spread, full cooldown/status/defense/NPC matrix and complete hero acceptance
   stay open. Original-client acceptance is separate from the static goal.
 

@@ -115,6 +115,28 @@ class RifleTests(unittest.TestCase):
 
 
 class CooldownTests(unittest.TestCase):
+    def test_rejected_melee_press_expires_instead_of_refreshing_itself(self):
+        session = Session()
+        session.run(1, MELEE)
+        session.run(30, 0)
+        session.run(1, MELEE)
+        session.run(100, 0)
+        self.assertEqual(session.ability(MELEE_GRAPH, 4).counter, 1)
+        self.assertEqual(session.var(MELEE_GRAPH, 61), 0.0)
+        session.run(1, MELEE)
+        session.run(15, 0)
+        self.assertEqual(session.ability(MELEE_GRAPH, 4).counter, 2)
+
+    def test_melee_press_inside_authored_early_window_still_buffers(self):
+        session = Session()
+        session.run(1, MELEE)
+        session.run(55, 0)
+        self.assertGreater(session.var(MELEE_GRAPH, 61), 0)
+        self.assertLess(session.var(MELEE_GRAPH, 61), 0.15)
+        session.run(1, MELEE)
+        session.run(20, 0)
+        self.assertEqual(session.ability(MELEE_GRAPH, 4).counter, 2)
+
     def test_helix_rockets_start_their_cooldown(self):
         session = Session()
         self.assertEqual(session.var(RIFLE, 472), 6.0)  # the cooldown's length: AbilityCooldownDuration
