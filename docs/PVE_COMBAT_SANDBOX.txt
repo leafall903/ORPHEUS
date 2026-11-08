@@ -7,11 +7,37 @@ Dead NPCs remain as corpses until explicitly removed. Missing authoritative
 behavior may be reconstructed from the available assets; record its assumptions
 and differences rather than claiming a native implementation.
 
-Requested controls (not implemented yet):
+Requested controls (command semantics implemented; frontend still open):
 = opens the console spawn interface; 1..5 select the five enemies in the order
 above; - removes manually spawned NPCs and their corpses; 0 starts attacks by
 the living NPC under the crosshair; { stops attacks by all spawned enemies.
 Native interactive console availability and keyboard delivery need validation.
+
+Manual engagement command layer:
+- npc_console.Console.press implements = menu, selection digits, - removal,
+  0 crosshair-selected engagement and { stop-all. A frontend must invoke it
+  under the game server lock; no native console hooks or global key capture
+  are installed. Digits are consumed only while its menu is open.
+- Spawns require visible collision-backed floor five metres ahead. Selection
+  chooses the first living body on a100-metre ray, requiring a manual enemy and
+  clear static geometry. These distances and manual aim policy are reconstructed
+  sandbox choices, not native enemy navigation/acquisition evidence.
+- Each actual body supplies slot0's logical input. The controller tracks the
+  chosen player's current body, yaw/pitch and static visibility. Stop releases
+  queued and consumed inputs and retires owned projectiles without explosions.
+  Idle manual body VMs continue advancing with damaging shot reports suppressed,
+  so stopped timers cannot accumulate a damaging catch-up burst on restart.
+- Passive state includes target controller, last queued primary input and pitch.
+  The queued-input field fixes stop-before-first-VM-update input retention.
+- Pass136 related tests and13 server-snapshot tests, including9 console/control
+  tests. A separate actual five-body data probe observes primary damage for
+  Trooper and Heavy Assault, with no later damage after stop in its80-frame
+  window. The other three emit no shots in this probe and remain unresolved.
+  All five release input and explicitly remove. This is not full enemy combat.
+- A separately launched original104319 client with --tank_Console=1 showed no
+  console window; the grave key did not reveal one on the login screen. Relay
+  loading failed with Windows access denied and login timed out. Native console
+  availability after login and actual keyboard/client combat remain unaccepted.
 
 Implemented lifetime foundation:
 - Bot.retain_corpse defaults to false. The future manual NPC creator must enable
@@ -63,7 +89,7 @@ interactions. Completion requires executed behavior evidence for every item.
 Validated lane commits/patches are reviewed and integrated serially by the parent;
 static completion does not imply original-client combat acceptance.
 
-Still open: catalog production mounting/menu and input wiring, actual enemy body replication,
+Still open: catalog production mounting/frontend and keyboard wiring, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;
