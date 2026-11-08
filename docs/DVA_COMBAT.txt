@@ -87,6 +87,11 @@ It repairs the existing projectile explosion path, not Self-Destruct hosting.
 
 Required acceptance matrix
 --------------------------
+Boosters follow-up2026-11-09: typed mover/throttle integration restores horizontal
+propulsion through normal047E commands, including yaw/static blocking, timed
+end, cancellation and cooldown reuse. Vertical flight, contact damage/knockback
+and all status/NPC/client requirements remain OPEN. See DVA_BOOSTERS.txt.
+
 Matrix follow-up2026-11-09: authored02CC boxes now drive a reconstructed
 interception consumer with external003 target tags. Soldier rifle/Helix command
 tests cover active protection, release/minimum hold, exhaustion and aim-away;

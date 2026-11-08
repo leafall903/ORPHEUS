@@ -33,6 +33,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   external projectile tags, enemy rifle/Helix, release/exhaustion and collision
   ordering. Native filter/attachment, complete Matrix acceptance
   remain open;1296 scalar comparisons do not accept the combat consumer.
+  Authored Boosters typed mover/throttle rows now produce horizontal thrust,
+  yaw steering and static capsule blocking, with cancellation and cooldown reuse
+  checks.1600 native throttle comparisons cover split/sign/clamp with adapters;
+  vertical flight, contact damage/knockback and full ability acceptance stay open.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

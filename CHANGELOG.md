@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Authored Boosters horizontal movement inputs
+
+- Consume typed CharacterMoverComponent rows and throttle properties17..19 in
+  the shared mover. Preserve frame+1 boundaries, canonical body values and raw
+  input bytes; apply the active component to geometry/spring/friction settings
+  and store it explicitly in passive physics snapshots.
+- Run actual0407 Boosters commands for horizontal thrust, authored11.99m/s
+  speed, air acceleration35, yaw/static collision, cancellation, timed end and
+  cooldown refusal/reuse. The throttle split/sign/clamp matches1600 original
+  C33960 executions with explicit numeric-result adapters. Typed-row arbitration
+  is reconstructed. See docs/DVA_BOOSTERS.txt for exact proof limits.
+  The98-case mover/collision/MoveTo/physics-storage/Matrix/mech/pilot regression
+  passes with explicit external inputs. Ruff and whitespace checks pass.
+- Vertical flight, contact damage/knockback, full status/cross-hero/five-NPC
+  behavior and original-client prediction/presentation remain open. This partial
+  movement repair does not complete Boosters or the D.Va static milestone.
+
 #### Reconstructed D.Va Matrix interception
 
 - Consume active authored02CC boxes against enemy hitscan pellets and ballistic

@@ -40,7 +40,7 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
+heroes whose statescript the server does not run, velocity mods (STU_FF3471E9
 states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
 other bodies.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
@@ -173,6 +173,8 @@ SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE,
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
+FORWARD_INTENT, BACKWARD_INTENT, STRAFE_INTENT = 17, 18, 19
+MOVER_COMPONENT = -1  # internal typed Mod discriminator, not a native numeric property index
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
 # m_9B7A63EA value): class -> (op, value of an empty config var) (0x7FF789C4C1E0, by their type objects).
@@ -254,6 +256,44 @@ class MoverData:
     character_collision: int = 1
 
 
+# STUCharacterMoverComponent hashes, as read by extract_game_movers. A typed
+# override replaces the represented component values before scalar modifiers.
+MOVER_COMPONENT_FIELDS = {
+    "1972C687": "stand_height", "7A70E3E3": "stand_radius", "4A576BC2": "stand_pogo",
+    "03E04168": "crouch_height", "915FF368": "crouch_radius", "D97B3735": "crouch_pogo",
+    "D4AE9D05": "ground_circle_radius", "5C6B4602": "ground_circle_rays",
+    "6B7FDB90": "pogo_frequency", "E54438F7": "pogo_damping", "AEBAD1B0": "max_slope",
+    "08FFAA0A": "step_down", "CFD3E635": "run_forward", "61D6B4E9": "run_backward",
+    "19452F15": "run_strafe", "B470B8DA": "crouch_forward", "AA6F4CE1": "crouch_backward",
+    "0DDD18C3": "crouch_strafe", "DAA0618B": "accel_ground", "E631BA84": "accel_air",
+    "D24BF4E6": "accel_air_touching", "E0A0FE25": "decel_ground_base",
+    "6F25AA23": "decel_ground_base_speed", "4E03E892": "decel_ground_per_speed",
+    "142DA8D4": "decel_air_base", "031FE7EE": "decel_air_base_speed",
+    "8895A9C8": "decel_air_per_speed", "EC289987": "jump_speed", "C2C40969": "gravity_scale",
+    "B74245E8": "terminal_velocity", "975F21A5": "terminal_velocity_up",
+    "B99EC983": "ground_gravity_accel", "CEF4898C": "ground_gravity_decel",
+    "D4A3C694": "character_collision",
+}
+
+
+def component_data(value: dict) -> MoverData:
+    """Read a full authored typed mover override; unsupported fields stay explicit."""
+    if not isinstance(value, dict) or value.get("$") != "STUCharacterMoverComponent":
+        raise ValueError("typed mover override must be STUCharacterMoverComponent")
+    result = {}
+    for field, name in MOVER_COMPONENT_FIELDS.items():
+        number = value.get("m_" + field)
+        if type(number) not in (int, float) or not math.isfinite(number):
+            raise ValueError(f"invalid typed mover field {name}")
+        if name in ("character_collision", "ground_circle_rays"):
+            if number != int(number) or number < 0:
+                raise ValueError(f"invalid typed mover integer {name}")
+            result[name] = int(number)
+        else:
+            result[name] = f32(number)
+    return MoverData(**result)
+
+
 _mover_table: dict[int, MoverData] | None = None
 _mover_table_lock = threading.Lock()
 
@@ -322,7 +362,7 @@ class Mod:
 
     index: int
     op: int
-    value: float
+    value: float | MoverData
     start: int
     end: int | None = None
     priority: float = 0.0
@@ -357,6 +397,7 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
     the body's times their scalars, most clamped to 0 or more first, as the client multiplies them."""
     if not mods:
         return data
+    data = typed_data(data, mods)
     slots = dict.fromkeys(range(10), 1.0)
     slots.update({JUMP_SPEED_MOD: data.jump_speed, GRAVITY_MOD: 1.0, TERMINAL: data.terminal_velocity,
                   TERMINAL_UP: data.terminal_velocity_up, GROUND_ACCEL: data.ground_gravity_accel,
@@ -395,6 +436,20 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
     )
 
 
+def typed_data(data: MoverData, mods: list[Mod]) -> MoverData:
+    """Last active typed row in the existing priority/start/key ordering wins.
+
+    This typed-row arbitration is reconstructed; native multi-row comparison
+    remains open. Numeric rows still apply after component selection.
+    """
+    for mod in mods:
+        if mod.index == MOVER_COMPONENT:
+            if not isinstance(mod.value, MoverData):
+                raise ValueError("invalid typed mover modifier")
+            data = mod.value
+    return data
+
+
 def intent(mods: list[Mod], index: int, value: float) -> float:
     """A value the transitions read through the mods of its index (0x7FF789B42FB0): the jump and crouch
     intents (1 with the button, 0 without) and the landing's speed limit."""
@@ -402,6 +457,20 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
         if mod.index == index:
             value = apply_op(mod.op, value, mod.value)
     return value
+
+
+def throttle_mods(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960: modify positive/negative forward and strafe magnitude separately.
+
+    Preserve the input strafe sign, combine forward minus backward and clamp
+    both resulting axes. The raw command bytes remain the animation inputs.
+    """
+    ahead = intent(mods, FORWARD_INTENT, max(0.0, forward))
+    back = intent(mods, BACKWARD_INTENT, -min(0.0, forward))
+    side = intent(mods, STRAFE_INTENT, abs(right))
+    if right < 0.0:
+        side = -side
+    return f32(max(-1.0, min(1.0, side))), f32(max(-1.0, min(1.0, f32(ahead - back))))
 
 
 def _number(instance, cfg, default: float) -> float:
@@ -421,6 +490,12 @@ def statescript_mods(component) -> dict:
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
+                if isinstance(mod, dict) and mod.get("$") == "STU_ED2B22BD":
+                    priority = _number(instance, mod.get("m_priority"), 0.0)
+                    found[(instance.id, state.index, slot)] = (
+                        MOVER_COMPONENT, SET, component_data(mod.get("m_9B7A63EA")), priority,
+                    )
+                    continue
                 kind = MOD_OPS.get(mod.get("$")) if isinstance(mod, dict) else None
                 if kind is None or mod.get("m_A9561CA0") is None:
                     continue
@@ -465,6 +540,7 @@ class Mover:
         category: int = MOVER,
     ) -> None:
         self.data = data or mover_data(None)
+        self.override_data: MoverData | None = None
         self.values = self.data  # the data changed by the mods of the tick being run
         self.position = [quantise(axis) for axis in position]  # the feet
         self.on_map = world is not None  # else a flat floor at the start height, until use() gives the map
@@ -495,7 +571,7 @@ class Mover:
         self._limits()
 
     def _limits(self) -> None:
-        data = self.data
+        data = self.active_data
         self.slope = min(max(math.radians(data.max_slope), 0.0), 1.5707845)
         self.slope_cos = math.cos(self.slope)
         self.slope_tan = math.tan(self.slope)
@@ -510,6 +586,7 @@ class Mover:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
         if data is not None and data is not self.data:
             self.data = self.values = data
+            self.override_data = None
             self._limits()
             self.body = None
         if world is not None and world is not self.world:
@@ -574,15 +651,19 @@ class Mover:
 
     # ---- the body's shape
 
+    @property
+    def active_data(self) -> MoverData:
+        return self.override_data if self.override_data is not None else self.data
+
     def _pogo(self, crouched: bool | None = None) -> float:
         crouched = self.crouched if crouched is None else crouched
-        return self.data.crouch_pogo if crouched else self.data.stand_pogo
+        return self.active_data.crouch_pogo if crouched else self.active_data.stand_pogo
 
     def _capsule(self, crouched: bool | None = None) -> tuple[float, float]:
         """(radius, segment between the sphere centres) of a stance, float32 as the client sets the shape
         (0x7FF789B4C3D0, 0x7FF789B45822; body scale 1): r = max(0.02, radius), segment = max(0.1 r,
         height - (pogo + 2 radius))."""
-        data = self.data
+        data = self.active_data
         crouched = self.crouched if crouched is None else crouched
         radius = f32(data.crouch_radius if crouched else data.stand_radius)
         height = f32(data.crouch_height if crouched else data.stand_height)
@@ -651,6 +732,12 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        selected = typed_data(self.data, active)
+        override = None if selected is self.data else selected
+        if override != self.override_data:
+            self.override_data = override
+            self._limits()
+            self.body = None
         self.values = data = modded(self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
@@ -658,6 +745,7 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
+        right, forward = throttle_mods(active, right, forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end
@@ -876,7 +964,7 @@ class Mover:
         (0x7FF789B4C5DF)."""
         if crouch == self.crouched:
             return
-        data = self.data
+        data = self.active_data
         body = self._engine_body()
         radius, segment = self._capsule(crouch)
         top = f32(segment + radius)
@@ -896,7 +984,7 @@ class Mover:
 
     def _spring(self, dt: float, ground, start) -> None:
         """In float32 as the client (dt too): the offsets end up in the movement state as u16 steps."""
-        data = self.data
+        data = self.active_data
         if ground is not None:
             self.position[1] = ground.y  # the feet stand on the ground (0x7FF789AD0150)
         y0, pogo0, spring0 = start  # the tick start's feet and pogo vector (0x7FF789ACF060)
@@ -959,7 +1047,8 @@ class Mover:
             per_speed = data.decel_air_per_speed
         hx, _, hz = horizontal
         speed = math.sqrt(hx * hx + hz * hz)
-        rate = base * data.run_forward + max(0.0, speed - base_speed) * per_speed * self.data.run_forward
+        rate = (base * data.run_forward
+                + max(0.0, speed - base_speed) * per_speed * self.active_data.run_forward)
         slow = min(speed, dt * rate)
         if speed * speed > EPSILON and slow > 0.0:
             vx, vy, vz = self.velocity

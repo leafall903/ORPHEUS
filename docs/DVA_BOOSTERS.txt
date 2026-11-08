@@ -1,0 +1,64 @@
+D.Va Boosters -- build104319, partial movement integration
+=========================================================
+
+Authored movement inputs
+------------------------
+Graph047E state2 is a316CFEF2 movement-modifier state. Its first rowED2B22BD
+embeds a CharacterMoverComponent override: air acceleration35 instead of the
+mech's3.5. Other rows force positive forward throttle17 to1, backward18 to0,
+set character-collision22 to0 and add1.18 to speed scalar0. The resulting
+run-forward value is5.5*(1+1.18), approximately11.99m/s. The shared mover had
+previously ignored the typed row and throttle indexes17..19, so an ordinary
+Shift press ran ability flags without displacement.
+
+This change consumes those rows through the existing frame+1 activation/end
+boundaries. Native numeric-row ordering is retained. The last typed row in
+priority/start/key order replaces represented component values before numeric
+scalars; arbitration among simultaneous typed rows is reconstructed and still
+needs native comparison. A typed row requires all represented finite values
+and valid integer fields. Unrepresented component fields remain unsupported.
+
+Canonical Mover.data stays unchanged. Mover.override_data holds the active typed
+component, while Mover.values contains the scalar result. Capsule/pogo/slope/
+spring and friction base values follow the active component; normal values
+return when it expires. The physics snapshot stores the new field and shared
+typed values without evaluating scripts or moving physics.
+
+Native throttle evidence
+------------------------
+Original RVA C33960 takes positive and negative forward magnitudes separately,
+passes them through properties17 and18, modifies absolute strafe magnitude
+through19, restores strafe sign, then clamps right and forward-minus-backward
+to[-1,1]. Zero input strafe has positive sign. Raw throttle bytes and the last
+actual-input clock stay the command's values, rather than inventing input.
+
+An offline Unicorn probe executes the original C33960 instructions for1600
+input/SET-result combinations. C32FB0 numeric property results are explicit
+adapters, and the direction-vector modifier list at mover+7D8 is empty. This
+proves the exercised split/sign/clamp control only, not the numeric backend,
+typed component replacement, direction-vector mods or full flight physics.
+The original client-memory input is read-only and no client was controlled.
+
+Executed and unaccepted scopes
+-----------------------------
+Actual0407/047E Match-command tests cover zero-throttle horizontal propulsion,
+next-frame onset, authored top speed and air acceleration, yaw steering,
+static capsule blocking, timed end, second-press cancellation, settling,
+cooldown refusal/reuse and restoration of base movement values. A probe moved
+5.4443m in30 frames and reached11.9902m/s. That is horizontal integration,
+not a native-equivalent full Boosters trajectory or client prediction claim.
+
+Pitched flight and vertical steering/gravity are NOT restored by merely
+forcing throttle17. The ordinary mover still uses horizontal yaw axes.
+States75D1C308, movement-phase hooks and other flight controls require further
+native analysis. Field1972C687 is stand height, not a flight-mode selector.
+Contact damage, knockback, target tracking, status/interrupt/invulnerability,
+other bodies, all five actual NPC bidirectional interactions, airborne world
+geometry and original-client visuals/audio remain OPEN. Numeric collision22
+controls character collisions, not static map walls; static blocking remains.
+
+Do not close the full Boosters row or D.Va hero acceptance based on these tests.
+Use the read-only0407 graph/mover supplements before imports and run:
+  python -B -m unittest test_game_dva_boosters -q
+The authored command cases skip without these inputs. The primitive throttle
+and storage tests alone are not acceptance of the complete ability.
