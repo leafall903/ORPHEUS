@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Soldier combat-backed charge and Field visibility
+
+- Replace the default time-to-full surrogate with explicit reconstructed five
+  passive points/second and one point per eligible HP. Keep authored ultimate
+  cost/spend and finite numeric sandbox overrides. Mitigated damage/overkill,
+  healing eligibility and active-ultimate/dead/retired guards execute through
+  real combat. Self/environment healing, overheal and duplicate input cannot
+  farm points. Track healing deficit in the passive server snapshot contract.
+- Accept the point-rate default in body replay headers and retain numeric
+  override compatibility. Round-trip None/0/2/60 policies; require the passive
+  setting in model manifests. This does not prove native generation multipliers
+  or complete accepted-input clock/gap fidelity; both remain open.
+- Apply reconstructed static capsule-axis LOS to Field healing. Actual casts
+  reject walls/range and cannot throw after windup death/body replacement.
+  Exercise real Player Sprint5.5->8.25->5.5 movement, sprint-out firing delay,
+  actual damage and death blocking movement/attacks. Heavy damage fills the
+  authored cost, Visor spends/blocks regeneration, and expiry permits gain.
+- Pass 247 fixed-source combat/NPC/VM/snapshot/driver tests and32 replay/manifest
+  tests (279 total), Ruff and diff checks. The prior aggregate stopped for the
+  confirmed replay-header incompatibility is not counted. Full static goal,
+  Enforcer/Assassin attacks, cross-hero effects and original-client acceptance
+  remain open. No shared-main merge or push.
+
 #### Soldier five-body static interaction checkpoint
 
 - Import reviewed parent NPC lifecycle/catalog commits c2d3ae1 and a15d554 in

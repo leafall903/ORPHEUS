@@ -54,6 +54,27 @@ Implementation checkpoint
   Existing capture evidence CEB6C0 -> D177C0 -> BCC870 selects component51.
   Aggregate-getter semantics remain reconstructed, not instruction-compared;
   foreign queries stay unsupported. This does not unblock Enforcer by itself.
+- Default ultimate gain now uses an explicit reconstructed five points/second
+  policy and one point per actual eligible HP. Authored #338 cost and #342 spend
+  are unchanged. Positive ult_seconds remains a test/sandbox time-to-full override;
+  zero disables passive gain. Passive rate/point multipliers are not recovered
+  native server values; accepted-input clock/gap fidelity remains open.
+- Actual mitigated/clamped hostile damage earns points. Enemy-caused missing HP
+  is tracked in Vitals.ult_healing_deficit, drained by every heal, capped to the
+  remaining deficit and included in server storage. Self/environment damage,
+  overhealing, duplicate inputs, dead/retired owners and active ultimates cannot
+  farm points. A deployed field may heal after caster death without charging him.
+- Actual Heavy damage fills the authored cost; Q spends it, acquired shots during
+  Visor earn nothing, and ordinary damage earns points after expiry. Field healing
+  during Visor neither earns nor defers points. Generation rules remain explicit
+  reconstruction; this test does not claim native numeric equivalence.
+- Authored Field casts now reject static walls and out-of-radius allies; death
+  before the throw and body replacement during windup cannot deploy delayed fields.
+  Static capsule-axis LOS shares the reconstructed damage probe policy.
+- Full Player command handling proves Sprint5.5->8.25 speed, return to5.5 and
+  delayed rifle damage after sprint-out, plus death preventing movement/shooting.
+  The five declared hero loadouts have no separate Passive category; global
+  passive charge remains explicitly in this lane's scope.
 
 Acceptance matrix: each row applies to enemy player, Trooper, Enforcer, Sniper,
 Assassin and Heavy Assault. Every original-client cell remains OPEN.
@@ -65,11 +86,10 @@ Quick melee         30 damage to all five bodies,     Five-body full range/team,
                     cooldown rejection and recovery   controls, presentation
 Helix Rockets       40+80 to all five bodies, static  Self-hit, full team matrix,
                     occlusion pool tests              prediction/effects, cover
-Sprint              Existing input/flags tests        Actual speed, firing and
-                                                     control interruptions
-Biotic Field        Team/dead filtering and actual    Authored field vs all five
-                    healing lifecycle/repress tests   NPCs, placement, LOS,
-                                                      visual/audio, heal charge
+Sprint              Actual speed and sprint-out fire; External control effects,
+                    death blocks move/attack          cross-hero interruptions
+Biotic Field        Team/dead/eligible-charge rules,   Full five-body aura/cover,
+                    lifecycle/LOS/cancel tests         placement, visual/audio
 Tactical Visor      Off-axis damage to all five;      Native filters/scoring,
                     startup/expiry/range/cone/team/LOS Helix, UI/audio
                     checks on reconstructed policy
@@ -88,8 +108,9 @@ Concrete implementation gaps
   Tactical Visor acceptance.
 - Combat._damage applies health pools directly. It has no shared resolution
   for barriers, Deflect, Defense Matrix, invulnerability or control effects.
-- Ultimate charge in driver.py is still a configurable timed surrogate;
-  damage/healing-derived charge and target-specific exclusions remain open.
+- Combat-derived charge and eligible healing now execute, with a point-rate
+  default replacing the automatic time-to-full surrogate. Native fidelity of
+  reconstructed generation multipliers and accepted-input gap timing remain open.
 - Parent-owned five-NPC creation/control integration was absent at this
   lane's baseline 100c66c. Reviewed c2d3ae1 and a15d554 are now imported in this
   private main; they provide lifecycle/catalogs, not complete AI.
@@ -117,6 +138,11 @@ Validation checkpoint (external runtime read-only, source cwd/PYTHONPATH set)
   A prior aggregate run changed source during its manifest check and was
   rejected; it is not counted as passing. Full goal still remains active.
 - Ruff and git diff --check pass. No original-client evidence is claimed.
+- Combat-backed charge/Field checkpoint: 247 fixed-source aggregate tests plus
+  32 replay/manifest tests pass (279 total). This includes 35 dedicated Soldier
+  methods: 17 combat, 8 actual-NPC, 7 charge and 3 skill-interruption cases.
+  One earlier aggregate was stopped after a separate test confirmed replay
+  headers rejected the new default; only the fixed, completed runs are counted.
 
 Integration/publication
 - Develop only on private clone main. Supply commit and format-patch to parent.

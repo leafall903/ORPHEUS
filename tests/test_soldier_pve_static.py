@@ -242,6 +242,34 @@ class SoldierPveStaticTests(unittest.TestCase):
         self.assertEqual(instance.evaluate(foreign.get("m_entity")), expr.Entity(soldier.body))
         self.assertNotEqual(script.component.world.native(foreign, instance), 310)
 
+    def test_heavy_damage_fills_authored_ultimate_cost_then_activation_spends_and_blocks_gain(self):
+        run, soldier, enemy = self.arena("5", (3.0, 0.0, 3.0))
+        script = soldier.body_script
+        script.ult_seconds = 0
+        cost = script.component.vars[338].value()
+        self.assertGreater(cost, 0)
+        pool = self.vitals(run, enemy)
+        yaw, pitch = aim(run.match.combat._eye(soldier), (3.0, 0.8, 3.0))
+        for _ in range(5000):
+            if script.component.vars[342].value() == cost:
+                break
+            rounds = script.component.instances[11].vars[53].value()
+            self.input(run, soldier, 1 if rounds else 4, yaw, pitch)
+        self.assertEqual(script.component.vars[342].value(), cost)
+        self.assertLess(pool.total, 4000)
+        self.input(run, soldier, 0x20)
+        self.assertEqual(script.component.vars[342].value(), 0)
+        for _ in range(80):
+            self.input(run, soldier)
+        before = pool.total
+        self.input(run, soldier, 1)  # off-axis acquisition from the active ultimate
+        self.assertEqual(pool.total, before - 20)
+        self.assertEqual(script.component.vars[342].value(), 0)
+        for _ in range(400):
+            self.input(run, soldier)
+        self.input(run, soldier, 1, yaw, pitch)
+        self.assertEqual(script.component.vars[342].value(), 20)
+
 
 if __name__ == "__main__":
     unittest.main()

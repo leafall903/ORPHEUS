@@ -98,6 +98,18 @@ class NativeReplayTests(unittest.TestCase):
         self.assertTrue(first["observed_trace_closed"])
         self.assertTrue(first["commands"][0]["shots"])
 
+    def test_passive_point_policy_and_explicit_charge_overrides_round_trip(self):
+        for seconds in (None, 0, 2.0, 60.0):
+            with self.subTest(seconds=seconds):
+                script = BodyScript(SOLDIER, 0xA0000101, 1000, ult_seconds=seconds)
+                document = {"header": header(script), "events": []}
+                document["events"].append(command_event(script, Command(1001), 0))
+                document["events"].append(ending(script, 1))
+                self.assertEqual(document["header"]["ult_seconds"], seconds)
+                result = replay_document(document)
+                self.assertEqual(result["status"], "matched_observed_body_trace")
+                self.assertFalse(result["complete_native_capture"])
+
     def test_hash_distinguishes_allocation_history_that_changes_shot_order(self):
         # Fixed entry/activation order, different first access: identical active attributes,
         # but the real driver later reports the two volleys in different causal order.

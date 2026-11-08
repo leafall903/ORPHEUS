@@ -104,6 +104,10 @@ BodyScript fields covered by the VM adapter:
 record identifies the body definition covered by the source/data signature.
 ultimates is an ordered list of State references: future charge updates depend
 on those states and cannot reconstruct it merely by inspecting active states.
+ult_seconds may be None for the reconstructed passive point-rate policy, zero
+to disable passive gain, or a positive sandbox time-to-full override. Combat
+healing eligibility lives in Vitals.ult_healing_deficit in the server adapter;
+it is not hidden inside this body VM document.
 
 Five known BodyScript fields belong to a later owner-transport adapter and are
 explicitly excluded from this VM storage document:

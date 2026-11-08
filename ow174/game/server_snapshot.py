@@ -95,7 +95,7 @@ FIELDS = {
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
         "projectiles observers voice"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer ult_healing_deficit"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),

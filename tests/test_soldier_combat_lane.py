@@ -283,6 +283,40 @@ class SoldierCombatLaneTests(unittest.TestCase):
         self.assertEqual(pool.total, 180)
         self.assertEqual(rifle.vars[53].value(), 29)
 
+    def test_authored_field_cannot_heal_allies_through_a_static_wall_or_beyond_radius(self):
+        for case in ("visible", "wall", "range"):
+            with self.subTest(case=case):
+                run, soldier, other = self.arena()
+                run.match.collision_world = flat_world(0.0)
+                other.team = soldier.team
+                other.mover.position = (0.0, 0.0, 1.0 if case != "range" else 5.0)
+                if case == "wall":
+                    run.match.collision_world = World([
+                        (-10, -10, -1, 10, -10, -1, 10, 10, -1),
+                        (-10, -10, -1, 10, 10, -1, -10, 10, -1),
+                    ])
+                pool = self.vitals(run, other)
+                pool.damage(100)
+                self.input(run, soldier, 0x10)
+                for _ in range(120):
+                    self.input(run, soldier)
+                self.assertEqual(pool.total > 100, case == "visible")
+
+    def test_field_cast_death_before_throw_cannot_deploy_or_heal(self):
+        run, soldier, other = self.arena()
+        other.team = soldier.team
+        other.mover.position = soldier.mover.position
+        pool = self.vitals(run, other)
+        pool.damage(100)
+        self.input(run, soldier, 0x10)
+        victim = next(target for target in run.match.combat._targets() if target.owner is soldier)
+        run.match.combat._damage(soldier, victim, 200, False, None, run.match.combat.tick)
+        self.assertTrue(run.match.combat.is_dead(soldier))
+        for _ in range(100):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 100)
+        self.assertFalse(run.match.combat.projectiles.shots)
+
     def test_wall_impact_keeps_front_splash_and_blocks_rear_players_and_npcs(self):
         for npc in (False, True):
             for side, damaged in ((-1.0, True), (1.0, False)):

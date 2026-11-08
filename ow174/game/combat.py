@@ -184,6 +184,7 @@ class Vitals:
         self.died_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
+        self.ult_healing_deficit = 0.0  # enemy-caused missing HP eligible for healing charge (reconstructed)
 
     @property
     def dead(self) -> bool:
@@ -220,7 +221,11 @@ class Vitals:
                 self.now[kind] += give
                 self.changed.add(kind)
                 left -= give
-        return max(0.0, amount) - left
+        given = max(0.0, amount) - left
+        self.ult_healing_deficit = max(
+            0.0, min(self.ult_healing_deficit - given, sum(self.most.values()) - self.total),
+        )
+        return given
 
     def component(self, kinds) -> dict:
         """Component 51 with these pools' fields set (the others are left as they are)."""
@@ -832,11 +837,24 @@ class Combat:
             a, b = target.segment()
             if segment_distance(centre, a, b) - target.radius > radius:
                 continue
+            if not self._blast_visible(centre, target):
+                continue
+            eligible = vitals.ult_healing_deficit
             given = vitals.heal(amount)
             if given <= 0.0:
                 continue
             healer.stats.add(stats.HEALING, given)
+            self._gain_ult_charge(healer, min(given, eligible))
             self._sync_body_health(target.owner, vitals)
+
+    @staticmethod
+    def _gain_ult_charge(owner, points: float) -> None:
+        if isinstance(owner, bots.Bot):
+            return
+        script = getattr(owner, "body_script", None)
+        gain = getattr(script, "gain_ult_charge", None)
+        if callable(gain):
+            gain(points)
 
     @staticmethod
     def _sync_body_health(owner, vitals: Vitals) -> None:
@@ -864,13 +882,21 @@ class Combat:
         dealt = vitals.damage(amount)
         if dealt <= 0.0:
             return
+        hostile = target.owner is not shooter and (
+            self.match.game_map.free_for_all or target.team != shooter.team
+        )
+        if hostile:
+            vitals.ult_healing_deficit = min(
+                sum(vitals.most.values()) - vitals.total, vitals.ult_healing_deficit + dealt,
+            )
+            self._gain_ult_charge(shooter, dealt)
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)
-        if not isinstance(shooter, bots.Bot):
+        if hostile and not isinstance(shooter, bots.Bot):
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)

@@ -290,10 +290,15 @@ def replay_document(document: dict) -> dict:
         _int(header.get(name), name)
     _int(header.get("quanta_us"), "quanta_us", 1)
     _int(header.get("mode"), "mode", 0, (1 << 64) - 1)
-    for name in ("health", "maximum_health", "ult_seconds"):
+    for name in ("health", "maximum_health"):
         value = header.get(name)
         if type(value) not in (int, float) or not math.isfinite(value):
             raise ValueError(f"Invalid {name}")
+    # None declares the point-rate passive policy; finite numeric values retain
+    # the explicit time-to-full/disabled overrides used by existing captures.
+    seconds = header["ult_seconds"]
+    if seconds is not None and (type(seconds) not in (int, float) or not math.isfinite(seconds)):
+        raise ValueError("Invalid ult_seconds")
     if header["health"] != header["maximum_health"]:
         raise ValueError("This constructor baseline requires initial health == maximum_health")
     if header.get("hero") != SOLDIER:

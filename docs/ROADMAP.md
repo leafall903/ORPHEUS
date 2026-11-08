@@ -21,6 +21,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   attacks and retain corpses; Trooper, Sniper and Heavy attacks reach Soldier.
   Enforcer/Assassin attacks, specials, native targeting/protection and original-
   client acceptance remain open. See [Soldier lane](SOLDIER_COMBAT_LANE.txt).
+  Combat-backed charge, Field visibility/windup cancellation and actual Sprint
+  transitions now have execution evidence. Native point-rate and clock/gap
+  fidelity remain open; the complete static milestone stays unchecked.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

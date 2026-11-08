@@ -20,6 +20,7 @@ chunks sent after it carried (the client may have applied them), so it needs no 
 """
 
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
@@ -95,11 +96,13 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# Charge #342e is server-owned; authored Entries supply cost #338e and spend the
+# charge on activation. Passive 5 points/s and 1 point per eligible HP are explicit
+# OW1 reconstruction policies, not recovered server instructions. A positive
+# ult_seconds remains a sandbox time-to-full override; zero disables passive gain.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
+ULT_PASSIVE_POINTS_PER_SECOND = 5.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -254,7 +257,7 @@ class BodyScript(ReplicatedBody):
         quanta: int = 16000,
         mode: int = PRACTICE_RANGE_MODE,
         health: float | None = None,
-        ult_seconds: float = ULT_SECONDS,
+        ult_seconds: float | None = None,
         *,
         match: "Match | None" = None,
     ) -> None:
@@ -353,17 +356,31 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Explicit GM/test override of #342e; ordinary combat uses gain_ult_charge."""
         self.component.set(ULT_CHARGE, f32(points))
 
-    def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
-            return
+    def gain_ult_charge(self, points: float) -> float:
+        """Apply eligible points once, bounded by authored cost and the body's lifecycle."""
+        if (self.retired or self.component.owner_dead or not math.isfinite(points) or points <= 0
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
-        if cost > 0 and charge < cost:
+        if cost <= 0 or charge >= cost:
+            return 0.0
+        after = min(cost, f32(charge + points))
+        self.set_ult_charge(after)
+        return after - charge
+
+    def _charge_ult(self) -> None:
+        if self.ult_seconds is not None and self.ult_seconds <= 0:
+            return
+        if self.ult_seconds is None:
+            step = f32(ULT_PASSIVE_POINTS_PER_SECOND * self.frame_ms / 1000)
+        else:
+            cost = expr.to_float(self.component.entity_var(ULT_COST).value())
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-            self.set_ult_charge(min(cost, f32(charge + step)))
+        self.gain_ult_charge(step)
 
     # --- what the client gets ----------------------------------------------------------------------
 
