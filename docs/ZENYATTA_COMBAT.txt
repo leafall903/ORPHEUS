@@ -52,6 +52,18 @@ Executed player subset
   weapons/orbs denied, repress does not refresh duration, six-second end and
   resumed damage after end. Effective healing/damage gain charge and cap it.
 - Shield regeneration delay/rate/health exclusion and damage resetting delay.
+- Partial/forced charge, one/three-round caps, empty/reload budget refresh and
+  melee/death/body-replacement cancellation execute through the real graph.
+  The missing low-ammo charge-loop cap is reconstructed at node45 and stored
+  in BodyWorld; budgets refresh on the first increment of a new charge.
+- Native Genji E activates03A3/DeflectProjectiles. Its actual authored boxes now
+  intercept Orbs ahead of body impacts; damage/hit credit transfers to Genji.
+  Front/back/end/wall and reflected-hit-versus-Transcendence tests execute real
+  inputs. Skipped elapsed world frames retain residual reflected travel.
+  Eye-space box placement, incidence and redirect-to-aim are reconstructed.
+  A maximum of nine same-interval reflections consumes remaining time to bound
+  pathological overlapping boxes. Deflected projectile client effects remain
+  unaccepted; the original prediction lease is retained until final retirement.
 
 Actual NPC subset (opt-in ORPHEUS_NPC_DATA; separate shared read-only input)
 Use verification/retribution/npc-runtime/data. Definition variable221 maps to
@@ -74,11 +86,14 @@ as unapplied by the catalog, so these are explicit base-pool fixtures.
   presentation are not proven by body creation or these combat tests.
 
 Still open for full STATIC goal
-Partial/forced/cancelled secondary charge, full ammo/reload interruption edges,
+Full ammo/reload control-interruption edges and secondary combinations,
 all NPC secondary/melee/ultimate combinations, Enforcer/Assassin reverse
-attacks/specials, barrier/Deflect/Defense Matrix interactions, anti-heal/heal
+attacks/specials, barriers/Defense Matrix, full reflected-burst/kill/geometry cases, anti-heal/heal
 amplification, cleanse, damage-boost stacking, control/interrupt/forced movement,
 full FFA/death/replacement lifecycle matrix and reconstructed-rule corroboration.
+An early Deflect press currently refreshes its timestamp on every failed
+Ability.can_start poll and can survive until the cooldown ends. The failing
+executed regression is kept separate; cooldown buffering is not accepted.
 The broader native TrackTargets/ApplyAura engine services remain unimplemented;
 this hero uses explicit reconstructed Combat services instead.
 

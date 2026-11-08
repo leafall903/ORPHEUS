@@ -53,6 +53,100 @@ class ZenyattaCombatTests(unittest.TestCase):
         weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
         self.assertEqual(weapon.vars[53].value(), 15)
 
+    def test_partial_secondary_charge_releases_the_authored_orb_count(self):
+        for frames, count in ((1, 1), (50, 2), (90, 3), (130, 5)):
+            with self.subTest(frames=frames):
+                run, zen, enemy, _ = self.arena()
+                vitals = combat.Vitals(enemy.body, 1000)
+                run.match.combat.vitals[enemy.body] = vitals
+                for _ in range(frames):
+                    run.step({zen: (0, 600, SECONDARY)})
+                self.assertEqual(vitals.total, 1000)
+                for _ in range(70):
+                    run.step({zen: (0, 600, 0)})
+                self.assertEqual(vitals.total, 1000-48*count)
+                self.assertEqual(len(zen.client.messages(combat.HIT)), count)
+
+    def test_secondary_cannot_charge_damage_beyond_available_rounds(self):
+        for ammunition in (1, 3, 20):
+            with self.subTest(ammunition=ammunition):
+                run, zen, enemy, _ = self.arena()
+                vitals = combat.Vitals(enemy.body, 1000)
+                run.match.combat.vitals[enemy.body] = vitals
+                weapon = next(
+                    i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164
+                )
+                weapon.write((0, 53), ammunition)
+                for _ in range(130):
+                    run.step({zen: (0, 600, SECONDARY)})
+                for _ in range(60):
+                    run.step({zen: (0, 600, 0)})
+                count = min(5, ammunition)
+                self.assertEqual(vitals.total, 1000-48*count)
+                self.assertEqual(len(zen.client.messages(combat.HIT)), count)
+                self.assertEqual(weapon.vars[53].value(), ammunition-count)
+
+    def test_secondary_forces_a_bounded_five_orb_release_when_held(self):
+        run, zen, enemy, _ = self.arena()
+        vitals = combat.Vitals(enemy.body, 1000)
+        run.match.combat.vitals[enemy.body] = vitals
+        for _ in range(250):
+            run.step({zen: (0, 600, SECONDARY)})
+        self.assertEqual(vitals.total, 760)
+        self.assertEqual(len(zen.client.messages(combat.HIT)), 5)
+
+    def test_secondary_budget_refreshes_after_reload(self):
+        run, zen, enemy, _ = self.arena()
+        vitals = combat.Vitals(enemy.body, 1000)
+        run.match.combat.vitals[enemy.body] = vitals
+        weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
+        weapon.write((0, 53), 1)
+        for _ in range(130):
+            run.step({zen: (0, 600, SECONDARY)})
+        for _ in range(70):
+            run.step({zen: (0, 600, 0)})
+        self.assertEqual(vitals.total, 952)
+        run.step({zen: (0, 600, 0x400)})
+        for _ in range(160):
+            run.step({})
+        self.assertEqual(weapon.vars[53].value(), 20)
+        for _ in range(130):
+            run.step({zen: (0, 600, SECONDARY)})
+        for _ in range(70):
+            run.step({zen: (0, 600, 0)})
+        self.assertEqual(vitals.total, 712)
+        self.assertEqual(weapon.vars[53].value(), 15)
+
+    def test_empty_secondary_cannot_shoot_during_automatic_reload(self):
+        run, zen, _, vitals = self.arena()
+        weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
+        weapon.write((0, 53), 0)
+        for _ in range(50):
+            run.step({zen: (0, 600, SECONDARY)})
+        self.assertEqual(vitals.total, 200)
+        self.assertFalse(zen.client.messages(combat.HIT))
+
+    def test_secondary_cancelled_by_melee_death_or_body_replacement_deals_no_orb_damage(self):
+        for reason in ("melee", "death", "replacement"):
+            with self.subTest(reason=reason):
+                run, zen, enemy, _ = self.arena()
+                fight = run.match.combat
+                vitals = combat.Vitals(enemy.body, 1000)
+                fight.vitals[enemy.body] = vitals
+                for _ in range(90):
+                    run.step({zen: (0, 600, SECONDARY)})
+                if reason == "melee":
+                    run.step({zen: (0, 600, SECONDARY | 0x800)})
+                elif reason == "death":
+                    target = next(t for t in fight._targets() if t.owner is zen)
+                    fight._damage(enemy, target, 500, False, None, run.frame)
+                else:
+                    run.match.switch_hero(zen, zen.hero)
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(vitals.total, 1000)
+                self.assertFalse(zen.client.messages(combat.HIT))
+
     def test_primary_miss_spends_ammo_without_damage(self):
         run, zen, _, vitals = self.arena()
         run.step({zen: (16384, 0, FIRE)})

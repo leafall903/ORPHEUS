@@ -19,6 +19,22 @@ ORB_RANGE, LOS_GRACE, RECOVERY = 40.0, 3.0, 0.75
 HARMONY_RATE, TRANSCENDENCE_RATE, DISCORD_SCALE = 30.0, 300.0, 1.25
 
 
+def weapon_assignment(world, instance, node, value):
+    """Reconstructed charge budget for0164's literal charge-loop assignments.
+
+    The graph spends ammunition while charging. Its generic loop currently
+    continues counting after the pool reaches zero; remember the ammunition
+    at its first authored increment, then cap subsequent increments before it becomes
+    the released volley's count. Other graph assignments are unchanged.
+    """
+    if world.hero == HERO and instance.graph.index == 0x0164 and node.pos == 45:
+        if expr.to_float(instance.find_var(0, 1392).value()) <= 0:
+            world.zenyatta_charge_ammo = max(0, expr.to_int(instance.find_var(0, 53).value()))
+        if world.zenyatta_charge_ammo is not None:
+            return min(expr.to_float(value), world.zenyatta_charge_ammo)
+    return value
+
+
 @dataclass
 class Orb:
     target: int

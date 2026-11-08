@@ -1994,6 +1994,9 @@ def set_var(instance: Instance, node, caller) -> bool:
     # value wrapper at 1B6D381 resets a failed evaluation to type 2 (int 0).
     if config is not None and target is not None:
         value = play.evaluate_value(instance, config, initial=0)
+        transform = getattr(instance.component.world, "assignment_value", None)
+        if transform is not None:
+            value = transform(instance, node, value)
         store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
     instance.follow(node, "m_outPlug", None)
     return True

@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zenyatta charge resource boundaries and Genji Deflect (lane0020, partial)
+
+- Fix actual low-ammunition overcharge:0164 counted five damaging Orbs with
+  only one/three rounds. Reconstruct a charge-start budget at its first authored
+  increment, cap further increments before the release volley is planned, and
+  keep the budget in registered BodyWorld snapshot state. Other hero/graph
+  assignments retain their native value semantics.
+- Sweep actual active Genji03A3 DeflectProjectiles boxes before body impacts;
+  redirect to his aim and transfer damage/hit credit. Spend residual elapsed
+  travel and retain finite lifetime, including a bounded overlapping-box policy.
+  Eye-space placement/incidence/redirection remain explicit reconstructions;
+  no hitscan, beam, melee, absorption or original-client effects are inferred.
+- Execute partial/full/forced charge, one/three-round limits, empty/reload
+  boundaries and melee/death/body-replacement cancellation; execute real Genji
+  input front/back/end/wall cases, reflected damage versus Transcendence and
+  skipped-world-frame travel. Full hero static acceptance remains active.
+- Pass228 focused combat/NPC/VM/assignment regressions and14 full snapshot/
+  replay checks; Ruff/diff checks pass. A separately reproduced stale buffered
+  ability press remains open and is not counted as cooldown acceptance.
+
 #### Reconstructed Zenyatta support combat services (lane0020, partial)
 
 - Host Harmony/Discord acquisition, ally-only healing, enemy amplification,

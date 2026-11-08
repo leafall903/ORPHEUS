@@ -5,7 +5,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 - [ ] Zenyatta lane0020: complete the full executed static combat matrix and
   separately verify original-client combat/presentation. Reconstructed support,
   ultimate and regeneration now run in Combat, with selected real player/five-NPC
-  evidence. Two NPC reverse attacks, secondary boundaries and cross-hero
+  evidence. Charge ammunition caps and selected real Genji Deflect cases now
+  execute. Two NPC reverse attacks, remaining secondary control edges and broader
   defenses/control remain open. See [lane evidence](ZENYATTA_COMBAT.txt).
 
 | Milestone | Exit criteria | Current evidence |

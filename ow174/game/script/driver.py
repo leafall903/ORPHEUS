@@ -126,6 +126,12 @@ class BodyWorld(runtime.World):
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
+        self.zenyatta_charge_ammo: int | None = None
+
+    def assignment_value(self, instance, node, value):
+        from ow174.game.zenyatta import weapon_assignment
+
+        return weapon_assignment(self, instance, node, value)
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:

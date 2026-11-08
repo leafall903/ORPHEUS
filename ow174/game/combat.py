@@ -154,6 +154,67 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
+def ray_box(origin, direction, low, high, reach):
+    """Slab entry into a local-space authored box, including starts inside."""
+    first, last = 0.0, reach
+    for p, d, a, b in zip(origin, direction, low, high, strict=True):
+        a, b = min(a, b), max(a, b)
+        if abs(d) <= EPSILON:
+            if p < a or p > b:
+                return None
+            continue
+        near, far = (a-p)/d, (b-p)/d
+        first, last = max(first, min(near, far)), min(last, max(near, far))
+        if first > last:
+            return None
+    return first
+
+
+def deflect_ray(target, origin, direction, reach):
+    """Authored active DeflectProjectiles boxes, reconstructed eye-space hosting.
+
+    Box values are evaluated from the real state. Local origin/orientation,
+    front incidence and redirection to current aim are reconstruction policies.
+    No hitscan, beam, shield or melee semantics are inferred by this helper.
+    """
+    player = target.owner
+    script = getattr(player, "body_script", None)
+    mover = getattr(player, "mover", None)
+    if script is None or mover is None:
+        return None
+    instances = [i for i in script.component.instances.values() if i.graph.index == 0x03A3]
+    if not instances:
+        return None  # this policy is Genji's Deflect, not absorption States
+    forward = aim(mover.yaw, mover.pitch)
+    if _dot(direction, forward) >= 0:
+        return None
+    yaw = mover.yaw * 2 * math.pi / 65536
+    right = (-math.cos(yaw), 0.0, math.sin(yaw))
+    up = (
+        right[1]*forward[2]-right[2]*forward[1],
+        right[2]*forward[0]-right[0]*forward[2],
+        right[0]*forward[1]-right[1]*forward[0],
+    )
+    eye = (target.feet[0], target.feet[1]+target.eye, target.feet[2])
+    delta = _sub(origin, eye)
+    local_origin = tuple(_dot(delta, basis) for basis in (right, up, forward))
+    local_direction = tuple(_dot(direction, basis) for basis in (right, up, forward))
+    best = None
+    for instance in instances:
+        for state in instance.states.values():
+            if not state.active or state.node.cls != "STUStatescriptStateDeflectProjectiles":
+                continue
+            for box in state.node.field("m_boxes") or ():
+                low = state.evaluate(box.get("m_CBA118B2"), watch=False)
+                high = state.evaluate(box.get("m_AEF67365"), watch=False)
+                if not isinstance(low, expr.Vec3) or not isinstance(high, expr.Vec3):
+                    continue
+                t = ray_box(local_origin, local_direction, tuple(low), tuple(high), reach)
+                if t is not None and (best is None or t < best):
+                    best = t
+    return best
+
+
 def ray_world(
     collision: World | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
@@ -706,6 +767,10 @@ class Combat:
         if duration <= 0.0:
             self._landed(rocket)
             return
+        self._fly_for(rocket, duration)
+
+    def _fly_for(self, rocket: Rocket, duration: float, redirects: int = 0) -> None:
+        """Spend one elapsed interval, retaining its residual travel after a deflection."""
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
         best = None
@@ -713,10 +778,13 @@ class Combat:
             a, b = target.segment()
             t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
-                best = (t, target)
+                best = (t, target, False)
+            reflected = deflect_ray(target, rocket.position, rocket.direction, step)
+            if reflected is not None and (best is None or reflected < best[0]):
+                best = (reflected, target, True)
         wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
         if wall is not None and (best is None or wall < best[0]):
-            best = (wall, None)
+            best = (wall, None, False)
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
             rocket.flown += duration
@@ -724,8 +792,25 @@ class Combat:
             if rocket.left <= 0.0:
                 self._landed(rocket)
             return
-        t, struck = best
+        t, struck, reflected = best
         rocket.flown += t / rocket.speed
+        if reflected:
+            point = _along(rocket.position, rocket.direction, t)
+            rocket.left -= t / rocket.speed
+            rocket.shooter, rocket.team = struck.owner, struck.team
+            rocket.direction = aim(struck.owner.mover.yaw, struck.owner.mover.pitch)
+            rocket.position = _along(point, rocket.direction, 1e-4)
+            remaining = duration - t / rocket.speed
+            if redirects >= 8:
+                # Overlapping boxes must not create an immortal zero-distance
+                # reflection cycle. Consume remaining time under the bounded
+                # reconstruction policy, without fabricating travel distance.
+                rocket.left -= remaining
+                if rocket.left <= 0:
+                    self._landed(rocket)
+            elif remaining > EPSILON:
+                self._fly_for(rocket, remaining, redirects + 1)
+            return
         self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:

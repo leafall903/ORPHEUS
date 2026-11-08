@@ -42,7 +42,10 @@ class ServerSnapshotTests(unittest.TestCase):
         orb_digest = snapshot_digest(self.capture(session))
         self.assertNotEqual(orb_digest, initial)
         owner.ready['harmony'] = 2.0
-        self.assertNotEqual(snapshot_digest(self.capture(session)), orb_digest)
+        ready_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(ready_digest, orb_digest)
+        player.body_script.world.zenyatta_charge_ammo = 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), ready_digest)
 
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
