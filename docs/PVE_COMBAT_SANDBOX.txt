@@ -89,7 +89,20 @@ interactions. Completion requires executed behavior evidence for every item.
 Validated lane commits/patches are reviewed and integrated serially by the parent;
 static completion does not imply original-client combat acceptance.
 
-Still open: catalog production mounting/frontend and keyboard wiring, actual enemy body replication,
+Authored NPC weapon components:
+- NPC bodies now mount the same authored weapon manager and slot scripts as
+  player bodies, retaining empty slot positions and allocating all roots before
+  running entries. This fixes the Sniper body's omitted manager0015 and weapon
+  slots1/2 (1122/1134); no attack damage or timing is substituted.
+- In the five-body external-data combat fixture, Sniper primary fire now reduces
+  McCree health225 to125. Trooper reduces225 to205 and Heavy Assault225 to220.
+  All three stop damaging after the stop command over80 further frames. Enforcer
+  and Assassin still produce no damage over200 frames; their attacks are open.
+- The fixture omits NPC observer projectile transport (bot_stream returns None).
+  It proves authoritative damage only, not projectile visuals, native-client
+  replication, autonomous navigation, specials or full mission behavior.
+
+Still open: dedicated deployment/browser keyboard acceptance, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;
