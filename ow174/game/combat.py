@@ -156,6 +156,20 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
+def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
+    """Reconstructed melee policy: a static ray to the nearest capsule surface."""
+    ab, ap = _sub(b, a), _sub(origin, a)
+    length = _dot(ab, ab)
+    share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
+    toward = _sub(_along(a, ab, share), origin)
+    distance = math.sqrt(_dot(toward, toward))
+    if distance <= radius + EPSILON:
+        return True
+    reach = distance - radius
+    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach)
+    return hit is None or hit + EPSILON >= reach
+
+
 def ray_world(
     collision: World | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
@@ -493,24 +507,12 @@ class Combat:
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius > radius or amount <= 0.0:
-                    continue
-                # Reconstructed capsule visibility: test the nearest surface along the
-                # ray to the capsule axis, using the same rewound pose as the reach test.
-                # This is static occlusion only; hero barriers remain a separate service.
-                nearest = (a[0], max(a[1], min(b[1], origin[1])), a[2])
-                offset = _sub(nearest, origin)
-                distance = math.sqrt(_dot(offset, offset))
-                length = distance - shown.radius
-                if length > EPSILON:
-                    direction = tuple(axis / distance for axis in offset)
-                    wall = ray_world(self._collision(), origin, direction, length)
-                    if wall is not None and wall < length:
-                        continue
-                self._damage(
-                    player, target, amount, False, loadout, command.frame,
-                    tags=damage_tags(state, modify),
-                )
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and capsule_visible(self._collision(), origin, a, b, shown.radius)):
+                    self._damage(
+                        player, target, amount, False, loadout, command.frame,
+                        tags=damage_tags(state, modify),
+                    )
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
