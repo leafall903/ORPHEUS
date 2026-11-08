@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Authored NPC primary attacks against both D.Va forms
+
+- Reuse reviewed manual NPC/catalog, weapon-manager/sparse-slot and config-array
+  selection foundations from c2d3ae1/a15d554/d1286b7/6debff3 in this lane.
+  Synchronize spawned NPC script health with all explicit pools before the first
+  hit. Keep the shared canonical runtime and parent source untouched.
+- Execute actual Trooper/Sniper/Heavy Assault primary graphs against pilot and
+  mech:20/100/5 health damage and15/95/2.5 armour damage respectively. Check
+  miss/wall/team, Matrix interception/release, sparse Sniper startup, all five
+  script/pool initializations and explicit removal without late owned attacks.
+- Enforcer and Assassin still produce no incoming damage in the controlled
+  probe. Their controller predicates are not forced true. AI/special attacks,
+  status/defense/form lifecycle and client acceptance remain open. See
+  docs/DVA_NPC_INCOMING.txt for input, transport and permissive-VM proof limits.
+  The248-case NPC/VM/PlayScript/weapon/combat regression passes, as do the19
+  focused foundation/incoming tests. Counts overlap and are not full acceptance.
+  A tightened real in-flight Sniper retirement case passes separately; Ruff and
+  whitespace checks pass. No NPC observer transport/client acceptance is claimed.
+
 #### Both-form melee cover and five NPC target cases
 
 - Reuse the parent's reviewed7cd1ed7 static melee occlusion repair in this lane.

@@ -43,6 +43,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   geometry and full acceptance remain open; see DVA_MELEE.txt. Both primary
   weapons and the full Micro Missile burst also pass positive target cases
   against all five base-pool definitions; incoming AI/skills remain unaccepted.
+  Shared NPC backend/weapon/sparse-slot/array selection now runs actual Trooper,
+  Sniper and Heavy Assault primary inputs against both forms, including armour,
+  miss/wall/team and Matrix interception/release. All five scripts/base pools
+  initialize; Enforcer/Assassin attacks and full NPC AI/specials remain OPEN.
+  See DVA_NPC_INCOMING.txt for the scoped evidence.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

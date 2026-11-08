@@ -322,6 +322,10 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
+        if cfg.get("$") == "STU_4BD39CFD":
+            from ow174.game.script import play
+
+            return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 

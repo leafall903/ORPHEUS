@@ -88,6 +88,13 @@ It repairs the existing projectile explosion path, not Self-Destruct hosting.
 
 Required acceptance matrix
 --------------------------
+Incoming NPC follow-up2026-11-09: actual Trooper/Sniper/Heavy Assault scripts
+now damage both forms through extracted primary inputs, respecting existing
+armour,miss,wall,team and Matrix/release checks. All five scripts/base pools and
+Sniper sparse weapon slots initialize. Enforcer/Assassin still deal no damage
+in the probe; controller predicates are not forced. NPC AI/specials/difficulty,
+full defense/status and client scopes remain OPEN. See DVA_NPC_INCOMING.txt.
+
 Melee follow-up2026-11-09: reuse the parent's static-wall repair and execute
 normal0043 attacks in both explicit forms against enemy players and all five
 actual NPC target definitions/capsules/base pools. Hit/reuse,wall,range,miss,

@@ -42,6 +42,9 @@ class FakeClient:
     def bot_create_acked(self, entity: int) -> bool:
         return True  # this model acknowledges every create immediately
 
+    def bot_stream(self, entity: int):
+        return None  # no NPC observer transport in this health/combat fixture
+
     def body_id_available(self, entity: int) -> bool:
         return True  # this model retains no retired entities
 

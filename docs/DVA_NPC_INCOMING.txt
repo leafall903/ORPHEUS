@@ -1,0 +1,78 @@
+D.Va and authored NPC primary inputs -- build104319, partial acceptance
+======================================================================
+
+Shared source foundations
+-------------------------
+Reuse the reviewed parent changes c2d3ae1 (manual NPC body lifetime), a15d554
+(explicit catalog/base-pool extraction), d1286b7 (body weapon manager/sparse
+slots) and6debff3 (array-only config selection). Keep source/test adaptations
+in this isolated lane; no parent source/history or console controls are changed.
+The parent already owns these foundations, so integration must avoid duplicates.
+
+BotScript now mounts the same initial/manager/weapon sequence as BodyScript.
+For Sniper1E7D, manager0015 and weapon1122 in slot1 are required; its leading
+empty slot must be retained. The array selector4BD39CFD uses scalar index and
+collecting container interfaces, preserving typed null and watcher behavior.
+The supplied selection documentation/native proof belongs to the parent; this
+lane runs the source tests and actual NPC experiments, not that native probe.
+
+Manual spawn supplies explicit health/armour/shields and persistent-corpse
+lifetime; explicit removal destroys scripts, owned flights and world records.
+This lane additionally synchronizes initial aggregate owner health from all
+pools, so shielded NPC scripts agree with their initial authoritative vitals
+before any hit. The catalog's base/difficulty omissions remain explicit.
+
+Actual external inputs
+----------------------
+The additive mech-npc-supplement.json.gz adds56 graphs and7 entity records
+from the existing prepared NPC bundle plus0407 supplement. Every overlapping
+canonical graph was compared and identical; canonical modes/records are not
+overridden. The separate mech-npc-movers.json has0407 and five actual003 mover
+records. The parent pve_npcs_174 catalog supplies real identities/base pools.
+All files stay outside Git and the canonical runtime remains read-only.
+
+Executed incoming path
+----------------------
+Tests spawn actual NPC bodies with their actual scripts in a Match, then press
+the extracted AI primary logical button20 and let normal VM/combat updates
+consume the resulting volleys. This is controlled primary input, not restored
+autonomous acquisition, navigation, controller policy or special attacks.
+
+First observed hit at6m:
+NPC            Pilot health loss  Mech armour loss  Input-to-hit frames
+Trooper              20                 15                  29
+Sniper              100                 95                 128
+Heavy Assault         5                  2.5                32
+
+Mech health stays300 for these hits; its armour changes from300. Existing OW1
+per-hit armour reconstruction remains in use. Tests also cover miss, static
+cover and ally pass-through in each form, script/health agreement and explicit
+NPC removal with no late owned-flight damage. Matrix tests observe actual box
+intersections for all three sources, unchanged mech pools while active and
+damage after release. Matrix attachment/filter/history fidelity remains open.
+
+All five scripts initialize, including their base pools and Sniper sparse slot.
+The new tests do NOT assert that Enforcer/Assassin's lack of damage is correct:
+the probe records both failures after300 frames in each form. Enforcer damage
+array selection alone does not restore its controller. Its authored startup
+B96D3A98 query needs native entity flag services; no predicate is forced true.
+Assassin primary/controller and other special actions are still unimplemented.
+
+Fixture/proof limits
+--------------------
+The fixture uses static collision and a memory client with no NPC observer
+stream. A missing bot_stream method initially aborted Sniper simulation; the
+fixture now explicitly reports no observer transport, allowing the real
+projectile/combat path to run. This does not test original-client creation,
+prediction, presentation or encrypted NPC projectile delivery. The existing
+body VM remains permissive; unknown services are not treated as accepted.
+
+Reproduce with ORPHEUS_GRAPH_SUPPLEMENT/ORPHEUS_MOVERS_SUPPLEMENT pointing to
+the combined inputs, ORPHEUS_PVE_NPC_CATALOG to the parent catalog, and the
+existing target-tag input for Matrix, all before imports:
+  python -B -m unittest test_game_dva_npc_combat -q
+
+Full Enforcer/Assassin incoming attacks, all NPC specials/AI/difficulty/status,
+shields/reflect/absorb/immunity, transformations, lethal demech/pilot death and
+original-client acceptance remain OPEN. Do not close any complete five-NPC or
+full D.Va milestone on the three primary sources tested here.
