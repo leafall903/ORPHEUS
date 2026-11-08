@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PVE NPC 控制台</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui;background:#11151b;color:#e6edf5}body{max-width:960px;margin:32px auto;padding:0 20px}h1{font-size:24px;margin-bottom:8px}p{color:#adb9c8;line-height:1.6}button,input{font:inherit;background:#202936;color:inherit;border:1px solid #4b5b70;border-radius:5px;padding:10px}button{cursor:pointer}button:hover{background:#30445b}button:focus-visible,input:focus-visible{outline:2px solid #70b7ff}label{display:block;margin:22px 0 12px}input{width:240px}nav,#choices{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}#status{padding:16px;border-left:3px solid #70b7ff;background:#19222d;min-height:24px;white-space:pre-wrap}#log{height:250px;overflow:auto;padding:16px;background:#0a0e13;border:1px solid #293646;white-space:pre-wrap;font:13px ui-monospace,monospace}.note{font-size:13px}kbd{background:#253144;padding:2px 6px;border-radius:3px}
+</style>
+</head>
+<body>
+<h1>PVE NPC 控制台</h1>
+<p>先在游戏中瞄准目标，再切回本页按 <kbd>0</kbd> 让该敌人攻击。快捷键仅在本页生效。</p>
+<label>控制账号 <input id="account" aria-label="控制账号" placeholder="留空使用当前账号" autocomplete="off"></label>
+<nav aria-label="NPC 操作">
+<button data-key="=">生成菜单 (=)</button><button data-key="0">准星目标开攻 (0)</button>
+<button data-key="{">停止全部攻击 ({)</button><button data-key="-">移除手动敌人 (-)</button>
+</nav>
+<div id="choices" aria-label="生成敌人" hidden style="display:none"></div>
+<p class="note">菜单打开后按数字键生成敌人。死亡后保留尸体，<kbd>-</kbd> 同时移除手动敌人及其尸体。</p>
+<div id="status" role="status" aria-live="polite">按 = 打开生成菜单。</div>
+<p class="note">当前为调试入口。敌人导航、特殊行为与完整客户端战斗仍待验收。</p>
+<pre id="log" aria-label="操作记录"></pre>
+<script type="module" src="/assets/npc-console.mjs"></script>
+</body>
+</html>

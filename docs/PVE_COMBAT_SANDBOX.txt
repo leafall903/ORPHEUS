@@ -7,11 +7,33 @@ Dead NPCs remain as corpses until explicitly removed. Missing authoritative
 behavior may be reconstructed from the available assets; record its assumptions
 and differences rather than claiming a native implementation.
 
-Requested controls (command semantics implemented; frontend still open):
+Requested controls (command semantics and companion web frontend implemented):
 = opens the console spawn interface; 1..5 select the five enemies in the order
 above; - removes manually spawned NPCs and their corpses; 0 starts attacks by
 the living NPC under the crosshair; { stops attacks by all spawned enemies.
 Native interactive console availability and keyboard delivery need validation.
+
+Companion web console:
+- The dashboard Server page links to /npc-console. Its dark page accepts the
+  requested keys while focused, supports mouse buttons, and ignores shortcuts
+  in account text input. Aim in the game first, then return to this page for0.
+  These are page-local shortcuts, not global or native in-game console hooks.
+- The loopback /api/npc_console API resolves the chosen saved account and executes
+  its command in that player's Match under GameServer.lock. Menus remain frontend
+  state. Mutations reject missing/offline players and a frozen game clock.
+- Before starting a dedicated test server, set ORPHEUS_NPC_CATALOG to the prepared
+  external pve_npcs_174.json. Set ORPHEUS_GRAPH_BUNDLE to the prepared extended
+  game_graphs_174.json.gz so body scripts and AI input definitions are available.
+  Other data still comes from the usual ORPHEUS_RUNTIME_DIR. No canonical data
+  files need replacement. Environment changes take effect in the new process.
+- HTTP tests exercise real GameServer/Match creation/removal, account isolation,
+  clock/catalog refusals, resource serving and fresh-process graph override.
+  Frontend request tests cover rapid = then digit, errors, no automatic retries
+  and later stop commands. A real HTTP fixture accepts all five command sequences
+  using actual body data; its game clock is stopped and it has no native client.
+- Browser preview could not initialize because the built-in browser timed out
+  waiting for Statsig configuration. Actual browser layout/keyboard acceptance
+  and native client integration remain pending. Normal services are not deployed.
 
 Manual engagement command layer:
 - npc_console.Console.press implements = menu, selection digits, - removal,
@@ -89,7 +111,7 @@ interactions. Completion requires executed behavior evidence for every item.
 Validated lane commits/patches are reviewed and integrated serially by the parent;
 static completion does not imply original-client combat acceptance.
 
-Still open: catalog production mounting/frontend and keyboard wiring, actual enemy body replication,
+Still open: dedicated deployment/browser keyboard acceptance, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;
