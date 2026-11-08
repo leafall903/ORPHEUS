@@ -354,6 +354,8 @@ class Rocket:
     source_entity: int | None = None
     started_tick: float | None = None
     hit_entities: set[int] = field(default_factory=set)
+    range_left: float | None = None  # reconstructed path budget, independent of authored lifetime
+    distance_flown: float = 0.0  # accumulated <=16ms ballistic chords
 
 
 class Combat:
@@ -662,7 +664,11 @@ class Combat:
         if speed:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
-            if reach:
+            gravity = 0.0
+            for motion in node.field("m_projectileMotions") or ():
+                if motion.get("$") == "STU_E1A5B579":
+                    gravity += _number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+            if reach and not gravity:
                 lifetime = min(lifetime, reach / speed)
             blast = hit_def(state, node.field("m_D2D11CE9"))
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
@@ -682,10 +688,6 @@ class Combat:
                         or definition.guid != continuation.initial_definition or npc
                         or shooter.hero.guid != dragon.HANZO):
                     continuation = None
-                gravity = 0.0
-                for motion in node.field("m_projectileMotions") or ():
-                    if motion.get("$") == "STU_E1A5B579":
-                        gravity += _number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
                 self.rockets.append(
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
@@ -694,6 +696,7 @@ class Combat:
                         continuation=continuation, source_entity=_source_entity(shooter),
                         started_tick=self.tick + time % state.instance.component.frame_ms
                         / state.instance.component.frame_ms,
+                        range_left=reach if reach and reach > 0 else None,
                     )
                 )
             return
@@ -758,12 +761,36 @@ class Combat:
 
     def _fly_step(self, rocket: Rocket, duration: float) -> None:
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
+        if rocket.range_left is not None and rocket.range_left <= EPSILON:
+            self._landed(rocket)
+            return
         velocity = tuple(value * rocket.speed for value in rocket.direction)
-        displacement = tuple(value * duration for value in velocity)
-        displacement = (displacement[0], displacement[1] - 0.5 * rocket.gravity * duration**2,
-                        displacement[2])
+
+        def offset(seconds):
+            return (velocity[0] * seconds,
+                    velocity[1] * seconds - 0.5 * rocket.gravity * seconds**2,
+                    velocity[2] * seconds)
+
+        displacement = offset(duration)
         step = math.sqrt(_dot(displacement, displacement))
+        if rocket.range_left is not None and step > rocket.range_left:
+            # Clip the last ballistic chord by distance, rather than by the
+            # launch speed. Small chords approximate the curved path (unverified
+            # native range semantics); their endpoints integrate gravity exactly.
+            low, high = 0.0, duration
+            for _ in range(32):
+                middle = (low + high) / 2
+                delta = offset(middle)
+                if math.sqrt(_dot(delta, delta)) < rocket.range_left:
+                    low = middle
+                else:
+                    high = middle
+            duration = (low + high) / 2
+            displacement = offset(duration)
+            step = math.sqrt(_dot(displacement, displacement))
         direction = tuple(value / step for value in displacement) if step > EPSILON else rocket.direction
+        if rocket.range_left is not None:
+            step = min(step, rocket.range_left)
         best = None
         for target in self._enemies(rocket.shooter):
             if target.entity in rocket.hit_entities:
@@ -783,12 +810,19 @@ class Combat:
                 rocket.direction = tuple(value / rocket.speed for value in velocity)
             rocket.flown += duration
             rocket.left -= duration
-            if rocket.left <= 0.0:
+            rocket.distance_flown += step
+            if rocket.range_left is not None:
+                rocket.range_left = max(0.0, rocket.range_left - step)
+            if rocket.left <= EPSILON or (rocket.range_left is not None
+                                         and rocket.range_left <= EPSILON):
                 self._landed(rocket)
             return
         t, struck = best
         travelled = duration * t / step if step > EPSILON else 0.0
         rocket.flown += travelled
+        rocket.distance_flown += t
+        if rocket.range_left is not None:
+            rocket.range_left = max(0.0, rocket.range_left - t)
         point = _along(rocket.position, direction, t)
         rocket.position = point
         pierce = (struck is not None and rocket.continuation is not None

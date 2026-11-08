@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Hanzo bow draw and independent ballistic range/lifetime
+
+- Separate positive projectile range from authored lifetime for gravity motion.
+  The old range/launch-speed timer let horizontal Hanzo arrows travel1100.5m
+  and stopped vertical ones after9.09s. An explicit reconstructed path budget
+  now clips accumulated ballistic chords at1000m; an unexhausted vertical
+  arrow instead lasts20s. Native range semantics remain unverified.
+- Seven new tests execute short/full draw damage and launch-speed curves,
+  secondary/reload cancel and redraw, duplicate release, horizontal range,
+  vertical lifetime, continuous/skipped equivalence and stored-state changes
+  for remaining range/accumulated distance. All578 game tests pass with the
+  explicit five-NPC catalog and dragon profile; eight snapshot regressions,
+  Ruff and diff checks also pass.
+- Full static acceptance remains OPEN: native headshot default, reveal,
+  movement, charge, defensive/state and complete NPC/cross-hero matrices.
+  Original-client acceptance remains separate and OPEN. No shared source,
+  runtime, client controls, merge or publication changes in this lane.
+
 ### 2026-11-08
 
 #### Explicit reconstructed moving Dragonstrike damage

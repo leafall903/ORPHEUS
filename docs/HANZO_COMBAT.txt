@@ -41,6 +41,20 @@ Observed through ordinary Match input and health pools (test_game_hanzo.py):
   and obey the0.1s lifetime. Explicit generic critical definitions distinguish
   body/head impact and critical notice flags.
 
+Bow charge/cancel and flight boundaries (test_game_hanzo_bow.py):
+- Actual held input from1 through90 frames follows00B9's1.375 charge rate,
+  damage25..125 and launch speed25..110, with a bounded float32 ChaseVar error.
+  Short/full arrows remove the corresponding actual enemy health once.
+- Secondary or reload while drawing cancels without firing or damaging; a new
+  draw then releases normally. Duplicate release commands cause one hit only.
+- Separate authored1000m range and20s lifetime for gravity projectiles. The old
+  launch-speed timer allowed a horizontal arrow to travel1100.5m and prematurely
+  stopped a vertical arrow after9.09s. Interpret range as accumulated <=16ms
+  path chords and clip the final chord; native range semantics remain unverified.
+  Horizontal flight now ends at1000m, vertical flight lasts20s below that budget,
+  and continuous/skipped updates agree. Remaining range/distance affect the
+  stored-state digest. Native headshot default and full defense matrix stay OPEN.
+
 Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
 - The literal1s/1.2s phases on0101 nodes29/37 now expire in the permissive body
   path. This is reconstructed server timing, not native54FEB21C semantics.
