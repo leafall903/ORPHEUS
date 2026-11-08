@@ -31,6 +31,20 @@ This log records tested changes and their acceptance status. Entries are grouped
   defenses remain OPEN. Actual ultimate execution stalls at017B/state13;
   target tracking currently supplies no targets. See docs/ZENYATTA_COMBAT.txt.
 - No original-service changes, normal deployment, publication or push.
+#### Manual NPC combat body lifecycle
+
+- Add validated explicit NPC definitions and match-thread spawn/removal APIs.
+  Fresh entities join combat with supplied health/armour/shield pools, retained
+  corpses, creation boundaries and queued body creates for spawned viewers.
+- Explicit removal selects only manual NPCs, ends their scripts/projectiles
+  without explosions, clears attacks/respawns/combat state and queues destroys.
+  NPC projectile retirement no longer assumes its source has a player client.
+- Pass five real-Match lifecycle tests, 37 projectile tests and 28 combat tests
+  (70 total), Ruff and diff checks. No fresh original-client run or deployment.
+- The five Talon definitions, pool routing, navigation/AI/specials, console keys,
+  McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
+  hero goals require complete executed static acceptance before serial integration.
+  See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
 
 #### Optional persistent NPC corpses
 
