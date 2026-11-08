@@ -23,6 +23,7 @@ from ow174.game.script import (
     modifiers,
     play,
     scopes,
+    voice_stimulus,
 )
 from ow174.game.script.expr import (
     EPSILON,
@@ -403,6 +404,48 @@ class EntityControl(RegisteredState):
 
     def payload(self):
         return super().payload() if self.instance.component.strict else {}
+
+
+@state_class("STU_40E05F6B")
+class VoiceStimulus(State):
+    """Shared voice begin/poll/timer callbacks; legacy spawn barks remain passive."""
+
+    def on_created(self):
+        self.voice_handle = 0
+        for name in voice_stimulus.CACHES[1:]:
+            setattr(self, name, None)  # Native constructor leaves these uninitialized.
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            voice_stimulus.begin(self)
+
+    def poll_voice(self):
+        if self.instance.component.strict:
+            voice_stimulus.update(self)
+
+    def timer(self, param):
+        if self.instance.component.strict:
+            voice_stimulus.timer(self, param)
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            voice_stimulus.detach(self)
+
+    def on_failed(self):
+        if self.instance.component.strict:
+            voice_stimulus.detach(self)
+
+    def on_destroyed(self):
+        if self.instance.component.strict:
+            voice_stimulus.detach(self)
+
+    def follow_end_plugs(self, finished):
+        if self.instance.component.strict:
+            # +A0/+A8/+B0 are passive. The same-named +160 voice plug is
+            # dispatched by timer1/2, not by native state completion.
+            self.instance.follow(self.node, 'm_onEndPlug', self)
+        else:
+            super().follow_end_plugs(finished)
 
 
 @state_class("STU_B1FA9C2A")

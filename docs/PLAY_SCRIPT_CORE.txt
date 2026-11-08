@@ -213,3 +213,13 @@ with documented adapters. The request byte's zero value enables automatic
 retirement via Instance318 bit11; it is not accepted as a network-only flag.
 Loader/allocator/physical deletion, callback self replacement, native phases and
 full mission remain open. See PLAY_SCRIPT_QUEUE.txt for provider and lifetime scope.
+
+Shared voice callbacks, 2026-11-08
+The strict source0F45 voice node39 now begins with an explicit Context; the
+actualnode48 path then executes the helper's array41 assignment and retains the
+controller-message component/node22 stop. A separate actual voice-state fixture
+with declared backend responses finishes through its unchanged onEnd plug and
+retains4C3509FB/node40. Native973 comparisons establish shared callbacks, not
+the client audio engine or complete global poll driver. Ordinary script ticks
+do not poll voice progress. Full startup and mission acceptance remain open.
+See VOICE_STIMULUS_STATE.txt for services, timing and fixture limits.

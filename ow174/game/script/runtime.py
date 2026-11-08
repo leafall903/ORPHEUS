@@ -363,6 +363,10 @@ class World:
         """Known native engine context/consumers, known absence, or unknown."""
         return NotImplemented
 
+    def voice_context(self, entity: int):
+        """Explicit shared voice host/manager and separate +80 poll owner."""
+        return NotImplemented
+
     def animation_aliases(self, entity: int):
         """Known component55 alias list, known absence, or unknown."""
         return NotImplemented
@@ -1344,6 +1348,9 @@ class State:
         self.ended_at = self.now
         if self.instance.teardown:
             return
+        self.follow_end_plugs(finished)
+
+    def follow_end_plugs(self, finished: bool) -> None:
         self.instance.follow(self.node, "m_onFinishedPlug" if finished else "m_onAbortPlug", self)
         self.instance.follow(self.node, "m_onEndPlug", self)
 

@@ -552,3 +552,24 @@ Component PlayScript queue and automatic lifetime, 2026-11-08:
   source faults cannot clear replacement services. Native loader/allocator/
   deletion/phases, full replication, actors, cinematics, enemy AI and results
   remain open. No new client run/deployment. See PLAY_SCRIPT_QUEUE.txt.
+
+Shared VoiceStimulus callbacks, 2026-11-08:
+- Restore40E05F6B shared begin, separate +80 poll, timer and failure callbacks
+  behind explicit host/manager/clock services. Retain native delay, permission,
+  uint32 target deduplication, failure timeout, duration retries/rounding and
+  next/current-part queries. Custom voice outputs are distinct from ordinary
+  State completion. Record ten scalar caches across34 concrete VM State models.
+- Native973 original-instruction comparisons cover both constructors and shared
+  callbacks with declared service/storage/queue adapters. Constructor initializes
+  only the handle. Ordinary tick/+70 is null. Complete1B8C690 driver, registry
+  mutation/reentrancy and client submission/audio engine remain unaccepted.
+- Actual0F45/node39 has remote-1 and both client_only/server_only=false; it is
+  not classified server-only. The actualnode48 queue path now begins it and
+  executes0EC6 array41 before retaining controller-message component/node22.
+  A separate explicit voice-service fixture keeps original plugs, observes
+  duration0.25, queries parts2 then1, ends and retains4C3509FB/node40. These
+  isolated fixtures do not establish complete body/controller startup or audio.
+- Real shared Match still stops atD38/node106 and retires147 initial queues.
+  Full mission, native phases, real services, replication/readiness, cinematics,
+  five enemy AI types, extraction and results remain open. No new client run
+  or deployment. See VOICE_STIMULUS_STATE.txt for evidence and scope.

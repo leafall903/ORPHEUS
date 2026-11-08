@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Shared voice stimulus lifecycle and separate polling
+
+- Implement40E05F6B shared begin/poll/timer/failure callbacks behind explicit
+  component voice contexts, global clocks and backend services. Preserve delay,
+  target deduplication, failure timeout, retries, float32 duration conversion,
+  part queries and custom output plugs. Ordinary ticking does not poll voice.
+  Unknown consumers remain strict; permissive spawn-bark policy stays passive.
+- Verify973 original-instruction cases and both constructors with declared
+  adapters. Ten scalar caches enter passive VM storage across34 concrete State
+  models. Contexts detach/retire on end, unbind and failure; stale component
+  faults preserve replacement services. Add24 behavior tests;800 related and33
+  server tests pass, with Ruff/diff checks.
+- Actual0F45/node48 now begins voice node39 and executes0EC6 parameter array41
+  before the controller-message component/node22 stop. A separate actual voice
+  State fixture uses explicit backend responses, keeps authored plugs, finishes
+  and retains4C3509FB/node40. Actualnode39 has both client/server-only flags false;
+  remote index-1 does not classify it server-only. Full startup remains open.
+- Shared Match still retainsD38/node106 and retires147 queues. Complete native
+  poll phases, real audio/submission services, replication/readiness, cinematics,
+  enemy AI and full mission results remain unaccepted. No new original-client
+  run or deployment. Normal inputs and unrelated working changes are preserved.
+  See VOICE_STIMULUS_STATE.txt. Publication helper missing; no GitHub push.
+
 #### Component PlayScript queues and transient graph lifetimes
 
 - Route authored requests to actual scene components through explicit resource

@@ -110,3 +110,11 @@ play-retirement-native-validation.json, play-queue-actual/root-validation.json,
 play-queue-related/server-tests.log and play-queue-ruff.log. The initial actual
 probe logs preserve the mistaken expectation that the helper would run before
 the caller's newly reachable strict State; the final report separates those runs.
+
+Subsequent shared VoiceStimulus progress, 2026-11-08
+With the explicit voice context described in VOICE_STIMULUS_STATE.txt, the
+actualnode48 path now begins voice node39, executes array17->variable41 and
+retains the helper's controller-message component/node22 stop. That run does
+not poll voice before failure. A separate actual voice-state fixture finishes
+through unchanged authored plugs and retains4C3509FB/node40. Full controller/
+body startup, the real audio backend and global poll driver remain unaccepted.

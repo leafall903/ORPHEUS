@@ -26,6 +26,7 @@ from ow174.game.script import (
     play_queue,
     runtime,
     scopes,
+    voice_stimulus,
 )
 from ow174.game.script.effect_allocation import EffectList
 
@@ -109,6 +110,7 @@ class SceneWorld(runtime.World):
         self.data_flow_contexts: dict[int, data_flow.Context] = {}
         self.script_components: dict[int, runtime.Component | None] = {}
         self.play_queues: dict[int, play_queue.Queue] = {}
+        self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -196,6 +198,9 @@ class SceneWorld(runtime.World):
         queue = self.play_queues.pop(entity, None)
         if queue is not None:
             queue.retire()
+        voice = self.voice_contexts.pop(entity, None)
+        if voice is not None:
+            voice.retire()
         if previous is not None:
             self._notify_script_retired(previous)
 
@@ -249,6 +254,22 @@ class SceneWorld(runtime.World):
         if entity in self.play_queues and self.play_queues[entity] is not queue:
             raise ValueError('retire the existing PlayScript queue before replacement')
         self.play_queues[entity] = queue
+
+    def set_voice_context(self, entity: int, context: voice_stimulus.Context | None) -> None:
+        self._bound_entity(entity)
+        if context is not None and (
+                type(context) is not voice_stimulus.Context or context.component.world is not self
+                or context.component.entity != entity
+                or self.script_components.get(entity) is not context.component or context.retired):
+            raise ValueError('voice context must belong to the actual live script component')
+        if entity in self.voice_contexts and self.voice_contexts[entity] is not context:
+            raise ValueError('retire the existing voice context before replacement')
+        self.voice_contexts[entity] = context
+
+    def voice_context(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.voice_contexts.get(entity, NotImplemented)
 
     def submit_script_request(self, instance, node, request):
         source = instance.component
@@ -427,6 +448,9 @@ class SceneWorld(runtime.World):
         if actual is not NotImplemented and actual is not component:
             return  # A stale source cannot retire its replacement's engine services.
         if self.script_components.get(component.entity) is component:
+            voice = self.voice_contexts.pop(component.entity, None)
+            if voice is not None:
+                voice.retire()
             queue = self.play_queues.pop(component.entity, None)
             if queue is not None:
                 queue.retire()

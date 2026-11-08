@@ -8,7 +8,8 @@ How a bark reaches the client:
 - A voice stimulus is a statescript state, STU_40E05F6B (the client's STUConfigVarVoiceStimulus,
   0x819B1577). Its m_stimulus holds a voice-stimulus GUID (0x0EE0...); when the client's copy of the body
   runs that state on, it plays the hero's line for that stimulus (the hero data picks the actual sound and
-  its variations). The server treats the state as a plain State (no server effect) and only needs it on.
+  its variations). This legacy spawn-bark policy uses a passive server state. Strict authored mission
+  scripts use the native shared VoiceStimulus callbacks with explicit voice services and a poll phase.
 - The server runs the body's statescript (ow174/game/script) and sends the owner an H=1 frame each tick
   with every state that is on and is neither client-only nor server-only (graph.py). So a *networked*
   voice stimulus that the server turns on is carried to the owner's client in the next frame, exactly like
@@ -28,8 +29,9 @@ What is verified (tests/test_game_voicelines.py, with the client model of tests/
   the ones that work.
 
 What is NOT verified: that the chosen stimulus is the line retail plays on spawn, and that the audio
-sounds right in the real client. We cannot run the game here. We pick the first networked stimulus the
-hero has unless `PREFERRED_STIMULUS` names one; fill that table in (a hero GUID -> a 0x0EE0 stimulus GUID)
+sounds right in the real client. This spawn-bark policy has no original-client acceptance. We pick the
+first networked stimulus the hero has unless `PREFERRED_STIMULUS` names one; fill that table in
+(a hero GUID -> a 0x0EE0 stimulus GUID)
 once you have heard the lines in the game and want a particular one.
 """
 
