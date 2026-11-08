@@ -300,19 +300,9 @@ class BodyScript(ReplicatedBody):
         component = self.component
         component.frame = frame
         component.now = frame * self.frame_ms
-        weapons = self.record.get("weapons") or []
-        component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
-        component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
-        created = create_initial_graphs(component, self.record)
-        manager = graph.graph(self.record["manager"]) if self.record.get("manager") is not None else None
-        if manager is not None:
-            created.append(component.create(manager, init=False))
-        for slot, item in enumerate(weapons):
-            if item is not None and graph.graph(item) is not None:
-                created.append(component.create(graph.graph(item), values={(INSTANCE, 28): slot}, init=False))
-        for instance in created:
+        for instance in create_body_graphs(component, self.record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -632,6 +622,22 @@ class BodyScript(ReplicatedBody):
             # Before the first actual send, the queued initial can still coalesce.
             # After send, retain its original chunk and report through transport retries.
             stream.initial_owner.resend = True
+
+
+def create_body_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+    """Allocate a body's initial graphs, weapon manager and authored weapon slots."""
+    weapons = record.get("weapons") or []
+    component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+    component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
+    created = create_initial_graphs(component, record)
+    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if manager is not None:
+        created.append(component.create(manager, init=False))
+    for slot, item in enumerate(weapons):
+        weapon = graph.graph(item) if item is not None else None
+        if weapon is not None:
+            created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
+    return created
 
 
 def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:

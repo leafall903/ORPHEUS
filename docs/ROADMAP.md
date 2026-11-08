@@ -19,6 +19,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   ultimate, persistent corpses and requested console keys. The opt-in corpse
   lifetime policy is implemented; actual NPC creation, controls and original-client
   acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  Authored NPC weapon components are now mounted; full incoming attack
+  coverage remains open for this isolated Zarya lane.
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
