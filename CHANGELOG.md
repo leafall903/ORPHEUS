@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Selected engine effect-script closure extraction
+
+- Add an external-bundle extension tool for selected053 definitions. Follow
+  effect->graph plus nested01B/053 references without copying client archives
+  or changing the base/runtime pack. Reject missing/unread and conflicting
+  definitions instead of claiming a complete closure.
+- Pass22 extraction tests (six new controls). Read-only104319 resource inputs
+  resolve Mercy0016/0019 to boost006C/healing0079, plus02CC/02CD chain effects;
+  a separate lane research bundle contains four effect bindings and623 graphs.
+  Ruff and diff checks pass. No data assets enter Git.
+- This only repairs extraction coverage. Actual targeting, effect mounting,
+  healing/boost/status consumers and full Mercy static/client acceptance remain
+  open. No shared runtime deployment, merge or publication is claimed.
+
 #### Mercy authoritative passive regeneration (partial hero lane)
 
 - Supply the maximum-health input used by Mercy0071/node89. Report the active

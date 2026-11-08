@@ -86,6 +86,33 @@ unimplemented. Native modifier storage alone is not effective gameplay.
 These must be restored with real target services and cross-hero status rules,
 then verified against player and five-enemy actors in the original client.
 
+Effect-script dependency recovery (still not combat acceptance)
+---------------------------------------------------------------
+The selected engine resource definitions053/0019 and053/0016 resolve to
+healing0079 and damage-boost006C. Both are absent from the current external
+graph bundle. The healing graph receives amount parameter002A into instance499;
+the staff passes its evaluated variable6578 (55 in the104319 default profile).
+Boost006C/node19 supplies0.3 to174 before its CombatModFilter. These are resource
+observations, not proof of applied healing/boost or stacking semantics.
+
+tools/extract_effect_scripts.py extends a separate external bundle from existing
+DragonML, follows both nested01B and053 references and refuses conflicting,
+missing or unread graph inputs. Starting with effects0016/0019 recovered four
+effect bindings (also02CC/02CD) and623 total graphs in the lane research output.
+The tool preserves the base bundle and rejects an output inside the repository
+or one replacing the base. Six focused controls and16 existing graph extraction
+controls pass. The generated bundle is not installed in runtime-104319 and no
+effect gameplay consumer or original-client effect playback is claimed.
+
+Reproduce the external pack, from the lane source cwd with PYTHONPATH there:
+python -B -m tools.extract_effect_scripts
+  --base "D:/overwatch 1.7.4/runtime-104319/data/game_graphs_174.json.gz"
+  --effects "D:/overwatch 1.7.4/verification/hero-lanes/0004/research/xml/053"
+  --graphs "D:/overwatch 1.7.4/research-rialto/xml/01B"
+  --owlib "D:/overwatch 1.7.4/research-tools/OWLib"
+  --effect 0016 --effect 0019
+  --output "D:/overwatch 1.7.4/verification/hero-lanes/0004/research/game_graphs_effects_174.json.gz"
+
 Client and publication
 ----------------------
 No fresh client was launched or controlled in this lane. An existing Overwatch
