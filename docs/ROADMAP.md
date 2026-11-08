@@ -19,7 +19,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   player rifle damage. Static wall occlusion and authored cooldown/Flux lifecycle
   checks pass. Grasp intercepts classified rifle/Helix/spheres with authored
   accounting; temporary shields remain open. Full Barrier/Flux effects, control, cross-hero interactions,
-  all five PvE enemy types and original-client acceptance remain open. See
+  five-NPC specials/bidirectional attacks and original-client acceptance remain
+  open. Five actual base-pool NPC bodies pass limited outgoing damage and
+  retained-corpse fixtures; three NPC manual primary-input paths still fail. See
   [Sigma combat lane](SIGMA_COMBAT.txt). No hero-complete claim is made.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

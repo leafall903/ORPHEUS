@@ -28,14 +28,14 @@ tests with fake network clients, not original-client or two-client acceptance.
 Acceptance matrix (P = enemy player; NPC = Trooper/Enforcer/Sniper/Assassin/Heavy)
 -----------------------------------------------------------------------------
 Action                 P evidence                  NPC evidence    Acceptance
-Hyperspheres           110 direct pair / 60 burst    all five OPEN   OPEN
-Quick melee            30 once, actual input        all five OPEN   OPEN
+Hyperspheres           110 direct pair / 60 burst    base hit tests  OPEN
+Quick melee            30 once, actual input        base hit tests  OPEN
 Experimental Barrier   no interception test         all five OPEN   OPEN
 Kinetic Grasp          rifle/Helix/spheres absorbed  all five OPEN   OPEN
-Accretion              70 damage only               all five OPEN   OPEN
+Accretion              70 damage only               base hit tests  OPEN
 Gravitic Flux          charge/cost/end/death only     all five OPEN   OPEN
 Incoming attacks       enemy Soldier rifle only     all five OPEN   OPEN
-Death/lifetime         training-bot corpse only      all five OPEN   OPEN
+Death/lifetime         training-bot corpse           five NPC corpses OPEN
 
 For each NPC column, both receiving and dealing damage, specials, states,
 navigation/targeting and visible death still need real encounter verification.
@@ -73,6 +73,29 @@ eye-relative transform and nominal direct+blast accounting are reconstructed.
 Only Soldier rifle hitscan is currently classified; other hitscan/beam families
 remain open. Temporary-shield creation, cap, damage order, decay and component51
 replication are not implemented by this adapter and remain acceptance blockers.
+
+Actual five-NPC audit
+---------------------
+The parent-provided external NPC catalog and graph package are now supported
+by tools/verify_sigma_npc_static.py. Its --catalog/--graphs/--body-xml inputs
+are read only; --output must be outside the repository. Actual mover fields
+are loaded from each body XML into the isolated fixture, not Soldier fallback.
+The parent lifecycle/catalog changes were reviewed and applied only here.
+
+45 limited scenarios executed:42 passed,3 failed. All five base-pool bodies
+take110 primary impact,60 airburst,30 melee and70 Accretion damage; all reject
+miss, ally and obstructed primary cases. Every body can be killed by real
+primary fire and remains the same dead entity beyond3 seconds, with no respawn
+deadline and no further enemy targeting. Trooper and Heavy Assault manual
+logical20 weapon input damages Sigma. Enforcer, Sniper and Assassin input
+produces no damage; all three remain failed/open even with no VM fault.
+
+These checks use flat collision, fake transport and permissive VM, with
+base-schema pools only. In particular instance221 is shields in these authored
+graphs; difficulty/conditional pool nodes in the catalog remain unapplied.
+Navigation, target acquisition, all specials and rendered corpses remain open.
+101 regression tests pass after the reviewed dependency integration. The
+limited audit separately exits nonzero while any of its scenario rows fail.
 
 Required open interactions
 --------------------------

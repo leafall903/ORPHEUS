@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Sigma actual five-NPC static audit (incomplete)
+
+- Review and reuse the parent NPC lifecycle/catalog changes in this private
+  clone. Add a read-only external-input harness for the actual five body graphs,
+  explicit base pools and movers extracted from their body XML. Retain the
+  catalog's unapplied difficulty/conditional-pool limits.
+- Execute 45 limited scenarios: all 35 outgoing primary/airburst/melee/Accretion/
+  miss/ally/wall cases pass; all five primary kills retain corpses past the
+  respawn deadline. Trooper and Heavy Assault manual logical20 input damages
+  Sigma. Enforcer, Sniper and Assassin input causes no damage (three OPEN
+  failures). The harness emits those failures and exits nonzero.
+- Pass 101 Sigma/shared combat/projectile/NPC/extractor regression tests and
+  Ruff. The audit uses flat collision, fake transport and permissive body VM;
+  it does not certify AI, specials, difficulty scaling or client presentation.
+  The complete static goal and original-client acceptance remain OPEN.
+
 #### Sigma Grasp interception and authored absorption accounting (partial)
 
 - Intercept eligible projectile sweeps and the classified Soldier rifle hitscan
