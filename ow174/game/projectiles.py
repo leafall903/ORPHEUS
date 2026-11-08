@@ -454,7 +454,7 @@ class Projectiles:
             viewer = next((player for player in self.match.players if player.slot == slot), None)
             if viewer is not None and viewer.client is not None:
                 viewer.client.queue_entities([EntityUpdate(entity, OP_DESTROY)])
-        client = shot.player.client
+        client = getattr(shot.player, "client", None)
         if client is None or not shot.created:
             return
         updates = []
