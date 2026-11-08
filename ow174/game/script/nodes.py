@@ -18,6 +18,7 @@ from ow174.game.script import (
     effect_routing,
     entity_control,
     expr,
+    model_look,
     modifiers,
     play,
     scopes,
@@ -421,6 +422,28 @@ class AnimationAlias(State):
 
     def on_failed(self):
         self.alias_handle = 0
+
+
+@state_class("STU_7D71FDF3")
+class ModelLook(ScopedSubgraph):
+    """Native +1C0 scope enter/exit and +70 tick; begin/end stay separate."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.look = 0
+        self.look_target = model_look.INVALID_TARGET
+
+    def scope_enter(self):
+        if self.instance.component.strict:
+            model_look.enter(self)
+
+    def scope_exit(self):
+        if self.instance.component.strict:
+            model_look.exit(self)
+
+    def tick(self):
+        if self.instance.component.strict:
+            model_look.refresh(self)
 
 
 @state_class("STUStatescriptStateBooleanSwitch")

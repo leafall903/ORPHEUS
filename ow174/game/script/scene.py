@@ -19,6 +19,7 @@ from ow174.game.script import (
     entity_control,
     expr,
     graph,
+    model_look,
     modifiers,
     play,
     runtime,
@@ -102,6 +103,7 @@ class SceneWorld(runtime.World):
         self.effect_targets: dict[int, effect_routing.Target | None] = {}
         self.control_contexts: dict[int, entity_control.Context | None] = {}
         self.alias_components: dict[int, animation_alias.Aliases | None] = {}
+        self.look_contexts: dict[int, model_look.Context] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -130,6 +132,9 @@ class SceneWorld(runtime.World):
         aliases = self.alias_components.pop(entity, None)
         if aliases is not None:
             aliases.retire()
+        look = self.look_contexts.pop(entity, None)
+        if look is not None:
+            look.retire()
         scope = self.scope_components.pop(entity, None)
         if scope is not None:
             scope.clear()
@@ -236,6 +241,17 @@ class SceneWorld(runtime.World):
     def animation_aliases(self, entity: int):
         return self.alias_components.get(entity, NotImplemented)
 
+    def set_model_look_context(self, entity: int, context: model_look.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not model_look.Context or context.owner != entity or context.retired:
+            raise ValueError("expected live model-look context for this entity")
+        if entity in self.look_contexts and self.look_contexts[entity] is not context:
+            raise ValueError("retire the entity before replacing its model-look context")
+        self.look_contexts[entity] = context
+
+    def model_look_context(self, entity: int):
+        return self.look_contexts.get(entity, NotImplemented)
+
     def _retire_control_contexts(self, *, entity=None, component=None):
         for source, context in list(self.control_contexts.items()):
             target = context.component if type(context) is entity_control.Context else None
@@ -268,6 +284,9 @@ class SceneWorld(runtime.World):
 
     def script_failed(self, component: runtime.Component) -> None:
         self._retire_control_contexts(component=component)
+        look = self.look_contexts.pop(component.entity, None)
+        if look is not None:
+            look.retire()
         aliases = self.alias_components.pop(component.entity, None)
         if aliases is not None:
             aliases.retire()

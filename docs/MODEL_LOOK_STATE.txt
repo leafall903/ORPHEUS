@@ -1,0 +1,98 @@
+Placed model-look State: scoped native implementation
+Target: original Overwatch1.74.0.0.104319; addresses are module RVAs.
+
+Identity and scheduling, 2026-11-08
+STU_7D71FDF3 has its own priority2 registration. Factory9AAC00/inplace9ABCD0
+call9A92A0, whose final primary vtable is2630650. State218 stores the last
+successful look, initially0; State220 stores the target identity, initially
+FFFFFFFF. Authored E8/m_BBBF2499 selects a target and F0/m_CC4BEAB2 a model look.
+
+Primary tick70 is9AB7C0. Ordinary beginB8, cleanupC0 and dependencyC8 are null.
+The separate +1C0 interface/vtable2630808 supplies enter9AAFA0 and exit9AB6D0;
+its +18 callback is null. Do not invoke these callbacks directly from State
+begin/end. ModelLook uses the existing explicit Registry or ForwardHost, which
+now accepts this third verified interface. The owner still supplies the native
+history frame and phase; no production Match host or clock mapping is inferred.
+
+Enter, refresh and exit
+- Enter enables ticking before target evaluation. E8 uses scalar F64C20: an
+  Entity or recursively the first array element. Only exactly zero invokes the
+  fallback path; a nonzero invalid Entity identity is still sent to lookup.
+- Fallback samples the native policy before evaluating E8 a second time.
+  F65220 extracts a tag7 Handle from that second result, otherwise no handle.
+  The owner supplies the native policy queries and target resolver. These are
+  distinct calls, not a fabricated default to Component.entity or source001B.
+- The explicit namespace service resolves the selected identity. No namespace,
+  missing target or failed capability4 check queues an ABORT request. Enter does
+  not evaluate F0 on this path and does not immediately run scope exit.
+- Enter stores the resolved target's native identity before evaluating F0 and
+  applying the look. F65540 accepts Asset/first-array values, with default0.
+  Only successful apply replaces State218. Failure retains the previous look.
+- Tick evaluates F0 first, then resolves E8. An unchanged look and target return
+  without global lookup or model writes. Otherwise the cached target must still
+  resolve globally and pass capability4. Missing/unsupported old targets return
+  without a new apply or ABORT. With a valid old target, store the new identity,
+  remove the previous look from the old target, then apply to the new target.
+  Failed apply keeps the old look while retaining the new target identity.
+- Exit first reads explicit Instance318 bit6 policy. Suppression skips lookup,
+  removal and identity reset. Otherwise, with a namespace, resolve the cached
+  target and remove its look if present. Exit has no capability4 guard. Reset
+  State220 toFFFFFFFF even if namespace/target is absent; retain State218.
+
+World services and local containment
+model_look.Context declares one source owner, known namespace availability,
+fallback policy/resolution, namespace/global target lookup, model apply/remove
+and exit flags. Unknown services fault strictly. Target declares its native
+identity and known capability. Config and consumer callbacks are followed by
+owner/instance/context lifetime checks; no later write follows retirement.
+SceneWorld binds a live context to an existing entity, rejects replacement and
+retires it on source unbind or strict failure. This is local containment, not
+native renderer rollback or destructor restoration. No automatic engine removal
+is attempted during terminal VM cleanup. Permissive body behavior stays passive.
+Read-only VM storage includes both caches and covers32 concrete State classes;
+live SceneWorld services and host restoration are outside that storage format.
+
+Typed ModelLook literal
+F2179AD1 has its own registration/typeinfo2D79C18, factory1B8A970 and runtime
+vtable27AE0C8. Its evaluator20 is1B85C30. Unkeyed ModelLook references now produce
+typed Asset values, including zero. Nonzero resource keys still delegate native
+availability to the supplied context. Owning destination disposal is not claimed.
+
+Evidence and remaining mission scope
+Original enter/tick/exit instructions match4320 cases:1440 per callback. Config
+casts, encrypted namespace decoding/bucket search and cache/consumer branch order
+execute from captured104319 code. Explicit adapters supply config values/variant
+disposal, tick enrollment, owner/component access, fallback policy engine queries
+and resolution, namespace/lock services, global entity lookup, capability4,
+model consumers and State operation2 queue callback. Native queue timing and
+complete engine services are not accepted. Twelve original literal cases pass.
+
+Nineteen behavior tests cover scope timing, fallback evaluation order, cache
+commit/failure paths, queued abort, unknown services, callback/entity retirement,
+ID reuse, native absence of C8 refresh and passive policy. All649 related and15
+server checks pass, with Ruff/diff checks.
+
+Actual entity80000A14/definition23F5 uses graph144E, node26/raw11/remote7 and
+look09800000000080D0. With an explicit ForwardHost and target/model services it
+completes authored frame0 and requests apply. Diagnostic end(False) plus scope
+drain requests removal, retains the look and resets target toFFFFFFFF. The schema
+contains source-independent Float/GameMessage literals; no source001B override
+is supplied. All remote States and stored values survive187/186-bit on/off codec
+round trips. Engine consumers are recorders, not actual rendered model changes.
+
+The unchanged strict scene configures146 components/124 graphs/542 writes.
+Of123 nonempty components,45 complete frame0 and78 retain strict stops. This
+sample now requires subgraph registration instead of an unknown State. Other
+stops remain66 entity-control contexts,3 alias components, action0F647E55(1),
+State9D7BF987(5) and DataFlowMapping(2). Full100B still stops atD38D0035/node106.
+Normal inputs are unchanged; no new client session or deployment. Original-client
+model changes, production host/lifetimes, full story/cinematics, five enemy AI
+types and extraction/results remain open. The roadmap stays unchecked.
+
+Local evidence outside Git
+verification/retribution/model-look-native-validation.json,
+model-look-actual-graph-validation.json, placed-component-model-look-validation.json,
+model-look-root-validation.json, model-look-related-tests.log,
+model-look-server-tests.log and functions-9A*/1B8A970 disassemblies. The initial
+probe failures and earlier source-fixture sample are retained separately.
+Captured native code, game assets, runtime data and research probes stay outside Git.

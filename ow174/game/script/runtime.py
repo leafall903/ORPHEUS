@@ -360,6 +360,10 @@ class World:
         """Known component55 alias list, known absence, or unknown."""
         return NotImplemented
 
+    def model_look_context(self, entity: int):
+        """Explicit native namespace, target policy and model-look consumers."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 

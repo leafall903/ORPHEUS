@@ -65,7 +65,7 @@ class ForwardHost(Registry):
     also remains available for an explicit interface phase. Selecting this
     service does not install a Match host, infer frame mapping, run +88/+120
     phases or implement rewind journals.
-    Only the two implemented interfaces with a null +18 callback are supported.
+    Only implemented interfaces with a verified null +18 callback are supported.
     """
 
     def __init__(self, component):
@@ -106,7 +106,7 @@ class ForwardHost(Registry):
     def register(self, state):
         if state.instance.component is not self.component:
             raise ValueError("scope host belongs to another script component")
-        if state.node.cls not in ("STU_BD02E168", "STU_582E0D5F"):
+        if state.node.cls not in ("STU_BD02E168", "STU_582E0D5F", "STU_7D71FDF3"):
             raise ValueError("scope host needs a verified null +18 interface callback")
         super().register(state)
         self.history[state] = History()

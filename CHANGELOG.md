@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Placed model-look scope and tick callbacks
+
+- Implement native7D71FDF3 scope enter/exit and tick with explicit namespace,
+  target policy, global entity lookup, capability and model consumers. Preserve
+  cache commits before writes, failed apply, old-target gates, queued abort and
+  exit bit6 suppression. Ordinary begin/cleanup/dependency hooks remain passive.
+- Verify the class's own factory/vtables and compare4320 original callback cases,
+  with explicit engine adapters. Twelve literal cases confirm typed unkeyed
+  ModelLook resources. Nonzero-key availability and complete engine services
+  remain open. The explicit ForwardHost accepts the verified null+18 interface.
+- Actual144E/node26 completes authored frame0 and requests look09800000000080D0
+  apply/removal using declared host/model services, without a source override.
+  Two187/186-bit on/diagnostic-off codec checks preserve all remote States/values.
+  The unchanged strict scene still completes45/123 nonempty first frames with78
+  stops; this sample now requires scope registration instead of unknown State code.
+- Add19 behavior tests;649 related and15 server checks pass, with Ruff/diff.
+  Passive VM storage includes both caches and covers32 concrete State classes.
+  Context lifetimes are bound to existing entities and revoked on retirement.
+- Root100B remains strictD38D0035/node106. Normal inputs and unrelated working
+  changes are preserved. No new original-client acceptance or deployment.
+  Rendered model changes, production hosting/lifetimes, full story/cinematics,
+  five enemy AI types and results remain open. See MODEL_LOOK_STATE.txt.
+  Publication helper missing; no GitHub push.
+
 #### Original-client animation-alias request and selection samples
 
 - Verify all three actual 0D32 alias States in two consecutive original-build

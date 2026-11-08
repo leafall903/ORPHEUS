@@ -452,3 +452,19 @@ Original-client animation-alias samples, 2026-11-08:
   Server services remain explicit fixtures. Visual animation, full allocator/
   authority/clocks, production hosting/lifetimes, rootD38, story/cinematics,
   enemy AI and results remain open. See ANIMATION_ALIAS_STATE.txt.
+
+Placed model-look callbacks, 2026-11-08:
+- Implement native7D71FDF3 scope enter/exit and tick with explicit target policy,
+  namespace/global lookup, capability and model apply/remove services. Preserve
+  target-before-consumer cache commits, failed applies and exit bit6 suppression.
+  Ordinary begin/cleanup/dependency hooks stay passive; no fabricated model writes.
+- Original callback instructions match4320 cases, with12 unkeyed ModelLook
+  literal comparisons. Nineteen behavior tests,649 related and15 server checks
+  pass, including passive VM storage for32 concrete State classes; Ruff/diff pass.
+- Actual144E/node26 completes frame0 and records authored look application/removal
+  using explicit ForwardHost/model services, without a source override.187/186-bit
+  on/diagnostic-off codec checks pass. The unchanged scene still completes45/123
+  nonempty first frames with78 stops; this sample now needs scope registration.
+- Root100B remains strictD38D0035/node106. No new original-client acceptance or
+  deployment. Engine consumers, production host/lifetimes, full story/cinematics,
+  five enemy AI types and results remain open. See MODEL_LOOK_STATE.txt.

@@ -51,6 +51,7 @@ _STATE_LAYOUTS = {
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
     nodes.AnimationAlias: (("alias_handle",), ()),
+    nodes.ModelLook: (("scope_registry", "look", "look_target"), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),

@@ -384,6 +384,7 @@ RESOURCES = {
     "STUConfigVarVoiceStimulus": "m_voiceStimulus",
     "STUConfigVarAnimation": "m_animation",
     "STUConfigVarAnimAlias": "m_animAlias",
+    "STUConfigVarModelLook": "m_modelLook",
     "STUConfigVarHero": "m_hero",
     "STU_43CF7A79": "m_entityDef",
     "STUConfigVarSkinTheme": "m_skinTheme",
@@ -396,7 +397,7 @@ RESOURCES = {
 # native availability services; leave that path to the supplied context.
 KEYED_RESOURCES = {
     "STUConfigVarVoiceStimulus", "STUConfigVarAnimation", "STUConfigVarHero",
-    "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias",
+    "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias", "STUConfigVarModelLook",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 

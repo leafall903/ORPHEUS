@@ -289,6 +289,23 @@ services and diagnostic aborts. Visual playback, production hosting and full
 mission behavior remain open. See ANIMATION_ALIAS_STATE.txt for evidence/limits.
 Client closes normally; owned servers stop. No deployment or normal input change.
 
+Placed model-look State, 2026-11-08
+STU_7D71FDF3 now has a concrete native-backed ModelLook implementation. Its
+separate scope enter/exit callbacks and tick preserve target/look cache ordering,
+failed apply and native abort gates. Ordinary begin/cleanup/dependency callbacks
+remain passive. Explicit registration, namespace/target policy and engine model
+services are required.4320 original callback comparisons and12 literal cases pass.
+
+Actual80000A14/definition23F5, graph144E/node26/raw11/remote7 completes authored
+frame0 with an explicit ForwardHost and model services. No source override is
+supplied. Apply/remove recorders receive authored look09800000000080D0;
+187/186-bit on/diagnostic-off round trips preserve all remote States and values.
+The unchanged strict scene remains45/123 completed first frames and78 stops;
+this sample now stops on missing subgraph registration instead of unknown State
+code. Nineteen behavior tests,649 related and15 server checks pass. Full native
+engine effects, original-client model changes, production Match/lifetimes and
+complete mission remain open. See MODEL_LOOK_STATE.txt for adapters and limits.
+
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,
 component-pending-init-native-validation.json, placed-component-startup-validation.json,
