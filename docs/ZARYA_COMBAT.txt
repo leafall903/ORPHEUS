@@ -47,7 +47,26 @@ State is active; the breaking damage event is entirely blocked; energy counts
 only remaining barrier HP; exhaustion finishes the parent duration next script
 step. These policies have behavior tests but no new native-server comparison.
 This does not host a real pet entity, reproduce barrier volume intersection,
-cleanse/control immunity, or prove cross-hero effects. Projected barrier stays open.
+cleanse/control immunity, or prove cross-hero effects.
+
+Projected barrier increment
+---------------------------
+An optional World target-search service now supplies the two025C TrackTargets
+States. BodyWorld passes exact command aim and declares this policy only for
+these nodes on Zarya. The State writes an Entity tuple to its authored output and
+retains a target-list payload with age0. The unchanged graph copies the selected
+Entity to536 and starts its pet/duration. Damage to that selected allied player or
+bot can consume the caster's separate200-HP projected pool and send energy to the
+caster. Exhaustion and expiration use the existing duration/cooldown graph.
+
+Reconstruction: acquire within authored30m radius and base10-degree cone, default
+missing cone modifier to1, sort by angular alignment then distance, and require
+live same-team non-self targets and eye-to-eye static LOS. FFA has no eligible
+allies. Team changes and caster death end host protection; a new target body does
+not inherit the old Entity selection. These policies are tested, not native-server
+comparison evidence. All other TrackTargets queries remain undeclared.
+Native filter/tag/ranking policy, barrier actors/volumes, cross-shield ordering and
+cleanse/control immunity remain open.
 
 Required combat matrix
 ----------------------
@@ -57,8 +76,9 @@ Secondary projectile  Damage tested   OPEN              No friendly fire via sha
 Quick melee           30 once tested  OPEN              No friendly fire via shared filter
 Personal barrier      HP/time/CD      OPEN              Self protection only, no damage conversion
                       model tests
-Projected barrier     OPEN            OPEN              Ally protection/selection; never enemy damage
-Energy passive        Absorb/cap/     OPEN              Projected sources and HUD OPEN
+Projected barrier     HP/time/CD/     OPEN              Ally selection/protection; never enemy damage
+                      target tests
+Energy passive        Absorb/cap/     OPEN              Both barrier sources; HUD OPEN
                       decay model
 Graviton Surge        OPEN            OPEN              Enemy pull/control; allies excluded required
 Incoming attacks      Rifle->shields  OPEN              Healing retains allied semantics
@@ -74,9 +94,9 @@ of training bots is used as evidence for those types.
 Cross-hero matrix still OPEN: barriers and shield entities; reflect vs beam and
 projectile; absorption/deletion; invulnerability; stun/interrupt/cleanse; Graviton
 pull, escape and immunity; damage credit, death and restoration across these states.
-Personal damage interception now uses the live authored State; personal/projected
-pet hosting, projected damage interception and ultimate field hosting/pull remain
-absent. Animation States alone do not establish those effects.
+Both personal and projected damage interception use live authored States;
+personal/projected pet hosting and ultimate field hosting/pull remain absent.
+Animation States alone do not establish those effects.
 
 Validation
 ----------
@@ -84,10 +104,17 @@ Command-driven tests use the production Match, body scripts, combat target and
 health/death path with a delivery-model client. They cover primary damage, energy
 expression, input duplication, release, allies, range, static walls, lifecycle,
 incoming rifle shields, melee, secondary projectile, death and training-bot corpse.
-91 tests pass: test_game_zarya (26), test_game_combat (28), test_game_projectiles (37).
+The targeted suite has42 Zarya tests (including16 projected behavior cases).
 Added cases exercise personal capacity/exhaustion, actual rifle blocking, energy
 generation/cap/decay, expiry, cooldown rejection/reuse, repeated/held inputs, body
 replacement, aimed miss, primary depletion/reload/resume and secondary25 ammo cost.
+Projected cases cover ally/enemy, miss, range, LOS, target death/self rejection,
+real rifle blocking, caster energy, capacity/break, duration, cooldown rejection
+and re-use, held input, frozen selection, team changes and body/caster retirement.
+Body VM snapshots include command aim and target-list execution state explicitly;
+unknown stored fields remain rejected. Broader runtime/codec regression is recorded
+with the corresponding lane commit rather than claimed from target cases alone.
+The expanded combat/runtime/codec/snapshot run passes179 tests in68.421 seconds.
 Ruff and git diff --check pass. These are headless tests, not original-client proof.
 
 The independent goal remains ACTIVE until ALL static matrix items pass. This

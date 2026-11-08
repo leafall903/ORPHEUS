@@ -366,7 +366,7 @@ class Combat:
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.beam_seen: dict[int, tuple] = {}  # body -> authored activation and consumed command time
-        self.zarya_barriers = zarya.PersonalBarriers()
+        self.zarya_barriers = zarya.Barriers(self)
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)

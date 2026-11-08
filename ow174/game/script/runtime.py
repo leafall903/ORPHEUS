@@ -385,6 +385,10 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def track_targets(self, state: "State"):
+        """Optional host target search; NotImplemented preserves an undeclared service."""
+        return NotImplemented
+
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 

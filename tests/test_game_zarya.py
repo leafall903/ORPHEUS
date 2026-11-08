@@ -280,5 +280,151 @@ class ZaryaPersonalBarrierTests(unittest.TestCase):
         self.assertEqual(self.health(self.a), 380)
 
 
+class ZaryaProjectedBarrierTests(unittest.TestCase):
+    def setUp(self):
+        self.run = Run(names=("Zarya", "Ally", "Enemy"))
+        self.a, self.b, self.c = self.run.players
+        self.fight = self.run.match.combat
+        self.run.match.bots.clear()
+        self.run.match._pending_bot_scripts.clear()
+        self.run.match.switch_hero(self.a, heroes()[ZARYA])
+        self.b.team = self.a.team
+        self.c.team = 1
+        for player, z in ((self.a, 0), (self.b, 5), (self.c, 10)):
+            player.mover.position[:] = [0, 1, z]
+
+    fire = ZaryaBeamTests.fire
+    health = ZaryaBeamTests.health
+
+    def instance(self):
+        return next(i for i in self.a.body_script.component.instances.values()
+                    if i.graph.index == 0x025C)
+
+    def cast(self):
+        self.run.step({self.a: (0, 0, 16)})
+
+    def hit(self, owner, amount):
+        target = next(t for t in self.fight._targets() if t.owner is owner)
+        self.fight._damage(self.c, target, amount, False, None, self.run.frame)
+
+    def energy(self):
+        return self.a.body_script.component.entity_var(87).value()
+
+    def test_command_selects_ally_and_creates_authored_pet_without_damage(self):
+        self.cast()
+        self.assertTrue(self.instance().state(10).active)
+        self.assertEqual(self.instance().vars[536].value(), expr.Entity(self.b.body))
+        self.assertEqual(self.health(), 200)
+        self.assertEqual(self.health(self.c), 200)
+
+    def test_enemy_target_is_rejected_without_cooldown_or_damage(self):
+        self.b.team = 1
+        self.cast()
+        self.assertFalse(self.instance().state(10).active)
+        self.assertEqual(self.instance().vars[61].value(), 0)
+        self.assertEqual(self.health(), 200)
+
+    def test_out_of_range_target_is_rejected(self):
+        self.b.mover.position[2] = 31
+        self.cast()
+        self.assertFalse(self.instance().state(10).active)
+
+    def test_aimed_miss_is_rejected(self):
+        self.run.step({self.a: (16384, 0, 16)})
+        self.assertFalse(self.instance().state(10).active)
+
+    def test_static_wall_rejects_target(self):
+        wall = World([(-10, 0, 2, 10, 0, 2, 10, 10, 2),
+                      (-10, 0, 2, 10, 10, 2, -10, 10, 2)])
+        with patch.object(self.fight, "_collision", return_value=wall):
+            self.cast()
+        self.assertFalse(self.instance().state(10).active)
+
+    def test_dead_ally_is_rejected(self):
+        self.hit(self.b, 500)
+        self.cast()
+        self.assertFalse(self.instance().state(10).active)
+
+    def test_self_is_not_a_projected_target(self):
+        self.b.mover.position[2] = 40
+        self.cast()
+        self.assertFalse(self.instance().state(10).active)
+        self.hit(self.a, 20)
+        self.assertEqual(self.health(self.a), 380)
+
+    def test_actual_enemy_rifle_is_blocked_and_caster_gets_energy(self):
+        self.cast()
+        for _ in range(12):
+            self.run.step({self.c: (-32768, 0, 1)})
+        self.assertEqual(self.health(), 200)
+        self.assertGreater(self.energy(), 0)
+        self.assertIsNone(self.b.body_script.component.entity_var(87).value())
+
+    def test_projected_capacity_breaks_and_next_hit_damages_ally(self):
+        self.cast()
+        self.hit(self.b, 500)
+        self.assertEqual(self.health(), 200)
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 180)
+        self.run.step({})
+        self.assertEqual(self.energy(), 40)
+        self.assertFalse(self.instance().state(10).active)
+        self.assertGreater(self.instance().vars[61].value(), 7.9)
+
+    def test_duration_ends_protection(self):
+        self.cast()
+        self.fire(126, 0)
+        self.assertFalse(self.instance().state(10).active)
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 180)
+
+    def test_cooldown_rejects_recast_then_allows_next_cast(self):
+        self.cast()
+        self.hit(self.b, 200)
+        self.run.step({})
+        counter = self.instance().state(10).counter
+        self.cast()
+        self.assertFalse(self.instance().state(10).active)
+        self.assertEqual(self.instance().state(10).counter, counter)
+        self.fire(505, 0)
+        self.cast()
+        self.assertTrue(self.instance().state(10).active)
+        self.assertGreater(self.instance().state(10).counter, counter)
+
+    def test_held_button_cannot_refill_or_bypass_cooldown(self):
+        self.cast()
+        self.hit(self.b, 200)
+        self.fire(30, 16)
+        self.assertFalse(self.instance().state(10).active)
+        self.assertEqual(self.instance().state(10).counter, 1)
+
+    def test_changing_aim_does_not_retarget_active_barrier(self):
+        self.cast()
+        self.c.team = self.a.team
+        self.c.mover.position[:] = [5, 1, 0]
+        self.run.step({self.a: (16384, 0, 0)})
+        self.assertEqual(self.instance().vars[536].value(), expr.Entity(self.b.body))
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 200)
+
+    def test_team_change_ends_protection(self):
+        self.cast()
+        self.b.team = 1
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 180)
+
+    def test_replacement_body_is_not_protected_by_old_selection(self):
+        self.cast()
+        self.run.match.switch_hero(self.b, self.b.hero)
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 180)
+
+    def test_caster_death_ends_reconstructed_protection(self):
+        self.cast()
+        self.hit(self.a, 500)
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 180)
+
+
 if __name__ == "__main__":
     unittest.main()

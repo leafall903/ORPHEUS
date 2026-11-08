@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zarya projected barrier target and damage services (partial static acceptance)
+
+- Supply the two authored025C target searches through an optional host callback.
+  Write their actual target-list output, run unchanged ally selection/pet/duration
+  plugs, intercept damage with the caster's separate pool, and award the caster's
+  energy through the authored message. Keep command aim and selected targets in
+  strict VM snapshots. Other target searches retain undeclared-service behavior.
+- Explicitly reconstruct cone-modifier fallback, target ranking, LOS and lifetime
+  policies. Native filter/tag semantics, pet geometry, cleanse/control immunity,
+  cross-defense interactions, ultimate combat and five-NPC acceptance remain open.
+- Pass179 combat/runtime/codec/snapshot tests, including42 targeted Zarya cases
+  and16 new projected cases. Ruff and diff checks pass. The independent
+  complete-static goal remains ACTIVE; no original-client or shared-main merge
+  is claimed. Broader regression is tracked in the lane verification record.
+
 #### Zarya personal barrier damage and energy services (partial static acceptance)
 
 - Connect the live authored personal-pet State to a per-activation barrier pool

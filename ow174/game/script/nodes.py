@@ -1813,12 +1813,38 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """A target search supplied by an explicit host service, empty when undeclared.
+
+    Host selection/age policy is reconstructed. This is not a native filter engine.
+    """
 
     family = "targets"
 
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.targets = ()
+
+    def on_begin(self) -> None:
+        self.targets = ()
+        if self.refresh():
+            self.ticks()
+
+    def refresh(self) -> bool:
+        found = self.instance.component.world.track_targets(self)
+        if found is NotImplemented:
+            return False
+        if type(found) is not tuple or any(type(entity) is not int for entity in found):
+            raise TypeError("target host must return a tuple of entity IDs")
+        self.targets = tuple((entity, 0) for entity in found)
+        self.instance.write(lvalue(_field(self, "m_8A2905A0")), tuple(Entity(entity) for entity in found))
+        return True
+
+    def tick(self) -> None:
+        self.refresh()
+        self.try_complete()
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": self.targets}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")

@@ -125,6 +125,7 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
+        self.aim = (0, 0)  # exact command aim supplied by the owning Match
         self.match: Match | None = None
 
     def position(self, entity: int) -> Vec3:
@@ -167,6 +168,11 @@ class BodyWorld(runtime.World):
                 and match.queue_body_message(target, message, params, sender)):
             return
         super().send_message(target, message, params, sender)
+
+    def track_targets(self, state):
+        if self.match is None:
+            return NotImplemented
+        return self.match.combat.zarya_barriers.track_targets(state, self.aim)
 
 
 @dataclass

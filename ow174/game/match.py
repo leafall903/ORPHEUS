@@ -1134,6 +1134,7 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            script.world.aim = command.aim()
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
