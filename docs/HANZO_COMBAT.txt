@@ -181,14 +181,33 @@ Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
   It removes125HP from an enemy player. Repeated Q creates no second arrow;
   Q release lets the cast finish. Death before emission prevents its damage.
 - Native dragon continuation and charge-generation rules are still unaccepted.
-  The existing60s debug passive refill is not a verified native rule, and manual
-  ultimate graphs currently lack a complete active-cast refill lockout.
+  The existing60s debug passive refill is not a verified native rule. It now
+  stops throughout Hanzo's reconstructed1s/1.2s manual phases; native generation,
+  active-ultimate lockout, death/respawn retention and damage/healing rules remain OPEN.
 - The profile extractor follows104319 XML through0BA6/0132/status0040.053/0118.
   A selected110-byte status asset was read without caches/network and checked
   against its content-manifest size/key. Local-only XML/profile/hash artifacts
   preserve seven target trackers, literals20/12/4/5, core factor0.6 and damage
   quantities300/150. Damage-rate units, overlap refresh and target volume are
   explicitly unverified; this resource inspection does not prove dragon damage.
+
+Manual-cast debug charge gate (test_game_hanzo_ult_charge.py):
+- The old gate inspected standard Ability.RUNNING only;0101 has no such Ability.
+  With an explicit0.1s debug fill cycle it restored268.8 points in the first cast
+  frame, reached1680 before emission and allowed another cast during recovery.
+- Reuse the allocated0101/node29/37 active-phase predicate from the interruption
+  host to block only Hanzo debug refill. Do not evaluate variables or create state,
+  introduce another timer, or change the native-unknown60s debug-rate policy.
+- Actual commands now keep charge0 throughout both phases, reject the early
+  post-emission Q, resume debug refill at phase completion, and permit a fresh
+  charged cast with one new initial arrow and actual target death. The second
+  flight is given its20m/s travel time before checking damage.
+- Actual Flashbang abort resumes debug refill without a delayed old arrow;
+  a later charged recast hits. Body/hero replacement does not inherit old phases.
+  Continuous and skipped command delivery across the1.2s deadline agree.
+- Four regressions fail before the fix and pass afterward. This is reconstructed
+  debug behavior, not acceptance of native passive/damage/healing charging,
+  dragon-flight charge eligibility, state modifiers or cross-body charge retention.
 
 Explicit reconstructed moving dragons (test_game_hanzo_dragons.py):
 - Load the separately extracted JSON using dragon.load_profile(path,

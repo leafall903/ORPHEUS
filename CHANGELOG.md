@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Hanzo manual-cast debug charge lockout
+
+- Hanzo0101's manual phases bypassed the standard Ability charge lock. Fast
+  debug refill therefore restored268.8 points in the first cast frame and could
+  enable a second cast during recovery. Reuse the scoped active-phase predicate
+  for interruption and debug charging, without extra timers or stored state.
+- Four regressions fail before the fix: actual cast/recovery/refill/recast,
+  actual Flashbang abort/recovery without a late arrow, hero/body replacement,
+  and continuous/skipped command equivalence. Pass24 focused Hanzo/control/
+  Soldier Ability checks,631 game tests,827 script tests and31 VM/server snapshot
+  checks; Ruff/diff checks pass. Native charge generation/lockout/retention and
+  original-client acceptance remain OPEN; no integration or publication.
+
 #### Explicit Hanzo startup profiles and Sonic cooldown boundaries
 
 - Add opt-in reconstructed Sonic/dragon profile CLI options. Validate external
