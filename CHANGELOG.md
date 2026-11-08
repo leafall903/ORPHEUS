@@ -6,6 +6,47 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Explicit reconstructed multiple-pellet combat
+
+- Read `m_numProjectilesPerShot` instead of reducing every volley to one hit.
+  Multiple pellets require explicit
+  `match.combat.configure_volley_geometry(reconstructed_patterns=True)`.
+  Support observed ring613BDDB0/parameter2 and paired239B571E/parameter10
+  definitions. Unknown transforms/layouts and multiple player projectile leases
+  are refused with diagnostics. Single-pellet behavior is unchanged.
+- Reconstructed geometry interprets extent values as degree half-angles, uses
+  fixed ring phase/equal azimuth or opposite paired corners, and puts muzzles
+  at the eye. These choices, native parameter roles, randomization and animated
+  muzzle transforms are not native acceptance. No CLI option enables this host.
+- Resolve each hitscan pellet independently through target/wall/range/falloff/
+  pool logic. NPC moving pellets each own a Rocket and hit set, launch/flight/
+  lifetime and observer path; original-client multi-projectile wire acceptance
+  remains open. Include the opt-in flag in passive server snapshots.
+- Enforcer13EB/node24 actually requests25 projectiles, speed80, damage2 each,
+  range100 and spread4, with rings1/8/16. The explicit controller experiment now
+  launches50 pellets across two shots and leaves Hanzo100HP, superseding its
+  earlier single-projectile196HP result. Ten scoped experiments cover faction,
+  wall/range, moving miss, per-pellet armour, post-launch wall, source death and
+  removal. Native controller allocation/full initialization remain open.
+- Heavy Assault114F/node47 requests two pellets/two muzzles with extents3/3.
+  NPC fixtures explicitly opt into the paired reconstruction; they no longer
+  depend on the old one-pellet approximation. Other resource launch patterns
+  and production defaults remain unaccepted.
+- Review the parent's cooldown notice against the private original-timestamp
+  tuple implementation. No shared code replacement is needed. Add actual Storm
+  near-deadline/held retry and Sonic held retry coverage;7 focused cooldown
+  tests pass. A separate newly reported mover17/18/19 input gap remains queued.
+- Validation:653 full game tests pass in503.322s;73 full BodyVM/server journal/
+  server snapshot/native replay tests pass in593.798s, with no skips.12 focused
+  geometry/NPC tests,10 external Enforcer experiments, Ruff and diff checks pass.
+  Eight implementation/test hashes stay unchanged through the final runs;
+  the43-row mover input hash remains unchanged. Earlier failed snapshot-test
+  instrumentation and Heavy one-pellet fixture assumptions were corrected and
+  the full suites rerun. Unconfigured multi-pellet weapons now refuse damage;
+  broader launch restoration is still required before normal-service acceptance.
+- Original-client acceptance, native launch geometry, all remaining static
+  interactions and full goal/integration readiness remain open.
+
 #### Enforcer controller readiness experiments
 
 - Execute the unmodified original F525E0 type-to-component mapping for5255

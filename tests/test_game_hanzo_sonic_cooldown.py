@@ -133,6 +133,23 @@ class SonicCooldownTests(unittest.TestCase):
                 self.assertEqual(fight.vitals[target.body].total, 475)
                 self.assertGreater(instance.vars[61].value(), 11)
 
+    def test_held_retry_survives_cooldown_and_prepares_once(self):
+        run, hero, target, instance = self.arena()
+        self.first_shot(run, hero, target)
+        state = next(s for s in instance.states.values() if s.node.pos == 12)
+        with patch.object(state, 'start_ability', wraps=state.start_ability) as starts:
+            for _ in range(800):
+                if instance.component.entity_var(627).value():
+                    break
+                self.step(run, hero, target, 8)
+            self.assertEqual(instance.vars[61].value(), 0)
+            self.assertEqual(instance.component.entity_var(627).value(), 1)
+            self.assertEqual(starts.call_count, 1)
+            for _ in range(10):
+                self.step(run, hero, target, 8)
+            self.assertEqual(instance.component.entity_var(627).value(), 1)
+            self.assertEqual(starts.call_count, 1)
+
     def test_dead_prepared_owner_cannot_release_and_new_body_resets_preparation(self):
         run, hero, target, _instance = self.arena()
         self.step(run, hero, target, 8)

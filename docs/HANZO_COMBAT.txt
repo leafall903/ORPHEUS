@@ -370,8 +370,9 @@ Explicit five-NPC fixtures (test_game_hanzo_npc.py):
   associated AI graph13EA entry32 starts stack31, setting controller entity
   variable9134=true until destruction. The actual13EB/node1 gate is
   (!controller.#7681 && controller.#9134) || B96(body), verified across27 cases.
-  An explicit reconstructed relation plus the real controller VM slots permits
-  two authored shots in200 ticks (Hanzo200 ->196HP). Ally/wall/110m scenarios
+  An earlier explicit reconstructed relation plus real controller VM slots
+  permits two authored shots in200 ticks (Hanzo200 ->196HP). This single-pellet
+  result is superseded by the explicit pattern host below. Ally/wall/110m scenarios
   do not fire; all host cases short-circuit B96 with zero fallback calls.
   Only entry32 is executed; other initial entry events are removed. Full AI
   initialization, native relation allocation/lifetime and damage/pellet fidelity
@@ -381,6 +382,27 @@ Explicit five-NPC fixtures (test_game_hanzo_npc.py):
   definitions contain76AF64F0. Therefore AI definition presence cannot justify
   forcing B96 true (its proven true path excludes5C). Runtime components44/4B
   have not been identified from this STU mapping experiment.
+- Explicit pattern API (defaults off; no CLI/startup integration):
+  match.combat.configure_volley_geometry(reconstructed_patterns=True)
+  Enforcer actually requests25 moving projectiles per shot at speed80, damage2
+  each, range100 and spread4. Its ring sizes are1/8/16. The host interprets4 as
+  a degree half-angle, fixes ring phase0, spaces samples equally in azimuth and
+  places muzzles at the eye. With the explicit controller experiment, two
+  authored shots now launch50 independent Rockets and leave Hanzo100HP.
+  Heavy's114F/node47 requests two pellets/two muzzles and extents3/3; the paired
+  host uses opposite rectangle corners with degree half-angles at the eye.
+  NPC fixtures explicitly enable these reconstructed launch patterns. Their
+  results do not establish normal-service default or native muzzle fidelity.
+  Unsupported multiple-pellet layouts/transforms, an absent opt-in and multiple
+  player projectile leases refuse damage with a diagnostic. Single pellets keep
+  their existing path. Other launch classes/parameters remain OPEN.
+- Ten Enforcer pattern experiments cover baseline, hit, ally, wall,110m, a target
+  moving away after launch, per-pellet armour, post-launch wall, source death and
+  explicit NPC removal. Moving target/wall prevent hits; each2-damage pellet
+  loses1 against armour; a killed source's emitted25 pellets still deal50;
+  removal clears in-flight pellets. Controller IDs/relations and the isolated
+  controller entry remain experiment inputs. Native geometry/parameter roles,
+  full controller initialization, transport/effects and full matrix remain OPEN.
 
 Acceptance matrix (P = partial headless evidence, O = open):
 Action                              Player Trooper Enforcer Sniper Assassin Heavy

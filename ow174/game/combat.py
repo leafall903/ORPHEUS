@@ -50,7 +50,18 @@ import math
 from collections import deque
 from dataclasses import dataclass, field
 
-from ow174.game import bots, dragon, observers, pools, projectiles, sonic, stats, voicelines, world
+from ow174.game import (
+    bots,
+    dragon,
+    observers,
+    pools,
+    projectiles,
+    sonic,
+    stats,
+    voicelines,
+    volley_geometry,
+    world,
+)
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -391,6 +402,7 @@ class Combat:
         self.dragons: list[dragon.Flight] = []
         self.sonic_profile: sonic.Profile | None = None
         self.sonars: list[sonic.Beacon] = []
+        self.reconstructed_volley_patterns = False
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.now = 0.0
@@ -402,6 +414,12 @@ class Combat:
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
+
+    def configure_volley_geometry(self, *, reconstructed_patterns: bool) -> None:
+        """Explicit API opt-in; native spread units, phase and muzzle are unproven."""
+        if type(reconstructed_patterns) is not bool:
+            raise ValueError("reconstructed pattern geometry needs an explicit bool")
+        self.reconstructed_volley_patterns = reconstructed_patterns
 
     def configure_sonic(self, profile: sonic.Profile) -> None:
         """Explicitly mount the external reconstructed Sonic profile before firing."""
@@ -723,6 +741,19 @@ class Combat:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))
         speed = field("m_projectileSpeed")
+        try:
+            directions = volley_geometry.directions(
+                state, direction, reconstructed_patterns=self.reconstructed_volley_patterns)
+            if speed and len(directions) > 1 and not npc:
+                raise volley_geometry.UnsupportedGeometry(
+                    "multiple player projectile leases are not implemented")
+        except volley_geometry.UnsupportedGeometry as error:
+            expr.warn_once(f"volley-geometry:{state.instance.graph.index}:{node.pos}:{error}",
+                           "volley geometry refuses graph%04X/node%d: %s",
+                           state.instance.graph.index, node.pos, error)
+            return
+        if not directions:
+            return
         if speed:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
@@ -735,39 +766,46 @@ class Combat:
             blast = hit_def(state, node.field("m_D2D11CE9"))
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
             definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
-            shot = None
-            if isinstance(definition, expr.Asset):
-                shot = self.projectiles.fired(
-                    shooter, state, shot_frame, definition.guid, lifetime, origin, direction,
-                    activation=activation, snapshot=snapshot,
-                )
-            damaging = (direct is not None and direct.amount > 0.0) or (
-                blast is not None and blast.amount > 0.0
-            )
-            if damaging or shot is not None:
-                continuation = self.dragon_profile
-                if (continuation is None or not isinstance(definition, expr.Asset)
-                        or definition.guid != continuation.initial_definition or npc
-                        or shooter.hero.guid != dragon.HANZO):
-                    continuation = None
-                self.rockets.append(
-                    Rocket(
-                        shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
-                        last_tick=self.tick if npc else None,
-                        gravity=gravity,
-                        continuation=continuation, source_entity=_source_entity(shooter),
-                        started_tick=self.tick + time % state.instance.component.frame_ms
-                        / state.instance.component.frame_ms,
-                        range_left=reach if reach and reach > 0 else None,
-                        sonar=(self.sonic_profile if not npc and shooter.hero.guid == sonic.HANZO
-                               and isinstance(definition, expr.Asset)
-                               and definition.guid in sonic.DEFINITIONS else None),
+            for direction in directions:
+                shot = None
+                if isinstance(definition, expr.Asset):
+                    shot = self.projectiles.fired(
+                        shooter, state, shot_frame, definition.guid, lifetime, origin, direction,
+                        activation=activation, snapshot=snapshot,
                     )
+                damaging = (direct is not None and direct.amount > 0.0) or (
+                    blast is not None and blast.amount > 0.0
                 )
+                if damaging or shot is not None:
+                    continuation = self.dragon_profile
+                    if (continuation is None or not isinstance(definition, expr.Asset)
+                            or definition.guid != continuation.initial_definition or npc
+                            or shooter.hero.guid != dragon.HANZO):
+                        continuation = None
+                    self.rockets.append(
+                        Rocket(
+                            shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
+                            last_tick=self.tick if npc else None,
+                            gravity=gravity,
+                            continuation=continuation, source_entity=_source_entity(shooter),
+                            started_tick=self.tick + time % state.instance.component.frame_ms
+                            / state.instance.component.frame_ms,
+                            range_left=reach if reach and reach > 0 else None,
+                            sonar=(self.sonic_profile if not npc and shooter.hero.guid == sonic.HANZO
+                                   and isinstance(definition, expr.Asset)
+                                   and definition.guid in sonic.DEFINITIONS else None),
+                        )
+                    )
             return
         if direct is None or direct.amount <= 0.0:
             return
         reach = field("m_FEC435C6", RANGE) or RANGE
+        for direction in directions:
+            self._hitscan(shooter, command, origin, direction, direct, reach, shot_frame)
+
+    def _hitscan(self, shooter, command, origin, direction, direct, reach, shot_frame):
+        """Resolve one pellet, including occlusion, falloff and independent pool damage."""
+        npc = isinstance(shooter, bots.Bot)
         # The input supplies this simulation frame's aim and view time. Notices use the volley clock.
         view_tick = self.tick
         if command is not None:

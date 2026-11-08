@@ -115,6 +115,35 @@ class HanzoCombatTests(unittest.TestCase):
         self.assertEqual(run.match.combat.vitals[victim.body].total, 170)
         self.assertEqual(len(shooter.client.messages(combat.HIT)), 1)
 
+    def test_storm_near_deadline_tap_and_held_retry_start_once_when_ready(self):
+        for retry in ('near', 'held'):
+            with self.subTest(retry=retry):
+                run, shooter, _ = self.arena()
+                ability = next(i for i in shooter.body_script.component.instances.values()
+                               if i.graph.index == 0x146A)
+                run.step({shooter: (0, 0, 0x10)})
+                run.step({})
+                for _ in range(140):
+                    run.step({shooter: (0, 0, 1)})
+                run.step({})
+                state = ability.states[0]
+                self.assertGreater(ability.vars[61].value(), 8)
+                with patch.object(state, 'start_ability', wraps=state.start_ability) as starts:
+                    if retry == 'near':
+                        while ability.vars[61].value() > 0.08:
+                            run.step({})
+                        run.step({shooter: (0, 0, 0x10)})
+                        run.step({})
+                    for _ in range(700):
+                        if starts.called:
+                            break
+                        run.step({shooter: (0, 0, 0x10)} if retry == 'held' else {})
+                    self.assertEqual(starts.call_count, 1)
+                    self.assertTrue(state.flags & 1)
+                    for _ in range(10):
+                        run.step({shooter: (0, 0, 0x10)} if retry == 'held' else {})
+                    self.assertEqual(starts.call_count, 1)
+
     def test_melee_stops_at_wall_but_can_hit_a_target_before_it(self):
         for wall_distance, expected in ((1, 200), (3, 170)):
             with self.subTest(wall_distance=wall_distance):

@@ -74,6 +74,9 @@ class HanzoCatalogNpcTests(unittest.TestCase):
     def arena(self, definition, action, situation, *, distance=None, lateral=0):
         run = Run()
         match = run.match
+        # Explicit headless reconstruction: authored pellet counts, eye muzzles,
+        # fixed ring phase / paired corners. Native spread and muzzle remain open.
+        match.combat.configure_volley_geometry(reconstructed_patterns=True)
         match.bots.clear()
         match._pending_bot_scripts.clear()
         hero, = run.players

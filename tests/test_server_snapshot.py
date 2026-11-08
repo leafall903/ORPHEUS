@@ -40,6 +40,17 @@ class ServerSnapshotTests(unittest.TestCase):
         return export_server_state(session.server, archives=session._matches.values(),
                                    collision_provider=session._collision_reads, assets=session.registry)
 
+    def test_explicit_ring_geometry_flag_is_passive_causal_state(self):
+        session, _, players = self.scene()
+        fight = players[0].match.combat
+        before = snapshot_digest(self.capture(session))
+        fight.configure_volley_geometry(reconstructed_patterns=True)
+        with mock.patch.object(type(fight), '_shoot', side_effect=AssertionError('snapshot must not shoot')):
+            enabled = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, enabled)
+        fight.configure_volley_geometry(reconstructed_patterns=False)
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()
         script = players[0].body_script
