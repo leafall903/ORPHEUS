@@ -121,6 +121,16 @@ class ZaryaBeamTests(unittest.TestCase):
         self.fire(40, 0)
         self.assertEqual(self.health(), 170)
 
+    def test_static_wall_blocks_melee_without_hit_feedback(self):
+        self.b.mover.position[2] = 1.5
+        wall = World([(-10, 0, 0.75, 10, 0, 0.75, 10, 10, 0.75),
+                      (-10, 0, 0.75, 10, 10, 0.75, -10, 10, 0.75)])
+        with patch.object(self.fight, "_collision", return_value=wall):
+            self.fire(1, 0x800)
+            self.fire(40, 0)
+        self.assertEqual(self.health(), 200)
+        self.assertFalse(self.a.client.messages(combat.HIT))
+
     def test_secondary_projectile_deals_actual_damage(self):
         self.fire(1, 2)
         self.fire(90, 0)

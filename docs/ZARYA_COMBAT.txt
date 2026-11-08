@@ -128,7 +128,7 @@ Operation             Enemy player    Enemy NPC         Ally semantics
 Primary beam          Damage tested   Five base bodies  No damage tested
 Secondary projectile  Damage tested   Five bodies:47    No friendly fire tested
 Quick melee           30 once tested  Five bodies:30    No friendly fire tested
-Personal barrier      HP/time/CD      Trooper/Heavy     Self protection only, no damage conversion
+Personal barrier      HP/time/CD      Trooper/Heavy/Sniper     Self protection only, no damage conversion
                       model tests
 Projected barrier     HP/time/CD/     Allied five       Ally selection/protection; never enemy damage
                       target tests
@@ -136,7 +136,7 @@ Energy passive        Absorb/cap/     OPEN              Both barrier sources; HU
                       decay model
 Shield recovery       3s/30 per sec   Zarya only        Self shield pool, no allied healing conversion
 Graviton Surge       5+20/pull/time   Five bodies:25    No allied damage/pull tested
-Incoming attacks      Rifle->shields  Trooper/Heavy     Healing retains allied semantics
+Incoming attacks      Rifle->shields  Trooper/Heavy/Sniper     Healing retains allied semantics
 Death/lifetime        Stops beam      Five bodies       Manual NPCs retain corpse; player respawn separate
                                       shortened lethal
 
@@ -155,8 +155,12 @@ The delivery-model client records native-body death callbacks but does not prove
 wire rendering. Trooper and Heavy use explicit logical20 input on their actual
 weapon graphs; their volleys remove120/110 from Zarya over120 frames respectively,
 and the personal barrier blocks them and generates energy. The fixture does not
-implement autonomous acquisition/navigation. Enforcer/Sniper/Assassin did not
-produce damage under that input; their attacks and all five specials remain OPEN.
+implement autonomous acquisition/navigation. With the original fixture, Enforcer/Sniper/Assassin produced no damage. After
+reviewed parent weapon-mounting and array-selection imports d1286b7/6debff3,
+Sniper now executes its actual first shot for100 damage into Zarya shields.
+Enforcer/Assassin attacks and all five specials remain OPEN. The Sniper fixture
+explicitly omits observer projectile transport; its body and weapon code execute.
+It proves authoritative damage, not observer VFX or autonomous acquisition.
 Two additional methods apply the actual ultimate cast to all five bodies:25 total
 enemy damage and collision-backed pull, plus no damage/pull on allied bodies.
 
@@ -215,6 +219,26 @@ existing field's movement override immediately, before the next scheduled update
 Death alone still permits emitted projectiles and fields to finish. Seven added
 cases bring the ultimate suite to27;162 affected combat/Zarya/projectile/five-NPC
 tests pass in68.487s with external NPC data enabled. Ruff/diff checks pass.
+
+Shared base review and Zarya follow-up (2026-11-09)
+-------------------------------------------------
+Reviewed parent d1286b7,6debff3 and7cd1ed7 are imported with provenance into this
+private source. The shared weapon allocation mounts authored NPC managers and
+sparse weapon slots, the array selector preserves its original null/bounds rules,
+and quick melee checks eye-to-nearest-capsule-surface static visibility. The melee
+visibility geometry is explicitly reconstructed, not a native hitbox equivalence.
+Zarya-specific wall refusal executes on an enemy player and all five actual NPC
+bodies; existing unobstructed30-damage cases remain in the same suite. Sniper's
+actual first shot removes100 from shields, and a deliberately timed personal
+barrier blocks it and generates20 energy. No query is forced to open a controller.
+The resulting197 affected tests pass in121.294s, plus32 body/driver tests in
+4.841s; external five-NPC data is enabled, with zero skips. Ruff/diff pass.
+
+A separate offline native probe executes192 cases of9B7648C3 routing against the
+captured client image with declared storage/interface adapters. It establishes the
+component33 floating getter (+40) and dependency subscription (+20), including
+invalid target and missing-component behavior. It does not establish that this
+unnamed getter is health. No production query or NPC completion claim uses it.
 
 Original client and publication
 -------------------------------

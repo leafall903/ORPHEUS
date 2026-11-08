@@ -12,6 +12,7 @@ from unittest.mock import patch
 from test_game_combat import FakeClient, Run
 
 from ow174.game import combat, npc
+from ow174.game.collision import World
 from ow174.game.content import heroes
 from ow174.game.script import graph
 
@@ -32,6 +33,9 @@ class NpcClient(FakeClient):
 
     def queue_bot_death_update(self, entity, event):
         self.death_updates.append((entity, event))
+
+    def bot_stream(self, entity):
+        return None  # No observer projectile transport in this damage fixture.
 
 
 @unittest.skipUnless(NPC_DATA, "requires external five-NPC data; not acceptance when skipped")
@@ -139,6 +143,49 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 self.assertEqual(vitals.total, before)
                 self.fire(run, player, 1, 0)
                 self.assertEqual(player.body_script.component.entity_var(87).value(), 20)
+
+    def test_static_wall_blocks_melee_on_each_actual_body(self):
+        wall = World([(-10, 0, 0.75, 10, 0, 0.75, 10, 10, 0.75),
+                      (-10, 0, 0.75, 10, 10, 0.75, -10, 10, 0.75)])
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot = self.encounter(definition, z=1.5)
+                vitals = run.match.combat.vitals[bot.entity]
+                before = vitals.total
+                with patch.object(run.match.combat, "_collision", return_value=wall):
+                    self.fire(run, player, 1, 0x800)
+                    self.fire(run, player, 40, 0)
+                self.assertEqual(vitals.total, before)
+                self.assertFalse(player.client.messages(combat.HIT))
+
+    def test_mounted_sniper_first_authored_shot_deals_100_to_zarya(self):
+        definition = next(d for d in self.catalog.values() if d.name == "Sniper")
+        run, player, bot = self.encounter(definition)
+        bot.yaw = -32768
+        bot.firing = True
+        bot.body_script.component.run_frame(run.frame, [(20, True)])
+        target = next(t for t in run.match.combat._targets() if t.owner is player)
+        vitals = run.match.combat.vitals_of(target)
+        for _ in range(200):
+            self.fire(run, player, 1, 0)
+            if vitals.total < 400:
+                break
+        self.assertEqual(vitals.total, 300)
+        self.assertEqual(vitals.now[combat.HEALTH_POOL], 200)
+
+    def test_personal_barrier_blocks_mounted_sniper_shot_and_gains_energy(self):
+        definition = next(d for d in self.catalog.values() if d.name == "Sniper")
+        run, player, bot = self.encounter(definition)
+        bot.yaw = -32768
+        bot.firing = True
+        bot.body_script.component.run_frame(run.frame, [(20, True)])
+        # Explicit reaction timing fixture; no automatic barrier/AI policy.
+        self.fire(run, player, 20, 0)
+        self.fire(run, player, 1, 8)
+        self.fire(run, player, 120, 0)
+        target = next(t for t in run.match.combat._targets() if t.owner is player)
+        self.assertEqual(run.match.combat.vitals_of(target).total, 400)
+        self.assertEqual(player.body_script.component.entity_var(87).value(), 20)
 
     def test_lethal_beam_leaves_each_manual_corpse_without_respawn(self):
         for definition in self.catalog.values():

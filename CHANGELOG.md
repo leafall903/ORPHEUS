@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Zarya shared-base integration and NPC/melee follow-up (partial static acceptance)
+
+- Review and import parent NPC weapon mounting, native array selection and static
+  melee visibility fixes with provenance. Retain this lane's independent source.
+- Add actual Zarya-command checks for a player and five actual NPCs behind a wall;
+  preserve unobstructed30-damage cases. Sniper's mounted weapon now removes100
+  from Zarya shields; a deliberately timed personal barrier blocks it and gains20
+  energy. The damage fixture omits NPC observer projectile transport.
+- Pass197 affected combat/Zarya/projectile/NPC/array/melee tests in121.294s and32
+  body/driver tests in4.841s; zero skips, Ruff/diff pass. An independent offline
+  query probe passes192 native routing cases using declared storage adapters;
+  the unnamed component's health meaning remains unresolved and is not implemented.
+- Enforcer/Assassin, all five specials/autonomous AI, full cross-defense/control,
+  ultimate generation and original-client acceptance remain open. Goal stays ACTIVE.
+
 #### Zarya projectile ownership and lifecycle (partial static acceptance)
 
 - Freeze projectile team and source-body credit at emission for direct and splash
