@@ -1,5 +1,18 @@
 # Changelog
 
+### Torbjorn lane: projectile impact damage definitions
+
+- Apply evaluated direct-projectile falloff and explicit critical multipliers at
+  impact, with the matching hit flag. Existing splash behavior is unchanged.
+- Pass four Torbjorn server tests, including actual primary/player damage,
+  secondary single-pellet pool losses at three ranges, explicit critical feedback
+  and Torbjorn incoming armour damage/death. Pass 71 shared combat/projectile/
+  health tests. These are server-only checks, not original-client acceptance.
+- Keep full Torbjorn/five-NPC combat, projectile count/spread/gravity, hammer,
+  turret, Overload, Molten Core areas and cross-hero protections open in
+  docs/TORBJORN_COMBAT.txt and the roadmap. No client or normal service was
+  controlled. Publication is parent-owned and was not attempted in this lane.
+
 This log records tested changes and their acceptance status. Entries are grouped by date until a version is explicitly released.
 
 ## Unreleased

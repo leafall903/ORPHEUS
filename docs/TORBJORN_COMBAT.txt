@@ -1,0 +1,82 @@
+Torbjorn combat lane, retail 1.74.0.0.104319 (hero 02E0000000000006)
+=================================================================
+Status: OPEN. No original-client acceptance has been performed by this lane.
+The server-only checks below do not establish a playable hero.
+
+This lane develops on an isolated main clone of baseline 100c66c. Runtime data
+is read from the external runtime-104319 directory. Changes are delivered as
+commits/patches for parent review, without editing the root source or publishing.
+
+Implemented here
+----------------
+Projectile direct impacts now use the evaluated HitDef distance falloff and
+explicit critical multiplier. The hit flag follows the explicit multiplier;
+blast damage is unaffected. Distance is flown time times the constant speed of
+the existing straight-line solver. Critical hit geometry remains the existing
+capsule/eye approximation, not an authored hitbox reconstruction.
+
+Actual 1683/st13 per-pellet damage is 12.5, full through 10m, declining to 30%
+at 20m. Tests measure player pool changes at 5m/15m/25m, and the explicit
+critical multiplier/flag. The primary 1683/st10 volley damages a player once
+for 70. Torbjorn's initial 200 health plus 50 armour accepts opposing player
+damage, then dies with owner_dead and killer identity recorded.
+
+Do not infer native headshot defaults from these tests: both extracted Torbjorn
+hit definitions omit m_A872C70E, so the current evaluator defaults to 1. The
+critical test explicitly sets a multiplier of 2 to test the shared impact path.
+
+Acceptance matrix
+-----------------
+Every row requires enemy player AND Trooper, Enforcer, Sniper, Assassin and
+Heavy Assault; all original-client cells remain OPEN. Actual five-NPC bodies,
+attack/special behavior, team identity and manual corpse retention must be
+tested through the parent-owned sandbox once available.
+
+Action             Server evidence / remaining implementation
+Primary rivet      70 direct damage to player; native gravity9.8 is ignored;
+                   critical defaults, true hitboxes and presentation OPEN.
+Secondary rivets   Single pellet falloff repaired; 10 pellets declared by the
+                   graph, but combat still creates only one. Spread OPEN.
+Quick melee        Existing 0043/st4 approximation; Torbjorn-specific client,
+                   NPC, barrier/control/immune/death acceptance OPEN.
+Forge Hammer       168C/st6 declares55 damage and st5 tracks around a local
+                   (0,1.2,1.5) centre with radius1. Current combat only consumes
+                   0043 melee. Weapon-switch/animation and hammer damage OPEN.
+Hammer repair      Friendly owned turret repair is distinct from enemy damage;
+                   turret target/query/health ownership OPEN. Never heal enemies.
+Deploy Turret      16C5 projectile28B7 confirmation exists; no persistent combat
+                   turret actor, build/target/fire/repair/destroy/redeploy OPEN.
+Overload           1721/st3 activates and declares100 health-pool amount, but
+                   no authoritative pool is created: health remains250. Pool
+                   type/expiry, movement/fire/reload changes and death OPEN.
+Molten Core        16DA/st17 launches direct25 projectiles after ultimate press
+                   then fire (a server probe dealt125 across five launches).
+                   Persistent puddles, area/armour damage, lifetime, presentation
+                   and full native timing OPEN. No client acceptance inferred.
+
+Cross-hero acceptance (each source/target direction)
+--------------------------------------------------
+Health/armour/shield pools: basic pool mechanism exists; Torbjorn incoming
+armour/player death and outgoing per-pellet/player damage tested here.
+Barriers, Zarya bubbles, Deflect, Defense Matrix, invulnerability, damage
+modifiers, control/interrupts, ability denial, knockback, status expiry and
+death cleanup: OPEN. Combat._damage currently calls Vitals.damage directly;
+there is no complete authoritative protection/status policy at that boundary.
+Allied turret/repair and team eligibility: OPEN. Existing general enemy
+filtering must be retained; support/repair must not become hostile damage.
+Manual PvE corpses: baseline retain_corpse exists, actual five-NPC client
+appearance and terminal script/lifetime still OPEN. Normal player respawn is
+a different policy.
+
+Validation
+----------
+Run from this clone with ORPHEUS_RUNTIME_DIR pointing to runtime-104319 and
+PYTHONPATH pointing to this clone and its tests directory:
+  python -B -m unittest test_game_torbjorn -v
+  python -B -m unittest test_game_combat test_game_projectiles test_game_health -q
+
+The external source venv lacks pytest; unittest is the working runner. No
+client was started/controlled, no lease claimed and no normal server modified.
+An existing Overwatch PID12292/window was observed on 2026-11-08, without a
+lane lease. It was left untouched; absence of a lease does not grant ownership
+of an already running client.

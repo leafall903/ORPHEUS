@@ -14,6 +14,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Torbjorn bidirectional player/five-NPC combat and every ability.
+  Direct projectile falloff and explicit critical multipliers now reach actual
+  health damage in server tests. Ten-pellet spread, rivet gravity, hammer/repair,
+  combat turret, Overload pools, Molten Core areas, cross-hero protections and
+  original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse

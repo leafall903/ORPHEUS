@@ -722,8 +722,13 @@ class Combat:
         self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
+            direct = rocket.direct
+            critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
+            amount = direct.amount * direct.scale(rocket.flown * rocket.speed)
+            if critical:
+                amount *= direct.critical
             self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+                rocket.shooter, struck, amount, critical and direct.critical > 1.0, direct.loadout, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast
