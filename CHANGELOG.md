@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Tracer paired hitscan damage (hero lane 0003)
+
+- Resolve `m_numProjectilesPerShot` independently for hitscan damage. Actual
+  Tracer0016/st8 emits two six-damage bullets per shot, while the previous
+  consumer applied only one. Keep armour mitigation and lethal-hit suppression
+  per bullet rather than multiplying the damage before applying health pools.
+- Pass eleven actual-graph Tracer input/combat fixtures, 28 existing combat
+  tests and 37 projectile regressions (76 total); Ruff and diff checks pass.
+  Coverage includes magazine damage, explicit reload, melee, incoming
+  Soldier fire, armour/shield pools, team filtering, wall occlusion, notices and
+  retained training-NPC lifetime. See `docs/TRACER_COMBAT.md` for the matrix.
+- Original-client acceptance was not run. Shared-ray spread, critical defaults,
+  all three abilities, ultimate gain, statuses/barriers/deflect/absorption and
+  all five requested PVE NPC classes remain open. No full hero acceptance or
+  publication is claimed; this private lane exports a patch for review.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

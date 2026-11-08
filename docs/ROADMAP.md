@@ -14,6 +14,13 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] **Tracer hero lane 0003.** Full player/PVE combat and original-client
+  acceptance remain open. Eleven actual-graph server fixtures cover paired
+  pistol damage, reload, melee, incoming Soldier fire and selected shared health,
+  death and training-NPC lifetime behavior. Blink, Recall, Pulse Bomb, critical
+  defaults/spread, complete cross-hero effects and five-class NPC acceptance are
+  unaccepted. See [Tracer combat matrix](TRACER_COMBAT.md).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse

@@ -683,10 +683,16 @@ class Combat:
         hit_y = origin[1] + direction[1] * t
         critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
-        self._damage(
-            shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
-            world_tick=self.tick if npc else None,
-        )
+        # A volley report is one shot, not one projectile. Tracer consumes two
+        # rounds and emits two bullets per report (0016 st8). Resolve each hit
+        # separately: combining them before Vitals.damage changes armour loss.
+        # All bullets currently share the command ray; authored spread/muzzle
+        # offsets remain unimplemented, as for the existing single-bullet path.
+        for _ in range(max(0, int(field("m_numProjectilesPerShot", 1)))):
+            self._damage(
+                shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
+                world_tick=self.tick if npc else None,
+            )
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
