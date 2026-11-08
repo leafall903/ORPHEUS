@@ -17,7 +17,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 - [ ] **Sigma independent combat acceptance.** Partial headless damage evidence
   covers Hypersphere impact/expiry, quick melee, Accretion damage and incoming
   player rifle damage. Static wall occlusion and authored cooldown/Flux lifecycle
-  checks pass; full Barrier, Grasp, Flux effects, control, cross-hero interactions,
+  checks pass. Grasp intercepts classified rifle/Helix/spheres with authored
+  accounting; temporary shields remain open. Full Barrier/Flux effects, control, cross-hero interactions,
   all five PvE enemy types and original-client acceptance remain open. See
   [Sigma combat lane](SIGMA_COMBAT.txt). No hero-complete claim is made.
 

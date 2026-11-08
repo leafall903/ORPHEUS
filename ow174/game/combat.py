@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, sigma, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -356,6 +356,7 @@ class Rocket:
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
     airburst: bool = False  # explode at the final flight position when lifetime/range expires
+    absorbable: bool = True  # reconstructed projectile eligibility; Accretion is excluded
 
 
 class Combat:
@@ -664,6 +665,7 @@ class Combat:
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
                         airburst=(state.instance.graph.index, node.state) in AIRBURST_VOLLEYS,
+                        absorbable=state.instance.graph.index not in sigma.UNABSORBABLE_PROJECTILES,
                     )
                 )
             return
@@ -683,6 +685,16 @@ class Combat:
             t = ray_capsule(origin, direction, a, b, shown.radius)
             if t is not None and t <= reach and (best is None or t < best[0]):
                 best = (t, target, shown)
+        if state.instance.graph.index in sigma.GRASP_HITSCAN:
+            limit = reach if best is None else best[0]
+            wall = ray_world(self._collision(), origin, direction, limit)
+            intercepted = sigma.grasp_intersection(
+                self, shooter, origin, direction, limit if wall is None else wall,
+            )
+            if intercepted is not None:
+                distance, grasp = intercepted
+                sigma.absorbed(grasp, direct.amount * direct.scale(distance))
+                return
         if best is None:
             return
         t, target, shown = best
@@ -719,6 +731,20 @@ class Combat:
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
         wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
+        if rocket.absorbable:
+            limit = step if best is None else best[0]
+            if wall is not None:
+                limit = min(limit, wall)
+            intercepted = sigma.grasp_intersection(
+                self, rocket.shooter, rocket.position, rocket.direction, limit,
+            )
+            if intercepted is not None:
+                distance, grasp = intercepted
+                amount = sum(max(0.0, hit.amount) for hit in (rocket.direct, rocket.blast) if hit is not None)
+                sigma.absorbed(grasp, amount)
+                rocket.flown += distance / rocket.speed
+                self._landed(rocket)
+                return
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
         if best is None:

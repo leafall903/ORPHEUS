@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Sigma Grasp interception and authored absorption accounting (partial)
+
+- Intercept eligible projectile sweeps and the classified Soldier rifle hitscan
+  with Sigma's active 1D02/state1 boxes. Evaluate box bounds from build104319
+  data and feed the authored per-hit output/accumulator plug. Respect nearer
+  static geometry/body limits and skip dead or allied defenders.
+- Pass 92 Sigma/shared combat/projectile tests. Ten new real-input scenarios
+  cover front/rear/rotated view, wall/team exclusion, Helix and Hypersphere
+  destruction without damage or a later explosion, Accretion/melee exceptions,
+  and damage resuming after the authored absorption state ends. Ruff passes.
+- View-relative box placement, ordering and nominal incoming damage accounting
+  are explicitly reconstructed. Other hitscan/beam eligibility, temporary
+  shields/decay and native/client absorption presentation remain OPEN. No
+  complete Grasp or full Sigma static acceptance is claimed.
+
 #### Damage occlusion and Sigma lifecycle evidence (static goal remains active)
 
 - Prevent quick melee and projectile explosions from damaging targets behind

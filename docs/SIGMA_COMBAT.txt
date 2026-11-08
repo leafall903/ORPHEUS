@@ -31,7 +31,7 @@ Action                 P evidence                  NPC evidence    Acceptance
 Hyperspheres           110 direct pair / 60 burst    all five OPEN   OPEN
 Quick melee            30 once, actual input        all five OPEN   OPEN
 Experimental Barrier   no interception test         all five OPEN   OPEN
-Kinetic Grasp          no absorption/overhealth test all five OPEN   OPEN
+Kinetic Grasp          rifle/Helix/spheres absorbed  all five OPEN   OPEN
 Accretion              70 damage only               all five OPEN   OPEN
 Gravitic Flux          charge/cost/end/death only     all five OPEN   OPEN
 Incoming attacks       enemy Soldier rifle only     all five OPEN   OPEN
@@ -62,6 +62,17 @@ Blast rays start0.1mm on the incoming side of a wall collision and stop at the
 nearest capsule surface. This single-point policy can differ from native
 multi-point exposure around cover. Dynamic shields remain a separate open path.
 82 total Sigma/shared combat/projectile tests pass, including17 Sigma cases.
+
+Grasp interception now has10 additional real-input checks (92 total tests):
+front rifle60 absorbed with400HP retained, rear damage allowed, rotated view,
+wall/ally exclusion, Helix120 and Hypersphere pair110 accumulated without body
+damage or later explosion, Accretion70 and melee30 allowed, and absorption ending
+with the authored State. The adapter evaluates bounds from1D02/state1 and feeds
+6584 plus its actual accumulator plug; graph node32 updates21312. The oriented
+eye-relative transform and nominal direct+blast accounting are reconstructed.
+Only Soldier rifle hitscan is currently classified; other hitscan/beam families
+remain open. Temporary-shield creation, cap, damage order, decay and component51
+replication are not implemented by this adapter and remain acceptance blockers.
 
 Required open interactions
 --------------------------
