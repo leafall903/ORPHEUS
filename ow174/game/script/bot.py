@@ -9,7 +9,7 @@ from ow174.game.script.driver import (
     OWNER_HEALTH,
     ReplicatedBody,
     Snapshot,
-    create_initial_graphs,
+    create_body_graphs,
     live_body_var_slot,
 )
 
@@ -106,7 +106,7 @@ class BotScript(ReplicatedBody):
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
-        for instance in create_initial_graphs(component, record):
+        for instance in create_body_graphs(component, record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
