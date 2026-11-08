@@ -22,6 +22,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
   Shared resource-backed Flashbang control has offline interruption/recovery
   checks; native immunity/presentation and full hero acceptance remain open.
+  Native input joins now preserve Deadeye's six-second timing and secondary
+  cancellation; target acquisition/charging/damage and full ultimate acceptance
+  remain open. See [state-input joins](STATE_INPUT_JOIN.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
