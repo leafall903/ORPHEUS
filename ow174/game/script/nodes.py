@@ -105,9 +105,9 @@ class ScopedSubgraph(State):
 
     def on_created(self):
         component = self.instance.component
-        if not component.strict:
-            return
         registry = component.world.subgraph_scopes(component.entity)
+        if not component.strict and (registry is NotImplemented or type(self) is not ScopedSubgraph):
+            return
         if registry is not None and type(registry) not in (scopes.Registry, scopes.ForwardHost):
             component.unsupported(self.instance, "subgraph scope registration", self.node.cls, self.node)
         if registry is not None:
@@ -2031,6 +2031,17 @@ def set_var(instance: Instance, node, caller) -> bool:
         value = play.evaluate_value(instance, config, initial=0)
         store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
     instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_621AF478")
+def respawn_body(instance: Instance, node, caller):
+    """Delegate the engine respawn action only when its owner declares it."""
+    result = instance.component.world.respawn_body(instance, node)
+    if result is NotImplemented:
+        return NotImplemented
+    if result:
+        instance.follow(node, "m_outPlug", None)
     return True
 
 

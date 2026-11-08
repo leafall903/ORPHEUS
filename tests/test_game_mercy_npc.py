@@ -125,3 +125,32 @@ class MercyNpcTests(unittest.TestCase):
                 self.tick(run, player, bot, 250, buttons=0)
                 self.assertIn(bot, run.match.bots)
                 self.assertNotIn(bot.entity, [t.entity for t in run.match.combat._enemies(player)])
+
+    def test_guardian_angel_reaches_each_friendly_npc_and_rejects_hostile_npcs(self):
+        for definition in self.catalog.values():
+            for team in (0, 1):
+                with self.subTest(npc=definition.name, team=team):
+                    run, player, bot, _ = self.spawn(definition, team)
+                    bot.position = (0, 1, 12)
+                    self.tick(run, player, bot, 12, buttons=0x08)
+                    if team == 0:
+                        self.assertGreater(player.mover.position[2], 0.5)
+                    else:
+                        self.assertEqual(player.mover.position[2], 0)
+
+    def test_resurrect_does_not_turn_friendly_manual_npc_corpses_into_players(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot, target = self.spawn(definition, 0)
+                bot.position = (0, 1, 3)
+                fight = run.match.combat
+                fight._damage(bot, target, fight.vitals_of(target).total + 1000, False, None, run.frame)
+                self.assertTrue(bot.dead)
+                self.tick(run, player, bot, 3, buttons=0)
+                self.tick(run, player, bot, 1, buttons=0x10)
+                self.tick(run, player, bot, 120, buttons=0)
+                instance = next(i for i in player.body_script.component.instances.values()
+                                if i.graph.index == 0x00CA)
+                self.assertEqual(instance.find_var(0, 61).value(), 0)
+                self.assertTrue(bot.dead)
+                self.assertEqual(fight.vitals_of(target).total, 0)

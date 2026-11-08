@@ -183,6 +183,8 @@ class Vitals:
         self.died_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
+        self.invulnerable_until = 0.0
+        self.control_locked_until = 0.0
 
     @property
     def dead(self) -> bool:
@@ -375,6 +377,51 @@ class Combat:
         vitals = self.vitals.get(player.body) if player.has_body else None
         return vitals is not None and vitals.dead
 
+    def control_locked(self, player) -> bool:
+        vitals = self.vitals.get(player.body) if player.has_body else None
+        return vitals is not None and self.now < vitals.control_locked_until
+
+    def resurrect_player(self, caster, entity: int, instance) -> bool:
+        """Reconstructed00CA engine respawn: revive the same friendly player body.
+
+        Completion/range/cooldown are authored by the caster graph. Full health,
+        same-body revival and the00CB1.5s control/2.25s immunity windows are host
+        policies pending native/server comparison and original-client acceptance.
+        """
+        if (caster.hero.guid != regeneration.MERCY or self.is_dead(caster)
+                or self.match.game_map.free_for_all or caster.body == entity
+                or caster.body_script is None or caster.body_script.component is not instance.component):
+            return False
+        target = next((t for t in self._targets() if t.entity == entity), None)
+        if (target is None or target.team != caster.team or isinstance(target.owner, bots.Bot)
+                or not self.vitals_of(target).dead):
+            return False
+        helper = graph.graph(0x00CB)
+        if helper is None:
+            return False
+        immunity = next((n for n in helper.nodes if n.pos == 1), None)
+        controls = next((n for n in helper.nodes if n.pos == 3), None)
+        if immunity is None or controls is None:
+            return False
+        immune_seconds = _number(instance.evaluate(immunity.field("m_timeout")), 0.0)
+        control_seconds = _number(instance.evaluate(controls.field("m_timeout")), 0.0)
+        vitals = self.vitals_of(target)
+        for kind, most in vitals.most.items():
+            if vitals.now[kind] != most:
+                vitals.now[kind] = most
+                vitals.changed.add(kind)
+        vitals.died_at = vitals.death_tick = vitals.killer = None
+        vitals.invulnerable_until = self.now + immune_seconds
+        vitals.control_locked_until = self.now + control_seconds
+        self.respawns[:] = [(when, who) for when, who in self.respawns if who is not target.owner]
+        self._sync_body_health(target.owner, vitals)
+        subject = graph.graph(0x01C7)
+        credit = next((n for n in subject.nodes if n.pos == 29), None) if subject else None
+        if credit is not None:
+            for stat in credit.field("m_stats") or ():
+                caster.stats.add(expr.guid_of(stat), 1.0)
+        return True
+
     def kill_feed_allowed(self, viewer, entity: int) -> bool:
         """First playback waits for the mode UI and uses the death's world clock."""
         vitals = self.vitals.get(entity)
@@ -530,7 +577,10 @@ class Combat:
         aim ranking/occlusion and half-angle interpretation await native/client
         comparison. Other target geometries and status filters remain unmounted.
         """
-        if state.instance.graph.index != 0x006B or state.index not in (4, 5, 51):
+        staff = state.instance.graph.index == 0x006B and state.index in (4, 5, 51)
+        guardian = state.instance.graph.index == 0x006E and state.index in (5, 14)
+        resurrect = state.instance.graph.index == 0x00CA and state.index in (14, 38)
+        if not staff and not guardian and not resurrect:
             return NotImplemented
         player = next((p for p in self.match.players if p.has_body and p.body == source), None)
         if player is None or player.hero.guid != regeneration.MERCY:
@@ -542,11 +592,11 @@ class Combat:
         origin = self._eye(player)
         direction = aim(player.mover.yaw, player.mover.pitch)
         retained = None
-        if state.index == 5:
+        if staff and state.index == 5:
             selected = state.instance.find_var(graph.INSTANCE, 375).value()
             retained = {item.id for item in selected if isinstance(item, expr.Entity)} if isinstance(
                 selected, tuple) else set()
-        else:
+        elif staff:
             hold = state.instance.states.get(5)
             if hold is not None and hold.active:
                 # A retiring hold cancels its queued begins. Let its authored
@@ -554,7 +604,12 @@ class Combat:
                 return ()
         candidates = []
         for target in self._targets():
-            if target.entity == source or target.team != player.team or self.vitals_of(target).dead:
+            if target.entity == source or target.team != player.team:
+                continue
+            dead = self.vitals_of(target).dead
+            if resurrect and (not dead or isinstance(target.owner, bots.Bot)):
+                continue
+            if dead and not resurrect and (not guardian or isinstance(target.owner, bots.Bot)):
                 continue
             if retained is not None and target.entity not in retained:
                 continue
@@ -901,7 +956,7 @@ class Combat:
         *, world_tick: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
-        if vitals.dead or amount <= 0.0:
+        if vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0:
             return
         dealt = vitals.damage(amount)
         if dealt <= 0.0:

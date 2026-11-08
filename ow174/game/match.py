@@ -31,6 +31,7 @@ import logging
 import math
 from collections import deque
 from copy import deepcopy
+from dataclasses import replace
 
 from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
 from ow174.game.collision import (
@@ -295,15 +296,16 @@ class Player:
         for command in fresh:
             if self.has_body:
                 dead = self.match.combat.is_dead(self)
-                first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
+                locked = self.match.combat.control_locked(self)
+                first_pose = command.frame if dead or locked else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
-                if not dead and self.body_script is not None:
+                if not dead and not locked and self.body_script is not None:
                     self.mover.step(
                         command, seconds, self.match.tick,
                         simulate_pose=self._step_body_pose,
                     )
                 else:
-                    if not dead:  # a dead body lies where it fell
+                    if not dead and not locked:  # dead/rising bodies stay in place
                         self.mover.step(command, seconds, self.match.tick)
                     self._advance_body_frame(command)
         if movelog.ENABLED:
@@ -348,6 +350,8 @@ class Player:
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
+            if self.match.combat.control_locked(self):
+                command = replace(command, buttons=0, action=0, forward=0, right=0)
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.

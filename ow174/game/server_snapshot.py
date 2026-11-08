@@ -38,7 +38,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import driver, expr, runtime, scopes
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -95,7 +95,8 @@ FIELDS = {
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
         "projectiles observers voice"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer "
+                          "invulnerable_until control_locked_until"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -115,6 +116,7 @@ FIELDS = {
         "support_healing"
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
+    scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
@@ -135,9 +137,12 @@ FIELDS = {
         "last_held input_tick moved_tick last_tick retain_corpse"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    driver.BodyWorld: _names("scope_host"),
+}
 DATACLASSES = (
-    GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
+    GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData, scopes.Edge, scopes.History,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,

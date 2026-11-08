@@ -28,7 +28,7 @@ from ow174.game import pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, regeneration, runtime, support
+from ow174.game.script import expr, graph, nodes, regeneration, runtime, scopes, support
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -80,7 +80,8 @@ ACTION_BUTTONS.update({action: 81 + action for action in range(10, 16)})  # 10..
 # Entity variables no graph of the body writes: the server's own code sets them.
 WEAPON_SLOTS, DEFAULT_SLOT, OWNER_HEALTH, HUD_HEALTH, HUD_MAX_HEALTH = 29, 16515, 253, 1732, 1737
 OWNER_MAX_HEALTH = 1762  # 0071/node89's maximum-health input (extracted graph binding)
-NOT_SENT = {OWNER_HEALTH, OWNER_MAX_HEALTH}  # derived from component51, never sent
+RESURRECTABLE = 2426  # reconstructed eligibility input consumed by001C7's death branch
+NOT_SENT = {OWNER_HEALTH, OWNER_MAX_HEALTH, RESURRECTABLE}  # engine inputs, never sent
 BODY_SCALE_OVERRIDE = 31210  # the common body graph's size modifier input
 # The world's config vars whose server answer is the client's for a human player's own body (computed, or
 # answered null/false). A BooleanSwitch that reads any other one is uncertain and is not sent.
@@ -140,8 +141,47 @@ class BodyWorld(runtime.World):
             return self.match.combat.script_targets(self.body, state)
         return NotImplemented
 
+    def subgraph_scopes(self, entity):
+        if entity == self.body and hasattr(self, "scope_host"):
+            return self.scope_host
+        return NotImplemented
+
+    def entity_var(self, entity, var):
+        if self.match is not None:
+            target = next((t for t in self.match.combat._targets() if t.entity == entity), None)
+            script = getattr(target.owner, "body_script", None) if target is not None else None
+            if script is not None:
+                slot = script.component.entity_var(var, create=False)
+                value = slot.value() if slot is not None else None
+                if var == 653 and value is None and any(p is target.owner for p in self.match.players):
+                    # Reconstructed eligibility bridge while foreign body scope
+                    # hosting has not yet produced001C7's marker Stack653.
+                    eligibility = script.component.entity_var(RESURRECTABLE, create=False)
+                    return eligibility.value() if eligibility is not None else None
+                return value
+        return super().entity_var(entity, var)
+
+    def respawn_body(self, instance, node):
+        if self.match is None or instance.graph.index != 0x00CA or node.pos != 20:
+            return NotImplemented
+        target = instance.evaluate(node.field("m_targets"))
+        while isinstance(target, tuple):
+            target = target[0] if target else None
+        caster = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        if caster is None or not isinstance(target, Entity):
+            return False
+        return self.match.combat.resurrect_player(caster, target.id, instance)
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_9B7648C3" and self.match is not None and instance.graph.index == 0x00CA:
+            # Reconstructed health query:00CA tests owner>0 and candidate==0.
+            value = instance.evaluate(cfg.get("m_entity"))
+            while isinstance(value, tuple):
+                value = value[0] if value else None
+            identifier = expr.to_entity(value)
+            target = next((t for t in self.match.combat._targets() if t.entity == identifier), None)
+            return self.match.combat.vitals_of(target).total if target is not None else 0.0
         if cls == "STU_E72F6348" and self.match is not None:
             # Reconstructed live-body namespace. The native query backend still
             # owns worlds that explicitly mount an entity-query Context.
@@ -150,6 +190,28 @@ class BodyWorld(runtime.World):
                 value = value[0] if value else None
             identifier = expr.to_entity(value)
             return any(target.entity == identifier for target in self.match.combat._targets())
+        if (cls in {"STU_71A87E92", "STU_21A13145", "STU_F7FD94F9", "STU_FDBB0B67"}
+                and self.match is not None and instance.graph.index in (0x006E, 0x00CA)):
+            # Reconstructed body namespace for Guardian Angel's authored endpoint
+            # expressions. Eye/capsule/scale bindings need native comparison.
+            value = instance.evaluate(cfg.get("m_entity"))
+            while isinstance(value, tuple):
+                value = value[0] if value else None
+            identifier = expr.to_entity(value)
+            target = next((t for t in self.match.combat._targets() if t.entity == identifier), None)
+            if target is not None:
+                if cls == "STU_71A87E92":
+                    return Vec3(*target.feet)
+                if cls == "STU_21A13145":
+                    return Vec3(target.feet[0], target.feet[1] + target.eye, target.feet[2])
+                if cls == "STU_F7FD94F9":
+                    return f32(target.radius)
+                script = getattr(target.owner, "body_script", None)
+                override = script.component.entity_var(BODY_SCALE_OVERRIDE, create=False) if script else None
+                scale = override.value() if override is not None else None
+                if scale is None:
+                    return UNIT_ENTITY_SCALE
+                return scale
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -169,7 +231,9 @@ class BodyWorld(runtime.World):
                 if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
-            return False
+            #00CA/node22's declared authoritative split: engine respawn then0067/006B.
+            # The captured PC evaluator is the client role, not server proof.
+            return self.match is not None and instance.graph.index == 0x00CA
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
@@ -285,6 +349,11 @@ class BodyScript(ReplicatedBody):
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
         self.component = runtime.Component(entity, self.frame_ms, self.world)
+        if hero == regeneration.MERCY:
+            # Explicit owner mapping: command frames drive the native-backed
+            # ordinary forward scope phase. Other engine interfaces stay unmounted.
+            self.world.scope_host = scopes.ForwardHost(self.component)
+            self.world.scope_host.set_frame(start_frame)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0
         self.stream = BodyStream(entity)
@@ -301,6 +370,7 @@ class BodyScript(ReplicatedBody):
             # Reconstructed unscaled targeting-angle input. Native settings/FOV
             # computation of9583 remains open;006B uses40 * this value.
             self.component.set(9583, 1.0)
+            self.component.set(9582, 1.0)  #006E's unscaled30-degree acquisition cone
         self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
 
     def __repr__(self) -> str:
@@ -329,7 +399,10 @@ class BodyScript(ReplicatedBody):
                 created.append(component.create(graph.graph(item), values={(INSTANCE, 28): slot}, init=False))
         for instance in created:
             instance.init()
-        component.run_frame(frame)
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.run_frame(frame)
+        else:
+            component.run_frame(frame)
         self.server_only = self.initial_exclusions()
         for instance in component.instances.values():
             for node in instance.graph.states:
@@ -345,6 +418,7 @@ class BodyScript(ReplicatedBody):
         super().set_health(health, most)
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
+        self.component.set(RESURRECTABLE, health <= 0 < most)
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
 
     # --- running -----------------------------------------------------------------------------------
@@ -374,7 +448,11 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
-        self.component.run_frame(frame, edges)
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.set_frame(frame)
+            self.world.scope_host.run_frame(frame, edges)
+        else:
+            self.component.run_frame(frame, edges)
         self.self_healing += regeneration.report(self)
         self.support_healing.extend(support.healing_reports(self, frame))
         self._report_shots()

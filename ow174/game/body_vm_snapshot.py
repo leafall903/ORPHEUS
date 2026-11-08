@@ -10,7 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime, scopes
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -95,6 +95,9 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    scopes.ForwardHost: ("states", "component", "frame", "history", "dirty", "_processing", "_drain_depth"),
+    scopes.History: ("records", "initial", "dispatched"),
+    scopes.Edge: ("frame", "active"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -391,6 +394,8 @@ class _Export:
             fields = {"hero", "mode"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
+                if "scope_host" in vars(obj):
+                    fields.add("scope_host")
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
@@ -423,7 +428,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event):
+            if kind in (runtime.Link, runtime.Event, scopes.ForwardHost, scopes.History):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}

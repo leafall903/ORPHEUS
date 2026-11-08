@@ -98,8 +98,8 @@ Incoming damage/death   P P P P P P -- NPC-source events, not AI attacks
 Passive regeneration   P P P P P P
 Healing beam            P P P P P P -- friendly recipients only
 Damage boost beam       P O O O O O -- friendly sources only
-Guardian Angel          O O O O O O -- ally/corpse selection not supplied points
-Resurrect               O O O O O O -- friendly dead player lifecycle, not enemy NPCs
+Guardian Angel          P P P P P P -- friendly alive/corpse player; living NPC only
+Resurrect               P P P P P P -- friendly player revival; all NPC corpses rejected
 Angelic Descent         O O O O O O
 Valkyrie                O O O O O O -- flight, chain beams, ammo and self-regeneration
 Statuses/presentation   O O O O O O
@@ -114,16 +114,44 @@ in this lane; AI/navigation/specials and original-client behavior remain open.
 
 Concrete remaining code dependencies
 ------------------------------------
-TrackTargets has an explicit service mounted only for staff006B states4/5/51.
-Guardian Angel006E and resurrection still have no target service. Staff431F3FCC
+TrackTargets has an explicit service for staff006B states4/5/51, Guardian
+Angel006E states5/14 and Resurrect00CA states14/38. Staff431F3FCC
 has narrow health/outgoing-bonus consumers; the complete effect owner,
 0DB9E66B state20 and shared modifier/status semantics remain absent.
-Resurrection00CA target acquisition and Valkyrie10DA/C1BA7545 engine consumers remain
-unimplemented. Native modifier storage alone is not effective gameplay.
+Valkyrie10DA/C1BA7545 engine consumers remain incomplete. Native modifier
+storage alone is not effective gameplay.
 These must be restored with real target services and cross-hero status rules,
 then verified against player and five-enemy actors in the original client.
 
-Effect-script dependency recovery (still not combat acceptance)
+Guardian Angel and reconstructed resurrection
+---------------------------------------------
+Actual owner input drives006E's authored17m/s MoveTo and1.5s cooldown.
+Twelve controls cover flight, release/death/collision abort, range/LOS/faction,
+corpse targeting, weapon swap and cooldown rejection/recovery. All five living
+friendly NPCs are valid flight targets; hostile NPCs are rejected. Capsule,
+pose, scale, angular setting and endpoint host bindings remain reconstructed.
+
+Mercy's owned BD02 ForwardHost runs at command-frame ordinary phase, with
+history and host identity captured in both passive snapshot formats. Other
+permissive auxiliary interfaces remain unmounted. Value-only foreign entity
+services are polled. Dead-player eligibility bridges the absent foreign001C7
+scope marker; only00CA uses the declared authoritative4A101787 branch. The
+captured PC getter returns false and does not prove native server behavior.
+
+The narrow00CA/node20 consumer reaches actual full-pool same-body resurrection,
+removes the pending respawn and credits001C7's authored resurrection stats.
+Seventeen controls cover authored1.75s cast/30s cooldown, rejection and reuse,
+death/range cancellation, stale corpses, shield/armor pools and subject recovery.
+The00CB timers supply reconstructed1.5s input/movement lock and2.25s immunity.
+That helper's native subject effect is not mounted; these windows and full-pool
+restoration are explicit host policies pending native/server/client comparison.
+All five manual NPC corpses are rejected without spending cooldown.
+
+The complete focused regression set passes247 tests in252.723s, including scope,
+body/server storage, staff/boost, combat/projectiles and NPC controls. Ruff and
+diff checks pass. Full static and original-client acceptance remain open.
+
+Effect-script dependency recovery
 ---------------------------------------------------------------
 The selected engine resource definitions053/0019 and053/0016 resolve to
 healing0079 and damage-boost006C. Both are absent from the current external

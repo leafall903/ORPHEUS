@@ -19,7 +19,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   death and input-gap controls. Reconstructed staff selection/healing and
   attack-time boost have actual input/health evidence; blaster kills/reloads and
   retained corpses cover all five base-pool NPC bodies in headless fixtures.
-  Full staff filters/statuses/charge, Guardian Angel, resurrection, descent,
+  Guardian Angel has actual ally/corpse flight and cooldown controls. Authored
+  resurrection cast/cooldown reaches reconstructed full-pool player revival,
+  control/immunity windows and NPC-corpse rejection;247 regressions pass.
+  Full staff filters/statuses/charge, native resurrection effects, descent,
   Valkyrie, NPC AI attacks and original-client acceptance remain open.
   See [Mercy combat](MERCY_COMBAT.txt).
 

@@ -260,6 +260,11 @@ class InstanceContext(Context):
             if component.strict:
                 component.unsupported(self.instance, "entity variable service", f"{entity:08X}:{var}")
             return None
+        if self.watcher is not None:
+            # An explicit value-only world service has no live Var subscription.
+            # Poll it so foreign health/status/lifecycle changes are observable.
+            self.watcher.polled = True
+            self.watcher.ticks()
         return value
 
     def position(self, entity: int):
@@ -393,6 +398,10 @@ class World:
 
     def track_targets(self, state: "State"):
         """Explicit owner target service, or unknown. Results are ordered body IDs."""
+        return NotImplemented
+
+    def respawn_body(self, instance: "Instance", node: Node):
+        """Explicit authoritative respawn consumer, or unknown."""
         return NotImplemented
 
     def property_modifiers(self, entity: int):

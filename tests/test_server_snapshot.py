@@ -49,6 +49,32 @@ class ServerSnapshotTests(unittest.TestCase):
         script.self_healing = 0.0
         self.assertEqual(snapshot_digest(self.capture(session)), before)
 
+    def test_mercy_owned_scope_host_is_stored_without_dispatching_callbacks(self):
+        session, _, players = self.scene()
+        session.apply("switch_hero", {"account": 1, "hero": 0x02E0000000000004})
+        host = players[0].body_script.world.scope_host
+        with mock.patch.object(type(host), "drain", side_effect=AssertionError("no scope dispatch")):
+            first = snapshot_digest(self.capture(session))
+            host.frame += 1
+            self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+            host.frame -= 1
+            self.assertEqual(snapshot_digest(self.capture(session)), first)
+
+    def test_resurrection_immunity_and_control_deadlines_are_stored_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(target for target in fight._targets() if target.owner is player)
+        vitals = fight.vitals_of(target)
+        first = snapshot_digest(self.capture(session))
+        vitals.invulnerable_until = 200.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+        vitals.invulnerable_until = 0.0
+        vitals.control_locked_until = 100.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+        vitals.control_locked_until = 0.0
+        self.assertEqual(snapshot_digest(self.capture(session)), first)
+
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()
         script = players[0].body_script

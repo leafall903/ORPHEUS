@@ -6,6 +6,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Mercy Guardian Angel and reconstructed player resurrection
+
+- Bind006E and00CA ally/corpse selection to actual bodies. Guardian Angel uses
+  authored17m/s movement and1.5s cooldown, with release/death/collision and
+  range/LOS/faction controls. Reconstructed pose/angle/settings need native QA.
+- Mount Mercy's explicitly owned ordinary BD02 scope phase and preserve its
+  history in both snapshot formats. Poll value-only foreign body services.
+  Run00CA's authored cast and30s cooldown through a narrow respawn consumer.
+- Restore the same friendly player body's full pools, cancel its old respawn,
+  credit resurrection statistics and apply reconstructed1.5s control/2.25s
+  immunity windows from00CB timers. Reject manual NPC corpses. Native subject
+  effect mounting and the captured client/server-role split remain unproven.
+- Pass247 focused/regression controls in252.723s, including17 resurrection,
+  twelve Guardian Angel, all five NPC selection/rejection rows, scope and
+  snapshot controls. Ruff and diff checks pass. Full static acceptance remains
+  OPEN; no client control, shared merge, deployment or publication occurred.
+
 #### Mercy reconstructed staff selection, healing and outgoing boost
 
 - Mount an explicit target service for006B's staff states. Bind real entity
