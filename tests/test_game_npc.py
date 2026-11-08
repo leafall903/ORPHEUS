@@ -1,6 +1,9 @@
 """Manual NPCs use the real Match combat and entity lifecycle."""
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -91,3 +94,22 @@ class ManualNpcTests(unittest.TestCase):
             values.update(kwargs)
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 npc.Definition(**values)
+
+
+class CatalogTests(unittest.TestCase):
+    def test_catalog_round_trip_preserves_selection_and_shields_as_shields(self):
+        row = {'key': '2', 'hero': '0x02E000000000016B', 'body': '0x0400000000001403',
+               'name': 'Synthetic enemy', 'health': 250, 'armour': 0, 'shields': 100}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'catalog.json'
+            path.write_text(json.dumps({'format_version': 1, 'definitions': [row]}), encoding='utf-8')
+            definitions = npc.load_catalog(path)
+            self.assertEqual(definitions['2'].health, 250)
+            self.assertEqual(definitions['2'].armour, 0)
+            self.assertEqual(definitions['2'].shields, 100)
+            for key in ('2', '0', '12'):
+                other = {**row, 'key': key}
+                path.write_text(json.dumps({'format_version': 1, 'definitions': [row, other]}),
+                                encoding='utf-8')
+                with self.subTest(key=key), self.assertRaises(ValueError):
+                    npc.load_catalog(path)
