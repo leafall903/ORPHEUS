@@ -1041,6 +1041,7 @@ class WeaponVolley(State):
         self.spread0 = 0.0
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
+        self.published_ammo = None  # last linked ammo value observed by dependency consumers
 
     def on_enter(self) -> None:
         self.offset = 0
@@ -1064,6 +1065,16 @@ class WeaponVolley(State):
                 break
             self.instance.component.shots.append((self, self.reported, time, activation))
             self.reported += 1
+        self.publish_ammo()
+
+    def publish_ammo(self) -> None:
+        """Report clock-derived ammo changes to switches before the link retires."""
+        var = self._out("m_24E351A4")
+        if var is None:
+            return
+        before, self.published_ammo = self.published_ammo, var.value()
+        if before is not None:
+            self.instance.changed(var, before)
 
     def _config(self, name: str, default):
         cfg = _field(self, name)
@@ -1091,6 +1102,7 @@ class WeaponVolley(State):
             var.base = value
             self.links.append(self.link(target, slot))
             self.instance.changed(var, before)
+        self.published_ammo = ammo.value() if ammo is not None else None
 
     def _out(self, name: str) -> Var | None:
         target = lvalue(_field(self, name))

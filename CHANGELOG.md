@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Lucio ammo dependencies and authored reloads (0079 lane)
+
+- Publish clock-derived WeaponVolley ammo changes to dependency consumers,
+  including the last shot before unlinking. Previously, Lucio's empty-magazine
+  switch stayed stale and held primary fire never entered automatic reload.
+  Store the last published value in the body VM snapshot schema.
+- Pass seven actual-input weapon checks: four-shot minimum burst and125ms
+  cadence,20-round consumption, automatic reload/resumed projectile damage,
+  manual reload fill/end gates under repeated inputs, partial magazines,
+  entity reload permission, command replay and death with an in-flight shot.
+- Pass150 selected weapon/runtime/snapshot/combat/projectile/Lucio/NPC checks
+  in this checkpoint. The one missing-resource skip in the first batch passes
+  when rerun with the five-type catalog. Ruff and staged diff checks pass;
+  disabling ammo publication reproduces the automatic-reload regression.
+- Authored graph execution is headless evidence. Native clock notification
+  order, skipped-clock behavior, headshots/interception, NPC reload coverage
+  and original-client timing/HUD/audio remain open. Full static gate stays open.
+
 #### Reconstructed Sound Barrier and temporary shield pools (0079 lane)
 
 - Consume actual073A slam activations and073B message/pool initialization to

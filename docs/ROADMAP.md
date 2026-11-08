@@ -31,6 +31,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     Sound Barrier now has10 bounded behavior checks with actual073A/073B and
     separate temporary pools. Charge generation, native scaling/propagation and
     the remaining full interaction/movement matrix are still open.
+    Seven actual-input primary resource checks now cover burst consumption,
+    automatic/manual reload, permission, replay and death. This partial evidence
+    does not establish native timing, headshots or the full static gate.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

@@ -32,7 +32,7 @@ All original-client columns are O, including apparently functional graphs.
 
 Action                  Enemy player   Enemy NPC       Ally/self semantics
 Sonic Amplifier fire    H damage       H basic five    O headshots/intercepts
-Reload/burst cadence    O              O               O HUD/audio/timing
+Reload/burst cadence    H partial      O reload       O HUD/audio/native timing
 Quick melee             O player       H basic five    H ally exclusion/walls
 Soundwave damage        H              H basic five    H ally exclusion, FFA
 Soundwave cooldown      H 4s boundary  O five types    H repeated/replayed input
@@ -196,6 +196,32 @@ Run the command on one line. The tested Lucio catalog is a local one-hero
 projection of runtime-104319/data/game_heroes_174.json. The generator rejects
 conflicting base records and output over the base; only new graphs and status
 definitions enter the supplement. Game-derived output stays outside Git.
+
+Sonic Amplifier ammo/reload checkpoint
+-------------------------------------
+Actual0776 has20 rounds, minimum/maximum four shots per burst, eight shots/s
+and projectile damage20. A clock-derived linked ammo output changed without
+notifying its watched BooleanSwitches. Held fire exhausted20 rounds but never
+entered automatic reload. WeaponVolley now publishes its observed ammo value
+after report(), before the final output link is removed. The previous value is
+included in the body VM schema. This notification placement is reconstructed;
+native event ordering and skipped-clock behavior remain unaccepted.
+
+Seven actual Match/input tests use a declared5000-health player fixture and
+real projectiles/damage. Early release still emits four shots125ms apart;
+20 shots consume the magazine; held fire auto-reloads and lands24 shots by
+430 steps. In that16ms fixture the empty event is offset259, fill363 and next
+shot388. Manual reload after a burst fills at offset102 and permits fire127;
+alternating reload requests/held fire cannot bypass those phases. Two seeded
+rounds emit only two shots. Entity31196=False disables reload after the authored
+instance Stack processes the dependency event. Replayed commands consume no
+extra rounds. Death stops the remaining burst while an already spawned shot
+still impacts. These timings describe this host fixture, not native capture.
+
+Tests:test_lucio_weapon.py. Headshots, full NPC resource/reload coverage,
+interception and original-client HUD/audio/timing remain open. No new speed
+multiplier is inferred from the0267 counters4734/6591: their native consumer
+and target-build multiplier are still unlocated. Full goal remains active.
 
 Client evidence
 ---------------
