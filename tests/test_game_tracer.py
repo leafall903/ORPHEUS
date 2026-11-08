@@ -3,6 +3,7 @@
 These server fixtures do not establish spread, abilities or original-client acceptance.
 """
 
+import math
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
@@ -10,7 +11,8 @@ from unittest.mock import patch
 from test_game_combat import KANEZAKA_DM, Run, aim
 
 from ow174.game import combat, stats
-from ow174.game.commands import FIRE
+from ow174.game.collision import World
+from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
 
 TRACER = 0x02E0000000000003
@@ -119,6 +121,31 @@ class TracerPistolTests(unittest.TestCase):
         target = next(t for t in run.match.combat._targets() if t.owner is player)
         self.assertEqual(run.match.combat.vitals_of(target).total, 130)
 
+    def test_missed_shot_and_target_beyond_authored_range_take_no_damage(self):
+        for distance, yaw in ((5, 16384), (105, 0)):
+            with self.subTest(distance=distance, yaw=yaw):
+                run, player, enemy, vitals = self.fight()
+                x, y, z = player.mover.position
+                enemy.mover.position = [x, y, z + distance]
+                run.step({player: (yaw, 0, FIRE)})
+                self.assertEqual(vitals.total, 200)
+                self.assertEqual(player.client.messages(combat.HIT), [])
+
+    def test_distant_body_hit_uses_authored_falloff_floor(self):
+        run, player, enemy, vitals = self.fight()
+        x, y, z = player.mover.position
+        enemy.mover.position = [x, y, z + 25]
+        self.fire(run, player, enemy)
+        self.assertAlmostEqual(vitals.total, 200 - 12 * 0.3, places=5)
+
+    def test_empty_magazine_cannot_keep_damaging_until_reload(self):
+        run, player, enemy, _ = self.fight()
+        vitals = combat.Vitals(enemy.body, 1000)
+        run.match.combat.vitals[enemy.body] = vitals
+        self.fire(run, player, enemy, frames=110)
+        self.assertEqual(vitals.total, 760)
+        self.assertEqual(len(player.client.messages(combat.HIT)), 40)
+
     @patch("ow174.game.script.graph.entity_body", return_value=None)
     def test_pair_kills_a_training_npc_and_retains_its_corpse(self, _entity_body):
         run = Run()
@@ -143,6 +170,118 @@ class TracerPistolTests(unittest.TestCase):
             run.step({})
         self.assertIn(bot, run.match.bots)
         self.assertFalse(any(who is bot for _, who in run.match.combat.respawns))
+
+
+class TracerBlinkTests(unittest.TestCase):
+    def setUp(self):
+        self.run, self.player, self.enemy, _ = TracerPistolTests().fight()
+        self.blink = next(i for i in self.player.body_script.component.instances.values()
+                          if i.graph.index == 0x24)
+
+    def step(self, buttons=0, *, yaw=0, pitch=0, forward=0, right=0):
+        run, player = self.run, self.player
+        run.frame += 1
+        run.match.update(run.frame * combat.TICK, run.frame)
+        player.take_commands([Command(run.frame, yaw=yaw, pitch=pitch, buttons=buttons,
+                                      forward=forward, right=right)])
+
+    def wait(self, frames):
+        for _ in range(frames):
+            self.step()
+
+    def test_forward_blink_is_seven_point_five_and_corrects_same_frame(self):
+        before = tuple(self.player.mover.position)
+        self.step(8, pitch=16000)
+        after = tuple(self.player.mover.position)
+        self.assertAlmostEqual(after[2] - before[2], 7.5, places=3)
+        self.assertEqual(after[:2], before[:2])
+        self.assertEqual(self.player.mover.history[-1].position, after)
+        self.assertEqual(self.blink.vars[11].value(), 2)
+
+    def test_side_and_backward_throttle_and_diagonal_normalisation(self):
+        for forward, right in ((-127, 0), (0, 127), (127, 127)):
+            with self.subTest(forward=forward, right=right):
+                self.setUp()
+                before = tuple(self.player.mover.position)
+                # Account separately for the normal movement preceding the action.
+                self.step(0, forward=forward, right=right)
+                before = tuple(self.player.mover.position)
+                self.step(8, forward=forward, right=right)
+                delta = tuple(a - b for a, b in zip(self.player.mover.position, before, strict=True))
+                self.assertGreaterEqual(math.hypot(delta[0], delta[2]), 7.49)
+                self.assertLess(math.hypot(delta[0], delta[2]), 7.7)
+                if right:
+                    self.assertLess(delta[0], 0)
+                if forward:
+                    self.assertEqual(delta[2] > 0, forward > 0)
+
+    def test_three_charges_exhaust_and_recharge_without_button_bypass(self):
+        for expected in (2, 1, 0):
+            before = tuple(self.player.mover.position)
+            self.step(8)
+            self.assertAlmostEqual(math.dist(before, self.player.mover.position), 7.5, places=3)
+            self.assertEqual(self.blink.vars[11].value(), expected)
+            self.wait(10)
+        before = tuple(self.player.mover.position)
+        for _ in range(10):
+            self.step(8)
+            self.step(0)
+        self.assertEqual(tuple(self.player.mover.position), before)
+        self.assertEqual(self.blink.vars[11].value(), 0)
+        self.wait(140)  # total since first cast is just over the authored 3 seconds
+        self.assertEqual(self.blink.vars[11].value(), 1)
+        self.step(8)
+        self.assertAlmostEqual(math.dist(before, self.player.mover.position), 7.5, places=3)
+        self.assertEqual(self.blink.vars[11].value(), 0)
+
+    def test_wall_sweeps_the_full_capsule(self):
+        from test_game_mover import wall
+
+        x, y, z = self.player.mover.position
+        # Wall spans the Blink path. Use real static collision, not a ray mock.
+        floor = [((-100, y, -100), (100, y, 100), (100, y, -100)),
+                 ((-100, y, -100), (-100, y, 100), (100, y, 100))]
+        floor = [tuple(axis for point in triangle for axis in point) for triangle in floor]
+        collision = World(floor + wall(x - 5, z + 3, x + 5, z + 3, y, y + 5))
+        self.run.match.collision_world = collision
+        self.player.mover.use(world=collision)
+        self.step(8)
+        self.assertGreater(self.player.mover.position[2], z)
+        self.assertLess(self.player.mover.position[2], z + 3)
+        self.assertEqual(self.blink.vars[11].value(), 2)
+
+    def test_dead_body_cannot_blink(self):
+        target = next(t for t in self.run.match.combat._targets() if t.owner is self.player)
+        self.run.match.combat._damage(self.enemy, target, 200, False, None, self.run.frame)
+        before = tuple(self.player.mover.position)
+        self.step(8)
+        self.assertEqual(tuple(self.player.mover.position), before)
+        self.assertEqual(self.blink.vars[11].value(), 3)
+
+    def test_secondary_blinks_and_passes_through_enemy_without_damage(self):
+        before = tuple(self.player.mover.position)
+        self.step(2)
+        self.assertAlmostEqual(math.dist(before, self.player.mover.position), 7.5, places=3)
+        target = next(t for t in self.run.match.combat._targets() if t.owner is self.enemy)
+        self.assertEqual(self.run.match.combat.vitals_of(target).total, 200)
+        self.assertEqual(self.blink.vars[11].value(), 2)
+
+    def test_held_and_duplicate_commands_do_not_spend_more_charges(self):
+        before = tuple(self.player.mover.position)
+        for _ in range(50):
+            self.step(8)
+        self.player.take_commands([Command(self.run.frame, buttons=8)])
+        self.assertAlmostEqual(math.dist(before, self.player.mover.position), 7.5, places=3)
+        self.assertEqual(self.blink.vars[11].value(), 2)
+
+    def test_recharge_stops_at_three_charges(self):
+        self.step(8)
+        self.wait(620)
+        self.assertEqual(self.blink.vars[11].value(), 3)
+        before = tuple(self.player.mover.position)
+        self.step(8)
+        self.assertAlmostEqual(math.dist(before, self.player.mover.position), 7.5, places=3)
+        self.assertEqual(self.blink.vars[11].value(), 2)
 
 
 if __name__ == "__main__":

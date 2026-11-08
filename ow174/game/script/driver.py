@@ -134,6 +134,11 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def blink(self, instance, node):
+        from ow174.game import tracer
+
+        return tracer.blink(self, instance, node)
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body

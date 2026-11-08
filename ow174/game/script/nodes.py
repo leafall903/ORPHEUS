@@ -2191,6 +2191,17 @@ def play_script(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_A807207A")
+def blink(instance: Instance, node, caller):
+    callback = getattr(instance.component.world, "blink", None)
+    result = callback(instance, node) if callback is not None else NotImplemented
+    if result is NotImplemented:
+        return NotImplemented
+    if result:
+        instance.follow(node, "m_outPlug", None)
+    return bool(result)
+
+
 def no_op(instance: Instance, node, caller) -> bool:
     """Actions with no effect on the server's graph state (effects, stats, client-only messages)."""
     instance.follow(node, "m_outPlug", None)

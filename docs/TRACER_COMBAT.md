@@ -19,6 +19,19 @@ behavior is not accepted by this patch. Ballistic projectile counts are unchange
 
 ## Acceptance matrix
 
+The lane now has an active full static-acceptance goal. Its scope also includes
+resource conditions, duration/end/cancel, cooldown rejection/reuse and ultimate
+charge lifecycle. Passing selected fixtures below does not complete that goal.
+
+Blink's actual A807207A action now calls a narrowly scoped body service. The
+resource supplies the 7.5-metre distance and the existing graph owns three charges
+with three-second replenishment. Horizontal throttle selection, clipping with a
+full capsule sweep and preserving momentum are explicitly reconstructed policies.
+The same-frame movement snapshot is replaced after the action so owner corrections
+carry the displaced pose. Native step-up/edge behavior and control interactions
+are still open. The callback only handles the actual live, posed Tracer action;
+other heroes/graphs retain their previous unsupported behavior.
+
 S = selected server fixture passed; O = open, including original-client result.
 NPC columns mean the specific requested class, not a training-bot substitute.
 
@@ -26,9 +39,11 @@ NPC columns mean the specific requested class, not a training-bot substitute.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Pulse Pistols body damage | S | O | O | O | O | O | O |
 | Reload and subsequent fire | S | O | O | O | O | O | O |
-| Critical hits / spread / falloff | O | O | O | O | O | O | O |
+| Critical hits / spread | O | O | O | O | O | O | O |
+| Miss / range exclusion / far falloff floor | S | O | O | O | O | O | O |
 | Quick melee | S | O | O | O | O | O | O |
-| Blink displacement / collision / charges | O | O | O | O | O | O | O |
+| Blink selected displacement / collision / charges | S | O | O | O | O | O | O |
+| Blink complete control / cancel / cross-hero matrix | O | O | O | O | O | O | O |
 | Recall position / health / ammo / cleanse | O | O | O | O | O | O | O |
 | Recall invulnerability / targeting | O | O | O | O | O | O | O |
 | Pulse Bomb throw / stick / fuse / explosion | O | O | O | O | O | O | O |
@@ -66,17 +81,30 @@ checkout's `.venv\Scripts\python.exe` without writing to its source or the runti
 python -B -m unittest discover -s tests -p test_game_tracer.py -v
 python -B -m unittest discover -s tests -p test_game_combat.py
 python -B -m unittest discover -s tests -p test_game_projectiles.py
+python -B -m unittest discover -s tests -p test_script_driver.py
 ```
 
-The eleven Tracer tests cover actual body graphs and player command processing:
+The 22 Tracer tests cover actual body graphs and player command processing:
 paired damage, per-bullet armour, shields, lethal first bullet, whole magazine,
 wall occlusion, team filtering, explicit reload, melee, incoming Soldier fire,
-and retained training-NPC death. Twenty-eight existing combat tests and 37
-projectile tests also pass (76 total). Ruff and `git diff --check` pass.
+and retained training-NPC death. Added checks exercise missed/out-of-range shots,
+far falloff, empty-magazine rejection and eight Blink behaviors: displacement and
+same-frame correction, directional/diagonal input, three-charge exhaustion and
+recovery, actual wall collision, death rejection, secondary activation and enemy
+pass-through, held/duplicate input rejection, and recharge cap.
 
-Exploratory command probes found no authoritative movement after Blink. Recall
-and charged-ultimate probes produced no flight objects or VM fault, but those
-negative observations do not fully characterize either skill. The known skill
+Twenty-eight existing combat tests, 37 projectile tests and 27 body-driver tests
+also pass (114 total). Ruff and `git diff --check` pass.
+
+The original pre-fix Blink probe found no movement. The lane-local executable
+`run_static_audit.py` now records failing Recall and Pulse Bomb scenarios in
+`STATIC_ACCEPTANCE.json` and intentionally exits1 while the full matrix is open.
+After three seconds of actual movement and 70 incoming damage, Recall leaves
+health80, does not restore the earlier position and leaves cooldown0. A bomb
+charged to the actual1260 cost consumes charge but leaves an unarmoured200-health
+enemy at195 after120 frames; the explosion is missing. The earlier900-point
+ultimate probe was undercharged and must not be treated as a full-charge test.
+The known skill
 graphs are Recall001A, Blink0024 and Pulse Bomb0034. No general State fallback
 or fault-free execution is treated as a gameplay implementation.
 

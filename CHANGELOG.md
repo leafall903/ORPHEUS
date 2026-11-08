@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Tracer reconstructed Blink action and full static goal
+
+- Add a narrowly scoped handler for actual graph0024/actionA807207A, using its
+  authored7.5-metre distance, existing three-charge/recharge graph and a full
+  static-world capsule sweep. Replace the same-frame movement snapshot after
+  displacement. Horizontal throttle direction, clipping and momentum retention
+  are explicitly reconstructed server policies, not native-action emulation.
+- Pass22 Tracer tests,28 combat tests,37 projectile tests and27 driver tests
+  (114 total), plus Ruff/diff checks. Blink fixtures cover directional movement,
+  walls, exhaustion/reuse, cap, alternate input, death and held/duplicate input.
+  Pistol fixtures add miss/range/falloff and empty-magazine damage checks.
+- Establish the full static-combat goal as active. The lane-local audit records
+  actual failing Recall position/health/cooldown and charged Pulse Bomb explosion
+  scenarios. Full lifecycle/status/cross-hero/five-NPC coverage remains open;
+  original-client combat acceptance remains separate and unperformed.
+
 #### Tracer paired hitscan damage (hero lane 0003)
 
 - Resolve `m_numProjectilesPerShot` independently for hitscan damage. Actual
