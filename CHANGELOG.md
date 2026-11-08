@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Companion NPC console and locked server API
+
+- Add a dark companion NPC console linked from the dashboard Server page. Its
+  page-local keys and buttons call the real loopback API; account text input does
+  not trigger shortcuts. Serialize rapid menu/selection requests, show refused
+  commands and never automatically retry mutations.
+- Resolve the chosen account's Match and execute commands under GameServer.lock.
+  Reject invalid keys/menu state, absent players, missing catalog and frozen-clock
+  mutations. Load an explicit external ORPHEUS_NPC_CATALOG and optional startup
+  ORPHEUS_GRAPH_BUNDLE without replacing normal runtime data.
+- Pass51 Python HTTP/dashboard/NPC tests and5 JavaScript request tests (56 total),
+  Ruff and diff checks. Real HTTP fixture requests complete all25 five-body menu,
+  spawn, engagement-command, stop and removal operations. This fixture has no
+  native client and no running game clock; it does not establish actual attacks.
+- Browser preview initialization fails waiting for Statsig configuration. Visual
+  and real keyboard acceptance remain open. The isolated fixture closes with no
+  NPCs remaining; normal services/data and original working changes are preserved.
+  Full enemy navigation/specials/McCree skills/client combat and normal deployment
+  remain open. No complete hero lane is merge-ready. Publication helper is absent.
+
 #### Manual NPC console commands and engagement input
 
 - Implement console command semantics for menu/selection, explicit removal,
