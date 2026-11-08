@@ -6,6 +6,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Roadhog lane: share canonical melee visibility
+
+- Merge reviewed parent7cd1ed7 and use its shared capsule_visible helper instead
+  of the lane's duplicate inline melee ray. Keep reconstructed geometry explicit.
+- Pass21 Roadhog and McCree tests, including real-input wall regressions; diff
+  check passes. The complete
+  static hero goal and original-client combat remain open; no publication.
+
 #### Roadhog lane: reconcile shared NPC startup and native array selection
 
 - Merge reviewed parent33a634d/d1286b7/6debff3 into the private lane. Resolve
@@ -21,6 +29,22 @@ This log records tested changes and their acceptance status. Entries are grouped
   deployment/publication, or complete static hero acceptance is claimed.
 - Integration uses a cumulative diff against6debff3 or reviewed lane history;
   it must retain merge-resolution code and avoid replaying duplicate NPC startup.
+
+#### McCree melee static-wall occlusion
+
+- Prevent quick melee from damaging targets through static walls: retain the
+  authored melee sphere and viewed capsule, then check eye-to-capsule-surface
+  visibility. Geometry is an explicit server reconstruction, not native hitbox
+  equivalence. Shared quick melee uses the same check for players and NPCs.
+- Pass83 McCree/combat/NPC/projectile tests, including3 new real-input methods
+  covering visible and wall-blocked player/NPC hits, allies and range refusal.
+  An external actual-five-Talon probe passes all10 visible/wall cases. Ruff and
+  diff checks pass. Native-client acceptance was not run.
+- Record the actual McCree input frontier and recovered Flashbang status resource
+  route. The current VM does not execute its complete stun path; Deadeye still
+  lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
+  five-NPC AI/navigation/specials and original-client combat remain open. Normal
+  inputs/services and original working changes are preserved; no hero lane merged.
 
 ### 2026-11-08
 
