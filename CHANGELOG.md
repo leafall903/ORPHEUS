@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Hanzo initial Dragonstrike phase
+
+- Add an explicitly reconstructed54FEB21C literal-duration phase for the
+  no-provider/true-option configuration used by Hanzo0101. Strict execution
+  continues to reject its unverified native semantics; unknown provider/scaling
+  variants remain passive. Abort cancels the scheduled finish.
+- Actual match input now rejects1679 charge, spends1680 once, waits the authored
+  1000ms and emits the initial125-damage arrow. Repeated Q presses add no arrow;
+  releasing Q does not cancel the cast; death before emission prevents damage.
+  Tests isolate the resource gate from the existing debug passive refill.
+- Pass seven focused phase/initial-arrow tests,812 script tests and557 game
+  tests with explicit five-NPC data. Ruff and diff checks pass. No original-client
+  run or native timing/callback comparison is claimed.
+- Add a narrow external XML profile extractor. A manifest-verified104319
+  status0040.053 links the dragon effect to0118; the profile preserves source
+  hashes and literals300/150, radius factor0.6 and seven target trackers.
+  Extracted data stays outside Git. Damage-rate units, overlap/volume handling,
+  actual dragons, ultimate charge generation, movement, reveal and cross-hero
+  defensive/state interactions remain OPEN. Full static goal is still active.
+
 #### Partial Hanzo interaction with explicit Talon NPC bodies
 
 - Review and import the parent's manual-NPC lifecycle/catalog changes privately.

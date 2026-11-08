@@ -41,6 +41,24 @@ Observed through ordinary Match input and health pools (test_game_hanzo.py):
   and obey the0.1s lifetime. Explicit generic critical definitions distinguish
   body/head impact and critical notice flags.
 
+Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
+- The literal1s/1.2s phases on0101 nodes29/37 now expire in the permissive body
+  path. This is reconstructed server timing, not native54FEB21C semantics.
+  Strict execution still faults. Extra provider/scaling variants remain passive.
+- With debug passive refill disabled to isolate the gate:1679 charge rejects
+  without spending;1680 spends once, waits1000ms and emits one initial arrow.
+  It removes125HP from an enemy player. Repeated Q creates no second arrow;
+  Q release lets the cast finish. Death before emission prevents its damage.
+- Actual dragon continuation and charge-generation rules are still unaccepted.
+  The existing60s debug passive refill is not a verified native rule, and manual
+  ultimate graphs currently lack a complete active-cast refill lockout.
+- The profile extractor follows104319 XML through0BA6/0132/status0040.053/0118.
+  A selected110-byte status asset was read without caches/network and checked
+  against its content-manifest size/key. Local-only XML/profile/hash artifacts
+  preserve seven target trackers, literals20/12/4/5, core factor0.6 and damage
+  quantities300/150. Damage-rate units, overlap refresh and target volume are
+  explicitly unverified; this resource inspection does not prove dragon damage.
+
 Explicit five-NPC fixtures (test_game_hanzo_npc.py):
 - Review/import parentc2d3ae1/a15d554 privately as0c05d99/307feba. Read only the
   supplied external pve_npcs catalog and extended graph bundle; normal runtime
@@ -79,12 +97,10 @@ audio, health/ultimate HUD, hit/kill feed and cross-client agreement are OPEN.
 No support/healing semantics are changed by this patch.
 
 Concrete blockers:
-- Dragonstrike0101 consumes a full1680-point charge but reports ZERO volleys
-  after180 ordinary input ticks in an isolated two-player match. Nodes29/37
-  use unimplemented STU_54FEB21C, currently a passive generic State. The declared
-  initial projectile034F is20m/s,10m range,125 direct damage; its later dragon
-  entity, travel, wall/barrier penetration and periodic damage are not hosted.
-  Implementing only its timer would not establish a working ultimate.
+- Dragonstrike's initial arrow now works through the explicit reconstructed
+  phase. The initial034F projectile is20m/s,10m range,125 direct damage; its
+  later dragon entity, travel, wall/barrier penetration and periodic damage
+  remain unhosted. Passing its initial arrow does not establish the ultimate.
   Read-only research now identifies034F's missing graph0BA6, which creates
   entity02BA and plays0132 on it. Both graph records were extracted under lane
   storage for further research, never written to the shared runtime or Git.

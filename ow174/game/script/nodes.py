@@ -857,6 +857,42 @@ class Wait(State):
             self.request_finish()
 
 
+@state_class("STU_54FEB21C")
+class FixedDurationPhase(State):
+    """Reconstructed literal-duration phase, not a native class implementation.
+
+    Hanzo0101 uses1s and1.2s with the boolean option true and no auxiliary
+    providers/subgraph. Preserve strict research faults and leave other variants
+    passive rather than assigning unknown scaling/provider semantics to them.
+    """
+
+    def on_enter(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "reconstructed duration phase", self.node.cls,
+                                                self.node)
+        duration = _field(self, "m_ED97A97C") or {}
+        enabled = _field(self, "m_7C8AD485") or {}
+        extra = ("m_C7A42E2A", "m_F8CE386A", "m_C46403A5")
+        subgraph = _field(self, "m_E5790891") or {}
+        supported = (
+            duration.get("$") in ("STUConfigVarFloat", "STUConfigVarInt")
+            and enabled.get("$") == "STUConfigVarBool" and enabled.get("m_value") == 1
+            and all(_field(self, field) is None for field in extra)
+            and not subgraph.get("links") and not subgraph.get("m_FF3DAF1E")
+        )
+        if not supported:
+            expr.warn_once("fixed-duration-variant", "54FEB21C variant is not reconstructed")
+            return
+        seconds = to_float(self.evaluate(duration, watch=False))
+        if not math.isfinite(seconds) or seconds < 0:
+            raise ValueError("reconstructed phase needs a finite nonnegative duration")
+        self.timer_at(seconds_to_ms(seconds), 1)
+
+    def timer(self, param: int) -> None:
+        if param == 1:
+            self.request_finish()
+
+
 @state_class("STU_E3CEF6B9")
 class WaitForServerFrames(State):
     """Finishes after its number of server frames (unverified: one frame = one command frame)."""
