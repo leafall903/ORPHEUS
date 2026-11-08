@@ -58,6 +58,7 @@ from ow174.game import (
     pulse_bomb,
     stats,
     tracer,
+    tracer_pistol,
     ultimate,
     voicelines,
     world,
@@ -717,30 +718,26 @@ class Combat:
         view_tick = self.tick
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
-        best = None
-        for target in self._enemies(shooter):
-            shown = self.seen(target, view_tick)
-            if shown is None:
+        count = max(0, int(field("m_numProjectilesPerShot", 1)))
+        for ray in tracer_pistol.rays(state, number, time, activation, direction, count):
+            best = None
+            for target in self._enemies(shooter):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                t = ray_capsule(origin, ray, a, b, shown.radius)
+                if t is not None and t <= reach and (best is None or t < best[0]):
+                    best = (t, target, shown)
+            if best is None:
                 continue
-            a, b = shown.segment()
-            t = ray_capsule(origin, direction, a, b, shown.radius)
-            if t is not None and t <= reach and (best is None or t < best[0]):
-                best = (t, target, shown)
-        if best is None:
-            return
-        t, target, shown = best
-        wall = ray_world(self._collision(), origin, direction, t)
-        if wall is not None and wall < t:
-            return
-        hit_y = origin[1] + direction[1] * t
-        critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
-        amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
-        # A volley report is one shot, not one projectile. Tracer consumes two
-        # rounds and emits two bullets per report (0016 st8). Resolve each hit
-        # separately: combining them before Vitals.damage changes armour loss.
-        # All bullets currently share the command ray; authored spread/muzzle
-        # offsets remain unimplemented, as for the existing single-bullet path.
-        for _ in range(max(0, int(field("m_numProjectilesPerShot", 1)))):
+            t, target, shown = best
+            wall = ray_world(self._collision(), origin, ray, t)
+            if wall is not None and wall < t:
+                continue
+            hit_y = origin[1] + ray[1] * t
+            critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
+            amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
             self._damage(
                 shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
                 world_tick=self.tick if npc else None, tags=direct.tags,

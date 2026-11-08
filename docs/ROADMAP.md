@@ -32,7 +32,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   unaccepted. Three actual NPC primary graphs now damage Tracer and stop/restart
   around Recall; Enforcer/Assassin still fail to attack. Five-class melee wall
   exclusion passes; native spread-growth72-case execution supplies implementation
-  evidence but does not restore spread rays. See [Tracer combat matrix](TRACER_COMBAT.md).
+  evidence. Nine further fixtures cover restored count-based bloom and
+  reconstructed per-bullet cone rays, recovery and split wall occlusion. Native
+  RNG/muzzle correspondence and critical sentinel resolution remain open.
+  See [Tracer combat matrix](TRACER_COMBAT.md).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

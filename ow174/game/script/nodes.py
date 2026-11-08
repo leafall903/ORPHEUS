@@ -1062,6 +1062,9 @@ class WeaponVolley(State):
             time = start + shot_time(self.reported, self.rate)
             if time > until:
                 break
+            from ow174.game import tracer_pistol
+
+            tracer_pistol.remember(self, self.reported, time, activation)
             self.instance.component.shots.append((self, self.reported, time, activation))
             self.reported += 1
 
@@ -1129,12 +1132,16 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
+        from ow174.game import tracer_pistol
+
+        if tracer_pistol.active(self):
+            return tracer_pistol.normalized(self, self.shots_at(self.now - self.start - self.offset) + 1)
         return self.spread0
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.output(2)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:

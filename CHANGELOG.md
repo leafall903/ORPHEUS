@@ -7,6 +7,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Tracer native count-based bloom and reconstructed independent bullet cones
+
+- Execute native-validated count/3 normalization in actual0016 linked output and
+  firing cones. Preserve authored recovery delay/Chase and remaining bloom on
+  rapid re-press. Capture bounded per-activation cone angles before newer state
+  can replace their initial spread; register them in strict read-only snapshots.
+- Trace sampled bullets independently for nearest enemy, falloff, wall occlusion
+  and per-bullet mitigation. Deterministic polar/radius sampling is a reconstructed
+  host RNG independent of graph RNG. Native random-table seed, anisotropy, muzzle
+  transforms and hitboxes remain open; other heroes retain their original rays.
+- Pass nine actual-input spread fixtures, including first pair, growth/cap,
+  recovery, buffered re-press, retained activation, unit rays, real far misses,
+  a real wall blocking just one bullet, and snapshot hash sensitivity.271 regular
+  regressions and14 server snapshot/replay tests pass (285 distinct tests).
+  Python/native normalization matches all72 offline cases, counted separately.
+- Recover the native null critical initialization: it stores a -1 sentinel rather
+  than a fixed1. Downstream hit-region resolution remains unaccepted; no guessed
+  multiplier is substituted. Full static combat remains open, with Enforcer and
+  Assassin incoming attacks, full statuses/defenses and cross-hero matrix pending.
+  No original-client work, shared-main merge or publication.
+
 #### Tracer actual NPC incoming attacks, Recall and melee wall coverage
 
 - Review/reuse parent manual-controller, NPC weapon-root, array-selection and

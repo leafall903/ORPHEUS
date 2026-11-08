@@ -10,10 +10,11 @@ shot, six damage/projectile and two ammunition consumed per shot. The old combat
 consumer resolved only one bullet per report. It now resolves each hitscan bullet
 separately so armour mitigation applies per bullet. An unobstructed close-range
 40-round magazine deals 240 body damage in the controlled fixture, versus 120
-before the fix. This is resource-backed counting, not a reconstruction of spread.
+before the count fix. The later bloom/cone follow-up is described below.
 
-All bullets still share the command's ray. Authored spread, muzzle origins,
-critical-hit defaults and animated hitboxes need separate evidence. Other heroes'
+Tracer now has count-based bloom and individually sampled rays; native random
+table correspondence, muzzle origins, critical defaults and animated hitboxes
+remain open. Other heroes'
 multi-projectile hitscan reports also use the count; their complete weapon
 behavior is not accepted by this patch. Ballistic projectile counts are unchanged.
 
@@ -59,14 +60,17 @@ against its manifest before XML inspection (outside Git, lane pulse-resources):
 b9e534c209c06b39da264bc6f6bc78a71469e9ccd2baf7d73bf1a002a54199b2.
 The projectile's0C1B graph was also verified; native effects remain client-pending.
 
-S = selected server fixture passed; O = open, including original-client result.
+S = selected server fixture passed; O = open; F = executed missing behavior.
+Original-client results remain open.
 NPC columns mean the specific requested class, not a training-bot substitute.
 
 | Action | Enemy player | Trooper | Enforcer | Sniper | Assassin | Heavy Assault | Original client |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Pulse Pistols body damage | S | S | S | S | S | S | O |
 | Reload and subsequent fire | S | O | O | O | O | O | O |
-| Critical hits / spread | O | O | O | O | O | O | O |
+| Critical hits / native defaults | O | O | O | O | O | O | O |
+| Selected bloom / cone / individual wall rays | S | O | O | O | O | O | O |
+| Native RNG / dual muzzle / full spread fidelity | O | O | O | O | O | O | O |
 | Miss / range exclusion / far falloff floor | S | O | O | O | O | O | O |
 | Quick melee | S | S | S | S | S | S | O |
 | Blink selected displacement / collision / charges | S | O | O | O | O | O | O |
@@ -118,6 +122,7 @@ checkout's `.venv\Scripts\python.exe` without writing to its source or the runti
 ```
 python -B -m unittest discover -s tests -p test_game_tracer.py -v
 python -B -m unittest discover -s tests -p test_game_tracer_pulse.py -v
+python -B -m unittest discover -s tests -p test_game_tracer_spread.py -v
 python -B -m unittest discover -s tests -p test_game_combat.py
 python -B -m unittest discover -s tests -p test_game_projectiles.py
 python -B -m unittest discover -s tests -p test_script_driver.py
@@ -203,7 +208,7 @@ Reviewed shared parent commits fbcaf76 (manual engagement/controller), d1286b7
 are reused only in this private clone. The parent owns integration of shared
 changes. The melee conflict retains this lane's authored damage-tag forwarding.
 
-Current follow-up:259 distinct tests pass (245 regular plus14 full server
+Prior NPC checkpoint:259 distinct tests pass (245 regular plus14 full server
 snapshot/replay); native72-case execution is counted separately.
 Eight actual-class tests cover36 class subcases. Manual controller input causes
 Trooper20 damage at frame29, Sniper100 at128 and Heavy Assault10 at32 against
@@ -238,9 +243,49 @@ b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
 Lane-local SPREAD_NATIVE_EVIDENCE.json and SPREAD_NATIVE_VALIDATION.json retain
 provenance, RVAs and results outside Git. The native D80090 sampler uses indexed
 random tables and axis rotations; seed/table, anisotropy and dual-muzzle mapping
-remain unverified. Current production spread output and command rays are still
-constant; no spread acceptance is asserted. Tracer's null m_A872C70E critical
-field still lacks a verified native default. No game bytes enter this patch.
+remain unverified. The subsequent selected bloom/cone implementation below
+replaces the constant output/rays while leaving full native fidelity open.
+No game bytes enter this patch.
+
+## Count-based bloom and reconstructed cone execution
+
+Tracer0016 node12(state8) now uses the native-validated normalization. Firing shot
+index0 has zero cone, index1 uses one third, index2 two thirds, index3 and later
+full3.5 degrees. Linked output231 counts already-fired reports, so it reads one
+third immediately after the first pair. Original graph recovery delays0.2 seconds
+and then chases toward zero at rate4. A buffered rapid re-press retains remaining
+bloom rather than granting a new fully accurate pair. Python normalization agrees
+bit-for-bit with the72 captured native cases; no engine-service stub is used in
+the native routine.
+
+Each report captures its cone angle under its activation identity before a later
+activation can replace spread0. Storage is bounded to256 entries per weapon;
+strict read-only snapshots retain these angles. Report timing/counters and the
+four-field shot queue contract are unchanged. This prevents queued shots from
+using a newer activation's bloom after recovery or re-press.
+
+The host samples a uniform polar angle and uniform angular radius per bullet,
+then traces each unit ray separately against viewed capsules and actual static
+collision. This is a deterministic reconstructed RNG keyed by body/instance/
+state/activation/shot/bullet; it does not consume graph RNG. Matching the native
+indexed random table, command seed, anisotropy and animated dual muzzles is still
+unverified. Origins remain the existing eye model. This is selected server cone
+behavior, not full native spread/hitbox acceptance.
+
+Nine actual-input fixtures cover first pair versus linked output, growth/cap,
+recovery, buffered re-press, retained old activation angles, deterministic distinct
+unit rays, far-target misses and read-only hash sensitivity. A real half-wall
+between the two sampled rays blocks one bullet while the other deals6 damage.
+All earlier close-range per-bullet armour/ammo fixtures still pass.271 regular
+regressions and14 server snapshot/replay tests pass (285 distinct tests).
+
+A separate offline native execution now establishes the critical initialization
+path: D88A9F loads -1, D8B52D..D8B548 evaluates null m_A872C70E through8F6350 and
+stores that -1 sentinel at runtime+64. This is not a fixed multiplier1 or proof of
+a final multiplier2. Downstream hit-region/sentinel resolution remains OPEN;
+current critical handling is not accepted. CRITICAL_NATIVE_EVIDENCE.json and
+probe_critical_default_native.py retain the reproducible offline evidence outside
+Git. No live client or game startup was used.
 
 ## Client and delivery status
 
