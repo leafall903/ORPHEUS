@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Ana rifle ally healing
+
+- Reconstruct ally healing for Ana's two rifle volleys using the evaluated amount.
+  Living injured teammates participate in hitscan/projectile targeting; full-health
+  allies remain transparent, FFA remains hostile and corpses cannot heal.
+- Pass six Ana command/combat tests and 93 combat/projectile/health/NPC regressions;
+  Ruff passes. No original-client acceptance or deployment is claimed.
+- Timed rifle application, sleep, grenade support/status effects, Nano Boost,
+  ultimate generation, cross-hero defenses and five enemy NPC/client cases remain
+  open. See docs/ANA_COMBAT.txt. Shared client sessions were not controlled.
+- Parent integration is patch-only. Required publication helper is absent from
+  this workspace; no publication or manual push was performed.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

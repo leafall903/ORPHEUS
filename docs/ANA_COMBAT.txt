@@ -1,0 +1,57 @@
+Ana combat lane -- 1.74.0.0.104319 -- OPEN
+
+Hero 02E000000000013B; body 0400000000001424. Partial server evidence only.
+Runtime-104319 is read-only input. No runtime copies or original source changes.
+
+Asset evidence:
+- Ordered initial graphs: 0033 004B 0043 0B97 0B9E 0BDD 0C6B 08B6.
+- Manager 0015, weapon slot 1 graph 0B94. Its states 5/44 carry amount 70,
+  critical scalar 1 and range 100; hip fire supplies projectile speed.
+- Grenade 0B97/state0: direct 0, explosion 50, radius 4.
+- Sleep dart 0BDD/state6: direct 5. Nano 0B9E/state1 has no direct health amount.
+- Reference closure: 54 graphs, referenced 0F9C missing. Static references are
+  not proof of execution reachability or missing-graph necessity.
+
+Reconstructed behavior in this patch:
+- The two rifle volleys include living injured teammates in actual ray/projectile
+  selection and heal the evaluated amount; synchronize health and healing stats.
+- Full-health allies are transparent. The source and corpses are excluded.
+- Player/NPC team semantics are shared; FFA has no friendly targets.
+- Other weapon graphs retain enemy-only damage. This explicit rifle policy does
+  not decode native filters/effects. Instant damage/healing remains an approximation;
+  timed application and armor interactions are not accepted.
+
+Matrix: P enemy player; N enemy NPC; A allied player/NPC. All client rows OPEN.
+Action         P                       N                       A
+Hip rifle      70 damage model pass    training bot model pass  70 heal model pass
+Scoped rifle   70 damage model pass    training bot model pass  70 heal model pass
+Melee          30 damage model pass    training bot model pass  no damage model pass
+Sleep dart     5 damage probe only     OPEN                    OPEN pass-through
+Grenade        50 damage probe only    OPEN                    OPEN heal/boost/self-heal
+Nano Boost     OPEN                    OPEN                    OPEN heal/boost/reduction
+Incoming       Soldier rifle pass      OPEN five NPC kinds     OPEN other heroes
+Death          OPEN client             OPEN retained corpses   no heal revival model pass
+
+Every N row requires Trooper, Enforcer, Sniper, Assassin and Heavy Assault
+separately. Training bots do not establish these cases. Parent owns manual
+spawning/control. All five manual NPCs must use retain_corpse.
+
+Validation:
+- Six test_game_ana unittest tests pass: actual command execution, authoritative
+  deltas, statistics, scoped/unscoped flight/rays, FFA, full-health ally penetration,
+  no corpse revival, incoming Soldier fire, enemy player/NPC melee and ally immunity.
+- 93 tests pass in test_game_combat, test_game_projectiles, test_game_health and
+  test_game_bot_statescript. Ruff passes for changed Python files.
+- No pytest in reused venv; unittest is available. Use explicit clone cwd,
+  PYTHONPATH=clone;clone/tests and ORPHEUS_RUNTIME_DIR=external runtime.
+
+Original client: none in this lane. Overwatch PID12292/window was observed;
+no lane-owned lease was held and that existing session was not controlled.
+No service was stopped/reconfigured. No VM result is visual/native acceptance.
+
+Remaining: timed rifle delivery; sleep/wake/input suppression; grenade healing,
+anti-heal/amplification; allied nano acquisition/heal/boost/reduction; combat
+ultimate charge; barrier/reflect/absorb/immunity/cleanse interactions; interruption,
+death and hero-switch lifecycles; all five NPC bidirectional behaviors and corpses;
+original-client weapon/HUD/audio/animation/status presentation. All remain OPEN.
+Do not claim complete Ana combat from this partial patch.

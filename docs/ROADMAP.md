@@ -1,5 +1,10 @@
 # Restoration roadmap
 
+Ana lane remains open: partial rifle ally healing has six command/combat tests
+and 93 shared regressions; timed effects, skills/ultimate, cross-hero defenses,
+five enemy NPC kinds and original-client acceptance remain unverified.
+See [Ana combat evidence](ANA_COMBAT.txt). No milestone is checked off by this patch.
+
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
 | Milestone | Exit criteria | Current evidence |

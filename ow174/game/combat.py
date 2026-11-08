@@ -241,6 +241,7 @@ class HitDef:
     falloff_floor: float | None = None
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
+    ally_heal: float = 0.0  # explicit reconstructed support-weapon policy; not a native filter decoder
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -307,6 +308,11 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_floor=value("m_72A81154"),
         critical=value("m_A872C70E", 1.0),
         rings=tuple(sorted(rings)),
+        # 0B94 is Ana's Biotic Rifle; its hip/scoped volleys both carry amount 70.
+        # The native combat filters/effects are not yet hosted. Keep this reconstruction
+        # local to these two nodes rather than treating every weapon as ally healing.
+        # Delivery timing, anti-heal, amplification and visual feedback remain open.
+        ally_heal=amount if state.instance.graph.index == 0x0B94 and state.index in (5, 44) else 0.0,
     )
 
 
@@ -558,6 +564,31 @@ class Combat:
             found.append(target)
         return found
 
+    def _shot_targets(self, shooter, direct: HitDef | None) -> list[Target]:
+        """Enemy bodies plus injured allies for an explicitly supported healing shot.
+
+        Full-health allies are transparent. FFA has no teammates; the source body
+        and corpses are never eligible. Player and NPC targets use the same policy.
+        """
+        found = self._enemies(shooter)
+        if direct is None or direct.ally_heal <= 0.0 or self.match.game_map.free_for_all:
+            return found
+        for target in self._targets():
+            if target.owner is shooter or target.entity == _source_entity(shooter):
+                continue
+            if target.team != shooter.team:
+                continue
+            vitals = self.vitals_of(target)
+            if not vitals.dead and vitals.total < sum(vitals.most.values()) - EPSILON:
+                found.append(target)
+        return found
+
+    def _direct_hit(self, shooter, target, direct, amount, critical, frame, *, world_tick=None):
+        if not self.match.game_map.free_for_all and target.team == shooter.team:
+            self._heal(shooter, target, direct.ally_heal)
+        else:
+            self._damage(shooter, target, amount, critical, direct.loadout, frame, world_tick=world_tick)
+
     def seen(self, target: Target, view_tick: float) -> Target | None:
         """Interpolate retained poses or use the nearest sample for a body that already existed."""
         replaced_at = self.replacement_ticks.get(target.entity)
@@ -666,7 +697,7 @@ class Combat:
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
         best = None
-        for target in self._enemies(shooter):
+        for target in self._shot_targets(shooter, direct):
             shown = self.seen(target, view_tick)
             if shown is None:
                 continue
@@ -683,8 +714,8 @@ class Combat:
         hit_y = origin[1] + direction[1] * t
         critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
-        self._damage(
-            shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
+        self._direct_hit(
+            shooter, target, direct, amount, critical and direct.critical > 1.0, shot_frame,
             world_tick=self.tick if npc else None,
         )
 
@@ -702,7 +733,7 @@ class Combat:
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
         best = None
-        for target in self._enemies(rocket.shooter):
+        for target in self._shot_targets(rocket.shooter, rocket.direct):
             a, b = target.segment()
             t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
@@ -722,8 +753,8 @@ class Combat:
         self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
-            self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+            self._direct_hit(
+                rocket.shooter, struck, rocket.direct, rocket.direct.amount, False, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast
@@ -759,11 +790,19 @@ class Combat:
             a, b = target.segment()
             if segment_distance(centre, a, b) - target.radius > radius:
                 continue
-            given = vitals.heal(amount)
-            if given <= 0.0:
-                continue
-            healer.stats.add(stats.HEALING, given)
+            self._heal(healer, target, amount)
+
+    def _heal(self, healer, target: Target, amount: float) -> float:
+        """Apply healing to a living body and synchronize its script health."""
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            return 0.0
+        given = vitals.heal(amount)
+        if given > 0.0:
+            if not isinstance(healer, bots.Bot):
+                healer.stats.add(stats.HEALING, given)
             self._sync_body_health(target.owner, vitals)
+        return given
 
     @staticmethod
     def _sync_body_health(owner, vitals: Vitals) -> None:
