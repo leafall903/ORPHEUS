@@ -4,11 +4,12 @@ import unittest
 from dataclasses import replace
 from unittest.mock import patch
 
-from test_game_combat import KANEZAKA_DM, Run
+from test_game_combat import KANEZAKA_DM, Run, aim
 
 from ow174.game import combat, stats
 from ow174.game.collision import World
 from ow174.game.content import heroes
+from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
 ROADHOG = 0x02E0000000000040
 
@@ -197,6 +198,88 @@ class RoadhogSelfHealTests(unittest.TestCase):
         self.advance(run, hog, 180)
         self.assertEqual(heal.counter, 2)
         self.assertEqual(vitals.total, 600.0)
+
+
+class WholeHogTests(unittest.TestCase):
+    def session(self, *, charged=True):
+        run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
+        match = run.match
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        hog, enemy = run.players
+        match.switch_hero(hog, heroes()[ROADHOG])
+        x, y, z = hog.mover.position
+        enemy.mover.position = [x, y, z + 2]
+        fight = match.combat
+        targets = {t.owner: t for t in fight._targets()}
+        # High-health fixture retains one target for the entire ultimate, without
+        # claiming that a retail Soldier has this amount of health.
+        vitals = combat.Vitals(enemy.body, 20000)
+        fight.vitals[enemy.body] = vitals
+        if charged:
+            cost = hog.body_script.component.entity_var(ULT_COST).value()
+            hog.body_script.component.set(ULT_CHARGE, cost)
+        angles = aim(fight._eye(hog), (x, y + 0.9, z + 2))
+        return run, hog, enemy, targets[hog], vitals, angles
+
+    def advance(self, run, hog, angles, count, *, press=False):
+        for frame in range(count):
+            run.step({hog: (*angles, 32 if press and frame == 0 else 0)})
+
+    def test_charge_consumption_multiple_pellets_end_and_reject_uncharged_recast(self):
+        run, hog, _, _, vitals, angles = self.session()
+        ultimate, = hog.body_script.ultimates
+        self.advance(run, hog, angles, 1, press=True)
+        self.assertTrue(ultimate.flags & 1)
+        self.assertEqual(hog.body_script.component.entity_var(ULT_CHARGE).value(), 0)
+        self.advance(run, hog, angles, 449)
+        self.assertFalse(ultimate.flags & 1)
+        hits = hog.client.messages(combat.HIT)
+        self.assertGreater(len(hits), 100)  # The old single-pellet path produced only44.
+        self.assertAlmostEqual(20000 - vitals.total, 7 * len(hits))
+        ended = vitals.total
+        self.advance(run, hog, angles, 100, press=True)
+        self.assertEqual(vitals.total, ended)
+        self.assertEqual(len(hog.client.messages(combat.HIT)), len(hits))
+
+    def test_uncharged_ultimate_cannot_start_or_damage(self):
+        run, hog, _, _, vitals, angles = self.session(charged=False)
+        self.advance(run, hog, angles, 120, press=True)
+        ultimate, = hog.body_script.ultimates
+        self.assertFalse(ultimate.flags & 1)
+        self.assertEqual(vitals.total, 20000)
+        self.assertEqual(hog.client.messages(combat.HIT), [])
+
+    def test_owner_death_ends_ultimate_damage(self):
+        run, hog, enemy, target, vitals, angles = self.session()
+        self.advance(run, hog, angles, 80, press=True)
+        self.assertLess(vitals.total, 20000)
+        run.match.combat._damage(enemy, target, 2000, False, None, run.frame)
+        self.assertTrue(run.match.combat.vitals_of(target).dead)
+        ended = vitals.total
+        self.advance(run, hog, angles, 100)
+        self.assertEqual(vitals.total, ended)
+
+    def test_charged_ultimate_miss_allies_and_triangle_wall(self):
+        for mode in ("miss", "ally", "wall"):
+            with self.subTest(mode=mode):
+                run, hog, enemy, _, vitals, angles = self.session()
+                fight = run.match.combat
+                if mode == "miss":
+                    angles = (-32768, 0)
+                if mode == "ally":
+                    run.match.game_map = replace(run.match.game_map, free_for_all=False)
+                    enemy.team = hog.team
+                x, y, z = hog.mover.position
+                wall = World([
+                    (x - 5, y, z + 1, x + 5, y, z + 1, x + 5, y + 5, z + 1),
+                    (x - 5, y, z + 1, x + 5, y + 5, z + 1, x - 5, y + 5, z + 1),
+                ])
+                with patch.object(fight, "_collision", return_value=wall if mode == "wall" else None):
+                    self.advance(run, hog, angles, 100, press=True)
+                self.assertEqual(vitals.total, 20000)
+                self.assertEqual(hog.client.messages(combat.HIT), [])
+                self.assertEqual(hog.body_script.component.entity_var(ULT_CHARGE).value(), 0)
 
 
 if __name__ == "__main__":

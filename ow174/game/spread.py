@@ -11,7 +11,7 @@ from ow174.game.script import expr
 
 
 def directions(state, forward):
-    if state.instance.graph.index != 0x01C6 or state.node.pos != 26:
+    if state.instance.graph.index != 0x01C6 or state.node.pos not in (26, 33):
         return (forward,)
     config = state.node.field("m_5EC1EB38") or {}
     if config.get("$") != "STU_613BDDB0":

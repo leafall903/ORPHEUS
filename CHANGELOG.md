@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: Whole Hog pellets and resource lifecycle
+
+- Trace real FIRE/secondary/Q input: 01C6/node26 is primary, node29 the slug,
+  node33 Whole Hog. The earlier lane note calling node33 a secondary burst was
+  wrong. Projectile0295's expiration behavior is still missing from the prepared
+  graph input; no secondary explosion acceptance is claimed.
+- Apply Whole Hog's authored16-pellet ring pattern to individual hits. Retain
+  the existing explicit reconstruction caveats for ring geometry/phase/jitter.
+- Pass123 combat, projectile, Roadhog, NPC lifecycle, ability and driver tests.
+  Real Q consumes full charge, emits repeated multi-pellet damage, ends, rejects
+  uncharged recasts and ceases damage on owner death. Misses, allies and real
+  triangle walls block damage. Knockback, control interrupts, cross-hero defenses,
+  five Talon types and original-client acceptance remain open. Ruff/diff pass.
+- The private lane includes parent c2d3ae1 through a reviewed local merge;
+  the shared source is untouched. Static-combat goal remains active.
+
 #### Roadhog lane: primary ring projectile count and cooldown regression
 
 - Emit each of primary node26's 25 authored ring pellets through ordinary
