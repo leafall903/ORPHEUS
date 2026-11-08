@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Original-client model-look scope and restoration sample
+
+- Verify actual144E/raw11 in two isolated Story/Normal/Reaper matches, sending
+  all authored remote States with no source override. Eight phase frames are
+  ACKed after create ACKs and two streams retire. Eight accepted native captures
+  verify28 transmitted variable values/tags and three on/off cycles.
+- Observe native component47's specialized VM/scope helper registering and
+  dispatching the ModelLook interface. State caches/flags, component4's authored
+  look override/restoration and the engine look stack agree. Fresh native entity,
+  instance, State and target identities reset counters in the second match.
+- Correct the inspector's identity association: nativeEntity+AC differs from
+  networkEntity+B0. Preserve17 earlier captures whose model/scope fields had
+  already settled; no activation frame is resent or pending timing inferred.
+- Five successive codec checks and36 focused State/codec/statescript tests
+  pass. Prior649 related+15 server checks cover unchanged production code.
+  Client closes normally; owned isolated servers stop and release ports.
+- Accept this exact native scope/model transition sample with declared server
+  services and diagnostic off. Visible appearance, complete engine services,
+  phase/clock mapping, production hosting/lifetimes, rootD38, story/cinematics,
+  enemy AI and results remain open. Normal inputs and unrelated working changes
+  are preserved; no deployment. See MODEL_LOOK_STATE.txt.
+  Publication helper missing; no GitHub push.
+
 #### Placed model-look scope and tick callbacks
 
 - Implement native7D71FDF3 scope enter/exit and tick with explicit namespace,

@@ -465,6 +465,21 @@ Placed model-look callbacks, 2026-11-08:
   using explicit ForwardHost/model services, without a source override.187/186-bit
   on/diagnostic-off codec checks pass. The unchanged scene still completes45/123
   nonempty first frames with78 stops; this sample now needs scope registration.
-- Root100B remains strictD38D0035/node106. No new original-client acceptance or
-  deployment. Engine consumers, production host/lifetimes, full story/cinematics,
-  five enemy AI types and results remain open. See MODEL_LOOK_STATE.txt.
+- Root100B remains strictD38D0035/node106. The implementation probe has no client
+  acceptance or deployment. Subsequent exact-sample acceptance follows below;
+  production host/lifetimes, story/cinematics, enemy AI and results remain open.
+
+Original-client model-look sample, 2026-11-08:
+- Two isolated Story/Normal/Reaper matches send all authored144E remote States
+  without overriding source001B. Eight frames are ACKed after create ACKs; two
+  streams retire. Eight accepted captures verify28 transmitted variable values.
+- Native VM262C010 registers/dispatches raw11's2630808 interface. Three on/off
+  cycles verify look/target caches, model component4 override80D0/restoration7DF1
+  and the engine look stack. Fresh native identities reset state in match two.
+- Correct inspector identity association from network+B0 to native+AC. Preserve
+  17 earlier captures with already-settled native fields; no phase is resent.
+  Five codec checks and36 focused tests pass; prior649+15 cover unchanged code.
+- Client closes normally; owned servers stop. Exact scope/model transitions are
+  accepted with explicit server services and diagnostic off. Visible appearance,
+  complete services/clocks, production hosting/lifetimes and full mission remain
+  unaccepted. Normal inputs are preserved; no deployment. See MODEL_LOOK_STATE.txt.

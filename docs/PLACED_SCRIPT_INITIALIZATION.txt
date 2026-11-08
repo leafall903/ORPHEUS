@@ -302,9 +302,20 @@ supplied. Apply/remove recorders receive authored look09800000000080D0;
 187/186-bit on/diagnostic-off round trips preserve all remote States and values.
 The unchanged strict scene remains45/123 completed first frames and78 stops;
 this sample now stops on missing subgraph registration instead of unknown State
-code. Nineteen behavior tests,649 related and15 server checks pass. Full native
-engine effects, original-client model changes, production Match/lifetimes and
-complete mission remain open. See MODEL_LOOK_STATE.txt for adapters and limits.
+code. Nineteen behavior tests,649 related and15 server checks pass. Complete
+engine effects, production Match/lifetimes and mission remain open.
+
+Subsequent original-client acceptance covers this exact144E sample in two
+Story/Normal/Reaper matches:8 phase ACKs,2 stream retirements,8 native captures,
+28 transmitted variable checks and3 on/off cycles. Native component47's VM262C010
+registers the ModelLook interface through its scope helper. State caches/dispatch
+and component4's baseline7DF1 -> authored80D0 -> baseline changes agree with the
+look manager's stack. Fresh entities/instances reset counters in the second match.
+The inspector now associates nativeEntity+AC IDs separately from wireEntity+B0;
+17 earlier captures preserve that inspector error, not pending engine execution.
+Five codec checks and36 focused checks pass. Client closes normally and owned
+servers stop. No deployment or normal input change. Visible appearance, complete
+engine services, production hosting and full mission remain open. See MODEL_LOOK_STATE.txt.
 
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,

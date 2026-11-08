@@ -85,9 +85,47 @@ Of123 nonempty components,45 complete frame0 and78 retain strict stops. This
 sample now requires subgraph registration instead of an unknown State. Other
 stops remain66 entity-control contexts,3 alias components, action0F647E55(1),
 State9D7BF987(5) and DataFlowMapping(2). Full100B still stops atD38D0035/node106.
-Normal inputs are unchanged; no new client session or deployment. Original-client
-model changes, production host/lifetimes, full story/cinematics, five enemy AI
-types and extraction/results remain open. The roadmap stays unchecked.
+Normal inputs are unchanged. The implementation probe did not start a client;
+the subsequent native sample below accepts scope/model transitions. Production
+host/lifetimes, full story/cinematics, five enemy AI types and extraction/results
+remain open. The roadmap stays unchecked.
+
+Original-client scope/model sample, 2026-11-08
+Two authorized isolated Story/Normal/Reaper matches use the actual144E instance
+and all authored remote States (raw2/5/11). Initial off frames omit source001B; native
+tag10/self is observed before each connection's activation. Server target/model
+services remain declared fixtures; off-after-activation is a diagnostic abort.
+Eight phase frames are ACKed after create ACKs; two streams retire on leave.
+Eight immutable accepted captures verify28 transmitted variable values/tags.
+
+Native component47/2611F68 contains VM262C010 at+D0, whose+5C0 scope helper
+registers rawState11. No direct scope callback is injected. Initial slots are
+unallocated and registration count is0. On allocates2630650 with2630808 scope
+interface, caches80D0 and the entity's native+AC identity, and dispatch flag1.
+Off retains the look and registration, resets targetFFFFFFFF and dispatch flag0.
+States2/5 stay active. All three on/off cycles preserve these transitions.
+
+Model component4/260C1E8 exists. Its model instance+80 remains0D00000000005D9E;
++88 changes baseline0980000000007DF1 -> authored09800000000080D0 -> baseline.
+The context's look manager appends baseline/authored rows on activation and
+removes the authored row on exit. Rows and State220 use nativeEntity+AC IDs,
+not wireEntity+B0. The baseline row remains after exit. Model instance pointers
+may change during reload; pointer stability is not asserted. Fresh native entity,
+instance, State and target identities reset counters in the second match.
+
+The first inspector mistakenly compared the cached native ID with the wire ID
+and filtered manager rows with the latter. Preserve17 resulting captures: the
+scope/model fields had already settled. Corrected identity association validates
+the phase without resending it. This is an inspector error, not pending engine
+execution or evidence of a latency bound.
+
+Five successive codec checks and36 focused State/codec/statescript tests pass.
+The preceding649 related+15 server checks cover unchanged production code.
+Client closes normally; owned servers stop and ports release. Normal inputs and
+unrelated working changes are preserved. No deployment. The exact native scope,
+look override and restoration sample is accepted. Visible object appearance,
+complete engine services, phase/clock mapping, production hosting/lifetimes and
+full story/cinematics/enemy AI/results remain unaccepted.
 
 Local evidence outside Git
 verification/retribution/model-look-native-validation.json,
@@ -96,3 +134,6 @@ model-look-root-validation.json, model-look-related-tests.log,
 model-look-server-tests.log and functions-9A*/1B8A970 disassemblies. The initial
 probe failures and earlier source-fixture sample are retained separately.
 Captured native code, game assets, runtime data and research probes stay outside Git.
+verification/model-look-session contains preparation.json, session.json,
+transport.jsonl, validation.json, eight accepted client/validated capture pairs,
+preserved inspector-error captures, native source observations and focused-tests.log.
