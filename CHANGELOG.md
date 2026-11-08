@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Sigma Hypersphere expiry damage (partial combat lane)
+
+- Resolve expiry explosions for Sigma graph 187F states 20/28 through the
+  existing damage/death path. Keep this reconstructed policy opt-in; other
+  projectile expiry behavior is unchanged. Parameters come from build 104319.
+- Pass 75 Sigma/shared combat/projectile tests, including actual command-driven
+  airburst and impact damage, friendly filtering, skipped world ticks, incoming
+  shield damage and retained training-bot corpse. Ruff and diff checks pass.
+- Full Sigma combat remains OPEN: barrier, grasp, Flux, Accretion control,
+  projectile bounce, cross-hero defenses, five enemy NPCs and original-client
+  presentation have not passed acceptance. See docs/SIGMA_COMBAT.txt.
+- No client or normal deployment, publication sync, root-main merge or push
+  is claimed. The shared client already has an unowned running process.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

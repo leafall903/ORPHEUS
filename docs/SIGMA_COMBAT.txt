@@ -1,0 +1,77 @@
+Sigma combat lane -- OPEN, not accepted
+Target: Overwatch 1.74.0.0.104319; hero 02E000000000023B, body 0400000000002AB1.
+
+Evidence and implementation boundary
+------------------------------------
+The external target-build graph bundle supplies primary graph 187F, states 20
+and 28: two projectile volleys, speed 50 m/s, lifetime approximately 0.44 s,
+direct damage 25, explosion damage 30. Explosion rings are (1 m, 1.0) and
+(2.85 m, 0.3). These are extracted data, not current Overwatch balance values.
+Server capsule collision and damage interpretation remain reconstructed.
+
+Previously Combat._fly retired a lifetime-expired projectile without resolving
+its explosion. Add an opt-in airburst flag for those two graph/state pairs and
+reuse the existing explosion/damage/death path at its final flight position.
+Impact explosions and every other projectile's expiry policy remain unchanged.
+This is an explicitly reconstructed server policy, not native dispatcher proof.
+
+Repeatable offline tests drive actual Sigma commands and extracted body graphs
+through Match/Combat. One primary press gives two 30-point airbursts against an
+offset player at 22 m; at 6 m, two direct+blast hits deal 110 total. Tests cover
+outside-radius exclusion, friendly-team exclusion, no duplicate expiration,
+skipped/repeated world ticks, incoming enemy rifle damage to Sigma's 100 shield
+points over 300 health, and training-bot death with opt-in retained corpse.
+Native melee input deals 30; native Accretion input deals 70 in this fixture.
+Neither establishes complete ability behavior. These are server-side damage
+tests with fake network clients, not original-client or two-client acceptance.
+
+Acceptance matrix (P = enemy player; NPC = Trooper/Enforcer/Sniper/Assassin/Heavy)
+-----------------------------------------------------------------------------
+Action                 P evidence                  NPC evidence    Acceptance
+Hyperspheres           110 direct pair / 60 burst    all five OPEN   OPEN
+Quick melee            30 once, actual input        all five OPEN   OPEN
+Experimental Barrier   no interception test         all five OPEN   OPEN
+Kinetic Grasp          no absorption/overhealth test all five OPEN   OPEN
+Accretion              70 damage only               all five OPEN   OPEN
+Gravitic Flux          no charged-ultimate test      all five OPEN   OPEN
+Incoming attacks       enemy Soldier rifle only     all five OPEN   OPEN
+Death/lifetime         training-bot corpse only      all five OPEN   OPEN
+
+For each NPC column, both receiving and dealing damage, specials, states,
+navigation/targeting and visible death still need real encounter verification.
+The training bot is not a substitute for any of those five enemy definitions.
+Friendly Barrier/Grasp semantics must remain defensive; this patch introduces
+no offensive damage substitute for either skill.
+
+Required open interactions
+--------------------------
+- Projectile wall bounce and full native projectile motion, splash occlusion,
+  self damage/knockback and collision radius; the existing straight-line sweep
+  and unobstructed radius splash do not establish those mechanics.
+- Barrier travel, stop/recall, health/regen/break, enemy shot interception,
+  ally pass-through, shared cross-hero barrier behavior and replication.
+- Grasp front arc, absorptive eligibility, beams/melee/rock exceptions,
+  absorbed damage accounting, temporary shields, decay and client effects.
+- Accretion control/knockback, projectile gravity and cross-hero exceptions.
+- Flux charge/cost/targeting, flight, lift/immobilization, slam damage using the
+  correct target maximum, interruption, immunity, death cleanup and presentation.
+- Reflect/absorb/invulnerability, armor, crowd-control protection and immunity
+  across other heroes; normal death/respawn remains distinct from manual NPC
+  retained-corpse policy. Shield regeneration and ultimate economy need checks.
+- Original client HUD, projectiles, animation, sound, hit/kill feedback and
+  enemy-player plus five-NPC bidirectional scenarios.
+
+Static audit: 62 referenced graphs, missing graph 0F9C; 228 unregistered State
+nodes in the recursive closure, including client presentation and shared
+graphs. These static counts do not identify 228 executed runtime failures.
+The permissive VM's lack of an exception is not a passed gameplay test.
+
+Run from the private source clone with ORPHEUS_RUNTIME_DIR pointing at the
+read-only runtime-104319 and PYTHONPATH at this source plus its tests directory:
+  python -B -m unittest test_sigma_combat test_game_combat test_game_projectiles -q
+  python -B -m ruff check ow174/game/combat.py tests/test_sigma_combat.py
+
+2026-11-08: 75 tests passed; Ruff passed. No original client session was owned
+or claimed. An existing Overwatch process/window was observed without an
+associated client lease; no process, service or port was controlled. The lane
+must acquire an atomic exclusive lease and verify ownership before live work.

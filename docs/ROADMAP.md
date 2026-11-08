@@ -14,6 +14,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] **Sigma independent combat acceptance.** Partial headless damage evidence
+  covers Hypersphere impact/expiry, quick melee, Accretion damage and incoming
+  player rifle damage. Barrier, Grasp, Flux, control, cross-hero interactions,
+  all five PvE enemy types and original-client acceptance remain open. See
+  [Sigma combat lane](SIGMA_COMBAT.txt). No hero-complete claim is made.
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse

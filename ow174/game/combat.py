@@ -88,6 +88,11 @@ MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahea
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
 EPSILON = 1e-9
+# Reconstructed server policy, scoped to Sigma's two 187F Hypersphere volleys.
+# DATA supplies their 0.44 s lifetime, 50 m/s speed and 30-point explosion;
+# the native server expiry dispatcher is not available. Other projectiles keep
+# their existing expiry behavior until their individual policy is established.
+AIRBURST_VOLLEYS = {(0x187F, 20), (0x187F, 28)}
 
 
 # --- geometry -----------------------------------------------------------------------------------------
@@ -349,6 +354,7 @@ class Rocket:
     shot: object = None  # its projectiles.Shot: told when it ends
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
+    airburst: bool = False  # explode at the final flight position when lifetime/range expires
 
 
 class Combat:
@@ -655,6 +661,7 @@ class Combat:
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
+                        airburst=(state.instance.graph.index, node.state) in AIRBURST_VOLLEYS,
                     )
                 )
             return
@@ -698,6 +705,8 @@ class Combat:
         duration = min(elapsed * TICK, rocket.left)
         if duration <= 0.0:
             self._landed(rocket)
+            if rocket.airburst:
+                self._explode(rocket, rocket.position)
             return
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
@@ -716,6 +725,8 @@ class Combat:
             rocket.left -= duration
             if rocket.left <= 0.0:
                 self._landed(rocket)
+                if rocket.airburst:
+                    self._explode(rocket, rocket.position)
             return
         t, struck = best
         rocket.flown += t / rocket.speed
@@ -726,6 +737,10 @@ class Combat:
                 rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
                 world_tick=self.tick,
             )
+        self._explode(rocket, point)
+
+    def _explode(self, rocket: Rocket, point) -> None:
+        """Resolve a single impact/airburst through the ordinary damage/death path."""
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
