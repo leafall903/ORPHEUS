@@ -45,6 +45,7 @@ from ow174.game.collision import (
 from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
+from ow174.game.genji import GENJI, Mobility
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
@@ -215,6 +216,7 @@ class Player:
         self.commands = CommandQueue()
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
+        self.genji_mobility = Mobility()
         # Other players' bodies this player's client has: body -> False in the frame of its create.
         self.seen: dict[int, bool] = {}
         self.shown: dict[int, ShownController] = {}  # other players' controller entities on this client
@@ -331,6 +333,8 @@ class Player:
                 if isinstance(state, nodes.MoveTo) and (movement := state.move_request()) is not None
             ]
         # Arbitration between simultaneous world-target states is unresolved.
+        if self.hero.guid == GENJI:
+            self.genji_mobility.before_pose(self, command, seconds, driven=bool(requests))
         movement_end = None
         if len(requests) == 1:
             state, (target, speed) = requests[0]
@@ -358,6 +362,7 @@ class Player:
         """Set up the allocated body at the spawn point."""
         self.body = entity
         self.mover = self.new_mover()
+        self.genji_mobility = Mobility()
 
     def new_mover(self) -> Mover:
         """The body's mover at the spawn point, with the hero's values and the match's pinned collision.

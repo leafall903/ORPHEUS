@@ -6,6 +6,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Genji passive movement reconstruction (partial)
+
+- Add a body-local passive controller around the existing collision mover:
+  one extra airborne jump impulse from the authored mover value, and bounded
+  frontal wall climbing using explicitly inferred roles for0157's7.5/0.75/0.25
+  fields. Preserve capsule/ceiling collision, jump-intent blocks, key edges,
+  landing/new-body refresh and climb cancellation. Missing commands age duration.
+- Store the controller as registered causal state. Pass14 command/collision
+  mobility tests plus the expanded passive-state snapshot digest check. Native
+  custom-State semantics, prediction and visual acceptance remain open, along
+  with the remaining full static hero combat matrix.
+
 #### Genji reconstructed Deflect authority (partial)
 
 - Reflect explicitly tagged frontal hitscan and physical volley projectiles

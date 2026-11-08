@@ -20,6 +20,7 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    genji,
     heroselect,
     notices,
     observers,
@@ -86,8 +87,8 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
+                   "body_script body_script_failed genji_mobility seen shown script mode_script "
+                   "next_countdown select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
@@ -136,7 +137,7 @@ FIELDS = {
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
-    GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
+    GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData, genji.Mobility,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,

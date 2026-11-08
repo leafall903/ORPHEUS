@@ -99,6 +99,10 @@ class ServerSnapshotTests(unittest.TestCase):
         fight.genji_strikes.clear()
         fight.genji_blades.clear()
         self.assertEqual(snapshot_digest(self.capture(session)), first)
+        players[0].genji_mobility.air_jump_used = True
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+        players[0].genji_mobility.air_jump_used = False
+        self.assertEqual(snapshot_digest(self.capture(session)), first)
 
     def test_equal_data_clone_is_distinguished_from_the_canonical_lazy_table(self):
         session, _, players = self.scene()

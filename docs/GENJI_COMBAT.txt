@@ -33,8 +33,8 @@ Quick melee     inherited generic path  / OPEN / OPEN
 Swift Strike    partial movement/damage / OPEN / OPEN
 Deflect         partial reflection      / partial two NPCs / OPEN
 Dragonblade     partial sword damage    / OPEN / OPEN
-Double jump     unaccepted movement     / n/a  / OPEN
-Wall climb      unaccepted movement     / n/a  / OPEN
+Double jump     partial reconstruction  / n/a  / OPEN
+Wall climb      partial reconstruction  / n/a  / OPEN
 Receive attacks inherited damage path   / OPEN / OPEN
 
 Swift Strike graph01DB's ModifyHealth3/15 are active while idle. TrackTargets
@@ -72,6 +72,21 @@ Cross-hero acceptance remains OPEN for barrier interception, reflected and
 absorbed projectiles, nondeflectable beams, melee block, invulnerability,
 crowd control, armor/shields, health/death feedback, elimination/dash resets,
 ultimate charge from combat and friendly support/heal semantics.
+
+Passive mobility is reconstructed in genji.Mobility, kept on the player's body
+lifecycle and included in causal snapshots. An airborne fresh jump edge grants
+one extra impulse using the current authored mover jump_speed; holding the key
+and repeated input cannot grant another. Landing/new body refresh resources.
+Jump-intent modifiers can reject the impulse without queuing a later press.
+Wall climb reads opaque0157/State5 fields7.5,0.75,0.25 as upward speed, maximum
+seconds and probe margin respectively. Those field-role mappings are inference.
+It requires jump held, forward input, airborne state and a nearby frontal
+vertical static surface. Collision/ceiling remain the normal capsule mover's.
+Release, loss of wall, expiry and MoveTo interrupt climbing; it cannot restart
+until landing. The reconstructed climb-end policy stops upward velocity and
+refreshes one air jump. Missing command frames age its duration rather than
+extending it. Native custom-State transitions/animation/prediction are OPEN.
+Fourteen mobility checks and the causal passive-state digest check pass.
 
 Required NPCs: Trooper, Enforcer, Sniper, Assassin, Heavy Assault. Parent lane
 owns manual spawn/control and archetype integration. Its c2d3ae1/a15d554 lifecycle
