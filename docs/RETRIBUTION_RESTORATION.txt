@@ -518,3 +518,20 @@ Initial shared scene host, 2026-11-08:
   Normal catalog inputs are unchanged. Dynamic actors, native scene phases,
   full services/replication, cinematics, enemy AI and mission results remain
   unaccepted. See SCENE_SCRIPT_HOST.txt for the initial host's exact boundary.
+
+PlayScript source/context identity, 2026-11-08:
+- Verify the entity-instance own table and native source getter/setter. Live
+  SceneWorld components now derive caller/owner and cached inherited source;
+  detached/stopped sources fail lifecycle checks. No context provider is guessed
+  for unknown or abstract native instances.
+- New loaded-core allocations can seed an explicitly supplied instigator before
+  defaults. Start-entry caller binding stays separate; skip/reuse retain the old
+  source. Passive storage includes the source cache without evaluating it.
+- Native294 getter/setter, seven allocation-source and seven owner-identity cases
+  pass with declared adapters. Actual0F45/node48 constructs the authored0EC6
+  request through its live context; explicit core handoff sets001B and array41.
+  The helper stops at strict message-target component/node22. Automatic submission
+  still stops before success; the complete body/controller flow is unaccepted.
+- Full shared Match remainsD38/node106. Loader/transport, native phases, dynamic
+  actors, cinematics, enemy AI and results remain open. No new client run or
+  deployment; normal inputs are preserved. See PLAY_SOURCE_CONTEXT.txt.

@@ -115,7 +115,7 @@ class PlayRequestTests(unittest.TestCase):
         world = scene.SceneWorld()
         world.bind(123)
         caller, action = requesting(world=world)
-        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'request context'):
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'PlayScript source lifecycle'):
             caller.run_node(action, None)
         self.assertNotIn(7, caller.vars)
         caller, action = requesting()

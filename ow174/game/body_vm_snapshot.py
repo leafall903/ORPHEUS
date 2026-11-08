@@ -28,7 +28,7 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries",
+    "disabled_start_entries", "cached_source_entity",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -169,6 +169,9 @@ class _Export:
         _containers(fields, ("vars", "states"), dict, "instance")
         _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
         _containers(fields, ("disabled_start_entries",), set, "instance")
+        source = fields["cached_source_entity"]
+        if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance source entity cache')
         if fields["component"] is not self.component:
             raise BodyVMSnapshotError("foreign component instance reference")
         number = _integer(fields["id"], "instance")

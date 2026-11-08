@@ -17,6 +17,10 @@ Every component is bound before any startup schema is evaluated. The initial
 catalog seals after startup; this API does not create dynamic mission actors.
 
 Shared values, messages and retirement
+Entity-instance PlayScript context now derives from the actual live component
+and the native builtin001B source cache, with lifecycle checks around evaluation.
+It does not grant request submission or readiness. See PLAY_SOURCE_CONTEXT.txt.
+
 InstanceContext.member reads a live foreign component's Var slot, including its
 effective links and typed values. Reads with a State dependency subscribe to the
 actual slot. Ordinary changes use existing watcher notification and queue rules.

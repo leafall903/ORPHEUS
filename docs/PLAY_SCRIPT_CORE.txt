@@ -189,3 +189,16 @@ Subsequent auxiliary-interface extension, 2026-11-08
 An explicitly declared registration context permits the actual helper to begin
 states0/2 and produce the numeric rows. Next is 582E0D5F/node4. Interface dispatch
 timing and complete helper execution remain open; see AUXILIARY_SUBGRAPHS.txt.
+
+Entity-instance request identity and allocation source, 2026-11-08
+The own262E740 table's+60/+70 getters share the actual component VM. A live
+SceneWorld binding now supplies caller/owner identity and the native lazy builtin
+001B source cache. An optional explicit instigator seeds new loaded-core instances
+before schema evaluation; skip/reuse retain their source. Start-entry caller
+binding remains separate. Native294 getter/setter, seven allocation-source and
+seven owner-identity cases pass with declared storage/owner adapters. An actual
+0F45/node48 fixture now constructs context without a replacement provider and
+hands its request explicitly to0EC6. Parameter41 is assigned, then the helper
+retains a strict node22 message-target-component diagnostic. Automatic submission,
+loader/transport semantics and full body/controller startup remain open. The full
+shared Match still stops atD38/node106. See PLAY_SOURCE_CONTEXT.txt for scope.

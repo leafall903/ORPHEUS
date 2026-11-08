@@ -223,6 +223,19 @@ class SceneWorld(runtime.World):
         if self.script_components.get(target) is not receiver or receiver.fault is not None:
             source.unsupported(instance, 'scene message target lifecycle', node.cls, node)
 
+    def play_script_context(self, instance, node):
+        """Entity-instance262E740's +60/+70 share its actual component VM."""
+        component = instance.component
+        if (self.script_components.get(component.entity) is not component
+                or component.instances.get(instance.id) is not instance or instance.stopped):
+            component.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
+        component.ensure_valid()
+        inherited = instance.source_entity()
+        if (self.script_components.get(component.entity) is not component
+                or component.instances.get(instance.id) is not instance or instance.stopped):
+            component.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
+        return play.InvocationContext(component.entity, component.entity, inherited)
+
     def set_property_modifiers(self, entity: int, component: modifiers.NumericModifiers | None) -> None:
         """Declare component 31 and its clock; UUID bindings do not imply it."""
         self._bound_entity(entity)

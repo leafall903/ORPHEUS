@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native PlayScript source and entity-instance context
+
+- Derive live SceneWorld entity-instance caller/owner from its actual component
+  and inherited instigator from native builtin001B/+234 cache semantics. Verify
+  the own entity-instance getter table; detached/stopped sources fail lifecycle
+  checks before or after effective-value callbacks.
+- New loaded-core allocations accept an explicit instigator, seed typed001B
+  before defaults and retain native zero's owner fallback. Start-entry caller
+  bindings stay separate. Skip/reuse retain the existing source. Passive VM
+  storage includes the uint32 source cache without running its getter.
+- Compare 294 original getter/setter cases, seven allocation-source branches
+  and seven owner-identity cases with declared storage/owner adapters. Add 13
+  behavior tests; 745 related and 33 server tests pass, with Ruff/diff.
+- Actual0F45/node48 derives its request context through the bound component.
+  An explicit0EC6 loaded-core handoff sets001B and array variable41, then retains
+  strict message-target component/node22. Automatic submission still stops before
+  success. Body/controller bindings, allocation source and input17 are fixtures;
+  full body/controller startup, helper execution and transport are unaccepted.
+- Real shared Match remains147 startup preparations and strict100B/D38/node106.
+  Native allocator/loader/flags, dynamic actors, full services/replication,
+  cinematics, enemy AI and mission results remain open. No new client run or
+  deployment. Normal inputs and unrelated working changes are preserved.
+  See PLAY_SOURCE_CONTEXT.txt. Publication helper missing; no GitHub push.
+
 #### Initial Match-owned shared scene scripts
 
 - Add an explicit GameServer/Match scene factory for the initial mode/placed

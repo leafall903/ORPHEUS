@@ -681,6 +681,7 @@ class Component:
 
     def play_loaded_graph(
         self, definition: Graph, *, source: int, params=(), overrides=(), policy: int = 0,
+        instigator: int | None = None,
     ) -> "Instance | None":
         """Invoke an already-resolved graph on this component (64D2C0, 64CD10).
 
@@ -690,12 +691,17 @@ class Component:
         follow public schema defaults, before the separately queued start inputs.
         The native start context must supply source explicitly. This core uses
         context kind zero; entries declaring another kind do not match it.
+        An explicitly supplied instigator seeds builtin001B on new allocation
+        before schema evaluation. Only zero falls back to this component's owner;
+        skipped/reused instances keep their allocation source. None leaves it unknown.
         """
         self.ensure_valid()
         if type(policy) is not int or policy not in range(4):
             raise ValueError("unknown PlayScript instance policy")
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise ValueError("PlayScript source must be a 32-bit entity identifier")
+        if instigator is not None and (type(instigator) is not int or not 0 <= instigator <= 0xFFFFFFFF):
+            raise ValueError("PlayScript instigator must be a 32-bit entity identifier")
         params = tuple(params)
         overrides = tuple(overrides)
         for name, pairs in (("parameter", params), ("override", overrides)):
@@ -715,6 +721,8 @@ class Component:
                     self.destroy(instance)
             reused = bool(matches and policy == 2)
             instance = matches[0] if reused else self.create(definition)
+            if not reused and instigator is not None:
+                instance.set_source_entity(self.entity if instigator == 0 else instigator)
             instance.play_schema(overrides, reorder_entries=not reused)
             instance.start_entries(params, source)
             return instance
@@ -818,6 +826,7 @@ class Instance:
         self.initialization_pending = False
         self.start = 0
         self.disabled_start_entries: set[int] = set()
+        self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -837,6 +846,23 @@ class Instance:
 
     def evaluate(self, cfg, watcher: "State | None" = None, *, initial=None):
         return expr.evaluate(cfg, self.context(watcher), initial=initial)
+
+    def source_entity(self) -> int:
+        """1B92E50/1B92ED0: retain a valid cache, otherwise cast builtin001B now."""
+        self.component.ensure_valid()
+        if not expr.valid_entity(self.cached_source_entity):
+            self.cached_source_entity = expr.to_entity(self.context().var(INSTANCE, 0x1B)) & 0xFFFFFFFF
+            self.component.ensure_valid()
+        return self.cached_source_entity
+
+    def set_source_entity(self, entity: int) -> None:
+        """1B94B10: write the typed builtin synchronously, then commit its cache."""
+        if type(entity) is not int or not 0 <= entity <= 0xFFFFFFFF:
+            raise ValueError('script source must be a 32-bit entity identifier')
+        with self.component.operation():
+            self.write((INSTANCE, 0x1B), Entity(entity))
+            self.component.ensure_valid()
+            self.cached_source_entity = entity
 
     def write(self, target: tuple[int, int] | None, value) -> None:
         """A plain assignment with the value's own type (0x7FF78AAB5650)."""
