@@ -46,7 +46,7 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.mover import GRAVITY_SCALE, MoverData, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -116,7 +116,9 @@ DEAD = 0x2000  # the movement state's dead flag (combat.py): the 3P animation's 
 
 
 class Bot:
-    def __init__(self, entity: int, spawner: dict, hero: dict, hints: dict) -> None:
+    def __init__(
+        self, entity: int, spawner: dict, hero: dict, hints: dict, *, mover: MoverData | None = None,
+    ) -> None:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
@@ -128,7 +130,8 @@ class Bot:
         self.body = int(hero["body"], 16)
         self.team = spawner["team"]
         self.health = hero["health"]
-        values = mover_data(self.body)
+        self.movement_data = mover  # explicit prepared input for non-catalog bodies
+        values = mover or mover_data(self.body)
         self.speed = values.run_forward
         self.accel = values.accel_ground * values.run_forward  # m/s^2 up to full speed
         self.brake = values.decel_ground_base * values.run_forward  # m/s^2 down to a stop

@@ -595,8 +595,10 @@ class Match:
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            vitals = self.combat.vitals.get(bot.entity)
             bot.body_script = BotScript(
-                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
+                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid,
+                vitals.total if vitals is not None else bot.health,
                 firing_position=bot.position if firing else None,
             )
         except Exception:

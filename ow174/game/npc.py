@@ -6,10 +6,11 @@ guessing NPC schema variable meanings. Calls belong to the match update thread.
 
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from ow174.game import bots, combat, world
+from ow174.game.mover import MoverData
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class Definition:
     health: float
     armour: float = 0.0
     shields: float = 0.0
+    mover: MoverData | None = None
 
     def __post_init__(self):
         for value, kind in ((self.hero, 0x02E0), (self.body, 0x0400)):
@@ -30,6 +32,16 @@ class Definition:
         if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0
                for value in (self.health, self.armour, self.shields)) or self.health <= 0:
             raise ValueError('NPC pools must be finite and health must be positive')
+        if self.mover is not None:
+            if type(self.mover) is not MoverData or any(
+                type(value := getattr(self.mover, field.name)) not in (int, float)
+                or not math.isfinite(value) for field in fields(MoverData)
+            ):
+                raise ValueError('NPC mover must contain finite numeric values')
+            if any(getattr(self.mover, name) <= 0 for name in (
+                'stand_height', 'stand_radius', 'crouch_height', 'crouch_radius',
+            )):
+                raise ValueError('NPC capsule dimensions must be positive')
 
 
 def load_catalog(path: Path) -> dict[str, Definition]:
@@ -45,8 +57,13 @@ def load_catalog(path: Path) -> dict[str, Definition]:
         key = row['key']
         if not isinstance(key, str) or key not in '123456789' or len(key) != 1 or key in result:
             raise ValueError('NPC catalog needs unique selection keys 1..9')
+        mover = row.get('mover')
+        if mover is not None:
+            if not isinstance(mover, dict) or set(mover) != {f.name for f in fields(MoverData)}:
+                raise ValueError('NPC mover catalog must contain all authored mover fields')
+            mover = MoverData(**mover)
         result[key] = Definition(int(row['hero'], 16), int(row['body'], 16), row['name'],
-                                 row['health'], row['armour'], row['shields'])
+                                 row['health'], row['armour'], row['shields'], mover)
     return result
 
 
@@ -67,7 +84,7 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
-    bot = bots.Bot(entity, data, hero, {})
+    bot = bots.Bot(entity, data, hero, {}, mover=definition.mover)
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True
     # Import locally to keep Match's existing module graph acyclic.
@@ -75,10 +92,10 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
     match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
-    match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match._prepare_bot_script(bot)
+    match.bots.append(bot)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:

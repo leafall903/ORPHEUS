@@ -11,8 +11,12 @@ Resource-backed facts:
   TrackRay 101 defines a 0.2 m radius. Primary is not a WeaponVolley.
 - Secondary uses 157C WeaponVolley 43, projectile 26F1, 25 m/s default speed,
   charge 14AC, direct amount 01DC and explosion rings 0.5 m/1, 2 m/0.25.
-- Turret launch uses 157E volley 12, projectile 2658; teleporter uses 156B;
-  Photon Barrier uses 1571. Authoritative deployment services remain missing.
+- Turret launch uses 157E volley 12 (logical button 35), projectile 2658.
+  Teleporter uses 1571 (logical button 36), bodies 26F2/272D with 50 health
+  and 250 shields. Photon Barrier uses 156B (logical button 37, ultimate
+  charge/cost gate), Pet body 26B0 with 4000 health. Earlier research notes
+  reversed the two deployment graphs; the logical-button/cost wiring resolves
+  that error. Authoritative deployment services remain missing.
 - Shared 01CF compares 32E6E4D8 / 7D7D2470 against low-health fractions.
   157C node 93 requires 32E6E4D8(owner) > 0 before releasing the charged orb.
 - Shared 0033 state 27 configures a recovery delay of 3 * entity 556C seconds;
@@ -57,6 +61,24 @@ Execution evidence: tests/test_symmetra_combat.py
 - Hero quick melee tests prove one 30-point hit per activation, recovery before
   reuse, miss/range/ally filtering and triangle-wall occlusion.
 
+Five-NPC resource fixtures: tests/test_symmetra_npc_combat.py
+- Explicit ORPHEUS_PVE_CATALOG and ORPHEUS_PVE_GRAPHS select read-only external
+  inputs. The source's canonical graph/runtime tables are unchanged; the fixture
+  supplements only otherwise missing entity records and graphs for that test.
+- Carry complete authored CharacterMover values in prepared NPC catalog rows.
+  Standard runtime lacks all five mover definitions; explicit data now supplies
+  actual capsule heights/radii and movement speed instead of Soldier fallback.
+- Start the actual NPC script with total supplied pools, fixing Enforcer and
+  Assassin health-only script initialization. Pool kinds stay health/armor/shields.
+- Six tests execute 40 named NPC scenarios: four-frame beam (3.84 damage), full
+  orb (120 damage), melee (30 damage), miss/range/ally protection, lethal beam on
+  a preinjured NPC with real death snapshots and retained body after 3.2 seconds,
+  and incoming NPC-attributed damage dispatch into Symmetra shields/death.
+- Incoming damage dispatch uses an explicit server damage fixture. It does not
+  execute NPC attack input, acquisition, AI or specials; those remain OPEN.
+- Collision is a flat-world/triangle fixture and transport is FakeClient. The
+  native body VMs are permissive. These are static tests, not client acceptance.
+
 Historical driver crash fixture freezes the old missing-health-query answer:
 its literal bit 2842 belongs to the historical server state. Current live frame
 encoding remains covered by the other driver tests.
@@ -82,11 +104,12 @@ Photon Barrier      OPEN: ultimate charge/cost, release/orientation, infinite
                     plane bounds, team filtering, health, duration, death,
                     destruction, client entities/effects and all attacks.
 Enemy players       PARTIAL weapon proof only; all applicable interactions OPEN.
-Trooper             OPEN bidirectional attacks, skills, control and retained death.
-Enforcer            OPEN bidirectional attacks, skills, control and retained death.
-Sniper              OPEN bidirectional attacks, skills, control and retained death.
-Assassin            OPEN bidirectional attacks, skills, control and retained death.
-Heavy Assault       OPEN bidirectional attacks, skills, control and retained death.
+Trooper             PARTIAL outgoing weapons/death and incoming damage dispatch;
+                    actual NPC attack input/AI/specials/control remain OPEN.
+Enforcer            PARTIAL same executed scope; full bidirectional combat OPEN.
+Sniper              PARTIAL same executed scope; full bidirectional combat OPEN.
+Assassin            PARTIAL same executed scope; full bidirectional combat OPEN.
+Heavy Assault       PARTIAL same executed scope; full bidirectional combat OPEN.
 Cross-hero          OPEN shield/reflect/absorb/invulnerability/control/death matrix.
 Original client     OPEN: no client or lease used in this packet; an existing
                     shared original client was observed and left untouched.

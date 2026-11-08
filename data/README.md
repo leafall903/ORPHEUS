@@ -1,5 +1,13 @@
 # Runtime data
 
+Prepared manual NPC catalogs may include a complete `mover` object from each
+body's authored `STUCharacterMoverComponent`. `tools/extract_pve_npcs.py` exports
+it with the existing source fingerprints. The explicit definition supplies NPC
+combat capsule dimensions and movement values when the canonical hero table
+does not contain that body. A partial or nonfinite mover object is rejected.
+Older catalogs without this field retain their existing fallback behavior and
+do not establish authored NPC hitbox or movement fidelity.
+
 The server and its tests use the following data sets. The public source checkout uses separately prepared runtime data. See [separate deployment data](../README.md#separate-deployment-data).
 
 | File | Purpose |

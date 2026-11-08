@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Symmetra tests against authored five-NPC bodies
+
+- Extend prepared NPC definitions with complete validated CharacterMover data.
+  Use each supplied capsule and movement speed when the canonical hero mover
+  table lacks that body. Extract these values from the same fingerprinted XML;
+  keep all generated inputs outside Git and the canonical runtime unchanged.
+- Initialize NPC scripts after registering supplied Vitals and pass the total
+  pool sum, correcting health-only initialization for shield-bearing enemies.
+- Execute six external-resource tests covering 40 five-NPC scenarios: real
+  primary/orb/melee input damage, miss/range/ally filtering, lethal beam on a
+  preinjured target with death snapshots and retained corpse, and incoming
+  NPC-attributed damage dispatch. The incoming dispatch fixture does not execute
+  enemy attack input, acquisition, AI or specials; those remain open.
+- Pass 542 game regressions, 34 bot tests, three extractor tests and six
+  five-NPC resource tests. Ruff and diff checks pass. Resource-backed dimensions
+  include Heavy Assault's 2.3 m height and 0.7 m radius instead of Soldier fallback.
+- Correct the research graph labels from actual logical-button/cost wiring:
+  1571 is Teleporter (36), 156B is Photon Barrier ultimate (37). Their deployment,
+  cooldowns, ultimate and cross-hero static acceptance remain open, as does all
+  original-client acceptance. No shared-main merge or publication.
+
 #### Authored shield recovery and melee visibility
 
 - Integrate 0033's 3-second shield-recovery delay and 30-point-per-second rate

@@ -585,7 +585,7 @@ class Combat:
                        player)
             )  # fmt: skip
         for bot in self.match.bots:
-            data = mover_data(bot.body)
+            data = bot.movement_data or mover_data(bot.body)
             found.append(
                 Target(
                     bot.entity, bot.team, tuple(bot.position), data.stand_height, data.stand_radius, EYE, bot

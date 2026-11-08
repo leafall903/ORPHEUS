@@ -32,6 +32,8 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [ ] Complete Symmetra static combat acceptance. Primary base-DPS target
     selection and charged-orb release/flight/damage have command-to-pool tests;
     authored shield recovery and melee static LOS now affect actual pools.
+    External five-NPC body/mover fixtures cover outgoing weapon damage, filters
+    and retained death; incoming attack AI and specials remain unverified.
     level modifiers, deployables, cooldowns, ultimate and cross-hero/five-NPC
     matrices remain open. Original-client acceptance is separate and pending.
     See [Symmetra combat](SYMMETRA_COMBAT.txt).

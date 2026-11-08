@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from extract_game_graphs import EnumTables, GraphXml, StuXml, body_record, full_guid, guid_index  # noqa: E402
+from extract_game_movers import mover_of  # noqa: E402
 
+from ow174.game.mover import MoverData  # noqa: E402
 from ow174.game.npc import Definition  # noqa: E402
 
 
@@ -46,6 +48,7 @@ def extract(folder, enums, selections):
         record, _ = body_record(body_path, enums, None, name)
         fingerprint(hero_path)
         fingerprint(body_path)
+        movement = mover_of(body_path.read_bytes().decode('utf-8'))
         pools, evidence, unapplied = {}, [], []
         for entry in record['graphs']:
             if entry['graph'] is None:
@@ -80,10 +83,12 @@ def extract(folder, enums, selections):
                 evidence.append({'graph': entry['graph'], 'pool_node': node['pos'],
                     'setter_node': setters[0]['pos'], 'variable': var, 'pool_kind': kind})
         definition = Definition(full_guid(f'{int(index, 16):012X}.075'), full_guid(body_ref),
-                                name, pools.get(0, 0), pools.get(1, 0), pools.get(2, 0))
+                                name, pools.get(0, 0), pools.get(1, 0), pools.get(2, 0),
+                                MoverData(**movement) if movement is not None else None)
         rows.append({'key': key, 'hero': f'0x{definition.hero:016X}', 'body': f'0x{definition.body:016X}',
             'name': name, 'health': definition.health, 'armour': definition.armour,
-            'shields': definition.shields, 'pool_evidence': evidence, 'unapplied_pool_nodes': unapplied})
+            'shields': definition.shields, 'mover': movement,
+            'pool_evidence': evidence, 'unapplied_pool_nodes': unapplied})
     return {'format_version': 1, 'definitions': rows, 'source_sha256': sources,
             'limits': ['Base body pools only; no mission difficulty scaling, AI or client acceptance.']}
 
