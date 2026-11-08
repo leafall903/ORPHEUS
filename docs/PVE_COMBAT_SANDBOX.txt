@@ -6,12 +6,66 @@ bidirectional damage, abilities, ultimate and original-client presentation.
 Dead NPCs remain as corpses until explicitly removed. Missing authoritative
 behavior may be reconstructed from the available assets; record its assumptions
 and differences rather than claiming a native implementation.
+McCree's current executed frontier and remaining skill requirements are recorded
+in docs/MCCREE_COMBAT.txt. Melee now rejects static-wall occlusion for enemy
+players and NPCs; that check alone does not establish complete skill behavior.
+Resource-backed Flashbang control is now implemented and tested offline, with
+input/movement suppression, channel interruption, expiry/recovery and lifetime
+cleanup. Native immunity/status presentation and full Deadeye remain open.
 
-Requested controls (not implemented yet):
+Requested controls (command semantics and companion web frontend implemented):
 = opens the console spawn interface; 1..5 select the five enemies in the order
 above; - removes manually spawned NPCs and their corpses; 0 starts attacks by
 the living NPC under the crosshair; { stops attacks by all spawned enemies.
 Native interactive console availability and keyboard delivery need validation.
+
+Companion web console:
+- The dashboard Server page links to /npc-console. Its dark page accepts the
+  requested keys while focused, supports mouse buttons, and ignores shortcuts
+  in account text input. Aim in the game first, then return to this page for0.
+  These are page-local shortcuts, not global or native in-game console hooks.
+- The loopback /api/npc_console API resolves the chosen saved account and executes
+  its command in that player's Match under GameServer.lock. Menus remain frontend
+  state. Mutations reject missing/offline players and a frozen game clock.
+- Before starting a dedicated test server, set ORPHEUS_NPC_CATALOG to the prepared
+  external pve_npcs_174.json. Set ORPHEUS_GRAPH_BUNDLE to the prepared extended
+  game_graphs_174.json.gz so body scripts and AI input definitions are available.
+  Other data still comes from the usual ORPHEUS_RUNTIME_DIR. No canonical data
+  files need replacement. Environment changes take effect in the new process.
+- HTTP tests exercise real GameServer/Match creation/removal, account isolation,
+  clock/catalog refusals, resource serving and fresh-process graph override.
+  Frontend request tests cover rapid = then digit, errors, no automatic retries
+  and later stop commands. A real HTTP fixture accepts all five command sequences
+  using actual body data; its game clock is stopped and it has no native client.
+- Browser preview could not initialize because the built-in browser timed out
+  waiting for Statsig configuration. Actual browser layout/keyboard acceptance
+  and native client integration remain pending. Normal services are not deployed.
+
+Manual engagement command layer:
+- npc_console.Console.press implements = menu, selection digits, - removal,
+  0 crosshair-selected engagement and { stop-all. A frontend must invoke it
+  under the game server lock; no native console hooks or global key capture
+  are installed. Digits are consumed only while its menu is open.
+- Spawns require visible collision-backed floor five metres ahead. Selection
+  chooses the first living body on a100-metre ray, requiring a manual enemy and
+  clear static geometry. These distances and manual aim policy are reconstructed
+  sandbox choices, not native enemy navigation/acquisition evidence.
+- Each actual body supplies slot0's logical input. The controller tracks the
+  chosen player's current body, yaw/pitch and static visibility. Stop releases
+  queued and consumed inputs and retires owned projectiles without explosions.
+  Idle manual body VMs continue advancing with damaging shot reports suppressed,
+  so stopped timers cannot accumulate a damaging catch-up burst on restart.
+- Passive state includes target controller, last queued primary input and pitch.
+  The queued-input field fixes stop-before-first-VM-update input retention.
+- Pass136 related tests and13 server-snapshot tests, including9 console/control
+  tests. A separate actual five-body data probe observes primary damage for
+  Trooper and Heavy Assault, with no later damage after stop in its80-frame
+  window. The other three emit no shots in this probe and remain unresolved.
+  All five release input and explicitly remove. This is not full enemy combat.
+- A separately launched original104319 client with --tank_Console=1 showed no
+  console window; the grave key did not reveal one on the login screen. Relay
+  loading failed with Windows access denied and login timed out. Native console
+  availability after login and actual keyboard/client combat remain unaccepted.
 
 Implemented lifetime foundation:
 - Bot.retain_corpse defaults to false. The future manual NPC creator must enable
@@ -63,7 +117,25 @@ interactions. Completion requires executed behavior evidence for every item.
 Validated lane commits/patches are reviewed and integrated serially by the parent;
 static completion does not imply original-client combat acceptance.
 
-Still open: catalog production mounting/menu and input wiring, actual enemy body replication,
+Authored NPC weapon components:
+- NPC bodies now mount the same authored weapon manager and slot scripts as
+  player bodies, retaining empty slot positions and allocating all roots before
+  running entries. This fixes the Sniper body's omitted manager0015 and weapon
+  slots1/2 (1122/1134); no attack damage or timing is substituted.
+- In the five-body external-data combat fixture, Sniper primary fire now reduces
+  McCree health225 to125. Trooper reduces225 to205 and Heavy Assault225 to220.
+  All three stop damaging after the stop command over80 further frames. Enforcer
+  and Assassin still produce no damage over200 frames; their attacks are open.
+- The fixture omits NPC observer projectile transport (bot_stream returns None).
+  It proves authoritative damage only, not projectile visuals, native-client
+  replication, autonomous navigation, specials or full mission behavior.
+- Difficulty-indexed config selection now uses the native scalar-index and
+  collecting-container interfaces (docs/CONFIG_ARRAY_SELECTION.txt). This fixes
+  a separate zero-damage cause in the Enforcer weapon, but its production control
+  context is still absent. A forced-controller external experiment is diagnostic
+  evidence only; the production three-of-five damage result remains unchanged.
+
+Still open: dedicated deployment/browser keyboard acceptance, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;

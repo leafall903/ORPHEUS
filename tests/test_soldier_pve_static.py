@@ -145,6 +145,48 @@ class SoldierPveStaticTests(unittest.TestCase):
                     run.match.combat.heal_area(soldier, soldier.mover.position, 5, 35)
                     self.assertEqual(pool.total, dead_health)
 
+    def test_authored_field_deployment_heals_all_five_with_filters_expiry_and_cooldown_recovery(self):
+        for key, definition in self.catalog.items():
+            for case in ("visible", "enemy", "dead", "wall", "range"):
+                with self.subTest(npc=definition.name, case=case):
+                    position = (0.0, 0.0, 5.0 if case == "range" else 1.0)
+                    run, soldier, actor = self.arena(key, position, team=1 if case == "enemy" else 0)
+                    soldier.body_script.ult_seconds = 0
+                    fight, pool = run.match.combat, self.vitals(run, actor)
+                    pool.damage(100)  # fixture injury, not an authored incoming-attack claim
+                    if case == "dead":
+                        target = next(t for t in fight._targets() if t.owner is actor)
+                        fight._damage(soldier, target, pool.total, False, None, fight.tick)
+                        self.assertTrue(actor.dead and actor.body_script.component.owner_dead)
+                    if case == "wall":
+                        run.match.collision_world = World([
+                            (-10, -10, -1, 10, -10, -1, 10, 10, -1),
+                            (-10, -10, -1, 10, 10, -1, -10, 10, -1),
+                        ])
+                    before = pool.total
+                    self.input(run, soldier, 0x10)
+                    for _ in range(180):
+                        self.input(run, soldier)
+                    self.assertEqual(pool.total > before, case == "visible")
+                    if case != "visible":
+                        self.assertEqual(pool.total, before)
+                        continue
+                    for _ in range(220):
+                        self.input(run, soldier)
+                    self.assertEqual(pool.total, sum(pool.most.values()))
+                    pool.damage(10)
+                    stopped = pool.total
+                    self.input(run, soldier, 0x10)  # before authored cooldown recovery
+                    for _ in range(80):
+                        self.input(run, soldier)
+                    self.assertEqual(pool.total, stopped)  # old field expired; new cast rejected
+                    for _ in range(1000):
+                        self.input(run, soldier)
+                    self.input(run, soldier, 0x10)
+                    for _ in range(100):
+                        self.input(run, soldier)
+                    self.assertEqual(pool.total, sum(pool.most.values()))
+
     def test_rifle_kills_each_real_body_and_retains_corpse_without_respawn(self):
         for key, definition in self.catalog.items():
             with self.subTest(npc=definition.name):
@@ -175,6 +217,9 @@ class SoldierPveStaticTests(unittest.TestCase):
             for case in ("hit", "ally", "miss", "wall"):
                 with self.subTest(npc=self.catalog[key].name, case=case):
                     run, soldier, actor = self.arena(key, (0.0, 0.0, -7.0), team=0 if case == "ally" else 1)
+                    # Exercise the authored raw slot, independently of the manual
+                    # controller that would suppress allied/occluded/no-target fire.
+                    actor.spawner = {**actor.spawner, "manual_spawn": False}
                     if case == "miss":
                         actor.yaw = 16384
                     if case == "wall":
@@ -207,6 +252,7 @@ class SoldierPveStaticTests(unittest.TestCase):
     def test_duplicate_or_invalid_npc_weapon_input_cannot_create_extra_press_edges(self):
         def damage(repeat):
             run, soldier, actor = self.arena("1", (0.0, 0.0, -7.0))
+            actor.spawner = {**actor.spawner, "manual_spawn": False}
             actor.firing = True
             script = actor.body_script
             for frame in range(run.frame + 1, run.frame + 101):
@@ -225,6 +271,26 @@ class SoldierPveStaticTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 script.advance_live(script.frame + 1, actor.position, weapon_input=value)
             self.assertEqual((script.frame, tuple(script.component.held)), before)
+
+    def test_manual_controller_drives_three_authored_weapons_and_rejects_ally_or_wall(self):
+        for key, amount in (("1", 20), ("3", 100), ("5", 5)):
+            for case in ("hit", "ally", "wall"):
+                with self.subTest(npc=self.catalog[key].name, case=case):
+                    run, soldier, actor = self.arena(key, (0.0, 0.0, -7.0), team=0 if case == "ally" else 1)
+                    if case == "wall":
+                        run.match.collision_world = World([
+                            (-10, -10, -5, 10, -10, -5, 10, 10, -5),
+                            (-10, -10, -5, 10, 10, -5, -10, 10, -5),
+                        ])
+                    self.assertTrue(actor.spawner["manual_spawn"])
+                    actor.attack_target, actor.firing = soldier.entity, True
+                    pool = self.vitals(run, soldier)
+                    for frame in range(run.frame + 1, run.frame + 201):
+                        run.match.update(frame * 0.016, frame, frames=False)
+                        if pool.total < 200:
+                            break
+                    self.assertEqual(pool.total, 200 - amount if case == "hit" else 200)
+                    self.assertEqual(actor.attack_input, case == "hit")
 
     def test_npc_self_health_query_tracks_explicit_pools_without_supporting_foreign_queries(self):
         run, soldier, actor = self.arena("2")

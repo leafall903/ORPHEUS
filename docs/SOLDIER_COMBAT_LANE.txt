@@ -1,6 +1,31 @@
 Soldier: 76 combat lane / 02E000000000006E / 104319
 Status: OPEN, not combat accepted. Original-client acceptance: none in this lane.
 
+2026-11-09 control foundation integration (not full acceptance)
+- Private merge of parent64bf71c includes manual NPC control/console foundations,
+  canonical authored factory/array selection and resource-backed Flashbang host.
+  Parent history/ownership is retained. This does not modify shared root main.
+- Real Flashbang input interrupts Sprint, rejects held input/movement/ammo use
+  during control, and permits ordinary firing/movement after its exclusive
+  deadline. Field windup cancels with cooldown rejection/recovery; already
+  deployed Field continues healing. Already flying Helix retains impact/credit.
+- Do not treat the imported universal Ability.stop loop as a native classifier.
+  Active Soldier0259 transformation is scoped out: the unstacked Ability and
+  authored #215 countdown from #567=6 keep their original lifetime while input
+  is suppressed. Expiry is not paused or restarted. Startup interruption remains
+  unverified. Active Fortify/Transcendence reject the scoped stun policy; their
+  native status/filter dispatch, cleanse and stacking remain OPEN.
+- Include NPC control AIM_RANGE in replay configuration identity. New control
+  tests use real Player.take_commands plus resource volleys, synthetic collision
+  and recording transports. One Helix persistence witness uses a generic body;
+  it is not a replacement for the actual five-NPC interaction matrix.
+- Actual Field input/deployment now covers all five NPC bodies, including
+  ally/enemy/dead/wall/range, expiry and cooldown rejection/recovery. Initial
+  injury/death preparation is fixture setup, not incoming weapon evidence.
+- Raw authored NPC weapon tests explicitly disable the manual controller's
+  policy; separate real controller cases cover Trooper/Sniper/Heavy hit/team/
+  wall behavior. Neither substitutes an authored weapon or restores native AI.
+
 2026-11-09 scoped extension (not full acceptance)
 - Soldier0B8B authored damage23/healing32/passive4 expressions now own charge
   amounts, caps, defaults and multipliers. Passive Wait3 supplies the interval;

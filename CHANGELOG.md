@@ -6,6 +6,160 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Soldier control integration checkpoint
+
+- Merge reviewed parent64bf71c and its manual NPC console/control prerequisites
+  into private main. Preserve Soldier charge/health-deficit attribution, Visor
+  acquisition and defensive damage consumers. Shared root/main is untouched.
+- Actual-input tests cover Sprint interruption and movement/rifle recovery,
+  Field prethrow cancellation/cooldown recovery, deployed Field healing during
+  stun and already flying Helix impact/credit after caster control.
+- Fix the imported universal stop policy for active Soldier Visor: preserve the
+  unstacked0259 transformation and authored six-second #215 countdown; suppress
+  input during stun, resume fire afterward and end at the original deadline.
+  Reject scoped Flashbang control during active Fortify/Transcendence. These
+  are explicit reconstruction policies, not native interruption/filter dispatch;
+  Visor startup, cleanse/stacking/other status and client presentation stay open.
+- Register manual NPC AIM_RANGE in replay configuration and verify runtime
+  overrides produce a specific manifest mismatch. Shared splash adopts parent
+  nearest-capsule-surface visibility, retaining this lane's incoming offset.
+- Replace indirect NPC heal-area-only coverage with actual Field input/deploy
+  for all five bodies: ally/enemy/dead/wall/range, expiry, cooldown rejection
+  and recovery. Keep the old primitive test as a separately labelled witness.
+- Initial357-test aggregate failed13 subcases in two raw-slot NPC methods: the
+  newly imported manual controller correctly released unselected attack input.
+  Those raw-weapon fixtures now explicitly disable only that controller policy;
+  separate real manual-controller cases cover Trooper/Sniper/Heavy hit/team/wall.
+  No authored weapon is substituted and Enforcer/Assassin remain open.
+- Pass final359 fixed-source tests (462.635s), including actual five-NPC inputs,
+  Soldier controls/charge/skills, shared combat/projectiles/VM/driver/replays,
+  NPC console/control and server snapshots. Also pass3 console-client JS tests,
+  Ruff and diff checks. Earlier65/39 focused counts overlap this final run; the
+  failed357 aggregate remains separately recorded, not counted as a pass.
+- New parent2ca9178 state-input joins have been reviewed but are not yet imported
+  at this fixed-source boundary. Import must include native replay join-state
+  causality and a new complete Soldier regression before acceptance advances.
+  Full static goal stays ACTIVE; no integration readiness or publication claimed.
+
+#### Resource-backed Flashbang control reconstruction
+
+- Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
+  explicit server control policy. Resource-derived mode flag13408 chooses0.8s
+  or1.7s; exclusive deadlines use world ticks. Release held/buffered input, stop
+  running abilities through their authored exit paths, suppress player movement
+  and attacks, pause NPC routes without catch-up and consume suppressed shots.
+- Retire control on expiry, death, body replacement and manual NPC removal.
+  Retained corpses remain present. Include deadlines in server snapshots and
+  verify that they change the causal digest. Splash now checks static impact-
+  to-capsule visibility before applying damage and control through cover.
+- Pass138 relevant tests:125 combat/NPC/projectile/route/McCree and13 server
+  snapshot checks, including8 new actual-input/control/lifetime methods. Ruff
+  and diff checks pass. Fix a test fixture's shared-spawner mutation discovered
+  by the combined regression; subsequent fresh-process regressions pass.
+- Actual-five-Talon offline probes show25 Flashbang damage and input release
+  for all five; Trooper/Sniper/Heavy resume damage after expiry. Console stop
+  during control prevents automatic recovery attacks. Enforcer/Assassin incoming
+  attacks remain unresolved. Fixtures use adapter transport/permissive VM.
+- This policy does not execute the complete native224E status manager. Native
+  immunity/cleanse/stacking/barrier interactions, dynamic mode status, status
+  replication/HUD/animation/audio and original-client acceptance remain open.
+  Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
+  lane merged. Normal runtime/services and original working changes preserved.
+
+#### McCree melee static-wall occlusion
+
+- Prevent quick melee from damaging targets through static walls: retain the
+  authored melee sphere and viewed capsule, then check eye-to-capsule-surface
+  visibility. Geometry is an explicit server reconstruction, not native hitbox
+  equivalence. Shared quick melee uses the same check for players and NPCs.
+- Pass83 McCree/combat/NPC/projectile tests, including3 new real-input methods
+  covering visible and wall-blocked player/NPC hits, allies and range refusal.
+  An external actual-five-Talon probe passes all10 visible/wall cases. Ruff and
+  diff checks pass. Native-client acceptance was not run.
+- Record the actual McCree input frontier and recovered Flashbang status resource
+  route. The current VM does not execute its complete stun path; Deadeye still
+  lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
+  five-NPC AI/navigation/specials and original-client combat remain open. Normal
+  inputs/services and original working changes are preserved; no hero lane merged.
+
+### 2026-11-08
+
+#### Native array selection for PvE difficulty configs
+
+- Implement STU_4BD39CFD with scalar index evaluation and collecting container
+  evaluation, array-only bounds checks and successful-null fallback. Preserve
+  nested value types and watched index/container updates; unknown child configs
+  still fail strict execution. No mission difficulty is invented.
+- Execute the original104319 selector/conversion/lookup offline:15 cases match
+  the Python runtime. Config providers and value storage/copy are adapters.
+  Pass178 relevant tests, including5 new array selection/watcher/failure checks;
+  Ruff and diff checks pass. Native-client acceptance was not run.
+- Resolve a zero-damage cause in Enforcer's authored weapon. An external
+  forced-controller experiment now emits resource-defined damage; its controller
+  assumption is unverified and is not production code. The ordinary five-body
+  probe still only proves Trooper/Sniper/Heavy damage; Enforcer/Assassin control,
+  navigation/specials and full McCree/client combat remain open. Normal inputs,
+  services and original working changes remain untouched; no hero lane merged.
+
+#### Authored NPC weapon component mounting
+
+- Share body weapon-root allocation between player and NPC scripts: preserve
+  sparse slots, seed slot bindings and allocate manager/weapons before entries.
+  This restores the Sniper body's omitted manager and two weapon graphs without
+  replacing authored attack damage or timing.
+- Pass107 relevant tests (23 NPC script,15 NPC control/lifecycle,27 driver,
+  5 body-script and37 projectile), Ruff and diff checks. The new test exercises
+  sparse-slot firing and decodes the NPC observer baseline with mounted roots.
+- Actual five-body offline data now yields Sniper damage100 against McCree225;
+  Trooper20 and Heavy Assault5 still work. All three stop damage for80 further
+  frames after stop. Enforcer and Assassin remain unable to damage in200 frames.
+  The adapter omits NPC observer projectile transport; native visuals, autonomous
+  AI/navigation/specials and complete McCree acceptance remain open. No client
+  launched, normal data/deployment unchanged, no completed hero lane merged.
+
+#### Companion NPC console and locked server API
+
+- Add a dark companion NPC console linked from the dashboard Server page. Its
+  page-local keys and buttons call the real loopback API; account text input does
+  not trigger shortcuts. Serialize rapid menu/selection requests, show refused
+  commands and never automatically retry mutations.
+- Resolve the chosen account's Match and execute commands under GameServer.lock.
+  Reject invalid keys/menu state, absent players, missing catalog and frozen-clock
+  mutations. Load an explicit external ORPHEUS_NPC_CATALOG and optional startup
+  ORPHEUS_GRAPH_BUNDLE without replacing normal runtime data.
+- Pass51 Python HTTP/dashboard/NPC tests and5 JavaScript request tests (56 total),
+  Ruff and diff checks. Real HTTP fixture requests complete all25 five-body menu,
+  spawn, engagement-command, stop and removal operations. This fixture has no
+  native client and no running game clock; it does not establish actual attacks.
+- Browser preview initialization fails waiting for Statsig configuration. Visual
+  and real keyboard acceptance remain open. The isolated fixture closes with no
+  NPCs remaining; normal services/data and original working changes are preserved.
+  Full enemy navigation/specials/McCree skills/client combat and normal deployment
+  remain open. No complete hero lane is merge-ready. Publication helper is absent.
+
+#### Manual NPC console commands and engagement input
+
+- Implement console command semantics for menu/selection, explicit removal,
+  crosshair-selected engagement and stop-all. Spawn requires visible floor;
+  selection/aim uses reconstructed sandbox distance and static-visibility policy.
+  No native console hook, keyboard frontend or production mounting is installed.
+- Drive actual slot0 input, target-player yaw/pitch and input release on target
+  loss/occlusion. Stop cancels pending/consumed input and owned projectiles;
+  idle manual VMs advance while damaging reports are suppressed. Track queued
+  input separately to cancel a press before its first VM update. Preserve new
+  target/input/pitch state in snapshots and movement output.
+- Pass136 related and13 server-snapshot tests (149 total), including9 new control
+  tests, Ruff and diff checks. Actual body data emits primary damage for Trooper
+  and Heavy Assault with no later damage in the80-frame stop probe. Enforcer,
+  Sniper and Assassin emit no shots and retain unresolved query/behavior gates.
+- A separate original104319 console-option probe fails relay loading with Windows
+  access denied and times out login. No console window or grave-key overlay is
+  observed on that screen; post-login console availability remains unknown.
+  Full navigation/specials/McCree skills/ultimate/client combat remain open.
+  No normal deployment; mandatory publication helper remains missing.
+
+### 2026-11-09
+
 #### Soldier authored charge and scoped defensive interactions
 
 - Evaluate Soldier's shared0B8B damage/node23, healing/node32 and passive/node4

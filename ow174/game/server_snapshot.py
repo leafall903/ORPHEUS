@@ -93,7 +93,7 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "projectiles observers voice stuns"
     ),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer ult_healing_deficit"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
@@ -131,7 +131,7 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}

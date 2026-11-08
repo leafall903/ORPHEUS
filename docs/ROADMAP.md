@@ -25,14 +25,28 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   transitions now have execution evidence. Soldier charge now reads authored
   0B8B amount/multiplier/interval expressions; native eligibility and clock/gap
   fidelity remain open. Scoped Fortify and Transcendence damage consumers have
-  focused execution evidence; other defenses/control and the full matrix remain
-  open. The complete static milestone stays unchecked.
+  focused execution evidence. Actual Flashbang now interrupts Sprint/Field
+  windup and suppresses input; deployed Field/Helix continue, while active Visor
+  preserves its countdown and resumes firing. Native interruption/immunity
+  classification, other control/defenses and the full matrix remain open.
+  The complete static milestone stays unchecked.
+  All five actual NPCs now have authored Field deployment/healing witnesses,
+  including ally/enemy/dead/wall/range, expiry and cooldown recovery. Separate
+  raw-slot and manual-controller incoming-weapon tests retain their different
+  host policies; neither establishes complete NPC AI.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
-  ultimate, persistent corpses and requested console keys. The opt-in corpse
-  lifetime policy is implemented; actual NPC creation, controls and original-client
-  acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,
+  an external base-pool catalog and companion console/API are implemented.
+  Authored NPC weapon components are mounted; three of five enemies damage
+  McCree in an offline fixture. Full enemy combat and browser/original-client
+  acceptance remain open.
+  McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
+  for the partial attack frontier and open Flashbang/Deadeye requirements.
+  Resource-backed Flashbang control has offline interruption/recovery/lifetime
+  checks; native immunity/presentation and complete hero acceptance remain open.
+  See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 

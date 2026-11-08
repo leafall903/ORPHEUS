@@ -2,6 +2,8 @@
 
 The ordinary VM owns activation, expiry and retirement. These combat policies
 are not a general native CombatModFilter implementation or client acceptance.
+The control host also treats active Fortify and Transcendence as stun-immune;
+this is a scoped reconstruction, not native filter/tag dispatch.
 """
 
 import math

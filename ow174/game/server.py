@@ -1187,6 +1187,26 @@ class GameServer:
                         return match.switch_hero(player, hero)
         return False
 
+    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:
+        """Serialize debug-console actions with the ordinary game tick."""
+        from ow174.game.npc_console import Console
+
+        if not isinstance(key, str) or key not in ('=', '-', '0', '{', 'Escape', *'123456789'):
+            raise ValueError('Unknown NPC console key')
+        if type(menu_open) is not bool:
+            raise ValueError('Invalid NPC menu state')
+        with self.lock:
+            console = Console(catalog)
+            console.menu_open = menu_open
+            if key in ('=', 'Escape'):
+                return console.press(key, None, None)
+            if self._clock_ticks_left is not None:
+                raise ValueError('NPC mutations are unavailable while the game clock is frozen')
+            player = self.player_of(account_lo)
+            if player is None:
+                raise ValueError('The selected account has no active match')
+            return console.press(key, player.match, player)
+
     def skin_changed(self, account_lo: int, hero_guid: int) -> bool:
         """The lobby equipped an item of a hero (24500): a player in a match who plays that hero gets the
         new skin (Match.skin_changed). Hero select equips skins through the lobby, even in a match, and
