@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Zarya projectile ownership and lifecycle (partial static acceptance)
+
+- Freeze projectile team and source-body credit at emission for direct and splash
+  damage, including Zarya secondary fire and Graviton during team/body changes.
+- Cancel in-flight projectiles when their owner leaves or the match ends; reject
+  orphan Graviton deployment and release existing pull immediately on either event.
+  Owner death alone retains the already-fired projectile and field behavior.
+- Pass162 affected Zarya/combat/projectile/five-NPC tests in68.487s, including27
+  ultimate cases and seven added ownership/cancellation cases. Ruff/diff checks pass.
+  Full static acceptance, original-client acceptance and serial integration remain open.
+
 ### 2026-11-08
 
 #### Zarya authoritative shield recovery (partial static acceptance)

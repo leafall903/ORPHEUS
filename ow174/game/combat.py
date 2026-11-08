@@ -610,14 +610,15 @@ class Combat:
             self.vitals[target.entity] = found
         return found
 
-    def _enemies(self, shooter) -> list[Target]:
+    def _enemies(self, shooter, *, team: int | None = None) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
         source = _source_entity(shooter)
+        team = shooter.team if team is None else team
         found = []
         for target in self._targets():
             if target.owner is shooter or target.entity == source:
                 continue
-            if not free_for_all and target.team == shooter.team:
+            if not free_for_all and target.team == team:
                 continue
             if self.vitals_of(target).dead:
                 continue
@@ -764,6 +765,12 @@ class Combat:
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
+        if getattr(rocket.shooter, "gone", False) or self.match.ended:
+            if rocket in self.rockets:
+                self.rockets.remove(rocket)
+            if rocket.shot is not None:
+                self.projectiles._end(rocket.shot, self.tick, False)
+            return
         # Player input can arrive immediately before the scheduler accounts for a gap.
         elapsed = 1 if rocket.last_tick is None else self.tick - rocket.last_tick
         if elapsed <= 0:
@@ -788,7 +795,7 @@ class Combat:
             return
         direction = tuple(v / step for v in displacement)
         best = None
-        for target in self._enemies(rocket.shooter):
+        for target in self._enemies(rocket.shooter, team=rocket.team):
             a, b = target.segment()
             t = ray_capsule(rocket.position, direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
@@ -817,11 +824,12 @@ class Combat:
             self._damage(
                 rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
                 world_tick=self.tick,
+                source_entity=rocket.source_entity,
             )
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
-        for target in self._enemies(rocket.shooter):
+        for target in self._enemies(rocket.shooter, team=rocket.team):
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
@@ -829,6 +837,7 @@ class Combat:
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
+                    source_entity=rocket.source_entity,
                 )
 
     def _landed(self, rocket: Rocket, point=None) -> None:

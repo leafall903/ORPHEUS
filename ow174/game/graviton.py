@@ -38,7 +38,8 @@ class Gravitons:
         self.npc_movers: dict[int, Mover] = {}
 
     def landed(self, rocket, point) -> None:
-        if rocket.spawn != FIELD_ENTITY:
+        if (rocket.spawn != FIELD_ENTITY or getattr(rocket.shooter, "gone", False)
+                or self.combat.match.ended):
             return
         duration = float(graph.graph(0x0260).node(4).field("m_value.m_value"))
         radius = float(graph.graph(0x0260).node(5).field("m_value.m_value"))
@@ -49,7 +50,8 @@ class Gravitons:
     def includes(self, field: Field, target) -> bool:
         from ow174.game.combat import ray_world, segment_distance
 
-        if (target.owner is field.shooter or self.combat.vitals_of(target).dead
+        if (self.combat.match.ended or getattr(field.shooter, "gone", False)
+                or target.owner is field.shooter or self.combat.vitals_of(target).dead
                 or (not self.combat.match.game_map.free_for_all and target.team == field.team)):
             return False
         a, b = target.segment()

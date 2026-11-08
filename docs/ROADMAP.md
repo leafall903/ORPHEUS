@@ -30,6 +30,9 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
   - [ ] Accept Zarya's complete player/five-NPC combat and original-client presentation.
+    Emitted projectiles now preserve team/source credit across owner changes;
+    departure/match-end cancel flight and release Graviton pull immediately.
+    Seven added lifecycle cases pass within162 affected tests; the full matrix remains open.
     The authored primary beam now deals server damage in command-driven tests;
     personal-barrier HP/time/cooldown and energy generation/cap/decay also have
     command-driven coverage. Projected ally selection and HP/time/cooldown now have

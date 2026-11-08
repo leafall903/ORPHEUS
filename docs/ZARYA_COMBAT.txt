@@ -187,7 +187,7 @@ with the corresponding lane commit rather than claimed from target cases alone.
 The expanded combat/runtime/codec/snapshot run passes179 tests in68.421 seconds.
 The separate five-NPC/lifecycle/catalog run passes18 tests in11.188 seconds.
 The combined body/NPC/combat/runtime/codec/snapshot run passes197 tests in76.436s.
-The ultimate suite now has20 behavior tests. Expanded snapshot checks
+The ultimate suite now has27 behavior tests. Expanded snapshot checks
 register the new combat service, barriers, fields, target aim and consumption
 clocks explicitly; the new mutation case verifies their causal-state visibility.
 The expanded255-test run passed254 tests and failed one obsolete live-projectile
@@ -204,10 +204,22 @@ The independent goal remains ACTIVE until ALL static matrix items pass. This
 incremental commit is not full static acceptance and is not ready for the requested
 completion-triggered merge. Original-client acceptance is a separate later gate.
 
+Projectile ownership and lifecycle (2026-11-09)
+---------------------------------------------
+Direct and splash damage retain the emitted projectile's original team and source
+body, including a secondary projectile during a team change and an unleased
+Graviton during a hero change. The latter explicitly disables prediction in its
+fixture to exercise actual production flight without a predicted-shot lease.
+Departure and match end cancel flight before damage/deployment and release an
+existing field's movement override immediately, before the next scheduled update.
+Death alone still permits emitted projectiles and fields to finish. Seven added
+cases bring the ultimate suite to27;162 affected combat/Zarya/projectile/five-NPC
+tests pass in68.487s with external NPC data enabled. Ruff/diff checks pass.
+
 Original client and publication
 -------------------------------
-An existing Overwatch process (PID12292) and title were observed. No client lease
-was acquired and no client, window or existing service was controlled. Original
+A historical process/title observation is not current client-state evidence. No
+client lease was acquired and no client, window or existing service was controlled. Original
 client evidence for every row remains OPEN, including HUD, beam, barrier, VFX,
 sound, knockback, pull and all five NPC attacks/specials/corpse presentation.
 Patch delivery only: no merge to root source and no manual push. The configured

@@ -255,6 +255,66 @@ class ZaryaUltimateTests(unittest.TestCase):
         self.assertEqual(self.health(), before)
         self.assertFalse(self.fight.zarya_gravitons.fields)
 
+    def test_inflight_ultimate_uses_cast_team_after_owner_team_change(self):
+        self.cast()
+        self.a.team = self.b.team
+        self.advance(280)
+        self.assertAlmostEqual(self.health(), 175)
+        self.assertEqual(self.health(self.c), 200)
+
+    def test_inflight_secondary_preserves_team_for_direct_and_splash(self):
+        self.run.step({self.a: (0, 0, 2)})
+        self.a.team = self.b.team
+        self.advance(90)
+        self.assertAlmostEqual(self.health(), 153)
+        self.assertEqual(self.health(self.c), 200)
+
+    def test_unleased_projectile_keeps_emission_source_after_body_replacement(self):
+        # Explicit delivery-unavailable fixture: authoritative flight must still
+        # retain its original source; no client presentation is claimed here.
+        with patch.object(self.fight.projectiles, "fired", return_value=None):
+            self.cast()
+        rocket, = self.fight.rockets
+        self.assertIsNone(rocket.shot)
+        old = self.a.body
+        self.run.match.switch_hero(self.a, self.a.hero)
+        self.assertNotEqual(self.a.body, old)
+        vitals = self.vitals(self.b)
+        vitals.now[combat.HEALTH_POOL] = 3
+        self.advance(30)
+        self.assertTrue(vitals.dead)
+        self.assertEqual(vitals.killer, old)
+        self.assertEqual(self.b.client.messages(combat.DEATH_NOTICE)[-1]["+0x7C"]["+0x0"], old)
+
+    def test_departure_before_impact_cancels_damage_and_deployment(self):
+        self.cast()
+        self.a.gone = True
+        self.advance(40)
+        self.assertEqual(self.health(), 200)
+        self.assertFalse(self.fight.rockets)
+        self.assertFalse(self.fight.zarya_gravitons.fields)
+
+    def test_match_end_before_impact_cancels_damage_and_deployment(self):
+        self.cast()
+        self.run.match.ended = True
+        self.advance(40)
+        self.assertEqual(self.health(), 200)
+        self.assertFalse(self.fight.rockets)
+        self.assertFalse(self.fight.zarya_gravitons.fields)
+
+    def test_departure_releases_pull_before_next_scheduler_update(self):
+        self.cast()
+        self.until_field()
+        self.assertIsNotNone(self.fight.zarya_gravitons.movement_for(self.b))
+        self.a.gone = True
+        self.assertIsNone(self.fight.zarya_gravitons.movement_for(self.b))
+
+    def test_match_end_releases_pull_before_next_scheduler_update(self):
+        self.cast()
+        self.until_field()
+        self.run.match.ended = True
+        self.assertIsNone(self.fight.zarya_gravitons.movement_for(self.b))
+
 
 if __name__ == "__main__":
     unittest.main()
