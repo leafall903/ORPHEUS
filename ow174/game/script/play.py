@@ -42,7 +42,7 @@ class Request:
     wire_flag: int
 
 
-def evaluate_value(instance, cfg, *, initial=0):
+def evaluate_value(instance, cfg, *, initial=0, watcher=None):
     """The +28 value interface for assignments and request/schema initializers.
 
     Config groups and controller-hero queries collect all iterator items here;
@@ -50,11 +50,11 @@ def evaluate_value(instance, cfg, *, initial=0):
     """
     with instance.component.operation():
         if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
-            return tuple(_iter_values(instance, cfg))
-        result = controller_heroes.collect(instance.context(), cfg)
+            return tuple(_iter_values(instance, cfg, watcher=watcher))
+        result = controller_heroes.collect(instance.context(watcher), cfg)
         if result is not NotImplemented:
             return result
-        return instance.evaluate(cfg, initial=initial)
+        return instance.evaluate(cfg, watcher, initial=initial)
 
 
 def _iter_values(instance, cfg, *, _depth=0, watcher=None):
@@ -64,6 +64,16 @@ def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     existing array are retained. Recognized native iterators retain their own
     traversal; unknown native iterator configs remain strict world queries.
     """
+    iterator = _iter_pairs(instance, cfg, _depth=_depth, watcher=watcher)
+    try:
+        for _, value in iterator:
+            yield value
+    finally:
+        iterator.close()
+
+
+def _iter_pairs(instance, cfg, *, _depth=0, watcher=None):
+    """The supported generic iterators' key/value rows, before value projection."""
     instance.component.consume_work("played graph config iteration")
     if _depth >= MAX_CONFIG_DEPTH:
         instance.component.budget_exceeded("played graph config iterator depth exhausted")
@@ -71,12 +81,13 @@ def _iter_values(instance, cfg, *, _depth=0, watcher=None):
         return
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         for child in cfg.get("m_configVars") or ():
-            yield from _iter_values(instance, child, _depth=_depth + 1, watcher=watcher)
+            yield from _iter_pairs(instance, child, _depth=_depth + 1, watcher=watcher)
         return
     iterator = controller_heroes.values(instance.context(watcher), cfg)
     if iterator is not NotImplemented:
         try:
-            yield from iterator
+            for value in iterator:
+                yield 0, value
         finally:
             iterator.close()
         return
@@ -92,7 +103,7 @@ def _iter_values(instance, cfg, *, _depth=0, watcher=None):
             for child in item:
                 yield from flatten(child, depth + 1)
         else:
-            yield item
+            yield 0, item
 
     yield from flatten(value, _depth)
 

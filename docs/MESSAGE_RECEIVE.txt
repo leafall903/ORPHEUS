@@ -83,7 +83,10 @@ priorities and lifetimes are not restored here. Complete native engine consumers
 server forwarding and filter rules are not established by the PC entry code.
 The persistent manager and strict sending State now have backends mounted through
 explicit Contexts. The independent receiving State remains open. See
-MESSAGE_MANAGER.txt and MESSAGE_SENDER.txt.
+MESSAGE_MANAGER.txt and MESSAGE_SENDER.txt. A separate sender-backed parameter
+scope and receiver cache backend is now available; its lifecycle integration
+remains open. MESSAGE_PARAMETERS.txt records the shared-VM provider rules and
+new zero-ID Entry scope regression without widening Entry acceptance.
 
 Verification and current mission boundary
 1350 original entry binding/queue comparisons cover named/positional/repeated

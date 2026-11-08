@@ -205,10 +205,32 @@ class InstanceContext(Context):
         return Entity(self.instance.component.entity)
 
     def param(self, var: int):
-        for provider in reversed(self.instance.params):
+        return self.parameter_result(var)[1]
+
+    def parameter_result(self, var: int, *, initial=None):
+        """1B93200: reverse VM providers, carrying the destination through failures."""
+        component = self.instance.component
+        providers = [(item, False) for item in self.instance.params]
+        providers.extend((item, True) for item in component.parameter_scopes)
+        value = initial
+        for provider, native_scope in reversed(providers):
+            component.consume_work('parameter scope lookup')
+            if provider is None and native_scope:
+                break  # A null native stack entry terminates the search.
+            lookup = getattr(provider, 'lookup_parameter', None)
+            if callable(lookup):
+                result = lookup(var, initial=value)
+                component.ensure_valid()
+                if (type(result) is not tuple or len(result) != 2
+                        or type(result[0]) is not bool):
+                    component.unsupported(self.instance, 'parameter scope result', type(provider).__name__)
+                success, value = result
+                if success:
+                    return True, value
+                continue
             if provider is not None and (var in provider or None in provider):
-                return provider.get(var, provider.get(None))
-        return None
+                return True, provider.get(var, provider.get(None))
+        return False, value
 
     def owner(self):
         return Entity(self.instance.component.entity)
@@ -255,6 +277,7 @@ class InstanceContext(Context):
         """Keep native scalar and iterator dependencies on the existing poll list."""
         if self.watcher is not None:
             self.watcher.natives.add(cfg.get("$"))
+            self.watcher.native_dependency(cfg)
             if not self.watcher.polled:
                 self.watcher.polled = True
                 self.watcher.ticks()
@@ -508,6 +531,7 @@ class Component:
         self.code_observers: list[tuple[int, int | None]] = []
         # 1B8D5E0: per authored type, in native linked-state registration order.
         self.state_registries: dict[str, list[State]] = {}
+        self.parameter_scopes: list = []  # Native VM+4F8 providers, shared by its instances.
         self.frame_ms = frame_ms
         self.world = world or World()
         self.rng = expr.random.Random(seed)
@@ -562,6 +586,18 @@ class Component:
                     state.on_failed()
                     state.active = False
         raise self.fault
+
+    @contextmanager
+    def parameter_scope(self, provider):
+        self.ensure_valid()
+        self.parameter_scopes.append(provider)
+        try:
+            yield
+        finally:
+            if self.parameter_scopes and self.parameter_scopes[-1] is provider:
+                self.parameter_scopes.pop()
+            else:
+                self.budget_exceeded('parameter scope stack changed during callback')
 
     @contextmanager
     def operation(self):
@@ -1286,8 +1322,7 @@ class Instance:
         node = event.node
         if node is None:
             return
-        self.params.append(params)
-        try:
+        with self.component.parameter_scope(params):
             if node.is_state:
                 state = self.node_state(node)
                 if state is not None and state.active:
@@ -1301,8 +1336,6 @@ class Instance:
                         if target is not None:
                             self.write(target, params.get(key))
                 self.follow(node, "m_outPlug", None)
-        finally:
-            self.params.pop()
 
 
 class State:
@@ -1489,6 +1522,9 @@ class State:
 
     def dependency_changed(self) -> None:
         """A watched variable changed (vt+0xC8)."""
+
+    def native_dependency(self, cfg) -> None:
+        """1B72AD0: a native evaluator marked this dependency epoch as used."""
 
     def button(self, button: int, pressed: bool) -> None:
         """A logical-button edge (vt+0x128), active or not."""

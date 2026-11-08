@@ -6,6 +6,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Persistent message parameter providers and receiver caches
+
+- Share native parameter providers across one component's instances. Preserve
+  reverse ordering, null barriers, GUID0 lookup and destinations written by
+  failed providers. Native Entry selection and legacy delivery use scoped VM
+  providers; legacy per-instance providers remain the outer compatibility layer.
+- Add a sender-backed scope with builtin owner/source/subject identities, first
+  full-key matching, missing-row success/int0 and missing-config fallthrough.
+  Evaluate in the source instance with the receiver watcher, live-context guards
+  and a shared cross-component budget. Keep scalar success separate from value.
+- Add the three native receiver cache modes, retaining ordered key/value rows,
+  duplicate senders/keys, stacked unmatched caches, iterator versus whole-value
+  array handling and different null/failure rules. Map/type13 stays scalar.
+  Native keyed type12 storage, live output bindings and lifecycle are still open.
+- Pass936 original scope/provider-chain and624 cache comparisons with declared
+  engine/storage adapters and unchanged game code. Re-pass1350 Entry binding,
+  24 Entry scope (including zero-ID),3024 selection,60 subject,2688 lifetime,
+  4626 sender,3456 outgoing-action and1296 hero-iterator comparisons. Add26
+  behavior tests. Final1061 related tests pass in25.205s and33 server tests in
+  243.748s (1094 total), with20 matching frozen source hashes and Ruff/diff.
+- Receiving-State channel/epoch integration, live getters, output application,
+  context variables, idle/receive subgraphs and codec remain unimplemented.
+  Fresh ordinary/placed/real-Match and explicit controller/Entry probes retain
+  their previous frontiers:81A9AB10,50/123 first frames and rootD38/node106 before
+  controller execution. Full story/cinematics/enemy-AI/extraction acceptance,
+  original-client verification and normal deployment remain open. See
+  docs/MESSAGE_PARAMETERS.txt. Publication helper is still missing; no push.
+
 #### Native persistent sending message State
 
 - Connect strict38EE1100 to the persistent manager through explicit per-component

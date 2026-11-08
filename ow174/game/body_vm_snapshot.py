@@ -10,7 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, nodes, runtime
+from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -23,7 +23,7 @@ _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries",
+    "state_registries", "parameter_scopes",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -95,6 +95,7 @@ _VALUE_LAYOUTS = {
                     "message", "assignment", "transient"),
     message_receive.Packet: ("message", "caller", "instigator", "params"),
     message_receive.ParamScope: ("instance", "node", "packet"),
+    message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
 }
 
@@ -139,6 +140,7 @@ class _Export:
         _containers(fields, ("instances", "vars", "disabled", "state_registries"), dict, "component")
         _containers(fields, ("held", "destroyed", "shots", "code_states", "code_pending", "code_observers"),
                     list, "component")
+        _containers(fields, ("parameter_scopes",), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
         self.instances = {}

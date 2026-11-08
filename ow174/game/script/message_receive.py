@@ -47,9 +47,10 @@ class ParamScope:
     packet: Packet
 
     def _named(self, identifier):
+        wanted = (PARAMETER_TYPE | identifier) if identifier else 0
         for key, value in self.packet.params:
             self.instance.component.consume_work('game message scoped parameter lookup')
-            if key == PARAMETER_TYPE | identifier:
+            if key == wanted:
                 return True, value
         return False, None
 
@@ -69,6 +70,14 @@ class ParamScope:
             return subject(self.instance, self.node, self.packet)
         found, value = self._named(identifier)
         return value if found else default
+
+    def lookup_parameter(self, identifier, *, initial=None):
+        if type(identifier) is not int or not 0 <= identifier <= 0xFFFF:
+            return False, initial
+        if identifier in (9, 10, 11):
+            return True, self.get(identifier)
+        found, value = self._named(identifier)
+        return (True, value) if found else (False, initial)
 
 
 def _target(instance, node, config):
@@ -148,8 +157,7 @@ def receive(instance, packet):
                 continue
             check(instance, node)
             scope = ParamScope(instance, node, packet)
-            instance.params.append(scope)
-            try:
+            with component.parameter_scope(scope):
                 value, success = play.evaluate_scalar_result(instance, node.field('m_gameMessage'))
                 check(instance, node)
                 selected = play._asset(value) if success else 0
@@ -165,8 +173,6 @@ def receive(instance, packet):
                         continue
                 queue_entry(instance, index, node, packet)
                 count += 1
-            finally:
-                instance.params.pop()
     return count
 
 
