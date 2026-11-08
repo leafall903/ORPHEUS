@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial state-derived Pharah defense interactions
+
+- Consult scoped active resource stacks for Reaper/Moira intangibility and Mei
+  solid invulnerability. Reconstruct only their known zero-delay phase entry so
+  authored duration/end plugs run; strict native contexts still reject it.
+- Sweep active Genji/Sigma authored boxes before projectile body/map impacts.
+  Redirect ownership/aim or consume without blast, preserve Pharah payload
+  impulse after redirect, and keep ally/back/wall ordering correct. Native
+  pitch/filter/transport, hitscan, barriers, Sigma shield gain and full controls
+  remain open. These are documented reconstructed adapters, not native parity.
+- Add13 hero/defense tests (one passive server export case), covering phase
+  expiry, reflected primary/concussion/Barrage, owner death/channel interruption,
+  team/wall/back filtering and deflect expiry. Register the new empty State
+  layout as the36th passive VM model; explicit strict-backend rejection is tested.
+- Pass150 expanded tests, five additional boundary/payload cases and nine strict
+  regressions. Ruff/diff checks pass. Hero test-module coverage is52 cases; full
+  static goal and original-client acceptance remain open. See PHARAH_COMBAT.txt.
+
 #### Reconstructed Pharah damage ultimate credit
 
 - Credit actual enemy pool loss to Pharah ultimate charge with a documented

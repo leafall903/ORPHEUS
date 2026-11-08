@@ -49,6 +49,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    nodes.PhaseEntry: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",

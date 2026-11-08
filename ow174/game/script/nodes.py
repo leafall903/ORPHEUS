@@ -82,6 +82,21 @@ def seconds_to_ms(value) -> int:
 # --- states --------------------------------------------------------------------------------------
 
 
+@state_class("STU_54FEB21C")
+class PhaseEntry(State):
+    """Explicitly reconstructed zero-delay entry for three mapped human skills."""
+
+    def on_enter(self) -> None:
+        from ow174.game.defenses import zero_delay_phase_entry
+
+        if self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "phase entry backend", self.node.cls, self.node,
+            )
+        if zero_delay_phase_entry(self):
+            self.request_finish()
+
+
 _NUMERIC_ROWS = {
     "STU_4CB0950F": (0, 0.0), "STU_D8CC6B10": (1, 1.0), "STU_56DEE1BB": (2, 0.0),
     "STU_C61711C8": (3, f32(3.4028234663852886e38)),

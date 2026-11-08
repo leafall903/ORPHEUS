@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, defenses, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -465,6 +465,8 @@ class Combat:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
         m_radius 1.0 at (0, 0, 1.5) from the eye (DATA; unverified: along the aim), #476 = 30 damage (DATA),
         once per activation of st4. The server cannot run TrackTargets itself (the VM finds nothing)."""
+        if defenses.phase(player)[0]:
+            return
         for instance in script.component.instances.values():
             spec = MELEE.get(instance.graph.index)
             if spec is None:
@@ -578,6 +580,8 @@ class Combat:
         source = _source_entity(shooter)
         found = []
         for target in self._targets():
+            if defenses.phase(target.owner)[1]:
+                continue
             if target.owner is shooter or target.entity == source:
                 continue
             if not free_for_all and target.team == shooter.team:
@@ -646,6 +650,8 @@ class Combat:
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None,
     ) -> None:
+        if defenses.phase(shooter)[0]:
+            return
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
 
@@ -743,6 +749,23 @@ class Combat:
         wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
+        gate = defenses.projectile_gate(
+            rocket.position, rocket.direction, step, self._enemies(rocket.shooter),
+        )
+        if gate is not None and (best is None or gate[0] <= best[0]):
+            distance, target, mode = gate
+            travelled = distance / rocket.speed
+            rocket.flown += travelled
+            self._landed(rocket)
+            if mode == 0 and rocket.left > travelled:
+                direction = aim(target.owner.mover.yaw, target.owner.mover.pitch)
+                point = _along(rocket.position, rocket.direction, distance)
+                self.rockets.append(Rocket(
+                    target.owner, target.team, _along(point, direction, 0.001), direction,
+                    rocket.speed, rocket.left - travelled, rocket.direct, rocket.blast,
+                    last_tick=self.tick,
+                ))
+            return  # absorb/reflect never creates an impact blast at the gate
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
             rocket.flown += duration
@@ -767,7 +790,8 @@ class Combat:
         visibility_origin = (
             _along(point, rocket.direction, -BLAST_SURFACE_OFFSET) if struck is None else point
         )
-        pharah = not isinstance(rocket.shooter, bots.Bot) and rocket.shooter.hero.guid == 0x02E0000000000008
+        # The payload retains its original weapon behavior after a Genji redirect.
+        pharah = blast.loadout in {0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B}
         candidates = self._enemies(rocket.shooter)
         if pharah:
             candidates.extend(t for t in self._targets() if t.owner is rocket.shooter)
@@ -796,7 +820,7 @@ class Combat:
         remains an explicit missing service, rather than pretending a velocity
         record alone is a completed knockback interaction.
         """
-        if isinstance(target.owner, bots.Bot):
+        if isinstance(target.owner, bots.Bot) or defenses.phase(target.owner)[0]:
             return
         from ow174.game.mover import FELL
 
@@ -874,7 +898,7 @@ class Combat:
         *, world_tick: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
-        if vitals.dead or amount <= 0.0:
+        if vitals.dead or amount <= 0.0 or defenses.phase(target.owner)[0]:
             return
         dealt = vitals.damage(amount)
         if dealt <= 0.0:

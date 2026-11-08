@@ -3,7 +3,8 @@ Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
 Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
 
 Evidence boundary
-39 tests in tests/test_pharah*.py use real Match, player input,
+52 tests in tests/test_pharah*.py cover Match/player input, attack outcomes
+and an explicit passive-state export case using
 the extracted body graphs and Combat damage/death. They do not substitute
 hand-authored weapon definitions. They are headless server tests, not native
 client or five-PvE-NPC acceptance. Existing native VM proofs are not acceptance.
@@ -50,9 +51,9 @@ armor/shield pool smoke tests pass against real Reinhardt/Zenyatta definitions,
 but their full edge cases remain open; damage amplification/reduction;
 sleep/stun/freeze/hack interrupt and death cancellation; enemy/self/ally
 impulse semantics; friendly healing and support effects remain team-correct.
-The present Combat._damage directly consumes health pools. It has no generic
-mounted barrier/reflect/absorb/invulnerability service. Passing health-pool
-tests must not be described as validating these hero abilities.
+The present Combat now consults scoped state-derived phase and projectile-gate
+adapters. It still lacks the complete native barrier/defense engine. Health-pool
+tests alone are not evidence of barrier, reflect or invulnerability behavior.
 
 Focused shared fix
 Explosive splash now checks static map occlusion to the nearest capsule point.
@@ -99,6 +100,36 @@ off axis during the actual cast, then moves it into the remaining real missiles
 after the channel ends. No hand-authored projectile definition is substituted.
 These tests do not establish the missing projectile motions or native charge
 policy. The earlier cost-per60s passive-fill approximation remains unaccepted.
+
+Reconstructed cross-hero defense checkpoint
+- Actual Reaper Wraith/Moira Fade input sets the authored10467e stack and allows
+  rockets through to a target behind. Mei Cryo keeps solid projectile collision
+  but rejects damage/charge and concussion impulse. All three naturally leave
+  defense and become damageable again through their unchanged duration graph.
+- The old passive54FEB21C never completed, blocking those duration continuations.
+  Only the three mapped human graphs' zero-delay entry configs now complete via
+  an explicit reconstructed state adapter. Strict contexts reject this missing
+  native backend. Full class semantics and native transition fidelity are OPEN.
+- Active Genji/Sigma DeflectProjectiles nodes supply evaluated local boxes and
+  distinct modes. Reconstructed placement uses eye origin/body yaw. The nearest
+  valid gate wins only before body/static collision; allied gates do not consume
+  friendly shots. Genji redirects actual rockets to defender aim/ownership;
+  Sigma consumes without an impact blast. Back attacks bypass these front boxes.
+- Actual reflected primary deals40+80 to Pharah with defender hit credit. Actual
+  reflected concussion keeps zero damage and real impulse; reflected Barrage can
+  kill Pharah and stop further channel shots. Deflect expiry restores ordinary
+  damage. Three extra team/wall/expiry and two payload/death cases pass.
+- Passive server-state capture covers the entry/duration and cleanup. The new
+  State has an explicit empty field layout; the exporter now covers36 models.
+  Eight initial defense cases plus shared suites pass150 tests; five subsequent
+  boundary/payload cases and nine strict-guard regressions pass separately.
+
+Still OPEN: native phase/box placement and pitch/filter/resistance semantics;
+Genji hitscan/melee blocking, all cooldown edges and full attribution/transport;
+Sigma absorption-to-shields and its source messages; D.Va matrix; actual dynamic
+barriers/bubbles and transcendence/immortality; control and all NPC defenses.
+Redirected projectiles currently retire the original delivery and use a logical
+server rocket. Native reflected projectile/explosion presentation is unaccepted.
 
 Original-client status
 Existing PID 12292 / window 守望先锋 was observed without an accompanying lane

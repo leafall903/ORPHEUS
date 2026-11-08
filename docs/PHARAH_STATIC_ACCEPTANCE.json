@@ -29,7 +29,8 @@
         "100m range miss",
         "Reinhardt armor/Zenyatta shield pool damage",
         "self splash without self hitmarker/stats",
-        "five actual NPC base pools each lose120"
+        "five actual NPC base pools each lose120",
+        "Actual phase/solid-immune and Genji reflect/Sigma absorb projectile fixtures, ally/back/wall/expiry filtering"
       ],
       "open": [
         "full falloff/radius boundaries and projectile collision radius",
@@ -88,7 +89,8 @@
         "ally excluded",
         "static wall excludes far-side impulse",
         "miss expires at range",
-        "9-second cooldown rejects repress and allows new displacement after expiry"
+        "9-second cooldown rejects repress and allows new displacement after expiry",
+        "Cryo rejects impulse; actual reflected concussion retains zero damage and physical impulse"
       ],
       "open": [
         "NPC displacement and authored resistance/immunity",
@@ -104,7 +106,8 @@
         "full charge starts real volley, damages/kills enemy and consumes charge",
         "passive charge pauses during volley and resumes at end",
         "death ends channel and prevents new shots",
-        "Reconstructed1:1 damage credit from primary/melee and five NPC base pools, actual loss/overkill cap, no self/zero/Barrage credit even from late real missiles"
+        "Reconstructed1:1 damage credit from primary/melee and five NPC base pools, actual loss/overkill cap, no self/zero/Barrage credit even from late real missiles",
+        "Actual reflected Barrage kills shooter and interrupts new channel shots"
       ],
       "open": [
         "Exact retail damage-credit multiplier/mode policy and passive-charge rate",
@@ -216,7 +219,22 @@
     "test_pharah_movement",
     "test_pharah_impulse",
     "test_pharah_pve",
-    "test_pharah_charge"
+    "test_pharah_charge",
+    "test_pharah_defenses"
   ],
-  "client_acceptance": "All original-client combat acceptance remains separately open."
+  "client_acceptance": "All original-client combat acceptance remains separately open.",
+  "reconstructed_defense_adapters": {
+    "status": "partial",
+    "phase": "Three scoped human graphs use active10467e stack; zero-delay54FEB21C entry reconstruction enables authored Wait/Chase duration. Strict backend stays unsupported.",
+    "projectiles": "Evaluate active Genji/Sigma boxes at eye/yaw; nearest gate before body/static collision redirects defender ownership/aim or consumes without blast. Original Pharah payload preserved.",
+    "evidence": "13 new defense module cases including one passive server export;150 expanded cases plus5 new boundary/payload and9 strict guard tests pass.",
+    "open": [
+      "Native entry semantics and all phase cancellation/cooldown edges",
+      "3D pitch/filter/box geometry fidelity",
+      "Hitscan/melee defense",
+      "Sigma shield conversion, D.Va and barriers/bubbles",
+      "NPC defenses/resistance",
+      "Native reflected projectile and explosion presentation/transport"
+    ]
+  }
 }
