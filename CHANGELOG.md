@@ -1,5 +1,25 @@
 # Changelog
 
+### Torbjorn lane: incoming NPC input and ultimate exhaustion evidence
+
+- Review/reuse parent d1286b7/6debff3/7cd1ed7 on the isolated branch, preserving
+  authorship. Resolve documentation conflicts without importing unrelated console
+  implementation claims. Parent already owns the originals; do not replay aliases.
+- Add actual primary-input evidence for Trooper and Sniper against Torbjorn:
+  first hits cause15 and95 damage through armour, respectively. The same input
+  cannot damage a friendly Torbjorn. These four cases pass; observer projectile
+  transport is omitted by the adapter, not accepted as native presentation.
+- Hold actual ultimate fire through exhaustion: exactly ten authored17-state
+  launches create ten areas; the launch state ends and100 more held fire/Q
+  frames cannot add another ultimate launch. This direct execution test passes.
+- Pass102 parent-reuse/body/array/melee/Torbjorn regressions, the additional
+  ultimate-exhaustion test, Ruff and diff checks. Earlier173 related combat and68
+  VM/scope checks passed at the area candidate before these parent imports.
+- A separate200-frame probe still finds no incoming Enforcer or Assassin damage.
+  Full NPC control/AI/specials, cross-hero control/protection and client acceptance
+  remain open. Parent Flashbang64bf71c and its manual-controller dependencies are
+  pending integration/review; their existence does not pass this hero's matrix.
+
 ### Torbjorn lane: Molten Core area and burn status host
 
 - Resolve030C.053 to16DE in the external preparation tool and retain provenance.

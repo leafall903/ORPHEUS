@@ -290,3 +290,27 @@ arbitration, moving surfaces, shields/reflect/absorb/invulnerability/control,
 native health-tag consumers and original-client presentation. Hero switch and
 disconnect remove pools; caster death preserves them under the selected host.
 This is partial static evidence, not complete hero or client acceptance.
+
+Incoming NPC update after parent reuse
+-------------------------------------
+Parent d1286b7 mounts actual NPC manager/weapons;6debff3 restores authored array
+selection;7cd1ed7 adds nearest-capsule-surface static LOS to quick melee. They
+were reviewed and cherry-picked, preserving authorship, with documentation
+conflicts limited to this lane's actual imported functionality. Parent originals
+already exist upstream of this lane; do not replay local cherry-pick aliases.
+
+Actual Trooper/Sniper primary input now causes first-hit15/95 damage to Torbjorn
+through armour, and the same input respects allied eligibility. Four repeatable
+cases pass; native weapon delays execute under explicit fixture aim. An external
+five-body probe observes Heavy2.5, Trooper15 and Sniper95 incoming damage, while
+Enforcer and Assassin still cause zero over200frames. Complete engagements,
+AI/specials and native projectile presentation remain open. The adapter suppresses
+observer projectile transport, so these health results do not prove its visuals.
+Parent64bf71c Flashbang and manual-controller prerequisites are not imported yet.
+
+An additional actual-input resource test holds ultimate fire for450frames after
+startup: exactly ten16DA/st17 launches create ten areas and the launch state is
+inactive afterward. Another100frames holding fire/Q cannot launch more ultimate
+projectiles. This passes separately from the earlier16-area-test batch. Early
+release/repress, interruption/death and full charge-generation policies remain
+open; this closes only the held-fire exhaustion/end/non-bypass case.

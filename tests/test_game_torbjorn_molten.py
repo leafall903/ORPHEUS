@@ -238,6 +238,26 @@ class TorbjornMoltenTests(unittest.TestCase):
         self.assertLess(owner.body_script.component.vars[342].value(), 10000.0)
         self.assertTrue(all(p.owner is owner for p in run.match.combat.molten_pools.values()))
 
+    def test_held_ultimate_fire_exhausts_ten_globules_then_ends_without_extra_launches(self):
+        run, owner, _, pool, _ = self.arena()
+        fight = run.match.combat
+        molten_core.end_pool(fight, pool)
+        owner.body_script.set_ult_charge(10000.0)
+        run.step({owner: (0, 4000, 32)})
+        self.advance(run, 45)
+        with mock.patch.object(fight, "_shoot", wraps=fight._shoot) as shoot:
+            for _ in range(450):
+                run.step({owner: (0, 4000, 1)})
+            launches = [call for call in shoot.call_args_list
+                        if call.args[2].instance.graph.index == 0x16DA and call.args[2].index == 17]
+            self.assertEqual(len(launches), 10)
+            self.assertEqual(len(fight.molten_pools), 10)
+            self.assertTrue(all(not call.args[2].active for call in launches))
+            for _ in range(100):
+                run.step({owner: (0, 4000, 1 | 32)})
+            self.assertEqual(sum(call.args[2].instance.graph.index == 0x16DA
+                                 and call.args[2].index == 17 for call in shoot.call_args_list), 10)
+
     @unittest.skipUnless(os.environ.get("ORPHEUS_NPC_CATALOG_DIR"), "needs actual Heavy Assault")
     def test_authored_lifetime_stops_damage_and_removes_entity_and_status(self):
         catalog = npc.load_catalog(Path(os.environ["ORPHEUS_NPC_CATALOG_DIR"]) / "pve_npcs_174.json")

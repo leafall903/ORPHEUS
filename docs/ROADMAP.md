@@ -33,6 +33,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
   Actual five-NPC fixtures cover four outgoing attacks, basic incoming identity/
   pool/death semantics, a manually aimed Heavy Assault volley and corpse retention.
+  Reused NPC weapon mounting/array selection now allows actual Trooper/Sniper
+  primary input to damage Torbjorn armour15/95, with allied rejection tested.
   Complete NPC attack execution/AI, conditional difficulty pools and protection/
   ability interactions remain open; these fixtures use permissive VM and adapters.
 

@@ -102,6 +102,33 @@ class TorbjornNpcTests(unittest.TestCase):
             run.step({})
         self.assertAlmostEqual(vitals.total, 247.5)
 
+    def test_trooper_and_sniper_actual_primary_input_hits_and_respects_team(self):
+        for name, damage in (("Trooper", 15.0), ("Sniper", 95.0)):
+            key = next(key for key, row in self.catalog.items() if row.name == name)
+            for friendly in (False, True):
+                with self.subTest(npc=name, friendly=friendly):
+                    run, owner, bot, _ = self.arena(key, friendly=friendly)
+                    # This adapter omits observer projectile transport; authoritative
+                    # input, authored weapon delays and health damage still execute.
+                    for viewer in run.match.players:
+                        viewer.client.bot_stream = lambda *args: None
+                    while run.frame < bot.records_from:
+                        run.step({})
+                    fight = run.match.combat
+                    target = next(t for t in fight._targets() if t.owner is owner)
+                    hp = fight.vitals_of(target)
+                    npc.aim_at(run.match, bot, (target.feet[0], target.feet[1] + target.height * 0.5,
+                                              target.feet[2]))
+                    button = bot.body_script.component.world.weapon_buttons["0"]
+                    bot.body_script.component.edges([(button, True)])
+                    bot.firing = True
+                    for _ in range(200):
+                        run.step({})
+                        if hp.total < 250.0:
+                            break
+                    self.assertIsNotNone(bot.body_script)
+                    self.assertAlmostEqual(250.0 - hp.total, 0.0 if friendly else damage)
+
     def test_each_real_npc_identity_can_damage_and_kill_at_combat_boundary(self):
         # This exercises attribution and pools, not authored AI or attack execution.
         for key in self.catalog:
