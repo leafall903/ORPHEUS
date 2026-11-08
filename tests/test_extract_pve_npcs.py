@@ -2,6 +2,7 @@
 
 import sys
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -49,3 +50,54 @@ class PoolExtractionTests(unittest.TestCase):
         self.assertEqual((row['health'], row['armour'], row['shields']), (250, 0, 100))
         self.assertEqual(row['pool_evidence'][1]['pool_kind'], 2)
         self.assertEqual(row['unapplied_pool_nodes'][0]['node'], 90)
+
+
+class AssociatedAiEvidenceTests(unittest.TestCase):
+    def body(self, reference=None, **attributes):
+        root = ET.Element('STUEntityDefinition', attributes)
+        return SimpleNamespace(root=root, field=lambda *_: reference)
+
+    def test_absent_association_stays_absent(self):
+        with patch.object(tool, 'StuXml', return_value=self.body(m_8B9A461F='{null}')):
+            self.assertIsNone(tool.associated_ai(Path('003/body.xml'), None, self.fail))
+
+    def test_invalid_associations_are_rejected_before_loading_a_target(self):
+        for ref in (ET.Element('ref', GUID='000000000000.003'),
+                    ET.Element('ref', GUID='00000000227A.01B'),
+                    ET.Element('ref', GUID='../outside.003'),
+                    ET.Element('STUEntityDefinition', GUID='00000000227A.003')):
+            with (self.subTest(ref=ref.attrib),
+                  patch.object(tool, 'StuXml', return_value=self.body(ref)) as load):
+                with self.assertRaises(ValueError):
+                    tool.associated_ai(Path('003/body.xml'), None, self.fail)
+                self.assertEqual(load.call_count, 1)
+
+    def test_preserves_associated_entity_overrides_and_fingerprints_initial_graphs(self):
+        body = self.body(ET.Element('ref', GUID='00000000227A.003'))
+        components = ET.Element('map')
+        ET.SubElement(components, 'STUAIBehaviorComponent')
+        ET.SubElement(components, 'STUStatescriptComponent')
+        ai = SimpleNamespace(root=ET.Element('STUEntityDefinition'), field=lambda *_: components)
+        graphs = [{'graph': 0x13E9, 'm_1EB5A024': [{'override': 12}]}, {'graph': None}]
+        paths = []
+        with (patch.object(tool, 'StuXml', side_effect=[body, ai]),
+              patch.object(tool, 'body_record', return_value=({'graphs': graphs}, set())) as read,
+              patch.object(tool, 'GraphXml') as graph):
+            result = tool.associated_ai(Path('xml/003/body.xml'), None, paths.append)
+        self.assertEqual(result['entity'], '0x040000000000227A')
+        self.assertEqual(result['component_classes'], ['STUAIBehaviorComponent', 'STUStatescriptComponent'])
+        self.assertEqual(result['initial_graphs'], graphs)
+        self.assertFalse(result['runtime_controller_allocated'])
+        self.assertEqual(paths, [Path('xml/003/00000000227A.003.xml'),
+                                 Path('xml/01B/0000000013E9.01B.xml')])
+        graph.return_value.record.assert_called_once_with(0x13E9)
+        self.assertFalse(read.call_args.kwargs['include_ai_weapons'])
+
+    def test_missing_associated_graph_cannot_produce_evidence(self):
+        body = self.body(ET.Element('ref', GUID='00000000227A.003'))
+        ai = SimpleNamespace(root=ET.Element('STUEntityDefinition'), field=lambda *_: ET.Element('map'))
+        with (patch.object(tool, 'StuXml', side_effect=[body, ai]),
+              patch.object(tool, 'body_record', return_value=({'graphs': [{'graph': 0x13E9}]}, set())),
+              patch.object(tool, 'GraphXml', side_effect=FileNotFoundError),
+              self.assertRaises(FileNotFoundError)):
+            tool.associated_ai(Path('xml/003/body.xml'), None, lambda _: None)

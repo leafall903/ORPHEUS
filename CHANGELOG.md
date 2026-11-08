@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Optional NPC associated-AI extraction evidence
+
+- Add `extract_pve_npcs.py --include-ai-evidence` to retain the body's explicit
+  `m_8B9A461F` entity reference, associated STU component classes, initial graph
+  entries and instance overrides. Hash the associated definition and parse/hash
+  every initial graph; reject malformed references and missing graph inputs.
+- Prepare an external five-NPC catalog and verify all33 source hashes. Existing
+  runtime definitions/pools remain equal. Enforcer2279 references227A with13E9/
+  13EA roots; Assassin1EBD references1EBE with1158/13C2 among its roots.
+- Validation:23 extractor tests and Ruff pass. This records authored resources;
+  STU classes do not establish native component indices or controller lifetime.
+  No AI controller is allocated, no readiness predicate is forced, and Enforcer/
+  Assassin incoming attacks and original-client acceptance remain open.
+
 #### Direct body-owner query and known player relationships
 
 - Independently execute432 CDBDE0/D15520 F726 cases through their original
