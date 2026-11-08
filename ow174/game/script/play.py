@@ -57,6 +57,18 @@ def evaluate_value(instance, cfg, *, initial=0, watcher=None):
         return instance.evaluate(cfg, watcher, initial=initial)
 
 
+def array_item(instance, cfg, *, watcher=None):
+    """104319 1B79A60: scalar index, collecting +28 container, array-only lookup.
+
+    Failed/missing index evaluation selects zero. Missing/non-array containers
+    and out-of-range indices successfully write null, rather than preserving the
+    caller's destination. Unlike expression MEMBER_BY_INDEX, scalars never match.
+    """
+    index = expr.to_int(evaluate_scalar(instance, cfg.get("m_index"), initial=0, watcher=watcher))
+    values = evaluate_value(instance, cfg.get("m_814F8EC3"), initial=None, watcher=watcher)
+    return values[index] if isinstance(values, tuple) and 0 <= index < len(values) else None
+
+
 def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 

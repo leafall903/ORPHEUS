@@ -6,6 +6,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Shared authored-array selection in Soldier lane
+
+- Reuse parent6debff3's STU_4BD39CFD scalar-index/collecting-array selection,
+  including successful null for missing/non-array/out-of-range containers and
+  dependency watching. Preserve the native evidence and limits in
+  docs/CONFIG_ARRAY_SELECTION.txt; no Enforcer predicate is forced.
+- Pass32 related array/Soldier combat/charge/interrupt tests and Ruff. Enforcer
+  firing still requires unresolved engine context and remains unaccepted.
+
 #### Shared NPC factory alignment in Soldier lane
 
 - Reuse reviewed parent d1286b7's create_body_graphs interface and sparse-slot
