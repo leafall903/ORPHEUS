@@ -103,10 +103,11 @@
         "insufficient charge rejected without spending or damage",
         "full charge starts real volley, damages/kills enemy and consumes charge",
         "passive charge pauses during volley and resumes at end",
-        "death ends channel and prevents new shots"
+        "death ends channel and prevents new shots",
+        "Reconstructed1:1 damage credit from primary/melee and five NPC base pools, actual loss/overkill cap, no self/zero/Barrage credit even from late real missiles"
       ],
       "open": [
-        "charge gain from dealt damage and exact passive-charge semantics",
+        "Exact retail damage-credit multiplier/mode policy and passive-charge rate",
         "authored projectile motions, spread and alternating muzzle geometry",
         "full duration/recovery/cancel/control matrix",
         "all shields/reflect/absorb/invulnerability and NPC interactions"
@@ -214,7 +215,8 @@
     "test_pharah_weapon",
     "test_pharah_movement",
     "test_pharah_impulse",
-    "test_pharah_pve"
+    "test_pharah_pve",
+    "test_pharah_charge"
   ],
   "client_acceptance": "All original-client combat acceptance remains separately open."
 }

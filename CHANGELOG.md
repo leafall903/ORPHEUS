@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Pharah damage ultimate credit
+
+- Credit actual enemy pool loss to Pharah ultimate charge with a documented
+  reconstructed1:1 rule and authored cost cap. Reject self/ally/zero damage and
+  Barrage loadout credit, including real missiles landing after channel end.
+  Retail server multipliers/mode policy and passive-rate fidelity remain open.
+- Four new actual attack tests cover primary/overkill, melee/miss, cost cap and
+  delayed authored Barrage missiles. Five actual NPC primary cases now also
+  assert charge; concussion/self-blast explicitly assert zero credit.
+- 116 expanded hero/combat/projectile/ability tests pass; three strengthened
+  charge assertions pass separately. 39 hero behavior tests now exist. Ruff
+  and diff checks pass. Full static goal and native-client acceptance remain
+  open; projectile motion/muzzles and all defense/control gaps are unchanged.
+
 #### Pharah static acceptance criteria and interruption cases
 
 - Add an explicit per-action/static-interaction acceptance matrix. No scope is

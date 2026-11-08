@@ -3,7 +3,7 @@ Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
 Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
 
 Evidence boundary
-35 tests in tests/test_pharah*.py use real Match, player input,
+39 tests in tests/test_pharah*.py use real Match, player input,
 the extracted body graphs and Combat damage/death. They do not substitute
 hand-authored weapon definitions. They are headless server tests, not native
 client or five-PvE-NPC acceptance. Existing native VM proofs are not acceptance.
@@ -84,8 +84,21 @@ Reconstructed player movement and impulse adapters (static acceptance partial)
   by cooldown. Previously each retry refreshed it and caused an automatic cast
   ten seconds after a stale press. Both expiry and fresh150ms buffer tests pass.
 - Pharah's ultimate uses LogicalButton/Volley rather than Ability; its active
-  volley now prevents passive charge. Motion/spread/muzzles, damage charge,
+  volley now prevents passive charge. Motion/spread/muzzles, exact charge policy,
   interruption/control and full channel behavior remain OPEN.
+
+Damage-charge checkpoint
+The player Combat path now credits Pharah one ultimate point per actual enemy
+pool loss, capped by the current authored cost (#338e,2100 in this fixture).
+This1:1 rule is explicitly reconstructed; client graphs do not establish the
+retail server's charge multiplier, mode/difficulty policy or passive-charge rate.
+Actual primary/overkill/melee/miss and all five NPC base-pool cases execute.
+Zero-damage concussion, self damage and Barrage loadout damage grant no charge.
+The Barrage exclusion persists after its channel ends: the test keeps a target
+off axis during the actual cast, then moves it into the remaining real missiles
+after the channel ends. No hand-authored projectile definition is substituted.
+These tests do not establish the missing projectile motions or native charge
+policy. The earlier cost-per60s passive-fill approximation remains unaccepted.
 
 Original-client status
 Existing PID 12292 / window 守望先锋 was observed without an accompanying lane

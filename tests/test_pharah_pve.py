@@ -75,6 +75,8 @@ class PharahPveTests(unittest.TestCase):
         for definition in self.catalog.values():
             with self.subTest(enemy=definition.name):
                 run, player, bot = self.create(definition)
+                player.body_script.ult_seconds = 0
+                player.body_script.set_ult_charge(0)
                 before = self.health(run, bot).total
                 creates = [u for u in player.client.entities
                            if u.entity == bot.entity and u.op == world.OP_CREATE]
@@ -82,6 +84,7 @@ class PharahPveTests(unittest.TestCase):
                 self.assertGreater(creates[0].build(0).count, 0)
                 self.fire_once(run, player)
                 self.assertEqual(before - self.health(run, bot).total, 120)
+                self.assertEqual(player.body_script.component.entity_var(342).value(), 120)
                 self.assertEqual([h["+0x78"]["+0x4"] for h in player.client.messages(combat.HIT)], [40, 80])
 
     def test_all_five_receive_30_melee_damage_once(self):

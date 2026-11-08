@@ -889,6 +889,9 @@ class Combat:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
+            enemy = self.match.game_map.free_for_all or target.team != shooter.team
+            if enemy and shooter.body_script is not None:
+                shooter.body_script.damage_charge(dealt, loadout)
         victim = target.owner
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.

@@ -22,6 +22,8 @@ class PharahImpulseTests(unittest.TestCase):
 
     def test_zero_damage_concussion_pushes_enemy_and_self_without_hitmarker(self):
         run, player, enemy = self.encounter()
+        player.body_script.ult_seconds = 0
+        player.body_script.set_ult_charge(0)
         before_enemy, before_self = enemy.mover.position[2], player.mover.position[2]
         self.launch(run, player)
         self.assertGreater(enemy.mover.position[2], before_enemy + 3)
@@ -29,6 +31,7 @@ class PharahImpulseTests(unittest.TestCase):
         self.assertEqual(self.health(run, enemy).total, 200)
         self.assertEqual(self.health(run, player).total, 200)
         self.assertFalse(player.client.messages(combat.HIT))
+        self.assertEqual(player.body_script.component.entity_var(342).value(), 0)
 
     def test_concussion_does_not_push_ally(self):
         run, player, ally = self.encounter()
@@ -77,6 +80,8 @@ class PharahImpulseTests(unittest.TestCase):
 
     def test_primary_wall_splash_hurts_self_without_self_hitmarker(self):
         run, player, enemy = self.encounter()
+        player.body_script.ult_seconds = 0
+        player.body_script.set_ult_charge(0)
         enemy.mover.position[0] = 20
         enemy.mover.body = None
         # Move collision wall close to the shooter without changing its map floor.
@@ -90,6 +95,7 @@ class PharahImpulseTests(unittest.TestCase):
         self.assertLess(self.health(run, player).total, 200)
         self.assertFalse(player.client.messages(combat.HIT))
         self.assertEqual(player.stats.value(stats.HERO_DAMAGE), 0)
+        self.assertEqual(player.body_script.component.entity_var(342).value(), 0)
 
     def test_barrage_does_not_charge_during_its_active_volley_then_resumes(self):
         run, player, enemy = self.encounter()

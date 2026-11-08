@@ -396,8 +396,23 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
+
+    def damage_charge(self, dealt: float, loadout: int | None) -> None:
+        """Reconstructed Pharah damage credit: one point per actual enemy pool loss.
+
+        Cost comes from the authored body. Barrage must never recharge itself,
+        including missiles that land after the channel ended. The retail server
+        credit multiplier/mode policy is not available from the client graphs.
+        """
+        if (self.hero != 0x02E0000000000008 or dealt <= 0 or self.ultimate_running()
+                or loadout is None or loadout == 0x0B9000000000000B):
+            return
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost > 0 and charge < cost:
+            self.set_ult_charge(min(cost, f32(charge + dealt)))
 
     def ultimate_running(self) -> bool:
         if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
