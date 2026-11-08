@@ -34,6 +34,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   including ally/enemy/dead/wall/range, expiry and cooldown recovery. Separate
   raw-slot and manual-controller incoming-weapon tests retain their different
   host policies; neither establishes complete NPC AI.
+  Native distinct-input joins are imported and all dedicated Soldier methods
+  rechecked; pending arrivals/producer context now affect command replay hashes.
+  This does not close the remaining combat matrix or native scheduler fidelity.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
@@ -46,6 +49,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   for the partial attack frontier and open Flashbang/Deadeye requirements.
   Resource-backed Flashbang control has offline interruption/recovery/lifetime
   checks; native immunity/presentation and complete hero acceptance remain open.
+  Native input joins now preserve Deadeye's six-second timing and secondary
+  cancellation; target acquisition/charging/damage and full ultimate acceptance
+  remain open. See [state-input joins](STATE_INPUT_JOIN.txt).
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.

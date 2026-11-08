@@ -1,6 +1,14 @@
 Soldier: 76 combat lane / 02E000000000006E / 104319
 Status: OPEN, not combat accepted. Original-client acceptance: none in this lane.
 
+State-input join alignment
+- Reviewed parent2ca9178 imports native distinct-arrival1113EBD5 handling and
+  VM/server causal storage. Preserve pending join_inputs and plug_source in
+  native replay summaries as well. Actual partial producer arrivals change the
+  hash without other recorded state changes.104 focused checks pass after
+  import, including every dedicated Soldier method; this is not a completed
+  static matrix or native scheduler/client equivalence.
+
 2026-11-09 control foundation integration (not full acceptance)
 - Private merge of parent64bf71c includes manual NPC control/console foundations,
   canonical authored factory/array selection and resource-backed Flashbang host.

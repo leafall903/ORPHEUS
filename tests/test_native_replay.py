@@ -12,6 +12,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from test_game_graph_analysis import make_graph, node, output
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.game.commands import FIRE, FRAME_MASK, Command
@@ -64,6 +66,33 @@ class NativeReplayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.getLogger("ow174.script").setLevel(logging.ERROR)
+
+    def test_pending_native_join_and_current_producer_change_hash_without_other_state_changes(self):
+        script = body()
+        definition = make_graph(0xF001, [
+            node(0, "STUStatescriptEntry", fields={"m_outPlug": output([2, "m_inPlug"])}),
+            node(1, "STUStatescriptEntry", fields={"m_outPlug": output([2, "m_inPlug"])}),
+            node(2, "STU_1113EBD5", fields={"m_B24D1794": 2, "m_outPlug": output()}),
+        ])
+        instance = script.component.create(definition, init=False)
+        baseline = snapshot_hash(script)
+        before = stored_snapshot(script)
+        self.assertFalse(instance.follow(definition.node(0), "m_outPlug", None))
+        self.assertEqual(instance.join_inputs, [(2, 0, "m_outPlug")])
+        pending = snapshot_hash(script)
+        self.assertNotEqual(pending, baseline)
+        after = stored_snapshot(script)
+        for document in (before, after):
+            for row in document["instances"]:
+                row.pop("join_inputs")
+                row.pop("plug_source")
+        self.assertEqual(before, after)
+        instance.plug_source = (1, "m_outPlug")
+        self.assertNotEqual(snapshot_hash(script), pending)
+        instance.plug_source = None
+        self.assertEqual(snapshot_hash(script), pending)
+        instance.join_inputs.clear()
+        self.assertEqual(snapshot_hash(script), baseline)
 
     def test_recording_helpers_never_evaluate_values_payloads_or_consume_shots_rng_or_sequences(self):
         script = body()
