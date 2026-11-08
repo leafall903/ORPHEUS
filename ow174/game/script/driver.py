@@ -135,6 +135,11 @@ class BodyWorld(runtime.World):
         return super().position(entity)
 
     def native(self, cfg: dict, instance):
+        from ow174.game import sigma
+
+        owner_query = sigma.barrier_owner_query(self, cfg, instance)
+        if owner_query is not sigma.NOT_HANDLED:
+            return owner_query
         cls = cfg.get("$")
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)

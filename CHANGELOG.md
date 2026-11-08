@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Barrier owner predicate and explicit failing combat baselines
+
+- Bind only1B55's self->F7262B36->E72F6348 predicate to the current Match
+  player/body possession. Offline original-image disassembly identifies the
+  component43 owner read; this narrow host binding remains reconstructed and
+  does not mount the generic native namespace/query service.
+- Six tests cover the actual predicate, input reaching Pet State, ended
+  matches, detached old worlds, unrelated selectors/graphs and strict rejection.
+  The Pet entity
+  output and health remain absent; no placeholder actor is manufactured.
+- Add an actual-input Barrier verifier for rifle, Helix, Hyperspheres and recall.
+  All four functional cases FAIL and the verifier exits1. Recall requires prior
+  proven protection, so a missing barrier cannot vacuously pass. Resource700HP /
+  16.5m/s and an active Pet State are diagnostics, not combat acceptance.
+- Pass231 focused combat/NPC/PlayScript/driver/prerequisite regression tests and
+  Ruff. Pet factory, child actor pose/health, interception, stop/recall,
+  regeneration/break and original-client presentation remain OPEN. The full
+  Sigma static goal remains active; no shared-main merge or push is claimed.
+- Read and manifest-verify the actual2D25 raycast receiver002A.098 from the
+  original104319 storage with online/caches disabled. Keep the XML, integrity
+  record and offline disassembly outside Git in the lane. Receiver override
+  metadata is available for the next collision step; it is not protection proof.
+
 #### Reconstructed Grasp temporary shields and NPC bullet interaction
 
 - Route only Sigma1D02/node34's declared self-target1D03 request from the

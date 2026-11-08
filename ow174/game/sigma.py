@@ -18,6 +18,38 @@ GRASP = 0x1D02
 GRASP_HITSCAN_VOLLEYS = {(0x0254, 10), (0x102E, 23), (0x114F, 25)}
 UNABSORBABLE_PROJECTILES = {0x1BBB}  # Accretion is not an ordinary absorbable projectile.
 SHIELD_TAG = 0x5847
+NOT_HANDLED = object()
+
+
+def barrier_owner_query(world, cfg, instance):
+    """Reconstruct only 1B55's self->component43 owner->existence predicate.
+
+    F7262B36/CDBDE0 calls D15520, which reads component43 and BD42D0. The
+    server's current Player.body/entity relation supplies that declared body
+    possession. This is not a generic namespace/owner-query engine adapter.
+    """
+    if (instance.component.strict or world.hero != HERO or world.match is None
+            or instance.graph.index != 0x1B55):
+        return NOT_HANDLED
+    cls = cfg.get("$")
+    source = cfg.get("m_801B298F") if cls == "STU_F7262B36" else cfg.get("m_entity")
+    if cls == "STU_E72F6348":
+        if not isinstance(source, dict) or source.get("$") != "STU_F7262B36":
+            return NOT_HANDLED
+        source = source.get("m_801B298F")
+    elif cls != "STU_F7262B36":
+        return NOT_HANDLED
+    if not isinstance(source, dict) or source.get("$") != "STU_B5A0CAF0":
+        return NOT_HANDLED
+    if instance.component.entity != world.body:
+        return NOT_HANDLED
+    owner = next((player for player in world.match.players
+                  if player.has_body and player.body == world.body), None)
+    if cls == "STU_E72F6348":
+        return owner is not None and not world.match.ended
+    if owner is None or world.match.ended:
+        return expr.EVALUATION_FAILED  # native object lookup failure, not a fabricated controller
+    return expr.Entity(owner.entity)
 
 
 @dataclass

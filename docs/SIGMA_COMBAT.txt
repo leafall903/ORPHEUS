@@ -30,7 +30,7 @@ Acceptance matrix (P = enemy player; NPC = Trooper/Enforcer/Sniper/Assassin/Heav
 Action                 P evidence                  NPC evidence    Acceptance
 Hyperspheres           110 direct pair / 60 burst    base hit tests  OPEN
 Quick melee            30 once, actual input        base hit tests  OPEN
-Experimental Barrier   no interception test         all five OPEN   OPEN
+Experimental Barrier   four functional cases FAIL    all five OPEN   OPEN
 Kinetic Grasp          scoped absorbs + temp shield two NPC weapons OPEN
 Accretion              70 damage only               base hit tests  OPEN
 Gravitic Flux          charge/cost/end/death only     all five OPEN   OPEN
@@ -96,6 +96,35 @@ healing cannot refill it;3-second grace then5-per-second decay clears the record
 death prevents delayed grants and clears existing bonus; switching bodies removes
 the owner; replay cannot duplicate/restore a grant; a second cast after the real
 cooldown can add to a remaining bonus.225 focused regression tests pass.
+
+Barrier factory prerequisite and failing baselines
+-------------------------------------------------
+The unimplemented owner-existence predicate prevented1B55/node6 Pet from even
+starting. Offline original104319 image/registry inspection identifies F7262B36
+runtime table26625D8, evaluatorCDBDE0 ->helperD15520 ->component43 ->BD42D0.
+Health query9B7648C3 uses CEB6C0 ->D177C0 ->component51. Captured-image input
+fingerprints and bounded disassembly remain outside Git in the lane directory.
+They do not establish complete getter guards, services or native execution.
+
+A narrow reconstructed host binding now resolves only1B55's authored self-owner
+and nested existence query from live Match possession. Detached worlds and
+unrelated graphs/selectors stay unhandled. Strict execution rejects this
+reconstructed binding. Six prerequisite tests pass, making231 focused regression
+tests total. This enables the actual Pet State to start;
+its entity512 output and health586 remain absent because the factory is missing.
+
+tools/verify_sigma_barrier_static.py executes rifle, Helix, Hypersphere and recall
+scenarios through real input/body graphs with flat collision and fake transport.
+All four functional cases fail and return exit1. Recall requires protection to
+have been proven first. An active Pet State, extracted700 maximum and16.5m/s
+movement node are expressly not passed gameplay checks. Next work needs the
+actual Pet actor, ownership/pose/health and collision services before interception,
+movement, recall, regeneration/break or client behavior can be accepted.
+The Pet's actual002A.098 raycast receiver is now exported read only from104319
+with matching manifest size/content key (676 bytes). Its override list and
+integrity record are in the external lane barrier-resources directory. No game
+data entered Git or the normal runtime. Those receiver rules still require
+collision geometry and native flag interpretation before they can be used.
 
 Actual five-NPC audit
 ---------------------
