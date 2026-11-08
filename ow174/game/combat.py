@@ -457,15 +457,33 @@ class Combat:
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
-            centre = _along(self._eye(player), aim(*command.aim()), reach)
+            origin = self._eye(player)
+            centre = _along(origin, aim(*command.aim()), reach)
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
-                    self._damage(player, target, amount, False, loadout, command.frame)
+                if segment_distance(centre, a, b) - shown.radius > radius or amount <= 0.0:
+                    continue
+                # Reuse the rewound capsule for occlusion as well as reach. The exact
+                # retail melee sweep is unverified; cast toward its nearest surface
+                # instead of permitting a hit through solid map collision.
+                ab = _sub(b, a)
+                length = _dot(ab, ab)
+                along = 0.0 if length <= EPSILON else max(
+                    0.0, min(1.0, _dot(_sub(origin, a), ab) / length),
+                )
+                delta = _sub(_along(a, ab, along), origin)
+                distance = math.sqrt(_dot(delta, delta))
+                surface = max(0.0, distance - shown.radius)
+                if surface > EPSILON:
+                    direction = tuple(value / distance for value in delta)
+                    wall = ray_world(self._collision(), origin, direction, surface)
+                    if wall is not None and wall < surface:
+                        continue
+                self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The

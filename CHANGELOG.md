@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Widowmaker command-to-health coverage and melee occlusion
+
+- Reject quick-melee damage through solid static collision using the existing
+  rewound capsule model. This reconstruction preserves the unobstructed hit.
+- Add eight Widowmaker regressions using actual weapon/body graphs and command
+  handling: automatic fire/release, scoped charge/body damage/ammo, melee,
+  wall occlusion, allied immunity, incoming player death and retained manual
+  training-bot corpses. The existing 28 combat tests also pass (36 total).
+- No original-client acceptance, deployment or publication. The shared runtime
+  has no non-player entity-body records; five Archives NPCs, critical damage,
+  hook movement, mine mechanics, Infra-Sight and cross-hero defensive/status
+  interactions remain open. See docs/WIDOWMAKER_COMBAT.txt. Deliver this private
+  lane commit as a patch; do not merge or publish from the hero lane.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

@@ -1,0 +1,85 @@
+Widowmaker 104319 combat lane -- OPEN
+==================================
+
+Hero: 02E000000000000A; body: 040000000000001C.
+This record distinguishes command-to-health tests from original-client evidence.
+No original-client acceptance is claimed. No game assets are included here.
+
+Evidence scope
+--------------
+tests/test_widowmaker_combat.py uses the real extracted hero graphs, normal
+Match/Player command handling, Combat and health pools. The peers immediately
+acknowledge records and the scene has synthetic flat collision. The manual NPC
+test uses a real Bot object with training-bot health/mover data, but has no native
+NPC body script. It does not validate Archives AI, client visuals or specials.
+
+Primary weapon (001B/state6): a body hit removes 13 health; releasing fire stops
+additional damage. Scoped weapon (001B/state9): charging before fire removes 120
+health and spends five rounds; partial charge deals less. Quick melee (0043)
+removes 30 once. Allied player health remains unchanged. Enemy player rifle fire
+kills Widowmaker, sets the dead mover/owner flags, sends the death notice and
+prevents subsequent Widowmaker fire. A manual training bot killed by scoped
+shots remains dead past the normal bot respawn deadline under retain_corpse.
+
+The shared melee fix rejects a solid wall between the shooter's eye and the
+nearest surface of the rewound target capsule. This is a reconstruction using
+the existing capsule hit model, not a reverse-engineered retail melee sweep.
+The wall regression executes commands and checks unchanged health and no hit
+notice; the unobstructed case still loses 30 health.
+
+Acceptance matrix
+-----------------
+Legend: POOL = offline actual command-to-pool evidence for the stated subset;
+OPEN = not accepted. All original-client cells are OPEN.
+
+Action                 Enemy player       Trooper Enforcer Sniper Assassin Heavy Assault
+Unscoped weapon        POOL body only      OPEN    OPEN     OPEN   OPEN     OPEN
+Scoped weapon          POOL body/charge    OPEN    OPEN     OPEN   OPEN     OPEN
+Quick melee            POOL range/wall     OPEN    OPEN     OPEN   OPEN     OPEN
+Incoming attacks       POOL rifle/death    OPEN    OPEN     OPEN   OPEN     OPEN
+Grappling Hook         OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
+Venom Mine             OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
+Infra-Sight             OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
+Critical damage        OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
+Status/control         OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
+Manual NPC corpse      n/a                 OPEN    OPEN     OPEN   OPEN     OPEN
+
+Allies: primary and melee reject a same-team player in the tests. This does not
+establish all free-for-all, reveal-sharing or cross-hero support semantics.
+
+Concrete unresolved dependencies
+--------------------------------
+1. Critical damage: hit_def reads m_A872C70E and defaults to 1. Both Widowmaker
+   volleys have null m_A872C70E in the target-build extraction, so neither gets
+   critical damage. Their m_66D29548 is 2; scoped m_BC54C84B is 1.25. Their native
+   meanings are not established here; do not reinterpret these fields from
+   modern hero web pages or assume these observations prove a fix.
+2. Grappling Hook (005A): authored state activation alone has no authoritative
+   hook anchor, pull motion, collision handling, jump cancel or movement host.
+3. Venom Mine (0056): the graph fires projectile entity 04000000000000AF at speed
+   20. This does not implement armed placement, enemy trigger, destructible
+   health, poison-over-time, victim reveal, ownership/replacement or cleanup.
+4. Infra-Sight (0067): state0 is TrackTargets with radius200. TrackTargets.payload
+   currently returns an empty tuple unconditionally; the real search, per-target
+   subgraph execution and teammate-visible reveal consumer are absent.
+5. Shared barriers, reflection, absorption, invulnerability, stun/sleep/hack and
+   their damage/input/status rules are not established by this lane's tests.
+6. The supplied runtime game_graphs_174.json.gz contains 32 hero bodies and ZERO
+   non-player entity-body records. BotScript rejects the training-bot definition
+   0400000000001403 with ValueError: no statescript data. The five Archives
+   enemy-body/AI spawn integration belongs to the parent lane and is still needed.
+
+Client coordination
+-------------------
+2026-11-08: an existing Overwatch window, PID12292, was present. The process's
+path/command line was unavailable from the read-only process query. This lane
+did not acquire an exclusive client lease, launch a service/client, send input,
+attach a debugger, or close an existing process. Existing-window presence is
+not acceptance and not evidence that this lane is performing a live test.
+
+Integration and publication
+---------------------------
+Work belongs to verification/hero-lanes/000A/source on private main. Supply the
+tested commit as a format-patch for parent review. No root-source merge, manual
+push, service deployment or publication is authorized by this lane's patch.
+The overall hero and every original-client acceptance requirement remain OPEN.

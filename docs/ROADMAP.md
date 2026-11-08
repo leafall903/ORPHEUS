@@ -29,6 +29,7 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Lobby and match lifecycle.** Verify queues, team assignment, game setup, hero selection, match handoff, joining, leaving, reconnecting and returning to the lobby.
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
+  - [ ] Accept Widowmaker against enemy players and all five Archives NPCs in build104319. Eight offline command-to-pool regressions cover body fire, charge/ammo, melee occlusion, allied immunity, incoming player death and a retained training-bot corpse. Criticals, hook, mine, Infra-Sight, defensive/status interactions, NPC-body data and all original-client checks remain open. See [Widowmaker combat](WIDOWMAKER_COMBAT.txt).
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.
