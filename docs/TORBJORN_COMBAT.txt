@@ -34,11 +34,12 @@ sandbox. A prepared external catalog now supplies actual body/hero identities;
 the five-NPC static fixture below proves the listed subset only.
 
 Action             Server evidence / remaining implementation
-Passive            No separately named passive established by this audit yet;
-                   confirm absence/ownership-related mechanics from resources.
-                   Do not silently omit a passive from complete acceptance.
+Passive            Actual1683/st25 background reload while hammer is equipped
+                   refills after2s; reselecting early cancels it. Other passive/
+                   ownership-related applicability remains under audit.
 Swap/reload        Weapon selection runs through actual manager graph15;
-                   full magazine/empty/reload/cancel/Overload interaction OPEN.
+                  18ammo,1/2cost,empty/auto/manual refill/holster/release/death
+                   and Overload timing tests pass. Partial-ammo corner OPEN.
 Primary rivet      70 direct damage to player; authored gravity9.8 is consumed
                    by a reconstructed ballistic solver with 16ms sweeps;
                    critical defaults, true hitboxes and presentation OPEN.
@@ -68,8 +69,9 @@ Overload           1721/st3 now grants its authored100 temporary armour pool
                    reduction applies across both. No re-fill on repeated input,
                    no healing into this pool, expiry/death clear it. Five-second
                    duration and subsequent10second cooldown reject spam and
-                   allow activation2 after cooldown. Speed/fire/reload effects
-                   and cross-hero/client semantics remain OPEN.
+                   allow activation2 after cooldown. Actual speed/fire/reload
+                   modifiers and expiry recovery now pass. Broader cross-hero/
+                   native timing and client semantics remain OPEN.
 Molten Core        16DA/st17 launches direct25 projectiles after ultimate press
                    then fire (a server probe dealt125 across five launches).
                    Persistent areas/status now run actual16DD/16DE with
@@ -349,3 +351,35 @@ rejects repeated skill input through14.4s and permits another cast by16s.
 This is an explicit server reconstruction; native CC host dispatch, animation,
 immunity, cleansing, overlapping controls and all other cross-hero protection
 requirements remain unaccepted. Do not treat this as complete status handling.
+
+Weapon resource and Overload modifier evidence
+---------------------------------------------
+Eleven command-driven tests exercise actual combat launches and movement rather
+than only inspecting variables. The18-round magazine allows18primary or9secondary
+volleys. Empty input emits no additional volley until automatic reload completes;
+manual reload also refills and later permits fire. Releasing either fire stops
+repeats, simultaneous primary/secondary does not double-cast, and alternating
+edges cannot bypass the shared delay. Death during reload suppresses later fire.
+
+Resource1683 nodes73/74 choose0.6/0.8s ordinary primary/secondary intervals or
+0.42/0.56s under entity flag10473. Node75 chooses reload2s or1.4s. Actual launch
+times follow those intervals within the16ms clock. Reload refill precedes firing
+readiness: current runtime observes62/43ticks to refill and125/88ticks to finish
+ordinary/Overload reload. These are measured grid results, not original-client
+animation acceptance. Early holster stops the active reload; reselecting before
+background completion preserves the unfilled magazine. Holstering after refill
+retains the filled magazine.
+
+While hammer stays equipped, actual1683/st25 uses var581 and its ordinary2s wait
+to refill in the background. This explains why a long holster probe refills even
+after an active reload was canceled. Early reselect cancels that background wait.
+Overload's active1721/st24 movement modifier adds0.3 to movement index0. Actual
+ground movement reaches5.5m/s normally and7.1504m/s while boosted (quantized30%).
+At expiry, movement returns to5.5 and fire/reload return to0.6/2s.
+
+Still open: secondary with only1ammo currently drains it without emitting a
+volley; native partial-cost semantics must be established before acceptance.
+Complete death/interrupt/reload edge cases, Overload/background-reload timing,
+all protective/status interactions and broader passive applicability remain open.
+The tests do not establish native spread, animation-event or client presentation
+parity. Run python -B -m unittest test_game_torbjorn_resources -q.

@@ -1,5 +1,19 @@
 # Changelog
 
+### Torbjorn lane: magazine, reload and Overload modifier evidence
+
+- Add11 actual-command resource tests:18primary/nine secondary volleys,empty
+  rejection/automatic reload,release/alternate/simultaneous input gating,manual
+  refill versus firing readiness,holster/reselect cancellation and death denial.
+- Verify resource-defined Overload fire0.42/0.56s versus0.6/0.8s,reload1.4s
+  versus2s,and actual ground speed7.1504 versus5.5m/s. Expiry restores defaults.
+- Establish the authored hammer-equipped background reload:1683/st25 waits2s
+  before filling. Reselecting early cancels it; this is distinct from canceling
+  an in-progress manual reload. Tests and Ruff pass; production code unchanged.
+- Record unresolved1ammo secondary behavior (drains without a volley) for native
+  semantics audit. Broader passive/interrupt/protection/client acceptance remains
+  open. Parent2ca9178 state-input join awaits integration at this fixed boundary.
+
 ### Torbjorn lane: control interactions and manual NPC aim
 
 - Review/import parent manual-controller fbcaf76 and Flashbang64bf71c into the

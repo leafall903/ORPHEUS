@@ -22,7 +22,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   jitter/flight parity and other-owner repair remain open. Hammer55 damage now uses an
   authored-duration/threshold reconstruction with hit/miss/LOS/team/cancel tests.
   Overload grants100 temporary armour with expiry/death cleanup and spam-proof
-  cooldown evidence; speed/fire/reload effects remain open. A prepared-data
+  cooldown evidence. Actual30percent movement increase,0.42/0.56s fire intervals
+  and1.4s reload under Overload restore ordinary values after expiry. Actual18-round
+  clip exhaustion/automatic reload,manual refill/fire readiness,holster cancellation
+  and2s hammer-equipped background reload pass; partial-ammo semantics remain open.
+  A prepared-data
   turret reconstructs persistent build/fire/repair/ownership/destruction with
   player/five-NPC damage and5/10second cooldown evidence. Native firing effects,
   combat redeploy lock, dismantle input, placement/scoring policies,
