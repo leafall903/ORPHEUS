@@ -12,6 +12,26 @@ from ow174.game.script import expr
 HERO = 0x02E0000000000006
 
 
+def overload(fight, player, script):
+    """Mount authored1721/st3 as temporary armour while its real state is active."""
+    from ow174.game import combat
+
+    if player.hero.guid != HERO:
+        return
+    target = next((t for t in fight._targets() if t.owner is player), None)
+    if target is None:
+        return
+    vitals = fight.vitals_of(target)
+    instance = next((i for i in script.component.instances.values() if i.graph.index == 0x1721), None)
+    state = instance.states.get(3) if instance is not None else None
+    source, amount = None, 0.0
+    if not vitals.dead and state is not None and state.active:
+        source = (instance.id, state.counter)
+        amount = combat._number(state.evaluate(state.node.field("m_amount"), watch=False), 0.0)
+    if vitals.set_over_armour(source, amount):
+        fight._sync_body_health(player, vitals)
+
+
 def hammer(fight, player, command, script):
     from ow174.game import combat
 

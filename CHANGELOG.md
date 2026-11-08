@@ -1,5 +1,19 @@
 # Changelog
 
+### Torbjorn lane: authoritative temporary Overload armour
+
+- Mount authored1721/st3 as100 temporary armour while its graph state is active.
+  Consume it before permanent armour with a single reduction per hit, grant once
+  per activation, exclude healing refill and clear on expiry/death. Replicate a
+  distinct over-armour slot and explicitly clear it at expiry.
+- Include amount/source/id in passive snapshot state. Six Overload tests pass,
+  including cooldown-spam rejection/recovery and snapshot-hash sensitivity;
+  89 related combat/projectile/health tests pass (95 total). Ruff/diff pass.
+  The broader13-test stored-snapshot replay suite is still running at commit.
+- Pool ordering/flags are explicit server reconstruction. Overload speed/fire/
+  reload effects, native pool-consumer parity, protections, five-NPC and original
+  client acceptance remain open. Full static hero goal remains active.
+
 ### Torbjorn lane: command-driven hammer damage
 
 - Bridge active168C swing13 to the authored55damage definition using the

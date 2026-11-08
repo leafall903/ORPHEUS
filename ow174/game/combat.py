@@ -175,6 +175,14 @@ def ray_world(
 # --- health -------------------------------------------------------------------------------------------
 
 
+@dataclass
+class TemporaryArmour:
+    amount: float = 0.0
+    most: float = 0.0
+    source: tuple[int, int] | None = None
+    pool_id: int = 0
+
+
 class Vitals:
     """A body's pools as component 51 has them: health, armour, shields (world.health's ids and fields)."""
 
@@ -182,6 +190,7 @@ class Vitals:
         self.entity = entity
         self.most = {HEALTH_POOL: float(health), ARMOUR_POOL: float(armour), SHIELDS_POOL: float(shields)}
         self.now = dict(self.most)
+        self.over_armour = TemporaryArmour()
         self.ids = {}
         pool_id = 1
         for kind in (SHIELDS_POOL, ARMOUR_POOL):  # world.health numbers them so
@@ -200,7 +209,23 @@ class Vitals:
 
     @property
     def total(self) -> float:
-        return sum(self.now.values())
+        return sum(self.now.values()) + self.over_armour.amount
+
+    def set_over_armour(self, source, amount: float = 0.0) -> bool:
+        """An activation grants armour once; expiry discards its unspent remainder.
+
+        A consumed pool retains its source until expiry so a repeated input or
+        health synchronization cannot refill the same activation.
+        """
+        pool = self.over_armour
+        if pool.source == source:
+            return False
+        pool.source = source
+        pool.amount = pool.most = max(0.0, amount) if source is not None else 0.0
+        if source is not None and not pool.pool_id:
+            pool.pool_id = max(self.ids.values(), default=0) + 1
+        self.changed.add(ARMOUR_POOL)
+        return True
 
     def damage(self, amount: float) -> float:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
@@ -210,8 +235,14 @@ class Vitals:
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
-            if kind == ARMOUR_POOL and self.now[kind] > 0.0:
+            if kind == ARMOUR_POOL and self.now[kind] + self.over_armour.amount > 0.0:
                 left = max(left - ARMOUR_BLOCK, left / 2)
+                over = min(left, self.over_armour.amount)
+                if over > 0.0:
+                    self.over_armour.amount -= over
+                    self.changed.add(kind)
+                    taken += over
+                    left -= over
             take = min(left, self.now[kind])
             if take > 0.0:
                 self.now[kind] -= take
@@ -237,6 +268,14 @@ class Vitals:
         for kind in kinds:
             if kind in self.ids:
                 parts[kind * POOLS] = world.pool(self.ids[kind], kind, self.most[kind], self.now[kind])
+        over = self.over_armour
+        if ARMOUR_POOL in kinds and over.pool_id:
+            if over.source is None:
+                parts[ARMOUR_POOL * POOLS + 1] = bytes(20)
+            else:
+                packed = bytearray(world.pool(over.pool_id, ARMOUR_POOL, over.most, over.amount))
+                packed[18] = 1  # component51 treats this as over-armour, not a permanent maximum
+                parts[ARMOUR_POOL * POOLS + 1] = bytes(packed)
         return {51: parts}
 
 
@@ -431,6 +470,7 @@ class Combat:
         script = player.body_script
         if script is None:
             return
+        hero_torbjorn.overload(self, player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.is_dead(player):
             return
@@ -841,6 +881,7 @@ class Combat:
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0
+            vitals.set_over_armour(None)
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)

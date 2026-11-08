@@ -21,7 +21,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   per-pellet damage/ammo use with explicit reconstructed spread; native phase/
   jitter/flight parity and repair remain open. Hammer55 damage now uses an
   authored-duration/threshold reconstruction with hit/miss/LOS/team/cancel tests.
-  Combat turret, Overload pools, Molten Core areas, cross-hero protections and
+  Overload grants100 temporary armour with expiry/death cleanup and spam-proof
+  cooldown evidence; speed/fire/reload effects remain open. Combat turret,
+  Molten Core areas, cross-hero protections and
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
