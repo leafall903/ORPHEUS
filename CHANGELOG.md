@@ -24,59 +24,6 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
-#### Native array selection for PvE difficulty configs
-
-- Implement STU_4BD39CFD with scalar index evaluation and collecting container
-  evaluation, array-only bounds checks and successful-null fallback. Preserve
-  nested value types and watched index/container updates; unknown child configs
-  still fail strict execution. No mission difficulty is invented.
-- Execute the original104319 selector/conversion/lookup offline:15 cases match
-  the Python runtime. Config providers and value storage/copy are adapters.
-  Pass178 relevant tests, including5 new array selection/watcher/failure checks;
-  Ruff and diff checks pass. Native-client acceptance was not run.
-- Resolve a zero-damage cause in Enforcer's authored weapon. An external
-  forced-controller experiment now emits resource-defined damage; its controller
-  assumption is unverified and is not production code. The ordinary five-body
-  probe still only proves Trooper/Sniper/Heavy damage; Enforcer/Assassin control,
-  navigation/specials and full McCree/client combat remain open. Normal inputs,
-  services and original working changes remain untouched; no hero lane merged.
-
-#### Authored NPC weapon component mounting
-
-- Share body weapon-root allocation between player and NPC scripts: preserve
-  sparse slots, seed slot bindings and allocate manager/weapons before entries.
-  This restores the Sniper body's omitted manager and two weapon graphs without
-  replacing authored attack damage or timing.
-- Pass107 relevant tests (23 NPC script,15 NPC control/lifecycle,27 driver,
-  5 body-script and37 projectile), Ruff and diff checks. The new test exercises
-  sparse-slot firing and decodes the NPC observer baseline with mounted roots.
-- Actual five-body offline data now yields Sniper damage100 against McCree225;
-  Trooper20 and Heavy Assault5 still work. All three stop damage for80 further
-  frames after stop. Enforcer and Assassin remain unable to damage in200 frames.
-  The adapter omits NPC observer projectile transport; native visuals, autonomous
-  AI/navigation/specials and complete McCree acceptance remain open. No client
-  launched, normal data/deployment unchanged, no completed hero lane merged.
-
-#### Companion NPC console and locked server API
-
-- Add a dark companion NPC console linked from the dashboard Server page. Its
-  page-local keys and buttons call the real loopback API; account text input does
-  not trigger shortcuts. Serialize rapid menu/selection requests, show refused
-  commands and never automatically retry mutations.
-- Resolve the chosen account's Match and execute commands under GameServer.lock.
-  Reject invalid keys/menu state, absent players, missing catalog and frozen-clock
-  mutations. Load an explicit external ORPHEUS_NPC_CATALOG and optional startup
-  ORPHEUS_GRAPH_BUNDLE without replacing normal runtime data.
-- Pass51 Python HTTP/dashboard/NPC tests and5 JavaScript request tests (56 total),
-  Ruff and diff checks. Real HTTP fixture requests complete all25 five-body menu,
-  spawn, engagement-command, stop and removal operations. This fixture has no
-  native client and no running game clock; it does not establish actual attacks.
-- Browser preview initialization fails waiting for Statsig configuration. Visual
-  and real keyboard acceptance remain open. The isolated fixture closes with no
-  NPCs remaining; normal services/data and original working changes are preserved.
-  Full enemy navigation/specials/McCree skills/client combat and normal deployment
-  remain open. No complete hero lane is merge-ready. Publication helper is absent.
-
 #### Manual NPC console commands and engagement input
 
 - Implement console command semantics for menu/selection, explicit removal,
