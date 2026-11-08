@@ -96,10 +96,6 @@ class GenjiControlTests(GenjiFixture):
                     self.step(run, caster, genji, target_buttons=1 | 32)
                     self.assertTrue(self.blade(genji).flags & 1)
                     self.assertEqual(self.health(run, caster), 225)
-                # A fresh press after the original draw phase proves recovery;
-                # held-input prediction across the draw is a separate open edge.
-                for _ in range(30):
-                    self.step(run, caster, genji)
                 for _ in range(65):
                     self.step(run, caster, genji, target_buttons=1)
                 self.assertLess(self.health(run, caster), 225)

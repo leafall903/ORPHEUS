@@ -1341,7 +1341,7 @@ class Ability(State):
         if target is None or _field(self, name) is None:
             return True
         var = self.instance.find_var(*target)
-        self.watch(var)
+        self.watch(var, structural=True)
         return would_stack_to_top(var, stack_priority(_field(self, name)), exclude=self)
 
     def stacked(self) -> bool:

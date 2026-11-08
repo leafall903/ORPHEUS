@@ -141,7 +141,7 @@ class Var:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
-        self.watchers: dict[State, None] = {}
+        self.watchers: dict[State, bool | None] = {}  # True also observes link structure
         self.resolving = False
         self.partial = None
 
@@ -283,7 +283,7 @@ class InstanceContext(Context):
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            self.watcher.watch(target, structural=True)
         return would_stack_to_top(target, priority)
 
     def poll_native(self, cfg: dict):
@@ -650,7 +650,7 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, structural=False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
         changed = not expr.same(before, after)
@@ -668,7 +668,7 @@ class Component:
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (structural and var.watchers[state]):
                 continue
             if state.active and not state.flags_changed:
                 state.flags_changed = True
@@ -990,8 +990,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, structural=False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, structural=structural)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1370,7 +1370,7 @@ class State:
         self.start = 0
         self.ended_at = 0
         self.ticked_at = None
-        self.watched: dict[Var, None] = {}
+        self.watched: dict[Var, bool | None] = {}
         self.flags_changed = False
         self.flags_check = False
         self.polled = False
@@ -1472,10 +1472,13 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, structural=False) -> None:
         if self.active and not self.ending:
-            var.watchers[self] = None
-            self.watched[var] = None
+            # A priority predicate can change when equal-valued links are
+            # inserted/removed. Keep that dependency alongside scalar watches.
+            kind = True if structural or var.watchers.get(self) else None
+            var.watchers[self] = kind
+            self.watched[var] = kind
 
     def unwatch(self) -> None:
         for var in self.watched:
@@ -1574,7 +1577,7 @@ class State:
         var = self.instance.find_var(*target)
         before = var.value()
         insert_link(var, Link(self, slot, priority, above, stack))
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, structural=True)
         for state in var.stack_states():
             state.stack_changed(var)
         return var
@@ -1583,8 +1586,9 @@ class State:
         before = var.value()
         if bake:
             var.base = self.output(0)
+        previous = len(var.links)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, structural=len(var.links) != previous)
         for state in var.stack_states():
             state.stack_changed(var)
 

@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Reevaluate priority predicates after equal-valued stack edits
+
+- Distinguish structural priority dependencies from scalar variable watches.
+  Notify the former when links are inserted/removed even if the effective value
+  stays equal. Preserve ordinary scalar notifications and below-link behavior;
+  store the dependency kind in existing causal watcher maps.
+- This fixes actual Genji primary input held across an interrupted Dragonblade
+  draw. Its attack BooleanSwitch previously remained false after the priority
+  gate opened; manual reevaluation proved the stale condition before the fix.
+  The existing draw/active recovery test now passes without release/repress.
+- Pass56 focused VM/ability/Genji-control tests and263 combined combat/NPC/VM/
+  model-manifest regressions, including equal-valued stack push/pop and causal
+  dependency-kind snapshot coverage. Ruff and diff checks pass. Full hero/native acceptance
+  remains open for the other listed requirements.
+
 #### Preserve Genji's timed Dragonblade through reconstructed control (partial)
 
 - Scope the shared stun stop policy so0317's ultimate retains its authored

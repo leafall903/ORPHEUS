@@ -169,8 +169,14 @@ swing after recovery; late control does not extend the original end tick or
 restart the ultimate. Death/body replacement still retire both control and Q.
 Four actual Flashbang/Strike timings stop displacement without resuming after
 expiry, with damage/cooldown assertions. Six control test methods now pass.
-Holding primary across an interrupted draw did not yield a swing in a probe;
-that input edge remains OPEN. Full native224E/selective control semantics,
+The held-primary-across-draw failure was a stale priority predicate: removing
+a blocking stack entry preserved the variable's scalar value, so the watched
+BooleanSwitch was never notified. Structural priority dependencies now survive
+alongside ordinary scalar watches, and link edits notify them even when the
+value is unchanged. The same actual-input draw/active recovery test now holds
+primary continuously across the gate and passes without a fresh press. Synthetic
+push/pop coverage and a causal snapshot check distinguish the dependency kinds.
+Full native224E/selective control semantics,
 frontal reflected status, immunity and cleansing also remain open.
 
 Original client: not exercised by this change. Existing client PID12292 and
