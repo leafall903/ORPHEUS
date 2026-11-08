@@ -14,6 +14,13 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Genji's full player/NPC combat and original-client presentation.
+  Primary and secondary shuriken have partial command-path damage evidence;
+  the fan now flies three independently resolved projectiles. Spread geometry
+  is reconstructed. Strike targeting/damage, Deflect, Dragonblade, passive
+  movement, five mission NPCs and cross-hero interactions remain open.
+  See [Genji combat restoration](GENJI_COMBAT.txt).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse

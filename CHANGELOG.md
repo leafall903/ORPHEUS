@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Genji secondary shuriken authority (partial)
+
+- Emit three independently swept projectiles for weapon0304's authored fan,
+  preserving its per-projectile damage, team filtering and armor processing.
+  Adjacent spread angles are reconstructed from spread9; exact native geometry
+  and original-client presentation remain unverified.
+- Nine command-path Genji tests cover real health changes against players and
+  a training bot, separate victims, range separation, armor, team semantics,
+  static triangle collision and actual death. Shared combat and authored
+  MoveTo regression tests also pass. No complete hero/client acceptance.
+- Deflect, Swift Strike targeting/damage, Dragonblade, five mission NPCs and
+  cross-hero status/defense interactions remain open. See docs/GENJI_COMBAT.txt.
+  This lane delivers a reviewed patch; it does not publish or merge root main.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

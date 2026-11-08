@@ -1,0 +1,66 @@
+Genji combat restoration — build 1.74.0.0.104319 — OPEN
+
+Hero 02E0000000000029, body 0400000000000225.
+Source inputs: external game_graphs_174.json.gz and game_heroes_174.json.
+Do not treat these headless checks as original-client acceptance.
+
+Shuriken (weapon graph 0304):
+- State4 emits the primary burst's individual shots, at authored speed60 and
+  amount29. A normal press deals87 to a stationary unarmored player body.
+- State11 names three projectiles, distribution1145C42E and spread9. The old
+  authority emitted one projectile for that shot; the fan now emits three.
+- Spread is reconstructed as adjacent angles -9/0/+9 degrees in the aim plane.
+  The count, speed, damage and spread value are data-backed. Units, exact
+  distribution, muzzle offsets and native server geometry are unverified.
+- Both authored volleys resolve sync3 in the existing evaluator. This patch
+  adds authoritative flight/damage; it does not establish observer visuals.
+- Existing capsule geometry, armor rules, collision category, critical region
+  and missing default critical multiplier remain inherited limitations.
+
+Repeatable command-path tests:
+python -B -m unittest test_genji_combat test_game_combat test_game_move_to
+Set PYTHONPATH to this checkout and its tests; ORPHEUS_RUNTIME_DIR must name
+the authorized external runtime. Reuse the environment without writing there.
+Nine Genji tests cover primary87, close fan87, distant fan29, three separate
+victims, per-shuriken armor24, allied immunity, a triangle wall, a real
+training-bot actor and inability to fire after an actual combat death.
+The training bot is not one of the five requested mission enemy archetypes.
+
+Required action matrix (enemy player / five mission NPCs / client):
+Primary         partial headless damage / OPEN / OPEN
+Secondary       partial headless damage / OPEN / OPEN
+Quick melee     inherited generic path  / OPEN / OPEN
+Swift Strike    partial MoveTo tests    / OPEN / OPEN
+Deflect         missing authority       / OPEN / OPEN
+Dragonblade     missing authority       / OPEN / OPEN
+Double jump     unaccepted movement     / n/a  / OPEN
+Wall climb      unaccepted movement     / n/a  / OPEN
+Receive attacks inherited damage path   / OPEN / OPEN
+
+Swift Strike graph01DB's ModifyHealth3/15 are active while idle. TrackTargets
+31/33 supplies their target lists; the current VM TrackTargets returns empty.
+Do not apply damage solely because ModifyHealth is active. The first ordinary
+Shift leaves MoveTo without a resolved endpoint: its external position/aim
+queries and world ray provider are not implemented in production BodyWorld.
+Existing tests supply resolved native query results and prove only movement
+consumer behavior. Strike damage, reset on elimination and ultimate remain open.
+Dragonblade's damage/target states are in weapon0304 (ModifyHealth21/22 and
+TrackTargets66/67); its ultimate ability graph03A3 alone does not establish damage.
+Deflect graph0317 has authored lifecycle/effects but no authority intersection,
+projectile ownership transfer or reflected-hit path. Beams/melee/explosions
+require distinct eligibility; blocking all incoming damage would be incorrect.
+
+Cross-hero acceptance remains OPEN for barrier interception, reflected and
+absorbed projectiles, nondeflectable beams, melee block, invulnerability,
+crowd control, armor/shields, health/death feedback, elimination/dash resets,
+ultimate charge from combat and friendly support/heal semantics.
+
+Required NPCs: Trooper, Enforcer, Sniper, Assassin, Heavy Assault. Parent lane
+owns manual spawn/control and archetype integration. Current external hero and
+AI-spawner tables expose training bots, not these five configured enemy types.
+Manual NPCs must opt into retain_corpse; no automatic cleanup or respawn.
+
+Original client: not exercised by this change. Existing client PID12292 and
+OWNeacClient parent33924 were observed with no lease at initial inspection;
+ownership was unknown, so the lane did not acquire/control/close that client.
+Fresh native acceptance needs an available shared client and an atomic lease.

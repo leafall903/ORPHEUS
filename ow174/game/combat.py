@@ -113,6 +113,30 @@ def _along(origin, direction, t: float):
     return (origin[0] + direction[0] * t, origin[1] + direction[1] * t, origin[2] + direction[2] * t)
 
 
+def genji_fan(state, direction):
+    """Reconstruct 0304's three-shuriken fan from its authored spread.
+
+    1145C42E has spread 9 and three projectiles. Treat spread as the adjacent
+    angle in degrees in the aim plane (server reconstruction, not native proof).
+    Other distributions retain their existing single-ray behavior.
+    """
+    cfg = state.node.field("m_5EC1EB38") or {}
+    if state.instance.graph.index != 0x0304 or cfg.get("$") != "STU_1145C42E":
+        return (direction,)
+    count = _number(state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False), 1)
+    if count != 3:
+        return (direction,)
+    spread = math.radians(_number(state.evaluate(cfg.get("m_spread"), watch=False), 0.0))
+    horizontal = math.hypot(direction[0], direction[2])
+    right = (
+        (direction[2] / horizontal, 0.0, -direction[0] / horizontal) if horizontal > EPSILON else (1, 0, 0)
+    )
+    return tuple(
+        tuple(direction[k] * math.cos(offset) + right[k] * math.sin(offset) for k in range(3))
+        for offset in (-spread, 0.0, spread)
+    )
+
+
 def ray_capsule(origin, direction, a, b, radius: float) -> float | None:
     """Where a ray (unit direction) first meets the capsule around segment a-b: its distance, 0 from
     inside, None when it misses."""
@@ -641,22 +665,24 @@ class Combat:
             blast = hit_def(state, node.field("m_D2D11CE9"))
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
             definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
-            shot = None
-            if isinstance(definition, expr.Asset):
-                shot = self.projectiles.fired(
-                    shooter, state, shot_frame, definition.guid, lifetime, origin, direction,
-                    activation=activation, snapshot=snapshot,
-                )
             damaging = (direct is not None and direct.amount > 0.0) or (
                 blast is not None and blast.amount > 0.0
             )
-            if damaging or shot is not None:
-                self.rockets.append(
-                    Rocket(
-                        shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
-                        last_tick=self.tick if npc else None,
+            for projectile_direction in genji_fan(state, direction):
+                shot = None
+                if isinstance(definition, expr.Asset):
+                    shot = self.projectiles.fired(
+                        shooter, state, shot_frame, definition.guid, lifetime, origin, projectile_direction,
+                        activation=activation, snapshot=snapshot,
                     )
-                )
+                if damaging or shot is not None:
+                    self.rockets.append(
+                        Rocket(
+                            shooter, shooter.team, origin, projectile_direction, speed, lifetime,
+                            direct, blast, shot,
+                            last_tick=self.tick if npc else None,
+                        )
+                    )
             return
         if direct is None or direct.amount <= 0.0:
             return
