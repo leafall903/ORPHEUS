@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Original-client active entity-control sample
+
+- Two authorized isolated Story/Normal/Reaper matches verify actual120E raw
+  State2 with explicit observed source binding and declared server services.
+  Eight phase frames are ACKed after create ACKs; both streams retire on leave.
+  Diagnostic abort frames cover three on/off cycles, including a fresh match.
+- Read-only native inspection confirms State identity/caches and repeatable
+  State/model flag changes with restoration. Runtime component1/model250 exist
+  despite no explicit serialized model component. Correct the first inspector's
+  active-mask annotation from preserved raw bytes/native bit0 instructions.
+- Five codec round trips, eight native comparisons and the transport/lifetime
+  aggregate pass. All39 focused State/codec/transport tests pass with external
+  runtime configured; the initial invocation omitted that setting and failed.
+  The earlier613+15 checks remain applicable to unchanged production code;
+  documentation diff checks pass. Client closes normally; owned servers stop.
+- Normal runtime and unrelated working changes are preserved; no deployment.
+  Exact sample/native model transition is accepted. Complete engine services,
+  allocator/host/lifetimes, rootD38, story/cinematics/enemy AI/results remain open.
+  See ENTITY_CONTROL_STATE.txt. Publication helper missing; no GitHub push.
+
 #### Native placed entity-control State rules
 
 - Implement strict33A46033 cache/type-list lifecycle, ordered rule aggregation

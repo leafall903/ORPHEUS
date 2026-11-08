@@ -400,3 +400,22 @@ Placed entity-control State, 2026-11-08:
   Supplied service fixtures do not accept physical/render effects, client
   activation or complete mission behavior. No new client/deployment. RootD38,
   hosting/lifetimes, cinematics, enemy AI and results remain open.
+
+Active entity-control sample/native consumer acceptance, 2026-11-08:
+- A subsequent authorized original-client session sends actual120E raw State2
+  with explicit observed builtin source, after entity create ACK. Authored frame0
+  uses declared server engine services; off-after uses diagnostic end(False).
+  Two consecutive Story/Normal/Reaper matches cover off/on/off/on/off and fresh
+  off/on/off. All8 frames are ACKed and both streams retire on leave.
+- Read-only native captures verify the State vtable/index, actual State40 bit0,
+  scalar caches and empty targets. State218 and model24E bit0 toggle0->1->0;
+  model230's two changed masks restore after every abort. Runtime component1 and
+  model250 exist despite no explicit model component in the serialized definition.
+  A wrong first-inspector active mask is corrected from retained raw bytes and
+  native instructions; the second match uses the corrected inspector.
+- Five source-preserving codec round trips, eight native comparisons and the
+  ACK/lifetime aggregate pass. Client closes normally; isolated servers stop
+  and ports release. Normal runtime and production code unchanged; not deployed.
+  This accepts the exact sample's native State/model transition. Production host,
+  complete engine services/allocator/lifetimes, rootD38, full story/cinematics,
+  enemy AI and results remain open. See ENTITY_CONTROL_STATE.txt.

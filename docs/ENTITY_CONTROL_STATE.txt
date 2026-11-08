@@ -7,6 +7,54 @@ remote index1, class33A46033. Original factory8F5AA0/inplace8F7990 install vtabl
 26217E0. This class has real entity/model consumers; a passive State is insufficient.
 The selected node has true381879C1,7E42F868,D82DB14B configs and six absent configs.
 
+Subsequent original-client sample acceptance, 2026-11-08
+An authorized isolated build104319 client completes two consecutive Story/Normal
+Rialto matches as Reaper, followed by settled-menu returns and normal close.
+The exact placed entity800001AE receives actual120E/ID1 after its create ACK.
+Native builtin001B/tag10/self is explicitly bound from prior client observations.
+The server executes its authored frame0 with the declared engine service fixtures;
+only remote-synced raw State2 is transmitted. The concurrent BooleanSwitch raw
+State1 has remote index-1 and is not sent. This is still a fixture allocator and
+engine context, not a complete production Match host.
+
+First match: off/on/off/on/off, with acknowledged chunk last1..5. Second match:
+off/on/off, acknowledged1..3 on a fresh connection. Eight frames are acknowledged;
+both streams retire on leave. Off-after frames use diagnostic State.end(False),
+not authored mission progression. Native component47/VM ownership, graph/instance
+identity, source variable and post-entry Boolean variable agree in both matches.
+
+Original1B91460 stores States in instanceA0[raw index]; the actual raw2 allocation
+has vtable26217E0. State40 is4061 on and4060 off: native1B70813 tests bit0 and
+1B7068D clears bit0. The first inspector mistakenly decoded mask2. Its two false
+on annotations are corrected by the validator from retained flags/raw bytes;
+original captures are preserved. The corrected inspector independently agrees
+in the second match. Radius-1, three false caches and zero targets agree, while
+State218 and model24E bit0 repeatedly change0->1->0. Model230 changes exactly
+by masks200000000000 and8000 and returns to its original value after each abort.
+Observed State generations are2/3/5/6 in match1 and2/3 in match2. This confirms
+the sample's native State/model consumer transition, beyond a packet-only ACK.
+
+All66 selected120E placements use definition20D8, whose serialized components
+are86405E46 and StatescriptComponent, without an explicit STUModelComponent.
+Nevertheless the original client gives this sampled entity a present component1
+and nonnull model250 in both matches. Serialized class absence is insufficient
+to declare the runtime model absent. No complete model-allocation rule is inferred.
+
+Five offline successive codec round trips preserve the source and correct State
+set; payload sizes are94 initial-off,120 on and118 diagnostic-off bits (chunk
+sizes130/156/154). These include explicit native source binding and supersede
+the earlier73-bit fixture for this bounded acceptance. The aggregate verifies
+eight native samples, ACK ordering and fresh entity/instance identities. Normal
+runtime hashes and production code stay unchanged; candidate is not deployed.
+Local evidence: verification/entity-control-session/preparation.json,
+transport.jsonl, client-match1/2-*.json, session.json and validation.json.
+
+Acceptance is limited to this exact State and native model flags under supplied
+server services. Protected entity physics, renderer meaning, recursive children,
+full allocator/authority/clocks, automatic hosting and all-placement lifetimes
+remain open. Full story, cinematics, five enemy AI types and extraction/results
+remain unaccepted; the strict rootD38 diagnostic is unchanged.
+
 Cache and refresh order
 Native B8/8F7180 appends the State through1B72530, enables its update interface,
 then calls8F93C0. C0/8F7510 removes it through1B725C0 before the same refresh.
@@ -90,7 +138,8 @@ Twenty-two behavior checks cover the State lifecycle, watcher/tick updates,
 sampled inputs, unknown/absent services, callback/registry retirement, dependent
 context cleanup, legacy policy and read-only snapshots. All613 related and15
 server snapshot/research checks pass, with Ruff and diff checks. No new client
-acceptance is claimed.
+acceptance is claimed for that implementation step. The subsequent original-client
+sample described above adds bounded native activation/consumer evidence.
 
 The actual120E definition/placement graph completes frame0 when supplied declared
 service fixtures: capabilityfalse, distancefalse, modelreadytrue, and recorded

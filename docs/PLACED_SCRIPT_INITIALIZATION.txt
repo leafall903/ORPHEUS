@@ -231,6 +231,32 @@ State/action stops. No context is declared absent merely to pass those objects.
 Real engine effects, new client activation acceptance and Match hosting remain
 open. Read-only snapshot storage includes the seven new cached State fields.
 
+Active entity-control sample acceptance, 2026-11-08
+A later isolated original-client session verifies actual120E/ID1/raw State2 on
+entity800001AE. Explicitly bind observed native source001B/tag10/self, execute
+authored frame0 with declared engine services, and send the resulting active
+remote State only after create ACK. Diagnostic end(False) supplies off-after;
+it is not authored mission progression. Two consecutive Story/Normal/Reaper
+matches cover off/on/off/on/off and fresh off/on/off, with all8 frame ACKs and
+both stream retirements on leave. Five offline successive codec checks pass.
+
+Read-only native captures verify source and Boolean variable tags, exact graph
+and State identity, cached radius/booleans/targets, State40 bit0 and State218.
+Actual model24E bit0 and230 masks toggle and restore on each cycle. Runtime
+component1 exists and model250 is nonnull despite no explicit serialized model
+component in definition20D8. The first inspector's wrong mask2 annotation is
+corrected from raw State40 using native bit0 instructions; captures stay intact.
+See ENTITY_CONTROL_STATE.txt for the correction, adapters and native sample scope.
+
+This adds active sample/native-consumer evidence to the earlier frozen samples.
+Production Match hosting, full service/allocator policy and all-placement live
+replication remain open. The66 unknown engine contexts remain strict; independent
+first-frame totals are unchanged. No candidate deployment or full mission,
+cinematic/enemy-AI/results acceptance. Client closes normally; owned servers stop
+and release ports. Normal inputs and unrelated worktree changes are preserved.
+Local evidence: verification/entity-control-session/validation.json, eight native
+captures, transport.jsonl and session.json; runtime/captures remain outside Git.
+
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,
 component-pending-init-native-validation.json, placed-component-startup-validation.json,
