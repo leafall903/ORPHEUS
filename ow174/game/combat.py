@@ -179,6 +179,20 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
+def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
+    """Reconstructed melee policy: a static ray to the nearest capsule surface."""
+    ab, ap = _sub(b, a), _sub(origin, a)
+    length = _dot(ab, ab)
+    share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
+    toward = _sub(_along(a, ab, share), origin)
+    distance = math.sqrt(_dot(toward, toward))
+    if distance <= radius + EPSILON:
+        return True
+    reach = distance - radius
+    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach)
+    return hit is None or hit + EPSILON >= reach
+
+
 def ray_world(
     collision: World | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
@@ -639,15 +653,8 @@ class Combat:
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
-                    midpoint = tuple((x + y) / 2 for x, y in zip(a, b, strict=True))
-                    origin = self._eye(player)
-                    delta = _sub(midpoint, origin)
-                    length = math.sqrt(_dot(delta, delta))
-                    if length > EPSILON:
-                        wall = ray_world(self._collision(), origin, tuple(v / length for v in delta), length)
-                        if wall is not None and wall < length:
-                            continue
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and capsule_visible(self._collision(), self._eye(player), a, b, shown.radius)):
                     if self._genji_deflects(target, aim(*command.aim())):
                         continue
                     self._damage(player, target, amount, False, loadout, command.frame)
@@ -772,14 +779,21 @@ class Combat:
 
     def _bot_weapons(self, tick: int) -> None:
         """Advance the weapon bodies of the map's firing bots and consume their volley reports."""
+        from ow174.game import npc_control
+
         for bot in self.match.bots:
             script = bot.body_script
-            if not bot.firing or bot.dead or not isinstance(script, BotScript) or script.frame > tick:
+            controlled = npc_control.manual(bot)
+            if ((not bot.firing and not controlled) or bot.dead
+                    or not isinstance(script, BotScript) or script.frame > tick):
                 continue
             try:
+                allowed = npc_control.update_input(self, bot) if controlled else True
                 snapshot = script.advance_live(tick, bot.position)
                 shots, script.component.shots[:] = list(script.component.shots), []
                 for state, number, time, activation in shots:
+                    if not allowed:
+                        continue
                     self._shoot(
                         bot, None, state, number, time, activation=activation,
                         snapshot=snapshot or script.latest_live,
@@ -813,7 +827,7 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), 0)
+            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))

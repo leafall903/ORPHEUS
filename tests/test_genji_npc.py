@@ -9,7 +9,7 @@ from test_game_combat import aim
 from test_genji_combat import GenjiFixture
 from test_genji_ultimate import dash_instance
 
-from ow174.game import npc
+from ow174.game import npc, npc_control
 from ow174.game.script import graph
 
 NPC_DATA = os.environ.get("ORPHEUS_NPC_DATA_DIR")
@@ -37,11 +37,13 @@ class GenjiNpcTests(GenjiFixture):
     def scene(self, key, *, distance=4, deflect=False):
         run, player = self.spawn(names=("Genji",))
         run.match._pending_bot_scripts.clear()
+        self.enterContext(patch.object(player.client, "bot_stream", return_value=None, create=True))
         if deflect:
             for frame in range(5):
                 run.step({player: (0, 0, 16 if frame == 0 else 0)})
         bot = npc.spawn(run.match, self.catalog[key], (0, 1, distance), team=1, yaw=-32768)
         self.assertIsNotNone(bot.body_script)
+        run.step({player: (0, 0, 0)})  # establish the selector's authoritative view angles
         return run, player, bot
 
     def check_damage(self, attack, expected):
@@ -79,26 +81,35 @@ class GenjiNpcTests(GenjiFixture):
         for key in ("1", "5"):
             with self.subTest(npc=self.catalog[key].name):
                 run, player, bot = self.scene(key)
-                # Explicit fire control, not autonomous acquisition/AI acceptance.
-                bot.firing = True
-                bot.body_script.component.edges([(20, True)])
-                bot.body_script.component.run_now()
+                self.assertEqual(npc_control.start(run.match, player), bot.entity)
                 for _ in range(60):
                     run.step({})
                 self.assertLess(self.health(run, player), 200)
+                self.assertIsNotNone(bot.body_script)
 
     def test_trooper_and_heavy_authored_fire_is_deflected(self):
         for key, expected in (("1", 60), ("5", 35)):
             with self.subTest(npc=self.catalog[key].name):
                 run, player, bot = self.scene(key, deflect=True)
                 before = run.match.combat.vitals[bot.entity].total
-                bot.firing = True
-                bot.body_script.component.edges([(20, True)])
-                bot.body_script.component.run_now()
+                self.assertEqual(npc_control.start(run.match, player), bot.entity)
                 for _ in range(60):
                     run.step({})
                 self.assertEqual(self.health(run, player), 200)
                 self.assertEqual(run.match.combat.vitals[bot.entity].total, before - expected)
+
+    def test_sniper_authored_weapon_damages_genji_and_stops(self):
+        run, player, bot = self.scene("3")
+        self.assertEqual(npc_control.start(run.match, player), bot.entity)
+        for _ in range(200):
+            run.step({})
+        self.assertLess(self.health(run, player), 200)
+        self.assertIsNotNone(bot.body_script)
+        npc_control.stop(run.match)
+        before = self.health(run, player)
+        for _ in range(80):
+            run.step({})
+        self.assertEqual(self.health(run, player), before)
 
     def test_all_five_actual_npc_deaths_reset_dash_and_retain_corpses(self):
         for key, definition in self.catalog.items():

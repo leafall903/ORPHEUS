@@ -4,6 +4,37 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Genji shared NPC/control and melee dependency intake
+
+- Merge reviewed parent updates through7cd1ed7 into this isolated lane: manual
+  controls, actual NPC weapon managers/slots, array selection and nearest-capsule
+  melee occlusion. Preserve Genji's frontal melee block after the shared LOS test.
+- Use the actual manual control entry in Genji NPC fixtures. Supply an explicit
+  absent observer stream in fixture transport, matching its authoritative-only
+  scope. Sniper now damages Genji and stops after stop control. Trooper/Heavy,
+  outgoing attacks, real-body deaths/corpses and related regressions remain green.
+- Pass101 Genji/shared NPC/control/array/weapon/melee checks. The pre-merge63cae65
+  frozen-source snapshot run passed14 tests in364.134s; it does not certify this
+  new tree. Enforcer/Assassin, defenses/control and full static acceptance remain open.
+
+#### McCree melee static-wall occlusion
+
+- Prevent quick melee from damaging targets through static walls: retain the
+  authored melee sphere and viewed capsule, then check eye-to-capsule-surface
+  visibility. Geometry is an explicit server reconstruction, not native hitbox
+  equivalence. Shared quick melee uses the same check for players and NPCs.
+- Pass83 McCree/combat/NPC/projectile tests, including3 new real-input methods
+  covering visible and wall-blocked player/NPC hits, allies and range refusal.
+  An external actual-five-Talon probe passes all10 visible/wall cases. Ruff and
+  diff checks pass. Native-client acceptance was not run.
+- Record the actual McCree input frontier and recovered Flashbang status resource
+  route. The current VM does not execute its complete stun path; Deadeye still
+  lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
+  five-NPC AI/navigation/specials and original-client combat remain open. Normal
+  inputs/services and original working changes are preserved; no hero lane merged.
+
 ### 2026-11-08
 
 #### Combat ultimate credit and Genji elimination resets (partial)
@@ -109,6 +140,80 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Deflect, Swift Strike targeting/damage, Dragonblade, five mission NPCs and
   cross-hero status/defense interactions remain open. See docs/GENJI_COMBAT.txt.
   This lane delivers a reviewed patch; it does not publish or merge root main.
+
+#### Native array selection for PvE difficulty configs
+
+- Implement STU_4BD39CFD with scalar index evaluation and collecting container
+  evaluation, array-only bounds checks and successful-null fallback. Preserve
+  nested value types and watched index/container updates; unknown child configs
+  still fail strict execution. No mission difficulty is invented.
+- Execute the original104319 selector/conversion/lookup offline:15 cases match
+  the Python runtime. Config providers and value storage/copy are adapters.
+  Pass178 relevant tests, including5 new array selection/watcher/failure checks;
+  Ruff and diff checks pass. Native-client acceptance was not run.
+- Resolve a zero-damage cause in Enforcer's authored weapon. An external
+  forced-controller experiment now emits resource-defined damage; its controller
+  assumption is unverified and is not production code. The ordinary five-body
+  probe still only proves Trooper/Sniper/Heavy damage; Enforcer/Assassin control,
+  navigation/specials and full McCree/client combat remain open. Normal inputs,
+  services and original working changes remain untouched; no hero lane merged.
+
+#### Authored NPC weapon component mounting
+
+- Share body weapon-root allocation between player and NPC scripts: preserve
+  sparse slots, seed slot bindings and allocate manager/weapons before entries.
+  This restores the Sniper body's omitted manager and two weapon graphs without
+  replacing authored attack damage or timing.
+- Pass107 relevant tests (23 NPC script,15 NPC control/lifecycle,27 driver,
+  5 body-script and37 projectile), Ruff and diff checks. The new test exercises
+  sparse-slot firing and decodes the NPC observer baseline with mounted roots.
+- Actual five-body offline data now yields Sniper damage100 against McCree225;
+  Trooper20 and Heavy Assault5 still work. All three stop damage for80 further
+  frames after stop. Enforcer and Assassin remain unable to damage in200 frames.
+  The adapter omits NPC observer projectile transport; native visuals, autonomous
+  AI/navigation/specials and complete McCree acceptance remain open. No client
+  launched, normal data/deployment unchanged, no completed hero lane merged.
+
+#### Companion NPC console and locked server API
+
+- Add a dark companion NPC console linked from the dashboard Server page. Its
+  page-local keys and buttons call the real loopback API; account text input does
+  not trigger shortcuts. Serialize rapid menu/selection requests, show refused
+  commands and never automatically retry mutations.
+- Resolve the chosen account's Match and execute commands under GameServer.lock.
+  Reject invalid keys/menu state, absent players, missing catalog and frozen-clock
+  mutations. Load an explicit external ORPHEUS_NPC_CATALOG and optional startup
+  ORPHEUS_GRAPH_BUNDLE without replacing normal runtime data.
+- Pass51 Python HTTP/dashboard/NPC tests and5 JavaScript request tests (56 total),
+  Ruff and diff checks. Real HTTP fixture requests complete all25 five-body menu,
+  spawn, engagement-command, stop and removal operations. This fixture has no
+  native client and no running game clock; it does not establish actual attacks.
+- Browser preview initialization fails waiting for Statsig configuration. Visual
+  and real keyboard acceptance remain open. The isolated fixture closes with no
+  NPCs remaining; normal services/data and original working changes are preserved.
+  Full enemy navigation/specials/McCree skills/client combat and normal deployment
+  remain open. No complete hero lane is merge-ready. Publication helper is absent.
+
+#### Manual NPC console commands and engagement input
+
+- Implement console command semantics for menu/selection, explicit removal,
+  crosshair-selected engagement and stop-all. Spawn requires visible floor;
+  selection/aim uses reconstructed sandbox distance and static-visibility policy.
+  No native console hook, keyboard frontend or production mounting is installed.
+- Drive actual slot0 input, target-player yaw/pitch and input release on target
+  loss/occlusion. Stop cancels pending/consumed input and owned projectiles;
+  idle manual VMs advance while damaging reports are suppressed. Track queued
+  input separately to cancel a press before its first VM update. Preserve new
+  target/input/pitch state in snapshots and movement output.
+- Pass136 related and13 server-snapshot tests (149 total), including9 new control
+  tests, Ruff and diff checks. Actual body data emits primary damage for Trooper
+  and Heavy Assault with no later damage in the80-frame stop probe. Enforcer,
+  Sniper and Assassin emit no shots and retain unresolved query/behavior gates.
+- A separate original104319 console-option probe fails relay loading with Windows
+  access denied and times out login. No console window or grave-key overlay is
+  observed on that screen; post-login console availability remains unknown.
+  Full navigation/specials/McCree skills/ultimate/client combat remain open.
+  No normal deployment; mandatory publication helper remains missing.
 
 #### Prepared PvE enemy base-pool catalog
 
