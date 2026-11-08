@@ -155,7 +155,7 @@ def segment_distance(point, a, b) -> float:
 
 
 def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
-    """Reconstructed melee policy: a static ray to the nearest capsule surface."""
+    """Reconstructed visibility: a static ray to the nearest capsule surface."""
     ab, ap = _sub(b, a), _sub(origin, a)
     length = _dot(ab, ab)
     share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
@@ -831,8 +831,9 @@ class Combat:
         t, struck = best
         rocket.flown += duration * t / step
         point = _along(rocket.position, direction, t)
-        if struck is None and rocket.spawn == graviton.FIELD_ENTITY:
-            # Reconstruction: keep the field just outside a struck static face.
+        if struck is None:
+            # Reconstruction: keep explosions/fields on the incoming side of a
+            # struck face so visibility does not start exactly inside the wall.
             point = _along(point, direction, -0.01)
         self._landed(rocket, point)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
@@ -848,7 +849,7 @@ class Combat:
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
-            if scalar > 0.0:
+            if scalar > 0.0 and capsule_visible(self._collision(), point, a, b, target.radius):
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,

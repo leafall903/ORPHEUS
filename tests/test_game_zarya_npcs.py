@@ -158,6 +158,20 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 self.assertEqual(vitals.total, before)
                 self.assertFalse(player.client.messages(combat.HIT))
 
+    def test_static_wall_blocks_secondary_blast_on_each_actual_body(self):
+        wall = World([(-10, 0, 5, 10, 0, 5, 10, 10, 5),
+                      (-10, 0, 5, 10, 10, 5, -10, 10, 5)])
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot = self.encounter(definition, z=6)
+                vitals = run.match.combat.vitals[bot.entity]
+                before = vitals.total
+                with patch.object(run.match.combat, "_collision", return_value=wall):
+                    self.fire(run, player, 1, 2)
+                    self.fire(run, player, 60, 0)
+                self.assertEqual(vitals.total, before)
+                self.assertFalse(player.client.messages(combat.HIT))
+
     def test_mounted_sniper_first_authored_shot_deals_100_to_zarya(self):
         definition = next(d for d in self.catalog.values() if d.name == "Sniper")
         run, player, bot = self.encounter(definition)

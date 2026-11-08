@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Zarya secondary splash static-wall occlusion (partial static acceptance)
+
+- Reproduce actual secondary fire dealing47 through a static wall. Require static
+  visibility from explosion to target capsule for shared splash; move static impact
+  points .01m to the incoming side so near-side victims remain eligible.
+  These are reconstructed geometry policies, not native explosion solver equivalence.
+- Add10 actual secondary command cases for energy0/50/100 damage47/71/about95,
+  emitted damage freezing, release, aimed miss, body/wall-impact occlusion, reduced
+  nearby splash, radius and ally exclusion. A separate method shields all five
+  actual NPC bodies with a static wall. Contact damage is splash; direct amount is0.
+- Pass180 Zarya/combat/projectile/five-NPC/McCree tests in119.125s with zero skips;
+  Ruff/diff pass. The reproduction failed before the production change.
+  Self-damage, native armor/defense/control rules, ultimate generation, remaining
+  NPC attacks/specials and original-client acceptance remain open. Goal stays ACTIVE.
+
 #### Zarya shared-base integration and NPC/melee follow-up (partial static acceptance)
 
 - Review and import parent NPC weapon mounting, native array selection and static

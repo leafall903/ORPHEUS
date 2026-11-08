@@ -47,6 +47,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     and Heavy volleys reach Zarya; Sniper now deals100 and its shot is blocked by
     the personal barrier in a timed fixture. Enforcer/Assassin and all specials remain open.
     Zarya melee now rejects static walls for an enemy player and all five actual NPCs.
+    Secondary splash now checks static visibility, including wall shielding on
+    all five NPCs and damage/radius/team cases; full defense/self-damage rules remain open.
     Graviton's actual cast now drives reconstructed ballistic impact,4-second
     damage/pull and release for players and five NPC bodies. Native aura/field
     actors, charge generation, force/immunity/escape and cross-defense cases remain open.

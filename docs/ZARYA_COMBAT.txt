@@ -240,6 +240,26 @@ component33 floating getter (+40) and dependency subscription (+20), including
 invalid target and missing-component behavior. It does not establish that this
 unnamed getter is health. No production query or NPC completion claim uses it.
 
+Secondary explosion visibility (2026-11-09)
+-------------------------------------------
+Actual right-click fire reproduced a static-wall leak: the target behind the wall
+lost47 health from splash although the projectile had hit the wall. Shared splash
+now requires static visibility from the impact to the nearest target capsule
+surface. A static impact moves .01m toward the incoming side before deployment
+and explosion checks; this extends the existing Graviton wall-placement policy.
+These are explicit host geometry policies, not native explosion solver equivalence.
+
+Actual command tests cover wall-impact splash (near-side enemy damaged, far-side
+blocked), body-impact splash through a wall, a wall shielding each actual NPC,
+energy0/50/100 contact damage47/71/about95, damage frozen at emission, input release,
+aimed miss/no hit feedback, nearby reduced splash, radius exclusion and ally
+exclusion. Secondary has zero direct damage in the resource: the contact47 is its
+full inner-ring splash. Resource explosion rings are .5m at1 and2.5m at.2; speed25,
+gravity about9.8. Native self-damage, armor rules, shields/reflect/absorb and full
+resource/cadence interactions remain open. Native-client behavior remains untested.
+The affected180-test run passes in119.125s with external NPC data enabled and
+zero skips; Ruff/diff checks pass. The wall-impact reproduction failed before the fix.
+
 Original client and publication
 -------------------------------
 A historical process/title observation is not current client-state evidence. No
