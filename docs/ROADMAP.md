@@ -37,6 +37,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   yaw steering and static capsule blocking, with cancellation and cooldown reuse
   checks.1600 native throttle comparisons cover split/sign/clamp with adapters;
   vertical flight, contact damage/knockback and full ability acceptance stay open.
+  Both forms'0043 melee now respects the reviewed shared static-wall policy;
+  command tests cover enemy players and the five actual NPC target definitions
+  with authored capsules/base pools. NPC AI/incoming skills, status/native
+  geometry and full acceptance remain open; see DVA_MELEE.txt. Both primary
+  weapons and the full Micro Missile burst also pass positive target cases
+  against all five base-pool definitions; incoming AI/skills remain unaccepted.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

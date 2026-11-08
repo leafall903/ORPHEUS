@@ -30,8 +30,9 @@ The ruleset scalar now preserves actual overrides and resolves null reference
 fallbacks, backed by1296 native scalar comparisons. Match-backed current possession
 allows Matrix's unchanged graph to initialize100 resource. Three additional
 command tests pass its drain, release, cooldown refusal/reuse, depletion,
-regeneration and disabled-rule gates. Matrix projectile interception remains
-unimplemented, so the Matrix acceptance row stays OPEN. See RULESET_VALUE_FALLBACK.txt.
+regeneration and disabled-rule gates. Reconstructed Matrix interception now
+consumes external003 target tags and authored boxes. Full Matrix acceptance
+stays OPEN. See RULESET_VALUE_FALLBACK.txt and DVA_MATRIX.txt for proof limits.
 
 Weapon050A's volley declares11 projectiles per shot and2 damage each. Its
 STU_613BDDB0 shot pattern has radial entries(0,1),(0.5,4),(1,6). Existing combat
@@ -87,6 +88,18 @@ It repairs the existing projectile explosion path, not Self-Destruct hosting.
 
 Required acceptance matrix
 --------------------------
+Melee follow-up2026-11-09: reuse the parent's static-wall repair and execute
+normal0043 attacks in both explicit forms against enemy players and all five
+actual NPC target definitions/capsules/base pools. Hit/reuse,wall,range,miss,
+ally and VM owner-dead gates have scoped tests. NPC AI/incoming skills, native
+geometry/status/immunity/interruption and full acceptance stay OPEN. See
+DVA_MELEE.txt. The Matrix distance fixture also now rebinds its cached physics
+body and asserts actual placement after simulation.
+The same five base-pool target fixtures also take authored22 Fusion Cannon,
+14 Light Gun and126 full-burst missile damage, with correct shield depletion.
+These positive ranged cases do not accept their missing AI/incoming skills,
+other defenses/status/critical/death cases or complete NPC combat.
+
 Boosters follow-up2026-11-09: typed mover/throttle integration restores horizontal
 propulsion through normal047E commands, including yaw/static blocking, timed
 end, cancellation and cooldown reuse. Vertical flight, contact damage/knockback

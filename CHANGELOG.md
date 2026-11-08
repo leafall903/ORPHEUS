@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Both-form melee cover and five NPC target cases
+
+- Reuse the parent's reviewed7cd1ed7 static melee occlusion repair in this lane.
+  Preserve authored0043 damage/range activation and require visibility from the
+  eye to the nearest capsule surface. Geometry remains explicitly reconstructed.
+- Execute both explicit forms' normal melee commands against enemy players and
+  five actual NPC target definitions with authored movers/separate base pools.
+  Cover hit/reuse, wall, range, miss, team and VM owner-dead gates. NPC target
+  fixtures do not execute their AI or accept incoming skills/difficulty tuning.
+  Additional positive target cases execute both forms' primary and all18 Micro
+  Missiles against the five definitions, including shield-to-health transition.
+  See docs/DVA_MELEE.txt. Parent source/runtime and client remain untouched.
+- Rebind the Matrix fixture's cached physics body after external placement and
+  assert its simulated range; position assignment alone could revert silently.
+  Full hero, native Matrix/melee fidelity and original-client acceptance stay open.
+  The120-case combat/projectile/Matrix/movement/pilot/mech regression passes;
+  two additional methods pass15 ranged NPC target scenarios. Ruff/diff pass.
+
 #### Authored Boosters horizontal movement inputs
 
 - Consume typed CharacterMoverComponent rows and throttle properties17..19 in

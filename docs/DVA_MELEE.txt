@@ -1,0 +1,71 @@
+D.Va quick melee -- build104319, partial static acceptance
+========================================================
+
+Shared repair and authored path
+-------------------------------
+Adapt the parent's reviewed7cd1ed71a66d7206a71d5a590b296fcce59678cc repair
+into this isolated lane. Combat still consumes actual0043 ModifyHealth state4
+activations from normal commands. The existing authored sphere/viewed capsule
+range test now also casts from the attacker's eye to the nearest target capsule
+surface. A nearer static wall blocks damage and hit notices. This is explicitly
+reconstructed geometry, not a proof of native hitboxes, sweep shape or filters.
+No parent source was changed and no parent-wide history was imported.
+
+Executed two-form cases
+-----------------------
+With the prepared0407 graph/mover supplement, both explicit mech0407 and pilot
+040A run their actual scripts. Normal melee input produces one30-damage hit and
+permits another completed attack. Aimed misses, distant targets, static walls,
+allies and the VM owner-dead input gate produce no hit notices or damage.
+The fixture selects each form explicitly; initial spawn, ejection and Call Mech
+are not covered by form selection.
+
+Five NPC target definitions
+---------------------------
+The parent's read-only pve_npcs_174 catalog supplies actual hero/body identities
+and separate base pools. Their real003 XML supplies mover dimensions, in a
+separate additive lane supplement. No fallback training-bot capsule is accepted.
+
+Name          Body   Health Armour Shields  Radius Height
+Trooper       1D40     200      0      0      0.5    1.7
+Enforcer      2279     250      0    100      0.5    1.9
+Sniper        1E7D     300      0      0      0.5    1.75
+Assassin      1EBD     400      0    100      0.5    1.5
+Heavy Assault 1EBB    4000      0      0      0.7    2.3
+
+These are base-schema values; conditional/difficulty pool nodes are unapplied.
+The Enforcer/Assassin auxiliary pool is SHIELDS, not armour. For each form and
+each actual target definition, executed hit/wall/range/miss/ally cases assert
+the health delta and hit notices. The ten positive cases each remove30, and
+shielded targets lose shields first without changing their health pool.
+
+Two additional test methods exercise15 positive ranged target cases with the
+same inputs: each form's primary against all five definitions, and the complete
+Micro Missile burst against all five. Fusion Cannons give11 hit notices/22
+damage, Light Gun gives one14-damage hit after projectile travel, and missiles
+give18 direct plus18 splash notices/126 damage. Shielded targets lose their100
+shields before the missile burst takes26 health. These checks do not accept the
+remaining ranged range/status/defense/critical/death/AI cases.
+
+Those are target-body/capsule/base-pool combat fixtures, with no NPC AI script.
+They do NOT accept NPC attacks, controllers, special skills, difficulty tuning,
+death presentation, wire creation, movement, shield regeneration, interrupts,
+defensive abilities or the complete bidirectional five-NPC requirement.
+
+Test input and scope boundaries
+-------------------------------
+The owned mech-npc-movers.json contains0407 plus the five authored NPC records.
+Use it as ORPHEUS_MOVERS_SUPPLEMENT before imports, alongside the0407 graph
+supplement and ORPHEUS_PVE_NPC_CATALOG pointing to the external parent catalog.
+Run python -B -m unittest test_game_dva_melee -q. Authored-form/NPC cases skip
+without the required inputs; skipped runs are not acceptance evidence.
+
+The Matrix fixture is also corrected to discard its cached physics body when
+externally placing an enemy after warm-up. It now asserts the requested range
+after simulation. Assigning only Mover.position could be overwritten by that
+old physics body, weakening the intended distance case. No game teleport or
+runtime movement policy was changed by this test-fixture repair.
+
+Full melee status/immunity/interrupt/death/latency and both-form lifecycle work,
+native geometry and original-client acceptance remain OPEN. The complete
+D.Va static_acceptance_complete flag must remain false.

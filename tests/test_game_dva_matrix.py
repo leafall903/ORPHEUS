@@ -80,7 +80,9 @@ class MatrixCombatTests(unittest.TestCase):
         run, mech, enemy, _ = self.scenario()
         x, y, _ = enemy.mover.position
         enemy.mover.position = [x, y, distance]
+        enemy.mover.body = None  # external fixture placement must also rebind the cached physics body
         self.step(run, mech, 2, 2 if enabled else 0)
+        self.assertAlmostEqual(enemy.mover.position[2], distance, delta=0.01)
         target = next(t for t in run.match.combat._targets() if t.owner is mech)
         return run, mech, enemy, run.match.combat.vitals_of(target)
 
@@ -202,6 +204,7 @@ class MatrixCombatTests(unittest.TestCase):
         self.assertLess(vitals.total, 600)
         before = vitals.total
         enemy.mover.position = [0, 1, 1]
+        enemy.mover.body = None
         for _ in range(25):
             run.step({mech: (0, 0, 2), enemy: (-32768, 0, 0x800)})
         self.assertLess(vitals.total, before)
