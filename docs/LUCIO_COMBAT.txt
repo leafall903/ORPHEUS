@@ -38,9 +38,9 @@ Soundwave damage        H              H basic five    H ally exclusion, FFA
 Soundwave cooldown      H 4s boundary  O five types    H repeated/replayed input
 Soundwave knockback     O              O               O control/immunity
 Crossfade healing       H rates/LOS    H basic five    H ally/self only
-Crossfade speed         O              O               O ally/self only
+Crossfade speed         H movement     H five routes   H ally/self/team/FFA/LOS
 Amp It Up healing       H rates/end/CD H basic five    H ally/self only
-Amp It Up speed         O              O               O ally/self only
+Amp It Up speed         H movement/CD  H five routes   H nonstack/end; native O
 Sound Barrier           H partial      H five allies  H750/pool/end; notes below
 Ultimate charge gains   O              O               O real passive/combat gain
 Wall Ride/wall jump     O              O               O movement/presentation
@@ -126,7 +126,8 @@ end-started twelve-second cooldown and next cast. A training-NPC fixture skips
 for missing body data; this is NOT a passed NPC healing requirement.
 
 Target acquisition, centre-ray visibility, immediate exit, graph allocation and
-world-time integration are reconstructed. Speed, native status replication,
+world-time integration are reconstructed. Speed was open at that checkpoint;
+the later07C7 bridge below adds bounded speed evidence. Native status replication,
 source transitions inside skipped world intervals, cross-body VM rollback,
 healing denial/amplification and all five real Archives archetypes remain open.
 Native-client presentation is not accepted.
@@ -220,9 +221,9 @@ extra rounds. Death stops the remaining burst while an already spawned shot
 still impacts. These timings describe this host fixture, not native capture.
 
 Tests:test_lucio_weapon.py. Headshots, full NPC control/resource coverage,
-interception and original-client HUD/audio/timing remain open. No new speed
-multiplier is inferred from the0267 counters4734/6591: their native consumer
-and target-build multiplier are still unlocated. Full goal remains active.
+interception and original-client HUD/audio/timing remain open. The earlier
+speed audit had not located the counters' consumer; the07C7 correction below
+supersedes that finding. Full goal remains active.
 
 Primary range, retirement and five-body reload checkpoint (2026-11-09)
 --------------------------------------------------------------------
@@ -269,8 +270,8 @@ These are target-data offsets in reconstructed combat geometry. They do not
 establish camera interpolation, animated muzzle/bones, native head regions or
 original-client presentation. Existing eye-threshold critical classification
 is still an unverified approximation; projectile critical remains missing.
-The speed investigation identified only state markers in0267; neither their
-native consumer nor multiplier is established. No speed value is inferred.
+At that checkpoint only0267 markers were identified. The later07C7 audit below
+supersedes the claim that no authored movement consumer/multiplier was present.
 
 Flashbang/control and actual incoming shield hits (2026-11-09)
 ------------------------------------------------------------
@@ -314,6 +315,55 @@ Evidence:lucio-control-tests.log, lucio-amp-stun-red.log,
 lucio-controlled-npc-tests.log, lucio-npc-barrier-exact-loss.log,
 lucio-stun-foundation-regression.log, lucio-stun-server-snapshot.log and
 lucio-stun-status-pve-regression.log. Full static goal remains active/open.
+
+Authored speed controller correction (2026-11-09)
+------------------------------------------------
+Earlier investigation misclassified07C7 as healing presentation only. It also
+contains actual movement logic:0267 Entry/node0 calls self PlayScript node6;
+the fallback m_script resolves07C7 with policy0 (skip existing).07C7 Entry/node0
+starts MovementMod state9 and speed selection. Target entity6591 (Amp speed)
+or4734 (normal speed) selects instance1002=0.6 or0.25 through authored0.2s waits;
+neither selects0. State9 applies an ADD to movement SPEED index0. These values
+are read from the target resource, not supplied as guessed host multipliers.
+
+The legacy permissive PlayScript handler skips actions. A bounded Auras bridge
+now validates this exact self-targeted/no-parameter/policy0 action, resolves its
+real graph and uses Component.play_loaded_graph. One independent controller
+persists per receiver body; new aura sources reuse it. It observes aggregate
+target counters and returns to0 after the last speed source disappears, so
+two Lucios do not stack25%+25% or60%+60%. Body retirement owns final removal.
+Arbitrary PlayScript routing, inherited native invocation context/transport and
+original-client reconciliation remain open; this does not enable all actions.
+
+Eight player methods verify default fixture self/ally speed and enemy exclusion,
+ordinary6.875m/s and Amp8.8m/s motion with actual commands, Crossfade heal/base
+and speed restoration, authored Amp expiry/repress rejection, multiple-source
+nonstacking, actual walking out of range, source death/body replacement, walls/team/
+FFA exclusion and0.2s wait before the next posed speed change. The16ms fixture
+has no bonus at step12, writes0.25 at13 and first poses it at14; native phase/
+clock-gap comparison is still open. In this initialized script fixture, existing
+numeric-null equality selects normal speed; external native default-song
+initialization remains unverified. No invented source1735 initializer was added.
+
+Two real-NPC methods/15 subcases use all five actual bodies. Normal/Amp values
+and one controller are observed on allies; an explicit route then moves with
+base speed times1.25/1.6. Switching to heal restores base route speed; enemy
+bodies get no controller and retain base speed. The route model now applies
+the authored SPEED operations in priority/start order using the shared mover
+modifier implementation. Its base speed/acceleration/brake remain unchanged;
+their effective route values scale together. Zero effective speed pauses the
+route without consuming its goal. Native AI pathfinding, acceleration/friction,
+body/difficulty-specific base data and skipped-world-clock ordering remain open.
+Some five-body mover values use the existing loader fallback; their absolute
+native AI speed is not accepted by these ratio/route checks.
+
+The missing-controller red probe reproduces failure. Parent2ca9178 native input
+join was reviewed/imported as a private dependency before the matrix rerun.
+Raw native NPC button-release diagnostics still fail for Sniper/Heavy; speed
+restoration and manual stop do not substitute for that native end contract.
+Logs:lucio-speed-tests.log,lucio-speed-delay-tests.log,
+lucio-npc-speed-tests.log,lucio-speed-bot-regression.log,lucio-speed-red.log,
+lucio-speed-join-regression.log,lucio-speed-server-snapshot.log.
 
 Client evidence
 ---------------

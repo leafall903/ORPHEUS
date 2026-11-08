@@ -6,6 +6,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Authored Crossfade speed controller and NPC route scaling (0079 lane)
+
+- Correct the earlier classification of07C7 as presentation-only. Actual0267
+  Entry calls its self-targeted PlayScript action;07C7 state9 adds instance1002
+  to SPEED index0, with0.25 normal/0.6 Amp values and0.2s transition waits.
+  The legacy permissive action path had skipped that controller entirely.
+- Extend the bounded Lucio status bridge to resolve that actual resource and
+  invoke the existing loaded-graph policy0 core once per receiver body. Keep
+  the independent controller alive for counter cleanup and future aura sources;
+  multiple status leases share it and never add duplicate speed controllers.
+- Apply authored SPEED mods to the existing NPC route model without rewriting
+  its base speed/acceleration/brake. Native AI movement remains unaccepted;
+  this explicitly scales the reconstructed route model, including zero-speed
+  pause and the existing next-frame modifier start convention.
+- Pass eight player speed methods and two real-NPC methods/15 subcases:
+  default speed, real6.875/8.8m/s player motion, authored wait/next-pose timing,
+  Amp end/no cooldown bypass, Crossfade heal/speed, nonstacking, actual range
+  exit, source death/retirement, wall/team/FFA exclusion and all five NPC bodies'
+  normal/Amp/base route speed. Missing-controller red probe fails as expected.
+- Review/import parent2ca9178 only in the private clone, preserving the new VM
+  join fields and snapshots. Raw Sniper/Heavy release failures remain unchanged.
+  No native-client prediction/rollback or full hero acceptance is claimed.
+- Pass261 selected join/VM/driver/combat/projectile/all-Lucio/NPC checks with
+  one optional training-body skip,14 server stored-domain checks and two extra
+  delay/death methods:277 distinct selected passes. Ruff/staged diff checks pass.
+
 #### Native state-input joins and Deadeye timing
 
 - Implement1113EBD5 distinct-input joins from the104319 input handler rather

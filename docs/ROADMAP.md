@@ -47,6 +47,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     aura/Amp persistence/timer and Sound Barrier interruption/persistence. Three
     actual NPC weapons test manual stop and Sound Barrier absorption. These
     reconstructed policies do not establish native control or all five attacks.
+    Actual0267->07C7 now drives authored25%/60% speed mods: eight player methods
+    and two methods/15 real five-body route subcases pass. Native AI routing,
+    original-client prediction and clock-gap/rollback behavior remain open.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

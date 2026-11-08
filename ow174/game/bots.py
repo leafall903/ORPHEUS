@@ -46,7 +46,7 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.mover import GRAVITY_SCALE, SPEED, Mod, modded, mover_data, statescript_mods
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -183,6 +183,10 @@ class Bot:
         self.moved_tick = tick
 
     def _tick(self, tick: int, dt: float, collision) -> None:
+        scale = self._movement_scale(tick)
+        if scale <= 0:
+            self._pause(tick)
+            return
         before = (self.position, round(self.yaw))
         self.held = (0, 0)
         if not self.keys:
@@ -194,17 +198,40 @@ class Bot:
                 self.keys = True
                 self.turning = 0.0
         if self.keys:
-            self._walk(tick, dt, collision)
+            self._walk(tick, dt, collision, scale=scale)
         else:
             if self.target is not None:
-                self._slide(dt, collision)
+                self._slide(dt, collision, scale=scale)
             if self.turning > EPSILON:
                 self.turning -= dt
                 self._turn(dt)
         if (self.position, round(self.yaw)) != before:
             self.moved_tick = tick
 
-    def _walk(self, tick: int, dt: float, collision) -> None:
+    def _movement_scale(self, tick: int) -> float:
+        """Use authored SPEED mods in the reconstructed route model.
+
+        Native AI acceleration/path following remain unverified. Scale this
+        model's existing speed/acceleration/brake without changing base values.
+        """
+        component = getattr(self.body_script, "component", None)
+        if component is None:
+            return 1.0
+        active = []
+        for key, (index, op, value, priority) in statescript_mods(component).items():
+            if index != SPEED:
+                continue
+            state = component.instances[key[0]].states[key[1]]
+            mod = Mod(index, op, value, state.start // component.frame_ms + 1, priority=priority, key=key)
+            if mod.acts(tick):
+                active.append(mod)
+        if not active:
+            return 1.0
+        data = mover_data(self.body)
+        changed = modded(data, sorted(active, key=Mod.order))
+        return changed.run_forward / data.run_forward if data.run_forward > 0 else 0.0
+
+    def _walk(self, tick: int, dt: float, collision, *, scale: float = 1.0) -> None:
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -215,10 +242,10 @@ class Bot:
             return
         self.direction = ((tx - x) / distance, (tz - z) / distance)
         self._turn(dt)
-        self.pace = min(self.speed, self.pace + self.accel * dt)
+        self.pace = min(self.speed * scale, self.pace + self.accel * scale * dt)
         self.held = self.last_held = throttles(self.yaw, self.direction)
         self.input_tick = tick
-        stride, slide = self.pace * dt, self._slide_length(dt)
+        stride, slide = self.pace * dt, self._slide_length(dt, scale=scale)
         if distance - stride <= slide:
             # its last tick with keys: from here its friction slides it onto the point
             stride = max(0.0, distance - slide)
@@ -227,9 +254,9 @@ class Bot:
             self.turning = TURN_AFTER
         self._advance(stride, distance, dt, collision)
 
-    def _slide(self, dt: float, collision) -> None:
+    def _slide(self, dt: float, collision, *, scale: float = 1.0) -> None:
         """No keys: its friction stops it, never past its point."""
-        self.pace = max(0.0, self.pace - self.brake * dt)
+        self.pace = max(0.0, self.pace - self.brake * scale * dt)
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -243,9 +270,9 @@ class Bot:
         self.velocity = (0.0, 0.0, 0.0)
         self.target = None
 
-    def _slide_length(self, dt: float) -> float:
+    def _slide_length(self, dt: float, *, scale: float = 1.0) -> float:
         """How far its friction slides it from its speed now, tick by tick."""
-        slow = self.brake * dt
+        slow = self.brake * scale * dt
         length, pace = 0.0, self.pace - slow
         while pace > 0.0:
             length += pace * dt

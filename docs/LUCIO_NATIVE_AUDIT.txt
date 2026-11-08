@@ -71,6 +71,15 @@ critical defaults/regions and Sound Barrier native propagation/charge remain
 unaccepted. Corrected movement addresses guide the next offline investigation.
 This audit is evidence about specific code paths, not full hero acceptance.
 
+Subsequent speed correction
+--------------------------
+The missing-consumer/multiplier finding above is superseded: actual07C7 has
+MovementMod state9, target speed counters and authored0.25/0.6 values. The
+later bounded0267 self-PlayScript bridge executes it. See LUCIO_COMBAT.txt's
+speed correction for direct player and five-body route evidence and remaining
+native prediction/clock/AI limits. The prior base State cleanup audit and raw
+NPC release failures remain valid; no generic ownership rule was introduced.
+
 Local evidence files
 --------------------
 lucio-native-functions-corrected.log

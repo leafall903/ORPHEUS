@@ -82,6 +82,35 @@ class Auras:
         lease = self.leases.pop(key)
         lease.instance.component.destroy(lease.instance)
 
+    def _play_controller(self, lease):
+        """Bridge actual0267's self PlayScript to persistent, policy0 actual07C7.
+
+        Legacy permissive actions otherwise skip PlayScript. Keep this bounded
+        to the known self-targeted status action; arbitrary world routing and
+        native inherited invocation/transport context remain unimplemented.
+        """
+        from ow174.game.script import play
+
+        instance = lease.instance
+        component = instance.component
+        if any(item.graph.index == 0x07C7 for item in component.instances.values()):
+            return  # authored policy0 skips an existing controller
+        node = instance.graph.node(6)
+        resource = play.resolve_resource(instance, node)
+        if (resource is None or resource.guid != 0x05800000000007C7
+                or instance.evaluate(node.field("m_targets")) != expr.Entity(component.entity)
+                or node.field("m_AA4DE426") != 0 or node.field("m_7ABA409C") != 0
+                or node.field("m_params") is not None or node.field("m_6D7701B7") is not None):
+            raise ValueError("unsupported Crossfade controller invocation")
+        definition = graph.graph(resource.guid & 0xFFFF)
+        if definition is None:
+            raise ValueError("Crossfade requires actual07C7 movement controller")
+        controller = component.play_loaded_graph(
+            definition, source=component.entity, overrides=resource.overrides, policy=0,
+        )
+        if controller is not None:
+            controller.update()
+
     def refresh(self):
         from ow174.game.combat import EPSILON, _dot, _sub, ray_world, segment_distance
 
@@ -144,6 +173,7 @@ class Auras:
                 # Drain source-member notifications at the target's current
                 # script clock; never rewind or advance its command simulation.
                 lease.instance.update()
+                self._play_controller(lease)
         for key in list(self.leases):
             if key not in wanted:
                 self._drop(key)
