@@ -69,7 +69,8 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
     "retirement_pending",
 }
@@ -187,6 +188,18 @@ class BodyVMSnapshotTests(unittest.TestCase):
                 present = export_component_vm(component)
                 self.assertIsNone(fields(raw(present), ["state", 1, 0])[optional])
                 self.assertNotEqual(snapshot_digest(missing), snapshot_digest(present))
+
+    def test_ruleset_entity_cache_is_passive_causal_storage(self):
+        component, instance = fixture()
+        baseline = export_component_vm(component)
+        instance.ruleset_target_entity = 0xA0000101
+        changed = export_component_vm(component)
+        self.assertNotEqual(snapshot_digest(baseline), snapshot_digest(changed))
+        stored = fields(raw(changed), ["instance", 1])
+        self.assertEqual(stored["ruleset_target_entity"], 0xA0000101)
+        instance.ruleset_target_entity = -1
+        with self.assertRaises(BodyVMSnapshotError):
+            export_component_vm(component)
 
     def test_watchers_watched_links_and_causal_work_queues_keep_their_actual_order(self):
         component, instance = fixture(("STU_TestPlainState",) * 3, allocation=(2, 0, 1))
@@ -508,7 +521,8 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
         world = dict(body["world"]["fields"])
-        self.assertEqual(set(world), {"hero", "mode", "body", "throttles", "_body_owner_context"})
+        self.assertEqual(set(world), {"hero", "mode", "body", "throttles", "_body_owner_context",
+                                      "_entity_query_context"})
         context = dict(world["_body_owner_context"]["fields"])
         self.assertEqual(context["owner"], script.entity)
         self.assertIs(context["instance_present"], True)

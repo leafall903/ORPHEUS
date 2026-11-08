@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Ruleset reference fallback and Matrix resources
+
+- Preserve3832D36C's non-null typed result; fall back through dynamic/expression
+  metadata and resolved member entity rather than interpreting a value as a key.
+  Preserve native failed-selector/int-destination distinctions. Track and export
+  Instance+230 with explicit script-VM presence, and mount existing current-body
+  query services against live Match identities.
+- Match1296 original CCFAC0 scalar value/type/cache cases with explicit adapters.
+  Nine actual0407 command tests now include Matrix100-resource initialization,
+  drain/release, cooldown repress refusal, exhaustion, regeneration/reuse and
+  disabled-rule gates. Ruleset/member/scene tests and related combat/driver
+  regressions pass; passive storage tests cover the new cache and query context.
+  See docs/RULESET_VALUE_FALLBACK.txt for precise native-proof limits.
+- Matrix interception, native filters, full foreign property services, Boosters
+  movement, creation/transformations, Self-Destruct, all-five-NPC and cross-hero
+  interactions and client presentation remain open. Full static hero acceptance
+  is active; resource execution does not complete the Matrix combat requirement.
+
 #### Explicit body forms and authored mech command evidence
 
 - Load additive external graph/entity and mover supplements without replacing

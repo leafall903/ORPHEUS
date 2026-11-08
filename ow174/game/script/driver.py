@@ -28,7 +28,7 @@ from ow174.game import pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import body_owner, expr, graph, nodes, runtime
+from ow174.game.script import body_owner, entity_queries, expr, graph, nodes, runtime
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -130,6 +130,10 @@ class BodyWorld(runtime.World):
             body, True, True, lookup=self._lookup_body_owner,
             watch_environment=self._poll_body_owner, watch_owner=self._poll_body_owner,
         )
+        self._entity_query_context = entity_queries.Context(
+            body, True, True, True, lookup=self._lookup_entity_query,
+            watch_environment=self._poll_body_owner, watch_possession=self._poll_body_owner,
+        )
 
     def _poll_body_owner(self, *_):
         """Native dependency consumers refresh through the existing frame poll."""
@@ -156,6 +160,39 @@ class BodyWorld(runtime.World):
         # Native queries already poll through Evaluation.poll_native. Match-backed
         # ownership is read afresh each frame; callbacks need no separate hub.
         return self._body_owner_context
+
+    def _lookup_entity_query(self, entity):
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone:
+                continue
+            if player.entity == entity:
+                current = player.body if player.has_body else 0
+                return entity_queries.Target(entity, entity_queries.Possession(current))
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, None)
+        if entity == runtime.GAME_MODE_ENTITY or any(bot.entity == entity for bot in match.bots):
+            return entity_queries.Target(entity, None)
+        return None
+
+    def entity_query_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self._entity_query_context
+
+    def script_component_present(self, entity):
+        if self.match is None:
+            return NotImplemented
+        for player in self.match.players:
+            if not player.gone and player.has_body and player.body == entity:
+                script = player.body_script
+                return script is not None and not script.retired
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return bot.body_script is not None
+        return False
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:

@@ -27,6 +27,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Explicit alternate-body inputs now run real0407 primary/Micro Missile command
   tests, including per-pellet armour, simultaneous fire and cooldown refusal/reuse.
   Initial creation, placement and transformations remain open.
+  Matrix resource activation/drain/release/cooldown/regeneration now execute through
+  the authored graph after native-backed ruleset-reference fallback and live
+  possession resolution. Interception/filtering and complete Matrix acceptance
+  remain open;1296 scalar comparisons do not accept the combat consumer.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

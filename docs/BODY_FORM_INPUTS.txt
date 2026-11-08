@@ -70,3 +70,8 @@ running without displacement, no Matrix activation/interception, and a charged
 Self-Destruct ability without a world explosion. These are failures to repair,
 not accepted ability implementations. Full statuses, all five NPC bidirectional
 combat, cross-hero interactions and original-client acceptance remain open.
+
+Follow-up: Matrix activation/resources are now restored by the ruleset fallback
+and live possession services. Nine real0407 command tests include its resource
+flow and release/cooldown gates. The earlier no-activation observation is retained
+as baseline evidence; interception remains unimplemented. See RULESET_VALUE_FALLBACK.txt.

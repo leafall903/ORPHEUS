@@ -26,6 +26,13 @@ miss/wall/team exclusion, simultaneous fire and cooldown refusal/reuse. The fixt
 selects0407 explicitly; it does not execute initial spawn, Q placement or a form
 transition. See BODY_FORM_INPUTS.txt for reproduced failures and remaining scope.
 
+The ruleset scalar now preserves actual overrides and resolves null reference
+fallbacks, backed by1296 native scalar comparisons. Match-backed current possession
+allows Matrix's unchanged graph to initialize100 resource. Three additional
+command tests pass its drain, release, cooldown refusal/reuse, depletion,
+regeneration and disabled-rule gates. Matrix projectile interception remains
+unimplemented, so the Matrix acceptance row stays OPEN. See RULESET_VALUE_FALLBACK.txt.
+
 Weapon050A's volley declares11 projectiles per shot and2 damage each. Its
 STU_613BDDB0 shot pattern has radial entries(0,1),(0.5,4),(1,6). Existing combat
 code consumes only one centre-line ray per volley report and ignores this
