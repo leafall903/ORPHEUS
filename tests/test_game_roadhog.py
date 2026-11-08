@@ -62,6 +62,29 @@ class RoadhogProjectileTests(unittest.TestCase):
                 self.assertEqual(vitals.total, 200.0)
                 self.assertEqual(hog.client.messages(combat.HIT), [])
 
+    def test_real_melee_does_not_damage_through_triangle_wall(self):
+        for blocked in (False, True):
+            with self.subTest(blocked=blocked):
+                run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
+                match = run.match
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                hog, enemy = run.players
+                match.switch_hero(hog, heroes()[ROADHOG])
+                x, y, z = hog.mover.position
+                enemy.mover.position = [x, y, z + 1.5]
+                fight = match.combat
+                vitals = fight.vitals_of(next(t for t in fight._targets() if t.owner is enemy))
+                wall = World([
+                    (x - 5, y, z + 0.5, x + 5, y, z + 0.5, x + 5, y + 5, z + 0.5),
+                    (x - 5, y, z + 0.5, x + 5, y + 5, z + 0.5, x - 5, y + 5, z + 0.5),
+                ])
+                with patch.object(fight, "_collision", return_value=wall if blocked else None):
+                    run.step({hog: (0, 0, 0x800)})
+                    for _ in range(25):
+                        run.step({})
+                self.assertEqual(vitals.total, 200.0 if blocked else 170.0)
+
     def pellet_hit(self, distance, *, critical=1.0, head=False, gap=False):
         run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
         match = run.match

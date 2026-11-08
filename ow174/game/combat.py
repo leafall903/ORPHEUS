@@ -465,6 +465,16 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                    origin = self._eye(player)
+                    nearest = (a[0], min(max(origin[1], a[1]), b[1]), a[2])
+                    delta = _sub(nearest, origin)
+                    distance = math.sqrt(_dot(delta, delta))
+                    if distance > EPSILON:
+                        direction = tuple(axis / distance for axis in delta)
+                        front = ray_capsule(origin, direction, a, b, shown.radius)
+                        wall = ray_world(self._collision(), origin, direction, distance)
+                        if front is not None and wall is not None and wall < front:
+                            continue
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:

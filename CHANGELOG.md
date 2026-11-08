@@ -6,6 +6,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: shared melee world occlusion
+
+- Reject quick-melee sphere candidates when static geometry lies before their
+  capsule front along the eye-to-target ray. Preserve capsule/sphere targeting,
+  damage and team semantics; barriers still need their separate combat service.
+- Pass47 combat/Roadhog/five-NPC regressions and85 projectile/NPC/ability/driver
+  regressions (132 total), including actual melee input with30 damage in clear
+  space and0 through a real triangle wall. Ruff/diff pass. No client acceptance.
+
 #### Roadhog lane: five authored NPC body damage and corpse regressions
 
 - Read the external five-Talon catalog and graph bundle explicitly; copy no
