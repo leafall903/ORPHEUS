@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Placed data-flow mapping and typed provider callbacks
+
+- Implement native23A661BD ordinary begin/cleanup/dependency and its separate
+  typed answer provider with explicit component47 registry/counter/position
+  services. Preserve cache-before-register, remove-before-clear, target Handle
+  tags, unchanged-GUID target refresh and missing-namespace status4 behavior.
+- Own factory/vtables and2070 original State/provider comparisons pass, with
+  declared engine adapters. Twelve original A82CD4B2 literal cases verify typed
+  unkeyed DataFlow assets including zero; keyed availability remains explicit.
+- Two actual0E61 components now pass State allocation and reach the later strict
+  action0F647E55/node13 before mapping activation. Separate authored-node fixtures
+  verify061D global mapping registration/removal, float answer1 and four38/37-bit
+  codec checks. Full component first frames are not accepted by these fixtures.
+- Add19 behavior tests;668 related and15 server checks pass, with Ruff/diff.
+  Passive VM storage covers33 concrete State classes. Scene contexts are bound
+  to existing entities and revoked on retirement/failure.
+- The unchanged scene still completes45/123 nonempty first frames with78 strict
+  stops:66 control contexts,3 alias components,1 model-look scope,3 action0F647E55
+  and5 State9D7BF987. Full100B remainsD38/node106. No unknown-service shortcut.
+  Complete data-flow services, production hosting/lifetimes, story/cinematics,
+  enemy AI and results remain open. No new client run or deployment. Normal
+  inputs and unrelated working changes are preserved. See DATA_FLOW_MAPPING.txt.
+  Publication helper missing; no GitHub push.
+
 #### Original-client model-look scope and restoration sample
 
 - Verify actual144E/raw11 in two isolated Story/Normal/Reaper matches, sending

@@ -52,6 +52,7 @@ _STATE_LAYOUTS = {
                            "control_targets", "control_previous", "control_generation"), ()),
     nodes.AnimationAlias: (("alias_handle",), ()),
     nodes.ModelLook: (("scope_registry", "look", "look_target"), ()),
+    nodes.DataFlowMapping: (("mapping", "mapping_target", "mapping_self"), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),

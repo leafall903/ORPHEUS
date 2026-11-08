@@ -483,3 +483,20 @@ Original-client model-look sample, 2026-11-08:
   accepted with explicit server services and diagnostic off. Visible appearance,
   complete services/clocks, production hosting/lifetimes and full mission remain
   unaccepted. Normal inputs are preserved; no deployment. See MODEL_LOOK_STATE.txt.
+
+Placed DataFlowMapping callbacks, 2026-11-08:
+- Implement23A661BD ordinary begin/cleanup/dependency and its typed provider
+  interface, with explicit component47 registration/counter/position services.
+  Preserve mapping cache order, target Handle tags and missing-namespace status4.
+  A82CD4B2 unkeyed DataFlow literals retain typed Asset values including zero.
+- 2070 original callback comparisons and12 literal cases pass. Nineteen behavior
+  tests and passive VM storage for33 concrete State models cover the change.
+- Both actual0E61 components reach a later0F647E55/node13 strict stop before
+  activating the mapping. Independent authored-node fixtures verify061D global
+  mapping registration/removal, float answer1 and four codec round trips. Full
+  component first frames remain incomplete; no partial VM is accepted as a mission.
+- Scene still completes45/123 nonempty first frames with78 stops:66 control,
+  3 alias,1 model scope,3 action0F647E55 and5 State9D7BF987. Full100B still stops
+  atD38/node106. Complete data-flow services, production hosting, story/cinematics,
+  enemy AI and results remain open. No new client run or deployment; normal inputs
+  and unrelated working changes are preserved. See DATA_FLOW_MAPPING.txt.

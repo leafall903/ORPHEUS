@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from ow174.game.script import (
     animation_alias,
+    data_flow,
     effect_routing,
     entity_control,
     expr,
@@ -104,6 +105,7 @@ class SceneWorld(runtime.World):
         self.control_contexts: dict[int, entity_control.Context | None] = {}
         self.alias_components: dict[int, animation_alias.Aliases | None] = {}
         self.look_contexts: dict[int, model_look.Context] = {}
+        self.data_flow_contexts: dict[int, data_flow.Context] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -135,6 +137,9 @@ class SceneWorld(runtime.World):
         look = self.look_contexts.pop(entity, None)
         if look is not None:
             look.retire()
+        mapping = self.data_flow_contexts.pop(entity, None)
+        if mapping is not None:
+            mapping.retire()
         scope = self.scope_components.pop(entity, None)
         if scope is not None:
             scope.clear()
@@ -249,6 +254,17 @@ class SceneWorld(runtime.World):
             raise ValueError("retire the entity before replacing its model-look context")
         self.look_contexts[entity] = context
 
+    def set_data_flow_context(self, entity: int, context: data_flow.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not data_flow.Context or context.owner != entity or context.retired:
+            raise ValueError('expected live data-flow context for this entity')
+        if entity in self.data_flow_contexts and self.data_flow_contexts[entity] is not context:
+            raise ValueError('retire the entity before replacing its data-flow context')
+        self.data_flow_contexts[entity] = context
+
+    def data_flow_context(self, entity: int):
+        return self.data_flow_contexts.get(entity, NotImplemented)
+
     def model_look_context(self, entity: int):
         return self.look_contexts.get(entity, NotImplemented)
 
@@ -283,6 +299,9 @@ class SceneWorld(runtime.World):
                                if key != entity and (target is None or target.owner != entity)}
 
     def script_failed(self, component: runtime.Component) -> None:
+        mapping = self.data_flow_contexts.pop(component.entity, None)
+        if mapping is not None:
+            mapping.retire()
         self._retire_control_contexts(component=component)
         look = self.look_contexts.pop(component.entity, None)
         if look is not None:

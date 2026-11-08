@@ -14,6 +14,7 @@ from types import NotImplementedType
 
 from ow174.game.script import (
     animation_alias,
+    data_flow,
     effect_parameters,
     effect_routing,
     entity_control,
@@ -444,6 +445,32 @@ class ModelLook(ScopedSubgraph):
     def tick(self):
         if self.instance.component.strict:
             model_look.refresh(self)
+
+
+@state_class("STUStatescriptStateDataFlowMapping")
+class DataFlowMapping(State):
+    """Native ordinary hooks and a separate typed answer-provider interface."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.mapping = 0
+        self.mapping_target = None  # Native constructor does not initialize +1D0.
+        self.mapping_self = False
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            data_flow.begin(self)
+
+    def dependency_changed(self):
+        if self.instance.component.strict:
+            data_flow.refresh(self)
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            data_flow.cleanup(self)
+
+    def answer(self, kind):
+        return data_flow.answer(self, kind)
 
 
 @state_class("STUStatescriptStateBooleanSwitch")

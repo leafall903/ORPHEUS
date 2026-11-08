@@ -385,6 +385,7 @@ RESOURCES = {
     "STUConfigVarAnimation": "m_animation",
     "STUConfigVarAnimAlias": "m_animAlias",
     "STUConfigVarModelLook": "m_modelLook",
+    "STUConfigVarDataFlow": "m_5A6D4FBD",
     "STUConfigVarHero": "m_hero",
     "STU_43CF7A79": "m_entityDef",
     "STUConfigVarSkinTheme": "m_skinTheme",
@@ -398,6 +399,7 @@ RESOURCES = {
 KEYED_RESOURCES = {
     "STUConfigVarVoiceStimulus", "STUConfigVarAnimation", "STUConfigVarHero",
     "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias", "STUConfigVarModelLook",
+    "STUConfigVarDataFlow",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 

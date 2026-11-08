@@ -364,6 +364,10 @@ class World:
         """Explicit native namespace, target policy and model-look consumers."""
         return NotImplemented
 
+    def data_flow_context(self, entity: int):
+        """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 

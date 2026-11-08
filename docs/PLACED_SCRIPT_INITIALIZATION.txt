@@ -317,6 +317,22 @@ Five codec checks and36 focused checks pass. Client closes normally and owned
 servers stop. No deployment or normal input change. Visible appearance, complete
 engine services, production hosting and full mission remain open. See MODEL_LOOK_STATE.txt.
 
+Placed DataFlowMapping State, 2026-11-08
+23A661BD now implements ordinary begin/cleanup/dependency callbacks and its
+separate typed answer provider, with explicit component47 mapping services.
+2070 original State/provider comparisons and12 typed DataFlow literal cases
+pass. Target descriptors preserve self/global/explicit tag7-handle semantics;
+direct Entity vector answers use the explicit entity-position service.
+
+Both actual0E61 components now pass State allocation and retain a later strict
+0F647E55/node13 stop before activating that State. Independent node1/raw0 fixtures
+register/remove authored mapping061D, answer float1 and pass four codec checks.
+These node fixtures do not establish completed component first frames. The
+unchanged scene remains45/123 completed,78 stopped; two former DataFlow State
+stops now expose the action. VM storage covers33 State models. Full100B remains
+D38/node106; complete services, production hosting and mission remain open.
+See DATA_FLOW_MAPPING.txt. No new client acceptance or deployment.
+
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,
 component-pending-init-native-validation.json, placed-component-startup-validation.json,
