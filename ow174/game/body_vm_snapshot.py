@@ -46,7 +46,7 @@ _GRAPH = frozenset((
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
 ))
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
-_VAR = ("base", "key", "links", "watchers")
+_VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
@@ -80,7 +80,12 @@ _STATE_LAYOUTS = {
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
-    nodes.SubScript: (("child",), ()), nodes.GameMessageEntry: ((), ("received",)),
+    nodes.SubScript: (("child",), ()),
+    nodes.GameMessageEntry: (("message_context", "message_sender", "message_stacked", "message_key",
+                             "message_flags", "message_selected", "message_generation", "message_count",
+                             "message_sources", "message_cache", "message_refresh", "message_updating",
+                             "message_getting", "message_epoch", "message_last_epoch", "message_bindings",
+                             "message_observed"), ("received",)),
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
@@ -90,7 +95,7 @@ _STATE_LAYOUTS = {
 _VALUE_LAYOUTS = {
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
-    runtime.Link: ("state", "slot", "priority", "above", "stack"),
+    runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
                     "message", "assignment", "transient"),
     message_receive.Packet: ("message", "caller", "instigator", "params"),

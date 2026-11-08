@@ -394,7 +394,8 @@ class BodyScript(ReplicatedBody):
 
     def _add_var(self, snap: Snapshot, owner: int, var_id: int, var: runtime.Var) -> None:
         bindings = tuple(
-            Binding(link.state.instance.id, link.state.index, link.slot, link.priority, link.above)
+            Binding(link.state.instance.id, link.state.index, link.slot, link.priority, link.above,
+                    link.dynamic, link.frame_cached)
             for link in var.links
             if link.stack and link.state.active and link.state.networked
         )

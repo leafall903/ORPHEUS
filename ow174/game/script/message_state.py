@@ -62,12 +62,16 @@ class Host:
 
 
 class Context:
-    def __init__(self, component, host, *, policy, frame, priority, timer_notify=None):
+    def __init__(self, component, host, *, policy, frame, priority, timer_notify=None,
+                 receiver_policy=None, receiver_generation=None, receiver_filter=None):
         if type(host) is not Host or not all(callable(item) for item in (policy, frame, priority)):
             raise ValueError('message-State services must be declared explicitly')
         self.component, self.host = component, host
         self.policy, self.frame, self.priority = policy, frame, priority
         self.timer_notify = timer_notify
+        self.receiver_policy = receiver_policy
+        self.receiver_generation = receiver_generation
+        self.receiver_filter = receiver_filter
         self.retired = False
         self.states = set()
         host.contexts.add(self)
@@ -83,6 +87,7 @@ class Context:
         self.retired = True
         for state in tuple(self.states):
             self.host.manager.discard_state(state)
+            state.message_context_retired()
         self.states.clear()
         self.host.contexts.discard(self)
 

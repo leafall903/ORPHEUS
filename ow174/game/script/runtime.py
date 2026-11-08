@@ -128,27 +128,40 @@ class Link:
     priority: float = 0.0
     above: bool = True  # among equal priorities a new entry goes above the others
     stack: bool = False  # a stack entry (Stack, an Ability's push): sent as a binding
+    dynamic: bool = False  # Native binding+29; serialize the extra policy bit.
+    frame_cached: bool = False  # Native binding+2A, encoded only with dynamic.
 
 
 class Var:
     """One variable: the stored (base) value, the links that override it, the states that watch it."""
 
-    __slots__ = ("base", "key", "links", "watchers")
+    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers")
 
     def __init__(self, key: tuple) -> None:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
         self.watchers: dict[State, None] = {}
+        self.resolving = False
+        self.partial = None
 
     def value(self, below: "State | None" = None):
-        value = self.base
-        for link in self.links:
-            if link.state is below:
-                break
-            if link.state.active:
-                value = link.state.output(link.slot)
-        return value
+        # Native1BA70B0's in-resolution flag exposes the current lower value.
+        # This also prevents a selection filter from re-entering its own link.
+        if self.resolving:
+            return self.partial
+        self.resolving, self.partial = True, self.base
+        try:
+            for link in self.links:
+                if link.state is below:
+                    break
+                if link.state.active:
+                    supplied = link.state.output(link.slot)
+                    if supplied is not expr.EVALUATION_FAILED:
+                        self.partial = supplied
+            return self.partial
+        finally:
+            self.resolving, self.partial = False, None
 
     def stack_states(self) -> list["State"]:
         return [link.state for link in self.links]
@@ -633,9 +646,10 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        """Notify effective-value watchers and Stack expressions whose lower input may have changed."""
-        changed = not expr.same(before, var.value())
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+        """Notify watchers and return the checked value without resolving a live getter twice."""
+        after = var.value()
+        changed = not expr.same(before, after)
         above_source = None
         if stack_source is not None:
             # A Stack value change can only affect the inputs of entries above it.
@@ -655,6 +669,7 @@ class Component:
             if state.active and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
+        return after
 
     def set(self, var: int, value) -> None:
         """Set an entity variable from outside the graphs (the server's own code)."""
@@ -1484,6 +1499,9 @@ class State:
 
     def on_failed(self) -> None:
         """Abandon local external-effect bookkeeping without authored callbacks."""
+
+    def message_context_retired(self) -> None:
+        """Quietly release object-owned message bindings after context retirement."""
 
     def on_effect_abandoned(self, effect) -> None:
         """A world binding retired an effect without invoking native graph code."""

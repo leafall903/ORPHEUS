@@ -141,6 +141,8 @@ class DecodedBinding:
     slot: int
     priority: float
     above: bool
+    dynamic: bool = False
+    frame_cached: bool = False
 
 
 def read_bindings(reader: BitReader, own: int, graphs: dict[int, int], unresolved: str | None = None):
@@ -174,9 +176,9 @@ def read_bindings(reader: BitReader, own: int, graphs: dict[int, int], unresolve
             else:
                 priority = f32(reader)
             above = bool(reader.bit())
-        if reader.bit():
-            reader.bit()
-        found.append(DecodedBinding(instance, state, slot, priority, above))
+        dynamic = bool(reader.bit())
+        frame_cached = bool(reader.bit()) if dynamic else False
+        found.append(DecodedBinding(instance, state, slot, priority, above, dynamic, frame_cached))
     return tuple(found)
 
 

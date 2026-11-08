@@ -82,10 +82,12 @@ GameMessageEntry State and38EE1100 sending State, their registrations, replies,
 priorities and lifetimes are not restored here. Complete native engine consumers,
 server forwarding and filter rules are not established by the PC entry code.
 The persistent manager and strict sending State now have backends mounted through
-explicit Contexts. The independent receiving State remains open. See
+explicit Contexts. The receiving State now has a separate explicit-context
+backend; production mounting and full engine policies remain open. See
 MESSAGE_MANAGER.txt and MESSAGE_SENDER.txt. A separate sender-backed parameter
-scope and receiver cache backend is now available; its lifecycle integration
-remains open. MESSAGE_PARAMETERS.txt records the shared-VM provider rules and
+scope and receiver cache backend is available; MESSAGE_RECEIVER.txt records
+its newly implemented State lifecycle and remaining acceptance limits.
+MESSAGE_PARAMETERS.txt records the shared-VM provider rules and
 new zero-ID Entry scope regression without widening Entry acceptance.
 
 Verification and current mission boundary

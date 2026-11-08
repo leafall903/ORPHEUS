@@ -6,6 +6,45 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native persistent receiving message State
+
+- Mount strict9D6CF8AC through explicit message contexts. Preserve dual receiver
+  channels, the native nonzero-key/flags clearing rule, selection generations,
+  filter scopes, three parameter modes and separate message/filter/cache
+  dependency epochs. Restore deferred begin, forced/non-forced refresh, tick
+  routing, context outputs and allowed idle/receive/retrigger subgraph changes.
+- Retain per-row output links and duplicate targets, in-place refresh and old
+  destinations for baking. Restore live best-source getters without watchers,
+  cached array getters and failed-output fallback distinct from successful null.
+  Bound variable recursion exposes the lower value and releases guards on faults.
+  Context/physical retirement drops rows quietly and refuses replacement-context
+  borrowing. Native keyed type12/indexed paths and linked array checkpoints remain strict gaps.
+- Encode sender identity/kind and stacked payloads. Preserve dynamic/frame-cache
+  binding policy in runtime links, driver snapshots, wire output and diagnostics;
+  the previous always-false binding policy could not represent receiver links.
+  Extend passive VM storage without invoking getters or claiming shared restore.
+- Pass3268 original production-control comparisons (384 invalid selected scene
+  owners remain outside SceneWorld),1728 getters,1288 binding operations,360
+  variable resolver cases,4864 writer/4864 reader cases and256 binding-policy
+  reader suffix cases.16628 total comparisons use declared service/storage
+  adapters; actual authored subgraphs and the complete binding reader are not
+  run by these probes. No game code is patched. Add25 behavior tests; final1086
+  related tests pass in26.003s and33 server tests in249.063s (1119 total), with25
+  matching frozen source hashes and Ruff/diff checks.
+- All535 extracted receiving nodes complete1605 isolated empty-source/pre-init
+  registration/cleanup fixtures under three declared policies. No ordinary
+  initialization or authored plugs execute. Full-controller fixtures now need
+  explicit message contexts: without one they retain0F44/node7; with declared
+  role/frame/generation plus earlier hero/team inputs, all three profiles retain
+  0C90/node41's unknown mode component. Failed-helper rejection/cleanup passes.
+- Fresh ordinary/placed/real-Match probes retain81A9AB10,50/123 completed first
+  frames and rootD38/node106 before controller execution. Native engine roles,
+  generation/filter policy, ordinary mode mounting, actor lifetimes/transport,
+  original-client receiver acceptance, full story/cinematics/five enemy AI and
+  extraction/results remain open. No fresh client run or normal deployment is
+  claimed. See docs/MESSAGE_RECEIVER.txt. Publication helper remains missing;
+  no GitHub push is performed.
+
 #### Persistent message parameter providers and receiver caches
 
 - Share native parameter providers across one component's instances. Preserve

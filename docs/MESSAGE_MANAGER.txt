@@ -59,9 +59,10 @@ a selection/notification interrupted by that discard. Other owners retain rows.
 No automatic engine manager is created, and no native identity/mode/channel flags
 or history frame are guessed. The strict sending State now registers and removes
 its channels through explicit services, with native reply encoding. The receiving
-State retains its previous unaccepted model. Complete receiver registrations,
-queued dirtiness, parameter scopes, stacked/array output bindings, context outputs
-and idle/receive subgraphs still need integration and separate evidence. Passive shared-manager export and
+State now uses the manager through explicit contexts, with queued dirtiness,
+source-backed scopes, row-ID bindings, context outputs and idle/receive flow.
+MESSAGE_RECEIVER.txt records the native comparisons and remaining engine-policy,
+storage and client-acceptance limits. Passive shared-manager export and
 restoration are also outside this change.
 
 Verification

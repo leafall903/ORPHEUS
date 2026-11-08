@@ -21,6 +21,7 @@ from ow174.game.script import (
     entity_control,
     expr,
     game_message,
+    message_receiver,
     message_state,
     model_look,
     modifiers,
@@ -1635,18 +1636,44 @@ class SubScript(State):
         return {"child": self.child.id if self.child is not None else 0}
 
 
-@state_class("STUStatescriptStateGameMessageEntry")
+@state_class("STUStatescriptStateGameMessageEntry", "STU_9D6CF8AC")
 class GameMessageEntry(State):
     """Waits for its game message: the idle subgraph (m_33DA5163) until it comes, then the receive subgraph
     (m_452862E6)."""
 
     family = "message"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.message_context = None
+        self.message_sender = 0
+        self.message_stacked = False
+        self.message_key = 0
+        self.message_flags = None
+        self.message_selected = None
+        self.message_generation = -1
+        self.message_count = 0
+        self.message_sources = ()
+        self.message_cache = ()
+        self.message_refresh = False
+        self.message_updating = False
+        self.message_getting = False
+        self.message_epoch = 0
+        self.message_last_epoch = 0
+        self.message_bindings = {}
+        self.message_observed = {}
+
     def on_begin(self) -> None:
+        if self.instance.component.strict:
+            message_receiver.begin(self)
+            return
         self.received = False
         self.instance.follow(self.node, "m_33DA5163", self)
 
     def message(self, message: int, params: dict, sender: int) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "packet delivered to persistent receiver",
+                                                self.node.cls, self.node)
         self.instance.exit_subgraph(self.node, "m_33DA5163")
         self.received = True
         for item in _field(self, "m_params") or []:
@@ -1657,11 +1684,45 @@ class GameMessageEntry(State):
         self.instance.follow(self.node, "m_452862E6", self)
 
     def on_end(self, finished: bool) -> None:
+        if self.instance.component.strict:
+            return
         self.instance.exit_subgraph(self.node, "m_33DA5163")
         self.instance.exit_subgraph(self.node, "m_452862E6")
 
     def payload(self) -> dict:
+        if self.instance.component.strict:
+            return {"sender": self.message_sender, "stacked": self.message_stacked}
         return {"sender": None, "stacked": False}
+
+    def native_dependency(self, cfg):
+        if self.instance.component.strict:
+            message_receiver.native_dependency(self)
+
+    def dependency_changed(self):
+        if self.instance.component.strict:
+            message_receiver.refresh(self)
+
+    def tick(self):
+        if self.instance.component.strict:
+            message_receiver.tick(self)
+        else:
+            super().tick()
+
+    def output(self, slot):
+        return message_receiver.output(self, slot) if self.instance.component.strict else None
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            message_receiver.cleanup(self)
+
+    def on_failed(self):
+        message_receiver.abandon(self)
+
+    def on_destroyed(self):
+        message_receiver.abandon(self)
+
+    def message_context_retired(self):
+        message_receiver.abandon(self, retired=True)
 
 
 @state_class("STU_38EE1100")

@@ -448,6 +448,8 @@ class Binding:
     slot: int = 0
     priority: float = 0.0
     above: bool = True
+    dynamic: bool = False
+    frame_cached: bool = False
 
 
 def write_bindings(out: BitWriter, bindings, own: int, graphs: dict) -> None:
@@ -479,7 +481,9 @@ def write_bindings(out: BitWriter, bindings, own: int, graphs: dict) -> None:
                 out.bit(0)
                 out.bits(_f32_bits(item.priority), 32)
             out.bit(item.above)
-        out.bit(0)  # flag A: no re-resolve every frame
+        out.bit(item.dynamic)
+        if item.dynamic:
+            out.bit(item.frame_cached)
 
 
 def write_var(out: BitWriter, value, bindings, own: int, graphs: dict) -> None:
@@ -548,7 +552,12 @@ def write_payload(
         out.w_u16(payload.get("child", 0))
         out.bit(0)
     elif kind == "message":
-        out.bit(0)  # no sender
+        sender = payload.get("sender") or 0
+        valid = sender != 0 and sender & 0x1FFFFFFF != 0x1FFFFFFF and bool(sender & 0x80000000)
+        out.bit(valid)
+        if valid:
+            out.bit(sender & 0xA0000000 == 0xA0000000)
+            out.var_b(sender & 0x1FFFFFFF)
         out.bit(payload.get("stacked", False))
     elif kind == "link":
         _write_state_link(out, payload.get("link"), graphs, owner=True)

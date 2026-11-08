@@ -101,10 +101,11 @@ controller81A9AB10; root100B D38D0035/node106 before controller execution;148 pr
 components, cleanup and no readiness;50/123 nonempty placed first frames complete.
 Three explicit controller profiles and all15 isolated actual100B Entry fixtures
 also retain their previous boundaries. No fresh original-client session or normal
-deployment is claimed. The sender-backed parameter scope and three-mode receiver cache now have
-standalone backends (MESSAGE_PARAMETERS.txt). Complete receiving-State selection,
-stacked/array bindings, caller/instigator/subject outputs and idle/receive subgraph
-switches remain open, as do the full story, cinematics, five enemy AI types and
+deployment is claimed. MESSAGE_PARAMETERS.txt and MESSAGE_RECEIVER.txt now
+record the parameter and receiving-State integration, including channel/epoch
+selection, row-ID links, context outputs, subgraphs and codec. Native engine
+roles/generation/filter policy, indexed/keyed storage and original-client receiver
+acceptance remain open, as do full story, cinematics, five enemy AI types and
 extraction/results. Passive shared-manager export/restore remains unsupported.
 
 Evidence: local verification/retribution/message-sender-native/flags/codec/authored/

@@ -2,8 +2,9 @@ Persistent message parameter scopes and caches (build104319)
 
 Scope
 This is the D9B0F0 sender-backed provider and D51FC0 receiver cache backend.
-It does not mount the receiving State, register receiver channels, apply output
-bindings, switch subgraphs or establish mission progression. The strict sender
+The receiving State now mounts this backend through explicit engine contexts
+(MESSAGE_RECEIVER.txt). These parameter comparisons do not independently establish
+channel/binding/subgraph behavior or mission progression. The strict sender
 and standalone manager remain separate from ordinary EntryGameMessage packets.
 See MESSAGE_SENDER.txt, MESSAGE_MANAGER.txt and MESSAGE_RECEIVE.txt.
 
@@ -59,7 +60,8 @@ a keyed array. Native keyed type12 storage remains an unsupported VM service.
 The pair API preserves keys if a future supported iterator supplies them; the
 cache tests do not establish native keyed storage, linked mutation or array
 checkpoint acceptance. Native-query dependency marking has an explicit State
-hook for later receiver epoch tracking; this change adds no receiver epoch policy.
+hook for receiver epoch tracking; the receiving-State integration now implements
+its epoch policy separately.
 Passive export records the shared provider list and same-VM scope descriptors
 without invoking getters. Full shared-manager export/restore remains unsupported.
 
