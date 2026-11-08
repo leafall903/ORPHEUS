@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass, field
 
-from ow174.game import bots, dragon, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, dragon, observers, pools, projectiles, sonic, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -375,6 +375,7 @@ class Rocket:
     hit_entities: set[int] = field(default_factory=set)
     range_left: float | None = None  # reconstructed path budget, independent of authored lifetime
     distance_flown: float = 0.0  # accumulated <=16ms ballistic chords
+    sonar: sonic.Profile | None = None
 
 
 class Combat:
@@ -388,6 +389,8 @@ class Combat:
         self.rockets: list[Rocket] = []
         self.dragon_profile: dragon.Profile | None = None
         self.dragons: list[dragon.Flight] = []
+        self.sonic_profile: sonic.Profile | None = None
+        self.sonars: list[sonic.Beacon] = []
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.now = 0.0
@@ -399,6 +402,17 @@ class Combat:
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
+
+    def configure_sonic(self, profile: sonic.Profile) -> None:
+        """Explicitly mount the external reconstructed Sonic profile before firing."""
+        if not isinstance(profile, sonic.Profile) or self.rockets or self.sonars:
+            raise ValueError("Sonic profile must be mounted before active projectiles")
+        self.sonic_profile = profile
+
+    def revealed_to(self, viewer, target) -> bool:
+        """Read the current team-scoped reconstructed reveal state; no visibility replication claim."""
+        return any(sonic.visible(beacon, viewer, _source_entity(target), self.match.game_map.free_for_all)
+                   for beacon in self.sonars)
 
     def configure_dragonstrike(self, profile: dragon.Profile) -> None:
         """Mount an explicit external reconstructed profile before combat starts."""
@@ -554,6 +568,7 @@ class Combat:
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
             self.dragons[:] = [flight for flight in self.dragons if dragon.advance(self, flight, at)]
+            self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
@@ -744,6 +759,9 @@ class Combat:
                         started_tick=self.tick + time % state.instance.component.frame_ms
                         / state.instance.component.frame_ms,
                         range_left=reach if reach and reach > 0 else None,
+                        sonar=(self.sonic_profile if not npc and shooter.hero.guid == sonic.HANZO
+                               and isinstance(definition, expr.Asset)
+                               and definition.guid in sonic.DEFINITIONS else None),
                     )
                 )
             return
@@ -875,6 +893,15 @@ class Combat:
         rocket.position = point
         pierce = (struck is not None and rocket.continuation is not None
                   and len(rocket.hit_entities) + 1 < rocket.continuation.initial_hit_limit)
+        if rocket.sonar is not None:
+            attached = struck.entity if struck is not None else None
+            offset = (tuple(a - b for a, b in zip(point, struck.feet, strict=True))
+                      if struck is not None else (0.0, 0.0, 0.0))
+            born = rocket.started_tick + rocket.flown / TICK
+            self.sonars.append(sonic.Beacon(
+                rocket.shooter, rocket.source_entity, rocket.team, point, attached,
+                offset, born, rocket.sonar,
+            ))
         if not pierce:
             self._landed(rocket)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:

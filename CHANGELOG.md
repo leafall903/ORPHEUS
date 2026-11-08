@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Explicit Sonic Arrow attachment and authored reveal stacks
+
+- Extract an external0149/020D ->00C3 ->003E.053 ->010E profile, validating
+  lifetime/radius wiring and source hashes. The110-byte status matches the
+ 104319 content manifest. No extracted game data is stored in this repository.
+- An explicitly mounted profile handles actual Sonic body/static impacts.
+  Reconstruct6s/9m sphere/capsule search, through-wall filtering, team/FFA
+  projection, continuous refresh and feet-relative attachment. Execute only
+ 010E/node9's actual entity7982 Stack, keeping independent owned providers.
+  Exit/expiry/source leave remove only their provider; overlapping stacks and
+  prior base values survive. Missing/replaced bodies freeze the last point.
+- Nine new scenarios cover full/short shots, all five Talon bodies, wall reveal
+  without direct damage, faction/range boundaries, attachment/replacement,
+  death/leave/expiry, overlap/base preservation, live status-instance storage
+  and unimpacted lifetime expiry. Pass617 game tests with explicit NPC/dragon/
+  Sonic profiles and31 VM/server snapshot checks; Ruff/diff checks pass.
+- Normal startup mounting, native tag/filter/refresh/cadence and bone semantics,
+  complete010E messages/score/effects, cooldown/cancel/defensive matrix and client
+  highlight/HUD/audio replication remain OPEN. Full static goal remains active;
+  no parent integration, runtime writes, client controls or publication.
+
 #### Hanzo Flashbang interruption and manual ultimate cleanup
 
 - Privately import reviewed parent engagement, canonical visibility and

@@ -30,8 +30,9 @@ Observed through ordinary Match input and health pools (test_game_hanzo.py):
   three remove70/70/60HP and kill a200HP enemy player. A10s cooldown rejects an
   early retry, lets that edge expire and allows five arrows after a fresh press.
   Remaining cancel/interruption/HUD cases are OPEN.
-- Sonic Arrow: Shift selects0149/state53 and deals125 direct damage. Reveal,
-  attachment, team visibility and pulse duration OPEN.
+- Sonic Arrow: Shift selects0149/state53 and deals125 direct damage. An explicit
+  external profile now hosts partial attachment/reveal below; native filters,
+  cadence, full cooldown/cancellation and client projection remain OPEN.
 - Quick melee:30 damage, one hit notice for one activation; an intervening wall
   blocks damage while a wall beyond the target does not.
 - Incoming Soldier rifle:20 damage per body hit, eventual Hanzo death; a dead
@@ -115,6 +116,35 @@ Actual incoming Flashbang under reconstructed host control (test_game_hanzo_cont
   projectile/dragon/control combinations, all other cross-hero/NPC specials and
   original-client status/HUD/animation/audio agreement remain OPEN.
 
+Explicit Sonic Arrow impact/reveal host (test_game_hanzo_sonic.py):
+- Extract0149/020D ->00C3, source215=6,422=9, status003E.053 ->010E. Verify the
+  selected110-byte status against the104319 content manifest. The external
+  profile retains source hashes and the010E graph; no game data enters Git.
+- Mount through configure_sonic(load_profile(...,reconstructed_geometry=True)).
+  Actual full/short Sonic input then creates a field on body/static collision.
+  Unimpacted range/lifetime expiry creates none. Interpret6 as seconds and9 as
+  a sphere-to-capsule radius; continuous search ignores static walls and excludes
+  allies/dead actors. These geometry/filter/cadence choices are reconstructed.
+- Execute only010E/node9's real Stack of entity flag7982 on selected player/NPC
+  bodies. Keep one owned provider per field/target; expiry/range exit/source
+  leave unlinks that provider, preserving overlapping providers and prior base.
+  Complete010E start/stop messages, score, effects and native filtering are not
+  executed. Combat.revealed_to projects the current host state by source team
+  (source owner only in FFA); it does not establish client highlight replication.
+- Body hits follow a feet-relative impact offset; a missing/replaced body freezes
+  the last point. This is not bone/rotation/ragdoll attachment. Source death
+  leaves an existing field active; source leave removes it. Lifetime uses the
+  original collision clock across skipped updates. Current code does not add a
+  lingering pulse tail or claim native refresh/phase semantics.
+- Nine scenarios cover both projectile definitions, actual flags/damage on all
+  five Talon bodies, wall reveal without direct damage, faction/viewer scope,
+  capsule range exit/reentry, movement/body replacement, expiry/death/leave,
+  overlap/base preservation, live flag-instance snapshot references and a
+  no-impact expiry. Profile/field clock changes alter stored-state digests.
+- Normal startup mounting, native tag/filter/radius/cadence semantics, full
+  cooldown/cancel and defensive matrix, all effect/audio/status/HUD/markers and
+  original-client agreement remain OPEN. This is partial static evidence.
+
 Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
 - The literal1s/1.2s phases on0101 nodes29/37 now expire in the permissive body
   path. This is reconstructed server timing, not native54FEB21C semantics.
@@ -192,7 +222,7 @@ Bow draw/release/body damage         P      P       P        P      P        P
 Bow headshot/shield/armour rules      O      O       O        O      O        O
 Storm count/body damage/death        P      P       P        P      P        P
 Sonic direct damage                  P      P       P        P      P        P
-Sonic reveal/faction/attachment       O      O       O        O      O        O
+Sonic reveal/faction/attachment       P      P       P        P      P        P
 Quick melee                          P      P       P        P      P        P
 Dragonstrike arrow/moving damage     P      P       P        P      P        P
 Dragonstrike full interaction matrix O      O       O        O      O        O
