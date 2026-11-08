@@ -1,0 +1,164 @@
+"""Sombra's real extracted body in a modeled Match; no original-client acceptance implied."""
+
+import unittest
+
+from test_game_combat import KANEZAKA_DM, Run, aim
+
+from ow174.game import combat, stats
+from ow174.game.collision import World
+from ow174.game.commands import FIRE
+from ow174.game.content import heroes
+from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, SHIELDS_POOL
+
+SOMBRA = 0x02E000000000012E
+MELEE, RELOAD = 0x800, 0x400
+
+
+class SombraCombatTests(unittest.TestCase):
+    def setUp(self):
+        self.run = Run(KANEZAKA_DM, ("Sombra", "Enemy"))
+        self.a, self.b = self.run.players
+        match = self.run.match
+        match.bots.clear()
+        match.switch_hero(self.a, heroes()[SOMBRA])
+        # Fixed geometry makes weapon tests independent of map spawn ordering.
+        self.a.mover.position[:] = [0.0, 0.0, 0.0]
+        self.b.mover.position[:] = [0.0, 0.0, 1.5]
+        self.floor = [(-10, 0, -10, -10, 0, 100, 10, 0, 100),
+                      (-10, 0, -10, 10, 0, 100, 10, 0, -10)]
+        self.geometry()
+        for _ in range(50):
+            self.run.step({})
+
+    def geometry(self, *triangles):
+        self.run.match.collision_world = World(self.floor + list(triangles))
+        for player in self.run.players:
+            player.mover.use(world=self.run.match.collision_world)
+
+    def wall(self):
+        self.geometry((-3, 0, 0.75, 3, 0, 0.75, 3, 4, 0.75),
+                      (-3, 0, 0.75, 3, 4, 0.75, -3, 4, 0.75))
+
+    def press(self, buttons, frames=1, shooter=None, target=None):
+        shooter, target = shooter or self.a, target or self.b
+        x, y, z = target.mover.position
+        yaw, pitch = aim(self.run.match.combat._eye(shooter), (x, y + 1, z))
+        for _ in range(frames):
+            self.run.step({shooter: (yaw, pitch, buttons)})
+
+    def health(self, player):
+        fight = self.run.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        return fight.vitals_of(target).total
+
+    def weapon(self):
+        return next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0B1B)
+
+    def test_machine_pistol_uses_authored_damage_rate_and_ammunition(self):
+        self.press(FIRE, 30)
+        self.assertEqual(self.health(self.b), 120)
+        self.assertEqual(self.weapon().vars[53].value(), 50)
+        hits = self.a.client.messages(combat.HIT)
+        self.assertEqual([h["+0x78"]["+0x4"] for h in hits], [8] * 10)
+        self.assertEqual(self.a.stats.value(stats.HERO_DAMAGE), 80)
+        self.assertEqual(hits[-1]["+0x84"] - hits[0]["+0x84"], 28)
+
+    def test_release_stops_pistol_and_reload_restores_magazine(self):
+        self.press(FIRE, 15)
+        self.press(0, 3)
+        hp, ammo = self.health(self.b), self.weapon().vars[53].value()
+        self.press(0, 40)
+        self.assertEqual((self.health(self.b), self.weapon().vars[53].value()), (hp, ammo))
+        self.press(RELOAD)
+        self.press(0, 130)
+        self.assertEqual(self.weapon().vars[53].value(), 60)
+        self.assertEqual(self.health(self.b), hp)
+
+    def test_enemy_player_can_damage_and_kill_sombra_and_dead_body_cannot_fire(self):
+        self.press(FIRE, 80, self.b, self.a)
+        self.assertTrue(self.run.match.combat.is_dead(self.a))
+        self.assertEqual(self.health(self.a), 0)
+        self.assertTrue(self.a.body_script.component.owner_dead)
+        self.assertEqual(self.a.movement().flags & combat.DEAD, combat.DEAD)
+        before = self.health(self.b)
+        self.press(FIRE, 30)
+        self.assertEqual(self.health(self.b), before)
+        self.assertEqual(len(self.a.client.messages(combat.DEATH_NOTICE)), 1)
+
+    def test_melee_hits_once_per_activation(self):
+        self.press(MELEE)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.b), 170)
+        self.assertEqual(self.run.match.combat.vitals[self.b.body].now[HEALTH_POOL], 170)
+        self.press(MELEE)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.b), 140)
+
+    def test_static_wall_blocks_pistol(self):
+        self.wall()
+        self.press(FIRE, 30)
+        self.assertEqual(self.health(self.b), 200)
+        self.assertEqual(self.a.client.messages(combat.HIT), [])
+
+    def test_static_wall_blocks_melee(self):
+        self.wall()
+        self.press(MELEE)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.b), 200)
+        self.assertEqual(self.a.client.messages(combat.HIT), [])
+
+    def test_melee_does_not_trace_beyond_the_target(self):
+        self.geometry((-3, 0, 2.5, 3, 0, 2.5, 3, 4, 2.5),
+                      (-3, 0, 2.5, 3, 4, 2.5, -3, 4, 2.5))
+        self.press(MELEE)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.b), 170)
+
+    def test_machine_pistol_falloff_reaches_authored_floor(self):
+        self.b.mover.position[:] = [0.0, 0.0, 40.0]
+        self.b.mover.body = None  # rebuild the fixture's physics capsule at its new position
+        self.press(0, 3)
+        self.press(FIRE)
+        self.press(0, 3)
+        self.assertAlmostEqual(self.health(self.b), 200 - 8 * 0.3, places=6)
+        self.assertEqual(self.weapon().vars[53].value(), 59)
+
+    def test_machine_pistol_removes_enemy_shields_before_health(self):
+        self.run.match.switch_hero(self.b, heroes()[0x02E0000000000020])  # Zenyatta
+        self.b.mover.position[:] = [0.0, 0.0, 1.5]
+        self.press(0, 50)
+        self.press(FIRE)
+        self.press(0, 3)
+        vitals = self.run.match.combat.vitals[self.b.body]
+        self.assertEqual(vitals.now[HEALTH_POOL], 50)
+        self.assertEqual(vitals.now[SHIELDS_POOL], 142)
+
+    def test_machine_pistol_low_damage_is_halved_by_enemy_armour(self):
+        self.run.match.switch_hero(self.b, heroes()[0x02E0000000000006])  # Torbjorn
+        self.b.mover.position[:] = [0.0, 0.0, 1.5]
+        self.press(0, 50)
+        fight = self.run.match.combat
+        target = next(t for t in fight._targets() if t.owner is self.b)
+        vitals = fight.vitals_of(target)
+        before = dict(vitals.now)
+        self.assertGreater(before[ARMOUR_POOL], 0)
+        self.press(FIRE)
+        self.press(0, 3)
+        self.assertEqual(vitals.now[ARMOUR_POOL], before[ARMOUR_POOL] - 4)
+        self.assertEqual(vitals.now[HEALTH_POOL], before[HEALTH_POOL])
+
+    def test_allied_player_is_not_damaged(self):
+        self.run.match.game_map = KANEZAKA_DM.__class__(**{
+            **KANEZAKA_DM.__dict__, "free_for_all": False,
+        })
+        self.b.team = self.a.team
+        self.press(FIRE, 30)
+        self.press(0, 3)
+        self.press(MELEE)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.b), 200)
+        self.assertEqual(self.a.client.messages(combat.HIT), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

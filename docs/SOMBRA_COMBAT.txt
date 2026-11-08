@@ -1,0 +1,89 @@
+Sombra combat restoration -- OPEN
+Target: 1.74.0.0.104319; hero02E000000000012E; body040000000000121C.
+
+Evidence scope
+--------------
+The eleven tests in tests/test_game_sombra_combat.py run the extracted Sombra
+graphs in a real Match, consume command/button input and assert health, ammo,
+notices, death flags and statistics. FakeClient acknowledges delivery immediately;
+this is offline server behavior, not a native-client presentation/transport proof.
+No live client session was acquired for this change. No skill is fully accepted.
+
+Extracted body roots: 0033,004B,0043,0B1A,0B31,0C19,0C9B,08B6.
+Weapon manager0015; Machine Pistol0B1B. Button37 in0B31 is EMP; button36
+in0C19 is Translocator; button35 in0C9B is Thermoptic Camo. Hack is in
+the secondary-fire portion of0B1B (button29). These identities are inferred from
+the authored bindings, not separately verified in a native client here.
+
+Acceptance matrix
+-----------------
+O = offline partial evidence only; - = open/no evidence. Every cell still needs
+original-client acceptance. NPC means the actual named combat actor, not a
+Training Bot relabelled as one.
+
+Feature                      Enemy player Trooper Enforcer Sniper Assassin Heavy
+Machine Pistol body damage        O          -       -       -       -       -
+Machine Pistol ammo/reload        O          -       -       -       -       -
+Machine Pistol range/falloff      O          -       -       -       -       -
+Machine Pistol headshots          -          -       -       -       -       -
+Quick melee/repeated activation   O          -       -       -       -       -
+Taking damage/death/dead fire     O          -       -       -       -       -
+Hack/channel/interrupt/lockout    -          -       -       -       -       -
+Camo/speed/visibility/reveal      -          -       -       -       -       -
+Translocator/flight/recall        -          -       -       -       -       -
+EMP/charge/cast/hack/pool effects -          -       -       -       -       -
+Opportunist/passive detection     -          -       -       -       -       -
+Manual NPC corpse persistence   n/a          -       -       -       -       -
+
+Additional applicable interactions:
+- O: offensive pistol and melee ignore same-team player in a team mode.
+- O: one pistol round removes 8 from Zenyatta shields, preserves health.
+- O: one pistol round removes 4 from Torbjorn armour, preserves health.
+- O: static wall blocks pistol and quick melee; a wall behind the melee target
+  does not block the hit. Unobstructed melee deals30 once per activation.
+- Open: dynamic barriers, Deflect, Defense Matrix, invulnerability, cleanse,
+  control/status stacking, interruption, assists, shield regeneration and ult gain.
+- Open: health-pack Hack/cooldown/team access. No support skill is converted
+  into enemy damage and no ally-target filter is widened by this change.
+- Open: actual owner/observer HUD, reticle, beam, visibility, animation, sound,
+  hit/kill feed delivery and prediction agreement in the original client.
+
+Authored data versus reconstruction
+----------------------------------
+Weapon data evaluates to 8 damage, 20 shots/s, 60 rounds; falloff15..35m to0.3.
+The tests observe ten8-point body hits and ten rounds spent over30 input frames,
+and one2.4-point hit past35m. The existing linear falloff, capsule hitbox and
+armour half-damage rule are reconstructed and still need retail verification.
+The head critical multiplier in this volley's extracted m_A872C70E is null;
+the current fallback is1.0. A passing body-damage test does not prove headshots.
+Native default/enable-bit semantics must be resolved before accepting head damage.
+
+The shared melee fix adds a static ray to the rewound capsule's nearest surface
+along its axis. It uses existing collision geometry, not a fabricated game asset.
+This is a reconstructed visibility policy. The original melee volume, partial
+cover, dynamic barriers and native-client agreement remain open.
+
+Implementation blockers
+-----------------------
+nodes.TrackTargets currently returns an empty tuple and performs no acquisition.
+Sombra0B1B has three such states; EMP0B31/node40 and Camo0C9B/node128 also
+contain searches. Their full filters, outputs, timing and engine role policy
+cannot be replaced by a generic enemy-in-radius loop without losing authored
+health-pack, immunity and status semantics. The legacy passive-State fallback
+does not prove the additional entity/status actions have any server effect.
+Combat._damage currently has no hero barrier, reflection, absorption or immunity
+service. It changes pools directly. Those cross-hero requirements are unaccepted.
+The parent owns actual five-NPC creation/control; its integration is still open
+at this lane's baseline. The existing retain_corpse opt-in alone is not five-NPC
+combat acceptance. No client or normal service was controlled by this lane.
+
+Reproduce offline tests (PowerShell, from this lane's source directory)
+--------------------------------------------------------------------
+$env:ORPHEUS_RUNTIME_DIR='D:\overwatch 1.7.4\runtime-104319'
+$env:PYTHONPATH=(Get-Location).Path+';'+(Join-Path (Get-Location) 'tests')
+& 'D:\overwatch 1.7.4\ORPHEUS\.venv\Scripts\python.exe' -B -m unittest `
+  test_game_sombra_combat test_game_combat test_game_bot_statescript -q
+
+External runtime data is read-only; cwd and PYTHONPATH must name this clone.
+Do not publish game resources, local graph dumps, captures or logs. Integration
+is by reviewed commit/patch only; no direct root-main edit, merge or manual push.

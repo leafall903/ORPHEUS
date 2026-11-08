@@ -457,15 +457,29 @@ class Combat:
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
-            centre = _along(self._eye(player), aim(*command.aim()), reach)
+            origin = self._eye(player)
+            centre = _along(origin, aim(*command.aim()), reach)
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
-                    self._damage(player, target, amount, False, loadout, command.frame)
+                if segment_distance(centre, a, b) - shown.radius > radius or amount <= 0.0:
+                    continue
+                # Reconstructed capsule visibility: test the nearest surface along the
+                # ray to the capsule axis, using the same rewound pose as the reach test.
+                # This is static occlusion only; hero barriers remain a separate service.
+                nearest = (a[0], max(a[1], min(b[1], origin[1])), a[2])
+                offset = _sub(nearest, origin)
+                distance = math.sqrt(_dot(offset, offset))
+                length = distance - shown.radius
+                if length > EPSILON:
+                    direction = tuple(axis / distance for axis in offset)
+                    wall = ray_world(self._collision(), origin, direction, length)
+                    if wall is not None and wall < length:
+                        continue
+                self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The

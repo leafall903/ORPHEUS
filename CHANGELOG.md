@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Sombra combat baseline and static melee occlusion
+
+- Reject quick melee through static collision between the eye and the rewound
+  target capsule. Preserve clear melee and do not trace beyond the target. This
+  is a reconstructed server visibility policy; original-client fidelity is open.
+- Add eleven Sombra Match behavior scenarios for extracted pistol damage/rate,
+  ammunition/reload, falloff, melee activation, static occlusion, allied exclusion,
+  enemy shield/armour pools, taking player damage, death and dead-body fire.
+- Pass 61 combined Sombra/combat/NPC-script regressions. Ruff and diff checks pass.
+- Keep complete Sombra restoration unchecked. Hack target acquisition, Camo,
+  Translocator, EMP, headshots, dynamic defenses, five actual NPC opponents and
+  native owner/observer presentation remain open. See docs/SOMBRA_COMBAT.txt.
+- No original-client session, normal-service deployment or publication is claimed.
+  This private lane supplies a reviewed local commit/patch; parent integration and
+  audited publication are separate under the lane's no-push instruction.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.
