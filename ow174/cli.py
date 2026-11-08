@@ -139,7 +139,38 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--data-dir", type=Path, help="keep profiles and logs in this folder instead (the tests use it)"
     )
+    parser.add_argument(
+        "--reconstructed-hanzo-sonic-profile", type=Path,
+        help="external Sonic profile; opt into reconstructed search/attachment geometry",
+    )
+    parser.add_argument(
+        "--reconstructed-hanzo-dragon-profile", type=Path,
+        help="external Dragonstrike profile; opt into reconstructed volume/damage-rate units",
+    )
     return parser.parse_args(argv)
+
+
+def _combat_profiles(args):
+    sonic_path = args.reconstructed_hanzo_sonic_profile
+    dragon_path = args.reconstructed_hanzo_dragon_profile
+    if sonic_path is None and dragon_path is None:
+        return None
+    if args.mode in ("join", "join-tournament") or args.game_port <= 0:
+        raise LaunchError("Reconstructed Hanzo profiles require a local game server (--game-port > 0).")
+    from ow174.game import dragon, sonic
+    from ow174.game.combat_profiles import Profiles
+
+    try:
+        return Profiles(
+            sonic=None if sonic_path is None else sonic.load_profile(
+                sonic_path, reconstructed_geometry=True,
+            ),
+            dragon=None if dragon_path is None else dragon.load_profile(
+                dragon_path, reconstructed_rates=True,
+            ),
+        )
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LaunchError(f"Invalid reconstructed Hanzo profile: {error}") from error
 
 
 def ask_mode() -> str:
@@ -249,6 +280,7 @@ def run(args: argparse.Namespace) -> None:
         raise LaunchError("--no-launch runs host services and cannot be used with a join mode.")
     if args.no_launch and args.game_exe is not None:
         raise LaunchError("--game-exe selects a client to launch and cannot be used with --no-launch.")
+    combat_profiles = _combat_profiles(args)
     if args.mode == "join":
         join(args)
         return
@@ -274,6 +306,7 @@ def run(args: argparse.Namespace) -> None:
         test_players=max(0, args.test_players),
         paths=_paths(args),
         build_missing_collision=launches_game,
+        combat_profiles=combat_profiles,
     )
     game = relay = None
     if launches_game:

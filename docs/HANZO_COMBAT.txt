@@ -32,7 +32,7 @@ Observed through ordinary Match input and health pools (test_game_hanzo.py):
   Remaining cancel/interruption/HUD cases are OPEN.
 - Sonic Arrow: Shift selects0149/state53 and deals125 direct damage. An explicit
   external profile now hosts partial attachment/reveal below; native filters,
-  cadence, full cooldown/cancellation and client projection remain OPEN.
+  cadence, complete control/defensive interactions and client projection remain OPEN.
 - Quick melee:30 damage, one hit notice for one activation; an intervening wall
   blocks damage while a wall beyond the target does not.
 - Incoming Soldier rifle:20 damage per body hit, eventual Hanzo death; a dead
@@ -141,9 +141,36 @@ Explicit Sonic Arrow impact/reveal host (test_game_hanzo_sonic.py):
   capsule range exit/reentry, movement/body replacement, expiry/death/leave,
   overlap/base preservation, live flag-instance snapshot references and a
   no-impact expiry. Profile/field clock changes alter stored-state digests.
-- Normal startup mounting, native tag/filter/radius/cadence semantics, full
-  cooldown/cancel and defensive matrix, all effect/audio/status/HUD/markers and
+- Native tag/filter/radius/cadence semantics, complete control/defensive
+  matrix, all effect/audio/status/HUD/markers and
   original-client agreement remain OPEN. This is partial static evidence.
+
+Sonic cooldown/cancel boundaries (test_game_hanzo_sonic_cooldown.py):
+- Actual00C1/00B9 input toggles preparation off without cooldown; secondary or
+  reload cancels a drawn arrow but retains the prepared Sonic selection. Only
+  release starts the authored12s cooldown. A subsequent fresh draw works.
+- A far-early short press expires and does not activate at cooldown completion.
+  An80ms-early press waits until completion, within the authored150ms buffer;
+  a fresh post-deadline press also works. Neither releases an extra arrow.
+- Death during preparation prevents old-body release; an explicit body replacement
+  starts with no preparation/cooldown and can fire again. These five cases pass
+  both with and without the optional reveal host; they exercise resource scripts.
+
+Explicit normal-server configuration (test_game_hanzo_profiles.py):
+- Supply --reconstructed-hanzo-sonic-profile PATH and/or
+  --reconstructed-hanzo-dragon-profile PATH when hosting a local game server.
+  The option names explicitly select the reconstructed policies described here.
+  Read/validate each external JSON before client, profile or service work, then
+  pass the loaded values through Settings/LobbyServer/GameServer into every new
+  match before players are added. No per-match file reads or runtime writes.
+- Omitted options leave both hosts disabled, even when test environment variables
+  exist. Join modes and --game-port0 reject local host profiles. Invalid JSON,
+  missing files and mismatched profiles raise a startup error before binding.
+- The actual normal creation path executes Sonic damage/reveal and continuing
+  dragon damage in headless matches. Future-match profile values and source
+  fingerprints participate in stored snapshots. Controlled journal sessions
+  retain their default no-profile configuration; configured journal recording
+  and original-client service deployment have not been accepted.
 
 Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
 - The literal1s/1.2s phases on0101 nodes29/37 now expire in the permissive body
@@ -166,7 +193,7 @@ Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
 Explicit reconstructed moving dragons (test_game_hanzo_dragons.py):
 - Load the separately extracted JSON using dragon.load_profile(path,
   reconstructed_rates=True), then call match.combat.configure_dragonstrike(profile)
-  before active projectiles. No profile is mounted by normal startup yet. The
+  before active projectiles, or use the explicit normal-server option above. The
   server host requires no game archive/DLL at runtime. JSON/source data stays
   outside Git and outside the shared normal runtime.
 - Initial034F uses the source hit-limit literal99 as reconstructed body piercing:
@@ -190,7 +217,7 @@ Explicit reconstructed moving dragons (test_game_hanzo_dragons.py):
   retention continue through the existing NPC death path.
 - Profile values, source identity, birth time, hit identities and flight age are
   registered in stored state. Changes to profile/age change the snapshot digest.
-- Remaining: normal startup/profile mounting, client dragon entities/effects,
+- Remaining: client dragon entities/effects,
   native volume/rate/refresh fidelity, moving-target catch-up fidelity, armour
   cadence and barrier/reflect/absorb/invulnerability/control interactions. This
   does not establish complete Dragonstrike or full static hero acceptance.
@@ -238,7 +265,7 @@ Concrete blockers:
 - Dragonstrike's initial arrow and explicit reconstructed moving damage now
   execute. Native entities/effects, rate/volume/refresh fidelity, charge rules
   and the defensive/status matrix remain open. The host must be configured
-  with the separate external profile; normal startup is not wired yet.
+  with the separate external profile using the explicit startup option above.
   Read-only research now identifies034F's missing graph0BA6, which creates
   entity02BA and plays0132 on it. Both graph records were extracted under lane
   storage for further research, never written to the shared runtime or Git.

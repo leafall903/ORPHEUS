@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Explicit Hanzo startup profiles and Sonic cooldown boundaries
+
+- Add opt-in reconstructed Sonic/dragon profile CLI options. Validate external
+  inputs before client/profile/service work, pass loaded values through the
+  lobby to every new GameServer match, and register future-match configuration
+  in stored snapshots. Defaults do not auto-load test environment profiles.
+- Five actual00C1/00B9 cases cover preparation toggle, secondary/reload draw
+  cancellation,12s cooldown refusal/reuse, expired and150ms-buffered input,
+  and dead-body suppression/replacement. They pass with and without reveal hosting.
+- Five startup cases cover default/invalid/unsupported configurations, actual
+  CLI/lobby/server-created Sonic/dragon behavior and stored configuration hashes.
+  Pass627 game tests,54 VM/server snapshot/journal tests and32 focused startup/CLI
+  checks; Ruff/diff checks pass. Full static and original-client
+  acceptance remain OPEN; no parent integration or normal-service deployment.
+
 #### Explicit Sonic Arrow attachment and authored reveal stacks
 
 - Extract an external0149/020D ->00C3 ->003E.053 ->010E profile, validating

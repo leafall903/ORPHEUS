@@ -1035,12 +1035,14 @@ class GameServer:
         collision_provider_factory=None,
         scene_host_factory=None,
         on_clock_ready=None,
+        combat_profiles=None,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         # None preserves the default per-match asynchronous provider. Explicit factories support
         # controlled server replay and isolated scenes without patching global collision state.
         self.collision_provider_factory = collision_provider_factory
         self.scene_host_factory = scene_host_factory
+        self.combat_profiles = combat_profiles
         self.host = host
         self.port = port
         self.on_leave = on_leave  # called with each player who leaves a match
@@ -1103,6 +1105,8 @@ class GameServer:
                 ),
                 scene_host_factory=self.scene_host_factory,
             )
+            if self.combat_profiles is not None:
+                self.combat_profiles.configure(match.combat)
             handoffs = [self._add_player(match, entry) for entry in players]
             self.matches.append(match)
         names = ", ".join(player.describe() for player in match.players)

@@ -19,6 +19,7 @@ from pathlib import Path
 from ow174.game import (
     bots,
     combat,
+    combat_profiles,
     correction,
     dragon,
     hanzo_movement,
@@ -72,7 +73,7 @@ def _names(text):
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
-                       "on_leave on_join on_clock_ready "
+                       "on_leave on_join on_clock_ready combat_profiles "
                        "skin_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
@@ -142,6 +143,7 @@ DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     dragon.Profile, dragon.Flight, hanzo_movement.Climb, sonic.Profile, sonic.Beacon,
+    combat_profiles.Profiles,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
