@@ -24,6 +24,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   miss/team/wall tests; Breather cooldown rejection/expiry also has evidence.
   Whole Hog's16-pellet path now executes charge consumption, repeated damage,
   end, uncharged rejection and death cancellation with miss/team/wall regressions.
+  Explicit external five-Talon inputs now cover weapon/melee/ultimate damage and
+  retained-death bodies for all five, plus one admitted Heavy Assault volley into
+  Roadhog. AI acquisition, other four incoming attacks, skills and full two-way
+  interaction remain open; base pools are not complete authored difficulty totals.
   Native spread, full cooldown/status/defense/NPC matrix and complete hero acceptance
   stay open. Original-client acceptance is separate from the static goal.
 

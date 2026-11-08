@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: five authored NPC body damage and corpse regressions
+
+- Read the external five-Talon catalog and graph bundle explicitly; copy no
+  runtime data into the lane. Test ordinary real-command primary, slug, melee
+  and charged Whole Hog damage against all five actual body definitions.
+  Verify shield pools as type2 and retain the catalog's base-pool limitation.
+- Kill each near-death NPC through ordinary primary fire, observe death callback
+  dispatch and keep its original entity/pools/corpse past the respawn deadline.
+  Keep the actual NPC body scripts; fixture transport records their death events.
+- An explicit admission of Heavy Assault's authored5-damage volley through the
+  NPC source path reduces Roadhog600->595. This is not AI acquisition/fire-control
+  acceptance. Trooper/Enforcer evaluated damage is still0 without their dynamic
+  services; Sniper/Assassin lack an admitted attack in these fixtures. All-five
+  bidirectional AI, skills and original-client corpse presentation remain open.
+- Parent a15d554 is included only in the private lane. Its extraction/catalog
+  merge check passed9 tests (the merge message's10 is a counting typo).
+- Pass131 related tests with explicit NPC inputs, plus Ruff and diff checks.
+  Static-combat goal remains active; no original-client or publication claim.
+
 #### Roadhog lane: Whole Hog pellets and resource lifecycle
 
 - Trace real FIRE/secondary/Q input: 01C6/node26 is primary, node29 the slug,
