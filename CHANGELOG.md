@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zarya actual five-NPC combat fixtures (partial static acceptance)
+
+- Review and import the parent manual-NPC lifecycle/catalog commits with original
+  authorship. Add an opt-in external-data suite that loads all five actual body
+  scripts, exercises primary60/secondary47/melee30, ally exclusion, projected
+  protection and shortened lethal/retained-corpse behavior. Keep normal runtime
+  and external data immutable; do not substitute renamed training actors.
+- Exercise actual Trooper/Heavy weapon graphs with explicit logical input: their
+  volleys damage Zarya and are intercepted by the personal barrier. This is not
+  autonomous AI acceptance. Enforcer/Sniper/Assassin attacks, all five specials,
+  conditional/difficulty pools, full ultimate and cross-defense matrix stay open.
+- Pass18 NPC/body/lifecycle/catalog tests, including nine new methods with39
+  executed sub-scenarios; the expanded combined suite passes197 tests in76.436s.
+  Ruff/diff pass. The complete static goal stays ACTIVE;
+  native-client acceptance and completion-triggered shared-main merge remain open.
+
 #### Zarya projected barrier target and damage services (partial static acceptance)
 
 - Supply the two authored025C target searches through an optional host callback.

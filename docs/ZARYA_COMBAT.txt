@@ -71,25 +71,37 @@ cleanse/control immunity remain open.
 Required combat matrix
 ----------------------
 Operation             Enemy player    Enemy NPC         Ally semantics
-Primary beam          Damage tested   Training bot only  No damage tested
-Secondary projectile  Damage tested   OPEN              No friendly fire via shared filter
-Quick melee           30 once tested  OPEN              No friendly fire via shared filter
-Personal barrier      HP/time/CD      OPEN              Self protection only, no damage conversion
+Primary beam          Damage tested   Five base bodies  No damage tested
+Secondary projectile  Damage tested   Five bodies:47    No friendly fire tested
+Quick melee           30 once tested  Five bodies:30    No friendly fire tested
+Personal barrier      HP/time/CD      Trooper/Heavy     Self protection only, no damage conversion
                       model tests
-Projected barrier     HP/time/CD/     OPEN              Ally selection/protection; never enemy damage
+Projected barrier     HP/time/CD/     Allied five       Ally selection/protection; never enemy damage
                       target tests
 Energy passive        Absorb/cap/     OPEN              Both barrier sources; HUD OPEN
                       decay model
 Graviton Surge        OPEN            OPEN              Enemy pull/control; allies excluded required
-Incoming attacks      Rifle->shields  OPEN              Healing retains allied semantics
-Death/lifetime        Stops beam      Training bot      Manual NPCs retain corpse; player respawn separate
-                                      retained corpse
+Incoming attacks      Rifle->shields  Trooper/Heavy     Healing retains allied semantics
+Death/lifetime        Stops beam      Five bodies       Manual NPCs retain corpse; player respawn separate
+                                      shortened lethal
 
-The NPC column requires separate native-backed cases for Trooper, Enforcer,
-Sniper, Assassin and Heavy Assault. The current ai_spawners catalog only exposes
-training/friendly bots; none of these five types is accepted by this test.
-Parent lane owns the five-type spawner/control entry point. No local fake renaming
-of training bots is used as evidence for those types.
+The opt-in five-NPC fixture reads a separate external catalog and graph bundle.
+All bodies retain the actual Trooper, Enforcer, Sniper, Assassin and Heavy Assault
+hero/body GUIDs and loaded body scripts. Parent lifecycle/catalog commits c2d3ae1
+and a15d554 are reviewed imports; the normal runtime is unchanged and read-only.
+The fixture checks supplied base pools, not difficulty/conditional extra pools.
+No training bot is renamed as a Talon enemy.
+
+Nine test methods execute39 sub-scenarios across these definitions: primary60
+damage over .8s, secondary47, melee30, allied exclusion, projected protection,
+and lethal beam with retained corpses. Lethal setup reduces the live pool to1
+before the actual final shot; this is not evidence of a full-health Heavy kill.
+The delivery-model client records native-body death callbacks but does not prove
+wire rendering. Trooper and Heavy use explicit logical20 input on their actual
+weapon graphs; their volleys remove120/110 from Zarya over120 frames respectively,
+and the personal barrier blocks them and generates energy. The fixture does not
+implement autonomous acquisition/navigation. Enforcer/Sniper/Assassin did not
+produce damage under that input; their attacks and all five specials remain OPEN.
 
 Cross-hero matrix still OPEN: barriers and shield entities; reflect vs beam and
 projectile; absorption/deletion; invulnerability; stun/interrupt/cleanse; Graviton
@@ -115,6 +127,11 @@ Body VM snapshots include command aim and target-list execution state explicitly
 unknown stored fields remain rejected. Broader runtime/codec regression is recorded
 with the corresponding lane commit rather than claimed from target cases alone.
 The expanded combat/runtime/codec/snapshot run passes179 tests in68.421 seconds.
+The separate five-NPC/lifecycle/catalog run passes18 tests in11.188 seconds.
+The combined body/NPC/combat/runtime/codec/snapshot run passes197 tests in76.436s.
+Opt in with ORPHEUS_ZARYA_NPC_DATA pointing to the external data directory; skipped
+tests without that data do not count as five-NPC acceptance. Input hashes are
+stored in the independent lane verification directory rather than shipping assets.
 Ruff and git diff --check pass. These are headless tests, not original-client proof.
 
 The independent goal remains ACTIVE until ALL static matrix items pass. This
