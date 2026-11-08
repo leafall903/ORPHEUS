@@ -1,5 +1,17 @@
 # Changelog
 
+### Torbjorn lane: command-driven hammer damage
+
+- Bridge active168C swing13 to the authored55damage definition using the
+  evaluated swing duration and0.42 threshold, once per activation. Reconstruct
+  its local sphere/capsule query and require static line of sight and enemies.
+- Pass five hammer tests for delayed hit, repeated swing cadence, miss/range/
+  team filtering, real triangle-wall occlusion and pre-impact holster/death.
+  Pass89 related tests, Ruff and diff checks. Repair, native animation-event
+  parity, cross-hero protections, five-NPC and client acceptance remain open.
+- Preserve the native graph's unsupported threshold lifecycle; the bridge is
+  explicitly reconstructed and does not claim native event completion.
+
 ### Torbjorn lane: ten-pellet radial launch reconstruction
 
 - Expand unpredicted613BDDB0 launches using authored radius/count rings and

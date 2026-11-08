@@ -43,8 +43,11 @@ Secondary rivets   Ten projectiles now follow the authored613BDDB0 rings:
 Quick melee        Existing 0043/st4 approximation; Torbjorn-specific client,
                    NPC, barrier/control/immune/death acceptance OPEN.
 Forge Hammer       168C/st6 declares55 damage and st5 tracks around a local
-                   (0,1.2,1.5) centre with radius1. Current combat only consumes
-                   0043 melee. Weapon-switch/animation and hammer damage OPEN.
+                   (0,1.2,1.5) centre with radius1. Command-driven damage now
+                   uses active swing13 and duration*threshold0.42 as an explicit
+                   substitute for unimplemented native54FEB21C. Delay, repeated
+                   swing cadence, misses/range/team/LOS and holster/death cancel
+                   pass; native animation timing and five-NPC interactions OPEN.
 Hammer repair      Friendly owned turret repair is distinct from enemy damage;
                    turret target/query/health ownership OPEN. Never heal enemies.
 Deploy Turret      16C5 projectile28B7 confirmation exists; no persistent combat
@@ -77,6 +80,7 @@ Run from this clone with ORPHEUS_RUNTIME_DIR pointing to runtime-104319 and
 PYTHONPATH pointing to this clone and its tests directory:
   python -B -m unittest test_game_torbjorn -v
   python -B -m unittest test_game_projectile_motion -v
+  python -B -m unittest test_game_torbjorn_hammer -v
   python -B -m unittest test_game_combat test_game_projectiles test_game_health -q
 
 The external source venv lacks pytest; unittest is the working runner. No
@@ -98,3 +102,11 @@ and same-team targets take no damage, and a real secondary command consumes two
 ammo once for its ten pellets. Unknown92308789/391F15AF angular behavior and
 native spread seeding are not claimed. Expansion is limited to unpredicted ring
 launches; predicted multi-projectile lease allocation remains outside this fix.
+
+Five hammer tests run actual switch/attack commands. First damage occurs only
+after the authored0.75s swing's0.42 threshold (rounded to the next16ms frame),
+then55 once per activation. Held fire yields two hits47frames apart in100frames.
+A real World triangle wall blocks damage; misses, beyond-range and friendly
+targets lose no health. Holstering/death before impact cancels damage. The
+bridge does not fake completion of the native graph threshold state, and does
+not implement turret repair or native event/animation effects.

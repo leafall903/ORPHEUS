@@ -50,7 +50,17 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectile_patterns, projectiles, stats, voicelines, world
+from ow174.game import (
+    bots,
+    hero_torbjorn,
+    observers,
+    pools,
+    projectile_patterns,
+    projectiles,
+    stats,
+    voicelines,
+    world,
+)
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -432,6 +442,7 @@ class Combat:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         try:
             self._melee(player, command, script)
+            hero_torbjorn.hammer(self, player, command, script)
         except Exception:
             log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
 
