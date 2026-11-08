@@ -321,6 +321,9 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        from ow174.game.mover import pharah_thrust
+
+        pharah_thrust(self, seconds)
         script = self.body_script
         requests = []
         if script is not None:

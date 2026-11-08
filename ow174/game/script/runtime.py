@@ -388,6 +388,10 @@ class World:
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def velocity_action(self, instance: "Instance", node: Node):
+        """Optional body mover adapter; unknown semantics must remain explicit."""
+        return NotImplemented
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 

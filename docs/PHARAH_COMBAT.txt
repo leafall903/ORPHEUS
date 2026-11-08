@@ -3,7 +3,7 @@ Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
 Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
 
 Evidence boundary
-Seven tests in tests/test_pharah_combat.py use real Match, player input,
+24 tests in tests/test_pharah*.py use real Match, player input,
 the extracted body graphs and Combat damage/death. They do not substitute
 hand-authored weapon definitions. They are headless server tests, not native
 client or five-PvE-NPC acceptance. Existing native VM proofs are not acceptance.
@@ -12,26 +12,29 @@ Weapon/ability matrix
 Action               Enemy player          Five enemy NPCs          Client
 Rocket Launcher      partial offline       OPEN                    OPEN
   0023               40 direct + 80 blast; no projectile headshot; second hit
-                     kills; ally body receives no damage. Range, reload,
-                     self-damage, knockback and all ability defenses OPEN.
-Quick melee 0043     OPEN                  OPEN                    OPEN
-Jump Jet 0027        OPEN: velocity action FF3471E9 not applied       OPEN
-Hover Jets 0025      OPEN: fuel/input/movement behavior               OPEN
-Concussive 007B      OPEN: projectile exists; knockback not applied   OPEN
-Barrage 002B         OPEN: charge/channel/motions/damage fidelity     OPEN
+                     kills; allies excluded; ammo/reload/range and armor/shield
+                     pools tested. Full edge/defense matrix remains OPEN.
+Quick melee 0043     partial: hit/miss/wall/recast                    OPEN
+Jump Jet 0027        partial: impulse/motion/cooldown/input buffer    OPEN
+Hover Jets 0025      partial: lift/fuel/recharge/empty/cap             OPEN
+Concussive 007B      partial: enemy/self push, zero damage/LOS/ally   OPEN
+Barrage 002B         partial: channel stops passive charge           OPEN
 Incoming attacks     partial enemy rifle  OPEN                    OPEN
 Death                partial offline      OPEN                    OPEN
 
 Five enemy NPCs means Trooper, Enforcer, Sniper, Assassin, Heavy Assault,
 individually, including both directions of damage and their special attacks.
-Current external ai_spawners_174.json has eight Practice Range bot definitions,
-not these five definitions. One real training-bot damage/death/retain_corpse
-test passes. It is explicitly not substituted for any of the five.
+The normal runtime's ai_spawners_174.json has eight Practice Range definitions.
+The parent has since supplied a separate read-only pve_npcs_174 catalog with
+actual five-enemy GUIDs and base pools. Its dynamic/conditional difficulty pools
+are not applied. Adoption and five-enemy behavior tests are pending. One real
+training-bot damage/death/retain_corpse test is not substituted for any of them.
 
-Cross-hero matrix -- all OPEN
+Cross-hero matrix -- incomplete
 Reinhardt/Winston/Orisa/Sigma barriers; Zarya projected/personal bubbles;
 Genji reflect and ownership; D.Va/Sigma absorption; invulnerability/phase;
-armor and shield-health edge cases; damage amplification/reduction;
+armor/shield pool smoke tests pass against real Reinhardt/Zenyatta definitions,
+but their full edge cases remain open; damage amplification/reduction;
 sleep/stun/freeze/hack interrupt and death cancellation; enemy/self/ally
 impulse semantics; friendly healing and support effects remain team-correct.
 The present Combat._damage directly consumes health pools. It has no generic
@@ -50,6 +53,27 @@ Regression: with visibility bypassed, a Pharah wall impact incorrectly reduces
 an enemy behind the wall from 200 to 120 HP. With the fix it stays at 200.
 An offset enemy on the incoming side still takes attenuated splash damage.
 
+Reconstructed player movement and impulse adapters (static acceptance partial)
+- Jump Jet accepts only graph0027's authored reset-vertical/add-vector action
+  shape. Its STU_C8C4C20D query is reconstructed as body yaw degrees. The actual
+  resource expression yields (sin(yaw),2,cos(yaw))*10 in the current ruleset.
+  At yaw0 this is +20 up/+10 forward. Tests prove displacement at two headings.
+- Hover applies active graph0025's (0,50,0) acceleration toward authored2.75 cap
+  before normal gravity/collision. It preserves faster Jump Jet velocity.
+  Resource graph fuel consumption, recharge and empty-fuel cessation execute.
+  This integration order is reconstructed, not an original-client comparison.
+- Pharah blast knockback evaluates authored rings and impulse fields. Player
+  horizontal radial/upward displacement, self push, no allied push and wall
+  exclusion execute. NPC displacement remains an explicit missing service.
+  Self splash uses authored m_8A3E3883 as reconstructed self-damage scalar and
+  never emits self hitmarkers or outgoing hero-damage stats.
+- Ability input buffering now keeps the original press timestamp while blocked
+  by cooldown. Previously each retry refreshed it and caused an automatic cast
+  ten seconds after a stale press. Both expiry and fresh150ms buffer tests pass.
+- Pharah's ultimate uses LogicalButton/Volley rather than Ability; its active
+  volley now prevents passive charge. Motion/spread/muzzles, damage charge,
+  interruption/control and full channel behavior remain OPEN.
+
 Original-client status
 Existing PID 12292 / window 守望先锋 was observed without an accompanying lane
 lease. It was not controlled, closed or reconfigured. No lane-owned client
@@ -59,3 +83,4 @@ All requested original-client cases remain OPEN.
 Run from the lane clone with explicit cwd/PYTHONPATH and read-only
 ORPHEUS_RUNTIME_DIR=D:\overwatch 1.7.4\runtime-104319. Reuse the original .venv.
 python -B -m unittest discover -s tests -p test_pharah_combat.py -q
+python -B -m unittest test_pharah_combat test_pharah_weapon test_pharah_impulse test_pharah_movement -q

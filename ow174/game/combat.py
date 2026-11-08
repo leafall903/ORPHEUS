@@ -242,6 +242,15 @@ class HitDef:
     falloff_floor: float | None = None
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
+    horizontal_impulse: float = 0.0  # reconstructed ModifyHealth knockback fields
+    vertical_impulse: float = 0.0
+    impulse_rings: tuple = ()  # (radius, enemy scalar, self scalar)
+    self_scale: float = 0.0
+
+    def impulse_scale(self, distance: float, *, own: bool = False) -> float:
+        column = 2 if own else 1
+        rings = tuple((ring[0], ring[column]) for ring in self.impulse_rings)
+        return HitDef(rings=rings).splash(distance)
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -300,6 +309,20 @@ def hit_def(state, cfg) -> HitDef | None:
             scalar = ring.get("m_B399CACB")
             scalar = state.evaluate(scalar, watch=False) if scalar is not None else 0.0
             rings.append((_number(radius, 0.0), _number(scalar, 0.0)))
+    impulse_rings = []
+    for ring in modify.get("m_knockbackRings") or []:
+        if not isinstance(ring, dict):
+            continue
+        def ring_value(name, ring=ring):
+            field = ring.get(name)
+            return _number(state.evaluate(field, watch=False), 0.0) if field is not None else 0.0
+
+        impulse_rings.append((ring_value("m_radius"), ring_value("m_579D7CFF"), ring_value("m_10399AE7")))
+
+    def modify_value(name):
+        field = modify.get(name)
+        return _number(state.evaluate(field, watch=False), 0.0) if field is not None else 0.0
+
     return HitDef(
         amount=amount,
         loadout=loadout.guid if isinstance(loadout, expr.Asset) else None,
@@ -308,6 +331,10 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_floor=value("m_72A81154"),
         critical=value("m_A872C70E", 1.0),
         rings=tuple(sorted(rings)),
+        horizontal_impulse=modify_value("m_E33EFEE1"),
+        vertical_impulse=modify_value("m_583C208B" if modify.get("m_583C208B") is not None else "m_10399AE7"),
+        impulse_rings=tuple(sorted(impulse_rings)),
+        self_scale=value("m_8A3E3883", 0.0),
     )
 
 
@@ -465,7 +492,8 @@ class Combat:
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and self._blast_reaches(self._eye(player), shown)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -651,7 +679,11 @@ class Combat:
             damaging = (direct is not None and direct.amount > 0.0) or (
                 blast is not None and blast.amount > 0.0
             )
-            if damaging or shot is not None:
+            pharah_impulse = (
+                not npc and shooter.hero.guid == 0x02E0000000000008
+                and blast is not None and blast.impulse_rings
+            )
+            if damaging or shot is not None or pharah_impulse:
                 self.rockets.append(
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
@@ -728,22 +760,55 @@ class Combat:
                 world_tick=self.tick,
             )
         blast = rocket.blast
-        if blast is None or blast.amount <= 0.0:
+        if blast is None:
             return
         # A sweep stops exactly on a triangle. Start the visibility test just before that
         # surface so a zero-distance hit does not hide victims on the incoming side.
         visibility_origin = (
             _along(point, rocket.direction, -BLAST_SURFACE_OFFSET) if struck is None else point
         )
-        for target in self._enemies(rocket.shooter):
+        pharah = not isinstance(rocket.shooter, bots.Bot) and rocket.shooter.hero.guid == 0x02E0000000000008
+        candidates = self._enemies(rocket.shooter)
+        if pharah:
+            candidates.extend(t for t in self._targets() if t.owner is rocket.shooter)
+        for target in candidates:
+            if self.vitals_of(target).dead:
+                continue
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
-            scalar = blast.splash(distance)
-            if scalar > 0.0 and self._blast_reaches(visibility_origin, target):
+            own = target.owner is rocket.shooter
+            scalar = blast.splash(distance) * (blast.self_scale if own else 1.0)
+            impulse = blast.impulse_scale(distance, own=own) if pharah else 0.0
+            if (scalar <= 0.0 and impulse <= 0.0) or not self._blast_reaches(visibility_origin, target):
+                continue
+            if scalar > 0.0:
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
                 )
+            if impulse > 0.0 and not self.vitals_of(target).dead:
+                self._blast_impulse(target, point, blast, impulse)
+
+    def _blast_impulse(self, target: Target, point, blast: HitDef, scalar: float) -> None:
+        """Reconstructed horizontal radial/upward impulse; no native resistance policy.
+
+        Player displacement is integrated by the normal mover. NPC displacement
+        remains an explicit missing service, rather than pretending a velocity
+        record alone is a completed knockback interaction.
+        """
+        if isinstance(target.owner, bots.Bot):
+            return
+        from ow174.game.mover import FELL
+
+        mover = target.owner.mover
+        dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
+        length = math.hypot(dx, dz)
+        scale = blast.horizontal_impulse * scalar / length if length > EPSILON else 0.0
+        vx, vy, vz = mover.velocity
+        mover.velocity = (vx + dx * scale, vy + blast.vertical_impulse * scalar, vz + dz * scale)
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.fall = 0.0
 
     def _blast_reaches(self, origin, target: Target) -> bool:
         """Reconstructed static occlusion to the nearest point on the target capsule.
@@ -820,7 +885,7 @@ class Combat:
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)
-        if not isinstance(shooter, bots.Bot):
+        if not isinstance(shooter, bots.Bot) and target.owner is not shooter:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)

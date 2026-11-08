@@ -134,8 +134,46 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def velocity_action(self, instance, node):
+        # Reconstructed adapter for Pharah's authored Jump Jet only. Other
+        # velocity modes must not accidentally inherit this subset's semantics.
+        match = self.match
+        if match is None or self.hero != 0x02E0000000000008 or instance.graph.index != 0x27:
+            return NotImplemented
+        player = next((p for p in match.players if p.has_body and p.body == self.body), None)
+        if player is None or instance.component.owner_dead:
+            return False
+        mods = node.field("m_BC5E91CF") or []
+        if len(mods) != 2:
+            return NotImplemented
+        reset, impulse = mods
+        if (reset.get("$") != "STU_9AF0FA80" or reset.get("m_A9561CA0") != 2
+                or impulse.get("$") != "STU_4635C5E2" or impulse.get("m_CFEC5F76") != 1):
+            return NotImplemented
+        vertical = instance.evaluate(reset.get("m_9B7A63EA"))
+        vector = instance.evaluate(impulse.get("m_9B7A63EA"))
+        if type(vertical) not in (int, float) or not isinstance(vector, Vec3):
+            return NotImplemented
+        from ow174.game.mover import FELL
+
+        mover = player.mover
+        vx, _, vz = mover.velocity
+        mover.velocity = (f32(vx + vector.x), f32(vertical + vector.y), f32(vz + vector.z))
+        mover.fall = 0.0
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.air_ticks = 0
+        return True
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_C8C4C20D" and self.match is not None and self.hero == 0x02E0000000000008:
+            # Reconstructed body yaw service used by the authored Jump Jet vector.
+            entity = instance.evaluate(cfg.get("m_entity"))
+            if entity == Entity(self.body):
+                player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                if player is not None:
+                    return f32(player.mover.yaw * 360.0 / 65536.0)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -361,8 +399,19 @@ class BodyScript(ReplicatedBody):
         """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
         self.component.set(ULT_CHARGE, f32(points))
 
+    def ultimate_running(self) -> bool:
+        if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return True
+        # Pharah's ultimate uses a LogicalButton and WeaponVolley instead of
+        # an Ability state. Its own charge-reset plug does not populate ultimates.
+        return self.hero == 0x02E0000000000008 and any(
+            state.active and state.node.cls == VOLLEY
+            for instance in self.component.instances.values() if instance.graph.index == 0x2B
+            for state in instance.states.values()
+        )
+
     def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+        if self.ult_seconds <= 0 or self.ultimate_running():
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

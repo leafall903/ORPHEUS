@@ -65,6 +65,16 @@ class PharahCombatTests(unittest.TestCase):
         self.assertLess(self.health(run, pharah).total, 200.0)
         self.assertTrue(enemy.client.messages(combat.HIT))
 
+    def test_primary_consumes_real_reinhardt_armor_and_zenyatta_shield_pools(self):
+        for hero_id, expected in ((0x02E0000000000007, 390.0), (0x02E0000000000020, 80.0)):
+            with self.subTest(hero=hero_id):
+                run, shooter, victim = self.encounter()
+                run.match.switch_hero(victim, heroes()[hero_id])
+                victim.mover.position = [0, shooter.mover.position[1], 8]
+                victim.mover.body = None
+                self.fire_once(run, shooter)
+                self.assertEqual(self.health(run, victim).total, expected)
+
     def test_primary_passes_allies_without_dealing_damage(self):
         run, shooter, ally = self.encounter()
         run.match.game_map = replace(run.match.game_map, free_for_all=False)

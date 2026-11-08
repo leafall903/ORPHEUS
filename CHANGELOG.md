@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Pharah movement, impulses and cooldown regression
+
+- Connect Pharah's authored Jump Jet vector and Hover Jets force/cap to the
+  actual player mover through explicitly reconstructed adapters. Keep native
+  collision and authored fuel/cooldown state execution; preserve faster ascent.
+- Execute Pharah zero-damage concussion and primary self-blast player impulses,
+  with static wall/team filtering and no self hitmarkers. NPC displacement and
+  native resistance semantics remain open. Prevent melee hits through walls.
+- Preserve original buffered-press time when Ability cannot start, fixing stale
+  cooldown presses that otherwise keep refreshing and automatically cast later.
+  Fresh authored input-buffer presses still activate after cooldown expiration.
+- Pause Pharah passive charge during her LogicalButton/Volley ultimate path.
+- 24 Pharah Match/input behavior tests pass, including ammo/manual and automatic
+  reload, range, melee, real Reinhardt armor and Zenyatta shield pools. Ruff and
+  diff checks pass. 80 shared combat/projectile/ability/ray tests also pass;
+  the separate snapshot regression is still running.
+  Full static goal and native client acceptance remain open; see PHARAH_COMBAT.
+
 #### Static explosion occlusion and partial Pharah combat coverage
 
 - Prevent projectile splash from damaging targets behind static collision;
