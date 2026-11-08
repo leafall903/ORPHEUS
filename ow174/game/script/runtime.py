@@ -262,11 +262,13 @@ class InstanceContext(Context):
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries
+        from ow174.game.script import controller_heroes, entity_queries, entity_team
 
         result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
+        if result is NotImplemented:
+            result = entity_team.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -395,6 +397,10 @@ class World:
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
         """Ordered native hero catalog, controller lookup and availability services."""
+        return NotImplemented
+
+    def entity_team_context(self, entity: int, *, component: "Component | None" = None):
+        """Native context, two entity lookups and filter/environment dependencies."""
         return NotImplemented
 
     def script_failed(self, component: "Component") -> None:

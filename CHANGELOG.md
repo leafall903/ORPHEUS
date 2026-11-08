@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native entity team query and filter dependencies
+
+- Implement65ABFCCC with native no-output versus signed-1 behavior, uint32
+  entity conversion, first-pass dependencies and a fresh second lookup. Decode
+  five team bits with lowest-bit priority, ignoring unrelated/spectator flags.
+  Context, lookup and observer services remain explicit; unknown data stays strict.
+- Bind contexts to actual component lifetimes. Preserve callback retirement,
+  stale-component isolation and shared lookup budgets. Do not infer a team from
+  ownership or install a normal-world service/default for unresolved queries.
+- Pass1600 original query comparisons and128 full filter-decoder comparisons
+  with declared engine/pointer/storage adapters. Two additional null-namespace
+  probes fault natively and remain unsupported. Add21 behavior tests;949 related
+  and33 server tests pass with frozen source hashes, plus Ruff/diff checks.
+- Three explicitly supplied controller profiles now prepare0C90/node41's06FF
+  hero-list/team parameters and retain the unknown mode receiver. Delivery is
+  unaccepted. Ordinary controller still retains81A9AB10; real Match still retains
+  rootD38/node106 before controller execution. Placed50/123 and failed-receiver
+  cleanup remain unchanged. See ENTITY_TEAM_QUERY.txt.
+- No fresh original-client run, deployment or complete story/cinematic/enemy-AI
+  acceptance is claimed. Normal inputs and unrelated work remain intact.
+  Publication helper missing; no GitHub push is performed.
+
 #### Native controller hero-catalog iteration
 
 - Implement1AAB4B4F scalar-first, collected-value and nested-group interfaces.

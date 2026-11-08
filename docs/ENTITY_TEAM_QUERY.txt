@@ -1,0 +1,85 @@
+Entity team query (65ABFCCC)
+Target: original PC build104319. Partial controller restoration.
+
+Native behavior
+The priority1 record2F89760 has TypeInfo2D76770, constructorsD07B80/D0AC50
+and runtime table2663FC0. Scalar+20 CEEDC0 evaluates m_target once. Missing
+instance context fails without writing the destination. Missing, failed,
+non-Entity or invalid selectors instead succeed with signed integer-1. Entity
+conversion uses the first nested array member and wraps to a uint32 identity.
+
+For valid identities the query performs two entity lookups. The first lookup
+registers the dependency: an existing component25 uses its filter observer;
+a missing object uses environment kind0 or fallback kind46. An existing object
+without that component does not subscribe to the environment. A known absent
+dependency hub skips that subscription. D25400 then performs a fresh lookup
+regardless of the first result. Missing second object/component returns-1.
+Callbacks can change object presence or bits between the two passes. The first
+lookup determines dependencies; the second determines the returned value.
+
+Full helper5D9570 reads the filter component at+58. Bits23 through27 encode
+team indices0 through4, with the lowest set team bit taking priority. No team
+bit returns-1. Spectator bit28, other player flags and upper uint64 bits do not
+change this result. Existing network MFilterBitsComponentData values carry
+these flags, but this change does not infer native lookup or observer services
+from a network component or automatically mount them into the normal world.
+
+Unknown context, lookup, component or observer data stays unsupported. A missing
+namespace for a valid identity is not a known missing team: two native probes
+fault atCEEE8B. The Python path explicitly rejects that unavailable service.
+An unwatched query does not require filter-observer callbacks.
+
+Ownership
+World and SceneWorld expose an explicit entity_team.Context with known context,
+namespace and environment availability, lookup and subscription callbacks.
+Target.filters=None declares native component absence; NotImplemented remains
+unknown. FilterBits holds a validated uint64 and is read again after callbacks.
+
+Every evaluation checks the actual script component binding. Detach, owning
+failure and unbind retire the context. An old instance cannot borrow or retire
+a replacement component's services. Every callback rechecks owner validity and
+both lookup passes consume the shared script work budget. No new State model,
+codec, trusted native, role-query default or normal-service deployment is added.
+
+Verification
+1600 original-instruction comparisons cover query guards, typed output, nested
+selection, watched/unwatched paths, both environment kinds and changes between
+the two lookup passes. Another128 comparisons exercise all32 team masks with
+unrelated player, spectator and upper-word bits. Original query guards/output,
+D25400's fresh lookup/guards, full5D9570 and nullable observer/dependency routing
+execute directly. Adapters
+provide context/environment/entity lookup, two encrypted component25 pointer
+resolutions, literal values, observer/hub append and synthetic variant release.
+This is an offline execution comparison, not full native engine acceptance.
+
+Twenty-one new behavior tests cover dependencies, mutation, malformed/unknown
+services, no-output versus-1, budget exhaustion, callback retirement and stale
+component isolation.949 related and33 server journal/snapshot/injection tests
+pass (982 total), with identical source hashes in both runs and Ruff/diff checks.
+No fresh original-client run or normal-service deployment is claimed.
+
+Actual controller scope
+Three explicit profiles for unresolved81A9AB10 (PC no-output, false and true),
+with declared hero catalog/availability and filter inputs, pass the former
+65ABFCCC stop. Actual0C90/node41 prepares message02400000000006FF for mode
+entityD0000010: parameter03BE is the three-Asset hero tuple and parameter008D
+is scalar integer0. The mode entity is created but its live script component
+is unknown. All three profiles retain the strict message-target-component
+boundary. This verifies parameter preparation, not delivery or its consumer.
+
+The retained635 graphs contain two06FF senders and three entry nodes. These
+literal references do not establish the mounted receiver or all native engine
+consumers. A failed bound controller still rejects0EC6/node22/message061A;
+its helper queue and voice context retire rather than treating failure as absence.
+
+Ordinary controller execution still retains81A9AB10. Real Match still prepares
+148 components/queues and retains root100B D38D0035/node106 before controller
+execution, then cleans up without readiness. Isolated placed startup remains
+146 components,124 graphs,542 writes and50/123 nonempty first frames complete;
+73 strict faults remain. Native mode mounting, catalog/availability policy,
+body/actor lifetimes, phase/clock/replication services, cinematics, five enemy
+AI types and complete story through extraction/results remain open.
+
+Local-only evidence is verification/retribution/entity-team-* and
+mode-message-06FF-graph-refs.json. Game data, native images and probes stay
+outside Git. Normal runtime inputs and unrelated working changes are preserved.
