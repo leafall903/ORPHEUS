@@ -268,6 +268,19 @@ class NativeReplayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Body definition"):
             replay_document(document)
 
+    def test_recorded_owner_inputs_restore_constructor_and_tampering_is_detected(self):
+        script = BodyScript(SOLDIER, 0xA0000101, 1000,
+                            body_owner_relations=((0xA0000101, 0xA0000100),))
+        context = header(script)
+        document = {"header": context, "events": [ending(script, 0)]}
+        self.assertEqual(replay_document(document)["status"], "matched_observed_body_trace")
+        changed = copy.deepcopy(document)
+        changed["header"]["body_owner_relations"] = [[0xA0000101, 0xA0000200]]
+        self.assertEqual(replay_document(changed)["diagnostics"][0]["kind"], "initial_state_mismatch")
+        changed["header"]["body_owner_relations"].append([0xA0000101, 0])
+        with self.assertRaisesRegex(ValueError, "duplicate bodies"):
+            replay_document(changed)
+
     def test_match_external_first_access_is_not_mistaken_for_a_constructor_only_trace(self):
         from test_game_combat import Run
 
@@ -279,6 +292,7 @@ class NativeReplayTests(unittest.TestCase):
             context["hero"], context["entity"], context["start_frame"],
             quanta=context["quanta_us"], mode=context["mode"], health=context["health"],
             ult_seconds=context["ult_seconds"],
+            body_owner_relations=context.get("body_owner_relations"),
         )
         # Match hooks, including projectile-lease discovery, can allocate inactive states.
         # Those reads affect later traversal order; the body-only trace does not replay them.

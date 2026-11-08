@@ -9,9 +9,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from test_game_combat import FakeClient, Run
+from test_game_combat import FakeClient, Run, aim
 
-from ow174.game import bodytrace, combat, movelog, npc
+from ow174.game import bodytrace, combat, movelog, mover, npc
 from ow174.game.collision import World
 from ow174.game.content import heroes
 from ow174.game.script import graph
@@ -54,6 +54,10 @@ class HanzoCatalogNpcTests(unittest.TestCase):
         cls.catalog = npc.load_catalog(folder / "pve_npcs_174.json")
         if set(cls.catalog) != set("12345"):
             raise ValueError("this matrix requires all five NPC definitions")
+        table = mover._movers()
+        if any(definition.body not in table for definition in cls.catalog.values()):
+            raise ValueError("NPC matrix requires explicit104319 NPC mover rows;"
+                             "use prepared NPC navigation runtime")
         cls.graph_patch = patch.object(graph, "GRAPHS_PATH", folder / "game_graphs_174.json.gz")
         cls.graph_patch.start()
         clear_graphs()
@@ -103,17 +107,19 @@ class HanzoCatalogNpcTests(unittest.TestCase):
             for action, (button, amount) in INPUTS.items():
                 with self.subTest(npc=definition.name, action=action, situation=situation):
                     run, hero, bot = self.arena(definition, action, situation)
-                    yaw = 16384 if situation == "miss" else 0
+                    yaw, pitch = self.target_aim(run, hero, bot)
+                    if situation == "miss":
+                        yaw, pitch = 16384, 0
                     if action == "melee":
-                        run.step({hero: (yaw, 0, button)})
+                        run.step({hero: (yaw, pitch, button)})
                     else:
                         if button:
-                            run.step({hero: (yaw, 0, button)})
+                            run.step({hero: (yaw, pitch, button)})
                             run.step({})
                         for _ in range(140 if action == "storm" else 70):
-                            run.step({hero: (yaw, 0, 1)})
+                            run.step({hero: (yaw, pitch, 1)})
                         if action != "storm":
-                            run.step({hero: (yaw, 0, 0)})
+                            run.step({hero: (yaw, pitch, 0)})
                     if action != "storm":
                         for _ in range(30):
                             run.step({})
@@ -147,6 +153,12 @@ class HanzoCatalogNpcTests(unittest.TestCase):
     def test_direct_damage_and_death(self):
         self.exercise("hit")
 
+    @staticmethod
+    def target_aim(run, hero, bot):
+        height = mover.mover_data(bot.body).stand_height
+        return aim(run.match.combat._eye(hero),
+                   (bot.position[0], bot.position[1] + height / 2, bot.position[2]))
+
     def test_friendly_bodies_are_not_damaged(self):
         self.exercise("ally")
 
@@ -169,9 +181,10 @@ class HanzoCatalogNpcTests(unittest.TestCase):
                 total = definition.health + definition.armour + definition.shields
                 for cls in ("STU_9B7648C3", "STU_32E6E4D8", "STU_7D7D2470"):
                     self.assertEqual(query(cls), total)
+                yaw, pitch = self.target_aim(run, hero, bot)
                 for _ in range(70):
-                    run.step({hero: (0, 0, 1)})
-                run.step({})
+                    run.step({hero: (yaw, pitch, 1)})
+                run.step({hero: (yaw, pitch, 0)})
                 for _ in range(30):
                     run.step({})
                 self.assertEqual(query("STU_9B7648C3"), total - 125)
@@ -191,13 +204,54 @@ class HanzoCatalogNpcTests(unittest.TestCase):
                     self.assertFalse(fire.called)  # missing controller context remains explicit
                 if definition.name == "Trooper":
                     for _ in range(70):
-                        run.step({hero: (0, 0, 1)})
-                    run.step({})
+                        run.step({hero: (yaw, pitch, 1)})
+                    run.step({hero: (yaw, pitch, 0)})
                     for _ in range(30):
                         run.step({})
                     self.assertTrue(bot.dead)
                     self.assertEqual(query("STU_9B7648C3"), 0)
                     self.assertEqual(query("STU_7D7D2470"), total)
+                npc.remove_spawned(run.match)
+
+    def test_catalog_capsules_use_explicit_movers_in_combat_targets(self):
+        expected = {"1": (1.7, 0.5, 5.75), "2": (1.9, 0.5, 5.0),
+                    "3": (1.75, 0.5, 4.5), "4": (1.5, 0.5, 14.0), "5": (2.3, 0.7, 2.2)}
+        for key, values in expected.items():
+            with self.subTest(npc=self.catalog[key].name):
+                definition = self.catalog[key]
+                data = mover._movers()[definition.body]  # direct row access forbids fallback
+                self.assertEqual((data.stand_height, data.stand_radius, data.run_forward), values)
+                run, _hero, bot = self.arena(definition, "bow", "hit")
+                target = next(t for t in run.match.combat._targets() if t.owner is bot)
+                self.assertEqual((target.height, target.radius), values[:2])
+                npc.remove_spawned(run.match)
+
+    def test_real_heavy_capsule_extends_melee_range_and_static_wall_still_blocks(self):
+        for key, definition in self.catalog.items():
+            for blocked in (False, True):
+                with self.subTest(npc=definition.name, wall=blocked):
+                    run, hero, bot = self.arena(definition, "melee", "wall" if blocked else "hit",
+                                                distance=3.1)
+                    run.step({hero: (0, 0, 0x800)})
+                    for _ in range(10):
+                        run.step({})
+                    before = definition.health + definition.armour + definition.shields
+                    damage = before - run.match.combat.vitals[bot.entity].total
+                    self.assertEqual(damage, 30 if key == "5" and not blocked else 0)
+                    npc.remove_spawned(run.match)
+
+    def test_short_assassin_misses_horizontal_bow_and_takes_capsule_aimed_arrow(self):
+        definition = self.catalog["4"]
+        for inside in (False, True):
+            with self.subTest(aim_inside=inside):
+                run, hero, bot = self.arena(definition, "bow", "hit")
+                yaw, pitch = self.target_aim(run, hero, bot) if inside else (0, 0)
+                for _ in range(70):
+                    run.step({hero: (yaw, pitch, 1)})
+                run.step({hero: (yaw, pitch, 0)})
+                for _ in range(30):
+                    run.step({})
+                self.assertEqual(run.match.combat.vitals[bot.entity].total, 375 if inside else 500)
                 npc.remove_spawned(run.match)
 
     def test_authored_npc_controller_hit_range_faction_and_wall(self):

@@ -6,6 +6,42 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Direct body-owner query and known player relationships
+
+- Independently execute432 CDBDE0/D15520 F726 cases through their original
+  return, scalar conversion/destruction, component43 selection/decryption,
+  original related-ID getter and typed Entity result. Compare Python output
+  and selected lookup IDs. Only synthetic world/lookup/literal virtual callbacks
+  adapt; no original image patches, helper hooks or instruction skipping.
+- Add explicit direct-relation context guards, typed missing-component/null/
+  unknown behavior and callback retirement checks. Bind actual live player
+  bodies to their Match controllers, reading the relation afresh through the
+  existing poll path. Unknown NPC/foreign relations remain unimplemented.
+- Store context identity/retirement and known bound callbacks passively. Actual
+  Hanzo bow input still hits; body replacement retires the old relation context.
+- Restore body-trace recording with passive known-callback descriptors and
+  explicit constructor owner-relation inputs. Replay restores those inputs before
+  initial graphs execute; altered or duplicate body mappings are rejected or
+  produce an incomplete result. Live Match changes still exceed body-only scope.
+- Independently execute2048 original B96 complete-entry cases, including native
+  namespace lookup, component crypto and boolean output with explicit namespace/
+  Entity-literal virtual callbacks. Unlike F726, B96 reads virtual90 directly and
+  does not consult the virtual30 instance gate; do not apply F726's guard to it.
+- Parent's new read-only NPC navigation runtime adds the five missing mover rows.
+  Require explicit rows, aim hit fixtures into actual capsules, and preserve aim
+  on release. Real geometry confirms Assassin horizontal misses/aimed125 damage,
+  Heavy's3.1m melee hit and static occlusion. Prior NPC geometry used fallback
+  values and is superseded. Pass46 focused navigation/query/trace checks.
+- Native watcher/array allocation, actual NPC controller binding, production B96
+  service, full AI/navigation/specials and complete static/client acceptance remain
+  OPEN; overlapping lane0007/0009 relation work needs serial deduplication.
+- Final640 game and840 script checks pass with the corrected NPC mover rows;
+ 72 full VM/server snapshot/journal/native-body-replay checks pass. The navigation
+  bundle has no real-map cache, so compose its data with canonical read-only
+  collision/bnet junctions under the lane for the full game set; all640 execute
+  without skips. Inputs remain unchanged; Ruff/diff checks pass. No parent
+  integration, normal-service deployment, client operation or publication.
+
 #### Native-backed owner health queries and Enforcer gate evidence
 
 - Review lane0015's finite health-getter work and independently rerun768 original

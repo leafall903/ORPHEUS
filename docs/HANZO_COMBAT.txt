@@ -270,8 +270,8 @@ Owner health-query service and Enforcer frontier:
 - Independently rerun512 original related-ID helper,128 namespace-resolution,
   128 control-component-resolution and64 partial B96 predicate-block cases in
   this lane. B96 requires a resolved controller with4B present and5C absent;
-  no high-level names are assigned to those components. Full F726/B96 evaluators
-  and actual NPC43/44 relationships/lifetimes remain unproved.
+  no high-level names are assigned to those components. Watched/namespace/locking
+  evaluator variants and actual NPC43/44 relationships/lifetimes remain unproved.
 - Pass634 game,832 script and54 full VM/server snapshot/journal checks. Thirty
   focused transport/health cases cover the eight regressions caused by an added
   Vitals-read callback; that unnecessary callback was removed. Mere Vitals reads
@@ -281,6 +281,70 @@ Owner health-query service and Enforcer frontier:
   acceptance are outside the finite getter proof. The shared getter mechanism
   overlaps the uncommitted lane0015 candidate and needs parent deduplication;
   no other lane or root source was modified or integrated here.
+
+Direct related-owner query (test_script_body_owner.py/test_game_hanzo_body_owner.py):
+- F7262B36 is the direct component43 relation, distinct from the existing
+  reverse-possession query and from B96's controller-membership predicate.
+  Own-lane432 comparisons run the original CDBDE0 entry through return,
+  D15520 selection/decryption, BD42D0/getter-key path, F64C20 scalar conversion,
+  scalar destruction and typed result output. The original image is unmodified;
+  only synthetic context/namespace/lookup/literal virtual callbacks supply inputs.
+- Missing native instance skips the selector and preserves the destination.
+  Non-Entity/failed/missing scalar inputs select0. Missing entity preserves the
+  destination; known absent43 returns typed Entity0. A present43's null relation
+  remains distinct from an unknown service. Native no-watcher output and lookup
+  IDs match the Python context model across all432 cases.
+- Explicit host callbacks represent namespace lookup and environment/relation
+  subscriptions, reject malformed targets and check instance/context lifetime
+  after callbacks. The Match adapter binds only known live player bodies to
+  their controller IDs; it refreshes by Evaluation.poll_native. Unknown NPC
+  and foreign prototypes are not assigned inferred/null controller relations.
+- Actual Hanzo/enemy body queries return the corresponding controller IDs,
+  followed by an actual125-damage bow shot. Replacement retires the old context,
+  preserves the current controller relation on the new body and leaves stale/
+  unknown bodies unresolved. Context identity, availability, callbacks and
+  retirement are passive causal snapshot inputs; export executes no queries.
+- Eight query contracts, three actual player/lifecycle/storage cases and the
+  existing23 BodyVM checks pass. The432 F726 native cases do not cover watchers
+  or array allocation. Body-only diagnostics now serialize known callbacks
+  without calling them and explicitly record constructor owner maps. Replay
+  supplies those maps before initial graphs; missing/changed state is not silently
+  repaired. Live Match relation changes remain outside isolated body replay.
+- Separately execute2048 original CC9BF0 B96 entries through return with a
+  known unlocked native-layout namespace, Entity selector and no watcher. Only
+  environment/literal virtual inputs adapt; native namespace lookup, component
+  selection/key paths, related-ID resolution and boolean output execute intact.
+  Present43 wins over direct44 even when dangling; related44/4B/no5C determine
+  readiness. B96 evaluates its selector then uses virtual90 directly, without
+  F726's virtual30 gate. Production B96 service and NPC relation allocation
+  remain unimplemented. Full watched/locking/evaluator variants are still OPEN.
+  Enforcer/Assassin incoming attacks and full static/client acceptance remain
+  OPEN. Reconcile overlapping uncommitted lane0007/0009 query work on eventual
+  parent integration; no other lane or shared root was edited here.
+
+NPC mover correction and resource-capsule recheck:
+- The original runtime has38 mover rows and omits all five Talon bodies, so
+  earlier NPC capsule/range/occlusion evidence used the generic fallback. Parent
+  provided a separate43-row read-only npc-navigation-runtime, with XML hashes
+  in mover-preparation.json. No original/shared runtime file was overwritten;
+  its other static metadata hardlinks remain immutable. No real-map cache or
+  original-client deployment is established by this input preparation.
+- NPC matrices now require explicit rows. Height/radius/forward speed:
+  Trooper1.7/0.5/5.75;Enforcer1.9/0.5/5;Sniper1.75/0.5/4.5;
+  Assassin1.5/0.5/14;Heavy Assault2.3/0.7/2.2. The actual Combat targets use
+  these heights/radii; listed speeds are extracted inputs, not AI speed acceptance.
+- Hit fixtures aim into each capsule and retain that aim on release. An actual
+  full horizontal arrow misses the short Assassin; a capsule-aimed arrow removes
+  125HP. At3.1m only Heavy's larger capsule takes30 melee damage; the same static
+  wall blocks it. Old generic-capsule claims are superseded by these rechecks.
+-46 focused query/player/body-replay/NPC checks pass with explicit mover inputs.
+  Final640 game/840 script/72 full snapshot-journal-native-replay checks pass.
+  The full game set uses an own-lane navigation-test-runtime with read-only
+  junctions: data to the43-row navigation input, collision and bnet to canonical
+  runtime104319. No data copy or writes through these links; all640 game cases
+  execute without skips. This is test input composition, not deployment.
+  Eye/bone offsets, moving-body collision, native AI/navigation,
+  complete specials/defenses and original-client acceptance remain OPEN.
 
 Explicit five-NPC fixtures (test_game_hanzo_npc.py):
 - Review/import parentc2d3ae1/a15d554 privately as0c05d99/307feba. Read only the

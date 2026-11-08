@@ -302,9 +302,11 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
         result = entity_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = body_owner.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -442,6 +444,10 @@ class World:
 
     def entity_team_context(self, entity: int, *, component: "Component | None" = None):
         """Native context, two entity lookups and filter/environment dependencies."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Explicit owner namespace/component43 service; unknown until installed."""
         return NotImplemented
 
     def script_failed(self, component: "Component") -> None:

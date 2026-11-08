@@ -28,7 +28,7 @@ from ow174.game import hanzo_control, hanzo_movement, pools, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import body_owner, expr, graph, nodes, runtime
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -128,6 +128,31 @@ class BodyWorld(runtime.World):
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
         self.hanzo_climb: hanzo_movement.Climb | None = None
+        self.body_owner_relations = None  # constructor inputs for isolated body diagnostics
+        self._body_owner_context = body_owner.Context(
+            body, True, True, lookup=self._lookup_body_owner,
+            watch_environment=self._poll_body_owner, watch_owner=self._poll_body_owner,
+        )
+
+    def _lookup_body_owner(self, entity):
+        if self.match is not None:
+            for player in getattr(self.match, "players", ()):
+                if not player.gone and player.has_body and player.body == entity:
+                    return body_owner.Target(entity, player.entity)
+        else:
+            for body, controller in self.body_owner_relations or ():
+                if body == entity:
+                    return body_owner.Target(body, controller)
+        # Manual NPC controller relationships and foreign prototypes are not declared.
+        return NotImplemented
+
+    def _poll_body_owner(self, *_):
+        """Evaluation.poll_native refreshes the live Match relation every frame."""
+
+    def body_owner_context(self, entity):
+        if (self.match is None and self.body_owner_relations is None) or entity != self.body:
+            return NotImplemented
+        return self._body_owner_context
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -268,6 +293,7 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_owner_relations=None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
@@ -280,6 +306,10 @@ class BodyScript(ReplicatedBody):
         self.frame_ms = max(1, quanta // 1000)
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
+        self.world.body_owner_relations = (
+            body_owner.player_relations(match) if match is not None
+            else body_owner.normalize_relations(body_owner_relations)
+        )
         self.component = runtime.Component(entity, self.frame_ms, self.world)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0
@@ -554,6 +584,7 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        self.world._body_owner_context.retired = True
         if self.world.hanzo_climb is not None:
             self.world.hanzo_climb.active = False
         self.world.match = None

@@ -8,12 +8,13 @@ import dataclasses
 import hashlib
 import json
 import math
+import types
 from functools import cache
 
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import graph, runtime
-from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, BodyScript
+from ow174.game.script import body_owner, graph, runtime
+from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, BodyScript, BodyWorld
 from ow174.paths import DATA_DIR, ROOT
 
 SCHEMA = "ow174.native-body-replay.v2"
@@ -32,6 +33,7 @@ MODEL_FILES = (
     "ow174/game/script/driver.py", "ow174/game/script/runtime.py", "ow174/game/script/expr.py",
     "ow174/game/script/nodes.py", "ow174/game/script/graph.py", "ow174/game/script/rulesets.py",
     "ow174/game/script/codecs.py", "ow174/game/statescript.py",
+    "ow174/game/script/body_owner.py", "ow174/game/script/health_queries.py",
 )
 MODEL_DATA = (
     "game_graphs_174.json.gz", "game_stats_174.json", "game_heroes_174.json",
@@ -65,6 +67,10 @@ def _stored(value):
         return {"node": value.pos, "class": value.cls}
     if isinstance(value, bytes):
         return {"bytes": value.hex()}
+    if (type(value) is types.MethodType and type(value.__self__) is BodyWorld
+            and value.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._poll_body_owner)):
+        # Describe the known callback without invoking it or traversing the external Match.
+        return {"body_world_callback": [value.__func__.__qualname__, value.__self__.body]}
     if isinstance(value, (tuple, list)):
         return [_stored(item) for item in value]
     if isinstance(value, (set, frozenset)):
@@ -142,7 +148,8 @@ def stored_snapshot(script: BodyScript) -> dict:
 def _runtime_json(value):
     # JSON's C encoder handles scalar state fields directly; Python visits only native references.
     # This avoids thousands of small JSON encodes per observed command without evaluating the VM.
-    if isinstance(value, (runtime.State, runtime.Instance, runtime.Var, graph.Node, bytes, set, frozenset)):
+    if isinstance(value, (runtime.State, runtime.Instance, runtime.Var, graph.Node, bytes, set, frozenset,
+                          types.MethodType)):
         return _stored(value)
     if dataclasses.is_dataclass(value):
         return {"type": type(value).__name__,
@@ -188,6 +195,7 @@ def make_header(
         "health": health, "maximum_health": maximum, "ult_seconds": script.ult_seconds,
         "seed": 1, "command_epoch": command_epoch, "body_epoch": body_epoch, "server_tick": server_tick,
         "gap_policy": "reject", "shot_policy": "drain_after_command", "initial_hash": snapshot_hash(script),
+        "body_owner_relations": script.world.body_owner_relations,
     }
 
 
@@ -273,7 +281,7 @@ def replay_document(document: dict) -> dict:
     header, events = document["header"], document["events"]
     if not isinstance(header, dict) or header.get("schema") != SCHEMA or header.get("build") != BUILD:
         raise ValueError("Native trace schema/build mismatch")
-    if set(header) != HEADER_FIELDS:
+    if set(header) not in (HEADER_FIELDS, HEADER_FIELDS | {"body_owner_relations"}):
         raise ValueError("Native v2 header fields do not match the fixed schema")
     if not isinstance(events, list):
         raise ValueError("Events must be a list")
@@ -296,6 +304,7 @@ def replay_document(document: dict) -> dict:
             raise ValueError(f"Invalid {name}")
     if header["health"] != header["maximum_health"]:
         raise ValueError("This constructor baseline requires initial health == maximum_health")
+    body_owner.normalize_relations(header.get("body_owner_relations"))
     if header.get("hero") != SOLDIER:
         raise ValueError("Only the observed Soldier body baseline is supported")
     expected_body = next(key for key, item in graph.bodies().items() if int(item["hero"], 16) == SOLDIER)
@@ -313,7 +322,8 @@ def replay_document(document: dict) -> dict:
     else:
         script = BodyScript(header["hero"], header["entity"], header["start_frame"],
                             quanta=header["quanta_us"], mode=header["mode"],
-                            health=header["health"], ult_seconds=header["ult_seconds"])
+                            health=header["health"], ult_seconds=header["ult_seconds"],
+                            body_owner_relations=header.get("body_owner_relations"))
         if snapshot_hash(script) != header.get("initial_hash"):
             fail("initial_state_mismatch")
         previous_seq, previous_tick = 0, header["server_tick"]

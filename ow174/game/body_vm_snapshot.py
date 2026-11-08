@@ -8,9 +8,10 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+import types
 
 from ow174.game import hanzo_movement, replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import body_owner, expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -93,6 +94,8 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    body_owner.Context: ("owner", "instance_present", "environment_present", "lookup",
+                         "watch_environment", "watch_owner", "retired"),
     hanzo_movement.Climb: ("elapsed", "active", "blocked", "normal"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
@@ -389,12 +392,18 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode", "health_pools"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match", "hanzo_climb"))
+                fields.update(("body", "throttles", "match", "hanzo_climb", "_body_owner_context",
+                               "body_owner_relations"))
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
+        if (kind is types.MethodType and obj.__self__ is self.component.world
+                and type(obj.__self__) is BodyWorld
+                and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._poll_body_owner)):
+            return {"class": "builtins.method", "identity": self.identity(obj),
+                    "owner": ["component", "world"], "function": _name(obj.__func__)}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -422,7 +431,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event, hanzo_movement.Climb):
+            if kind in (runtime.Link, runtime.Event, hanzo_movement.Climb, body_owner.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}
