@@ -68,6 +68,38 @@ comparison evidence. All other TrackTargets queries remain undeclared.
 Native filter/tag/ranking policy, barrier actors/volumes, cross-shield ordering and
 cleanse/control immunity remain open.
 
+Graviton combat increment
+-------------------------
+Read-only extraction of target-client00A3.053 shows its reference to0261.01B,
+which the original hero graph closure omitted. 0261/node2 specifies continuous
+damage5; node15 has scalar3. Existing0260/node4 sets duration4 and node5 radius6.
+The actual initialized Zarya body evaluates ultimate cost2100. Resource XML hashes
+and extraction logs remain in the lane's separate research directory, outside Git.
+
+The actual ultimate button/charge graph now launches a swept projectile using
+the authored9.8 motion scalar as vertical acceleration. Its direct hit deals5,
+and its authored03E2 deployable starts a server field:4 seconds,6-metre capsule
+acquisition and5 damage/second. The field deals20 more to a stationary captured
+enemy. Allies/caster are excluded. Player movement commands and actual NPC bodies
+are pulled with the collision mover; the first active field controls movement.
+Field expiry releases movement and removes temporary NPC movers. Repeated world
+ticks do not repeat damage, and bounded catch-up integrates the remaining lifetime.
+Caster death does not cancel an existing field. Original cast body identity is
+retained for field damage/death notices across caster body replacement. Departure
+and ended-match updates cancel fields. Projectile release is scheduled on impact
+for non-Biotic deployables rather than waiting solely for the range bound.
+
+Reconstruction: scalar3 is interpreted as3m/s pull; acquire from current capsules
+with current eye LOS; target feet aim at field centre minus eye height; override
+ordinary movement while acquired; keep fields after caster death/replacement;
+nudge static-surface impacts .01m outward. Ballistic gravity and force integration
+are host interpretations. The native aura/filter/force/escape/immunity protocol
+and real replicated field actor are NOT implemented by this increment.
+Shared automatic ultimate charge still uses the existing60-second fill policy;
+native passive generation and damage-generated charge remain OPEN. Tests of that
+policy prove current code gates, not retail charge speed. Graviton full acceptance
+and the complete static goal remain OPEN.
+
 Required combat matrix
 ----------------------
 Operation             Enemy player    Enemy NPC         Ally semantics
@@ -80,7 +112,7 @@ Projected barrier     HP/time/CD/     Allied five       Ally selection/protectio
                       target tests
 Energy passive        Absorb/cap/     OPEN              Both barrier sources; HUD OPEN
                       decay model
-Graviton Surge        OPEN            OPEN              Enemy pull/control; allies excluded required
+Graviton Surge       5+20/pull/time   Five bodies:25    No allied damage/pull tested
 Incoming attacks      Rifle->shields  Trooper/Heavy     Healing retains allied semantics
 Death/lifetime        Stops beam      Five bodies       Manual NPCs retain corpse; player respawn separate
                                       shortened lethal
@@ -92,7 +124,7 @@ and a15d554 are reviewed imports; the normal runtime is unchanged and read-only.
 The fixture checks supplied base pools, not difficulty/conditional extra pools.
 No training bot is renamed as a Talon enemy.
 
-Nine test methods execute39 sub-scenarios across these definitions: primary60
+The original nine test methods execute39 sub-scenarios across these definitions: primary60
 damage over .8s, secondary47, melee30, allied exclusion, projected protection,
 and lethal beam with retained corpses. Lethal setup reduces the live pool to1
 before the actual final shot; this is not evidence of a full-health Heavy kill.
@@ -102,12 +134,15 @@ weapon graphs; their volleys remove120/110 from Zarya over120 frames respectivel
 and the personal barrier blocks them and generates energy. The fixture does not
 implement autonomous acquisition/navigation. Enforcer/Sniper/Assassin did not
 produce damage under that input; their attacks and all five specials remain OPEN.
+Two additional methods apply the actual ultimate cast to all five bodies:25 total
+enemy damage and collision-backed pull, plus no damage/pull on allied bodies.
 
 Cross-hero matrix still OPEN: barriers and shield entities; reflect vs beam and
 projectile; absorption/deletion; invulnerability; stun/interrupt/cleanse; Graviton
 pull, escape and immunity; damage credit, death and restoration across these states.
-Both personal and projected damage interception use live authored States;
-personal/projected pet hosting and ultimate field hosting/pull remain absent.
+Both personal and projected damage interception use live authored States.
+Ultimate damage/pull now runs in a reconstructed server field; native field/aura
+actor hosting and personal/projected pet hosting remain absent.
 Animation States alone do not establish those effects.
 
 Validation
@@ -129,6 +164,14 @@ with the corresponding lane commit rather than claimed from target cases alone.
 The expanded combat/runtime/codec/snapshot run passes179 tests in68.421 seconds.
 The separate five-NPC/lifecycle/catalog run passes18 tests in11.188 seconds.
 The combined body/NPC/combat/runtime/codec/snapshot run passes197 tests in76.436s.
+The ultimate suite now has20 behavior tests. Expanded snapshot checks
+register the new combat service, barriers, fields, target aim and consumption
+clocks explicitly; the new mutation case verifies their causal-state visibility.
+The expanded255-test run passed254 tests and failed one obsolete live-projectile
+assumption after actual Graviton impact retirement. The corrected fixture observes
+both delayed Torbjorn emission and earlier Graviton retirement. The affected
+projectile/ultimate/five-NPC rerun passes68 tests in37.944s; Ruff/diff pass.
+No expanded-run failure is hidden or counted as a passing255-test invocation.
 Opt in with ORPHEUS_ZARYA_NPC_DATA pointing to the external data directory; skipped
 tests without that data do not count as five-NPC acceptance. Input hashes are
 stored in the independent lane verification directory rather than shipping assets.

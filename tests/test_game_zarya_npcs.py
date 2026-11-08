@@ -190,6 +190,31 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 self.assertEqual(run.match.combat.vitals_of(target).total, 400)
                 self.assertGreater(player.body_script.component.entity_var(87).value(), 0)
 
+    def test_ultimate_deals_25_and_pulls_each_actual_enemy_body(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot = self.encounter(definition)
+                vitals = run.match.combat.vitals[bot.entity]
+                before, position = vitals.total, bot.position
+                player.body_script.set_ult_charge(10000)
+                self.fire(run, player, 1, 0x20)
+                self.fire(run, player, 280, 0)
+                self.assertAlmostEqual(before - vitals.total, 25)
+                self.assertLess(bot.position[2], position[2])
+                self.assertFalse(run.match.combat.zarya_gravitons.fields)
+                self.assertFalse(run.match.combat.zarya_gravitons.npc_movers)
+
+    def test_ultimate_never_damages_or_pulls_each_allied_body(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot = self.encounter(definition, team=0)
+                before, position = run.match.combat.vitals[bot.entity].total, bot.position
+                player.body_script.set_ult_charge(10000)
+                self.fire(run, player, 1, 0x20)
+                self.fire(run, player, 280, 0)
+                self.assertEqual(run.match.combat.vitals[bot.entity].total, before)
+                self.assertEqual(bot.position, position)
+
 
 if __name__ == "__main__":
     unittest.main()

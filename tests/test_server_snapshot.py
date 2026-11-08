@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import graviton, zarya
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
@@ -76,6 +77,27 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(changed, initial)
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+
+    def test_zarya_field_barrier_and_consumed_beam_clock_are_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        before = snapshot_digest(self.capture(session))
+        field = graviton.Field(player, player.body, player.team, (0.0, 1.0, 0.0), 1, 251, 6.0)
+        fight.zarya_gravitons.fields.append(field)
+        created = snapshot_digest(self.capture(session))
+        self.assertNotEqual(created, before)
+        field.end_tick += 1
+        changed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(changed, created)
+        fight.zarya_barriers.active[player.body] = zarya.Barrier((1, 1, 16), 200.0)
+        shielded = snapshot_digest(self.capture(session))
+        self.assertNotEqual(shielded, changed)
+        fight.zarya_barriers.active[player.body].remaining = 100.0
+        consumed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(consumed, shielded)
+        fight.beam_seen[player.body] = ((1, 1, 16), 32)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), consumed)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()

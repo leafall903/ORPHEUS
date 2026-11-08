@@ -332,7 +332,10 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        pull = self.match.combat.zarya_gravitons.movement_for(self)
+        if pull is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=pull)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),

@@ -978,13 +978,20 @@ class BioticFieldTests(unittest.TestCase):
                     player.body_script.set_ult_charge(10000)
 
                 run.step({player: (0, 0, button)})
+                shot = next(iter(fight.projectiles.shots), None)
                 for _ in range(45):
                     run.step({})
-                shot, = fight.projectiles.shots
+                    if shot is None and fight.projectiles.shots:
+                        shot, = fight.projectiles.shots
+                self.assertIsNotNone(shot)  # Torbjorn launches after his cast animation.
                 self.assertEqual(shot.spawn & 0xFFFF, spawn)
                 self.assertTrue(shot.created)
                 self.assertEqual(vitals.now[HEALTH_POOL], health)
                 self.assertFalse(shot.field_ids)
+                if button == ULTIMATE:
+                    # Its ballistic impact can retire the predicted shot before45;
+                    # the Graviton field is a different, non-Biotic combat service.
+                    self.assertNotIn(shot, fight.projectiles.shots)
 
     def test_healing_and_expiry_are_independent_of_owner_acknowledgements(self):
         from test_server_journal import ServerJournalTests

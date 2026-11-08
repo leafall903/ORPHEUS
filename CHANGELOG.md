@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zarya Graviton damage and pull service (partial static acceptance)
+
+- Follow the target-client00A3 aura reference to the missing0261 effect graph.
+  Connect actual ultimate cast/projectile impact to a4-second,6-metre field with
+  direct5 plus continuous5/s damage and collision-backed player/NPC pull. Interpret
+  scalar3 as host pull speed and explicitly document remaining native force gaps.
+- Apply the authored Zarya motion scalar as reconstructed vertical acceleration;
+  schedule non-Biotic deployable releases at impact. Preserve original field-source
+  identity after body replacement, expire/cancel fields, prevent duplicate damage
+  and retain bounded scheduler catch-up. Register all new causal combat storage
+  and the previously added command aim in strict server snapshots.
+- Pass68 projectile/ultimate/five-NPC tests, including20 ultimate behavior cases.
+  An expanded255-test run passed254 and exposed an obsolete projectile-retention
+  assertion; update it to observe actual delayed casts and impact retirement.
+  The affected68-test rerun passes, as do Ruff/diff checks. Server snapshot,
+  journal/replay and repeated-life tests passed in the expanded run.
+  Native passive/damage charge, replicated aura/field actors, immunity/escape,
+  cross-defenses, three NPC attack chains and all NPC specials remain open.
+  The complete static goal stays ACTIVE; no original-client acceptance or merge.
+
 #### Zarya actual five-NPC combat fixtures (partial static acceptance)
 
 - Review and import the parent manual-NPC lifecycle/catalog commits with original

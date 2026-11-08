@@ -38,6 +38,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The external five-NPC fixture now executes outgoing attacks, allied projection
     and shortened lethal/corpse cases on all actual bodies. Explicit-input Trooper
     and Heavy volleys reach Zarya; other incoming attacks and all NPC specials remain open.
+    Graviton's actual cast now drives reconstructed ballistic impact,4-second
+    damage/pull and release for players and five NPC bodies. Native aura/field
+    actors, charge generation, force/immunity/escape and cross-defense cases remain open.
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.

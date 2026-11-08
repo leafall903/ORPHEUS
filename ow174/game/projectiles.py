@@ -352,7 +352,7 @@ class Projectiles:
             for delivery in shot.observers:
                 delivery.finish(self.match.tick, False, drain=True)
             return
-        if shot.spawn is not None or shot.release_at is not None:
+        if shot.spawn == FIELD_ENTITY or shot.release_at is not None:
             return
         start = next((report.cmfd for report in shot.reports if report.received is not False), shot.frame)
         due = start + math.ceil(seconds * 1000 / FRAME_MS) + RELEASE_MARGIN

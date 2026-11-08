@@ -20,6 +20,7 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    graviton,
     heroselect,
     notices,
     observers,
@@ -29,6 +30,7 @@ from ow174.game import (
     stats,
     voicelines,
     world,
+    zarya,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -93,9 +95,11 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "projectiles observers voice beam_seen zarya_barriers zarya_gravitons"
     ),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    zarya.Barriers: _names("combat active projected"),
+    graviton.Gravitons: _names("combat fields npc_movers"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -113,7 +117,7 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles aim match"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
@@ -138,6 +142,7 @@ OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    zarya.Barrier, graviton.Field,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
