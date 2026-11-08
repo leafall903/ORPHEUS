@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: load NPC weapon managers and exercise manual reverse combat
+
+- Start authored NPC weapon-manager and weapon scripts with the same explicit
+  slot metadata/order as player bodies. Sniper's catalog already named0015 and
+  1122/1134, but BotScript only loaded body roots. Real manual input now emits
+  a1122/6 projectile with authored100 damage into Roadhog; the body stays alive.
+- Real Trooper/Heavy/Sniper input damages Roadhog and explicit stop ends attacks.
+  Real Heavy input is blocked while hooked, resumes after its authored warmup,
+  and the first resumed hit is5 rather than a hold-period catch-up burst.
+  Breather halves that live input damage before its healing begins.
+- Pass138 combat/NPC/body-script/Roadhog/modifier tests and one active stored-state
+  regression on fixed source (139 total); Ruff/diff pass. The damage fixture has
+  no acknowledged NPC projectile observer stream, so visual transport is not
+  accepted. Enforcer/Assassin reports and native AI/specials remain open.
+- Health-query/array hypotheses alone did not start Enforcer fire and were removed;
+  no guessed native-query behavior is included in this change. The complete static
+  hero goal and all original-client acceptance stay open. No publication.
+
 #### Roadhog lane: integrate manual NPC attack admission
 
 - Merge parent fbcaf76 into the private lane. Preserve manual targeting, primary

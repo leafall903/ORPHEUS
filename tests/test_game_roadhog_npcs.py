@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, FakeClient, Run, aim
 
-from ow174.game import combat, npc
+from ow174.game import combat, npc, npc_control
 from ow174.game.content import heroes
 from ow174.game.script import graph
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
@@ -33,6 +33,10 @@ class NpcClient(FakeClient):
 
     def queue_bot_death_update(self, entity, payload):
         self.death_updates.append((entity, payload))
+
+    def bot_stream(self, entity):
+        # This pool-damage fixture has no acknowledged projectile observer stream.
+        return None
 
 
 @unittest.skipUnless(os.environ.get("ORPHEUS_NPC_CATALOG") and os.environ.get("ORPHEUS_NPC_GRAPHS"),
@@ -195,6 +199,93 @@ class RoadhogFiveNpcTests(unittest.TestCase):
         run.step({hog: (0, 0, 16)})
         fight._shoot(bot, None, state, 0, run.frame * 16, activation=(0, 0))
         self.assertAlmostEqual(own.total, 597.5)
+
+    def test_manual_weapon_input_causes_real_incoming_damage_and_stop(self):
+        for name in ("Trooper", "Heavy Assault", "Sniper"):
+            with self.subTest(npc=name):
+                definition = next(d for d in self.definitions.values() if d.name == name)
+                run, hog, bot, _, angles = self.session(definition, distance=10)
+                hog.mover.yaw, hog.mover.pitch = angles
+                self.assertEqual(npc_control.start(run.match, hog), bot.entity)
+                own = run.match.combat.vitals_of(
+                    next(t for t in run.match.combat._targets() if t.owner is hog),
+                )
+                for _ in range(180):
+                    run.step({})
+                self.assertLess(own.total, 600)
+                self.assertIsNotNone(bot.body_script)
+                if name == "Sniper":
+                    record = graph.entity_body(bot.body)
+                    loaded = {i.graph.index for i in bot.body_script.component.instances.values()}
+                    self.assertIn(record["manager"], loaded)
+                    self.assertTrue({i for i in record["weapons"] if i is not None} <= loaded)
+                self.assertTrue(bot.attack_input)
+                npc_control.stop(run.match)
+                stopped = own.total
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(own.total, stopped)
+                self.assertFalse(bot.attack_input)
+
+    def test_hook_blocks_active_manual_heavy_weapon_until_release_then_resumes(self):
+        definition = next(d for d in self.definitions.values() if d.name == "Heavy Assault")
+        run, hog, bot, _, angles = self.session(definition, distance=10)
+        hog.mover.yaw, hog.mover.pitch = angles
+        npc_control.start(run.match, hog)
+        own = run.match.combat.vitals_of(next(t for t in run.match.combat._targets() if t.owner is hog))
+        for _ in range(120):
+            run.step({hog: (*angles, 0)})
+            if own.total < 600:
+                break
+        self.assertLess(own.total, 600)
+        run.step({hog: (*angles, 8)})
+        hooks = run.match.combat.hooks
+        for _ in range(60):
+            run.step({hog: (*angles, 0)})
+            if hooks.controlled(bot.entity):
+                break
+        self.assertTrue(hooks.controlled(bot.entity))
+        held = own.total
+        held_ticks = 0
+        for _ in range(100):
+            run.step({hog: (*angles, 0)})
+            if not hooks.controlled(bot.entity):
+                break
+            held_ticks += 1
+            self.assertEqual(own.total, held)
+            self.assertFalse(bot.attack_input)
+        self.assertGreater(held_ticks, 10)
+        self.assertFalse(hooks.controlled(bot.entity))
+        resumed = own.total
+        for _ in range(120):
+            run.step({hog: (*angles, 0)})
+            if own.total < resumed:
+                break
+        self.assertLess(own.total, resumed)
+        self.assertEqual(resumed - own.total, 5.0)  # No catch-up burst from the held period.
+        self.assertTrue(bot.attack_input)
+
+    def test_breather_reduces_manual_heavy_input_damage_before_healing_starts(self):
+        definition = next(d for d in self.definitions.values() if d.name == "Heavy Assault")
+        losses = []
+        for active in (False, True):
+            run, hog, bot, _, angles = self.session(definition, distance=10)
+            hog.mover.yaw, hog.mover.pitch = angles
+            npc_control.start(run.match, hog)
+            own = run.match.combat.vitals_of(next(t for t in run.match.combat._targets() if t.owner is hog))
+            for _ in range(120):
+                run.step({})
+                if own.total < 600:
+                    break
+            self.assertLess(own.total, 600)
+            run.step({hog: (*angles, 16 if active else 0)})
+            before = own.total
+            for _ in range(20):
+                run.step({})
+            losses.append(before - own.total)
+            self.assertTrue(bot.attack_input)
+        self.assertGreater(losses[0], 0)
+        self.assertAlmostEqual(losses[1], losses[0] / 2)
 
 
 if __name__ == "__main__":

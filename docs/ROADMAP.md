@@ -25,9 +25,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Whole Hog's16-pellet path now executes charge consumption, repeated damage,
   end, uncharged rejection and death cancellation with miss/team/wall regressions.
   Explicit external five-Talon inputs now cover weapon/melee/ultimate damage and
-  retained-death bodies for all five, plus one admitted Heavy Assault volley into
-  Roadhog. AI acquisition, other four incoming attacks, skills and full two-way
-  interaction remain open; base pools are not complete authored difficulty totals.
+  retained-death bodies for all five. Manual Trooper/Heavy/Sniper input now causes
+  reverse damage into Roadhog and respects stop; NPC weapon-manager startup restores
+  Sniper's100-damage projectile. Heavy stops while hooked and resumes without a
+  catch-up burst; Breather reduces its real input damage. Autonomous AI, remaining
+  Enforcer/Assassin attacks, specials and full two-way interaction remain open;
+  base pools are not complete authored difficulty totals.
   Secondary node29's embedded25-pellet expiry volley now causes real player and
   five-NPC damage, preserves one-ammo consumption, rejects prior wall/body impact
   emission and matches skipped-tick flight. Callback timing remains reconstructed.
