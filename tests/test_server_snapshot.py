@@ -106,6 +106,10 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         client.expected_in -= 1
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns[player.body] = player.match.tick + 50
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns.pop(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))
         self.assertNotEqual(changed, initial)
