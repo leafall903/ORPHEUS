@@ -16,8 +16,13 @@ transport and permissive body VM; target is Heavy Assault at8m unless stated):
   against an enemy player and a training NPC, with visible, full-wall, allied
   and out-of-range cases. An external actual-five-Talon probe separately passes
   all ten visible/wall cases:30 damage visible, zero damage behind the wall.
-- Flashbang at3m deals25. This does not prove stun, gravity/bounce, immunity,
-  interruption, barriers, cooldown lifecycle or presentation.
+- Flashbang at3m deals25. The resource-backed server reconstruction now applies
+  timed control, interrupts an active Sprint channel, suppresses movement/input
+  and damage while controlled, and permits new input after expiry. Actual-five-
+  Talon probes observe primary release for all five and attack recovery for the
+  three enemies that already fire (Trooper, Sniper, Heavy Assault). Enforcer and
+  Assassin incoming attacks remain open. Gravity/bounce, native immunity rules,
+  barriers, complete cooldown lifecycle and presentation are not accepted.
 - Deadeye activation changes the authored ability flags, but the subsequent
   primary shot deals ordinary70 and consumes one normal round. Acquisition,
   charged damage, release, cancel and charge economy are not accepted.
@@ -37,9 +42,32 @@ The external research bundle adds0228;224E was already present. No normal runtim
 bundle or data file was replaced. No game assets or dumps belong in this repo.
 Directly injecting224E with the wrapper's evaluated schema/start parameters does
 not reach the stun control variables in the current permissive VM. Therefore
-neither the graph injection nor the duration discovery establishes working stun.
-Hit-effect routing, invocation metadata, status lifetime/interrupt/immunity and
-client replication remain required. There is no forced-control production fix.
+neither the graph injection nor the duration discovery establishes native stun.
+
+Implemented control reconstruction:
+- HitDef preserves ModifyHealth.m_277A4ECA. The recognized053/0079 effect uses
+  the configured initial mode flag13408 to choose the resource's0.8/1.7 seconds.
+  The deadline is an exclusive world tick rounded up to the next16ms boundary.
+- Existing held input is released, buffered ability presses are cleared and
+  running abilities stop through their authored exit/cooldown paths. Controlled
+  player commands suppress buttons/actions/throttles and horizontal velocity;
+  look and gravity continue. No new hit/shot reports apply while controlled.
+- Manual NPC input is released; NPC shot reports remain consumed on the clock.
+  Route pause preserves the target, and skipped ticks cannot replay the paused
+  route interval. Physical projectiles already in flight remain in flight.
+- Repeat effects refresh the deadline. Expiry, body retirement/replacement,
+  death and manual NPC removal retire control. Retained corpses remain present.
+  Server snapshots include the control deadlines as causal state.
+- Splash also requires static visibility from impact to the target capsule.
+  This prevents the damage and control from reaching a target behind a full wall.
+  Impact-origin adjustment and capsule visibility remain reconstructed geometry.
+
+This is a server combat policy based on the effect resource, not execution of
+the complete224E graph or a recovered native status manager. Missing invocation
+metadata and native immunity/cleanse/stacking/unstoppable/barrier/reflect/absorb
+semantics and status/HUD/animation/audio replication remain open. No native
+client session has accepted the reconstruction. Dynamic mode-graph changes are
+not modeled beyond the configured initial mode flag used by this policy.
 
 Remaining complete static scope:
 Primary/secondary hit/miss/critical/falloff/range/LOS/team/ammo and recovery;
