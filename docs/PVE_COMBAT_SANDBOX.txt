@@ -25,7 +25,45 @@ Implemented lifetime foundation:
   persistence: those need original-client checks for the actual enemy bodies.
 - Passive server state includes the policy, so it is not hidden causal state.
 
-Still open: manual spawn/removal and input wiring, actual enemy body replication,
+Manual NPC lifecycle API:
+- npc.Definition requires full hero/body GUIDs, a name and explicit finite health,
+  armour and shields. npc.spawn runs on the match thread, allocates a never-reused
+  bot ID, opts into corpse retention, records its combat creation boundary, and
+  queues body creates for spawned viewers. Later viewers use the normal catalog.
+- npc.remove_spawned removes only manually created NPCs, including corpses.
+  It stops body scripts, retires projectiles without explosions, removes pending
+  attacks/respawns and combat state, and queues destroys. Existing map bots and
+  player bodies are not selected by this operation.
+- Five tests use the real Match combat and lifecycle with a training-body fixture.
+  They do not establish the five Talon definitions' wire/component compatibility.
+  The older extractor's pool labels differ from pools.py. The actual NPC body
+  graph routes instance variable221 through entity variable7787 to HealthPool
+  type2 (shields); catalog preparation follows the graph wiring, not that label.
+
+External enemy catalog:
+- tools/extract_pve_npcs.py reads selected hero/body XML and the directly wired
+  base HealthPool schema setters. It preserves pool kinds, literal defaults and
+  body overrides, source SHA256 and exact pool/setter/variable evidence.
+- Difficulty/conditional pool nodes are listed as unapplied. These are base
+  sandbox definitions, not mission-scaled enemy totals or complete health logic.
+  Output must remain outside the repository; npc.load_catalog validates selection
+  keys, full GUIDs and explicit pool values before constructing definitions.
+- All five local enemy definitions were prepared. An external extension of the
+  validated script bundle adds33 graphs with no new missing references. A fresh
+  in-memory Match loads all five body scripts; real McCree primary-fire commands
+  deal70 damage to each, body creates encode and explicit removals complete.
+  This probe uses a flat-collision fixture, adapter transport and permissive body
+  VMs. It does not prove enemy AI, complete skills/ultimate or original-client
+  presentation. Normal runtime inputs have not been replaced.
+
+Parallel hero work:
+Each hero lane must create its own goal for complete static acceptance of attacks,
+all skills, hit effects, cooldowns, ultimate and applicable player/NPC/cross-hero
+interactions. Completion requires executed behavior evidence for every item.
+Validated lane commits/patches are reviewed and integrated serially by the parent;
+static completion does not imply original-client combat acceptance.
+
+Still open: catalog production mounting/menu and input wiring, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;
