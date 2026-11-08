@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### D.Va independent Fusion Cannon ray consumer
+
+- Expand D.Va graph050A's authored ring counts into independent rays. Evaluate
+  cover, target selection, falloff and armour separately per pellet. Scope this
+  consumer to D.Va's Fusion Cannons; preserve unrelated weapon directions.
+- Pass eight execution tests for22 close-range damage,11 damage against armour,
+  individual misses, enemy NPC damage, walls, range, allies and vertical aim/input
+  validation. An external authored050A first-frame probe supplies spread4 and
+  yields11 rays,22 damage and11 hit notices through the normal shot consumer.
+- Degree units, tangent projection and zero phase are explicit reconstructions.
+  The direct consumer probe does not accept input/cadence, mech creation,
+  possession, abilities or client behavior. Full static hero acceptance remains
+  open. Combat/projectile regressions and Ruff pass; no merge/push is claimed.
+
 #### Static explosion cover and D.Va lane audit
 
 - Stop projectile splash at static cover, keeping wall-impact explosions on the

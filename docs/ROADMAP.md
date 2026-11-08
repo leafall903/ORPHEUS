@@ -16,7 +16,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 - [ ] Verify D.Va combat in both forms against enemy players and all five manual
   PvE NPC types. A shared projectile splash repair now respects static cover in
-  player/NPC health tests. Mech creation/possession, pellet patterns, abilities,
+  player/NPC health tests; a reconstructed Fusion Cannon consumer executes
+  independent pellets against player/NPC health and armour. Mech creation/possession,
+  native pellet geometry, ability/input timing,
   transformations and original-client acceptance remain open. See
   [D.Va combat lane](DVA_COMBAT.txt).
 

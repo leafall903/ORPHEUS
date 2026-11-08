@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, dva, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -665,6 +665,13 @@ class Combat:
         view_tick = self.tick
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
+        for ray in dva.pellet_directions(shooter, state, direction):
+            self._hitscan(shooter, origin, ray, reach, direct, view_tick, shot_frame,
+                          world_tick=self.tick if npc else None)
+
+    def _hitscan(self, shooter, origin, direction, reach, direct, view_tick, shot_frame,
+                 *, world_tick=None) -> None:
+        """Resolve one ray, including independent per-pellet armour and occlusion."""
         best = None
         for target in self._enemies(shooter):
             shown = self.seen(target, view_tick)
@@ -685,7 +692,7 @@ class Combat:
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
         self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
-            world_tick=self.tick if npc else None,
+            world_tick=world_tick,
         )
 
     def _fly(self, rocket: Rocket) -> None:

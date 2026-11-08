@@ -22,8 +22,19 @@ server creation, possession, health replication or transformation behavior.
 Weapon050A's volley declares11 projectiles per shot and2 damage each. Its
 STU_613BDDB0 shot pattern has radial entries(0,1),(0.5,4),(1,6). Existing combat
 code consumes only one centre-line ray per volley report and ignores this
-pattern. Multiplying damage by11 would lose independent armour, cover and
-critical results and is not an acceptable repair.
+pattern in the baseline. Multiplying damage by11 would lose independent armour,
+cover and critical results and is not an acceptable repair.
+
+An isolated consumer now expands Fusion Cannon volleys into independent rays.
+Eight tests execute actual health changes, per-pellet armour, individual misses,
+wall/range/team exclusion and NPC damage, plus vertical-aim/invalid-input checks.
+The authored050A graph also completes its first frame in a local probe, yielding
+spread4; its unchanged volley node then produces11 rays,22 close-range damage
+and11 hit notices. This probe uses a synthetic actor pose and directly invokes
+the volley consumer. It does not execute mech creation, player input, volley
+timing, cooldowns or possession. Degrees, zero phase and tangent-plane geometry
+are explicit reconstructions; other authored spread fields and native trajectory
+comparison remain open. Malformed rings fail instead of silently using one ray.
 
 Graph02CC declares secondary logical button29;047E declares button35;
 0B2F declares button37;1128 declares button36 and a missile volley with
@@ -76,8 +87,8 @@ normal player death/respawn remains a separate policy.
 
 Integration and publication
 ---------------------------
-Only the shared splash fix, synthetic damage regression tests and documentation
-belong in the lane patch. The generated entity bundle is research input, not a
+The shared splash fix and scoped Fusion Cannon consumer, damage regression tests
+and documentation belong in lane patches. The generated entity bundle is research input, not a
 Git artifact. No root-main merge, remote push, publication synchronization,
 service replacement or client control was performed for this lane's patch.
 The parent owns NPC creation/controls and patch integration. Full native
