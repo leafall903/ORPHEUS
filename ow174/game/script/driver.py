@@ -151,6 +151,12 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_082FA44E":
+            from ow174.game import pulse_bomb
+
+            value = pulse_bomb.resource_float(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)

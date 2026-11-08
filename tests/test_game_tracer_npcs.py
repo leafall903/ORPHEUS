@@ -132,6 +132,20 @@ class TracerNpcTests(unittest.TestCase):
                 self.assertIn(bot, run.match.bots)
                 self.assertFalse(any(who is bot for _, who in run.match.combat.respawns))
 
+    def test_pulse_bomb_deals_contact_and_blast_to_all_five_base_pools(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot, target, _, _ = self.fight(definition)
+                vitals = run.match.combat.vitals_of(target)
+                before = vitals.total
+                script = player.body_script
+                script.set_ult_charge(script.component.entity_var(338).value())
+                run.step({player: (0, 0, 32)})
+                for _ in range(120):
+                    run.step({})
+                self.assertEqual(vitals.total, max(0, before - 355))
+                self.assertEqual(bot.dead, before <= 355)
+
 
 if __name__ == "__main__":
     unittest.main()

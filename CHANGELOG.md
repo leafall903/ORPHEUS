@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Tracer Pulse Bomb resource damage and reconstructed impact lifecycle
+
+- Resolve the narrowly scoped015D.130 default350 from a manifest-verified104319
+  resource; preserve actual graph0034's450 PvE-mode branch. Add authoritative
+  ballistic sphere flight, impact sticking/attachment, delayed explosion, blast
+  LOS/falloff, Recall detachment, self damage and lifetime/source cleanup.
+  Impact-fuse field interpretation and physics/attachment policies are explicit
+  reconstructions; no native-emulation or client-fidelity claim is made.
+- Pass19 Pulse Bomb,31 Tracer, five actual-class NPC (25 class subcases), six
+  shared NPC,28 combat,37 projectile and27 driver tests (153 total), Ruff and
+  diff checks. Cover spending/rejection, release delay, full350/450 damage,
+  falloff210 at3m, friendly/miss/wall/self, windup cancel/death, active owner death,
+  body retirement, Recall detachment, lifetime, armour/shields, scheduler gaps and reuse.
+- Retire the executed charged-bomb explosion failure. Full static goal remains
+  active: critical/spread, complete ultimate gain, status/control/deflect/absorb/
+  barriers, Recall cleanse and NPC reverse attacks/full cross-hero matrix remain
+  open. Original-client acceptance, publication and shared-main merge are absent.
+
 #### Tracer reconstructed Recall and actual-class outgoing NPC fixtures
 
 - Reconstruct001A warmup/playback using resource timing and body-local posed

@@ -42,6 +42,23 @@ Recall, as are incoming target/damage resolution. Cancelled casts spend cooldown
 without restoring health. History/timers cannot modify replacement bodies.
 Cleanse, exact native event timing and the full cross-hero controls remain open.
 
+Pulse Bomb now has a separate authoritative physics/fuse service. Its damage
+query reads the verified015D.130 default350 rather than returning null; actual
+mode0025 takes the graph's450 branch. The projectile uses authored speed15,
+gravity30, sphere radius0.2, maximum lifetime5, contact damage5 and explosion
+rings2m/full to4m/20%. F969FA7A's value1 is interpreted as an impact fuse;
+that field interpretation and sticking/attachment/Recall detachment/LOS policies
+are explicitly reconstructed, not native instruction proofs. Sphere flight,
+fuse, follow, blast occlusion, self damage and source retirement execute on the
+world clock. A thrown bomb survives owner death; unreleased windup cancels on
+death/ability stop. Self damage gives no damage/kill credit.
+
+Two selective resources were read from the original104319 CASC and verified
+against its manifest before XML inspection (outside Git, lane pulse-resources):
+015D.130 has A0E5F3ED.m_3E5360A1=350, SHA256
+b9e534c209c06b39da264bc6f6bc78a71469e9ccd2baf7d73bf1a002a54199b2.
+The projectile's0C1B graph was also verified; native effects remain client-pending.
+
 S = selected server fixture passed; O = open, including original-client result.
 NPC columns mean the specific requested class, not a training-bot substitute.
 
@@ -57,8 +74,9 @@ NPC columns mean the specific requested class, not a training-bot substitute.
 | Recall position / health / ammo / cooldown | S | O | O | O | O | O | O |
 | Recall cleanse / complete cross-hero controls | O | O | O | O | O | O | O |
 | Recall selected invulnerability / targeting | S | O | O | O | O | O | O |
-| Pulse Bomb throw / stick / fuse / explosion | O | O | O | O | O | O | O |
-| Ultimate gain / consumption | O | O | O | O | O | O | O |
+| Pulse Bomb selected throw / stick / fuse / explosion | S | S | S | S | S | S | O |
+| Ultimate spending / windup / end / cancel | S | O | O | O | O | O | O |
+| Ultimate passive / damage gain | O | O | O | O | O | O | O |
 | Incoming primary fire | S (Soldier) | O | O | O | O | O | O |
 | Incoming abilities / control / death | O | O | O | O | O | O | O |
 | Outgoing death / notices | S | S | S | S | S | S | O |
@@ -69,7 +87,7 @@ past the normal respawn deadline. It disables NPC script delivery; it proves onl
 damage/counting/lifetime integration, not one of the five PVE classes or its AI.
 The parent has since provided a separate five-class catalog/script bundle and
 NPC APIs (reviewed shared commitsc2d3ae1/a15d554, cherry-picked into this clone).
-Four additional opt-in tests execute20 class subcases using actual definitions,
+Five additional opt-in tests execute25 class subcases using actual definitions,
 base pools, scripts and XML-extracted mover capsules mounted only in fixture
 memory. Normal runtime lacks these mover entries and is unchanged. Transport is
 an explicit adapter; production mounting, AI and reverse attacks remain open.
@@ -96,6 +114,7 @@ checkout's `.venv\Scripts\python.exe` without writing to its source or the runti
 
 ```
 python -B -m unittest discover -s tests -p test_game_tracer.py -v
+python -B -m unittest discover -s tests -p test_game_tracer_pulse.py -v
 python -B -m unittest discover -s tests -p test_game_combat.py
 python -B -m unittest discover -s tests -p test_game_projectiles.py
 python -B -m unittest discover -s tests -p test_script_driver.py
@@ -114,9 +133,14 @@ pass-through, held/duplicate input rejection, and recharge cap.
 
 Nine Recall tests add history/health/ammo, same-frame pose, both-phase protection,
 motion/fire/Blink exclusion, cooldown reuse, cancellation, beneficial healing and
-body retirement. Twenty-eight combat,37 projectile,27 driver, four actual-class
-NPC and six shared NPC/catalog tests also pass (133 total;20 NPC class subcases
-within the four tests). Ruff and `git diff --check` pass. NPC fixtures require
+body retirement. Nineteen Pulse Bomb tests add charge rejection/spending, actual
+release delay, contact/follow/fuse, misses, friendly targets, wall occlusion,
+self damage, death/windup/retirement, Recall detachment, bounded lifetime,
+scheduler gaps,350/450 mode branches, separate armour/shield stages and210
+damage at3m surface distance.
+Twenty-eight combat,37 projectile,27 driver, five actual-class NPC and six shared
+NPC/catalog tests also pass (153 total;25 class subcases within five tests).
+Ruff and `git diff --check` pass. NPC fixtures require
 `ORPHEUS_PVE_NPC_DATA_DIR` and `ORPHEUS_NPC_XML_DIR`; a skip is not acceptance.
 
 The original pre-fix Blink probe found no movement. The lane-local executable
@@ -124,9 +148,10 @@ The original pre-fix Blink probe found no movement. The lane-local executable
 `STATIC_ACCEPTANCE.json` and intentionally exits1 while the full matrix is open.
 The earlier Recall position/health/cooldown failures now pass: the actual movement
 and70-damage scenario restores health150, historical position and starts cooldown.
-A bomb
-charged to the actual1260 cost consumes charge but leaves an unarmoured200-health
-enemy at195 after120 frames; the explosion is missing. The earlier900-point
+A bomb charged to the actual1260 cost now explodes and kills the unarmoured200-HP
+target; its earlier195-HP/no-explosion result is retired. Full static acceptance
+still fails its unverified rows; an empty executed-failure list is not completion.
+The earlier900-point
 ultimate probe was undercharged and must not be treated as a full-charge test.
 The known skill
 graphs are Recall001A, Blink0024 and Pulse Bomb0034. No general State fallback

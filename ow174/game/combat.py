@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, tracer, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, pulse_bomb, stats, tracer, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -366,6 +366,7 @@ class Combat:
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
+        self.pulse_bombs = pulse_bomb.PulseBombs(self)
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
 
@@ -389,6 +390,7 @@ class Combat:
 
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
+        self.pulse_bombs.retire(player.body)
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
@@ -489,6 +491,7 @@ class Combat:
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
             self._bot_weapons(at)
+            self.pulse_bombs.update(at)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
         if frames:
@@ -650,6 +653,10 @@ class Combat:
             damaging = (direct is not None and direct.amount > 0.0) or (
                 blast is not None and blast.amount > 0.0
             )
+            if pulse_bomb.is_pulse(shooter, state):
+                self.pulse_bombs.launch(shooter, state, origin, direction, speed, lifetime,
+                                       direct, blast, shot)
+                return
             if damaging or shot is not None:
                 self.rockets.append(
                     Rocket(
@@ -803,7 +810,7 @@ class Combat:
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)
-        if not isinstance(shooter, bots.Bot):
+        if not isinstance(shooter, bots.Bot) and target.owner is not shooter:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
