@@ -1,11 +1,13 @@
 """What the dashboard can do with an account, independent of HTTP."""
 
 import logging
+import os
 import threading
 import time
 from collections import Counter
 from copy import deepcopy
 from datetime import date
+from pathlib import Path
 
 from ow174.accounts.profile import Profile, load_or_create_profile, save_profile
 from ow174.accounts.registry import Account, account_id_for
@@ -784,6 +786,24 @@ class DashboardService:
         if game is None:
             raise ApiError("The game server is off.", 409)
         return {"message": f"Sent {game.send_home()} game(s) back to the menu."}
+
+    def npc_console(self, data: dict) -> dict:
+        """Use only an explicitly configured external catalog and the chosen account's match."""
+        from ow174.game.npc import load_catalog
+
+        game = self.lobby.game
+        if game is None:
+            raise ApiError('The game server is off.', 409)
+        source = os.environ.get('ORPHEUS_NPC_CATALOG')
+        if not source:
+            raise ApiError('NPC catalog is not configured (ORPHEUS_NPC_CATALOG).', 409)
+        try:
+            catalog = load_catalog(Path(source))
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise ApiError('NPC catalog is unavailable or invalid.', 409) from error
+        account = self.account(data.get('name'))
+        return game.npc_key(account.account_lo, data.get('key'), catalog,
+                            menu_open=data.get('menu_open', False))
 
     def reconnect(self) -> dict:
         self.lobby.reconnect_own_game()
