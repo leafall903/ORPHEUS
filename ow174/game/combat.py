@@ -389,6 +389,8 @@ class Combat:
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
+        self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
+        self.genji_blades: dict[int, dict] = {}  # body -> (instance, tracker) -> (activation, victims)
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -417,6 +419,8 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.genji_strikes.pop(player.body, None)
+        self.genji_blades.pop(player.body, None)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -445,6 +449,8 @@ class Combat:
             return
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.is_dead(player):
+            self.genji_strikes.pop(player.body, None)
+            self.genji_blades.pop(player.body, None)
             return
         if command is not None:
             for state, number, time, activation in shots:
@@ -454,9 +460,116 @@ class Combat:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         try:
             self._melee(player, command, script)
+            self._genji_strike(player, command, script)
+            self._genji_blade(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
 
+    def _genji_strike(self, player, command, script) -> None:
+        """Reconstruct 01DB's enemy tracking during actual MoveTo movement.
+
+        The authored body-centred sphere has radius1.5 and amount50. Sweep it
+        between poses and admit each live enemy once per activation. Native
+        filter/shape semantics are unverified; dynamic shields remain open.
+        """
+        if player.hero.guid != 0x02E0000000000029 or command is None:
+            return
+        instance = next((i for i in script.component.instances.values() if i.graph.index == 0x01DB), None)
+        movement = instance.states.get(1) if instance is not None else None
+        if movement is None:
+            return
+        previous = self.genji_strikes.get(player.body)
+        identity = (instance.id, movement.counter)
+        centre = tuple(a + b for a, b in zip(player.mover.position, (0, 1, 0), strict=True))
+        if previous is None or previous[:2] != identity:
+            if not movement.active:
+                self.genji_strikes.pop(player.body, None)
+                return
+            previous = (*identity, centre, set())
+        start, victims = previous[2:]
+        track = instance.states.get(33)
+        radius = _number(track.evaluate(track.node.field("m_radius"), watch=False), 0) if track else 0
+        modify = instance.state(3).node.field("m_modifyHealth") or {}
+        amount = _number(instance.evaluate(modify.get("m_amount")), 0)
+        loadout = instance.evaluate(modify.get("m_loadout"))
+        delta = _sub(centre, start)
+        length = math.sqrt(_dot(delta, delta))
+        if not movement.active and length <= EPSILON:
+            self.genji_strikes.pop(player.body, None)
+            return
+        direction = tuple(v / length for v in delta) if length > EPSILON else (0, 0, 1)
+        for target in self._enemies(player):
+            if target.entity in victims:
+                continue
+            a, b = target.segment()
+            distance = ray_capsule(start, direction, a, b, target.radius + radius)
+            if distance is None or distance > length:
+                continue
+            midpoint = tuple((x + y) / 2 for x, y in zip(a, b, strict=True))
+            to_target = _sub(midpoint, centre)
+            reach = math.sqrt(_dot(to_target, to_target))
+            if reach > EPSILON:
+                wall = ray_world(self._collision(), centre, tuple(v / reach for v in to_target), reach)
+                if wall is not None and wall < reach:
+                    continue
+            victims.add(target.entity)
+            self._damage(player, target, amount, False,
+                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+        if movement.active:
+            self.genji_strikes[player.body] = (*identity, centre, victims)
+        else:
+            self.genji_strikes.pop(player.body, None)
+
+    def _genji_blade(self, player, command, script) -> None:
+        """Reconstruct 0304's short-lived sword target windows, once per victim.
+
+        Use authored range5, angle90 and the evaluated amount (110 in 104319).
+        Cone/capsule and static LOS rules are server reconstruction; dynamic
+        defenses and original-client geometry require separate acceptance.
+        """
+        if player.hero.guid != 0x02E0000000000029 or command is None:
+            return
+        instance = next((i for i in script.component.instances.values() if i.graph.index == 0x0304), None)
+        if instance is None:
+            return
+        records = self.genji_blades.setdefault(player.body, {})
+        centre = tuple(a + b for a, b in zip(player.mover.position, (0, 1, 0), strict=True))
+        facing = aim(*command.aim())
+        for tracking, damage in ((66, 21), (67, 22)):
+            track = instance.states.get(tracking)
+            if track is None or not track.active:
+                continue
+            key = (instance.id, tracking)
+            activation, victims = records.get(key, (0, set()))
+            if activation != track.counter:
+                victims = set()
+                records[key] = (track.counter, victims)
+            radius = _number(track.evaluate(track.node.field("m_radius"), watch=False), 0)
+            angle = _number(track.evaluate(track.node.field("m_A30B383E"), watch=False), 0)
+            threshold = math.cos(math.radians(angle))
+            state = instance.state(damage)
+            modify = state.node.field("m_modifyHealth") or {}
+            amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0)
+            loadout = state.evaluate(modify.get("m_loadout"), watch=False)
+            for target in self._enemies(player):
+                if target.entity in victims:
+                    continue
+                a, b = target.segment()
+                if segment_distance(centre, a, b) > radius + target.radius:
+                    continue
+                midpoint = tuple((x + y) / 2 for x, y in zip(a, b, strict=True))
+                delta = _sub(midpoint, centre)
+                distance = math.sqrt(_dot(delta, delta))
+                if distance > EPSILON:
+                    direction = tuple(v / distance for v in delta)
+                    if _dot(facing, direction) + EPSILON < threshold:
+                        continue
+                    wall = ray_world(self._collision(), centre, direction, distance)
+                    if wall is not None and wall < distance:
+                        continue
+                victims.add(target.entity)
+                self._damage(player, target, amount, False,
+                             loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
         m_radius 1.0 at (0, 0, 1.5) from the eye (DATA; unverified: along the aim), #476 = 30 damage (DATA),

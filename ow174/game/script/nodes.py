@@ -1303,13 +1303,14 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, consume: bool = True) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if consume:
+                    self.presses.remove(item)
                 return True
         return False
 
@@ -1360,7 +1361,7 @@ class Ability(State):
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, consume=False)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1376,10 +1377,10 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
         if start:
+            if pressed:
+                self.take_press(start)
             self.flags |= self.HELD
         return True
 

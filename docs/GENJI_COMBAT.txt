@@ -30,23 +30,33 @@ Required action matrix (enemy player / five mission NPCs / client):
 Primary         partial headless damage / OPEN / OPEN
 Secondary       partial headless damage / OPEN / OPEN
 Quick melee     inherited generic path  / OPEN / OPEN
-Swift Strike    partial MoveTo tests    / OPEN / OPEN
+Swift Strike    partial movement/damage / OPEN / OPEN
 Deflect         missing authority       / OPEN / OPEN
-Dragonblade     missing authority       / OPEN / OPEN
+Dragonblade     partial sword damage    / OPEN / OPEN
 Double jump     unaccepted movement     / n/a  / OPEN
 Wall climb      unaccepted movement     / n/a  / OPEN
 Receive attacks inherited damage path   / OPEN / OPEN
 
 Swift Strike graph01DB's ModifyHealth3/15 are active while idle. TrackTargets
 31/33 supplies their target lists; the current VM TrackTargets returns empty.
-Do not apply damage solely because ModifyHealth is active. The first ordinary
-Shift leaves MoveTo without a resolved endpoint: its external position/aim
-queries and world ray provider are not implemented in production BodyWorld.
-Existing tests supply resolved native query results and prove only movement
-consumer behavior. Strike damage, reset on elimination and ultimate remain open.
+Do not apply damage solely because ModifyHealth is active. A Genji-only body
+adapter reconstructs own eye/aim and the authored filter0029's static ray using
+current movement collision. Normal Shift now runs the unchanged graph into a
+15m MoveTo at50m/s. A reconstructed radius1.5 sphere sweep applies evaluated
+amount50 once per live enemy per activation, with static LOS. Exact native
+eye/shape/filter semantics and dynamic barriers remain open. Ten command-path
+checks cover movement, hits/misses, walls, team, multiple victims, duplicate
+input, cancellation and 8-second cooldown rejection/reuse. An expired press
+keeps its original timestamp instead of refreshing while cooldown blocks it.
+Reset on elimination/ultimate, five NPCs and defense/status interactions remain open.
 Dragonblade's damage/target states are in weapon0304 (ModifyHealth21/22 and
-TrackTargets66/67); its ultimate ability graph03A3 alone does not establish damage.
-Deflect graph0317 has authored lifecycle/effects but no authority intersection,
+TrackTargets66/67). The Q ultimate is graph0317; E Deflect is graph03A3 (corrected
+from the initial graph identification). Sword target windows now apply evaluated
+amount110, range5 and angle90 once per target/window with static LOS. Cone and
+capsule geometry are reconstructed. Eight command-path tests cover charge gate,
+consumption, damage, kills, misses, walls, teams, multiple targets and ending.
+Current evaluated ultimate cost is1932. Charging from damage remains open.
+Deflect graph03A3 has authored lifecycle/effects but no authority intersection,
 projectile ownership transfer or reflected-hit path. Beams/melee/explosions
 require distinct eligibility; blocking all incoming damage would be incorrect.
 

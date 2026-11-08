@@ -86,6 +86,20 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertIsNot(player.mover.world, player.match.collision_world)
         self.assertNotEqual(snapshot_digest(self.capture(session)), first)
 
+    def test_genji_hit_ledgers_are_causal_snapshot_state(self):
+        session, _, players = self.scene()
+        fight = players[0].match.combat
+        body = players[0].body
+        first = snapshot_digest(self.capture(session))
+        fight.genji_strikes[body] = (6, 1, (0.0, 1.0, 0.0), {0xC0001000})
+        strike = snapshot_digest(self.capture(session))
+        self.assertNotEqual(strike, first)
+        fight.genji_blades[body] = {(10, 66): (1, {0xC0001001})}
+        self.assertNotEqual(snapshot_digest(self.capture(session)), strike)
+        fight.genji_strikes.clear()
+        fight.genji_blades.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), first)
+
     def test_equal_data_clone_is_distinguished_from_the_canonical_lazy_table(self):
         session, _, players = self.scene()
         player = players[0]

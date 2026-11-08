@@ -136,6 +136,18 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if (self.hero == 0x02E0000000000029 and self.match is not None
+                and cls in {"STU_21A13145", "STU_2200A66D"}
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            # Reconstructed Genji cast inputs. The native engine query's full
+            # transform/attachment rules remain unverified; only own live body.
+            owner = next((p for p in self.match.players
+                          if p.body == self.body and p.body_script is not None), None)
+            if owner is not None:
+                from ow174.game.combat import Combat, aim
+
+                return Vec3(*(Combat._eye(self.match.combat, owner) if cls == "STU_21A13145"
+                              else aim(owner.mover.yaw, owner.mover.pitch)))
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -160,6 +172,26 @@ class BodyWorld(runtime.World):
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
+
+    def raycast(self, request):
+        """Reconstruct Genji's static dash cast using current collision geometry.
+
+        Only the authored 0029 filter and own-body ignore list are supported.
+        Dynamic barriers and the native filter resource semantics remain open.
+        """
+        cfg = request.filter_config or {}
+        resource = cfg.get("m_C1903771") or {}
+        if (self.hero != 0x02E0000000000029 or self.match is None
+                or self.match.collision_world is None
+                or resource.get("m_C1903771") != "0x0690000000000029"
+                or request.ignored_entities != (self.body,)):
+            return None
+        hit = self.match.collision_world.cast_ray(
+            tuple(request.origin), tuple(request.direction), request.length,
+        )
+        if hit is None:
+            return runtime.RaycastResult(False, None, None, None)
+        return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match

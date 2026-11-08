@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Genji reconstructed Strike and Dragonblade (partial)
+
+- Reconstruct Genji-only own eye/aim and static dash casts, run the authored
+  15m/50m/s MoveTo, and sweep its evaluated 50 damage once per enemy. Reconstruct
+  the weapon's short sword target windows using evaluated 110 damage, range5,
+  angle90 and static line of sight. Keep native geometry/filter semantics and
+  dynamic defenses explicitly unaccepted; correct Q/E graph identification.
+- Preserve ability input-buffer timestamps while cooldown/conditions reject
+  a start. Previously each retry refreshed the timestamp indefinitely, allowing
+  old released input to fire after the cooldown. This affects shared abilities.
+- Add 10 Strike and eight Dragonblade command-path tests, including damage,
+  miss, walls, team, cancellation, cooldown rejection/expiry, charge gates,
+  consumption, kills and ultimate end. Extend passive combat snapshots with
+  per-activation victim ledgers. Full static hero goal remains active; Deflect,
+  passive movement, combat charging, five NPCs and cross-hero defenses remain open.
+
 #### Genji secondary shuriken authority (partial)
 
 - Emit three independently swept projectiles for weapon0304's authored fan,

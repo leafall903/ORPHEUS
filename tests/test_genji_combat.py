@@ -14,7 +14,7 @@ from ow174.game.content import heroes
 GENJI = 0x02E0000000000029
 
 
-class GenjiShurikenTests(unittest.TestCase):
+class GenjiFixture(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(bodytrace, "ENABLED", False))
         self.enterContext(patch.object(movelog, "ENABLED", False))
@@ -37,6 +37,8 @@ class GenjiShurikenTests(unittest.TestCase):
         target = next(t for t in run.match.combat._targets() if t.owner is player)
         return run.match.combat.vitals_of(target).total
 
+
+class GenjiShurikenTests(GenjiFixture):
     def test_primary_burst_deals_three_hits(self):
         run, player = self.spawn(4.0)
         self.fire(run, player, 1)
