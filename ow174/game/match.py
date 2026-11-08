@@ -48,7 +48,7 @@ from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
-from ow174.game.script.bot import BotScript
+from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.script.driver import BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
@@ -589,16 +589,20 @@ class Match:
                 updates.append(self.remote_body_create(viewer, other))
         return updates
 
-    def _prepare_bot_script(self, bot: bots.Bot) -> None:
+    def _prepare_bot_script(self, bot: bots.Bot, *, total_health: float | None = None) -> None:
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
             bot.body_script = BotScript(
-                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
+                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid,
+                bot.health if total_health is None else total_health,
                 firing_position=bot.position if firing else None,
             )
+            component = getattr(bot.body_script, "component", None)
+            if isinstance(component, runtime.Component) and isinstance(component.world, BotWorld):
+                component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 

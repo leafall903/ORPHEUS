@@ -22,9 +22,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   gates have partial evidence. Reconstructed character silence now blocks real
   Helix, retains rifle/melee, interrupts running Sprint and cleans up on expiry/
   death. Native tag/control fidelity and complete cross-hero/NPC Hack remain open.
-  Complete Hack, full Camo,
-  Translocator, EMP, headshots, dynamic
-  defenses, actual five-NPC combat and native acceptance remain open. See
+  Eight further actual-NPC methods (35 subcases) cover all five bodies taking
+  pistol/melee damage, allies/LOS, timed Hack ownership and corpse persistence.
+  Four firearm NPCs cause reverse damage; Assassin attacks remain open. Enforcer
+  Hack requires an explicitly released host flag, whose native transition is open.
+  Complete Hack, full Camo, Translocator, EMP, headshots, dynamic defenses, NPC
+  specials/navigation/full bidirectional combat and native acceptance remain open. See
   [Sombra combat restoration](SOMBRA_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

@@ -75,7 +75,7 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
     match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
+    match._prepare_bot_script(bot, total_health=definition.health + definition.armour + definition.shields)
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)

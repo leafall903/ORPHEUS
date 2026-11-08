@@ -5,7 +5,14 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_initial_graphs
+from ow174.game.script.driver import (
+    DEFAULT_SLOT,
+    OWNER_HEALTH,
+    WEAPON_SLOTS,
+    ReplicatedBody,
+    Snapshot,
+    create_initial_graphs,
+)
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -35,6 +42,17 @@ class BotWorld(runtime.World):
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.match = None  # explicit live-body services installed by Match after initialization
+
+    @property
+    def combat(self):
+        return self.match.combat if self.match is not None else None
+
+    def body_ability_allowed(self, state):
+        return self.combat is None or self.combat.body_ability_allowed(state)
+
+    def body_button_allowed(self, component, button):
+        return self.combat is None or self.combat.body_button_allowed(component, button)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return self.weapon_buttons.get(str(slot))
@@ -44,6 +62,35 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if self.combat is not None:
+            if cfg.get("$") == "STU_B96D3A98" and instance.graph.index in (0x13EB, 0x1122, 0x1134):
+                # The manual engagement owner supplies the AI permission branch;
+                # no native autonomous-controller behavior is claimed here.
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                target = next((t for t in self.combat._targets() if t.entity == entity), None)
+                if target is not None:
+                    owner = target.owner
+                    return (getattr(owner, "spawner", {}).get("manual_spawn") is True
+                            and not owner.dead and owner.firing)
+            if cfg.get("$") == "STU_4BD39CFD" and instance.graph.index in (0x13EB, 0x1122, 0x1134):
+                # Explicit manual-NPC numeric difficulty selection. The fixture
+                # supplies9948; absent selection uses the declared first profile.
+                values = cfg.get("m_814F8EC3") or {}
+                if values.get("$") == "STU_06610EBC":
+                    rows = values.get("m_configVars") or ()
+                    index = expr.to_int(instance.evaluate(cfg.get("m_index")))
+                    return instance.evaluate(rows[index]) if 0 <= index < len(rows) else None
+            if cfg.get("$") == "STU_E72F6348" and instance.graph.index == 0x0B1F:
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                return any(t.entity == entity for t in self.combat._targets())
+            if cfg.get("$") == "STU_9B7648C3" and instance.graph.index in (0x13EB, 0x1122, 0x1134):
+                # Reconstructed living-body eligibility for these weapon graphs'
+                # sole >0 comparison. This is not a general native query meaning.
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                target = next((t for t in self.combat._targets() if t.entity == entity), None)
+                if target is not None:
+                    vitals = self.combat.vitals_of(target)
+                    return 0.0 if vitals.dead else vitals.total
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -91,7 +138,21 @@ class BotScript(ReplicatedBody):
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
-        for instance in create_initial_graphs(component, record):
+        created = create_initial_graphs(component, record)
+        weapons = record.get("weapons") or []
+        if any(item is not None for item in weapons):
+            component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+            component.set(DEFAULT_SLOT, next(slot for slot, item in enumerate(weapons) if item is not None))
+            manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+            if manager is not None:
+                created.append(component.create(manager, init=False))
+            for slot, item in enumerate(weapons):
+                definition = graph.graph(item) if item is not None else None
+                if definition is not None:
+                    created.append(component.create(
+                        definition, values={(graph.INSTANCE, 28): slot}, init=False,
+                    ))
+        for instance in created:
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()

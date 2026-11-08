@@ -7,6 +7,8 @@ The thirty-two tests in tests/test_game_sombra_combat.py run the extracted Sombr
 graphs in a real Match, consume command/button input and assert health, ammo,
 notices, death flags and statistics. FakeClient acknowledges delivery immediately;
 this is offline server behavior, not a native-client presentation/transport proof.
+Eight additional methods (35 NPC subcases) in test_game_sombra_npc.py use all
+five actual catalog bodies and their authored graphs in the same Match host.
 No live client session was acquired for this change. No skill is fully accepted.
 
 Extracted body roots: 0033,004B,0043,0B1A,0B31,0C19,0C9B,08B6.
@@ -17,23 +19,26 @@ the authored bindings, not separately verified in a native client here.
 
 Acceptance matrix
 -----------------
-O = offline partial evidence only; - = open/no evidence. Every cell still needs
+O = offline partial evidence only; C = explicit conditional fixture; - = open/no evidence. Every cell still needs
 original-client acceptance. NPC means the actual named combat actor, not a
 Training Bot relabelled as one.
 
 Feature                      Enemy player Trooper Enforcer Sniper Assassin Heavy
-Machine Pistol body damage        O          -       -       -       -       -
+Machine Pistol body damage        O          O       O       O       O       O
 Machine Pistol ammo/reload        O          -       -       -       -       -
 Machine Pistol range/falloff      O          -       -       -       -       -
 Machine Pistol headshots          -          -       -       -       -       -
-Quick melee/repeated activation   O          -       -       -       -       -
-Taking damage/death/dead fire     O          -       -       -       -       -
-Hack/channel/interrupt/lockout    O          -       -       -       -       -
+Quick melee/repeated activation   O          O       O       O       O       O
+Taking damage/death/dead fire     O          O       O       O       -       O
+Hack/channel/interrupt/lockout    O          O       C       O       O       O
 Camo/speed/visibility/reveal      O          -       -       -       -       -
 Translocator/flight/recall        -          -       -       -       -       -
 EMP/charge/cast/hack/pool effects -          -       -       -       -       -
 Opportunist/passive detection     -          -       -       -       -       -
-Manual NPC corpse persistence   n/a          -       -       -       -       -
+Manual NPC corpse persistence   n/a          O       O       O       O       O
+
+NPC Hack cells cover application/ownership/expiry only; they do not establish
+interruption of every NPC attack or special. Enforcer C is explained below.
 
 Additional applicable interactions:
 - O: offensive pistol and melee ignore same-team player in a team mode.
@@ -154,21 +159,65 @@ executed evidence above. Native tag/category/control services and all untested
 cross-hero/NPC branches remain open; application creation alone remains insufficient.
 Combat._damage currently has no hero barrier, reflection, absorption or immunity
 service. It changes pools directly. Those cross-hero requirements are unaccepted.
-The parent owns actual five-NPC creation/control; its integration is still open
-at this lane's baseline. The existing retain_corpse opt-in alone is not five-NPC
-combat acceptance. No client or normal service was controlled by this lane.
+Reviewed parent NPC lifecycle/catalog/manual-control dependencies are imported
+only into this clone. Full five-NPC combat acceptance remains OPEN. No client
+or normal service was controlled by this lane.
+
+Actual NPC checkpoint -- partial reconstructed manual combat
+-----------------------------------------------------------
+The read-only retribution/npc-runtime pack supplies the actual catalog identities:
+Trooper01AC/body1D40 (200 health), Enforcer01CE/body2279 (250 health +100 shields),
+Sniper01B8/body1E7D (300 health), Assassin01BB/body1EBD (400 health +100 shields),
+Heavy01BA/body1EBB (4000 health). These are declared base pools, not retail
+mission/difficulty totals. Variable221 is shields, not armour. Initial OWN_HEALTH
+now receives all pools rather than health alone. Sniper's declared manager and
+weapon slots are mounted by BotScript; its body roots alone contain no gun.
+
+The manual host provides three scoped query adapters only in13EB/1122/1134:
+living-body eligibility for the authored >0 check, explicit manual engagement
+permission, and indexed authored numeric profile rows. They are reconstructed
+host inputs, not general native query identities or autonomous AI acceptance.
+The fixture explicitly sets9948=0. Enforcer's first actual pool loss is2 at
+profile0 and4 at profile1; complete shotgun pellets/spread are still OPEN.
+BotWorld uses the same explicit character-silence policy and stores its enclosing
+Match reference in the server snapshot; passive VM export excludes that owner.
+
+All five bodies lose8 from an actual Sombra round and30 from melee; team mode
+excludes allied hits, static walls block pistol/Hack, and real pistol/reload
+input kills all five, including Heavy. Dead bodies remain past BOT_RESPAWN and
+cannot be targeted. Trooper/Enforcer/Sniper/Heavy authored weapon reports cause
+real reverse damage, and manual stop releases input and prevents further damage.
+Assassin generates no attack report in this fixture: its target/ModifyHealth
+attack remains OPEN. This is not complete NPC bidirectional acceptance.
+
+Hack applies ownership and timed status to all five in explicit fixtures.
+Enforcer initially seeds14679=True and its authored filter correctly rejects
+Hack without spending cooldown. Only after the test host explicitly clears this
+flag does application pass; its native AI transition remains OPEN. No production
+filter was relaxed. Full NPC silence/attack interruption and all specials remain
+OPEN, as do navigation, difficulty/conditional pools and original-client wire,
+HUD, model, projectile observer and presentation behavior. FakeClient omits NPC
+projectile observer streams and records death callbacks; this is no wire proof.
+
+Parent dependency originals -> isolated replay commits:
+c2d3ae165e95195b65e86be1bd62360b56eab2c7 -> f9d7b0f9f61e9e649a4af064871fe3ef1a0d3053
+a15d554b14b2a31ee8c6f35a2dd93534d30664c8 -> d8cd513628b7c19c9a8d1e6ce22f870b3017f79e
+fbcaf767665b011de3e00200ccc2041b0721a263 -> 22289e64f3b96867a4530640cf38fae3a9092cba
+Exported own patches exclude these parent replays. No shared source was changed.
 
 Reproduce offline tests (PowerShell, from this lane's source directory)
 --------------------------------------------------------------------
 $env:ORPHEUS_RUNTIME_DIR='D:\overwatch 1.7.4\runtime-104319'
+$env:ORPHEUS_NPC_RUNTIME_DIR='D:\overwatch 1.7.4\verification\retribution\npc-runtime'
 $env:PYTHONPATH=(Get-Location).Path+';'+(Join-Path (Get-Location) 'tests')
 & 'D:\overwatch 1.7.4\ORPHEUS\.venv\Scripts\python.exe' -B -m unittest `
-  test_game_sombra_combat test_game_combat test_game_bot_statescript -q
+  test_game_sombra_combat test_game_sombra_npc test_game_combat test_game_bot_statescript -q
 
-The latest silence checkpoint also passes the projectile, PlayScript, driver,
-runtime, codec and passive VM/server snapshot groups (258 distinct checks total).
-An initial stored-journal check was invalidated by a source-format edit while
-running; with source held fixed that exact check passed its full replay.
+The actual-NPC checkpoint passes 284 distinct checks:145 combat/NPC/extractor,
+101 shared script/VM/driver and38 passive VM/server snapshot checks. The long
+stored-journal replay passed with source fixed for its entire run. Ruff and diff
+checks also pass. The external NPC environment is mandatory for NPC acceptance;
+without it those tests skip and do not supply acceptance evidence.
 
 External runtime data is read-only; cwd and PYTHONPATH must name this clone.
 Do not publish game resources, local graph dumps, captures or logs. Integration

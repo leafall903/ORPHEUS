@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Partial Sombra actual-NPC combat checkpoint
+
+- Import reviewed parent NPC lifecycle/catalog/manual-control dependencies only
+  into this lane clone. Initialize NPC VM health from all actual pools and mount
+  declared Sniper weapon slots/manager. Preserve the immutable external pack.
+- Supply scoped reconstructed manual engagement, living-target and numeric-profile
+  adapters for the relevant Enforcer/Sniper weapon graphs. Register BotWorld's
+  enclosing Match reference in server storage without duplicating it in VM export.
+- Add eight actual-NPC Match methods (35 subcases): all five take pistol/melee
+  damage, exclude allies, obey static LOS, retain real pistol-killed corpses and
+  receive timed Hack ownership. Preserve Enforcer's initial14679 Hack rejection;
+  its positive test explicitly clears the host flag. Four firearm NPCs cause
+  reverse damage and stop firing on manual release. Enforcer first pool loss is
+  2/4 under explicit authored profiles0/1; full pellets/spread remain open.
+- Pass 284 distinct related checks including full stored-journal replay with
+  source fixed. Ruff and diff checks pass. Full NPC attacks/specials/navigation,
+  Assassin reverse damage, Enforcer native flag transition, remaining Sombra
+  abilities/ultimate/defenses and original-client acceptance remain OPEN.
+  The complete static goal stays ACTIVE; no shared-main merge or push occurred.
+
 #### Reconstructed Sombra character silence
 
 - Use the authored0B1F/node96 duration for an explicit five-second character
