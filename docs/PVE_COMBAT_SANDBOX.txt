@@ -25,7 +25,28 @@ Implemented lifetime foundation:
   persistence: those need original-client checks for the actual enemy bodies.
 - Passive server state includes the policy, so it is not hidden causal state.
 
-Still open: manual spawn/removal and input wiring, actual enemy body replication,
+Manual NPC lifecycle API:
+- npc.Definition requires full hero/body GUIDs, a name and explicit finite health,
+  armour and shields. npc.spawn runs on the match thread, allocates a never-reused
+  bot ID, opts into corpse retention, records its combat creation boundary, and
+  queues body creates for spawned viewers. Later viewers use the normal catalog.
+- npc.remove_spawned removes only manually created NPCs, including corpses.
+  It stops body scripts, retires projectiles without explosions, removes pending
+  attacks/respawns and combat state, and queues destroys. Existing map bots and
+  player bodies are not selected by this operation.
+- Five tests use the real Match combat and lifecycle with a training-body fixture.
+  They do not establish the five Talon definitions' wire/component compatibility.
+  The older extractor's pool labels differ from pools.py; retain raw variable IDs
+  until actual NPC graph routing is checked. No NPC pool identity is guessed here.
+
+Parallel hero work:
+Each hero lane must create its own goal for complete static acceptance of attacks,
+all skills, hit effects, cooldowns, ultimate and applicable player/NPC/cross-hero
+interactions. Completion requires executed behavior evidence for every item.
+Validated lane commits/patches are reviewed and integrated serially by the parent;
+static completion does not imply original-client combat acceptance.
+
+Still open: five-enemy catalog/menu and input wiring, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
 corpse appearance and full original-client combat verification. The older
 complete-story restoration goal and its root-node blocker are separate scope;
