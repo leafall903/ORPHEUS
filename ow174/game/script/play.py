@@ -7,7 +7,7 @@ extending the VM's legacy general-purpose Map mutation implementation.
 
 from dataclasses import dataclass
 
-from ow174.game.script import expr
+from ow174.game.script import controller_heroes, expr
 from ow174.game.script.graph import GRAPH_TYPE
 from ow174.game.script.graph import guid as parse_guid
 
@@ -43,14 +43,17 @@ class Request:
 
 
 def evaluate_value(instance, cfg, *, initial=0):
-    """The value-producing +28 path used by request/schema initializers.
+    """The +28 value interface for assignments and request/schema initializers.
 
-    06610EBC's +28 (1B779E0) collects its config iterator into an array; its
-    different +20 first-item behavior is deliberately not added to expr.evaluate.
+    Config groups and controller-hero queries collect all iterator items here;
+    their scalar interface is selected separately by evaluate_scalar/evaluate.
     """
     with instance.component.operation():
         if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
             return tuple(_iter_values(instance, cfg))
+        result = controller_heroes.collect(instance.context(), cfg)
+        if result is not NotImplemented:
+            return result
         return instance.evaluate(cfg, initial=initial)
 
 
@@ -58,8 +61,8 @@ def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 
     A missing/failed config or a scalar null yields no item. Null members of an
-    existing array are retained. Unknown native iterator configs remain strict
-    world queries; no alternate native iterator interface is invented here.
+    existing array are retained. Recognized native iterators retain their own
+    traversal; unknown native iterator configs remain strict world queries.
     """
     instance.component.consume_work("played graph config iteration")
     if _depth >= MAX_CONFIG_DEPTH:
@@ -69,6 +72,13 @@ def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         for child in cfg.get("m_configVars") or ():
             yield from _iter_values(instance, child, _depth=_depth + 1, watcher=watcher)
+        return
+    iterator = controller_heroes.values(instance.context(watcher), cfg)
+    if iterator is not NotImplemented:
+        try:
+            yield from iterator
+        finally:
+            iterator.close()
         return
     value = instance.evaluate(cfg, watcher, initial=_FAILED)
     if value is _FAILED or value is None:

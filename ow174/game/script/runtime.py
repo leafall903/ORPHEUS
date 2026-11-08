@@ -251,17 +251,22 @@ class InstanceContext(Context):
             self.watcher.watch(target)
         return would_stack_to_top(target, priority)
 
-    def native(self, cfg: dict):
-        """A config var the world answers: it is no variable, so a state that reads it re-checks every
-        update (the client's poll list, 0x7FF78AAA5C20)."""
+    def poll_native(self, cfg: dict):
+        """Keep native scalar and iterator dependencies on the existing poll list."""
         if self.watcher is not None:
             self.watcher.natives.add(cfg.get("$"))
             if not self.watcher.polled:
                 self.watcher.polled = True
                 self.watcher.ticks()
-        from ow174.game.script import entity_queries
+
+    def native(self, cfg: dict):
+        """A native config's scalar +20 interface and compatibility polling."""
+        self.poll_native(cfg)
+        from ow174.game.script import controller_heroes, entity_queries
 
         result = entity_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -386,6 +391,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
+        """Ordered native hero catalog, controller lookup and availability services."""
         return NotImplemented
 
     def script_failed(self, component: "Component") -> None:

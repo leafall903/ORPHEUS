@@ -6,6 +6,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native controller hero-catalog iteration
+
+- Implement1AAB4B4F scalar-first, collected-value and nested-group interfaces.
+  Preserve typed integer0 when scalar iteration yields no item, ordered Assets,
+  duplicate/zero handling, selector watches and dependency kinds3/37. Unknown
+  engine lookup, catalog and availability policies stay strict owner services.
+- Bind services to the actual script component lifecycle. Old instances cannot
+  borrow a replacement's context or retire it on failure. Detach/fault/unbind and
+  callback retirement close the owned iteration path; rejected rows share budgets.
+- Pass1296 original iterator/wrapper/traversal comparisons with declared engine
+  and storage adapters, including one iterator/vector release per case. Two
+  missing-environment probes confirm null-scratch behavior; no empty-success
+  result is fabricated. Full catalog construction and availability remain open.
+- Six retained graph references include actual0C90/node55 and node147 configs:
+  the former receives all supplied assets, the latter reads the first. The
+  ForCode State and independent5E805B5A list State remain unaccepted. With explicit
+  role/catalog inputs, all three controller profiles now retain65ABFCCC. Ordinary
+  execution still retains81A9AB10; real Match still retains rootD38/node106.
+- Add21 behavior tests;928 related and33 server checks pass, plus final native/unit
+  and Ruff/diff rechecks. Final lint/docstring corrections preserve executable
+  ASTs, with earlier sources retained locally. Placed50/123 and failure cleanup
+  remain unchanged. No fresh original-client run, deployment or complete story,
+  cinematic/enemy-AI acceptance is claimed. See CONTROLLER_HERO_ITERATION.txt.
+  Normal inputs and unrelated work remain intact. Publication helper missing;
+  no GitHub push is performed.
+
 #### Collected config-array values in variable assignments
 
 - Correct SetVar and SetVars to use the native +28 value interface. Config groups

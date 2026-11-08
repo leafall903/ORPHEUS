@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from ow174.game.script import (
     animation_alias,
+    controller_heroes,
     data_flow,
     effect_routing,
     entity_control,
@@ -113,6 +114,7 @@ class SceneWorld(runtime.World):
         self.play_queues: dict[int, play_queue.Queue] = {}
         self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
+        self.hero_contexts: dict[int, controller_heroes.Context] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -200,6 +202,9 @@ class SceneWorld(runtime.World):
         query = self.query_contexts.pop(entity, None)
         if query is not None:
             query.retire()
+        heroes = self.hero_contexts.pop(entity, None)
+        if heroes is not None:
+            heroes.retire()
         queue = self.play_queues.pop(entity, None)
         if queue is not None:
             queue.retire()
@@ -429,6 +434,19 @@ class SceneWorld(runtime.World):
     def entity_query_context(self, entity: int):
         return self.query_contexts.get(entity, NotImplemented)
 
+    def set_controller_hero_context(self, entity: int, context: controller_heroes.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not controller_heroes.Context or context.owner != entity or context.retired:
+            raise ValueError('expected live controller-hero context for this entity')
+        if entity in self.hero_contexts and self.hero_contexts[entity] is not context:
+            raise ValueError('detach the existing controller-hero context before replacement')
+        self.hero_contexts[entity] = context
+
+    def controller_hero_context(self, entity: int, *, component: runtime.Component | None = None):
+        if component is not None and self.script_components.get(entity) is not component:
+            return NotImplemented
+        return self.hero_contexts.get(entity, NotImplemented)
+
     def _retire_control_contexts(self, *, entity=None, component=None):
         for source, context in list(self.control_contexts.items()):
             target = context.component if type(context) is entity_control.Context else None
@@ -466,6 +484,9 @@ class SceneWorld(runtime.World):
         query = self.query_contexts.pop(component.entity, None)
         if query is not None:
             query.retire()
+        heroes = self.hero_contexts.pop(component.entity, None)
+        if heroes is not None:
+            heroes.retire()
         if self.script_components.get(component.entity) is component:
             voice = self.voice_contexts.pop(component.entity, None)
             if voice is not None:
