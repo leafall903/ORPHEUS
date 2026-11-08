@@ -247,6 +247,30 @@ prove headshots. Native region geometry/defaults and projectile critical
 handling are missing, not accepted. No multiplier was invented in this patch.
 The range tests prove the host capsule model only, not native hitbox boundaries.
 
+First-person geometry checkpoint (2026-11-09)
+--------------------------------------------
+The actual03FC.003 STUFirstPersonComponent specifies m_E29993A5=1.175 and
+m_816B830F=0.8225, at layout offsets28/32 (OWLib). Combat previously used
+1.55/1.15m defaults for Lucio. A shared per-body eye lookup now supplies the
+known values to player/NPC shot origins, target records and retained history;
+area attack/aura/barrier eye queries use the same path. Soldier's known crouch
+override is retained. Unknown body definitions still use component defaults;
+this patch does not establish correct eyes for every hero or NPC archetype.
+
+Three actual-input behavior methods/eight subcases prove standing/crouched
+shot and target/history values, low-wall blocking and passage below overhead
+triangles in both stances, plus healing LOS at a low wall near the source.
+Temporarily restoring old heights yields seven failed subcases without editing
+source. Source XML/value/hash evidence is lane-local lucio-first-person-audit.json;
+test logs are lucio-geometry-tests.log and lucio-geometry-red.log.
+
+These are target-data offsets in reconstructed combat geometry. They do not
+establish camera interpolation, animated muzzle/bones, native head regions or
+original-client presentation. Existing eye-threshold critical classification
+is still an unverified approximation; projectile critical remains missing.
+The speed investigation identified only state markers in0267; neither their
+native consumer nor multiplier is established. No speed value is inferred.
+
 Client evidence
 ---------------
 No session acquired. Existing Overwatch PID12292/window was observed read only.

@@ -74,7 +74,11 @@ KILLER, CRIT, LOADOUT, ASSISTS = 0x0012, 0x0095, 0x03E6, 0x03E7
 MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notices 1FC0 (client-only)
 
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
-EYE_CROUCHED = {0x04000000000003CF: 1.085}  # Soldier's m_816B830F (DATA); others the default
+EYE_STANDING = {0x04000000000003FC: 1.175}  # Lucio's m_E29993A5 (target003 component)
+EYE_CROUCHED = {
+    0x04000000000003CF: 1.085,  # Soldier's m_816B830F
+    0x04000000000003FC: 0.8225,  # Lucio's m_816B830F
+}
 EYE_CROUCHED_DEFAULT = 1.15
 HEAD_BELOW = 0.2  # m under the eye where the head starts (unverified)
 HISTORY = 64  # ticks of body positions kept for the shots' view time (about 1 s; unverified: retail's limit)
@@ -88,6 +92,12 @@ MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahea
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
 EPSILON = 1e-9
+
+
+def eye_height(body: int, crouched: bool = False) -> float:
+    """Known first-person component heights; retain component defaults elsewhere."""
+    return (EYE_CROUCHED.get(body, EYE_CROUCHED_DEFAULT) if crouched
+            else EYE_STANDING.get(body, EYE))
 
 
 # --- geometry -----------------------------------------------------------------------------------------
@@ -658,7 +668,7 @@ class Combat:
             data = mover_data(player.hero.body)
             crouched = player.mover.crouched
             height = data.crouch_height if crouched else data.stand_height
-            eye = EYE_CROUCHED.get(player.hero.body, EYE_CROUCHED_DEFAULT) if crouched else EYE
+            eye = eye_height(player.hero.body, crouched)
             found.append(
                 Target(player.body, player.team, tuple(player.mover.position), height, data.stand_radius, eye,
                        player)
@@ -667,7 +677,8 @@ class Combat:
             data = mover_data(bot.body)
             found.append(
                 Target(
-                    bot.entity, bot.team, tuple(bot.position), data.stand_height, data.stand_radius, EYE, bot
+                    bot.entity, bot.team, tuple(bot.position), data.stand_height, data.stand_radius,
+                    eye_height(bot.body), bot
                 )
             )
         return found
@@ -754,7 +765,7 @@ class Combat:
     def _eye(self, player) -> tuple:
         x, y, z = player.mover.position
         crouched = player.mover.crouched
-        height = EYE_CROUCHED.get(player.hero.body, EYE_CROUCHED_DEFAULT) if crouched else EYE
+        height = eye_height(player.hero.body, crouched)
         return (x, y + height, z)
 
     def _shoot(
@@ -772,7 +783,7 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), 0)
+            origin, direction = (x, y + eye_height(shooter.body), z), aim(round(shooter.yaw), 0)
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))

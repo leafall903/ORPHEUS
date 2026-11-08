@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Lucio authored first-person heights (0079 lane)
+
+- Read actual03FC.003 STUFirstPersonComponent fields: m_E29993A5=1.175m
+  standing and m_816B830F=0.8225m crouched. Combat previously used generic
+  1.55/1.15m offsets for Lucio, changing projectile origins and area sight.
+- Use the known per-body heights consistently for shot origins, target/history
+  eye records and NPC bodies using the same definition. Existing Soldier
+  crouch data and other bodies' component defaults remain the fallback.
+- Pass three executed tests/eight subcases: stance input and shot/history
+  agreement, low walls/overhead openings in both stances, and healing sight.
+  Restoring the old values produces seven subcase failures. External audit
+  matches the source XML fields and records its hash; no asset enters Git.
+- Pass118 selected combat/projectile/all-Lucio checks; one legacy training-NPC
+  aura fixture skips for absent optional body data and is not counted. Real
+  five-type NPC checks run with their catalog/bundle. Ruff/diff checks pass.
+- Interpreting the first-person offsets as combat eyes remains reconstructed.
+  Native camera transitions, muzzle/bone origins and head-region geometry
+  remain open. Crossfade's speed flags still have no established native
+  movement consumer/multiplier; no guessed speed constants were introduced.
+
 #### Lucio primary resource and range acceptance fixtures (0079 lane)
 
 - Add actual-input checks for death and body replacement during reload. Dead
