@@ -54,6 +54,7 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STUStatescriptStateTrackRay", nodes.TrackBodyRay),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
@@ -129,6 +130,20 @@ def digest(component):
 
 
 class BodyVMSnapshotTests(unittest.TestCase):
+    def test_body_search_membership_age_and_beam_output_change_stored_hash(self):
+        component, instance = fixture(("STUStatescriptStateTrackTargets", "STUStatescriptStateTrackRay"))
+        search, beam = instance.states[0], instance.states[1]
+        before = digest(component)
+        search.targets = (0xA0000201,)
+        search.selected_at = {0xA0000201: 50}
+        selected = digest(component)
+        self.assertNotEqual(selected, before)
+        search.selected_at[0xA0000201] = 51
+        aged = digest(component)
+        self.assertNotEqual(aged, selected)
+        beam.result = (True, expr.Vec3(1.0, 2.0, 3.0))
+        self.assertNotEqual(digest(component), aged)
+
     def test_pending_initialization_exports_without_running_or_changing_queued_work(self):
         component, instance = fixture()
         instance.initialization_pending = True
@@ -162,7 +177,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 36)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)

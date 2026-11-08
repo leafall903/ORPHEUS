@@ -460,6 +460,14 @@ class World:
     def play_body_script(self, instance: "Instance", node: Node) -> None:
         """Optional reconstructed body routing, separate from strict scene services."""
 
+    def body_ability_allowed(self, state: "State") -> bool:
+        """Optional authoritative body status admission policy."""
+        return True
+
+    def body_button_allowed(self, component: "Component", button: int) -> bool:
+        """Admission for graph LogicalButtons that directly drive a skill volley."""
+        return True
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
 

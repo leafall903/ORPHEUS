@@ -3,7 +3,7 @@ Target: 1.74.0.0.104319; hero02E000000000012E; body040000000000121C.
 
 Evidence scope
 --------------
-The twenty-six tests in tests/test_game_sombra_combat.py run the extracted Sombra
+The thirty-two tests in tests/test_game_sombra_combat.py run the extracted Sombra
 graphs in a real Match, consume command/button input and assert health, ammo,
 notices, death flags and statistics. FakeClient acknowledges delivery immediately;
 this is offline server behavior, not a native-client presentation/transport proof.
@@ -63,8 +63,12 @@ Additional applicable interactions:
   release before the delay cancels. Concurrent enemy fire while Hack remains
   held deals real damage, interrupts the channel and starts the authored2-second
   interruption cooldown. These are acquisition/application/cooldown checks.
-  The target is NOT yet ability-locked: a real enemy Helix after application
-  still deals120 damage in the recorded external probe. Hack effects remain OPEN.
+  A reconstructed character silence now prevents a real enemy Helix, preserves
+  rifle/melee, interrupts an already-running Sprint with movement input held,
+  retires ownership/status on victim death and permits Helix after expiry.
+  A replacement body does not inherit the retired body's silence. Nearby enemy
+  Sombra loses running Camo and cannot spend full EMP charge while silenced.
+  Full Hack effects across heroes/NPCs/defenses/health packs remain OPEN.
 
 Authored data versus reconstruction
 ----------------------------------
@@ -113,15 +117,41 @@ hosted as a reconstructed instance retirement so its timeout/death/replacement
 branches can unlink ownership and permit a later application. Other instances
 do not gain guessed termination semantics. Complete native action fidelity is open.
 
+Character silence policy
+------------------------
+Native target-tag assembly is still absent. Selecting an unproven native tag
+branch is not accepted: an initial test of that approach also suppressed the
+ordinary rifle, violating Hack semantics. Instead the explicit body policy reads
+the character duration from0B1F/node96 (5 seconds) and owns a tick deadline.
+The original application remains responsible for source/ownership/presentation
+graph data. The body policy owns skill admission and early termination of running
+input abilities; its expiry/death/body-replacement cleanup destroys the associated
+application and restores the previous888 base without overriding other links.
+
+Weapon roots come from the actual body's declared weapon scripts and parent
+ancestry; quick melee0043 is retained. Sombra's weapon-hosted Hack and Soldier's
+weapon-hosted Helix are explicitly classified as skills. LogicalButton admission
+also uses this policy, because Helix's direct volley can bypass an Ability-only
+gate. Other weapon-hosted special cases are not silently declared correct;
+cross-hero classification and status interactions still need their full matrix.
+The native engine tag/control implementation remains unverified. This is a
+documented server reconstruction, not a newly established native tag identity.
+
+The former post-application120-damage Helix failure is superseded for the tested
+Soldier case. New tests use actual commands and pool loss: Helix loses no health
+while silenced, then deals120 after the deadline. The status stays present one
+tick before expiry, and the application/ownership/status retire at the deadline.
+Deadlines/restoration bases and search/beam state are registered in passive
+server/VM snapshots; they may not be omitted from stored causal evidence.
+
 Implementation blockers
 -----------------------
 TrackTargets now hosts explicit results only for the three reconstructed Sombra
 weapon searches. EMP0B31/node40 and Camo0C9B/node128 remain unhosted. Full
 filters, outputs, timing and engine roles remain open, including health packs,
-immunity and status semantics. Actual0B1F currently reaches its fallback
-termination path and sets an ownership marker without creating ability lockout.
-Body tag/category queries and disable/control services must be implemented;
-creating the application instance is not acceptance of its hit effect.
+immunity and status semantics. The explicit character silence policy has narrow
+executed evidence above. Native tag/category/control services and all untested
+cross-hero/NPC branches remain open; application creation alone remains insufficient.
 Combat._damage currently has no hero barrier, reflection, absorption or immunity
 service. It changes pools directly. Those cross-hero requirements are unaccepted.
 The parent owns actual five-NPC creation/control; its integration is still open
@@ -134,6 +164,11 @@ $env:ORPHEUS_RUNTIME_DIR='D:\overwatch 1.7.4\runtime-104319'
 $env:PYTHONPATH=(Get-Location).Path+';'+(Join-Path (Get-Location) 'tests')
 & 'D:\overwatch 1.7.4\ORPHEUS\.venv\Scripts\python.exe' -B -m unittest `
   test_game_sombra_combat test_game_combat test_game_bot_statescript -q
+
+The latest silence checkpoint also passes the projectile, PlayScript, driver,
+runtime, codec and passive VM/server snapshot groups (258 distinct checks total).
+An initial stored-journal check was invalidated by a source-format edit while
+running; with source held fixed that exact check passed its full replay.
 
 External runtime data is read-only; cwd and PYTHONPATH must name this clone.
 Do not publish game resources, local graph dumps, captures or logs. Integration

@@ -181,14 +181,25 @@ class BodyWorld(runtime.World):
                 continue
             script = getattr(target.owner, "body_script", None)
             if script is not None:
-                script.component.play_loaded_graph(
+                application = script.component.play_loaded_graph(
                     definition, source=request.context.caller, params=request.params,
                     overrides=resource.overrides, policy=request.policy,
                     instigator=request.context.instigator,
                 )
+                if application is not None:
+                    self.match.combat.apply_body_hack(target, application)
+
+    def body_ability_allowed(self, state):
+        return self.match is None or self.match.combat.body_ability_allowed(state)
+
+    def body_button_allowed(self, component, button):
+        return self.match is None or self.match.combat.body_button_allowed(component, button)
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if self.match is not None and instance.graph.index == 0x0B1F and cls == "STU_E72F6348":
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            return self.body_component(entity) is not None
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)

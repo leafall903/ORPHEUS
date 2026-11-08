@@ -29,6 +29,24 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_hack_deadline_and_restoration_base_are_stored_causal_state(self):
+        from ow174.game.script import graph
+
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        application = player.body_script.component.play_loaded_graph(
+            graph.graph(0x0B1F), source=player.body, instigator=player.body, policy=1,
+        )
+        fight.apply_body_hack(target, application)
+        first = snapshot_digest(self.capture(session))
+        fight.hacks[player.body][0].until_tick += 1
+        later = snapshot_digest(self.capture(session))
+        self.assertNotEqual(later, first)
+        fight.hack_bases[player.body] = True
+        self.assertNotEqual(snapshot_digest(self.capture(session)), later)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()

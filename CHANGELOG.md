@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Sombra character silence
+
+- Use the authored0B1F/node96 duration for an explicit five-second character
+  silence policy. Gate actual skill Ability and LogicalButton paths, including
+  weapon-hosted Sombra Hack/Soldier Helix, while preserving declared weapon roots,
+  reload and quick melee. Native tag/control branch assembly remains unverified.
+- End running input skills while silenced; retire the associated application and
+  restore prior status base at tick expiry, victim death or body replacement.
+  Keep native source/ownership graph data. Do not pretend an unproven tag mapping
+  is native evidence or claim full cross-hero/health-pack/NPC status coverage.
+- Add real-Match checks for Helix rejection and exact deadline release, permitted
+  rifle/melee damage, ongoing Sprint interruption and victim death cleanup.
+  Verify that hero replacement does not inherit silence and silenced enemy
+  Sombra loses Camo/cannot spend EMP charge.
+  Register new status deadlines/restoration bases and target/beam model storage
+  in passive server/VM snapshots, with mutation-sensitive stored-state checks.
+- Pass 258 distinct checks: 218 combined combat/VM/driver regressions, two further
+  Sombra lifecycle/EMP-admission checks and 38 passive VM/server snapshot checks.
+  One stored-journal attempt was invalidated by a concurrent source-format edit;
+  its rerun with fixed source passes. Ruff and diff checks pass.
+- The complete static Sombra goal remains ACTIVE; native-client combat and
+  presentation, full Hack interaction matrix, other missing skills/ultimate,
+  five actual NPC combat and shared-main integration/publication remain open.
+
 #### Partial Sombra Hack targeting and application hosting
 
 - Reconstruct Sombra's client-owned body preselection from authoritative input

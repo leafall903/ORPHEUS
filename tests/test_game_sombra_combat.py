@@ -136,6 +136,102 @@ class SombraCombatTests(unittest.TestCase):
         self.press(2, 100)
         self.assertTrue(any(i.id != first for i in self.hack_applications()))
 
+    def test_hack_blocks_actual_helix_and_releases_it_after_effect_expiry(self):
+        self.press(2, 100)
+        application = self.hack_applications()[0]
+        deadline = self.run.match.combat.hacks[self.b.body][0].until_tick
+        self.assertGreater(deadline, self.run.frame)
+        self.assertTrue(self.b.body_script.component.entity_var(888).value())
+        self.press(2, shooter=self.b, target=self.a)
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 200)
+        self.press(0, deadline - self.run.frame - 1)
+        self.assertTrue(self.b.body_script.component.entity_var(888).value())
+        self.press(0)
+        self.assertEqual(self.hack_applications(), [])
+        self.assertTrue(application.stopped)
+        self.assertFalse(self.b.body_script.component.entity_var(888).value())
+        self.assertFalse(self.b.body_script.component.entity_var(6396).value())
+        self.press(2, shooter=self.b, target=self.a)
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 80)
+
+    def test_hack_keeps_enemy_primary_fire_and_melee_available(self):
+        self.press(2, 100)
+        self.press(FIRE, shooter=self.b, target=self.a)
+        self.press(0, 4)
+        self.assertEqual(self.health(self.a), 180)
+        self.press(MELEE, shooter=self.b, target=self.a)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.a), 150)
+        self.assertTrue(self.b.body_script.component.entity_var(888).value())
+
+    def test_hack_interrupts_enemy_sprint_while_its_input_stays_held(self):
+        sprint = next(i for i in self.b.body_script.component.instances.values() if i.graph.index == 0x0255)
+        ability = next(st for st in sprint.states.values() if st.node.cls == "STUStatescriptStateAbility")
+        def step_moving(hack):
+            self.run.frame += 1
+            self.run.match.update(self.run.frame * combat.TICK, self.run.frame)
+            x, y, z = self.b.mover.position
+            yaw, pitch = aim(self.run.match.combat._eye(self.a), (x, y + 1, z))
+            self.a.take_commands([Command(self.run.frame, yaw=yaw, pitch=pitch, buttons=2 if hack else 0)])
+            self.b.take_commands([Command(self.run.frame, forward=127, buttons=8)])
+
+        for _ in range(5):
+            step_moving(False)
+        self.assertTrue(ability.flags & ability.RUNNING)
+        for _ in range(100):
+            step_moving(True)
+        self.assertTrue(self.b.body_script.component.entity_var(888).value())
+        self.assertFalse(ability.flags & ability.RUNNING)
+
+    def test_hacked_body_death_retires_effect_and_ownership(self):
+        self.press(2, 100)
+        self.press(0, 4)
+        self.press(FIRE, 100)
+        self.press(0, 3)
+        self.assertTrue(self.run.match.combat.is_dead(self.b))
+        self.assertEqual(self.hack_applications(), [])
+        self.assertFalse(self.b.body_script.component.entity_var(888).value())
+        self.assertFalse(self.b.body_script.component.entity_var(6396).value())
+
+    def test_hero_replacement_does_not_inherit_the_retired_body_silence(self):
+        self.press(2, 100)
+        old_body = self.b.body
+        application = self.hack_applications()[0]
+        self.assertTrue(self.run.match.switch_hero(self.b, self.b.hero))
+        self.b.mover.position[:] = [0.0, 0.0, 1.5]
+        self.b.mover.body = None
+        self.press(0, 50)
+        self.assertNotEqual(self.b.body, old_body)
+        self.assertNotIn(old_body, self.run.match.combat.hacks)
+        self.assertNotIn(self.b.body, self.run.match.combat.hacks)
+        self.assertTrue(application.stopped)
+        self.press(2, shooter=self.b, target=self.a)
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 80)
+
+    def test_hack_interrupts_nearby_enemy_sombra_camo_and_blocks_emp_resource_use(self):
+        self.run.match.switch_hero(self.b, heroes()[SOMBRA])
+        self.b.mover.position[:] = [0.0, 0.0, 1.5]
+        self.b.mover.body = None
+        self.press(0, 50)
+        target_camo = next(i for i in self.b.body_script.component.instances.values()
+                           if i.graph.index == 0x0C9B).state(13)
+        self.press(8, shooter=self.b, target=self.a)
+        self.press(0, 60)
+        self.assertTrue(target_camo.flags & target_camo.RUNNING)
+        self.press(2, 100)
+        self.assertFalse(target_camo.flags & target_camo.RUNNING)
+        self.assertGreater(target_camo.remaining(), 0)
+        self.b.body_script.set_ult_charge(1400)
+        self.press(0x20, shooter=self.b, target=self.a)
+        self.press(0, 10)
+        target_emp = next(i for i in self.b.body_script.component.instances.values()
+                          if i.graph.index == 0x0B31).state(1)
+        self.assertFalse(target_emp.flags & target_emp.RUNNING)
+        self.assertEqual(self.b.body_script.component.entity_var(342).value(), 1400)
+
     def test_camo_taking_actual_enemy_damage_ends_the_ability(self):
         self.press(8)
         self.press(0, 60)

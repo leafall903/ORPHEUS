@@ -370,6 +370,12 @@ class Rocket:
     last_tick: int | None = None  # last world tick, or None before player input is simulated
 
 
+@dataclass
+class BodyHack:
+    application: object
+    until_tick: int
+
+
 class Combat:
     """The match's health, hits, deaths and respawns."""
 
@@ -379,6 +385,8 @@ class Combat:
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
+        self.hacks: dict[int, list[BodyHack]] = {}
+        self.hack_bases: dict[int, object] = {}
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.now = 0.0
@@ -412,6 +420,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.retire_body_hacks(player.body)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -526,6 +535,7 @@ class Combat:
                     self._fly(rocket)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
+        self._update_body_hacks()
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
@@ -675,6 +685,90 @@ class Combat:
         direction = tuple(axis / distance for axis in offset)
         wall = ray_world(self._collision(), origin, direction, max(0.0, distance - target.radius))
         return wall is None, expr.Vec3(*point)
+
+    def apply_body_hack(self, target, application):
+        """Reconstructed character silence, using the authored five-second branch value.
+
+        Native tag-set assembly and the associated engine control properties are
+        not mounted. This policy suppresses skills while retaining weapon fire,
+        reload and quick melee; application frames/ownership remain authored.
+        """
+        duration = _number(application.evaluate(
+            application.graph._by_pos[96].field("m_value"),
+        ), 0.0)
+        if duration <= 0 or self.vitals_of(target).dead:
+            return
+        component = application.component
+        if target.entity not in self.hacks:
+            self.hack_bases[target.entity] = component.entity_var(888).base
+        self.hacks.setdefault(target.entity, []).append(
+            BodyHack(application, self.match.tick + math.ceil(duration / TICK)),
+        )
+        component.set(888, True)
+
+    def retire_body_hacks(self, entity):
+        effects = self.hacks.pop(entity, ())
+        for effect in effects:
+            application = effect.application
+            if application.component.instances.get(application.id) is application:
+                application.component.destroy(application)
+        if effects:
+            effects[-1].application.component.set(888, self.hack_bases.pop(entity, None))
+
+    def _update_body_hacks(self):
+        targets = {target.entity: target for target in self._targets()}
+        for entity, effects in list(self.hacks.items()):
+            target = targets.get(entity)
+            if target is None or self.vitals_of(target).dead:
+                self.retire_body_hacks(entity)
+                continue
+            keep = []
+            for effect in effects:
+                application = effect.application
+                if self.match.tick < effect.until_tick and not application.stopped:
+                    keep.append(effect)
+                elif application.component.instances.get(application.id) is application:
+                    application.component.destroy(application)
+            if keep:
+                self.hacks[entity] = keep
+            else:
+                self.retire_body_hacks(entity)
+
+    def body_ability_allowed(self, state):
+        if state.instance.component.entity not in self.hacks:
+            return True
+        instance = state.instance
+        if instance.graph.index == 0x0043:  # quick melee remains usable
+            return True
+        if instance.graph.index == 0x0B1B and state.index == 53:  # Sombra's weapon-hosted Hack
+            return False
+        target = next((t for t in self._targets() if t.entity == instance.component.entity), None)
+        if target is None:
+            return False
+        body = target.owner.body if isinstance(target.owner, bots.Bot) else target.owner.hero.body
+        record = graph.entity_body(body) or graph.bodies().get(body, {})
+        weapons = set(record.get("weapons") or ()) - {None}
+        if (not isinstance(target.owner, bots.Bot) and target.owner.hero.guid == 0x02E000000000006E
+                and 29 in state.buttons()):
+            return False  # Soldier's weapon-hosted secondary is Helix, not another ordinary shot.
+        parent = instance
+        while parent is not None:
+            if parent.graph.index in weapons:
+                return True
+            parent = parent.parent
+        # Only active input abilities are silenced; passive control/UI states
+        # without a start/hold/stop input keep their ordinary graph lifetimes.
+        return not any(state.buttons())
+
+    def body_button_allowed(self, component, button):
+        if component.entity not in self.hacks or button in (14, 20, 31, 111):
+            return True
+        for instance in component.instances.values():
+            for state in instance.states.values():
+                if (isinstance(state, nodes.Ability) and state.active and button in state.buttons()
+                        and not self.body_ability_allowed(state)):
+                    return False
+        return True
 
     def seen(self, target: Target, view_tick: float) -> Target | None:
         """Interpolate retained poses or use the nearest sample for a body that already existed."""

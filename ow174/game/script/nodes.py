@@ -674,6 +674,8 @@ class LogicalButton(State):
         return to_int(self.evaluate(_field(self, "m_logicalButton"), watch=False))
 
     def blocked(self) -> bool:
+        if not self.instance.component.world.body_button_allowed(self.instance.component, self.button_id()):
+            return True
         if not self.instance.component.disabled.get(self.button_id()):
             return False
         ignore = _field(self, "m_53C4B6A6")
@@ -1292,10 +1294,12 @@ class Ability(State):
 
     def held(self, button: int) -> bool:
         component = self.instance.component
-        return button in component.held and not component.disabled.get(button)
+        return (button in component.held and not component.disabled.get(button)
+                and component.world.body_button_allowed(component, button))
 
     def button(self, button: int, pressed: bool) -> None:
-        if not pressed or button == 0 or self.instance.component.disabled.get(button):
+        if (not pressed or button == 0 or self.instance.component.disabled.get(button)
+                or not self.instance.component.world.body_button_allowed(self.instance.component, button)):
             return
         if button in self.buttons():
             self.presses = [item for item in self.presses if self.now - item[0] < 2000]
@@ -1355,7 +1359,8 @@ class Ability(State):
                 self.start_ability()
 
     def can_start(self) -> bool:
-        if self.instance.component.owner_dead:
+        if (self.instance.component.owner_dead
+                or not self.instance.component.world.body_ability_allowed(self)):
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
         pressed = False
@@ -1384,7 +1389,8 @@ class Ability(State):
         return True
 
     def keep(self) -> bool:
-        if self.instance.component.owner_dead:
+        if (self.instance.component.owner_dead
+                or not self.instance.component.world.body_ability_allowed(self)):
             return False  # unverified (the PS4 build): a running ability stops when its owner dies
         start, hold, stop = self.buttons()
         if self.flags & self.HELD and not self.held(start):
