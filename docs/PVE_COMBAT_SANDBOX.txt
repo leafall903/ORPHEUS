@@ -101,6 +101,11 @@ Authored NPC weapon components:
 - The fixture omits NPC observer projectile transport (bot_stream returns None).
   It proves authoritative damage only, not projectile visuals, native-client
   replication, autonomous navigation, specials or full mission behavior.
+- Difficulty-indexed config selection now uses the native scalar-index and
+  collecting-container interfaces (docs/CONFIG_ARRAY_SELECTION.txt). This fixes
+  a separate zero-damage cause in the Enforcer weapon, but its production control
+  context is still absent. A forced-controller external experiment is diagnostic
+  evidence only; the production three-of-five damage result remains unchanged.
 
 Still open: catalog production mounting/frontend and keyboard wiring, actual enemy body replication,
 navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
