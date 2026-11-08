@@ -55,6 +55,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     both barriers, capacity/energy/source credit and high-energy beam exhaustion.
     Energy delay1s/rate1.8/s, re-absorption restart, floor and new-body reset have
     production combat fixtures; native status/control/pet hosting remains open.
+    Resource-backed Flashbang now directly exercises Zarya interrupt/recovery,
+    skill refusal, emitted-attack persistence and both barriers; projected
+    protection also blocks damage/control for all five actual NPCs. General
+    status cleanse/immunity and native control presentation remain open.
     Graviton's actual cast now drives reconstructed ballistic impact,4-second
     damage/pull and release for players and five NPC bodies. Native aura/field
     actors, charge generation, force/immunity/escape and cross-defense cases remain open.

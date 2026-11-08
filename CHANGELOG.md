@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Zarya Flashbang interception and control acceptance (partial)
+
+- Review/import parent manual NPC control and resource-backed Flashbang commits
+  with provenance. Preserve this lane's combat services, projectile attribution,
+  static splash placement and all causal snapshot fields during integration.
+- Reproduce actual personal/projected barrier damage absorption still allowing
+  Flashbang stun. Deliver hit effects within accepted body damage after barrier
+  interception so the blocked complete hit cannot stun its protected body.
+  The breaking Flashbang is also intercepted; only remaining capacity gains energy.
+- Add7 Zarya control methods for both barriers, beam/movement interruption and
+  recovery, blocked skill/ultimate input, breaking-hit handling and emitted
+  secondary/deployed Graviton persistence. A separate actual-five-NPC method
+  checks projected Flashbang protection and caster energy. Update explicit NPC
+  fixture targets for the imported manual input service.
+- Pass269 expanded combat/driver/NPC tests in157.041s,14 strict server snapshot/
+  replay tests in497.421s and the latest8 control/five-NPC tests in7.394s;
+  zero skips, Ruff/diff pass. Both initial barrier-control reproductions failed
+  before the production change. No native status presentation was exercised.
+- This is reconstructed complete-hit interception, not general native immunity,
+  cleanse, reflection/absorption or all status hosting. Those cases, ultimate
+  generation, remaining NPC attacks/specials and full client acceptance stay open.
+  The complete static goal remains ACTIVE; no parent merge or publication.
+
 #### Zarya actual weapon/barrier and energy lifecycle acceptance (partial)
 
 - Execute primary, secondary, melee and initial Graviton damage from an enemy

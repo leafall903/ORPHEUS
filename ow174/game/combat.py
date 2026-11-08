@@ -817,8 +817,8 @@ class Combat:
         self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
             world_tick=self.tick if npc else None,
+            effect=direct.effect,
         )
-        self._hit_effect(target, direct.effect)
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
@@ -883,8 +883,8 @@ class Combat:
                 rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
                 world_tick=self.tick,
                 source_entity=rocket.source_entity,
+                effect=rocket.direct.effect,
             )
-            self._hit_effect(struck, rocket.direct.effect)
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
@@ -897,8 +897,8 @@ class Combat:
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
                     source_entity=rocket.source_entity,
+                    effect=blast.effect,
                 )
-                self._hit_effect(target, blast.effect)
 
     def _landed(self, rocket: Rocket, point=None) -> None:
         """The projectile ended (hit, range, lifetime): the predicted one's release follows."""
@@ -947,6 +947,7 @@ class Combat:
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
         *, world_tick: int | None = None,
         source_entity: int | None = None,
+        effect: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
@@ -976,6 +977,9 @@ class Combat:
         self._sync_body_health(victim, vitals)
         if killed:
             self._died(shooter, victim, critical, loadout, source_entity=source)
+        # The body receives a hit effect only when this hit reaches its pools.
+        # A Zarya barrier intercepts the whole hit, including its control effect.
+        self._hit_effect(target, effect)
 
     def _tell_hit(self, shooter, target: Target, dealt: float, flags: int, frame: int) -> None:
         """25001 to the shooter: the hit marker and the target's health bar (frame: the shot's)."""

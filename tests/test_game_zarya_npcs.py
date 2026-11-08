@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import test_mccree_flashbang as flash
 from test_game_combat import FakeClient, Run
 
 from ow174.game import combat, npc
@@ -177,6 +178,7 @@ class ZaryaFiveNpcTests(unittest.TestCase):
         run, player, bot = self.encounter(definition)
         bot.yaw = -32768
         bot.firing = True
+        bot.attack_target = player.entity
         bot.body_script.component.run_frame(run.frame, [(20, True)])
         target = next(t for t in run.match.combat._targets() if t.owner is player)
         vitals = run.match.combat.vitals_of(target)
@@ -192,6 +194,7 @@ class ZaryaFiveNpcTests(unittest.TestCase):
         run, player, bot = self.encounter(definition)
         bot.yaw = -32768
         bot.firing = True
+        bot.attack_target = player.entity
         bot.body_script.component.run_frame(run.frame, [(20, True)])
         # Explicit reaction timing fixture; no automatic barrier/AI policy.
         self.fire(run, player, 20, 0)
@@ -228,6 +231,7 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 run, player, bot = self.encounter(definition)
                 bot.yaw = -32768
                 bot.firing = True
+                bot.attack_target = player.entity
                 target = next(t for t in run.match.combat._targets() if t.owner is player)
                 vitals = run.match.combat.vitals_of(target)
                 # Explicit AI input fixture: actual body graph button20, not autonomous AI.
@@ -245,6 +249,7 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 self.fire(run, player, 1, 8)
                 bot.yaw = -32768
                 bot.firing = True
+                bot.attack_target = player.entity
                 bot.body_script.component.run_frame(run.frame, [(20, True)])
                 self.fire(run, player, 120, 0)
                 target = next(t for t in run.match.combat._targets() if t.owner is player)
@@ -269,6 +274,7 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 ally.mover.position[:] = [0, 1, 5]
                 bot = npc.spawn(match, definition, (0, 1, 10), team=1)
                 bot.yaw, bot.firing = -32768, True
+                bot.attack_target = ally.entity
                 bot.body_script.component.run_frame(run.frame, [(20, True)])
                 # Explicit reactive timing puts Sniper's first shot within the
                 # actual two-second projection; no AI/barrier automation implied.
@@ -283,6 +289,34 @@ class ZaryaFiveNpcTests(unittest.TestCase):
                 energy = next(i for i in caster.body_script.component.instances.values()
                               if i.graph.index == 0x0242)
                 self.assertEqual(energy.vars[392].value().id, bot.entity)
+
+    def test_projected_barrier_blocks_actual_flash_damage_and_stun_on_all_five(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run = Run(names=("Zarya", "McCree"))
+                caster, enemy = run.players
+                for player in run.players:
+                    player.client = NpcClient(player)
+                match = run.match
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                self.assertTrue(match.switch_hero(caster, heroes()[ZARYA]))
+                self.assertTrue(match.switch_hero(enemy, heroes()[0x02E0000000000042]))
+                enemy.team = 1
+                caster.mover.position[:] = [0, 1, 0]
+                enemy.mover.position[:] = [0, 1, 10]
+                bot = npc.spawn(match, definition, (0, 1, 5), team=caster.team)
+                before = match.combat.vitals[bot.entity].total
+                self.fire(run, caster, 1, 16)
+                instance = next(i for i in caster.body_script.component.instances.values()
+                                if i.graph.index == 0x025C)
+                self.assertTrue(instance.state(10).active)
+                flash.FlashbangTests.step(self, run, enemy, bot, cast=16)
+                for _ in range(35):
+                    flash.FlashbangTests.step(self, run, enemy, bot)
+                self.assertEqual(match.combat.vitals[bot.entity].total, before)
+                self.assertFalse(match.combat.is_stunned(bot))
+                self.assertEqual(caster.body_script.component.entity_var(87).value(), 5)
 
     def test_ultimate_deals_25_and_pulls_each_actual_enemy_body(self):
         for definition in self.catalog.values():

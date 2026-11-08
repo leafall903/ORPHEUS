@@ -295,6 +295,41 @@ accessed an already-retired exhausted pool in a new assertion; the corrected
 fixture requires retirement and all187 are rerun. No production behavior was
 changed to satisfy the new fixtures.
 
+Flashbang control and barrier interception (2026-11-09)
+-----------------------------------------------------
+Reviewed parentfbcaf76 NPC input control and64bf71c Flashbang control are imported
+with provenance. Merge resolution preserves Zarya beam/barrier/recovery/Graviton
+services, frozen projectile team/source, departure/end handling, incoming-side
+static impact placement and both services' causal snapshot fields. Existing NPC
+attack fixtures now declare an explicit player target to the imported manual
+input service; they no longer rely only on an unowned held-button injection.
+
+Actual Flashbang inputs exposed a production flaw in the imported hook: personal
+and projected barriers absorbed25 damage and generated5 energy, yet the separate
+hit-effect call still stunned the protected body. Move effect delivery into the
+accepted body-damage path, after interception. An intercepted complete hit now
+cannot deliver its control effect to the body. This is an explicit server policy
+for the existing hit/barrier host; native bubble geometry and general status
+filtering are still unaccepted. Affected unprotected Flashbang behavior retains
+its resource-backed0.8s/1.7s mode branch and existing interruption semantics.
+
+Actual Zarya tests prove beam/movement interruption and later new-press recovery;
+no personal/projected/ultimate start or charge spending during stun; blocked
+Flashbang damage/control under both barriers; the breaking Flashbang with10
+capacity remaining is also fully intercepted and contributes only the last2
+energy, reaching40; continued primary fire under a protected personal barrier; and previously emitted secondary/deployed Graviton
+surviving source stun. Projection also protects each of the five actual allied
+NPC bodies from Flashbang damage and stun, with5 energy credited to the caster.
+These fixtures omit NPC observer projectile transport and automatic acquisition.
+Existing-control cleanse, non-Flashbang effects, overlapping statuses, invulnerability,
+reflect/absorb and native client status/HUD/animation/audio remain open. The goal
+is not complete from the existence of a shared stun dictionary or these cases.
+Validation:269 expanded combat/driver/NPC tests pass in157.041s,14 strict
+server snapshot/replay tests pass in497.421s, and the latest8 control/five-NPC
+tests pass in7.394s. External NPC data is enabled with zero skips. Both initial
+barrier damage/control reproductions failed before the effect-delivery change.
+Ruff/diff pass. No complete-static, original-client or merged-state claim is made.
+
 Original client and publication
 -------------------------------
 A historical process/title observation is not current client-state evidence. No
