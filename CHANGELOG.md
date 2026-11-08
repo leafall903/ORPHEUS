@@ -6,6 +6,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Shared NPC factory alignment in Soldier lane
+
+- Reuse reviewed parent d1286b7's create_body_graphs interface and sparse-slot
+  mount/fire/codec test; remove the lane's duplicate weapon allocator. Preserve
+  explicit slot input, health queries and combat-backed charging. Parent console
+  and engagement-control commits are not part of this selected import.
+- Pass 140 related Soldier/NPC/VM/player-script/replay tests, Ruff and diff checks
+  after alignment. The preceding combat-charge checkpoint be90617 passed279
+  tests before this factory-only alignment. Full hero static acceptance and
+  original-client combat remain open; no root merge or publication occurred.
+
 #### Soldier combat-backed charge and Field visibility
 
 - Replace the default time-to-full surrogate with explicit reconstructed five

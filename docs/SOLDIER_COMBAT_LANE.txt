@@ -54,6 +54,10 @@ Implementation checkpoint
   Existing capture evidence CEB6C0 -> D177C0 -> BCC870 selects component51.
   Aggregate-getter semantics remain reconstructed, not instruction-compared;
   foreign queries stay unsupported. This does not unblock Enforcer by itself.
+- Reviewed parent d1286b7's create_body_graphs factory and sparse-slot test are
+  reused after alignment, replacing the lane's duplicate allocator. Selected
+  import does not include parent console/control commits. After alignment140
+  related tests pass; the earlier be90617 charge checkpoint passed279 tests.
 - Default ultimate gain now uses an explicit reconstructed five points/second
   policy and one point per actual eligible HP. Authored #338 cost and #342 spend
   are unchanged. Positive ult_seconds remains a test/sandbox time-to-full override;

@@ -297,14 +297,9 @@ class BodyScript(ReplicatedBody):
         component = self.component
         component.frame = frame
         component.now = frame * self.frame_ms
-        weapons = self.record.get("weapons") or []
-        component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
-        component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
-        created = create_initial_graphs(component, self.record)
-        created.extend(create_weapon_graphs(component, self.record))
-        for instance in created:
+        for instance in create_body_graphs(component, self.record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -640,6 +635,22 @@ class BodyScript(ReplicatedBody):
             stream.initial_owner.resend = True
 
 
+def create_body_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+    """Allocate a body's initial graphs, weapon manager and authored weapon slots."""
+    weapons = record.get("weapons") or []
+    component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+    component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
+    created = create_initial_graphs(component, record)
+    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if manager is not None:
+        created.append(component.create(manager, init=False))
+    for slot, item in enumerate(weapons):
+        weapon = graph.graph(item) if item is not None else None
+        if weapon is not None:
+            created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
+    return created
+
+
 def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
     """Allocate the definition's instances in asset order, before running their entries."""
     created = []
@@ -652,19 +663,6 @@ def create_initial_graphs(component: runtime.Component, record: dict) -> list[ru
             var = expr.guid_of(entry.get("m_0D09D2D9")) & 0xFFFF
             values[(INSTANCE, var)] = expr.evaluate(entry.get("m_value"), expr.Context())
         created.append(component.create(definition, number, values=values, init=False))
-    return created
-
-
-def create_weapon_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
-    """Allocate the declared manager and weapon slots for player and NPC bodies alike."""
-    created = []
-    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
-    if manager is not None:
-        created.append(component.create(manager, init=False))
-    for slot, item in enumerate(record.get("weapons") or []):
-        definition = graph.graph(item) if item is not None else None
-        if definition is not None:
-            created.append(component.create(definition, values={(INSTANCE, 28): slot}, init=False))
     return created
 
 
