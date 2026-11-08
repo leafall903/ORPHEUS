@@ -436,3 +436,19 @@ Placed animation-alias requests, 2026-11-08:
 - Seventeen behavior checks,630 related and15 server regressions pass. VM observation
   adds the State handle. See ANIMATION_ALIAS_STATE.txt for adapters and evidence.
   RootD38, full story/cinematics, five enemy AI types and results remain open.
+
+Original-client animation-alias samples, 2026-11-08:
+- A subsequent authorized session verifies all three actual0D32 alias States
+  in two Story/Normal/Reaper matches. Initial source is omitted, then observed
+  natively as tag10/self before releasing on phases.24 phase frames are ACKed
+  after create ACKs; all6 streams retire on leave. Only alias States are sent.
+- Eight accepted captures cover24 native subject samples and348 transmitted
+  variable values/tags. They verify lazy initial State allocation, persistent
+  handles across cleanup, ordered alias rows/counters and native current-alias
+  selection/restoration. Two early off captures retain pending engine selection;
+  later captures settle. Fresh entities/instances reset counters correctly.
+- Fifteen successive codec checks pass. Client closes normally; owned isolated
+  servers stop and release ports. No production code/input change or deployment.
+  Server services remain explicit fixtures. Visual animation, full allocator/
+  authority/clocks, production hosting/lifetimes, rootD38, story/cinematics,
+  enemy AI and results remain open. See ANIMATION_ALIAS_STATE.txt.

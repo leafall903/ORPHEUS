@@ -273,6 +273,22 @@ round trips pass, preserving all remote States and configured variables.
 These fixtures do not select/play animations. No original-client acceptance for
 this State or production host is claimed; rootD38 and full mission remain open.
 
+Active animation-alias samples, 2026-11-08
+In a subsequent authorized original-client session, all three actual0D32 alias
+States are toggled in two Story/Normal/Reaper matches. Initial off frames omit
+source001B; native tag10/self is observed before activating each connection.
+Only selected alias States are sent after create ACKs. All24 phase frames are
+ACKed and all6 streams retire on leave. Eight accepted native captures verify
+States/handles, request rows/current aliases and348 transmitted variable values.
+
+Native initial State slots are unallocated. Successful cleanup retains the handle
+while removing its row. Early off reads preserve delayed current-alias clearing;
+later reads settle to0. Fresh native entity/instance identities restart counters.
+This accepts exact sample request/selection transitions, with declared server
+services and diagnostic aborts. Visual playback, production hosting and full
+mission behavior remain open. See ANIMATION_ALIAS_STATE.txt for evidence/limits.
+Client closes normally; owned servers stop. No deployment or normal input change.
+
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,
 component-pending-init-native-validation.json, placed-component-startup-validation.json,

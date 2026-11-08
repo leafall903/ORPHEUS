@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Original-client animation-alias request and selection samples
+
+- Verify all three actual 0D32 alias States in two consecutive original-build
+  Story/Normal/Reaper matches. Initial frames omit source001B; native tag10/self
+  is observed before each connection's activation. Other active States remain
+  outside this sample. Server services and diagnostic aborts are explicit.
+- All 24 phase frames are ACKed after create ACKs; six streams retire on leave.
+  Eight accepted captures cover 24 native subject samples and 348 transmitted
+  variable values/tags. They verify lazy State allocation, handle retention,
+  request rows/counters and current-alias selection/restoration. Fresh native
+  entities and instances restart counters in the second match.
+- Preserve two additional early off captures with cleanup complete but current
+  selection still pending; later reads settle. Transport ACK does not establish
+  engine completion. No engine phase mapping or latency bound is inferred.
+- Fifteen successive codec checks and 34 focused alias/codec/statescript tests
+  pass. The preceding 630 related and 15 server checks cover unchanged production
+  code; documentation diff checks pass. Client closes normally, owned servers
+  stop, and normal runtime inputs and unrelated working changes are preserved.
+- Exact sample request/selection is accepted. Visual animation playback, native
+  true-mode timing, complete allocator/services, production hosting/lifetimes,
+  rootD38, story/cinematics, enemy AI and results remain open. No deployment.
+  See ANIMATION_ALIAS_STATE.txt. Publication helper missing; no GitHub push.
+
 #### Native placed animation-alias State
 
 - Implement strictB1FA9C2A begin/cleanup with explicit component55 storage,

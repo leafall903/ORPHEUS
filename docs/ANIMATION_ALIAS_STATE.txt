@@ -111,6 +111,57 @@ and graph hashes remain unchanged. Root100B's D38D0035/action106 boundary,
 production hosting/lifetimes, full story/cinematics, five enemy AI types and
 extraction/results remain open. The restoration checklist remains unchecked.
 
+Subsequent original-client request/selection acceptance, 2026-11-08
+A separately authorized build104319 client enters two consecutive Story/Normal
+Rialto matches as Reaper and returns to settled menus. The three actual0D32
+descriptors arrive after entity create ACKs. Initial off frames carry authored
+schema values without sending source001B. Read-only native captures verify all
+three builtin sources as tag10/self before on phases are released for that
+connection. The12/11/14 literal schema writes collapse to10 distinct transmitted
+variables per entity; source-independent schemas are audited before the explicit
+server source fixture is bound. On/off-after frames carry16 variables each.
+
+Server authored frame0 uses the declared alias service fixtures. Only the chosen
+alias State is transmitted; the other authored active States are outside this
+client acceptance. Off-after uses diagnostic end(False), not mission progression.
+First match sends off/on/off/on/off to each entity; the fresh second match sends
+off/on/off. All24 phase frames are ACKed and all6 streams retire on leave.
+Fifteen offline successive codec checks preserve the selected State and values.
+
+Eight accepted native captures cover24 subject samples,348 transmitted-variable
+value/tag comparisons and source checks. They verify original component47/owner,
+native graph0580000000000D32/ID1, raw State8/5 and State vtable265FC58. The initial
+raw slots are unallocated; on creates each State. Allocations remain stable across
+subsequent toggles. State40 bit0 changes on/off; State1C0 retains1 after the first
+cleanup, becomes2 on the second activation and retains2 after cleanup. Native
+component55/vtable2657CE8 stores the matching handle/alias row while on and an
+empty list while off. Counter70 advances1 then2, with mode74 false throughout.
+
+Current68 follows0->authored alias->0 across all9 subject on/off cycles, including
+three fresh entities/instances in match2 with counters reset to0. This accepts
+native request-list and current-alias selection behavior for these samples.
+Two additional early off captures show all States off and rows already removed,
+while current68 on two entities still contains the prior alias. Later reads
+verify all current fields zero. Preserve these early captures: transport ACK,
+State cleanup and engine selection do not establish the same completion point.
+No engine phase mapping or latency bound is inferred from these observations.
+
+Each native storage pointer is component+28, with raw capacity word80000004.
+This observation does not accept growth/allocation policy or interpret that word
+as a plain Python capacity. Inspector/reference checks handle lazy State slots,
+the native058 graph identity and Bool/tag1/Float/tag3. Earlier failed inspector
+expectations and the first reference remain outside Git; original native data
+are preserved. No client-memory writes are used for inspection.
+
+The client closes normally through Alt+F4 after menu return. Owned isolated
+servers stop and release their ports. Normal runtime inputs and production code
+are unchanged; no deployment. All34 focused alias/codec/statescript tests pass;
+the implementation's630 related and15 server checks still cover unchanged code.
+Visual animation playback, native true-mode request
+timing, full allocator/services, production host/lifetimes and complete mission,
+cinematics, enemy AI and results remain open. This evidence supersedes the earlier
+absence of client acceptance for the exact request/selection sample scope only.
+
 Local evidence outside Git
 verification/retribution/animation-alias-native-validation.json,
 animation-alias-actual-graph-validation.json,
@@ -119,3 +170,6 @@ animation-alias-unit-tests.log, animation-alias-related-tests.log,
 animation-alias-server-tests.log and the B1FA9C2A/animation-alias disassemblies.
 Captured code, runtime inputs, raw assets and executable research probes stay
 outside the source repository.
+Subsequent client evidence: verification/animation-alias-session/preparation.json,
+frame-native-reference.json, native-source-verified-match1/2.json, client-match*.json,
+validated-match*.json, transport.jsonl, session.json and validation.json.
