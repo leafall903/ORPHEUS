@@ -441,6 +441,10 @@ class World:
         """None: known absent compiled filter; bool: known predicate result."""
         return NotImplemented
 
+    def message_state_context(self, entity: int, *, component: "Component | None" = None):
+        """Persistent State manager, explicit native frame/role/priority services."""
+        return NotImplemented
+
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
 

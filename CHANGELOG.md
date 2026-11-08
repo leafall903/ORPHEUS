@@ -6,6 +6,38 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native persistent sending message State
+
+- Connect strict38EE1100 to the persistent manager through explicit per-component
+  Contexts and a shared Host. Restore scalar message/priority-resource guards,
+  native target policies, channel flags, frame/sequence reuse, watched targets,
+  refresh/cleanup and once-only VM timer notification. Parameters remain lazy
+  for receiving States. Native frame/role/priority/notification services stay
+  explicit; unknown services remain strict. See MESSAGE_SENDER.txt.
+- Preserve each component's budget and binding lifetime. Discard detached/failed
+  State rows without callbacks or touching other owners; invalidate callbacks
+  interrupted by terminal discard. Retain source caches in passive State layouts;
+  complete shared-manager export/restore remains unsupported.
+- Fix the owner-frame sender reply encoder: preserve low16 sequence bits, emit
+  presence plus variable-width unsigned16 for nonzero values. Match768 native
+  writer and768 reader cases across width and word boundaries. Also pass4626
+  native registration,396 initialization-flag and16 timer cases with declared
+  adapters and unchanged game code. The manager's39394 original comparisons
+  pass again after terminal discard support.
+- Resolve1B72510 to EntityInstance's known null virtual callback; do not repeat
+  transition actions after registration. Add22 sender tests and two manager
+  cleanup tests. Final1035 related and33 server tests pass (1068 total), with
+  matching frozen source/native hashes and Ruff/diff checks. Superseded runs from
+  before the null-callback correction remain archived as intermediate evidence.
+- Isolated actual-data fixtures cover47 senders in five mode/controller/placed
+  graphs under three declared role profiles.44 complete all profiles; three keep
+  strict unknown queries. No ordinary initialization or authored plugs run.
+  Fresh controller/placed/Match probes retain81A9AB10,50/123 first frames and
+  rootD38/node106 respectively; the receiving State and full mission remain open.
+- No fresh original-client run, deployment, complete story/cinematic/enemy-AI or
+  extraction/results acceptance is claimed. Publication helper remains missing;
+  no GitHub push is performed. Normal inputs and unrelated launcher work remain.
+
 #### Native persistent message-State manager
 
 - Restore the standalone persistent sender/receiver manager: exact native channel

@@ -88,18 +88,27 @@ class Manager:
         self.next_sequence = 0
         self.retired = False
         self._busy = 0
+        self._discard_revision = 0
 
     def _check(self):
         if self.retired:
             raise ValueError('message manager has retired')
+        revision = self._discard_revision
         self.validate()
         if self.retired:
             raise ValueError('message manager retired during owner callback')
+        self._unchanged(revision)
+
+    def _unchanged(self, revision):
+        if revision != self._discard_revision:
+            raise ValueError('message manager registrations discarded during callback')
 
     def _work(self, operation):
         self._check()
+        revision = self._discard_revision
         self.consume_work('message manager ' + operation)
         self._check()
+        self._unchanged(revision)
 
     def _mutation(self, key):
         self._check()
@@ -114,8 +123,10 @@ class Manager:
         try:
             for receiver in channel.receivers:
                 self._work('notification')
+                revision = self._discard_revision
                 self.notify(receiver)
                 self._check()
+                self._unchanged(revision)
         finally:
             self._busy -= 1
 
@@ -227,8 +238,10 @@ class Manager:
     def _accept(self, predicate, record):
         if predicate is None:
             return True
+        revision = self._discard_revision
         result = predicate(replace(record))
         self._check()
+        self._unchanged(revision)
         if type(result) is not bool:
             raise ValueError('message manager filter result is unknown')
         return result
@@ -275,3 +288,24 @@ class Manager:
     def retire(self):
         self.retired = True
         self.channels.clear()
+
+    def discard_state(self, state):
+        """Terminal owner cleanup: drop all its rows without invoking callbacks.
+
+        A selection/notification interrupted by this cleanup must fail rather
+        than return a now-detached State. Normal unregister still notifies.
+        """
+        changed = False
+        for key, channel in tuple(self.channels.items()):
+            for items, identity in ((channel.senders, lambda row: row.state),
+                                    (channel.receivers, lambda row: row)):
+                index = 0
+                while index < len(items):
+                    if identity(items[index]) is state:
+                        self._swap_remove(items, index)
+                        changed = True
+                    else:
+                        index += 1
+            self._prune(key, channel)
+        if changed:
+            self._discard_revision += 1

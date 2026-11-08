@@ -553,7 +553,10 @@ def write_payload(
     elif kind == "link":
         _write_state_link(out, payload.get("link"), graphs, owner=True)
     elif kind == "send":
-        out.bit(0)
+        reply = payload.get("reply", 0) & 0xFFFF
+        out.bit(bool(reply))
+        if reply:
+            out.w_u16(reply)
     elif kind == "hits":
         out.w_u16(0)  # no hits: the server does not detect them
         out.bit(payload.get("flag", False))

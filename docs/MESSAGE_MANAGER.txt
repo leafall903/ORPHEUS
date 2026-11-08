@@ -6,7 +6,8 @@ Receiving State9D6CF8AC asks managerD9AD40 to select a persistent sending
 State38EE1100. This is a different mechanism from ordinary packet/Entry delivery.
 The new message_manager backend restores the manager's explicit storage and
 arbitration without installing engine identity, frame, filter or channel policies.
-It is not yet mounted by SceneWorld or the sending/receiving State classes.
+The sending State now mounts this manager through explicit SceneWorld Contexts;
+the receiving State remains open. See MESSAGE_SENDER.txt.
 
 D9A770 assigns a sequence for each native registration frame. A preserved
 sequence advances the manager counter too, including subsequent registrations
@@ -52,13 +53,15 @@ Unknown filter policies/results are rejected. Selection passes copies of sender
 metadata to predicates. Mutation during filtering/notification is unsupported;
 terminal retire clears storage without filters or owner callbacks and may safely
 interrupt a callback. An owner must retire its manager on teardown/failure.
+Per-State terminal discard removes all its roles without callbacks and invalidates
+a selection/notification interrupted by that discard. Other owners retain rows.
 
 No automatic engine manager is created, and no native identity/mode/channel flags
-or history frame are guessed. Existing State classes retain their previous model
-and are not accepted by this backend's tests. Complete State registrations,
-watchers, queued dirtiness, sender parameters, stacked/array output bindings,
-caller/instigator/subject outputs, idle/receive subgraphs, replies and wire payloads
-still need integration and separate evidence. Passive shared-manager export and
+or history frame are guessed. The strict sending State now registers and removes
+its channels through explicit services, with native reply encoding. The receiving
+State retains its previous unaccepted model. Complete receiver registrations,
+queued dirtiness, parameter scopes, stacked/array output bindings, context outputs
+and idle/receive subgraphs still need integration and separate evidence. Passive shared-manager export and
 restoration are also outside this change.
 
 Verification
@@ -76,10 +79,10 @@ and stack cleanup but do not execute its full getter. The native game code is no
 patched. A pointer-only small-vector move adapter was corrected before the final
 mutation run; it had aliased inline backing arrays, not shown a runtime failure.
 
-Nineteen behavior tests cover lifecycle faults, callback guards, strict inputs,
-terminal cleanup and an actual VM operation's shared budget/fault. All1011 related regression
-tests pass in24.643s, with frozen source hashes matching the native probes,
-plus Ruff/diff checks. Server/State integration is not claimed by this run.
+Twenty-one manager behavior tests cover lifecycle faults, callback guards, strict
+inputs, terminal cleanup and an actual VM operation's shared budget/fault.
+The original39394 manager comparisons pass again after per-State discard support.
+Sending-State integration and its final regression scope are in MESSAGE_SENDER.txt.
 See verification/retribution/message-manager-*-validation.json and related logs.
 Native images, extracted assets and probes stay outside Git.
 

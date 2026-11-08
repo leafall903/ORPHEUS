@@ -21,6 +21,7 @@ from ow174.game.script import (
     entity_control,
     expr,
     game_message,
+    message_state,
     model_look,
     modifiers,
     play,
@@ -1665,12 +1666,62 @@ class GameMessageEntry(State):
 
 @state_class("STU_38EE1100")
 class SendGameMessageState(State):
-    """Sends its game message at the begin (the class's own payload carries an optional reply id)."""
+    """Persistent sender registration; ordinary Entry packets use another path."""
 
     family = "send"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.message_context = None
+        self.message_frame = self.message_sequence = None
+        self.message_keys = []
+        self.message_notified = None
+
+    def on_created(self):
+        if self.instance.component.strict:
+            message_state.created(self)
+
     def on_begin(self) -> None:
-        send(self.instance, self.node, self)
+        if self.instance.component.strict:
+            message_state.begin(self)
+        else:
+            send(self.instance, self.node, self)
+
+    def on_enter(self):
+        # Base 1B70790 invokes virtualE0 after the class's begin/enter hooks.
+        if self.instance.component.strict:
+            message_state.refresh(self)
+
+    def reentry(self):
+        if self.instance.component.strict:
+            message_state.refresh(self)
+
+    def tick(self):
+        if self.instance.component.strict:
+            message_state.refresh(self)
+
+    def dependency_changed(self):
+        if self.instance.component.strict:
+            message_state.refresh(self)
+
+    def timer(self, param):
+        if self.instance.component.strict:
+            message_state.timer(self, param)
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            message_state.cleanup(self)
+
+    def on_failed(self):
+        message_state.abandon(self)
+
+    def on_destroyed(self):
+        message_state.abandon(self)
+
+    def payload(self):
+        if self.instance.component.strict and self.message_sequence is not None:
+            return {'reply': self.message_sequence & 0xFFFF}
+        return {}
 
 
 @state_class("STUStatescriptStateCosmeticEntity")

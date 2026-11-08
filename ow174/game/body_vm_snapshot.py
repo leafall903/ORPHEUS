@@ -81,7 +81,9 @@ _STATE_LAYOUTS = {
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()), nodes.GameMessageEntry: ((), ("received",)),
-    nodes.SendGameMessageState: ((), ()), nodes.CosmeticEntity: ((), ("var",)),
+    nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
+                                  "message_notified"), ()),
+    nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }

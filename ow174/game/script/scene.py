@@ -25,6 +25,7 @@ from ow174.game.script import (
     game_message,
     graph,
     message_receive,
+    message_state,
     model_look,
     modifiers,
     play,
@@ -119,6 +120,7 @@ class SceneWorld(runtime.World):
         self.query_contexts: dict[int, entity_queries.Context] = {}
         self.hero_contexts: dict[int, controller_heroes.Context] = {}
         self.team_contexts: dict[int, entity_team.Context] = {}
+        self.message_contexts: dict[int, message_state.Context] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -203,6 +205,9 @@ class SceneWorld(runtime.World):
         if component is not None and self.script_components.get(entity) is not component:
             raise ValueError('script component binding belongs to another lifecycle')
         previous = self.script_components.pop(entity, None)
+        messages = self.message_contexts.pop(entity, None)
+        if messages is not None:
+            messages.retire()
         query = self.query_contexts.pop(entity, None)
         if query is not None:
             query.retire()
@@ -244,6 +249,22 @@ class SceneWorld(runtime.World):
 
     def game_message_owner(self, instance, node):
         return self._game_message_component(instance, node).entity
+
+    def set_message_state_context(self, entity, context):
+        component = self.script_components.get(entity)
+        if (type(context) is not message_state.Context or context.component is not component
+                or component is None or context.retired or context.host.manager.retired):
+            raise ValueError('message-State context needs its live bound component')
+        component.ensure_valid()
+        previous = self.message_contexts.get(entity)
+        if previous is not None and previous is not context and not previous.retired:
+            raise ValueError('retire the existing message-State context before replacement')
+        self.message_contexts[entity] = context
+
+    def message_state_context(self, entity, *, component=None):
+        if component is not None and self.script_components.get(entity) is not component:
+            return NotImplemented
+        return self.message_contexts.get(entity, NotImplemented)
 
     def validate_game_message_source(self, instance, node):
         self._game_message_component(instance, node)
@@ -572,6 +593,9 @@ class SceneWorld(runtime.World):
         actual = self.script_components.get(component.entity, NotImplemented)
         if actual is not NotImplemented and actual is not component:
             return  # A stale source cannot retire its replacement's engine services.
+        messages = self.message_contexts.pop(component.entity, None)
+        if messages is not None:
+            messages.retire()
         query = self.query_contexts.pop(component.entity, None)
         if query is not None:
             query.retire()

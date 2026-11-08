@@ -291,6 +291,36 @@ class MessageManagerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'retired'):
             manager.select(LOCAL)
 
+    def test_terminal_state_discard_removes_all_roles_and_preserves_other_owners(self):
+        manager, events = setup()
+        first, second = sender(), sender()
+        for key in (LOCAL, GLOBAL):
+            manager.register_sender(key, first)
+            manager.register_sender(key, second)
+            manager.register_receiver(key, first.state)
+            manager.register_receiver(key, first.state)
+        manager.discard_state(first.state)
+        self.assertFalse(events)
+        for channel in manager.channels.values():
+            self.assertEqual([row.state for row in channel.senders], [second.state])
+            self.assertFalse(channel.receivers)
+        manager.discard_state(second.state)
+        self.assertFalse(manager.channels)
+
+    def test_terminal_discard_in_callback_refuses_a_stale_selection(self):
+        manager, _ = setup()
+        record = sender()
+        manager.register_sender(LOCAL, record)
+
+        def predicate(row):
+            manager.discard_state(row.state)
+            return True
+
+        with self.assertRaisesRegex(ValueError, 'discarded during callback'):
+            manager.select(LOCAL, predicate=predicate)
+        self.assertFalse(manager.channels)
+        self.assertEqual(manager._busy, 0)
+
     def test_channel_and_sender_descriptors_reject_implicit_or_invalid_policies(self):
         for args in ((-1, 1, 2), (0, True, 2), (0, 1, 1 << 32)):
             with self.assertRaises(ValueError):

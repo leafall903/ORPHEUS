@@ -81,8 +81,9 @@ This backend handles declared EntryGameMessage entries. The independent receivin
 GameMessageEntry State and38EE1100 sending State, their registrations, replies,
 priorities and lifetimes are not restored here. Complete native engine consumers,
 server forwarding and filter rules are not established by the PC entry code.
-The separate persistent message-State manager now has a verified standalone
-backend; its engine and State mounting remain open. See MESSAGE_MANAGER.txt.
+The persistent manager and strict sending State now have backends mounted through
+explicit Contexts. The independent receiving State remains open. See
+MESSAGE_MANAGER.txt and MESSAGE_SENDER.txt.
 
 Verification and current mission boundary
 1350 original entry binding/queue comparisons cover named/positional/repeated
