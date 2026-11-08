@@ -1105,7 +1105,10 @@ class WeaponVolley(State):
     def shots_planned(self) -> int:
         if self.per_shot <= 0:
             return self.max_shots
-        return min(self.ammo0 // self.per_shot, self.max_shots)
+        # Authored start gates may allow any positive ammo with a multi-ammo
+        # shot (Genji fan). Admit the last partial-cost shot; output clamps to0.
+        # This edge policy is reconstructed pending native server comparison.
+        return min((self.ammo0 + self.per_shot - 1) // self.per_shot, self.max_shots)
 
     def arm(self) -> None:
         delay = self.offset - (self.now - self.start)

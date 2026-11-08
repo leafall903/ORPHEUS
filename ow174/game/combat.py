@@ -330,7 +330,9 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_start=value("m_EAD7F104"),
         falloff_end=value("m_157E5BC5"),
         falloff_floor=value("m_72A81154"),
-        critical=value("m_A872C70E", 1.0),
+        # Genji omits the override that Helix explicitly sets to1. Reconstruct
+        # his normal2x critical default; native class-default dispatch is open.
+        critical=value("m_A872C70E", 2.0 if state.instance.graph.index == 0x0304 else 1.0),
         rings=tuple(sorted(rings)),
         deflectable=any(
             (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
@@ -632,6 +634,14 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                    midpoint = tuple((x + y) / 2 for x, y in zip(a, b, strict=True))
+                    origin = self._eye(player)
+                    delta = _sub(midpoint, origin)
+                    length = math.sqrt(_dot(delta, delta))
+                    if length > EPSILON:
+                        wall = ray_world(self._collision(), origin, tuple(v / length for v in delta), length)
+                        if wall is not None and wall < length:
+                            continue
                     if self._genji_deflects(target, aim(*command.aim())):
                         continue
                     self._damage(player, target, amount, False, loadout, command.frame)
@@ -918,8 +928,11 @@ class Combat:
             return
         self._landed(rocket)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
+            critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
+            amount = rocket.direct.amount * (rocket.direct.critical if critical else 1.0)
             self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+                rocket.shooter, struck, amount, critical and rocket.direct.critical > 1.0,
+                rocket.direct.loadout, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast

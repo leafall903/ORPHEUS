@@ -14,8 +14,18 @@ Shuriken (weapon graph 0304):
   distribution, muzzle offsets and native server geometry are unverified.
 - Both authored volleys resolve sync3 in the existing evaluator. This patch
   adds authoritative flight/damage; it does not establish observer visuals.
-- Existing capsule geometry, armor rules, collision category, critical region
-  and missing default critical multiplier remain inherited limitations.
+- The ordinary hit region now uses the evaluated direct-projectile critical
+  multiplier. Genji's absent override is explicitly reconstructed as2x (29/58),
+  while Helix's explicit1 remains noncritical. Native class defaults and head
+  geometry remain unverified. Body-damage fixtures now aim below the head region.
+- Effective authored reach is100m (speed60, lifetime5, range caps flight first).
+  Tests cover unchanged body damage at99m and no hit beyond102m.
+- Reload has two authored waits:0.9s to write ammo, then0.6s before firing resumes.
+  Tests verify both locks, empty automatic reload and shared30-round inventory.
+- The last positive-ammo multi-cost shot is now admitted using rounded-up shot
+  planning and clamps ammo to0. This reconstructed policy fixes a fan that
+  consumed its last1/2 ammo while emitting no projectile. Native edge comparison
+  remains open. Primary with one round emits only one shuriken.
 
 Repeatable command-path tests:
 python -B -m unittest test_genji_combat test_game_combat test_game_move_to
@@ -87,6 +97,11 @@ until landing. The reconstructed climb-end policy stops upward velocity and
 refreshes one air jump. Missing command frames age its duration rather than
 extending it. Native custom-State transitions/animation/prediction are OPEN.
 Fourteen mobility checks and the causal passive-state digest check pass.
+
+Fourteen weapon checks exercise 29/58 body/head damage, ammo consumption,
+manual/automatic reload locks and resumption, last-round/partial-cost shots,
+range, misses and melee. Shared quick melee now checks static LOS as well as
+the inherited approximate target sphere. No through-wall hit is admitted.
 
 Required NPCs: Trooper, Enforcer, Sniper, Assassin, Heavy Assault. Parent lane
 owns manual spawn/control and archetype integration. Its c2d3ae1/a15d554 lifecycle

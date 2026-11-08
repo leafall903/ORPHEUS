@@ -20,7 +20,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Strike movement/damage and Dragonblade damage/charge gates have command-path
   checks; reconstructed Deflect also covers selected player/NPC fire. Exact native
   geometry remains unaccepted. Passive movement has bounded reconstructed
-  command/collision checks. Combat charging, full five-NPC
+  command/collision checks. Weapon damage/reload/range boundaries now have
+  execution evidence with explicit critical/partial-ammo reconstruction.
+  Combat charging, full five-NPC
   attacks/specials and cross-hero defenses/control remain open.
   See [Genji combat restoration](GENJI_COMBAT.txt).
 

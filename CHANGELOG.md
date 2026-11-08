@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Genji weapon boundaries and shared projectile/melee fixes (partial)
+
+- Apply evaluated direct-projectile critical multipliers; reconstruct Genji's
+  missing critical override as2x while retaining Helix's explicit1. Add static
+  LOS to quick melee. Neither change restores native hitbox/filter geometry.
+- Admit a final partial-cost volley shot with positive ammo using rounded-up
+  planning; its ammo output still clamps to0. Genji's last1/2 fan ammo previously
+  disappeared without emitting a projectile. This edge policy is reconstructed.
+- Pass14 weapon tests covering29/58 damage, 100m range boundaries, misses,
+  ammo, both reload waits0.9+0.6s, automatic empty reload, last-round/fan edges,
+  melee LOS/range/team and ammo independence. Pass212 combined Genji/shared
+  combat/projectile/movement/VM/driver/NPC tests with explicit external NPC data.
+- Full static goal remains open for combat ultimate charging, dash reset/assist
+  events, defenses/control and unresolved incoming NPC attacks/specials.
+
 #### Genji passive movement reconstruction (partial)
 
 - Add a body-local passive controller around the existing collision mover:

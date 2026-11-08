@@ -4,7 +4,7 @@ import math
 import unittest
 from unittest.mock import patch
 
-from test_game_combat import KANEZAKA_DM, Run
+from test_game_combat import KANEZAKA_DM, Run, aim
 from test_game_mover import FLOOR, wall
 
 from ow174.game import bodytrace, bots, combat, movelog
@@ -30,8 +30,12 @@ class GenjiFixture(unittest.TestCase):
         return run, player
 
     def fire(self, run, player, button):
+        target = next(t for t in run.match.combat._targets() if t.owner is not player)
+        _, y, z = target.feet
+        x = player.mover.position[0]
+        yaw, pitch = aim(run.match.combat._eye(player), (x, y + 1.0, z))
         for frame in range(60):
-            run.step({player: (0, 0, button if frame == 0 else 0)})
+            run.step({player: (yaw, pitch, button if frame == 0 else 0)})
 
     def health(self, run, player):
         target = next(t for t in run.match.combat._targets() if t.owner is player)

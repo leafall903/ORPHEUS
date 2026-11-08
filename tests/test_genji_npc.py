@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from test_game_combat import aim
 from test_genji_combat import GenjiFixture
 
 from ow174.game import npc
@@ -54,7 +55,11 @@ class GenjiNpcTests(GenjiFixture):
                         buttons = 32 if frame == 1 else (1 if 70 < frame < 90 else 0)
                     else:
                         buttons = {"primary": 1, "secondary": 2, "strike": 8}[attack] if frame == 0 else 0
-                    run.step({player: (0, 0, buttons)})
+                    yaw, pitch = 0, 0
+                    if attack in ("primary", "secondary"):
+                        x, y, z = bot.position
+                        yaw, pitch = aim(run.match.combat._eye(player), (x, y + 1.0, z))
+                    run.step({player: (yaw, pitch, buttons)})
                 self.assertEqual(run.match.combat.vitals[bot.entity].total, before - expected)
 
     def test_primary_against_all_five(self):

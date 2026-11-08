@@ -59,13 +59,13 @@ class GenjiDeflectTests(GenjiFixture):
         run, genji, source = self.start(projectile=True)
         self.incoming(run, genji, source, frames=60)
         self.assertEqual(self.health(run, genji), 200)
-        self.assertEqual(self.health(run, source), 113)
+        self.assertEqual(self.health(run, source), 26)
         self.assertEqual(len(genji.client.messages(combat.HIT)), 3)
 
     def test_projectiles_from_rear_are_not_reflected(self):
         run, genji, source = self.start(facing=-32768, projectile=True)
         self.incoming(run, genji, source, facing=-32768, frames=60)
-        self.assertEqual(self.health(run, genji), 113)
+        self.assertEqual(self.health(run, genji), 26)
         self.assertEqual(self.health(run, source), 200)
 
     def test_reflected_projectile_uses_deflectors_enemy_team(self):
@@ -84,7 +84,7 @@ class GenjiDeflectTests(GenjiFixture):
         self.incoming(run, genji, source, frames=60)
         self.assertEqual(self.health(run, genji), 200)
         self.assertEqual(self.health(run, source), 200)
-        self.assertEqual(self.health(run, ally), 113)
+        self.assertEqual(self.health(run, ally), 26)
 
     def test_quick_melee_is_blocked_without_return_damage(self):
         run, genji, source = self.start(distance=1)
