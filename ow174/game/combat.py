@@ -154,6 +154,20 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
+def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
+    """Reconstructed melee policy: a static ray to the nearest capsule surface."""
+    ab, ap = _sub(b, a), _sub(origin, a)
+    length = _dot(ab, ab)
+    share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
+    toward = _sub(_along(a, ab, share), origin)
+    distance = math.sqrt(_dot(toward, toward))
+    if distance <= radius + EPSILON:
+        return True
+    reach = distance - radius
+    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach)
+    return hit is None or hit + EPSILON >= reach
+
+
 def ray_world(
     collision: World | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
@@ -522,7 +536,8 @@ class Combat:
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and capsule_visible(self._collision(), self._eye(player), a, b, shown.radius)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:

@@ -33,7 +33,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   the external base-pool catalog and manual engagement controls are implemented.
   Authored NPC managers and sparse weapon slots are mounted; Sniper primary has
   actual100-damage evidence. Full AI, specials and original-client acceptance
-  remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  remain open. Shared quick melee now checks static-wall visibility. See
+  [McCree combat](MCCREE_COMBAT.txt) and [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
