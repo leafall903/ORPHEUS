@@ -136,6 +136,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Authored NPC weapon component mounting
+
+- Share body weapon-root allocation between player and NPC scripts: preserve
+  sparse slots, seed slot bindings and allocate manager/weapons before entries.
+  This restores the Sniper body's omitted manager and two weapon graphs without
+  replacing authored attack damage or timing.
+- Pass107 relevant tests (23 NPC script,15 NPC control/lifecycle,27 driver,
+  5 body-script and37 projectile), Ruff and diff checks. The new test exercises
+  sparse-slot firing and decodes the NPC observer baseline with mounted roots.
+- Actual five-body offline data now yields Sniper damage100 against McCree225;
+  Trooper20 and Heavy Assault5 still work. All three stop damage for80 further
+  frames after stop. Enforcer and Assassin remain unable to damage in200 frames.
+  The adapter omits NPC observer projectile transport; native visuals, autonomous
+  AI/navigation/specials and complete McCree acceptance remain open. No client
+  launched, normal data/deployment unchanged, no completed hero lane merged.
+
+
 #### Prepared PvE enemy base-pool catalog
 
 - Add an external XML catalog extractor that resolves actual NPC HealthPool

@@ -38,9 +38,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
-  ultimate, persistent corpses and requested console keys. The opt-in corpse
-  lifetime policy is implemented; actual NPC creation, controls and original-client
-  acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,
+  an external base-pool catalog and authored weapon components are implemented.
+  Three of five enemies damage McCree in an offline fixture; controls and
+  original-client acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
