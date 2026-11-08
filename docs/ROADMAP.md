@@ -46,6 +46,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   acceptance remain open.
   McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
   for the partial attack frontier and open Flashbang/Deadeye requirements.
+  Resource-backed Flashbang control has offline interruption/recovery/lifetime
+  checks; native immunity/presentation and complete hero acceptance remain open.
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
