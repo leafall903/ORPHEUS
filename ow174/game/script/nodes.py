@@ -2103,6 +2103,11 @@ def branch(instance: Instance, node, caller, result: bool) -> bool:
     return not node.links("m_truePlug") and not node.links("m_falsePlug")
 
 
+@handler("STU_1113EBD5")
+def join_inputs(instance: Instance, node, caller) -> bool:
+    return instance.join(node, caller)
+
+
 @handler("STU_3387AB5D")
 def condition_bool(instance: Instance, node, caller) -> bool:
     """Condition_Bool: m_condition, evaluated with the calling state as the watcher."""

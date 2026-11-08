@@ -25,6 +25,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   for the parent fixture and its remaining acceptance limits.
   Shared Flashbang control now has parent offline timing/lifecycle checks;
   native immunity/presentation and Zarya-specific acceptance remain open.
+  Native state-input joins are imported; parent Deadeye timing checks do not
+  establish full Zarya or McCree acceptance. See [state-input joins](STATE_INPUT_JOIN.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
