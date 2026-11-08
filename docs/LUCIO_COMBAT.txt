@@ -35,6 +35,7 @@ Sonic Amplifier fire    H damage       O five types    O headshots/intercepts
 Reload/burst cadence    O              O               O HUD/audio/timing
 Quick melee             O              O               O no friendly damage
 Soundwave damage        H              H training Bot H ally exclusion, FFA
+Soundwave cooldown      H 4s boundary  O five types    H repeated/replayed input
 Soundwave knockback     O              O               O control/immunity
 Crossfade healing       O              O               O ally/self only
 Crossfade speed         O              O               O ally/self only
@@ -73,6 +74,27 @@ training NPC retained death, primary projectile damage, player and training
 NPC damage to Lucio and dead-Lucio attack suppression. Training NPC damage to
 Lucio is injected through Combat._damage, not an AI acquisition/fire proof.
 No dummy graph or serialization-only claim is used as combat acceptance.
+
+Further static evidence (complete hero goal remains active)
+---------------------------------------------------------
+Eleven Lucio tests now pass. A 250-tick input sequence confirms Soundwave's
+four-second cooldown: 124 intermediate release/repress attempts do not advance
+the damage activation or lower health; a press at tick250 causes the second hit.
+Five replays of the same accepted input frame cause no additional damage.
+
+The GUIDs previously described as "04A effects" are bit-mangled .053 status
+definitions: 00A4.053 references Crossfade's 0267.01B, and 0191.053 references
+Sound Barrier's 073B.01B. Neither child graph is in the shared legacy runtime
+bundle. The optional extractor --status-xml path now preserves reachable .053
+definitions and follows their child graphs, including nested status cycles and
+explicitly missing resources. The output must be outside the source repository.
+Nineteen extractor tests pass; these are resource tests, not combat acceptance.
+
+Read-only build104319 .053 extraction and a Lucio-only graph closure are stored
+outside Git under the lane directory. The closure finds two status definitions,
+58 graphs, no missing .053 and a missing graph0F9C. 0267 has21 states with two
+continuous ModifyHealth operations;073B has8 states including a HealthPool
+operation. Status execution/targeting and replication remain unimplemented.
 
 Client evidence
 ---------------

@@ -13,6 +13,8 @@ Use --mode-xml <0C5 directory> with --output outside the repository to also expo
 initial variables and include its mode, controller and body script roots.
 Use --ai-spawners <ai_spawners_174.json> with an external --output to include the graphs placed on maps
 and the AI weapon buttons on additional entity definitions.
+Use --status-xml <053 directory> with an external --output to preserve reachable status definitions
+and include their child graphs. This exports resources; it does not implement status execution.
 
 Per graph it keeps what a runtime needs and drops the editor layout (positions, comments, display names,
 colours). The file format is described in ow174/game/script/graph.py, which reads it.
@@ -728,7 +730,10 @@ def map_script_instances(path: Path, enums: EnumTables) -> tuple[list[dict], set
 def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
     *, ai_spawners: Path | None = None, map_entities: dict[int, Path] | None = None,
+    status_xml: Path | None = None,
 ) -> dict:
+    if status_xml is not None and not status_xml.is_dir():
+        raise ValueError(f"status XML directory does not exist: {status_xml}")
     variables = mode_variables(mode_xml, enums) if mode_xml is not None else None
     mode_roots = mode_graph_roots(mode_xml) if mode_xml is not None else set()
     ai_roots = ai_graph_roots(ai_spawners) if ai_spawners is not None else set()
@@ -758,6 +763,7 @@ def collect(
     queue.extend((index, "game mode scripts") for index in sorted(mode_roots))
     queue.extend((index, "placed map scripts") for index in sorted(map_roots))
     graphs, missing = {}, set()
+    statuses, missing_statuses = {}, set()
     while queue:
         index, why = queue.pop(0)
         if index in graphs or index in missing:
@@ -775,6 +781,9 @@ def collect(
         for problem in sorted(set(xml.problems)):
             print(f"  {index:04X}: {xml.problems.count(problem)} x {problem}")
         queue += [(child, why) for child in sorted(xml.graph_refs())]
+        if status_xml is not None:
+            used = status_closure(xml, status_xml, enums, statuses, missing_statuses)
+            queue.extend((child, "status definition from " + why) for child in sorted(used))
     data = {
         "version": 1,
         "roots": {"bodies": sorted(bodies),
@@ -786,12 +795,46 @@ def collect(
     }
     if entities:
         data["entities"] = entities
+    if status_xml is not None:
+        data["status_definitions"] = statuses
+        data["missing_statuses"] = sorted(missing_statuses)
     if map_scripts:
         data["map_scripts"] = map_scripts
     if variables is not None:
         data["mode_variables"] = variables
         data["mode_scripts"] = mode_scripts(mode_xml, enums)
     return data
+
+
+def status_closure(xml, folder, enums, records, missing):
+    """Follow reachable .053 definitions to their graphs without inventing a host.
+
+    A hero's graphs reference .053 assets rather than the .01B child directly.
+    Preserve the definition and every nested status/graph reference; absent
+    status files remain explicit rather than silently removing their effects.
+    """
+    pending = [xml]
+    graphs = set()
+    while pending:
+        current = pending.pop()
+        for element in current.root.iter():
+            reference = element.get("GUID")
+            if reference is None:
+                continue
+            if reference.endswith(".01B"):
+                graphs.add(guid_index(reference))
+            elif reference.endswith(".053"):
+                key = guid_text(reference)
+                if key in records or key in missing:
+                    continue
+                path = folder / (reference + ".xml")
+                if not path.is_file():
+                    missing.add(key)
+                    continue
+                status = StuXml(path, enums)
+                records[key] = status.value(status.root)
+                pending.append(status)
+    return graphs
 
 
 def entity_index(text: str) -> int:
@@ -817,6 +860,8 @@ def main() -> None:
                         help="directory of .0C5 XML files for mode variables and script roots")
     parser.add_argument("--ai-spawners", type=Path,
                         help="include local map spawner graph roots and AI weapon controls")
+    parser.add_argument("--status-xml", type=Path,
+                        help="follow reachable .053 status definitions and their child graphs")
     parser.add_argument("--map-entities", action="append", type=map_source, default=[],
                         help="placed script roots/overrides as HEX_MAP_INDEX=ENTITIES_XML, repeatable")
     parser.add_argument("--output", type=Path, help="destination bundle")
@@ -824,7 +869,8 @@ def main() -> None:
     output = args.output or OUT
     if args.entity and output.resolve() == OUT.resolve():
         parser.error("--entity requires --output outside the canonical hero bundle")
-    for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners)):
+    for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners),
+                           ("--status-xml", args.status_xml)):
         if source is not None and (args.output is None or output.resolve().is_relative_to(ROOT)):
             parser.error(f"{option} requires --output outside the repository")
     if args.map_entities:
@@ -837,6 +883,7 @@ def main() -> None:
         data = collect(
             args.xml, enums, tuple(args.entity), mode_xml=args.mode_xml, ai_spawners=args.ai_spawners,
             map_entities=dict(args.map_entities),
+            status_xml=args.status_xml,
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))

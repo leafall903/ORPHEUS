@@ -10,7 +10,7 @@ from unittest.mock import patch
 from test_game_combat import Run
 
 from ow174.game import bots, combat
-from ow174.game.commands import FIRE, SECONDARY
+from ow174.game.commands import FIRE, SECONDARY, Command
 from ow174.game.content import heroes
 
 LUCIO = 0x02E0000000000079
@@ -122,6 +122,31 @@ class LucioCombatTests(unittest.TestCase):
         self.assertTrue(fight.is_dead(player))
         run.step({player: (0, 0, SECONDARY)})
         self.assertEqual(self.health(run, enemy), 200)
+
+    def test_soundwave_cooldown_rejects_represses_until_four_seconds(self):
+        run, player, enemy, _ = self.scenario()
+        instance = next(i for i in player.body_script.component.instances.values()
+                        if i.graph.index == 0x776)
+        damage = instance.state(11)
+        run.step({player: (0, 0, SECONDARY)})
+        self.assertEqual(damage.counter, 1)
+        self.assertEqual(self.health(run, enemy), 175)
+        # Press and release repeatedly; none of the 124 intermediate presses
+        # may bypass the authored cooldown or cause additional pool loss.
+        for offset in range(1, 250):
+            run.step({player: (0, 0, SECONDARY if offset % 2 == 0 else 0)})
+            self.assertEqual(damage.counter, 1)
+            self.assertEqual(self.health(run, enemy), 175)
+        run.step({player: (0, 0, SECONDARY)})
+        self.assertEqual(damage.counter, 2)
+        self.assertEqual(self.health(run, enemy), 150)
+
+    def test_replayed_soundwave_input_cannot_repeat_damage(self):
+        run, player, enemy, _ = self.scenario()
+        run.step({player: (0, 0, SECONDARY)})
+        for _ in range(5):
+            player.take_commands([Command(run.frame, buttons=SECONDARY, extra=0)])
+        self.assertEqual(self.health(run, enemy), 175)
 
 
 if __name__ == "__main__":

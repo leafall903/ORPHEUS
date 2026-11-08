@@ -19,6 +19,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Soundwave damage consumer has headless health/damage evidence; knockback,
   Crossfade/Amp, Sound Barrier, wall ride, interception/status interactions
   and client acceptance remain open. See [Lucio combat](LUCIO_COMBAT.txt).
+  - [ ] Complete the full static skill/weapon/passive/ultimate and interaction
+    matrix before requesting integration as an accepted hero. Soundwave's
+    four-second cooldown and duplicate-input checks pass; status-linked child
+    extraction is available, while status execution remains open.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

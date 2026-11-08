@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reachable status graphs and Lucio cooldown evidence (0079 lane)
+
+- Add opt-in --status-xml extraction of reachable .053 definitions and child
+  graphs, preserving nested cycles and distinct missing-status/missing-graph
+  evidence. Require an external output, leaving the canonical runtime unchanged.
+- Resolve Lucio's actual 00A4.053 -> 0267 and 0191.053 -> 073B references;
+  both child graphs are absent from the existing shared runtime bundle. A local,
+  read-only resource closure finds two statuses and 58 graphs, with graph0F9C
+  missing. No resource output is committed and no status host is claimed.
+- Pass 19 extractor tests and 11 actual-input Lucio tests. New behavior checks
+  prove Soundwave's four-second cooldown rejects repeated presses, accepts at
+  expiry and rejects duplicate-frame damage. Full-tree Ruff and diff checks pass.
+- The complete static hero goal remains active. Continuous aura healing/speed,
+  Amp, temporary shields, wall ride, interceptions and five-type NPC interaction
+  evidence are still open; original-client acceptance remains separate/open.
+
 #### Lucio Soundwave damage reconstruction (0079 lane)
 
 - Consume actual 0776/st11 activations in Combat.command, using authored damage,
