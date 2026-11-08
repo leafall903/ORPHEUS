@@ -5,7 +5,7 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_initial_graphs
+from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -91,7 +91,7 @@ class BotScript(ReplicatedBody):
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
-        for instance in create_initial_graphs(component, record):
+        for instance in create_body_graphs(component, record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
