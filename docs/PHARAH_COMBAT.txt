@@ -1,0 +1,61 @@
+Pharah combat lane -- OPEN
+Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
+Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
+
+Evidence boundary
+Seven tests in tests/test_pharah_combat.py use real Match, player input,
+the extracted body graphs and Combat damage/death. They do not substitute
+hand-authored weapon definitions. They are headless server tests, not native
+client or five-PvE-NPC acceptance. Existing native VM proofs are not acceptance.
+
+Weapon/ability matrix
+Action               Enemy player          Five enemy NPCs          Client
+Rocket Launcher      partial offline       OPEN                    OPEN
+  0023               40 direct + 80 blast; no projectile headshot; second hit
+                     kills; ally body receives no damage. Range, reload,
+                     self-damage, knockback and all ability defenses OPEN.
+Quick melee 0043     OPEN                  OPEN                    OPEN
+Jump Jet 0027        OPEN: velocity action FF3471E9 not applied       OPEN
+Hover Jets 0025      OPEN: fuel/input/movement behavior               OPEN
+Concussive 007B      OPEN: projectile exists; knockback not applied   OPEN
+Barrage 002B         OPEN: charge/channel/motions/damage fidelity     OPEN
+Incoming attacks     partial enemy rifle  OPEN                    OPEN
+Death                partial offline      OPEN                    OPEN
+
+Five enemy NPCs means Trooper, Enforcer, Sniper, Assassin, Heavy Assault,
+individually, including both directions of damage and their special attacks.
+Current external ai_spawners_174.json has eight Practice Range bot definitions,
+not these five definitions. One real training-bot damage/death/retain_corpse
+test passes. It is explicitly not substituted for any of the five.
+
+Cross-hero matrix -- all OPEN
+Reinhardt/Winston/Orisa/Sigma barriers; Zarya projected/personal bubbles;
+Genji reflect and ownership; D.Va/Sigma absorption; invulnerability/phase;
+armor and shield-health edge cases; damage amplification/reduction;
+sleep/stun/freeze/hack interrupt and death cancellation; enemy/self/ally
+impulse semantics; friendly healing and support effects remain team-correct.
+The present Combat._damage directly consumes health pools. It has no generic
+mounted barrier/reflect/absorb/invulnerability service. Passing health-pool
+tests must not be described as validating these hero abilities.
+
+Focused shared fix
+Explosive splash now checks static map occlusion to the nearest capsule point.
+For a wall impact it biases the visibility origin 1 mm toward the incoming side
+to avoid a zero-distance hit hiding all same-side victims. The blast scalar is
+still measured at the actual impact. This is reconstructed server behavior,
+not a native explosion-sampling implementation. Partial-cover sampling,
+dynamic shields, projectile radius and original-client effects remain OPEN.
+
+Regression: with visibility bypassed, a Pharah wall impact incorrectly reduces
+an enemy behind the wall from 200 to 120 HP. With the fix it stays at 200.
+An offset enemy on the incoming side still takes attenuated splash damage.
+
+Original-client status
+Existing PID 12292 / window 守望先锋 was observed without an accompanying lane
+lease. It was not controlled, closed or reconfigured. No lane-owned client
+session, captures, live acceptance or acceptance-in-progress is claimed.
+All requested original-client cases remain OPEN.
+
+Run from the lane clone with explicit cwd/PYTHONPATH and read-only
+ORPHEUS_RUNTIME_DIR=D:\overwatch 1.7.4\runtime-104319. Reuse the original .venv.
+python -B -m unittest discover -s tests -p test_pharah_combat.py -q

@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Static explosion occlusion and partial Pharah combat coverage
+
+- Prevent projectile splash from damaging targets behind static collision;
+  keep same-side splash visible at a wall impact with a small incoming offset.
+  This is a reconstructed capsule visibility rule, not native sampling or
+  dynamic barrier/reflect/absorb support.
+- Seven extracted-graph Pharah Match tests cover primary damage, player return
+  fire, death, ally filtering, training NPC corpse retention and both wall sides.
+  The final seven plus shared combat/projectile/ability/ray regression group
+  passed 87 tests. Ruff and git diff --check pass. Bypassing the
+  new visibility guard reproduces 80 damage through a wall.
+- Original-client acceptance was not run; the existing client was not owned by
+  this lane. Hover, Jump Jet, Concussive Blast, Barrage, five combat NPCs and
+  cross-hero defenses remain open. See docs/PHARAH_COMBAT.txt.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.
