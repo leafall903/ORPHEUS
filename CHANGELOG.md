@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Direct body ownership and authored D.Va pilot fire
+
+- Implement F7262B36's direct component43 query separately from current possession
+  and primary-possessor lookup. Preserve absent-object failure, absent-component
+  null success, selector conversion, subscriptions and strict callback lifetime.
+  Match BodyWorld now resolves live player/NPC ownership rather than guessing.
+- Match1056 original CDBDE0/D15520 instruction cases with declared engine/storage
+  adapters. Pass seven query tests and six actual Match-command pilot scenarios:
+  projectile travel/14 damage, miss/cover/allies,20-round ammo/reload blocking and
+  completion, range expiry, incoming player fire and dead-owner suppression. Pass153 related regression tests and
+  Ruff/diff checks. See docs/BODY_OWNER_QUERY.txt.
+- Mech creation/possession, all full ability lifecycles, five actual PvE opponents,
+  component43 wire/prediction and original-client acceptance remain open. Do not
+  infer a working initial D.Va mech from a working pilot firing path.
+
 #### D.Va independent Fusion Cannon ray consumer
 
 - Expand D.Va graph050A's authored ring counts into independent rays. Evaluate

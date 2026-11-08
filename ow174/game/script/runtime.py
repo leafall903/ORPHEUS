@@ -298,9 +298,11 @@ class InstanceContext(Context):
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -429,6 +431,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Explicit instance/lookup and direct component43 ownership services."""
         return NotImplemented
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):

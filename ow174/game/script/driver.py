@@ -28,7 +28,7 @@ from ow174.game import pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import body_owner, expr, graph, nodes, runtime
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -126,6 +126,33 @@ class BodyWorld(runtime.World):
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
+        self._body_owner_context = body_owner.Context(
+            body, True, True, lookup=self._lookup_body_owner,
+            watch_environment=lambda *_: None, watch_owner=lambda *_: None,
+        )
+
+    def _lookup_body_owner(self, entity):
+        # Live match identities, not a guessed owner synthesized for unknown IDs.
+        if self.match is None:
+            return None
+        for player in self.match.players:
+            if player.gone:
+                continue
+            if player.has_body and player.body == entity:
+                return body_owner.Target(entity, player.entity)
+            if player.entity == entity:
+                return body_owner.Target(entity, None)
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return body_owner.Target(entity, 0)
+        return None
+
+    def body_owner_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        # Native queries already poll through Evaluation.poll_native. Match-backed
+        # ownership is read afresh each frame; callbacks need no separate hub.
+        return self._body_owner_context
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:

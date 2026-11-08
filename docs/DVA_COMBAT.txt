@@ -45,8 +45,17 @@ Pilot body probes after30 and400 idle frames, followed by held primary,
 produced zero volley reports. After400 idle frames, held melee and a Q press
 with explicitly supplied ultimate charge also produced no weapon reports.
 The pilot fire path reaches a BooleanSwitch using entity querySTU_F7262B36;
-its target binding/engine service remains unresolved. These isolated body
+its target binding/engine service was unresolved in the baseline. These isolated body
 probes do not establish the same visible behavior in an original client.
+
+The direct component43 query is now implemented against explicit live Match
+identities, backed by1056 original-instruction comparisons and seven query tests.
+Six normal Match-command tests now execute pilot projectile travel and14 damage
+against a player/training-NPC stand-in, miss/cover/ally exclusion,20-round ammo,
+reload blocking/completion, range expiry, incoming player fire and dead-owner suppression. These do not establish
+initial mech spawn, either transformation, criticals or full pilot acceptance.
+See BODY_OWNER_QUERY.txt. Pure BodyScript probes without a declared world still
+retain the missing owner service; no owner is fabricated for unbound bodies.
 
 Focused shared repair
 --------------------
