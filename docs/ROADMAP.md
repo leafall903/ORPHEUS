@@ -14,6 +14,13 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Mercy combat with enemy players and all five manual PvE enemy types.
+  Authored passive regeneration now changes authoritative health with restart,
+  death and input-gap controls; blaster/melee have partial headless evidence.
+  Staff targeting/healing/boost, Guardian Angel selection, resurrection, descent,
+  Valkyrie, cross-hero statuses and original-client acceptance remain open.
+  See [Mercy combat](MERCY_COMBAT.txt).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse

@@ -6,6 +6,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Mercy authoritative passive regeneration (partial hero lane)
+
+- Supply the maximum-health input used by Mercy0071/node89. Report the active
+  state2's evaluated healing amount on each simulated owner frame and consume
+  it once into authoritative pools/HUD. Route living Mercy damage through the
+  authored0071 message0011 receivers so node91 restarts its one-second wait.
+  Keep pending healing in stored server snapshots. The engine binding and
+  per-second interpretation remain reconstructed server semantics.
+- Pass177 combat, projectile, body/driver, NPC script, health, movement,
+  server snapshot and journal regressions, including ten new Mercy controls
+  with actual health, blaster and melee damage. An additional pending-healing
+  snapshot-digest control passes. Ruff and diff checks pass.
+- Full static hero acceptance remains OPEN: staff selection/heal/boost,
+  Guardian Angel selection, resurrection, descent, Valkyrie, applicable
+  cross-hero statuses and all five PvE NPC interactions are not accepted.
+  No original-client session or normal deployment is claimed. The required
+  publication helper is absent; lane instructions reserve integration and
+  publication for the parent. No push or shared-main merge was performed.
+  See docs/MERCY_COMBAT.txt.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

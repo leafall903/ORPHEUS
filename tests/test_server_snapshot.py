@@ -40,6 +40,15 @@ class ServerSnapshotTests(unittest.TestCase):
         return export_server_state(session.server, archives=session._matches.values(),
                                    collision_provider=session._collision_reads, assets=session.registry)
 
+    def test_pending_authoritative_self_healing_changes_stored_digest(self):
+        session, _, players = self.scene()
+        script = players[0].body_script
+        before = snapshot_digest(self.capture(session))
+        script.self_healing = 0.32
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        script.self_healing = 0.0
+        self.assertEqual(snapshot_digest(self.capture(session)), before)
+
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()
         script = players[0].body_script

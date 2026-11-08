@@ -1,0 +1,97 @@
+Mercy combat restoration -- build 1.74.0.0.104319 -- OPEN
+Hero GUID: 02E0000000000004
+
+Implemented in this lane
+------------------------
+The server previously provided current health253 but not input1762. The
+unchanged Mercy0071/node89 comparison therefore stayed false after damage.
+Supply the maximum pool total as1762, then report active0071/state2's evaluated
+ModifyHealth amount for each simulated command frame. Consume that report once
+in Combat into the player's real Vitals and synchronize health inputs/HUD.
+Damage to a living Mercy delivers0011 to her0071 graph, whose node90 aborts
+the regeneration branch and whose node91 owns the one-second restart timer.
+No team-healing credit or ultimate charge is granted for this passive.
+Stored snapshots include the pending self-healing amount.
+
+Provenance and limits
+---------------------
+Graph IDs, node links, the one-second wait and amount20 are extracted from the
+external104319 graph bundle. Treating1762 as maximum pool total and interpreting
+the active health amount as a per-second authoritative heal are reconstructed
+server bindings supported by these graph controls, not native-server proof.
+Only the Mercy0071 message receivers are targeted; the full damage-message
+parameter schema and other hero damage receivers are not implemented here.
+The regeneration receiver itself uses no parameters. Other0071 receivers still
+receive an empty parameter map. Their voice behavior needs client acceptance.
+No general ModifyHealth, anti-heal or healing amplification consumer is claimed.
+Input gaps use the driver's existing bounded command simulation; unprocessed
+time is not granted an unbounded heal. With no simulated commands no passive
+health is accumulated, consistent with current owner-body scheduling.
+Valkyrie's native activation and variable842 binding remain unaccepted.
+
+Repeatable controls
+-------------------
+Use cwd=<lane>/source, PYTHONPATH=<lane>/source;<lane>/source/tests and
+ORPHEUS_RUNTIME_DIR=D:/overwatch 1.7.4/runtime-104319, with the existing
+ORPHEUS/.venv/Scripts/python.exe -B -m unittest test_game_mercy -v.
+The runtime bundle is read-only; all logs/caches remain in the lane clone.
+
+Ten headless controls cover actual health and input, not only serialization:
+* 50 incoming player damage; no healing for62 ticks;20.16 restored by125 ticks.
+* Repeated damage while healing restarts the original graph's wait.
+* Repeated damage during the wait postpones the heal.
+* Death remains zero health and retains the normal player respawn deadline.
+* Healing caps at maximum, and duplicate input grants no extra healing.
+* Switching to Soldier retires Mercy's passive.
+* A retained125-frame input gap restores the same20.16 health once.
+* Incoming training-NPC damage permits self-healing without healing that enemy.
+* Actual switch-to-blaster input and projectile fire damage an enemy player.
+* Actual quick-melee input deals30 once to an enemy player.
+Training NPC evidence does not establish the five requested PvE NPC types.
+
+Acceptance matrix
+-----------------
+Columns: enemy player / Trooper / Enforcer / Sniper / Assassin / Heavy Assault.
+No column has original-client acceptance. P means partial headless evidence;
+O means open. Rows with ally semantics need a separate friendly-target fixture.
+
+Blaster damage          P O O O O O
+Quick melee damage      P O O O O O
+Incoming damage/death   P O O O O O
+Passive regeneration   P O O O O O
+Healing beam            O O O O O O -- friendly recipients only
+Damage boost beam       O O O O O O -- friendly sources only
+Guardian Angel          O O O O O O -- ally/corpse selection not supplied points
+Resurrect               O O O O O O -- friendly dead player lifecycle, not enemy NPCs
+Angelic Descent         O O O O O O
+Valkyrie                O O O O O O -- flight, chain beams, ammo and self-regeneration
+Statuses/presentation   O O O O O O
+
+Required interaction controls still open: armor/shields, barriers, projectile
+reflect/absorb, invulnerability, anti-heal/amplification, stun/silence, knockback,
+cast interruption, death/respawn, damage-boost attribution/stacking, chained
+target loss, line of sight, distance limits, allies/enemies and observer views.
+Manual PvE deaths must retain corpses without respawn/cleanup. Parent owns the
+five-enemy factory/navigation/attack integration; this lane has no accepted
+Trooper/Enforcer/Sniper/Assassin/Heavy Assault spawning control.
+
+Concrete remaining code dependencies
+------------------------------------
+TrackTargets in nodes.py still returns an empty target payload. Staff006B
+states4/5/51, Guardian Angel006E and the resurrection selector cannot be
+accepted with this stub. Staff006B also uses engine states431F3FCC (states33/35)
+and0DB9E66B (state20), whose real beam health/modifier consumers are absent.
+Resurrection00CA target acquisition and Valkyrie10DA/C1BA7545 engine consumers remain
+unimplemented. Native modifier storage alone is not effective gameplay.
+These must be restored with real target services and cross-hero status rules,
+then verified against player and five-enemy actors in the original client.
+
+Client and publication
+----------------------
+No fresh client was launched or controlled in this lane. An existing Overwatch
+PID12292/window was observed, created2026-11-08 at21:58 local time, with no lane
+lease at the read. It was not treated as this lane's client or acceptance.
+No client lease was acquired and no existing process/service was stopped.
+No original tree edits, runtime copies, manual pushes or original-main merges.
+The required workspace publication helper is absent; publication is parent-owned
+and explicitly excluded from this lane's authorized integration workflow.

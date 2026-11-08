@@ -55,7 +55,7 @@ from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
 from ow174.game.mover import mover_data
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
@@ -420,8 +420,15 @@ class Combat:
         if script is None:
             return
         shots, script.component.shots[:] = list(script.component.shots), []
+        healing, script.self_healing = script.self_healing, 0.0
         if self.is_dead(player):
             return
+        if healing > 0.0:
+            target = next((target for target in self._targets() if target.owner is player), None)
+            if target is not None:
+                vitals = self.vitals_of(target)
+                vitals.heal(healing)
+                self._sync_body_health(player, vitals)
         if command is not None:
             for state, number, time, activation in shots:
                 try:
@@ -807,6 +814,8 @@ class Combat:
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick)
             return
         self._sync_body_health(victim, vitals)
+        if not killed and not isinstance(victim, bots.Bot) and victim.body_script is not None:
+            regeneration.damaged(victim.body_script, _source_entity(shooter))
         if killed:
             self._died(shooter, victim, critical, loadout)
 
