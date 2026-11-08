@@ -48,6 +48,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Authored NPC weapon components are mounted; three of five enemies damage
   McCree in an offline fixture. Full enemy combat and browser/original-client
   acceptance remain open.
+  McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
+  for the partial attack frontier and open Flashbang/Deadeye requirements.
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
