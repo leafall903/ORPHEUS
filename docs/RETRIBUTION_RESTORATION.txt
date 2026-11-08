@@ -419,3 +419,20 @@ Active entity-control sample/native consumer acceptance, 2026-11-08:
   This accepts the exact sample's native State/model transition. Production host,
   complete engine services/allocator/lifetimes, rootD38, full story/cinematics,
   enemy AI and results remain open. See ENTITY_CONTROL_STATE.txt.
+
+Placed animation-alias requests, 2026-11-08:
+- Implement strictB1FA9C2A's explicit component55 list, sampled/wrapping handles,
+  allocation-failure path, reverse cleanup and notification gates. True mode
+  queues ABORT after notification; it does not immediately end the State.
+  Typed AnimAlias literals preserve resource/tag4 zero; keyed services stay
+  explicit.966 native State/registry and16 literal comparisons pass, including
+  the original request instructions with declared eligibility/event/clock adapters.
+- All three actual0D32 components complete frame0 with explicit known component,
+  writable storage and notification recorder; six remote on/diagnostic-off
+  codec round trips pass. Complete alias selection/playback remains unaccepted.
+  Unmodified independent scene totals remain45 complete/78 strict stops, with
+  three stops now requiring real animation-alias components. No absent-service
+  shortcut, new original-client acceptance, deployment or production hosting.
+- Seventeen behavior checks,630 related and15 server regressions pass. VM observation
+  adds the State handle. See ANIMATION_ALIAS_STATE.txt for adapters and evidence.
+  RootD38, full story/cinematics, five enemy AI types and results remain open.

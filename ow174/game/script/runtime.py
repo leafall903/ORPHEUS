@@ -356,6 +356,10 @@ class World:
         """Known native engine context/consumers, known absence, or unknown."""
         return NotImplemented
 
+    def animation_aliases(self, entity: int):
+        """Known component55 alias list, known absence, or unknown."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 

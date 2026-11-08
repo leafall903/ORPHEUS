@@ -13,7 +13,17 @@ import struct
 import uuid
 from dataclasses import dataclass
 
-from ow174.game.script import effect_routing, entity_control, expr, graph, modifiers, play, runtime, scopes
+from ow174.game.script import (
+    animation_alias,
+    effect_routing,
+    entity_control,
+    expr,
+    graph,
+    modifiers,
+    play,
+    runtime,
+    scopes,
+)
 from ow174.game.script.effect_allocation import EffectList
 
 CLIENT_PLACEABLE = 0xC0000000
@@ -91,6 +101,7 @@ class SceneWorld(runtime.World):
         self.effect_contexts: dict[int, effect_routing.Context | None] = {}
         self.effect_targets: dict[int, effect_routing.Target | None] = {}
         self.control_contexts: dict[int, entity_control.Context | None] = {}
+        self.alias_components: dict[int, animation_alias.Aliases | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -116,6 +127,9 @@ class SceneWorld(runtime.World):
         record = self.entities.pop(entity, None)
         self.modifier_components.pop(entity, None)
         self._retire_control_contexts(entity=entity)
+        aliases = self.alias_components.pop(entity, None)
+        if aliases is not None:
+            aliases.retire()
         scope = self.scope_components.pop(entity, None)
         if scope is not None:
             scope.clear()
@@ -209,6 +223,19 @@ class SceneWorld(runtime.World):
     def entity_control_context(self, entity: int):
         return self.control_contexts.get(entity, NotImplemented)
 
+    def set_animation_aliases(self, entity: int, aliases: animation_alias.Aliases | None) -> None:
+        self._bound_entity(entity)
+        if aliases is not None and (
+            type(aliases) is not animation_alias.Aliases or aliases.owner != entity or aliases.retired
+        ):
+            raise ValueError("expected live animation alias component for this entity")
+        if entity in self.alias_components and self.alias_components[entity] is not aliases:
+            raise ValueError("retire the entity before replacing its animation alias component")
+        self.alias_components[entity] = aliases
+
+    def animation_aliases(self, entity: int):
+        return self.alias_components.get(entity, NotImplemented)
+
     def _retire_control_contexts(self, *, entity=None, component=None):
         for source, context in list(self.control_contexts.items()):
             target = context.component if type(context) is entity_control.Context else None
@@ -241,6 +268,9 @@ class SceneWorld(runtime.World):
 
     def script_failed(self, component: runtime.Component) -> None:
         self._retire_control_contexts(component=component)
+        aliases = self.alias_components.pop(component.entity, None)
+        if aliases is not None:
+            aliases.retire()
         backend = self.modifier_components.get(component.entity)
         if backend is not None:
             backend.records.clear()

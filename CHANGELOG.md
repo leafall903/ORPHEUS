@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native placed animation-alias State
+
+- Implement strictB1FA9C2A begin/cleanup with explicit component55 storage,
+  allocation and notification services. Preserve sampled/wrapping handles,
+  failed allocation, reverse removal and last/current notification gates.
+  True mode notifies then queues ABORT; successful removal retains the handle.
+- Verify the class's own factory/vtable and execute966 native State/registry
+  comparisons, including original request instructions with explicit event/clock
+  adapters. Sixteen native literal comparisons verify typed AnimAlias resources,
+  including zero. Keyed availability and complete engine playback remain open.
+- Three actual0D32 components complete frame0 with declared animation service
+  fixtures; six authored-on/diagnostic-off codec round trips preserve all remote
+  States and configured variables. No engine selection/playback is simulated.
+  The unchanged strict scene still completes45/123 first frames, with78 stops;
+  three now require actual animation components instead of unknown State code.
+- Add17 behavior checks;630 related and15 server snapshot/research-injection
+  tests pass, with Ruff/diff checks. Read-only VM storage adds the State handle
+  and covers31 concrete State classes. Permissive body policy remains passive.
+- Normal inputs and unrelated working changes are preserved. No new original-
+  client acceptance or deployment for this State. Production host/lifetimes,
+  rootD38, full story/cinematics, five enemy AI types and results remain open.
+  See ANIMATION_ALIAS_STATE.txt. Publication helper missing; no GitHub push.
+
 #### Original-client active entity-control sample
 
 - Two authorized isolated Story/Normal/Reaper matches verify actual120E raw

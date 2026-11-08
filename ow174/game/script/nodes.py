@@ -12,7 +12,16 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from types import NotImplementedType
 
-from ow174.game.script import effect_parameters, effect_routing, entity_control, expr, modifiers, play, scopes
+from ow174.game.script import (
+    animation_alias,
+    effect_parameters,
+    effect_routing,
+    entity_control,
+    expr,
+    modifiers,
+    play,
+    scopes,
+)
 from ow174.game.script.expr import (
     EPSILON,
     Asset,
@@ -392,6 +401,26 @@ class EntityControl(RegisteredState):
 
     def payload(self):
         return super().payload() if self.instance.component.strict else {}
+
+
+@state_class("STU_B1FA9C2A")
+class AnimationAlias(State):
+    """Native component55 requests; engine/allocator services stay explicit."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.alias_handle = 0
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            animation_alias.begin(self)
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            animation_alias.cleanup(self)
+
+    def on_failed(self):
+        self.alias_handle = 0
 
 
 @state_class("STUStatescriptStateBooleanSwitch")
