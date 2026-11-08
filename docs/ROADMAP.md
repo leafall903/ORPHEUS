@@ -43,6 +43,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
     Native audit corrects the movement consumer RVA and confirms explicit
     subgraph cleanup; NPC logical-release failures remain unaccepted. See
     [Lucio native audit](LUCIO_NATIVE_AUDIT.txt) before altering shared ownership.
+    Six real-Flashbang interaction tests now cover input/resource suppression,
+    aura/Amp persistence/timer and Sound Barrier interruption/persistence. Three
+    actual NPC weapons test manual stop and Sound Barrier absorption. These
+    reconstructed policies do not establish native control or all five attacks.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

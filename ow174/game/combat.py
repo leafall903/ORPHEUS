@@ -527,7 +527,8 @@ class Combat:
             for state in list(instance.states.values()):
                 if isinstance(state, nodes.Ability):
                     state.presses.clear()
-                    state.stop()  # use authored exit/cooldown paths for running channels
+                    if not lucio.keep_active_amp_on_stun(target.owner, state):
+                        state.stop()  # use authored exit/cooldown paths for running channels
         component.run_now()
         component.shots.clear()
 
@@ -822,7 +823,8 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + eye_height(shooter.body), z), aim(round(shooter.yaw), round(shooter.pitch))
+            origin = (x, y + eye_height(shooter.body), z)
+            direction = aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))

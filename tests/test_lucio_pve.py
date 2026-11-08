@@ -34,6 +34,10 @@ class PveClient(FakeClient):
     def queue_bot_death_update(self, entity, event):
         self.deaths.append((entity, event))
 
+    def bot_stream(self, entity):
+        # This adapter proves authoritative combat, not NPC projectile transport.
+        return None
+
 
 def clear_graph_cache():
     graph._data.cache_clear()

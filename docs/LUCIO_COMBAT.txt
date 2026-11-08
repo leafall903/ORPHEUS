@@ -44,7 +44,7 @@ Amp It Up speed         O              O               O ally/self only
 Sound Barrier           H partial      H five allies  H750/pool/end; notes below
 Ultimate charge gains   O              O               O real passive/combat gain
 Wall Ride/wall jump     O              O               O movement/presentation
-Taking damage/death     H player src   H training src  O client death/respawn
+Taking damage/death     H player src   H real three    O client death/respawn
 
 Five requested Archives NPCs are NOT substituted by training Bot evidence:
 Trooper:       outgoing primary/melee/Soundwave, ally healing, corpse = H
@@ -64,7 +64,8 @@ Armour/base shields: H Soundwave pool loss/order; native comparison O.
 Barriers: O projectile blocking, Soundwave penetration and team rules.
 Deflect/absorb: O projectile ownership, damage credit and cancellation.
 Invulnerability: O damage/healing suppression, death prevention.
-Stun/hack/silence: O ability cancellation and aura/Sound Barrier restrictions.
+Stun: H partial actual Flashbang inputs; native immunity/cleanse O.
+Hack/silence: O ability cancellation and aura/Sound Barrier restrictions.
 Healing denial/boost: O Crossfade/Amp self vs ally rates, no enemy healing.
 Death: H Soundwave cannot fire while dead; aura/barrier retirement O.
 Environmental knockback kills and persistent five-type NPC corpses: O.
@@ -270,6 +271,49 @@ original-client presentation. Existing eye-threshold critical classification
 is still an unverified approximation; projectile critical remains missing.
 The speed investigation identified only state markers in0267; neither their
 native consumer nor multiplier is established. No speed value is inferred.
+
+Flashbang/control and actual incoming shield hits (2026-11-09)
+------------------------------------------------------------
+Reviewed parent manual-control fbcaf76 and Flashbang64bf71c only in this private
+clone. All parent dependency duplicates stay out of exported own patches. The
+combined stored-domain schema retains Lucio managers/pools and adds stuns.
+
+Six tests cast an actual enemy McCree Flashbang at Lucio through ordinary input.
+They verify25 damage/control, suppression of primary/secondary/melee/Crossfade/
+Amp/ultimate/jump/forward input during the exclusive deadline, no ammo/ultimate
+consumption from rejected input, and Soundwave recovery at expiry. Existing
+Crossfade healing continues. A new narrow policy preserves already applied
+0277 Ability0 Amp only while its actual state3 binding owns entity2381. Buff
+duration/cooldown remain controlled by the original graph, and buffered input
+is cleared. Existing52/s healing survives stun; its original timer can expire
+under control, and alternating presses cannot restart it on cooldown. Disabling
+the policy reproduces an early return to16/s; this red probe does not edit source.
+
+The same actual input fixture interrupts Sound Barrier before its slam: charge
+stays consumed and no late shield grant occurs after recovery. Stun after the
+slam retains already granted ally shields. These are reconstructed server
+policies; native interruption categories, immunity/cleanse, animation/status
+replication, all other controls and original-client presentation remain open.
+
+Two more methods/six subcases use the public manual NPC start/stop API and real
+Trooper/Sniper/Heavy Assault weapon graphs against Lucio. First hits are20/100/5.
+Stop prevents later committed damage while the NPC body clock continues. With
+actual Sound Barrier applied beforehand, those same real hits consume temporary
+shields: exact loss equals elapsed750/6 decay plus the actual damage, while base
+health stays200. No injected damage or synthetic projectile is used. Observer
+projectile transport is omitted by the declared fixture adapter.
+
+This manual API uses an explicit reconstructed aim/input/commit gate. It does
+not prove that raw native logical20 release ends every weapon state. That
+separate diagnostic still fails for Sniper/Heavy, with the manual gate bypassed;
+the failed WIP assertions and evidence are retained. Enforcer/Assassin incoming,
+autonomous AI, specials and complete five-type bidirectional acceptance remain
+open. A correct manual stop result never substitutes for those requirements.
+
+Evidence:lucio-control-tests.log, lucio-amp-stun-red.log,
+lucio-controlled-npc-tests.log, lucio-npc-barrier-exact-loss.log,
+lucio-stun-foundation-regression.log, lucio-stun-server-snapshot.log and
+lucio-stun-status-pve-regression.log. Full static goal remains active/open.
 
 Client evidence
 ---------------

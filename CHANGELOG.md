@@ -6,6 +6,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Lucio stun interactions and actual NPC shield absorption (0079 lane)
+
+- Review/import parent manual NPC control and resource-backed Flashbang hooks
+  only into this private clone, preserving Lucio pools/auras and their snapshot
+  fields. Parent dependency duplicates are not exported as lane patches.
+- Preserve an already applied0277 Amp buff through the reconstructed stun
+  policy, matching its actual2381 binding/state3. Clear buffered presses as
+  usual and keep the graph's original duration/cooldown. This is a narrow buff
+  policy, not immunity or permission to cast while stunned.
+- Pass six actual enemy-Flashbang input tests: attacks/skills/movement/ultimate
+  blocked with resources retained, expiry recovery, normal/Amp healing through
+  control, Amp expiry under control/no cooldown bypass, interrupted Sound Barrier
+  with no late slam, and persistence of already granted shields.
+- Pass two real NPC control tests/six subcases: Trooper/Sniper/Heavy first hits
+ 20/100/5, public manual stop while body clocks advance, and those actual hits
+  absorbed by Sound Barrier with exact damage plus750/6 decay and no base loss.
+  The transport adapter explicitly omits NPC observer projectile streams.
+- Pass141 foundation checks,14 server stored-domain checks and36 status/PVE
+  checks (one optional training-body skip); eight Flashbang checks overlap the
+  first/last batches. Together with the eight new tests,191 distinct selected
+  methods pass. The blanket-stop red probe reproduces Amp healing16 vs52/s.
+- Native raw NPC logical-release failures remain uncommitted WIP, separate from
+  the manual-controller stop policy; Enforcer/Assassin incoming attacks, native
+  control categories/immunity/cleanse/status presentation and full hero gate
+  remain open. No original-client operation, shared merge or publication.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an

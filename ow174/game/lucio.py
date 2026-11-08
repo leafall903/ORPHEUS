@@ -39,6 +39,24 @@ class Lease:
     created_tick: int
 
 
+def keep_active_amp_on_stun(owner, state) -> bool:
+    """Reconstructed buff policy: preserve an already applied actual0277 Amp.
+
+    This does not grant stun immunity or allow a new cast. The original graph's
+    timer still owns duration/cooldown; only the blanket Ability.stop is skipped.
+    Native control categorization/cleanse remains unverified.
+    """
+    if getattr(getattr(owner, "hero", None), "guid", None) != HERO:
+        return False
+    if state.instance.graph.index != 0x0277 or state.index != 0:
+        return False
+    marker = state.instance.component.entity_var(2381, create=False)
+    return marker is not None and any(
+        link.state.instance is state.instance and link.state.index == 3 and link.state.active
+        for link in marker.links
+    )
+
+
 @dataclass
 class BarrierLease:
     source: int
