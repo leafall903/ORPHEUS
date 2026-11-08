@@ -95,6 +95,17 @@ Reconstructed wall-climb host (test_game_hanzo_climb.py):
   reconstructed contact host. Mantling/ledge traversal, native timing/contact
   fidelity, slopes/moving surfaces/body collision, incoming control/knockback,
   all five NPC special/defensive cases and original-client agreement remain OPEN.
+- Actual010C/node15 records19=SET0 and18=MULTIPLY0.4 now affect mover input.
+  The effective input calculation separates forward/backward magnitudes, applies
+  property17/18 and unsigned lateral19, restores lateral sign, then clamps. Raw
+  command/recorded throttle fields retain their original bytes. Six actual
+  left/right x forward/neutral/backward command cases verify active vertical
+  climb, restricted release-pose acceleration/displacement, and restored input/
+  lateral displacement on the next frame after node15 ends.37 focused mover/
+  Lunge/climb/physics-snapshot tests pass.192 original C33960..C33A8D prefix
+  comparisons also match float32 bits; scalar modifier lookupC32FB0 is explicitly
+  stubbed. This proves the split/sign/clamp fragment, not complete native mover,
+  modifier lookup/lifecycle, or the reconstructed climb contact/phase policy.
 
 Actual incoming Flashbang under reconstructed host control (test_game_hanzo_control.py):
 - Privately import parentfbcaf767,7cd1ed7,64bf71c. Preserve the lane's ballistic

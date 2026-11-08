@@ -11,10 +11,12 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.game import casc, collision, contacts, props
+from ow174.game import mover as mover_module
 from ow174.game.collision import MOVER, NOT_GROUND, World
 from ow174.game.commands import CROUCH, JUMP, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, _map_entries, heroes
@@ -685,6 +687,28 @@ class MoverStateTests(unittest.TestCase):
 
 
 class ModTests(unittest.TestCase):
+    def test_directional_input_mods_split_forward_back_and_restore_lateral_sign(self):
+        mods = [Mod(17, SET, 0.5, 0), Mod(18, SET, 0.25, 0), Mod(19, SET, 0.125, 0)]
+        self.assertEqual(mover_module.modified_throttles(mods, -1, -1), (-0.125, 0.25))
+        self.assertEqual(mover_module.modified_throttles(mods, 1, 1), (0.125, 0.25))
+        mods = [Mod(17, SET, 2, 0), Mod(18, SET, -2, 0), Mod(19, SET, 2, 0)]
+        self.assertEqual(mover_module.modified_throttles(mods, -1, 0), (-1, 1))
+
+    def test_input_mod_activation_and_end_preserve_raw_command_bytes(self):
+        moving = soldier((0.0, 1.0, 0.0))
+        moving.track_mods({(5, 0, slot): (index, SET, 0.0, 0.0)
+                           for slot, index in enumerate((17, 18, 19))}, 10)
+        with patch.object(moving, '_accelerate', wraps=moving._accelerate) as accelerate:
+            moving.step_pose(Command(10, right=127, forward=-127), TICK, 10)
+            self.assertEqual(accelerate.call_args.args[1:3], (1, -1))
+            moving.step_pose(Command(11, right=127, forward=-127), TICK, 11)
+            self.assertEqual(accelerate.call_args.args[1:3], (0, 0))
+            self.assertEqual(moving.throttles, (127, -127))
+            moving.track_mods({}, 11)
+            moving.step_pose(Command(12, right=127, forward=-127), TICK, 12)
+            self.assertEqual(accelerate.call_args.args[1:3], (1, -1))
+            self.assertEqual(moving.input_throttles, (127, -127))
+
     def test_a_mod_acts_from_the_frame_after_the_statescript_turned_it_on_up_to_the_one_it_went_off(self):
         mover = soldier((0.0, 1.0, 0.0))
         mover.track_mods({(5, 0, 0): (SPEED, ADD, 0.5, 0.0)}, 10)

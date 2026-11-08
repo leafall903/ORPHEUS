@@ -7,7 +7,7 @@ import test_game_hanzo_movement as movement_tests
 import test_server_snapshot as snapshot_tests
 from test_game_mover import box, wall
 
-from ow174.game import bodytrace, hanzo_movement, movelog
+from ow174.game import bodytrace, hanzo_movement, movelog, mover
 from ow174.game.collision import World
 from ow174.game.commands import JUMP, Command
 from ow174.game.content import SOLDIER, heroes
@@ -68,6 +68,44 @@ class HanzoClimbTests(unittest.TestCase):
                     self.step(run, hero, buttons=JUMP, yaw=yaw)
                 self.assertEqual(hero.body_script.world.hanzo_climb.elapsed, 0)
                 self.assertFalse(instance.component.entity_var(1204).value())
+
+    def test_authored_input_mods_end_after_release_pose_and_restore_next_frame(self):
+        for right in (-127, 127):
+            for forward in (-127, 0, 127):
+                with self.subTest(right=right, forward=forward):
+                    run, hero, instance = self.arena()
+                    self.start(run, hero)
+                    effective = -mover.f32(0.4) if forward < 0 else float(forward / 127)
+                    compute = mover.modified_throttles
+                    observed = []
+
+                    def trace(mods, lateral, ahead, compute=compute, observed=observed):
+                        result = compute(mods, lateral, ahead)
+                        if lateral or ahead:  # the other fixture player's empty command is unrelated
+                            observed.append(result)
+                        return result
+
+                    with patch.object(mover, 'modified_throttles', side_effect=trace):
+                        before = tuple(hero.mover.position)
+                        self.step(run, hero, buttons=JUMP, right=right, forward=forward)
+                        self.assertEqual(observed[-1], (0, effective))
+                        self.assertEqual(hero.mover.throttles, (right, forward))
+                        self.assertEqual(tuple(hero.mover.position[0::2]), before[0::2])
+                        release = run.frame + 1
+                        with patch.object(hero.mover, '_accelerate',
+                                          wraps=hero.mover._accelerate) as accelerate:
+                            self.step(run, hero, right=right, forward=forward)
+                            self.assertEqual(accelerate.call_args.args[1:3], (0, effective))
+                            self.assertEqual(hero.mover.position[0], before[0])
+                            self.assertFalse(instance.node_state(instance.graph.node(15)).active)
+                            mods = [m for m in hero.mover.mods.values() if m.index in (18, 19)]
+                            self.assertEqual({m.end for m in mods}, {release + 1})
+                            self.step(run, hero, right=right, forward=forward)
+                            self.assertEqual(accelerate.call_args.args[1:3], (right / 127, forward / 127))
+                            self.assertNotEqual(hero.mover.position[0], before[0])
+                            self.assertFalse(any(m.index in (18, 19) for m in hero.mover.mods.values()))
+                        self.assertEqual(hero.mover.throttles, (right, forward))
+                        self.assertEqual(hero.mover.input_throttles, (right, forward))
 
     def test_release_lost_contact_and_authored_disable_gate_end_climb(self):
         for condition in ("release", "turn", "disable"):

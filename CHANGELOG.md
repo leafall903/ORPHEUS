@@ -6,6 +6,38 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Apply authored directional movement input modifiers
+
+- Review the parent's uncommitted mover fix and port only its directional input
+  computation privately: property17 modifies positive forward input,18 backward
+  magnitude and19 unsigned lateral input. Restore the original lateral sign,
+  subtract backward from forward and clamp effective inputs before acceleration.
+  Raw command bytes, recorded throttles and snapshot fields stay unchanged.
+- Hanzo010C/node15 actually sets19=0 and multiplies18 by0.4 while climbing.
+  Before this change, a real release pose still accelerated with full lateral/
+  backward input despite those live records. Six actual command combinations
+  now suppress lateral displacement and apply the backward factor on release;
+  the next frame restores input and lateral displacement after scope teardown.
+  Active reconstructed climb remains vertical and preserves raw input records.
+- Independently execute192 comparisons of original104319 C33960..C33A8D,
+  including the exact Hanzo records. All float32 results match. C32FB0 scalar
+  modifier lookup is explicitly substituted by an independent ADD/MULTIPLY/SET
+  stub; no full native mover, lookup ordering/lifetime or client equivalence is
+  claimed. Original image bytes remain unchanged; experiment storage is synthetic.
+- Validation:37 focused mover/Hanzo climb/Lunge/physics-snapshot tests and Ruff
+  pass. The existing start/end frame policy is exercised through actual input,
+  alongside raw input retention. Native climb/mantle, complete control/defense
+  interaction matrices and original-client acceptance remain open.
+- Final validation:656 full game tests pass in407.991s;73 BodyVM/server journal/
+  server snapshot/native replay tests pass in566.125s, both without skips.
+  Implementation/test hashes stay unchanged from the actual command proof.
+- Separately reproduce both of the parent's notification-lifetime regressions
+  against this private runtime: canceled CHANGED/CHECK markers survive state
+  end, and cleanup writes can queue changes on an ending state. These are two
+  expected baseline failures, not part of the passing suites. Marker cleanup,
+  ending-state notification guards and reconstructed ability-cleanup/arbitration
+  ordering remain pending; do not infer complete static acceptance from this fix.
+
 #### Explicit reconstructed multiple-pellet combat
 
 - Read `m_numProjectilesPerShot` instead of reducing every volley to one hit.
