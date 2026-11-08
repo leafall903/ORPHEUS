@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native persistent message-State manager
+
+- Restore the standalone persistent sender/receiver manager: exact native channel
+  keys, local/global lookup, float32 priority and flag/frame/sequence arbitration.
+  Preserve duplicate receivers, metadata-copy upserts, swap removal, frame-based
+  sequence allocation and dirty-notification order. Counted selection filters all
+  candidates; uncounted selection skips weaker candidates. Collection keeps order
+  and duplicates. See MESSAGE_MANAGER.txt.
+- Require explicit owner validation, shared budgets and dirty callbacks. Reject
+  unknown filters and unsupported callback mutation. Terminal retirement clears
+  storage without graph callbacks; a missing receiver in an existing channel is
+  refused instead of reproducing an invalid native memory operation.
+- Pass17920 original single-selection,17920 collection and3554 mutation comparisons
+  with declared storage/descriptor/filter/notification adapters and unchanged game
+  code. Add19 behavior tests, including an actual VM operation's budget/fault;
+  all1011 related tests pass in24.643s with frozen hashes, plus Ruff/diff checks.
+- This backend is not yet mounted by SceneWorld or the sending/receiving States.
+  Native identity/channel/frame/filter policies, variable bindings, subgraphs,
+  replies and complete State lifetimes remain open. Existing mission frontiers
+  are unchanged; no fresh client run, deployment, story/cinematic/enemy-AI or
+  extraction/results acceptance is claimed. Publication helper remains missing;
+  no GitHub push is performed.
+
 #### Native game-message entry reception
 
 - Preserve full ordered packet parameters, repeated keys and separate caller/

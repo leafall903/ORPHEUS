@@ -1,0 +1,94 @@
+Native persistent message-State manager
+Target: original PC build104319. Shared backend; State/mission integration open.
+
+Persistent registration and selection
+Receiving State9D6CF8AC asks managerD9AD40 to select a persistent sending
+State38EE1100. This is a different mechanism from ordinary packet/Entry delivery.
+The new message_manager backend restores the manager's explicit storage and
+arbitration without installing engine identity, frame, filter or channel policies.
+It is not yet mounted by SceneWorld or the sending/receiving State classes.
+
+D9A770 assigns a sequence for each native registration frame. A preserved
+sequence advances the manager counter too, including subsequent registrations
+of the same sender on another channel. A changed frame resets that counter.
+Signed32 counter wrap is retained. Upsert matches the State's object identity,
+copies the resolved record and preserves its position. Existing channel receivers
+are dirtied in stored order; the callback is an explicit owner service, not an
+inline execution of authored subgraphs.
+
+D9B2B0 appends receiver identities, including duplicates. D9B440 removes a
+sender by swapping the last row into its slot, then dirties remaining receivers.
+D9B6C0 removes the first receiver occurrence using the same swap policy, without
+notification. Empty channels are removed. An absent sender or absent channel is
+harmless. Removing a missing receiver from an existing channel violates the native
+precondition; Python refuses it instead of reproducing the out-of-bounds write.
+
+Channel keys preserve exact uint32 entity, flags and message fields. The native
+message field is the resource's low uint32, unlike the full GUID in Entry packets.
+Selection searches the local entity then entity0 with identical flags/message.
+Entity0 is not searched twice. Identities whose low29 bits are all ones do not
+fall back to entity0. Channels sharing the native hash bucket remain distinct.
+
+D9AD40 picks the highest float32 priority, including negative priorities. Equal
+priorities prefer the resolved ordering flag. With the flag clear, the smaller
+unsigned combined frame/sequence wins and a complete tie keeps the first row.
+With the flag set, the larger combined key wins and a complete tie takes the
+later row. The low sequence is sign-extended before OR, as in the original.
+Unordered floating values enter the native equal-comparison branch; infinities,
+NaNs and signed zero are retained rather than silently normalized.
+
+Without a requested match count, only candidates that could replace the current
+winner invoke the filter. With a count output, every candidate is filtered and
+every accepted row contributes, including weaker and duplicate rows. D9AA50
+collects all accepted senders in local-then-global storage order without ranking
+or deduplication. Native filters temporarily expose sender/receiver scope data;
+the manager receives an already resolved predicate. The full scope getter,
+compiled filter engine and resource-to-priority lookup are not restored here.
+
+Ownership and limits
+Callers must supply explicit lifecycle validation, shared work-budget consumption
+and dirty notifications. Validation surrounds callbacks and selection work.
+Unknown filter policies/results are rejected. Selection passes copies of sender
+metadata to predicates. Mutation during filtering/notification is unsupported;
+terminal retire clears storage without filters or owner callbacks and may safely
+interrupt a callback. An owner must retire its manager on teardown/failure.
+
+No automatic engine manager is created, and no native identity/mode/channel flags
+or history frame are guessed. Existing State classes retain their previous model
+and are not accepted by this backend's tests. Complete State registrations,
+watchers, queued dirtiness, sender parameters, stacked/array output bindings,
+caller/instigator/subject outputs, idle/receive subgraphs, replies and wire payloads
+still need integration and separate evidence. Passive shared-manager export and
+restoration are also outside this change.
+
+Verification
+17920 original D9AD40 selection comparisons and17920 original D9AA50 collection
+comparisons cover exact/colliding keys, local/global/invalid identities, priorities,
+ordering flags, signed frame/sequence, float edge cases, filter order and optional
+counts.3554 original mutation operations compare every stored sender/receiver row,
+channel deletion, assigned sequence/counter and exact dirty notification order.
+The four mutation entry points run unchanged, as does channel-removal D9A9B0.
+
+Adapters provide explicit manager/State instance/config/source/owner descriptors,
+compiled predicates, vector allocation/copy/move/destruction, dirty notifications
+and security cookies. Filter probes verify the original temporary scope's fields
+and stack cleanup but do not execute its full getter. The native game code is not
+patched. A pointer-only small-vector move adapter was corrected before the final
+mutation run; it had aliased inline backing arrays, not shown a runtime failure.
+
+Nineteen behavior tests cover lifecycle faults, callback guards, strict inputs,
+terminal cleanup and an actual VM operation's shared budget/fault. All1011 related regression
+tests pass in24.643s, with frozen source hashes matching the native probes,
+plus Ruff/diff checks. Server/State integration is not claimed by this run.
+See verification/retribution/message-manager-*-validation.json and related logs.
+Native images, extracted assets and probes stay outside Git.
+
+Mission boundary
+This standalone backend changes no ordinary startup/controller/match frontier.
+The last validated ordinary controller retains81A9AB10; real Match stops at
+root100B D38D0035/node106 before controller execution, with148 prepared components
+and cleanup without readiness. Placed startup remains50/123 nonempty first frames
+complete with73 strict faults. No fresh client session or normal deployment is
+claimed. Story, cinematics, all five enemy AI types and extraction/results remain
+unaccepted. Continue with the native paired-State lifecycle and bindings; ordinary
+Entry packets must not be substituted for persistent sender selection.
