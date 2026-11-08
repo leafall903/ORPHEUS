@@ -1,7 +1,8 @@
 """104319 Torbjorn combat evidence; these are server tests, not client acceptance.
 
-The secondary checks deliberately exercise one pellet. Pellet count/spread, gravity,
-turret, Overload, hammer repair, Molten Core and protection interactions remain open.
+The secondary checks cover per-pellet falloff and reconstructed ten-pellet rings.
+Native spread/flight parity, turret, Overload, hammer repair, Molten Core and
+protection interactions remain open.
 """
 
 import unittest
@@ -80,6 +81,59 @@ class TorbjornProjectileTests(unittest.TestCase):
             run.step({})
         self.assertAlmostEqual(vitals.total, 130.0)
         self.assertEqual(len(shooter.client.messages(combat.HIT)), 1)
+
+    def secondary_volley(self, distance, *, friendly=False, yaw=0):
+        run, shooter, victim = self.arena(distance)
+        if friendly:
+            from dataclasses import replace
+
+            run.match.game_map = replace(run.match.game_map, free_for_all=False)
+            victim.team = shooter.team
+        fight = run.match.combat
+        target = next(t for t in fight._targets() if t.owner is victim)
+        vitals = fight.vitals_of(target)
+        state = next(i for i in shooter.body_script.component.instances.values()
+                     if i.graph.index == 0x1683).states[13]
+        fight._shoot(shooter, Command(run.frame, yaw=yaw), state, 0, run.frame * 16,
+                     activation=(1, run.frame * 16))
+        self.assertEqual(len(fight.rockets), 10)
+        self.assertEqual(len({r.direction for r in fight.rockets}), 10)
+        for _ in range(20):
+            run.step({})
+        return 200.0 - vitals.total, shooter.client.messages(combat.HIT)
+
+    def test_secondary_all_ten_pellets_damage_close_enemy(self):
+        dealt, hits = self.secondary_volley(1.5)
+        self.assertAlmostEqual(dealt, 125.0)
+        self.assertEqual(len(hits), 10)
+
+    def test_secondary_spread_and_falloff_reduce_far_damage(self):
+        dealt, hits = self.secondary_volley(25.0)
+        self.assertGreaterEqual(dealt, 3.75)
+        self.assertLess(dealt, 37.5)
+        self.assertGreaterEqual(len(hits), 1)
+        self.assertLess(len(hits), 10)
+
+    def test_secondary_miss_and_friendly_do_not_damage(self):
+        for options in ({"friendly": True}, {"yaw": -32768}):
+            with self.subTest(options=options):
+                dealt, hits = self.secondary_volley(1.5, **options)
+                self.assertEqual(dealt, 0.0)
+                self.assertEqual(hits, [])
+
+    def test_secondary_command_consumes_ammo_once_for_ten_pellets(self):
+        run, shooter, victim = self.arena(1.5)
+        weapon = next(i for i in shooter.body_script.component.instances.values()
+                      if i.graph.index == 0x1683)
+        ammo = weapon.vars[53]
+        before = ammo.value()
+        run.step({shooter: (0, 0, 2)})
+        for _ in range(25):
+            run.step({})
+        fight = run.match.combat
+        target = next(t for t in fight._targets() if t.owner is victim)
+        self.assertAlmostEqual(fight.vitals_of(target).total, 75.0)
+        self.assertEqual(before - ammo.value(), 2)
 
     def test_torbjorn_takes_armour_damage_and_dies_to_enemy_player(self):
         run, victim, shooter = self.arena()

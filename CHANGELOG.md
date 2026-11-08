@@ -1,5 +1,17 @@
 # Changelog
 
+### Torbjorn lane: ten-pellet radial launch reconstruction
+
+- Expand unpredicted613BDDB0 launches using authored radius/count rings and
+  spread, with an explicit fixed-phase angular reconstruction. Native seed,
+  jitter, unresolved angular fields and muzzle offsets remain open.
+- Torbjorn secondary now deals125 close-range damage across ten independent
+  projectiles, loses distant hits to spread/falloff, misses when aimed away,
+  excludes teammates and consumes two ammo once per ten-pellet command.
+- Pass84 related tests (eight Torbjorn, five motion,71 shared), Ruff and diff
+  checks. No client or full static acceptance claimed; other hero mechanisms
+  and all protection/NPC interactions remain open. Parent owns integration.
+
 ### Torbjorn lane: authored projectile gravity reconstruction
 
 - Evaluate E1A5B579 acceleration and sweep ballistic flight in16ms intervals,

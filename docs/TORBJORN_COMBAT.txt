@@ -36,8 +36,10 @@ Action             Server evidence / remaining implementation
 Primary rivet      70 direct damage to player; authored gravity9.8 is consumed
                    by a reconstructed ballistic solver with 16ms sweeps;
                    critical defaults, true hitboxes and presentation OPEN.
-Secondary rivets   Single pellet falloff repaired; 10 pellets declared by the
-                   graph, but combat still creates only one. Spread OPEN.
+Secondary rivets   Ten projectiles now follow the authored613BDDB0 rings:
+                   1centre +4half-radius +5outer, spread5 interpreted as degrees.
+                   Reconstructed equally spaced rings use a fixed phase;
+                   native phase/jitter and muzzle offsets OPEN.
 Quick melee        Existing 0043/st4 approximation; Torbjorn-specific client,
                    NPC, barrier/control/immune/death acceptance OPEN.
 Forge Hammer       168C/st6 declares55 damage and st5 tracks around a local
@@ -89,3 +91,10 @@ analytical free-flight displacement, continuous/gap equivalence, clipped final
 lifetime and independent identities for two otherwise identical projectiles.
 Only E1A5B579 acceleration is interpreted. Exact native numerical integration,
 other motion classes and the prediction/presentation of gravity remain OPEN.
+
+Four further secondary tests execute all ten projectiles: a close enemy loses
+125health, a distant enemy loses less because of spread and falloff, aimed misses
+and same-team targets take no damage, and a real secondary command consumes two
+ammo once for its ten pellets. Unknown92308789/391F15AF angular behavior and
+native spread seeding are not claimed. Expansion is limited to unpredicted ring
+launches; predicted multi-projectile lease allocation remains outside this fix.

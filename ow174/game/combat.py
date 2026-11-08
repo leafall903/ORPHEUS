@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectile_patterns, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -658,13 +658,17 @@ class Combat:
                 blast is not None and blast.amount > 0.0
             )
             if damaging or shot is not None:
-                self.rockets.append(
-                    Rocket(
-                        shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
-                        last_tick=self.tick if npc else None,
-                        gravity=gravity,
+                # Predicted projectile leases still carry one projectile per
+                # authored record. Only unpredicted ring launches expand here.
+                directions = ((direction,) if shot is not None
+                              else projectile_patterns.directions(state, direction))
+                for flight_direction in directions:
+                    self.rockets.append(
+                        Rocket(
+                            shooter, shooter.team, origin, flight_direction, speed, lifetime, direct, blast,
+                            shot, last_tick=self.tick if npc else None, gravity=gravity,
+                        )
                     )
-                )
             return
         if direct is None or direct.amount <= 0.0:
             return
