@@ -75,6 +75,37 @@ class NativeReplayTests(unittest.TestCase):
                 result = replay_document(document)
                 self.assertEqual(result["status"], "matched_observed_body_trace")
 
+    def test_pending_join_and_traversal_origin_are_causal_read_only_trace_state(self):
+        import test_script_join as joins
+
+        script = body()
+        fixture = joins.JoinTests()
+        _, prototype = fixture.setup_join()
+        instance = script.component.create(prototype.graph, init=False)
+        instance.init()
+        self.assertFalse(fixture.arrive(instance, 4))
+        script.component.run_now()
+        self.assertEqual(instance.join_inputs, [(2, 4, "m_outPlug")])
+        with (
+            patch.object(runtime.Var, "value", side_effect=AssertionError("no evaluation")),
+            patch.object(runtime.State, "payload", side_effect=AssertionError("no payload")),
+        ):
+            pending = snapshot_hash(script)
+            self.assertEqual(snapshot_hash(script), pending)
+            saved = list(instance.join_inputs)
+            instance.join_inputs.clear()
+            self.assertNotEqual(snapshot_hash(script), pending)
+            instance.join_inputs.extend(saved)
+            self.assertEqual(snapshot_hash(script), pending)
+            instance.plug_source = (5, "m_outPlug")
+            self.assertNotEqual(snapshot_hash(script), pending)
+            instance.plug_source = None
+            self.assertEqual(snapshot_hash(script), pending)
+        self.assertTrue(fixture.arrive(instance, 5))
+        script.component.run_now()
+        self.assertFalse(instance.join_inputs)
+        self.assertEqual(instance.vars[77].value(), 41)
+
     def test_recording_helpers_never_evaluate_values_payloads_or_consume_shots_rng_or_sequences(self):
         script = body()
         script.command(1001, FIRE)

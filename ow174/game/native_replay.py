@@ -114,6 +114,7 @@ def _snapshot(script: BodyScript, encode) -> dict:
             "vars": _variables(instance.vars, encode), "states": states,
             "queue": encode(instance.queue), "deferred": encode(instance.deferred),
             "ticking": encode(instance.ticking), "params": encode(instance.params),
+            "join_inputs": encode(instance.join_inputs), "plug_source": encode(instance.plug_source),
         })
     return {
         "hero": script.hero, "entity": script.entity, "frame": script.frame,

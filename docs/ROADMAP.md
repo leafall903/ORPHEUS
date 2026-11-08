@@ -19,6 +19,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   damage, defenses/status interactions and original-client presentation.
   Lane 0040 repairs shared direct-projectile falloff/critical application with
   pool-damage regressions and reconstructs the authored timed self-heal consumer.
+  The lane incorporates native distinct-input joins and includes pending arrivals
+  plus traversal origin in command-trace hashes as well as VM/server storage.
+  Hero/NPC/regression evidence is rerun after this shared foundation update.
   A charged ultimate can kill a player in an offline real-input audit. Pellet
   count25 and a reconstructed primary ring pattern now have real damage,
   miss/team/wall tests; Breather cooldown rejection/expiry also has evidence.
@@ -78,6 +81,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   for the partial attack frontier and open Flashbang/Deadeye requirements.
   Resource-backed Flashbang control has offline interruption/recovery/lifetime
   checks; native immunity/presentation and complete hero acceptance remain open.
+  Native input joins now preserve Deadeye's six-second timing and secondary
+  cancellation; target acquisition/charging/damage and full ultimate acceptance
+  remain open. See [state-input joins](STATE_INPUT_JOIN.txt).
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.

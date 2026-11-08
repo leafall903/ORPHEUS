@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Roadhog lane: reconcile native input joins and command-trace storage
+
+- Merge reviewed parent2ca9178 distinct-input join implementation and VM layout
+  into private main. Retain Roadhog healing/charge/control/protection consumers.
+  An initial loaded-Roadhog-graph audit finds no1113EBD5 node; do not infer a
+  newly restored hero action from this common foundation alone.
+- Include join_inputs and plug_source in command-trace hashes, which previously
+  omitted the new causal fields despite the updated VM adapter. A read-only
+  regression observes actual pending arrivals, distinguishes table/source-only
+  changes and then completes the same join to its authored SetVar output.
+- Pass80 Roadhog/five-NPC/control/protection/join checks,97 native-trace/VM/
+  driver/ability/manifest checks and3 full-server stored-state checks on frozen
+  source (180 total), with explicit five-NPC input/no skips. Ruff/diff pass.
+- Full static combat goal, native defense/knockback/NPC gaps and all original-
+  client acceptance remain open. No shared-main changes or publication.
+
 #### Roadhog lane: consume four scoped defensive casts
 
 - Reuse Reaper/Pharah lane callback/defense designs for actual Wraith, Fade,
@@ -105,6 +121,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   deployment/publication, or complete static hero acceptance is claimed.
 - Integration uses a cumulative diff against6debff3 or reviewed lane history;
   it must retain merge-resolution code and avoid replaying duplicate NPC startup.
+#### Native state-input joins and Deadeye timing
+
+- Implement1113EBD5 distinct-input joins from the104319 input handler rather
+  than permissively following output. Track producer/plug arrivals, ignore
+  duplicates, request sibling completion checks, clear registrations before
+  output and abort active referenced states only after accepted output. Resolve
+  states after callbacks; missing states are not allocated as a side effect.
+- Include pending arrivals and current traversal context in VM/server causal
+  snapshots, restore nested traversal context and clear arrivals on teardown.
+  Update the snapshot storage contract test for these new fields.
+- Pass945 relevant tests (932 script/VM/NPC/projectile/McCree plus13 server
+  snapshot), including10 new join and actual Deadeye command tests. Forty
+  offline native-handler arrivals match Python return values, registry order,
+  completion checks and aborts; engine lookup/output/event services are adapters.
+  Ruff and diff checks pass. No original-client acceptance was run.
+- Deadeye now survives warmup, retains the resource's six-second window and
+  supports repeated secondary cancel without normal ammunition loss. Test charge
+  is explicitly filled. Target acquisition/per-target charging/damage and the
+  full ultimate remain open; no replacement damage formula is installed.
+- Manifest-verified research resolves the per-target effect053/0056 to01EE in
+  an external bundle. Normal runtime data/services and original working changes
+  remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
+  McCree/cross-hero and original-client combat acceptance remain open.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an

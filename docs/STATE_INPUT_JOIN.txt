@@ -1,0 +1,57 @@
+Native state-input joins (1113EBD5, target build104319)
+
+Problem:
+The permissive fallback followed every unknown node's m_outPlug and returned
+true. For1113EBD5 this immediately accepted a state completion transition.
+Deadeye's six-second ChaseVar began and aborted at the same timestamp, ending
+the ultimate before acquisition could run. The original node joins distinct
+input arrivals before it accepts its output.
+
+Native evidence (module RVAs, existing authorized offline capture):
+- Constructor1B701D0 installs vtable27AC7B0; input handler+48 is1B6EED0.
+- 1B73BC0 stores an instance-local arrival record: target node, producer node,
+  producer output offset and output-array index. An exact duplicate returns3.
+  The first distinct arrival returns0; later arrivals return2 when the count
+  reaches m_B24D1794, otherwise1. The first-arrival path remains distinct even
+  for a compiler count of1; it does not immediately accept the output.
+- First arrival requests completion checks for active m_122DF0CA states except
+  the calling state. Existing queued checks coalesce. Missing states are looked
+  up without allocating them.
+- On completion,1B700F0 clears this target's arrivals by tail-swap removal before
+  output traversal. If the output is accepted, active referenced states receive
+  aborts. Lookup occurs after the output callback, including any reentrant state
+  changes. Refused/empty output still clears arrivals but does not abort states.
+
+Implementation:
+Instance._follow saves/restores the producer node and output path around nested
+action/condition traversal. Normalized authored XML plug paths identify the
+native output offset/array-index pairs in this model; this is not the native
+byte layout. Instance.join_inputs stores pending arrivals. A direct join call
+without an input origin is unsupported. Destruction clears the pending table.
+VM/server observations include both fields so incomplete joins remain causal
+state. Capturing storage does not execute the VM or establish restorable state.
+The command-trace stored_snapshot also includes join_inputs and plug_source;
+they must not disappear behind equal hashes for different pending arrivals.
+The lane regression checks both fields without evaluating variables/payloads,
+then resumes the actual synthetic join to demonstrate the different future.
+
+Verification:
+An offline Unicorn probe executes1B6EED0,1B73BC0 and1B700F0. Forty arrivals match
+Python results, pending-table order, completion checks and aborts across duplicate
+inputs, interleaved targets, producer/array-index changes, counts1/2/3 and refused
+outputs. State lookup/checks, output dispatch and event allocation/queue services
+use explicit adapters. This is not full native Instance scheduler acceptance.
+Ten source tests cover actual plug traversal, duplicate suppression, caller
+exclusion, output refusal, reentrant lookup, causal snapshots, teardown and
+missing-origin refusal. Actual McCree commands retain Deadeye past warmup, spend
+the supplied full charge, expire after the authored six-second window and permit
+repeated secondary cancellation without spending normal ammunition. The test
+fills charge explicitly; passive/damage-based charge economy is not accepted.
+
+Remaining Deadeye scope:
+Target tracking, per-target effect invocation metadata, target/instigator roles,
+charging/visibility/damage and client markers remain open. Its effect resource
+053/0056 resolves to graph01EE in a manifest-verified external extraction. The
+external research bundle adds that graph without replacing normal runtime data.
+This join fix does not install a substitute damage formula or prove a working
+ultimate, complete McCree static matrix or original-client combat presentation.
