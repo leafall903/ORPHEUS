@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Declarative shared-variable State and original-client acceptance
+
+- Model9D7BF987 with common State lifecycle and strict agreement between Dynamic
+  declarations, both compiled node sync groups and graph sync metadata. Preserve
+  an empty codec and passive snapshot storage; no variable evaluation or writes.
+- Execute24 original allocation/binding cases with the captured parent registry
+  record and no replaced callbacks. All278 real nodes/1494 declarations agree;
+  the production validator accepts all278 without allocating variables or states.
+- Two independently created original-client matches verify the actual0F44/node33
+  common State object, three on/off cycles, counter reset, unchanged typed v940,
+  phase ACKs and retired native bindings. This is an isolated owner-frame fixture,
+  not complete controller execution. Client closed normally; owned server stopped.
+- Five former placed9D7 stops now complete frame0:50/123 nonempty components pass
+  in the unchanged isolated catalog, with73 strict stops. Actual000E/0F44 now
+  retains world query E72F6348/frame0; failed controller messages still fail closed.
+  Shared rootD38/node106, global phases, full body/actor lifetimes, cinematics,
+  five enemy AI types and mission/results remain open. No normal deployment.
+- Add12 behavior tests;875 related and33 server checks pass, with Ruff/diff.
+  Passive VM storage covers35 State models. Normal inputs and unrelated working
+  changes are preserved. See SHARED_VARIABLE_STATE.txt. Publication helper missing;
+  required synchronization cannot run and no GitHub push is performed.
+
 #### Preserved entity script component definitions and controller hosting
 
 - Retain complete entity/hero script components, including empty defaults,

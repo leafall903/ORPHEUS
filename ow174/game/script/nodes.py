@@ -24,6 +24,7 @@ from ow174.game.script import (
     modifiers,
     play,
     scopes,
+    shared_vars,
     voice_stimulus,
 )
 from ow174.game.script.expr import (
@@ -405,6 +406,15 @@ class EntityControl(RegisteredState):
 
     def payload(self):
         return super().payload() if self.instance.component.strict else {}
+
+
+@state_class("STU_9D7BF987")
+class SharedVariables(State):
+    """Declarative sync variables with the verified common State allocation/lifecycle."""
+
+    def on_created(self):
+        if self.instance.component.strict:
+            shared_vars.validate(self.instance, self.node)
 
 
 @state_class("STU_40E05F6B")

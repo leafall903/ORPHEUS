@@ -1,0 +1,73 @@
+Declarative shared-variable State (9D7BF987)
+Target: original PC build 104319. Partial scene/controller restoration.
+
+Behavior
+The declaration uses the common State allocation and lifecycle. Strict creation
+checks its Dynamic variable list against both compiled node sync groups and the
+graph sync list. Identifier namespace, range, scope and record kinds must agree.
+It does not evaluate configs, allocate variables, assign values, create links or
+register ticking. Ordinary begin, reentry, exclusives, authored plugs, transition
+checks and end cleanup remain the existing State behavior. The codec is empty.
+Passive storage export supports the concrete class without adding opaque caches.
+
+Evidence and limits of the inference
+The original type adds only an embedded ConfigVarDynamic list to State. The
+captured registry has no own runtime registration; exact factory lookup walks
+its actual TypeInfo parent chain and selects the original common State record.
+Executing original lookup, inplace construction, instance binding and creation
+hooks passes24 cases across state indices, client/server flags and initialization
+flags. A recreated one-bucket storage table holds the captured real parent record;
+no instruction callbacks are replaced. The resulting primary vtable is27AC800.
+This is not an assertion that every missing runtime registration is a server noop.
+The declaration metadata, selected factory, common callback table and independent
+client observations jointly support this class's data-only interpretation.
+
+All278 retained real nodes, with1494 declarations, agree with both compiled node
+groups and graph synchronization metadata; the production validator accepts every
+one without creating state or variable storage. Scope includes217 nodes declaring
+entity variables. Malformed or inconsistent inputs remain strict diagnostics.
+Bounded executable references found reflection, generic class-label and data IO
+consumers. That scan does not exclude native/compiler consumers elsewhere.
+
+Separately authorized original-client acceptance
+An isolated server sends the actual0F44 owner network tree and controls only its
+node33/rawState21 owner bit and instance variable940. This is a transport fixture,
+not successful execution of the actual controller VM or an authored mission phase.
+The fixture supplies a typed Soldier hero asset before activation. Read-only
+captures verify that activation does not change its base value or create links.
+
+Two distinct matches provide eight native observations and three on/off cycles.
+Inactive baseline has no allocated state. First activation allocates the common
+27AC800 object and increments its counter to1; repeated activation after ending
+increments it to2 in the first match. End clears active and records a later time.
+The second match has distinct native instance/state/variable addresses and starts
+its counter at1. Both phase streams receive transport ACKs and retire on leave;
+neither old entity/component binding remains observable after leaving. The client
+closes normally and only the owned verification server is stopped. These checks
+do not prove full native host authority, global phase order or mission execution.
+
+Actual scene and remaining frontier
+The unchanged isolated371-create catalog still configures146 components with124
+graphs and542 queued schema writes. All five former shared-variable stops now
+complete their first frame:50/123 nonempty components complete;73 retain strict
+stops (66 entity-control services, three animation-alias components, one model-look
+scope registration and three0F647E55 actions). This remains an offline per-component
+fixture; ordinary deployed placement creation and replication are incomplete.
+
+Actual000E component plus explicit mode0025/team0 controller0F44 passes node33
+and retains world query E72F6348/frame0. It does not complete initialization. Its
+failed bound receiver still rejects helper0EC6/node22/message061A after parameter41
+is supplied; failed receivers cannot be treated as absent or successful consumers.
+The real Match's shared root still retains D38D0035/node106 before the controller
+executes. Body/actor lifetimes, global phases, cinematics, five enemy AI types,
+extraction/results and complete story acceptance remain open.
+
+Validation
+Twelve new behavior tests cover metadata errors, no variable side effects, common
+plugs/lifecycle, counter wrap, passive snapshots and permissive compatibility.
+875 related tests and33 server journal/snapshot/injection tests pass; Ruff and diff
+checks pass. Normal map/graph inputs remain unchanged; no candidate deployment.
+Local evidence is outside Git in verification/retribution/shared-vars-* and
+verification/shared-vars-session/acceptance.json, with bounded native captures,
+transport records and probe scripts. Generated game inputs and captures are not
+part of this repository. GitHub publication requires the workspace helper.

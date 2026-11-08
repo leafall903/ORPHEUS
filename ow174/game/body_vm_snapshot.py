@@ -49,6 +49,7 @@ _VAR = ("base", "key", "links", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
     nodes.AnimationAlias: (("alias_handle",), ()),
