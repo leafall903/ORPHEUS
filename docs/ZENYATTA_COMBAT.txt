@@ -10,10 +10,13 @@ Implemented in this lane
   m_A872C70E is absent. This is reconstructed behavior, not a native comparison:
   the asset contains m_66D29548=2 but this field's exact engine meaning is not
   established. Do not extend that interpretation to unrelated heroes.
-- Eight actual combat tests execute extracted weapon/melee graphs against
+- Fourteen actual combat tests execute extracted weapon/melee graphs against
   player bodies: primary body/head hits and notices, five charged orbs,
   reverse fire into 150 shields then 50 health, melee30, lethal headshots,
   dead-owner suppression, explicit noncritical hits, and falloff/armour/splash.
+- Additional execution covers misses spending ammo, range180 retirement,
+  ally immunity, actual wall collision, repeated-press fire-interval enforcement,
+  reload rejecting fire and restoring the20-round magazine, and charged ammo.
 
 Resource-backed facts (external runtime, never added to Git)
 - 0164/state14: primary48, projectile0236, speed variable6368 (evaluates90),
@@ -26,7 +29,8 @@ Resource-backed facts (external runtime, never added to Git)
 
 Acceptance matrix (P=enemy player; NPC=T/E/S/A/H)
 Action                 P offline evidence       T E S A H original clients
-Primary body/head      48/96, notices, death     OPEN      OPEN
+Primary body/head      48/96, notices, death;
+                       miss/range/LOS/team/ammo  OPEN      OPEN
 Secondary full charge  5 independent48 hits      OPEN      OPEN
 Quick melee            30, no critical flag     OPEN      OPEN
 Receive enemy fire     shield before health     OPEN      OPEN

@@ -5,6 +5,7 @@ import unittest
 from test_game_combat import KANEZAKA_DM, Run
 
 from ow174.game import combat
+from ow174.game.collision import World
 from ow174.game.commands import FIRE, SECONDARY
 from ow174.game.content import heroes
 from ow174.game.world import HEALTH_POOL, SHIELDS_POOL
@@ -49,6 +50,82 @@ class ZenyattaCombatTests(unittest.TestCase):
             run.step({zen: (0, 600, 0)})
         self.assertEqual(vitals.total, 760)
         self.assertEqual(len(zen.client.messages(combat.HIT)), 5)
+        weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
+        self.assertEqual(weapon.vars[53].value(), 15)
+
+    def test_primary_miss_spends_ammo_without_damage(self):
+        run, zen, _, vitals = self.arena()
+        run.step({zen: (16384, 0, FIRE)})
+        for _ in range(15):
+            run.step({})
+        weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
+        self.assertEqual(weapon.vars[53].value(), 19)
+        self.assertEqual(vitals.total, 200)
+        self.assertFalse(zen.client.messages(combat.HIT))
+
+    def test_primary_range_limit_retires_projectile_before_far_target(self):
+        run, zen, enemy, vitals = self.arena()
+        x, y, z = zen.mover.position
+        enemy.mover.position = [x, y, z + 182]
+        enemy.mover.body = None  # recreate the physics capsule at the test's new feet
+        run.step({zen: (0, 0, FIRE)})
+        for _ in range(140):
+            run.step({})
+        self.assertEqual(vitals.total, 200)
+        self.assertFalse(run.match.combat.rockets)
+        self.assertFalse(zen.client.messages(combat.HIT))
+
+    def test_primary_does_not_damage_teammate(self):
+        run, zen, enemy, vitals = self.arena()
+        run.match.game_map = run.match.game_map.__class__(**{
+            **run.match.game_map.__dict__, "free_for_all": False,
+        })
+        enemy.team = zen.team
+        run.step({zen: (0, 0, FIRE)})
+        for _ in range(15):
+            run.step({})
+        self.assertEqual(vitals.total, 200)
+        self.assertFalse(zen.client.messages(combat.HIT))
+
+    def test_primary_stops_at_actual_static_collision(self):
+        run, zen, _, vitals = self.arena()
+        x, y, z = zen.mover.position
+        run.match.collision_world = World([
+            (x-50, y, z-50, x-50, y, z+50, x+50, y, z+50),
+            (x-50, y, z-50, x+50, y, z+50, x+50, y, z-50),
+            (x-5, y, z+4, x+5, y, z+4, x+5, y+5, z+4),
+            (x-5, y, z+4, x+5, y+5, z+4, x-5, y+5, z+4),
+        ])
+        run.step({zen: (0, 0, FIRE)})
+        for _ in range(15):
+            run.step({})
+        self.assertEqual(vitals.total, 200)
+        self.assertFalse(run.match.combat.rockets)
+
+    def test_repeated_presses_cannot_bypass_primary_fire_interval(self):
+        ammo = []
+        for pulse in (False, True):
+            run, zen, _, _ = self.arena()
+            for i in range(40):
+                run.step({zen: (16384, 0, FIRE if not pulse or i % 2 == 0 else 0)})
+            weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
+            ammo.append(weapon.vars[53].value())
+        self.assertEqual(ammo, [18, 18])
+
+    def test_reload_has_pending_window_and_restores_actual_twenty_round_magazine(self):
+        run, zen, _, _ = self.arena()
+        weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x0164)
+        for _ in range(40):
+            run.step({zen: (16384, 0, FIRE)})
+        self.assertEqual(weapon.vars[53].value(), 18)
+        for i in range(30):
+            run.step({zen: (16384, 0, 0x400 if i == 0 else FIRE)})
+        self.assertEqual(weapon.vars[53].value(), 18)
+        for _ in range(140):
+            run.step({})
+        self.assertEqual(weapon.vars[53].value(), 20)
+        run.step({zen: (16384, 0, FIRE)})
+        self.assertEqual(weapon.vars[53].value(), 19)
 
     def test_enemy_fire_drains_zen_shields_before_health(self):
         run, zen, enemy, _ = self.arena()
@@ -73,6 +150,7 @@ class ZenyattaCombatTests(unittest.TestCase):
         run, zen, enemy, vitals = self.arena()
         x, y, z = zen.mover.position
         enemy.mover.position = [x, y, z + 1.5]
+        enemy.mover.body = None
         for i in range(30):
             run.step({zen: (0, 0, 0x800 if i == 0 else 0)})
         self.assertEqual(vitals.total, 170)

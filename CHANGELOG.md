@@ -6,6 +6,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zenyatta weapon conditions (lane 0020, partial)
+
+- Extend actual graph execution tests to primary misses, exhausted projectile
+  range, ally immunity, static-wall interception, repeated input during the
+  fire interval, and reload rejection/restoration. A full charged volley spends
+  five of the actual20 rounds. All14 hero tests and all85 combined
+  hero/combat/projectile/health regressions pass; Ruff/diff checks pass.
+- Full static combat acceptance remains active: support acquisition/auras,
+  ultimate lifecycle, passive shields and five mission NPC interactions are
+  not accepted. Original-client combat remains a separate open matrix.
+
 #### Zenyatta projectile damage foundation (lane 0020, partial)
 
 - Apply direct projectile critical damage and distance falloff before target
