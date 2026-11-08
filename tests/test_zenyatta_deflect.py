@@ -102,6 +102,35 @@ class ZenyattaDeflectTests(unittest.TestCase):
             self.assertFalse(run.match.combat.rockets)
         self.assertEqual(health, [104, 104])
 
+    def test_discord_targeting_is_not_itself_reflected(self):
+        run, zen, genji = self.arena()
+        run.step({zen: (0, 0, 0x08), genji: (-32768, 0, 0x10)})
+        owner = run.match.combat.zenyatta.owners[zen.body]
+        self.assertEqual(owner.discord.target, genji.body)
+        self.assertEqual(self.health(run, zen), 200)
+        self.assertFalse(run.match.combat.rockets)
+        self.assertFalse(genji.client.messages(combat.HIT))
+
+    def test_charged_reflected_burst_kills_zen_with_genji_credit_and_cleans_up(self):
+        run, zen, genji, _ = weapon_tests.ZenyattaCombatTests().arena()
+        run.match.switch_hero(genji, heroes()[0x02E0000000000029])
+        x, y, z = zen.mover.position
+        genji.mover.position = [x, y, z+8]
+        genji.mover.body = None
+        run.step({zen: (0, 0, 0x08), genji: (-32768, 0, 0)})
+        for i in range(140):
+            run.step({zen: (0, 0, 0x02), genji: (-32768, 0, 0x10 if i >= 130 else 0)})
+        self.assertTrue(self.active(genji))
+        run.step({zen: (0, 0, 0), genji: (-32768, 0, 0x10)})
+        for _ in range(150):
+            run.step({genji: (-32768, 0, 0x10)})
+        self.assertEqual(self.health(run, zen), 0)
+        self.assertEqual(self.health(run, genji), 200)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in genji.client.messages(combat.HIT)], [96, 96, 8])
+        self.assertEqual(len(genji.client.messages(combat.KILL_NOTICE)), 1)
+        self.assertNotIn(zen.body, run.match.combat.zenyatta.owners)
+        self.assertFalse(run.match.combat.rockets)
+
 
 if __name__ == "__main__":
     unittest.main()

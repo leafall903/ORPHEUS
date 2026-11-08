@@ -6,7 +6,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   separately verify original-client combat/presentation. Reconstructed support,
   ultimate and regeneration now run in Combat, with selected real player/five-NPC
   evidence. Charge ammunition caps and selected real Genji Deflect cases now
-  execute. Two NPC reverse attacks, remaining secondary control edges and broader
+  execute; shared early-input expiry/recast has executed boundary evidence.
+  Two NPC reverse attacks, remaining secondary control edges and broader
   defenses/control remain open. See [lane evidence](ZENYATTA_COMBAT.txt).
 
 | Milestone | Exit criteria | Current evidence |

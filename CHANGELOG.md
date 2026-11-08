@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Preserve original buffered ability press time
+
+- Fix a shared Ability.can_start bug reproduced with real Genji Deflect input:
+  failure during cooldown replaced the press time with each poll time, so a
+  stale press could trigger an automatic cast many seconds later. Retain the
+  consumed original press tuple while waiting; keep the Boolean take_press API
+  for stop-button semantics and add no mutable snapshot state.
+- Pass three real-input boundaries: stale Deflect input expires, an input inside
+  its authored early window still starts, and failed Zenyatta ultimate input
+  does not trigger after charge later becomes available. All12 existing Soldier
+  ability/client-model regressions pass. Full hero static combat remains open.
+- Pass243 focused regressions and14 full server snapshot/replay checks on
+  frozen game model source, plus all8 expanded real-input Deflect cases including
+  charged-burst kill attribution, Discord preservation and final retirement.
+
 #### Zenyatta charge resource boundaries and Genji Deflect (lane0020, partial)
 
 - Fix actual low-ammunition overcharge:0164 counted five damaging Orbs with

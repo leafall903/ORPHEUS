@@ -64,6 +64,13 @@ Executed player subset
   A maximum of nine same-interval reflections consumes remaining time to bound
   pathological overlapping boxes. Deflected projectile client effects remain
   unaccepted; the original prediction lease is retained until final retirement.
+- The real Genji cooldown early-input regression found a shared Ability bug:
+  requeueing used the current poll time. It now preserves the original press
+  tuple. Executed tests reject stale input after cooldown, retain input within
+  the authored early window, and reject a failed Zen Q after later charge gain.
+- Full charged reflected burst kills Zen with Genji hit/kill attribution and
+  retires owner effects/remaining projectiles. Discord targeting itself is not
+  reflected and its victim debuff is not transferred with returned Orbs.
 
 Actual NPC subset (opt-in ORPHEUS_NPC_DATA; separate shared read-only input)
 Use verification/retribution/npc-runtime/data. Definition variable221 maps to
@@ -88,12 +95,9 @@ as unapplied by the catalog, so these are explicit base-pool fixtures.
 Still open for full STATIC goal
 Full ammo/reload control-interruption edges and secondary combinations,
 all NPC secondary/melee/ultimate combinations, Enforcer/Assassin reverse
-attacks/specials, barriers/Defense Matrix, full reflected-burst/kill/geometry cases, anti-heal/heal
+attacks/specials, barriers/Defense Matrix, remaining reflected geometry/multi-deflection/status cases, anti-heal/heal
 amplification, cleanse, damage-boost stacking, control/interrupt/forced movement,
 full FFA/death/replacement lifecycle matrix and reconstructed-rule corroboration.
-An early Deflect press currently refreshes its timestamp on every failed
-Ability.can_start poll and can survive until the cooldown ends. The failing
-executed regression is kept separate; cooldown buffering is not accepted.
 The broader native TrackTargets/ApplyAura engine services remain unimplemented;
 this hero uses explicit reconstructed Combat services instead.
 
