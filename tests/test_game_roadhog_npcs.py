@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import test_game_roadhog_stun as stun_tests
 from test_game_combat import KANEZAKA_DM, FakeClient, Run, aim
 
 from ow174.game import combat, npc, npc_control
@@ -60,15 +61,19 @@ class RoadhogFiveNpcTests(unittest.TestCase):
         graph._records.cache_clear()
         graph.graph.cache_clear()
 
-    def session(self, definition, *, distance=2.0):
-        run = Run(KANEZAKA_DM)
+    def session(self, definition, *, distance=2.0, caster=False):
+        run = Run(KANEZAKA_DM, ("Roadhog", "McCree") if caster else ("A",))
         match = run.match
         match.bots.clear()
         match._pending_bot_scripts.clear()
-        hog, = run.players
+        hog = run.players[0]
         hog.client = NpcClient(hog)
         match.switch_hero(hog, heroes()[ROADHOG])
         x, y, z = hog.mover.position
+        if caster:
+            other = run.players[1]
+            match.switch_hero(other, heroes()[stun_tests.MCCREE])
+            other.mover.position[:] = (x + 2.5, y, z)
         bot = npc.spawn(match, definition, (x, y, z + distance), team=1)
         self.assertIsNotNone(bot.body_script)
         target = next(t for t in match.combat._targets() if t.owner is bot)
@@ -79,6 +84,31 @@ class RoadhogFiveNpcTests(unittest.TestCase):
         centre = tuple((a + b) / 2 for a, b in zip(low, high, strict=True))
         angles = aim(match.combat._eye(hog), centre)
         return run, hog, bot, vitals, angles
+
+    def test_flashbang_on_hook_owner_releases_all_five_npc_pulls_and_velocity(self):
+        for definition in self.definitions.values():
+            with self.subTest(npc=definition.name):
+                run, hog, bot, vitals, angles = self.session(definition, distance=18, caster=True)
+                caster = run.players[1]
+                fight = run.match.combat
+                run.step({hog: (*angles, 8)})
+                for _ in range(60):
+                    run.step({hog: (*angles, 0)})
+                    if fight.hooks.controlled(bot.entity):
+                        break
+                self.assertTrue(fight.hooks.controlled(bot.entity))
+                self.assertIsNone(fight.hooks.flights[hog.body].arrived_at)
+                stun_tests.RoadhogStunTests().cast(run, caster, hog)
+                self.assertTrue(fight.is_stunned(hog))
+                self.assertFalse(fight.hooks.controlled(bot.entity))
+                self.assertEqual(bot.velocity, (0, 0, 0))
+                position = tuple(bot.position)
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(tuple(bot.position), position)
+                self.assertEqual(bot.velocity, (0, 0, 0))
+                self.assertEqual(vitals.total,
+                                 definition.health + definition.armour + definition.shields - 30)
 
     def test_real_primary_secondary_and_melee_damage_all_five_authored_bodies(self):
         self.assertEqual({d.name for d in self.definitions.values()},

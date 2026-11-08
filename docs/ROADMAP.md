@@ -50,6 +50,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   death/replacement cleanup, plus real enemy Whole Hog/Breather interrupts.
   Native filters/defenses/control priority and arbitrary input-loss behavior stay
   open. Shared early-press retry timestamps now preserve their original expiry.
+  Actual enemy Flashbang now interrupts Whole Hog without refund/restart and
+  Breather healing/reduction with cooldown retained; expiry/fresh input recovers.
+  Flashbang on the Hook owner cancels flight and active player/five-NPC pulls
+  immediately. NPC pull cleanup also clears stale forced velocity. Other status
+  kinds and native immunity/cleanse/competing control semantics remain open.
   Breather's live0.5 incoming damage multiplier now affects actual hits/death,
   restores at end/interrupt and applies to in-flight player and actual NPC shots.
   Fortify/Ironclad share the consumer. Combined caps/armor-order fidelity remain open.
@@ -65,6 +70,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   acceptance remain open.
   McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
   for the partial attack frontier and open Flashbang/Deadeye requirements.
+  Resource-backed Flashbang control has offline interruption/recovery/lifetime
+  checks; native immunity/presentation and complete hero acceptance remain open.
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.

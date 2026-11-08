@@ -87,7 +87,8 @@ def stop(match):
 def update_input(fight, bot):
     """Refresh manual aim and release input on death, occlusion, range or target loss."""
     target = next((p for p in fight.match.players if p.entity == bot.attack_target), None)
-    enabled = (not bot.dead and bot.firing and target is not None and target.spawned and target.has_body
+    enabled = (not bot.dead and not fight.is_stunned(bot) and bot.firing
+               and target is not None and target.spawned and target.has_body
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and not fight.hooks.controlled(bot.entity)
                and (fight.match.game_map.free_for_all or target.team != bot.team))

@@ -324,9 +324,13 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        stunned = self.match.combat.is_stunned(self, tick=tick)
+        if stunned:
+            command = replace(command, forward=0, right=0, buttons=0, action=0)
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
-        if script is not None:
+        if script is not None and not stunned:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -911,7 +915,8 @@ class Match:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world)
+                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                         paused_until=self.combat.stuns.get(bot.entity, 0))
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:

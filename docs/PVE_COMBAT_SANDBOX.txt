@@ -8,7 +8,10 @@ behavior may be reconstructed from the available assets; record its assumptions
 and differences rather than claiming a native implementation.
 McCree's current executed frontier and remaining skill requirements are recorded
 in docs/MCCREE_COMBAT.txt. Melee now rejects static-wall occlusion for enemy
-players and NPCs; this does not establish Flashbang stun or Deadeye behavior.
+players and NPCs; that check alone does not establish complete skill behavior.
+Resource-backed Flashbang control is now implemented and tested offline, with
+input/movement suppression, channel interruption, expiry/recovery and lifetime
+cleanup. Native immunity/status presentation and full Deadeye remain open.
 
 Requested controls (command semantics and companion web frontend implemented):
 = opens the console spawn interface; 1..5 select the five enemies in the order

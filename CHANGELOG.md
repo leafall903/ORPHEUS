@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Roadhog lane: integrate enemy Flashbang skill interruption
+
+- Merge reviewed parent64bf71c into private main, preserving Hook control,
+  live reduction/charge and combined hooks/stuns snapshot fields. Retain both
+  control gates for manual and ordinary NPC firing; no shared-main changes.
+- Actual McCree Flashbang now interrupts Whole Hog without refund or delayed
+  restart, suppresses movement/actions, and allows fresh primary fire after
+  expiry. It stops Breather healing/reduction, keeps cooldown and permits a
+  fresh cast after cooldown. Flying and actively pulling Hook phases cancel
+  immediately when the owner is stunned, including all five authored NPCs.
+- Retire the transient NPC pull velocity with every Hook release path. Manual
+  NPCs have no subsequent player movement command to clear a stale forced pose.
+  Real Flashbang cancellation tests check stable NPC position and zero velocity.
+- Resource durations/control lifetime remain explicit parent reconstruction;
+  native immunity/cleanse/competing controls and the complete defense/status
+  matrix remain open. Complete static and original-client acceptance stay open.
+- Pass183 combat/hero/NPC/route tests with explicit external five-NPC data,
+  plus17 snapshot/manifest checks. Ruff/diff pass. No client controls/publication.
+
 #### Roadhog lane: bridge actual combat into authored charge expressions
 
 - Reuse the Soldier lane's expression-bridge design for Roadhog's actual0B8B
@@ -67,6 +86,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   deployment/publication, or complete static hero acceptance is claimed.
 - Integration uses a cumulative diff against6debff3 or reviewed lane history;
   it must retain merge-resolution code and avoid replaying duplicate NPC startup.
+#### Resource-backed Flashbang control reconstruction
+
+- Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
+  explicit server control policy. Resource-derived mode flag13408 chooses0.8s
+  or1.7s; exclusive deadlines use world ticks. Release held/buffered input, stop
+  running abilities through their authored exit paths, suppress player movement
+  and attacks, pause NPC routes without catch-up and consume suppressed shots.
+- Retire control on expiry, death, body replacement and manual NPC removal.
+  Retained corpses remain present. Include deadlines in server snapshots and
+  verify that they change the causal digest. Splash now checks static impact-
+  to-capsule visibility before applying damage and control through cover.
+- Pass138 relevant tests:125 combat/NPC/projectile/route/McCree and13 server
+  snapshot checks, including8 new actual-input/control/lifetime methods. Ruff
+  and diff checks pass. Fix a test fixture's shared-spawner mutation discovered
+  by the combined regression; subsequent fresh-process regressions pass.
+- Actual-five-Talon offline probes show25 Flashbang damage and input release
+  for all five; Trooper/Sniper/Heavy resume damage after expiry. Console stop
+  during control prevents automatic recovery attacks. Enforcer/Assassin incoming
+  attacks remain unresolved. Fixtures use adapter transport/permissive VM.
+- This policy does not execute the complete native224E status manager. Native
+  immunity/cleanse/stacking/barrier interactions, dynamic mode status, status
+  replication/HUD/animation/audio and original-client acceptance remain open.
+  Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
+  lane merged. Normal runtime/services and original working changes preserved.
 
 #### McCree melee static-wall occlusion
 

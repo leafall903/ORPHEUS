@@ -93,10 +93,19 @@ class Hooks:
     def controlled(self, entity):
         return any(f.target is not None and f.target.entity == entity for f in self.flights.values())
 
+    def cancel_owner(self, entity):
+        """An interrupted caster releases its own flight/pull immediately."""
+        flight = self.flights.pop(entity, None)
+        if flight is not None and flight.npc_mover is not None:
+            # No ordinary player command follows a manual NPC's forced pose.
+            # Retire its velocity too, rather than leaving a moving wire pose.
+            flight.target.owner.velocity = (0.0, 0.0, 0.0)
+            flight.target.owner.moved_tick = self.combat.tick
+
     def retire(self, entity):
         for body, flight in list(self.flights.items()):
             if body == entity or (flight.target is not None and flight.target.entity == entity):
-                del self.flights[body]
+                self.cancel_owner(body)
         self.seen = {key: value for key, value in self.seen.items() if key[0] != entity}
 
     def destination(self, flight):
@@ -139,16 +148,17 @@ class Hooks:
                 continue
             if (flight.owner.body != body or body not in targets
                     or fight.vitals_of(targets[body]).dead or self.controlled(body)
+                    or fight.is_stunned(flight.owner, tick=tick)
                     or (tick - flight.launch_tick) * combat.TICK
                     > flight.reach / flight.speed + flight.limit):
-                self.flights.pop(body, None)
+                self.cancel_owner(body)
                 continue
             elapsed = max(0, tick - flight.last_tick) * combat.TICK
             flight.last_tick = tick
             if flight.target is None:
                 ability = next((s for s in flight.instance.states.values() if s.node.pos == 11), None)
                 if ability is None or not ability.flags & nodes.Ability.RUNNING:
-                    self.flights.pop(body, None)
+                    self.cancel_owner(body)
                     continue
                 step = min(flight.reach - flight.travelled, flight.speed * elapsed)
                 origin = combat._along(flight.origin, flight.direction, flight.travelled)
@@ -164,12 +174,12 @@ class Hooks:
                         best = (distance, target)
                 wall = combat.ray_world(fight._collision(), origin, flight.direction, step)
                 if wall is not None and (best is None or wall < best[0]):
-                    self.flights.pop(body, None)
+                    self.cancel_owner(body)
                     continue
                 flight.travelled += step
                 if best is None:
                     if flight.travelled >= flight.reach:
-                        self.flights.pop(body, None)
+                        self.cancel_owner(body)
                     continue
                 flight.target, flight.caught_at = best[1], fight.now
                 flight.separation = max(flight.separation,
@@ -177,7 +187,7 @@ class Hooks:
                 fight._damage(flight.owner, flight.target, flight.damage.amount, False,
                               flight.damage.loadout, tick, world_tick=tick)
                 if fight.vitals_of(flight.target).dead:
-                    self.flights.pop(body, None)
+                    self.cancel_owner(body)
                     continue
                 self.interrupt(flight.target)
                 if isinstance(flight.target.owner, bots.Bot):
@@ -187,7 +197,7 @@ class Hooks:
                     )
             target = targets.get(flight.target.entity)
             if target is None or fight.vitals_of(target).dead or fight.now - flight.caught_at >= flight.limit:
-                self.flights.pop(body, None)
+                self.cancel_owner(body)
                 continue
             # Maintain the link to the capsule center, with ordinary static occlusion.
             centre = (target.feet[0], target.feet[1] + target.height / 2, target.feet[2])
@@ -198,7 +208,7 @@ class Hooks:
                 wall = combat.ray_world(fight._collision(), fight._eye(flight.owner), direction,
                                         max(0.0, length - target.radius))
                 if wall is not None:
-                    self.flights.pop(body, None)
+                    self.cancel_owner(body)
                     continue
             destination = self.destination(flight)
             if flight.npc_mover is not None and elapsed > 0 and flight.arrived_at is None:
@@ -211,4 +221,4 @@ class Hooks:
             if flight.arrived_at is None and math.dist(feet, destination) < 0.15:
                 flight.arrived_at = fight.now
             if flight.arrived_at is not None and fight.now - flight.arrived_at >= flight.recovery:
-                self.flights.pop(body, None)
+                self.cancel_owner(body)

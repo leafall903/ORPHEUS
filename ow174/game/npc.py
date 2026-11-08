@@ -109,7 +109,7 @@ def remove_spawned(match) -> tuple[int, ...]:
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen):
+                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
             table.pop(bot.entity, None)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)
