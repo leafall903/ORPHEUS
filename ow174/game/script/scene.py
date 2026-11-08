@@ -106,6 +106,7 @@ class SceneWorld(runtime.World):
         self.alias_components: dict[int, animation_alias.Aliases | None] = {}
         self.look_contexts: dict[int, model_look.Context] = {}
         self.data_flow_contexts: dict[int, data_flow.Context] = {}
+        self.script_components: dict[int, runtime.Component | None] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -127,6 +128,7 @@ class SceneWorld(runtime.World):
 
     def unbind(self, entity: int) -> SceneEntity | None:
         """Forget a query binding after its owner has retired the entity."""
+        self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
         self.modifier_components.pop(entity, None)
@@ -156,6 +158,70 @@ class SceneWorld(runtime.World):
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
+
+    def bind_script_component(self, entity: int, component: runtime.Component | None) -> None:
+        """Publish the actual component, or explicitly declare component absence."""
+        self._bound_entity(entity)
+        if component is not None:
+            if (not isinstance(component, runtime.Component) or component.entity != entity
+                    or component.world is not self):
+                raise ValueError('script component belongs to another entity or world')
+            component.ensure_valid()
+        if entity in self.script_components and self.script_components[entity] is not component:
+            raise ValueError('detach the existing script component before replacement')
+        self.script_components[entity] = component
+
+    def _notify_script_retired(self, component):
+        for instance in component.instances.values():
+            for state in instance.states.values():
+                state.unwatch()
+        for variable in component.vars.values():
+            for state in list(variable.watchers):
+                if state.instance.component is component:
+                    continue
+                variable.watchers.pop(state, None)
+                state.watched.pop(variable, None)
+                owner = state.instance.component
+                if state.active and owner.fault is None and not state.flags_changed:
+                    state.flags_changed = True
+                    state.instance.post(runtime.Event(owner.now, 0, runtime.CHANGED, state=state))
+
+    def unbind_script_component(self, entity: int, component: runtime.Component | None = None) -> None:
+        """Forget this lifecycle's routing; never destroy a replacement component."""
+        if component is not None and self.script_components.get(entity) is not component:
+            raise ValueError('script component binding belongs to another lifecycle')
+        previous = self.script_components.pop(entity, None)
+        if previous is not None:
+            self._notify_script_retired(previous)
+
+    def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        if entity not in self.entities:
+            # Keep the existing immutable mode-asset fallback until a live mode
+            # component has actually been installed by the scene owner.
+            return NotImplemented if entity == runtime.GAME_MODE_ENTITY else None
+        component = self.script_components.get(entity, NotImplemented)
+        if component is None:
+            return None
+        if component is NotImplemented or component.fault is not None:
+            return NotImplemented
+        return component.entity_var(var, create=create)
+
+    def send_script_message(self, instance, node, target, message, params, sender):
+        source = instance.component
+        if self.script_components.get(source.entity) is not source:
+            source.unsupported(instance, 'scene message source lifecycle', node.cls, node)
+        source.ensure_valid()
+        if target not in self.entities:
+            return  # An actual missing entity is distinct from unknown component data.
+        receiver = self.script_components.get(target, NotImplemented)
+        if receiver is None:
+            return
+        if receiver is NotImplemented or receiver.fault is not None:
+            source.unsupported(instance, 'scene message target component', node.cls, node)
+        with receiver.operation():
+            runtime.send_message(receiver, message, params, sender)
+        if self.script_components.get(target) is not receiver or receiver.fault is not None:
+            source.unsupported(instance, 'scene message target lifecycle', node.cls, node)
 
     def set_property_modifiers(self, entity: int, component: modifiers.NumericModifiers | None) -> None:
         """Declare component 31 and its clock; UUID bindings do not imply it."""
@@ -299,6 +365,8 @@ class SceneWorld(runtime.World):
                                if key != entity and (target is None or target.owner != entity)}
 
     def script_failed(self, component: runtime.Component) -> None:
+        if self.script_components.get(component.entity) is component:
+            self._notify_script_retired(component)
         mapping = self.data_flow_contexts.pop(component.entity, None)
         if mapping is not None:
             mapping.retire()
@@ -383,7 +451,11 @@ class SceneWorld(runtime.World):
         return record.position if record is not None else None
 
     def entity_var(self, entity: int, var: int):
-        if entity == runtime.GAME_MODE_ENTITY and runtime.mode_variables(self.mode) is not None:
+        slot = self.entity_var_slot(entity, var)
+        if slot is not NotImplemented:
+            return slot.value() if slot is not None else None
+        if (entity == runtime.GAME_MODE_ENTITY and entity not in self.script_components
+                and runtime.mode_variables(self.mode) is not None):
             return super().entity_var(entity, var)
         # Catalog bindings do not activate the entity's script component.
         return NotImplemented

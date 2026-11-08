@@ -47,7 +47,7 @@ from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, s
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
@@ -396,6 +396,7 @@ class Match:
         *,
         environment: ExecutionEnvironment | None = None,
         collision_provider: CollisionProvider | None = None,
+        scene_host_factory=None,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         self.id = (
@@ -427,6 +428,10 @@ class Match:
         self.collision_state = LoadState("pending")
         self.collision_world: World | None = None
         self._collision_failed = False
+        self.scene_host_factory = scene_host_factory
+        self.scene_host = None
+        self.scene_host_started = False
+        self.scene_host_error = None
         self._refresh_collision()
 
     def _refresh_collision(self) -> bool:
@@ -470,6 +475,42 @@ class Match:
         player = Player(self, len(self.players), account_lo, name, hero, team, quanta, card)
         self.players.append(player)
         return player
+
+    def _advance_scene(self, now: float, tick: int) -> bool:
+        if self.scene_host_factory is None:
+            return True
+        if self.scene_host_error is not None:
+            return False
+        try:
+            if not self.scene_host_started:
+                self.scene_host_started = True
+                host = self.scene_host_factory(self)
+                if isinstance(host, scene_host.SceneHost):
+                    self.scene_host = host
+                if (self.scene_host is None or host.world.map_guid != self.game_map.map_guid
+                        or host.world.mode != self.game_map.mode_guid
+                        or host.frame_ms != RETAIL_QUANTA // 1000):
+                    raise ValueError('scene host does not belong to this map, mode or clock')
+                created = {entry.placement.flat for entry in host.world.entities.values()
+                           if entry.placement is not None
+                           and entry.id == (0x80000000 | entry.placement.flat)}
+                if created != set(self.game_map.placeables):
+                    raise ValueError('scene script world differs from actual match placeable creates')
+            if self.scene_host is None or not self.scene_host.advance(tick):
+                raise ValueError(str(None if self.scene_host is None else self.scene_host.error))
+            return True
+        except Exception as error:
+            log.exception('[game] %s: scene script host failed', self.label())
+            self.scene_host_error = str(error)
+            for player in self.players:
+                if not player.gone:
+                    if player.client is not None:
+                        player.client.go_home(now)
+                    self.leave(player, 'scene script host failed')
+            if self.scene_host is not None:
+                self.scene_host.close()
+            self.ended = True
+            return False
 
     def label(self) -> str:
         return f"match {self.id[0] & 0xFFFF:04X}"
@@ -857,6 +898,8 @@ class Match:
         if self.collision_state.status == "unavailable":
             self._collision_failure(now)
             return
+        if ready and not self._advance_scene(now, tick):
+            return
         if ready and self.bots:
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
@@ -905,6 +948,8 @@ class Match:
             and client.ownership_delivered()
             and self.collision_world is not None
             and not self._pending_bot_scripts
+            and (self.scene_host_factory is None
+                 or (self.scene_host is not None and self.scene_host.client_ready))
         ):
             client.queue_entities(self.spawn_updates(player))
             player.steps_done = 3
@@ -1236,6 +1281,8 @@ class Match:
         if self.on_leave is not None:
             self.on_leave(player)
         if all(other.gone for other in self.players):
+            if self.scene_host is not None:
+                self.scene_host.close()
             self.ended = True
 
     @property
@@ -1261,7 +1308,7 @@ class Match:
         return taken
 
     def snapshot(self) -> dict:
-        return {
+        result = {
             "id": self.label(),
             "map": self.game_map.name,
             "started": self.started,
@@ -1276,6 +1323,12 @@ class Match:
                 for player in self.players
             ],
         }
+        if self.scene_host_factory is not None:
+            result['scene_script'] = {
+                'started': self.scene_host_started, 'error': self.scene_host_error,
+                'host': None if self.scene_host is None else self.scene_host.snapshot(),
+            }
+        return result
 
 
 def pong(ping: dict, received_ns: int, *, environment: ExecutionEnvironment | None = None) -> dict:

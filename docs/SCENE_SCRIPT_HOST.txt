@@ -1,0 +1,84 @@
+Match-owned shared scene scripts
+Target: original Overwatch 1.74.0.0.104319; 2026-11-08.
+
+Purpose and entry point
+GameServer and Match accept an explicit scene_host_factory(match). The factory
+returns SceneHost with the owner's actual entity catalog, exact map/mode and
+loaded graphs. The default server does not install this factory or expand its
+normal placeable catalog. This is the initial shared simulation host; live scene
+replication and original-client mission readiness have not been implemented.
+
+SceneHost.from_map binds selected client placements and the explicitly supplied
+server creates through SceneWorld.from_map. It then binds their actual script
+components, or declares known component absence. An optional supplied mode
+component and mode entity values join the same world. Existing ComponentStartup
+preserves definition defaults, matching instance overrides and additional graphs.
+Every component is bound before any startup schema is evaluated. The initial
+catalog seals after startup; this API does not create dynamic mission actors.
+
+Shared values, messages and retirement
+InstanceContext.member reads a live foreign component's Var slot, including its
+effective links and typed values. Reads with a State dependency subscribe to the
+actual slot. Ordinary changes use existing watcher notification and queue rules.
+Retiring either endpoint removes the dependency; retiring a watched component
+queues one changed event for each eligible surviving watcher. A faulted component
+is unavailable. A faulted live mode component cannot fall back to immutable mode
+defaults. The old mode-data fallback remains for owners without a live binding.
+
+Strict authored SendGameMessage now requires a declared transport. SceneWorld
+verifies source identity and routes to every matching receiver instance, queuing
+parameters/sender at the receiver's component clock. Known entity/component
+absence drops the message. Unknown or failed components stop the strict source
+before its success plug. Detached sources and stale expected component identities
+cannot operate on a replacement. Base World rejects unknown strict transport;
+the previous permissive World's warning behavior remains available.
+
+Clock, failure and cleanup
+The owner supplies the first signed32 frame. All components receive the same
+ordinary 16ms frame epoch before schema evaluation or execution. Startup and
+ordinary component execution follow the supplied catalog's insertion order.
+Duplicate frames do no work; gaps and rewinds require a new explicit lifecycle.
+An unsupported node, budget exhaustion or validation error stops scheduling.
+Later components do not run after that failure. This order is an explicit host
+policy, not proof of native scene-wide phases, scope/history or rollback timing.
+
+Match starts the factory after collision readiness and verifies map, mode, clock
+and the exact set of server placeable creates against its GameMap. Failure returns
+connected players home, leaves them and closes the host before combat/spawn work.
+Last-player leave and GameServer.stop also close owned hosts. Close destroys
+healthy instances, retains faulted diagnostics and retires all world bindings.
+
+SceneHost.client_ready remains false. A successful VM frame cannot release the
+prepared entrance readiness frame. A live scene replication/readiness layer must
+be implemented and verified before this host can authorize playable mission entry.
+Match.snapshot exposes status only. Stored-server export rejects configured
+shared hosts because storage/restoration of their shared VM graph is not yet
+implemented; ordinary server snapshots retain their exact field audit.
+
+Actual Rialto probe and limits
+A real in-memory GameServer/Match uses map079F/mode0025, an explicitly expanded
+371-create research catalog and an explicit static collision fixture. All146
+placed script components plus the authored100B mode root bind and prepare startup
+in one world. The mode root still stops strictly at D38D0035/node106/frame0.
+Match ends, the owned host closes and every world binding retires. This does not
+mean all147 components executed frame0: root failure prevents later execution.
+No socket, original-client run, candidate deployment or readiness send is claimed.
+Normal runtime inputs and external research data remain unchanged.
+
+The separate isolated placed-component audit remains45/123 nonempty frame0
+completions and78 strict stops. Those independent component counts do not prove
+shared-scene or whole-mission completion. No inherited client fallback is used
+as evidence that unknown authoritative actions are no-ops.
+
+Remaining work includes team/controller/body and dynamic NPC ownership, exact
+native phase/clock selection, component service backends, PlayScript consumers,
+full live replication and ACK/retirement, stored shared runtime, cinematics, five
+enemy AI types, extraction and results. The initial host does not resolve those
+services or the D38D0035, 0F647E55 and9D7BF987 semantic gaps.
+
+Verification evidence stays outside Git under verification/retribution:
+shared-scene-host-actual-validation.json, placed-component-scene-routing-validation.json,
+scene-host-related-tests.log, scene-host-server-tests.log and scene-host-ruff.log.
+The prior server run invalidated by a concurrent source edit is preserved as
+scene-host-server-tests.initial-failure.log. Source remains unchanged during the
+authoritative regression runs. See CHANGELOG.md for the final test totals.

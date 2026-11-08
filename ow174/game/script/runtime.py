@@ -217,6 +217,9 @@ class InstanceContext(Context):
         component = self.instance.component
         if entity == component.entity:
             return self._read(component.entity_var(var, create=self.watcher is not None))
+        slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
+        if slot is not NotImplemented:
+            return self._read(slot)
         value = component.world.entity_var(entity, var)
         if value is NotImplemented:
             if component.strict:
@@ -327,6 +330,10 @@ class World:
                 return variables.get(var)
         return None
 
+    def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        """A declared live foreign variable slot, known absence, or unknown service."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
@@ -380,6 +387,11 @@ class World:
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
+
+    def send_script_message(self, instance: "Instance", node: Node, target: int,
+                            message: int, params: dict, sender: int) -> None:
+        """Strict authored messages require a declared cross-component transport."""
+        instance.component.unsupported(instance, 'game message transport', node.cls, node)
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""

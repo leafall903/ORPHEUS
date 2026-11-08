@@ -1033,12 +1033,14 @@ class GameServer:
         *,
         environment: ExecutionEnvironment | None = None,
         collision_provider_factory=None,
+        scene_host_factory=None,
         on_clock_ready=None,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         # None preserves the default per-match asynchronous provider. Explicit factories support
         # controlled server replay and isolated scenes without patching global collision state.
         self.collision_provider_factory = collision_provider_factory
+        self.scene_host_factory = scene_host_factory
         self.host = host
         self.port = port
         self.on_leave = on_leave  # called with each player who leaves a match
@@ -1075,6 +1077,11 @@ class GameServer:
 
     def stop(self) -> None:
         self.running = False
+        with self.lock:
+            for match in self.matches:
+                if match.scene_host is not None:
+                    match.scene_host.close()
+                    match.ended = True
 
     # --- matches -------------------------------------------------------------------------------
 
@@ -1094,6 +1101,7 @@ class GameServer:
                 collision_provider=(
                     None if self.collision_provider_factory is None else self.collision_provider_factory()
                 ),
+                scene_host_factory=self.scene_host_factory,
             )
             handoffs = [self._add_player(match, entry) for entry in players]
             self.matches.append(match)

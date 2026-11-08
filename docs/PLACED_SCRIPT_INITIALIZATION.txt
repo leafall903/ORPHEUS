@@ -333,6 +333,18 @@ stops now expose the action. VM storage covers33 State models. Full100B remains
 D38/node106; complete services, production hosting and mission remain open.
 See DATA_FLOW_MAPPING.txt. No new client acceptance or deployment.
 
+Initial Match-owned shared host, 2026-11-08
+SceneHost now shares live mode/placed component slots, effective variable
+dependencies and queued cross-component messages. GameServer/Match install it
+through an explicit factory, check map/mode/clock/server creates and own failure,
+last-player leave and server-stop cleanup. The actual371-create research catalog
+prepares146 placed components plus100B in one world. RootD38/node106 still stops
+frame0 before later components run; no client readiness is released. Initial
+catalog execution is owner-selected; native scene phases, dynamic actors, complete
+engine services and live replication remain open. This supersedes the earlier
+absence of a Match hook, without establishing full production mission hosting.
+See SCENE_SCRIPT_HOST.txt for transport, lifetime and storage boundaries.
+
 Local evidence outside Git: verification/retribution/placed-script-order-native-validation.json,
 placed-script-initialization-inputs.json, component-startup-native-validation.json,
 component-pending-init-native-validation.json, placed-component-startup-validation.json,

@@ -1959,7 +1959,10 @@ def send(instance: Instance, node, caller) -> None:
         if entity == component.entity:
             send_message(component, message, params, component.entity)
         elif entity:
-            component.world.send_message(entity, message, params, component.entity)
+            if component.strict:
+                component.world.send_script_message(instance, node, entity, message, params, component.entity)
+            else:
+                component.world.send_message(entity, message, params, component.entity)
 
 
 @handler("STU_187D5125")

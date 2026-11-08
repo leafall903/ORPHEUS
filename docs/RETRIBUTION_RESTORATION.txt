@@ -500,3 +500,21 @@ Placed DataFlowMapping callbacks, 2026-11-08:
   atD38/node106. Complete data-flow services, production hosting, story/cinematics,
   enemy AI and results remain open. No new client run or deployment; normal inputs
   and unrelated working changes are preserved. See DATA_FLOW_MAPPING.txt.
+
+Initial shared scene host, 2026-11-08:
+- Add an explicit GameServer/Match factory for shared mode/placed components,
+  live foreign variable dependencies and queued authored messages. Unknown
+  transport or component data stops strict execution before its success plug.
+- Match verifies map/mode/clock and actual server creates after collision
+  readiness, then owns ordinary-frame scheduling and terminal failure cleanup.
+  Last-player leave and server stop retire the host. Status is observable;
+  shared VM storage is explicitly rejected pending a complete storage model.
+- A real in-memory GameServer probe binds/prepares147 components, including146
+  placements and100B, in the explicit371-create research catalog. It retains
+  D38D0035/node106/frame0 and closes the failed Match with all bindings retired.
+  Later components do not run after root failure. Static collision is an explicit
+  fixture; no client, socket, deployment or scene replication is claimed.
+- Prepared entrance readiness remains blocked even after a successful VM pass.
+  Normal catalog inputs are unchanged. Dynamic actors, native scene phases,
+  full services/replication, cinematics, enemy AI and mission results remain
+  unaccepted. See SCENE_SCRIPT_HOST.txt for the initial host's exact boundary.

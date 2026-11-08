@@ -6,6 +6,33 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Initial Match-owned shared scene scripts
+
+- Add an explicit GameServer/Match scene factory for the initial mode/placed
+  component catalog. Bind all components before startup and share live foreign
+  variable slots, effective links, dependency notifications and queued messages.
+  Retirement removes both dependency endpoints. Failed live mode components
+  cannot fall back to immutable initial values. Unknown strict message transport
+  or receiver components stop execution before the following success plug.
+- Match checks map, mode, clock and actual server creates after collision
+  readiness. It owns ordinary frames, terminal failure and last-player cleanup;
+  server stop also closes owned hosts. Duplicate frames are idempotent and gaps
+  require a new lifecycle. Prepared entrance readiness stays blocked pending live
+  scene replication. Shared-runtime stored export is explicitly unsupported.
+- A real in-memory GameServer probe prepares 146 placed components plus mode
+  root 100B in the explicit 371-create research catalog. It retains strict
+  D38D0035/node106/frame0, ends the Match and retires all bindings. Later
+  components do not run after root failure. Collision is an explicit fixture.
+- Add 27 behavior tests; 732 related and 33 server tests pass, with Ruff/diff.
+  Preserve a prior server result invalidated by a concurrent source edit;
+  authoritative final runs use fixed source. Independent component counts
+  remain 45 completed first frames and 78 strict stops, not shared acceptance.
+- Initial clock/order is explicit owner policy. Native scene phases, dynamic
+  actors, complete services/replication, cinematics, enemy AI, extraction and
+  results remain open. No new client run, deployment or full mission acceptance.
+  Normal inputs and unrelated working changes are preserved. See SCENE_SCRIPT_HOST.txt.
+  Publication helper missing; no GitHub push.
+
 #### Placed data-flow mapping and typed provider callbacks
 
 - Implement native23A661BD ordinary begin/cleanup/dependency and its separate

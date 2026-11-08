@@ -68,7 +68,8 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
-    GameServer: _names("environment collision_provider_factory host port on_leave on_join on_clock_ready "
+    GameServer: _names("environment collision_provider_factory scene_host_factory host port "
+                       "on_leave on_join on_clock_ready "
                        "skin_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
@@ -81,7 +82,8 @@ FIELDS = {
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update"),
     Match: _names("environment id game_map card skin_of tick controller assemble_ends assembled players "
                   "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
-                  "collision_provider collision_state collision_world _collision_failed"),
+                  "collision_provider collision_state collision_world _collision_failed "
+                  "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script body_script_failed seen shown script mode_script next_countdown "
@@ -396,11 +398,15 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     """
     if type(server) is not GameServer or server.running:
         _fail("stored exporter requires a stopped controlled GameServer")
+    if server.scene_host_factory is not None:
+        _fail('shared scene script runtime storage is not implemented')
     archives = tuple(archives)
     matches = list(server.matches) + list(archives)
     for match in matches:
         if type(match) is not Match:
             _fail("unregistered archived match type")
+        if match.scene_host_factory is not None:
+            _fail('shared scene script runtime storage is not implemented')
         if match.environment is not server.environment or match.skin_of is not server.skin_of:
             _fail("match external boundaries differ from its controlled server")
         if collision_provider is None or match.collision_provider is not collision_provider:
