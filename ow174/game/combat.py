@@ -90,6 +90,8 @@ MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahea
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
 EPSILON = 1e-9
+FLASHBANG_EFFECT = 0x04A0000000000079  # .053/0079 ->0228 ->224E
+FLASHBANG_MODE_FLAG = 13408  # 0228 duration: flag set1.7s, otherwise0.8s
 
 
 # --- geometry -----------------------------------------------------------------------------------------
@@ -157,7 +159,7 @@ def segment_distance(point, a, b) -> float:
 
 
 def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
-    """Reconstructed melee policy: a static ray to the nearest capsule surface."""
+    """Reconstructed visibility: a static ray to the nearest capsule surface."""
     ab, ap = _sub(b, a), _sub(origin, a)
     length = _dot(ab, ab)
     share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
@@ -258,6 +260,7 @@ class HitDef:
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
     tags: tuple[int, ...] = ()  # ModifyHealth's identifier tags, for authored damage reactions
+    effect: int | None = None  # ModifyHealth's authored hit-effect resource
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -322,6 +325,7 @@ def hit_def(state, cfg) -> HitDef | None:
     modify = cfg.get("m_modifyHealth") or {}
     amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0.0) if modify else 0.0
     loadout = state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
+    effect = state.evaluate(modify.get("m_277A4ECA"), watch=False) if modify.get("m_277A4ECA") else None
     rings = []
     for ring in cfg.get("m_0D30E40C") or []:  # WeaponProjectileExplosionRing {m_radius, m_B399CACB}
         if isinstance(ring, dict):
@@ -340,6 +344,7 @@ def hit_def(state, cfg) -> HitDef | None:
         critical=value("m_A872C70E", 1.0),
         rings=tuple(sorted(rings)),
         tags=damage_tags(state, modify),
+        effect=effect.guid if isinstance(effect, expr.Asset) else None,
     )
 
 
@@ -406,6 +411,7 @@ class Combat:
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
+        self.stuns: dict[int, int] = {}  # body identity -> exclusive world-tick deadline
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -435,6 +441,7 @@ class Combat:
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
         self.retire_body_hacks(player.body)
+        self.stuns.pop(player.body, None)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -444,6 +451,31 @@ class Combat:
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
         self.replacement_ticks[body] = self.match.tick
+        self.stuns.pop(body, None)
+
+    def is_stunned(self, actor, *, tick: int | None = None) -> bool:
+        return self.stuns.get(_source_entity(actor), 0) > (self.tick if tick is None else tick)
+
+    def _hit_effect(self, target: Target, effect: int | None) -> None:
+        """Resource-backed stun reconstruction; native immunity/presentation remain unverified."""
+        if effect != FLASHBANG_EFFECT or self.vitals_of(target).dead:
+            return
+        variables = graph.mode_variables(self.match.game_map.mode_guid) or {}
+        duration = 1.7 if expr.truthy(variables.get(FLASHBANG_MODE_FLAG)) else 0.8
+        deadline = self.tick + math.ceil(duration / TICK)
+        self.stuns[target.entity] = max(deadline, self.stuns.get(target.entity, 0))
+        script = getattr(target.owner, "body_script", None)
+        if script is None:
+            return
+        component = script.component
+        component.edges([(value, False) for value in tuple(component.held)])
+        for instance in list(component.instances.values()):
+            for state in list(instance.states.values()):
+                if isinstance(state, nodes.Ability):
+                    state.presses.clear()
+                    state.stop()  # use authored exit/cooldown paths for running channels
+        component.run_now()
+        component.shots.clear()
 
     def spawned(self, player) -> None:
         """The player's client has the world: the game mode entity gets its UI graph (mode_frame). While
@@ -462,7 +494,7 @@ class Combat:
         if script is None:
             return
         shots, script.component.shots[:] = list(script.component.shots), []
-        if self.is_dead(player):
+        if self.is_dead(player) or self.is_stunned(player):
             return
         if command is not None:
             for state, number, time, activation in shots:
@@ -554,7 +586,9 @@ class Combat:
                 self._respawn(who)
         self.voice.expire(now)
         current = {target.entity for target in self._targets()}
-        for table in (self.history, self.vitals, self.replacement_ticks):
+        for entity in [key for key, deadline in self.stuns.items() if deadline <= tick]:
+            del self.stuns[entity]
+        for table in (self.history, self.vitals, self.replacement_ticks, self.stuns):
             for entity in [key for key in table if key not in current]:
                 del table[entity]
 
@@ -858,7 +892,7 @@ class Combat:
                     or not isinstance(script, BotScript) or script.frame > tick):
                 continue
             try:
-                allowed = npc_control.update_input(self, bot) if controlled else True
+                allowed = npc_control.update_input(self, bot) if controlled else not self.is_stunned(bot)
                 snapshot = script.advance_live(tick, bot.position)
                 shots, script.component.shots[:] = list(script.component.shots), []
                 for state, number, time, activation in shots:
@@ -957,6 +991,7 @@ class Combat:
             world_tick=self.tick if npc else None,
             tags=direct.tags,
         )
+        self._hit_effect(target, direct.effect)
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
@@ -997,6 +1032,7 @@ class Combat:
                 world_tick=self.tick,
                 tags=rocket.direct.tags,
             )
+            self._hit_effect(struck, rocket.direct.effect)
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
             return
@@ -1004,12 +1040,15 @@ class Combat:
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
-            if scalar > 0.0:
+            # Start just outside an impact wall, on the projectile's approach side.
+            visible_from = _along(point, rocket.direction, -0.0001) if wall is not None else point
+            if scalar > 0.0 and capsule_visible(self._collision(), visible_from, a, b, target.radius):
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
                     tags=blast.tags,
                 )
+                self._hit_effect(target, blast.effect)
 
     def _landed(self, rocket: Rocket) -> None:
         """The projectile ended (hit, range, lifetime): the predicted one's release follows."""
@@ -1128,6 +1167,7 @@ class Combat:
         }
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int) -> None:
+        self.stuns.pop(bot.entity, None)
         bot.died(tick)
         if not bot.retain_corpse:
             self.respawns.append((self.now + BOT_RESPAWN, bot))
@@ -1168,6 +1208,7 @@ class Combat:
 
     def _died(self, killer, victim, critical: bool, loadout) -> None:
         """A player died: the notices, his body script's "died" (the kill feed line), and the respawn."""
+        self.stuns.pop(victim.body, None)
         label = self.match.label()
         log.info("[game] %s: %s killed %s", label, killer.name, victim.name)
         victim.stats.add(stats.DEATHS)
