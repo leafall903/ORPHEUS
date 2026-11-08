@@ -4,8 +4,10 @@ Definitions supply explicit pools rather than borrowing training-bot health or
 guessing NPC schema variable meanings. Calls belong to the match update thread.
 """
 
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 from ow174.game import bots, combat, world
 
@@ -28,6 +30,24 @@ class Definition:
         if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0
                for value in (self.health, self.armour, self.shields)) or self.health <= 0:
             raise ValueError('NPC pools must be finite and health must be positive')
+
+
+def load_catalog(path: Path) -> dict[str, Definition]:
+    """Read a prepared external catalog; missing data is not a training-bot fallback."""
+    data = json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(data, dict) or data.get('format_version') != 1:
+        raise ValueError('unsupported NPC catalog')
+    rows = data.get('definitions')
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('NPC catalog has no definitions')
+    result = {}
+    for row in rows:
+        key = row['key']
+        if not isinstance(key, str) or key not in '123456789' or len(key) != 1 or key in result:
+            raise ValueError('NPC catalog needs unique selection keys 1..9')
+        result[key] = Definition(int(row['hero'], 16), int(row['body'], 16), row['name'],
+                                 row['health'], row['armour'], row['shields'])
+    return result
 
 
 def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:

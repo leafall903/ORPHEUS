@@ -52,6 +52,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   client was preserved; the workspace publication helper is absent. Deliver this
   lane as a reviewed patch. See docs/ZARYA_COMBAT.txt for the required matrix.
 
+#### Prepared PvE enemy base-pool catalog
+
+- Add an external XML catalog extractor that resolves actual NPC HealthPool
+  type and directly wired schema setters, defaults and body overrides. Preserve
+  source fingerprints and list unapplied difficulty/conditional pool nodes.
+  The NPC body's variable221 routes to type2 shields; legacy armor labels are
+  not used. Validate selection keys, full GUIDs and finite explicit pool values.
+- Pass three extractor and six NPC runtime/catalog tests (nine total), Ruff and
+  diff checks. Prepare all five local enemy definitions outside Git. Extend the
+  validated external script bundle by33 graphs with no new missing references.
+- In a fresh in-memory Match, all five actual body scripts load, McCree primary
+  input deals70 damage to each, body creates encode and removals complete. Flat
+  collision, adapter transport and permissive VMs remain explicit probe inputs;
+  this is not enemy AI, complete skills/ultimate or original-client acceptance.
+- Console keys/menu, production mounting, navigation/specials and full combat
+  remain open. Normal runtime data is unchanged. See PVE_COMBAT_SANDBOX.txt.
+  The required publication helper remains absent; no manual push is performed.
+
 #### Manual NPC combat body lifecycle
 
 - Add validated explicit NPC definitions and match-thread spawn/removal APIs.
