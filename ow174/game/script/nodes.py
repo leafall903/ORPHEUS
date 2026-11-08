@@ -1821,6 +1821,24 @@ class TrackTargets(State):
         return {"targets": ()}
 
 
+@state_class("STU_54FEB21C")
+class ReconstructedCastGate(State):
+    """Only Zenyatta017B's zero gate is reconstructed as immediate completion.
+
+    The native engine service behind this class is unknown. Other graphs keep
+    their former pending behavior; this does not claim a general node model.
+    """
+
+    def on_enter(self) -> None:
+        from ow174.game.zenyatta import HERO
+
+        if (self.instance.component.world.hero == HERO and self.instance.graph.index == 0x017B
+                and self.node.pos == 26 and to_int(self.evaluate(_field(self, "m_ED97A97C"))) == 0):
+            self.request_finish()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+
+
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
 class Effect(State):
     """An effect (StEC wire form): a plain state whose payload is its activation counter & 3 (reader

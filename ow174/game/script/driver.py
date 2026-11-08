@@ -368,6 +368,11 @@ class BodyScript(ReplicatedBody):
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if cost > 0 and charge < cost:
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+            if self.world.hero == 0x02E0000000000020 and self.ult_seconds == ULT_SECONDS:
+                # Reconstructed OW1 passive ultimate gain, rather than the
+                # generic sixty-second diagnostic refill. Combat adds actual
+                # Zenyatta damage/healing through its match service.
+                step = f32(5.0 * self.frame_ms / 1000.0)
             self.set_ult_charge(min(cost, f32(charge + step)))
 
     # --- what the client gets ----------------------------------------------------------------------

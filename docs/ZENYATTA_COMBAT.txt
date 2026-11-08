@@ -1,74 +1,89 @@
-Zenyatta combat lane 0020 -- build 1.74.0.0.104319 -- OPEN
+Zenyatta combat lane0020 -- build1.74.0.0.104319 -- STATIC GOAL ACTIVE
 
-Hero 02E0000000000020; body 0400000000000216; weapon graph0164.
-This document records partial offline evidence, not complete hero acceptance.
+Hero02E0000000000020; body0400000000000216; weapon0164.
+Complete static combat and original-client combat are separate gates. Neither
+is complete. Do not infer full acceptance from the passing subsets below.
 
-Implemented in this lane
-- Shared projectile direct hits now apply their hit definition's critical
-  multiplier and distance falloff before pool damage. Splash does not crit.
-- Graph0164's two Orb volleys get a narrowly scoped 2x critical fallback when
-  m_A872C70E is absent. This is reconstructed behavior, not a native comparison:
-  the asset contains m_66D29548=2 but this field's exact engine meaning is not
-  established. Do not extend that interpretation to unrelated heroes.
-- Fourteen actual combat tests execute extracted weapon/melee graphs against
-  player bodies: primary body/head hits and notices, five charged orbs,
-  reverse fire into 150 shields then 50 health, melee30, lethal headshots,
-  dead-owner suppression, explicit noncritical hits, and falloff/armour/splash.
-- Additional execution covers misses spending ammo, range180 retirement,
-  ally immunity, actual wall collision, repeated-press fire-interval enforcement,
-  reload rejecting fire and restoring the20-round magazine, and charged ammo.
+Production code in this lane
+- Direct projectile critical/falloff damage before shield/armour/health pools;
+  splash remains noncritical. Graph0164 omitted critical scalar uses scoped2x.
+- Combat hosts reconstructed target acquisition, Harmony healing, Discord
+  amplification and expiry, shield regeneration and actual ultimate gains.
+- Existing017B Ability and ChaseVar own ultimate charge/start/six-second end.
+  Only its zero STU_54FEB21C/node26 gate is reconstructed to finish immediately.
+  Other uses keep pending behavior (strict owners reject unknown semantics).
+- Transcendence restores self, rejects incoming damage, heals visible living
+  allies; native ability stack prevents weapon fire. Orbs cannot cast in it.
+- NPC bodies now create declared weapon managers and weapon slots. This loads
+  Sniper0015/1122/1134; hosting alone is not attack acceptance. Selected input
+  execution is checked separately below.
+- Orb targets, recovery deadlines, LOS history, regeneration damage time and
+  update clock participate in passive server snapshots; the new gate is a
+  registered stored VM state. No source/assets/runtime copies enter Git.
 
-Resource-backed facts (external runtime, never added to Git)
-- 0164/state14: primary48, projectile0236, speed variable6368 (evaluates90),
-  lifetime3s, maximum range180m. State18: charged Orb48, separate loadout0033.
-- 02F3/node11 sets Harmony rate variable420=30. Both target graphs contain
-  radius40 searches and 3s waits. These do not prove an operational aura.
-- 0176/state4 applies aura0045; 02F3/state22 applies aura01B9 to variable1606.
-- 017B sets duration6s; runtime ultimate cost338e=2310 after modifiers (the
-  body schema1650 is not the final runtime cost). Its aura0067 targets375.
+Resource-backed values (external data)
+0164: Orb48; primary and charged volleys; projectile0236; speed90; range180;
+  lifetime3 (effective reach time2); actual ammunition20.
+02F3: variable420=30 healing; target radius40. Both orb graphs include3s waits.
+0176 aura0045; 02F3 aura01B9. Target variable1606 survives as authored data.
+017B: duration6, radius10 times body size, actual modified cost2310 (body
+  override1650 is not final cost); aura0067; self ModifyHealth1800 branch.
 
-Acceptance matrix (P=enemy player; NPC=T/E/S/A/H)
-Action                 P offline evidence       T E S A H original clients
-Primary body/head      48/96, notices, death;
-                       miss/range/LOS/team/ammo  OPEN      OPEN
-Secondary full charge  5 independent48 hits      OPEN      OPEN
-Quick melee            30, no critical flag     OPEN      OPEN
-Receive enemy fire     shield before health     OPEN      OPEN
-Orb of Discord         no working acquisition   OPEN      OPEN
-Orb of Harmony         no working acquisition   OPEN      OPEN
-Transcendence          starts then stalls       OPEN      OPEN
-Death/respawn/corpse    player death gate only   OPEN      OPEN
+Explicit reconstructions, not native engine comparisons
+2x omitted critical fallback;10-degree aim cone/angle-first selection;
+independent0.75s orb recovery; Discord1.25 without stacking; Transcendence300/s;
+zero cast gate completion; shield-only30/s after3s no damage; passive ultimate
+5/s and one point per actual damage/effective healing. Self restoration uses
+current maximum pools. Orb range/LOS expiry and owner-death cleanup are service
+policies. These values/policies require further native/client corroboration.
 
-T=Trooper, E=Enforcer, S=Sniper, A=Assassin, H=Heavy Assault.
-Required support semantics: Harmony/Transcendence heal living allies and never
-damage enemies; Discord debuffs enemies. FFA players are not allies. Allied
-NPC healing must use the same team rules. These requirements remain OPEN.
-All five manual NPCs require retain_corpse=True; no NPC actor or respawn policy
-is changed by this patch. Parent owns manual spawning/control integration.
+Executed player subset
+- Primary body48/head96, misses/ammo,180m retirement, actual static wall,
+  friendly immunity, repeated presses/fire interval, pending reload rejection,
+ 20-round restoration; full charged volley five independent48 hits/ammo5.
+- Quick melee30, reverse Soldier fire into Zen shields then health, critical
+  hit/kill notices, actual death and dead-owner shot suppression.
+- Harmony30/s actual living ally pools; wrong team/wall/range rejection;
+ 3s LOS expiry, no revive, team-change/death cleanup, independent recovery,
+  recovery rejection and later new-target cast.
+- Discord boosts Zen Orb48->60 and actual Soldier20->25; expiry restores20.
+- Ultimate insufficient/full charge, actual charge consumption, self restore,
+  incoming damage rejected, allies healed/enemies unchanged, wall occlusion,
+  weapons/orbs denied, repress does not refresh duration, six-second end and
+  resumed damage after end. Effective healing/damage gain charge and cap it.
+- Shield regeneration delay/rate/health exclusion and damage resetting delay.
 
-Cross-hero matrix: health/shields/armour and player death have selected offline
-evidence. Barrier interception, Deflect, Defense Matrix/absorption, invulnerability,
-cleanse, anti-heal, heal amplification, damage boosts, Discord stacking/expiry,
-stun/interrupt and forced movement are OPEN. These are not implemented by
-merely checking a damage scalar; their authoritative lifetimes and replicated
-presentation must be verified with the relevant hero actors.
+Actual NPC subset (opt-in ORPHEUS_NPC_DATA; separate shared read-only input)
+Use verification/retribution/npc-runtime/data. Definition variable221 maps to
+pool kind2 SHIELDS, not legacy armor. Conditional/difficulty pools are listed
+as unapplied by the catalog, so these are explicit base-pool fixtures.
+- All five: actual body scripts; Zen primary with Discord deals real damage;
+  friendly Harmony restores real pools. Manual actors use retain_corpse=True.
+- Actual primary input kills each of the five; its same dead body and zero
+  pools remain past the ordinary respawn deadline, with no scheduled respawn.
+- Trooper, Sniper and Heavy Assault: native logical button20 starts authored weapon
+  fire and damages Zen; Transcendence rejects subsequent attacks.
+- Enforcer: damage476 remains None and volley does not start under button20.
+  Sniper needs its authored wind-up before shooting; a100-frame probe was too
+  short. Extended input now causes real projectile damage with an explicit
+  no-observer-stream transport adapter. AI acquisition/scoping remains open.
+  Assassin: no ordinary weapon volley; targeted special attack remains open.
+  Enforcer/Assassin reverse attacks are NOT accepted.
+- Flat collision and transport adapters remain explicit fixture inputs. Native
+  navigation/acquisition/specials, complete difficulty behavior and client
+  presentation are not proven by body creation or these combat tests.
 
-Observed implementation blockers
-- nodes.TrackTargets.payload returns {targets: ()}; it has no actual acquisition.
-  Native aura/ModifyHealth service connections do not exist for these graphs.
-- Actual full-cost Q starts Ability28 (RUNNING) but reaches only017B states13
-  and23. State13 is STU_54FEB21C (node26), which is not implemented in nodes.py;
-  it remains active after430 command frames. No heal/invulnerability phase was
-  reached. This is an observed gameplay failure, not a successful VM test.
-- Baseline runtime ai_spawners only catalogs training/friendly bots, not the
-  five mission enemies. Their creation/control is a separate parent work item.
-- The original client PID12292/window 'Overwatch' (localized title) already
-  existed during inspection. No ownership was inferred from an absent lease.
-  This lane did not launch, control, close or claim acceptance from that client.
+Still open for full STATIC goal
+Partial/forced/cancelled secondary charge, full ammo/reload interruption edges,
+all NPC secondary/melee/ultimate combinations, Enforcer/Assassin reverse
+attacks/specials, barrier/Deflect/Defense Matrix interactions, anti-heal/heal
+amplification, cleanse, damage-boost stacking, control/interrupt/forced movement,
+full FFA/death/replacement lifecycle matrix and reconstructed-rule corroboration.
+The broader native TrackTargets/ApplyAura engine services remain unimplemented;
+this hero uses explicit reconstructed Combat services instead.
 
-Next acceptance work
-Implement verified target filtering/acquisition and aura services, resolve the
-017B/state13 engine handshake, integrate the five actual NPC actors, then take
-the atomic client lease for an owned isolated session after checking processes.
-Record each player/NPC/interaction result and visual/audio evidence separately.
-Full combat remains OPEN until that matrix passes in original clients.
+Original-client gate
+No lane-owned client session was run. Existing PID12292 was inspected read-only;
+no control/close/ownership was inferred from an absent lease. All animation,
+audio, HUD, predicted/observer effects, actual NPC corpses and live cross-hero
+presentation remain OPEN under the required exclusive client lease.

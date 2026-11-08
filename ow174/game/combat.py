@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world, zenyatta
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -371,6 +371,7 @@ class Combat:
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
+        self.zenyatta = zenyatta.Zenyatta(self)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -396,6 +397,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.zenyatta.retire(player.body)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -425,6 +427,7 @@ class Combat:
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.is_dead(player):
             return
+        self.zenyatta.command(player, command)
         if command is not None:
             for state, number, time, activation in shots:
                 try:
@@ -493,6 +496,7 @@ class Combat:
                     self._fly(rocket)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
+        self.zenyatta.update()
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
@@ -798,9 +802,13 @@ class Combat:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
             return
+        if self.zenyatta.ultimate(target.owner):
+            return
+        amount *= self.zenyatta.boost(target)
         dealt = vitals.damage(amount)
         if dealt <= 0.0:
             return
+        self.zenyatta.damaged(target)
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0
@@ -811,6 +819,7 @@ class Combat:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
+            self.zenyatta.charge(shooter, dealt)
         victim = target.owner
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.

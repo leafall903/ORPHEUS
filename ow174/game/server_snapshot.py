@@ -93,8 +93,9 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "projectiles observers voice zenyatta"
     ),
+    combat.zenyatta.Zenyatta: _names("combat owners last_tick"),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
@@ -138,6 +139,7 @@ OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    combat.zenyatta.Owner, combat.zenyatta.Orb,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

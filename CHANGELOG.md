@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Zenyatta support combat services (lane0020, partial)
+
+- Host Harmony/Discord acquisition, ally-only healing, enemy amplification,
+  LOS/range expiry and independent recovery in actual Combat. Track lifecycle
+  state in passive snapshots. Add shield-only regeneration and actual effective
+  healing/damage charge, replacing the default sixty-second diagnostic ultimate
+  refill with reconstructed passive gain for Zenyatta.
+- Reconstruct only017B's zero cast gate to allow its existing Ability/ChaseVar
+  charge/start/six-second/end lifecycle. Add self restoration, visible ally
+  healing and invulnerability while active. Other unknown gate uses remain
+  pending. Explicitly document inferred rates, targeting and gate semantics.
+- NPC bodies host their declared weapon manager/slots. Actual five-body
+  fixtures cover damage/Discord and friendly Harmony; Trooper/Sniper/Heavy actual
+  weapon input damages Zen and is rejected during his ultimate. Enforcer/Assassin attacks remain
+  incomplete. No native AI or original-client acceptance is claimed.
+- Static goal remains active: secondary boundaries, applicable cross-hero
+  defenses/control and two reverse NPC attack families remain open. Tests and
+  remaining evidence are recorded in docs/ZENYATTA_COMBAT.txt and the lane logs.
+- Pass203 focused combat/NPC/VM regressions and all14 server snapshot/replay
+  checks with the source frozen. Dedicated NPC tests also cover actual Orb kills
+  and unchanged zero-health corpses beyond the normal respawn deadline.
+
 #### Zenyatta weapon conditions (lane 0020, partial)
 
 - Extend actual graph execution tests to primary misses, exhausted projectile

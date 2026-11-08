@@ -29,6 +29,21 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_zenyatta_orb_recovery_and_los_history_are_causal_state(self):
+        from ow174.game.zenyatta import HERO, Orb
+
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply("switch_hero", {"account": player.account_lo, "hero": HERO})
+        service = player.match.combat.zenyatta
+        owner = service.owner(player)
+        initial = snapshot_digest(self.capture(session))
+        owner.harmony = Orb(player.body, 1.0)
+        orb_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(orb_digest, initial)
+        owner.ready['harmony'] = 2.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), orb_digest)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()
