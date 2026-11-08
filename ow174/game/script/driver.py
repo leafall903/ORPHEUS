@@ -117,6 +117,43 @@ def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int
     return edges
 
 
+def play_sombra_body_script(world, instance, node):
+    # Explicit restoration scope: Sombra's authored Hack/EMP applications.
+    # Full legacy body routing is not inferred from the scene request model.
+    if world.match is None or instance.graph.index not in (0x0B1B, 0x0B31, 0x0B32):
+        return
+    if instance.graph.index != 0x0B32 and world.hero != 0x02E000000000012E:
+        return
+    from ow174.game.script import play
+
+    resource = play.resolve_resource(instance, node)
+    if resource is None:
+        return
+    pair = (instance.graph.index, resource.guid & 0xFFFFFFFFFFFF)
+    if pair not in ((0x0B1B, 0x0B1F), (0x0B31, 0x0B32), (0x0B32, 0x0B1F)):
+        return
+    source = instance.source_entity() if pair[0] == 0x0B32 else instance.component.entity
+    context = play.InvocationContext(source, source, source)
+    request = play.resolve_request(instance, node, resource, context_provider=lambda: context)
+    if request is None:
+        return
+    definition = graph.graph(resource.guid & 0xFFFFFFFFFFFF)
+    if definition is None:
+        return
+    for target in world.match.combat._targets():
+        if target.entity not in request.targets or world.match.combat.vitals_of(target).dead:
+            continue
+        script = getattr(target.owner, "body_script", None)
+        if script is not None:
+            application = script.component.play_loaded_graph(
+                definition, source=request.context.caller, params=request.params,
+                overrides=resource.overrides, policy=request.policy,
+                instigator=request.context.instigator,
+            )
+            if application is not None and pair[1] == 0x0B1F:
+                world.match.combat.apply_body_hack(target, application)
+
+
 class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
@@ -160,34 +197,11 @@ class BodyWorld(runtime.World):
         return component.entity_var(var, create=create) if component is not None else NotImplemented
 
     def play_body_script(self, instance, node):
-        # Explicit initial restoration scope: Sombra's authored Hack application.
-        # Full legacy body routing is not inferred from the scene request model.
-        if self.match is None or self.hero != 0x02E000000000012E or instance.graph.index != 0x0B1B:
-            return
-        from ow174.game.script import play
+        play_sombra_body_script(self, instance, node)
 
-        resource = play.resolve_resource(instance, node)
-        if resource is None or resource.guid != 0x0580000000000B1F:
-            return
-        context = play.InvocationContext(self.body, self.body, self.body)
-        request = play.resolve_request(instance, node, resource, context_provider=lambda: context)
-        if request is None:
-            return
-        definition = graph.graph(resource.guid & 0xFFFFFFFFFFFF)
-        if definition is None:
-            return
-        for target in self.match.combat._targets():
-            if target.entity not in request.targets or self.match.combat.vitals_of(target).dead:
-                continue
-            script = getattr(target.owner, "body_script", None)
-            if script is not None:
-                application = script.component.play_loaded_graph(
-                    definition, source=request.context.caller, params=request.params,
-                    overrides=resource.overrides, policy=request.policy,
-                    instigator=request.context.instigator,
-                )
-                if application is not None:
-                    self.match.combat.apply_body_hack(target, application)
+    def body_modify_health(self, state):
+        if self.match is not None:
+            self.match.combat.apply_emp_health(state)
 
     def body_ability_allowed(self, state):
         return self.match is None or self.match.combat.body_ability_allowed(state)

@@ -91,6 +91,7 @@ _STATE_LAYOUTS = {
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()),
     nodes.TrackTargets: (("targets", "selected_at", "target_var"), ()),
+    nodes.ModifyBodyHealth: ((), ()),
     nodes.TrackBodyRay: (("result", "outputs"), ()),
     nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),

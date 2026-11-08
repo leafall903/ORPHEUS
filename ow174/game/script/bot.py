@@ -12,6 +12,7 @@ from ow174.game.script.driver import (
     ReplicatedBody,
     Snapshot,
     create_initial_graphs,
+    play_sombra_body_script,
 )
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
@@ -53,6 +54,13 @@ class BotWorld(runtime.World):
 
     def body_button_allowed(self, component, button):
         return self.combat is None or self.combat.body_button_allowed(component, button)
+
+    def play_body_script(self, instance, node):
+        play_sombra_body_script(self, instance, node)
+
+    def body_modify_health(self, state):
+        if self.combat is not None:
+            self.combat.apply_emp_health(state)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return self.weapon_buttons.get(str(slot))

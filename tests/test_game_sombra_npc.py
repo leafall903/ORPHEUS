@@ -11,6 +11,7 @@ from ow174.game import combat, npc, npc_control
 from ow174.game.commands import FIRE
 from ow174.game.script import graph
 from ow174.game.script.driver import OWNER_HEALTH
+from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, SHIELDS_POOL
 
 
 def clear_graphs():
@@ -176,6 +177,36 @@ class SombraActualNpcTests(unittest.TestCase):
                 self.assertEqual(fixture.run.match.combat.vitals[bot.entity].total, before)
                 self.assertFalse(bot.body_script.component.entity_var(888).value())
                 self.assertEqual(fixture.weapon().state(53).remaining(), 0)
+
+    def test_emp_pulse_applies_to_five_simultaneous_actual_npcs_and_drains_only_shields(self):
+        fixture, first = self.make("1", distance=3)
+        match = fixture.run.match
+        actors = [first]
+        for key in ("2", "3", "4", "5"):
+            actors.append(npc.spawn(match, self.catalog[key], (int(key) - 3, 0, 3), team=1))
+        fixture.press(0, 4)
+        before = {bot.entity: dict(match.combat.vitals[bot.entity].now) for bot in actors}
+        fixture.a.body_script.set_ult_charge(1400)
+        fixture.press(0x20, 30)
+        for bot in actors:
+            with self.subTest(npc=bot.name):
+                self.assertIsNotNone(bot.body_script)
+                component = bot.body_script.component
+                self.assertIn(bot.entity, match.combat.hacks)
+                self.assertEqual(component.entity_var(6396).value().id, fixture.a.body)
+                vitals = match.combat.vitals[bot.entity]
+                self.assertEqual(vitals.now[SHIELDS_POOL], 0)
+                self.assertEqual(vitals.now[HEALTH_POOL], before[bot.entity][HEALTH_POOL])
+                self.assertEqual(vitals.now[ARMOUR_POOL], before[bot.entity][ARMOUR_POOL])
+                self.assertEqual(component.entity_var(OWNER_HEALTH).value(), vitals.total)
+                self.assertEqual(sum(i.graph.index == 0x0B32 for i in component.instances.values()), 1)
+        fixture.press(0, 400)
+        for bot in actors:
+            self.assertNotIn(bot.entity, match.combat.hacks)
+            self.assertFalse(bot.body_script.component.entity_var(888).value())
+            self.assertFalse(bot.body_script.component.entity_var(6396).value())
+            self.assertFalse(any(i.graph.index in (0x0B32, 0x0B1F)
+                                 for i in bot.body_script.component.instances.values()))
 
     def test_actual_npcs_killed_by_pistol_keep_corpses_past_respawn_for_all_five(self):
         for key, definition in self.catalog.items():

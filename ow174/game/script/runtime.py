@@ -460,6 +460,9 @@ class World:
     def play_body_script(self, instance: "Instance", node: Node) -> None:
         """Optional reconstructed body routing, separate from strict scene services."""
 
+    def body_modify_health(self, state: "State") -> None:
+        """Optional explicit body health service; unsupported nodes have no effect."""
+
     def body_ability_allowed(self, state: "State") -> bool:
         """Optional authoritative body status admission policy."""
         return True

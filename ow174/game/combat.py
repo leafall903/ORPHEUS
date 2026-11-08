@@ -610,6 +610,9 @@ class Combat:
         Hero/NPC bodies only. Authored health-pack/tag/engine immunity filters,
         hardpoint geometry and aim-assist scoring still require separate services.
         """
+        if (player.hero.guid == 0x02E000000000012E and state.instance.graph.index == 0x0B31
+                and state.node.pos == 40):
+            return self._emp_body_targets(player, state)
         if (player.hero.guid != 0x02E000000000012E or state.instance.graph.index != 0x0B1B
                 or state.node.pos not in (50, 52, 68)):
             return NotImplemented
@@ -643,6 +646,31 @@ class Combat:
             if wall is None or wall >= hit:
                 found.append((hit, target.entity))
         return tuple(entity for _, entity in sorted(found)[:1])
+
+    def _emp_body_targets(self, player, state):
+        """Reconstructed body-only radial EMP search with static LOS.
+
+        Animated hardpoints, barriers, devices and native filter categories are
+        not represented by this capsule host. The authored radius is retained.
+        """
+        if self.is_dead(player):
+            return ()
+        origin = self._eye(player)
+        radius = _number(state.evaluate(state.node.field("m_radius"), watch=False), 0.0)
+        found = []
+        for target in self._enemies(player):
+            a, b = target.segment()
+            point = (a[0], max(a[1], min(b[1], origin[1])), a[2])
+            offset = _sub(point, origin)
+            distance = math.sqrt(_dot(offset, offset))
+            hit = max(0.0, distance - target.radius)
+            if hit > radius:
+                continue
+            ray = tuple(axis / distance for axis in offset) if distance > EPSILON else (0.0, 0.0, 1.0)
+            wall = ray_world(self._collision(), origin, ray, hit)
+            if wall is None or wall >= hit:
+                found.append(target.entity)
+        return tuple(found)
 
     def prepare_body_targets(self, player, command):
         """Reconstruct Sombra's client-owned preselection from authoritative aim.
@@ -705,6 +733,26 @@ class Combat:
             BodyHack(application, self.match.tick + math.ceil(duration / TICK)),
         )
         component.set(888, True)
+
+    def apply_emp_health(self, state):
+        """Reconstructed character-shield drain at the authored EMP health node.
+
+        The graph's10000 amount is capped to the current shield pool. This is
+        an explicit body policy, not a decoded generic ModifyHealth pool mask;
+        health, armour, barriers and devices are outside this adapter.
+        """
+        if state.instance.graph.index != 0x0B32 or state.node.pos != 9:
+            return
+        target = next((t for t in self._targets() if t.entity == state.instance.component.entity), None)
+        source = state.instance.source_entity()
+        shooter = next((p for p in self.match.players if p.has_body and p.body == source), None)
+        if target is None or shooter is None or self.vitals_of(target).dead:
+            return
+        config = state.node.field("m_modifyHealth")
+        amount = _number(state.evaluate(config.get("m_amount"), watch=False), 0.0)
+        amount = min(amount, self.vitals_of(target).now[SHIELDS_POOL])
+        self._damage(shooter, target, amount, False, None, self.match.tick,
+                     tags=damage_tags(state, config))
 
     def retire_body_hacks(self, entity):
         effects = self.hacks.pop(entity, ())

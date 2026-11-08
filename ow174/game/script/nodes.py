@@ -1817,6 +1817,18 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyBodyHealth(State):
+    """An explicit world adapter owns supported body pool mutations."""
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "body health service", self.node.cls, self.node,
+            )
+        self.instance.component.world.body_modify_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
     """Use an explicit body search service; unsupported searches retain the empty result.
@@ -2289,7 +2301,7 @@ def retire_hack_application(instance: Instance, node, caller) -> bool:
     """
     if instance.component.strict:
         instance.component.unsupported(instance, "body application termination", node.cls, node)
-    if instance.graph.index == 0x0B1F:
+    if instance.graph.index in (0x0B1F, 0x0B32):
         instance.component.destroy(instance)
     return True
 

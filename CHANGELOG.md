@@ -4,6 +4,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Partial Sombra EMP body effect hosting
+
+- Reconstruct the authored15m EMP search for live enemy bodies with static LOS.
+  Retain actual0B31 cast/charge/timer/transition plugs and route its0B32 request
+  and the target's0B1F request for both players and NPCs, preserving the caster.
+- Host character shields only at0B32/node9: cap authored10000 to current shields,
+  retain health/armour, and use normal pool/event accounting. Preserve native
+  graph parameters, timed ownership and termination. Other ModifyHealth states
+  retain their previous no-effect host behavior; strict execution stays explicit.
+- Add eleven actual-Match EMP methods and one simultaneous five-actual-NPC method
+  for charge admission/spending, cast delay/end, radial range/LOS/allies, health/
+  armour preservation, timed silence, repeat paid cast, death-before-pulse and
+  application cleanup. Full charge gain, native filters/hardpoints/devices/barriers
+  and complete status/defense/client interactions remain OPEN.
+- Register the explicit health state in passive VM storage; verify passive active
+  EMP export and37 concrete models. Pass296 distinct related checks:258 combat/
+  NPC/shared-script checks and38 complete snapshot checks, including stored replay
+  with final source held fixed. Ruff and staged diff checks pass. No original-client
+  session, shared-main integration, push or publication occurred.
+- Inspect Assassin primary graph13B8: logical20 has no damage/output branch.
+  Its actual1157/13C3 skill/message damage paths still need native AI/dataflow/
+  target services; no fabricated primary damage was added. Full static goal ACTIVE.
+
 ### 2026-11-08
 
 #### Partial Sombra actual-NPC combat checkpoint
