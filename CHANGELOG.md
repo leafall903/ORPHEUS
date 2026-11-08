@@ -4,6 +4,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+
+### 2026-11-09
+
+#### Tracer authored ultimate gain and observable Recall/Pulse state
+
+- Route resolved damage and authored tags through graph0B8B's original damage
+  entry; run its5-point/second timer instead of the normal60-second debug fill.
+  Keep graph gates, multipliers, cap and Pulse exclusions. Scoped actor/hostile/
+  owner predicates are reconstructed; full native filters remain open. Training
+  tag02ED is a classifier and ordinary training damage gives full gain.
+- Preserve earned player charge across death/respawn while explicit hero changes
+  reset it. This retention policy is reconstructed. Five actual-class NPC primary
+  fixtures now assert12 charge from resolved paired damage.
+- Register Recall phases/history/session and Pulse storage in strict VM/server
+  snapshots. Exports remain read-only observations, not restorers; unknown fields
+  still fail closed. Confirm a rapid primary re-press is buffered by the authored
+  0.2-second guard rather than lost.
+- Pass216 distinct tests:69 Tracer (32 base,19 Pulse,11 ultimate,2 Recall storage,
+  five actual NPC classes),28 combat,37 projectile,27 driver,12 script abilities,
+  23 VM snapshot,14 server snapshot and six NPC/catalog. Full server replay passes
+  with source frozen. Original-client acceptance and shared integration absent.
+- Full static goal remains active. A20-second skipped-command/world-tick probe
+  grants25 points under the existing256-frame catch-up cap; full elapsed-time
+  recovery is open. Critical/spread, native timing/impact filters, complete
+  status/barrier/reflect/absorb, cross-hero and NPC reverse attacks remain open.
+
 ### 2026-11-08
 
 #### Tracer Pulse Bomb resource damage and reconstructed impact lifecycle

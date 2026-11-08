@@ -29,6 +29,26 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_active_pulse_bomb_fuse_is_registered_and_changes_the_server_digest(self):
+        from ow174.game import combat
+        session, peers, players = self.scene(two=True)
+        player = players[0]
+        match = player.match
+        peers[0].message(21616, pick(player.entity, 0x02E0000000000003), now=101.0)
+        self.assertEqual(player.hero.guid, 0x02E0000000000003)
+        script = player.body_script
+        instance = next(i for i in script.component.instances.values() if i.graph.index == 0x34)
+        state = instance.state(0)
+        bomb = match.combat.pulse_bombs.launch(
+            player, state, match.combat._eye(player), (0, 0, 1), 15, 5,
+            combat.hit_def(state, state.node.field("m_6396149F")),
+            combat.hit_def(state, state.node.field("m_D2D11CE9")), None)
+        bomb.stuck = True
+        bomb.fuse_left = 0.5
+        baseline = snapshot_digest(self.capture(session))
+        bomb.fuse_left = 0.4
+        self.assertNotEqual(snapshot_digest(self.capture(session)), baseline)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()

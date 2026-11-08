@@ -146,6 +146,18 @@ class TracerPistolTests(unittest.TestCase):
         self.assertEqual(vitals.total, 760)
         self.assertEqual(len(player.client.messages(combat.HIT)), 40)
 
+    def test_post_volley_guard_buffers_a_rapid_repress_instead_of_losing_it(self):
+        run, player, enemy, vitals = self.fight()
+        self.fire(run, player, enemy)
+        for _ in range(10):
+            run.step({})
+        self.fire(run, player, enemy)  # still inside the actual0.2s post-volley guard
+        self.assertEqual(vitals.total, 188)
+        for _ in range(4):
+            run.step({})  #0.15s early-press buffer fires when the guard ends
+        self.assertEqual(vitals.total, 176)
+        self.assertEqual(len(player.client.messages(combat.HIT)), 4)
+
     @patch("ow174.game.script.graph.entity_body", return_value=None)
     def test_pair_kills_a_training_npc_and_retains_its_corpse(self, _entity_body):
         run = Run()

@@ -16,7 +16,7 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 - [ ] **Tracer hero lane 0003.** Full player/PVE combat and original-client
   acceptance remain open, with a separate active goal for full static combat.
-  Thirty-one actual-graph server fixtures cover paired pistol damage, reload,
+  Thirty-two actual-graph server fixtures cover paired pistol damage, reload,
   melee, incoming Soldier fire, reconstructed Blink displacement/collision and
   charge lifecycle, selected shared health/death and training-NPC lifetime.
   Reconstructed Recall covers history/health/ammo, invulnerability and cooldown
@@ -24,7 +24,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   bomb, team filtering, death and retention with authored capsules. Nineteen
   Pulse Bomb fixtures cover reconstructed flight/stick/fuse/blast,350/450 mode
   branches, LOS, self damage, lifecycle/cancel, Recall detachment and spending.
-  Complete Blink controls, Recall cleanse/native timing, ultimate gain, critical
+  Eleven ultimate fixtures execute authored0B8B passive/damage gain, exclusions,
+  multipliers and caps through reconstructed host queries. VM/server snapshots
+  retain Recall/Pulse state. Long skipped-frame recovery and full native charge
+  filters remain open. Complete Blink controls, Recall cleanse/native timing, critical
   defaults/spread, complete cross-hero effects and five-class NPC acceptance are
   unaccepted. See [Tracer combat matrix](TRACER_COMBAT.md).
 

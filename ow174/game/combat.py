@@ -50,14 +50,25 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, pulse_bomb, stats, tracer, voicelines, world
+from ow174.game import (
+    bots,
+    observers,
+    pools,
+    projectiles,
+    pulse_bomb,
+    stats,
+    tracer,
+    ultimate,
+    voicelines,
+    world,
+)
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
 from ow174.game.mover import mover_data
 from ow174.game.script import expr, graph, nodes, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import Snapshot
+from ow174.game.script.driver import ULT_CHARGE, ULT_COST, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -241,6 +252,7 @@ class HitDef:
     falloff_floor: float | None = None
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
+    tags: tuple = ()  # authored ModifyHealth tags used by the charge eligibility graph
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -277,6 +289,15 @@ def _number(value, default=None):
         return default
 
 
+def damage_tags(state, modify):
+    tags = []
+    for row in modify.get("m_148F3152") or ():
+        value = state.evaluate(row.get("m_EE3055BD"), watch=False) if isinstance(row, dict) else None
+        if isinstance(value, expr.Asset):
+            tags.append(value.guid)
+    return tuple(tags)
+
+
 def hit_def(state, cfg) -> HitDef | None:
     """Evaluate a volley's hit definition (STU_00D9C7E1) or explosion (STU_4AA6CA44) with the shooter's
     body script."""
@@ -307,6 +328,7 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_floor=value("m_72A81154"),
         critical=value("m_A872C70E", 1.0),
         rings=tuple(sorted(rings)),
+        tags=damage_tags(state, modify),
     )
 
 
@@ -467,7 +489,8 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
-                    self._damage(player, target, amount, False, loadout, command.frame)
+                    tags = damage_tags(state, modify)
+                    self._damage(player, target, amount, False, loadout, command.frame, tags=tags)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
@@ -698,7 +721,7 @@ class Combat:
         for _ in range(max(0, int(field("m_numProjectilesPerShot", 1)))):
             self._damage(
                 shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
-                world_tick=self.tick if npc else None,
+                world_tick=self.tick if npc else None, tags=direct.tags,
             )
 
     def _fly(self, rocket: Rocket) -> None:
@@ -737,7 +760,7 @@ class Combat:
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             self._damage(
                 rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
-                world_tick=self.tick,
+                world_tick=self.tick, tags=rocket.direct.tags,
             )
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
@@ -749,7 +772,7 @@ class Combat:
             if scalar > 0.0:
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
-                    world_tick=self.tick,
+                    world_tick=self.tick, tags=blast.tags,
                 )
 
     def _landed(self, rocket: Rocket) -> None:
@@ -796,7 +819,7 @@ class Combat:
 
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
-        *, world_tick: int | None = None,
+        *, world_tick: int | None = None, tags: tuple = (),
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0 or tracer.recalling(target.owner):
@@ -814,6 +837,7 @@ class Combat:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
+            ultimate.credit(shooter, target, dealt, tags)
         victim = target.owner
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
@@ -937,9 +961,14 @@ class Combat:
         player = who
         if player.gone or not player.has_body or not self.is_dead(player):
             return
+        script = player.body_script
+        charge = _number(script.component.entity_var(ULT_CHARGE).value(), 0.0) if script else None
         if not self.match.switch_hero(player, player.hero):
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
+        if charge is not None and player.body_script is not None:
+            cost = _number(player.body_script.component.entity_var(ULT_COST).value(), 0.0)
+            player.body_script.set_ult_charge(max(0.0, min(charge, cost)))
         self.voice.spawned(player, self.now)
         log.info("[game] %s: %s respawned", self.match.label(), player.name)
 

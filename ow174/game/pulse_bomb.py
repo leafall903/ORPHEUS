@@ -161,7 +161,7 @@ class PulseBombs:
                                     for axis, feet in zip(bomb.position, struck.feet, strict=True))
                 if bomb.direct is not None:
                     self.combat._damage(bomb.shooter, struck, bomb.direct.amount, False,
-                                        bomb.direct.loadout, tick, world_tick=tick)
+                                        bomb.direct.loadout, tick, world_tick=tick, tags=bomb.direct.tags)
             self._advance(bomb, duration - spent, tick)
         elif bomb.life_left <= EPSILON:
             self._explode(bomb, tick)
@@ -192,7 +192,7 @@ class PulseBombs:
             if wall is not None and wall + EPSILON < distance:
                 continue
             self.combat._damage(bomb.shooter, target, blast.amount * scalar, False,
-                                blast.loadout, tick, world_tick=tick)
+                                blast.loadout, tick, world_tick=tick, tags=blast.tags)
 
     def _finish(self, bomb):
         if bomb in self.bombs:

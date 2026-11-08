@@ -59,6 +59,8 @@ STATE_MODELS = (
     ("STU_01178155", nodes.ActiveQuery),
     ("STU_7D71FDF3", nodes.ModelLook),
     ("STUStatescriptStateDataFlowMapping", nodes.DataFlowMapping),
+    ("STU_54FEB21C", nodes.RecallWarmup),
+    ("STU_41B3FC2B", nodes.RecallPlayback),
 )
 COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
@@ -162,7 +164,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 37)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)

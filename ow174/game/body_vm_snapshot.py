@@ -8,8 +8,9 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+from collections import deque
 
-from ow174.game import replay_values
+from ow174.game import replay_values, tracer
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -48,6 +49,8 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.RecallWarmup: ((), ("reconstructed",)),
+    nodes.RecallPlayback: ((), ("reconstructed",)),
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
@@ -102,6 +105,8 @@ _VALUE_LAYOUTS = {
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
+    tracer.RecallSample: ("time", "position", "health"),
+    tracer.RecallSession: ("component", "sample", "state"),
 }
 
 
@@ -392,8 +397,9 @@ class _Export:
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
+            optional = {"recall_history", "recall_session"} if kind is BodyWorld else ()
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, optional=optional, exclude={"match"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -421,7 +427,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event):
+            if kind in (runtime.Link, runtime.Event, tracer.RecallSession):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}
@@ -434,10 +440,10 @@ class _Export:
                 return result
             finally:
                 self.ancestors.remove(identity)
-        if kind not in (list, tuple, dict, set, frozenset):
+        if kind not in (list, tuple, dict, set, frozenset, deque):
             raise BodyVMSnapshotError(f"unknown stored value class: {_name(kind)}")
         identity = id(obj)
-        reference = self.identity(obj, scope) if kind in (list, dict, set) else None
+        reference = self.identity(obj, scope) if kind in (list, dict, set, deque) else None
         if reference is not None and identity in self.ancestors:
             return {"ref": reference}
         if reference is not None:
@@ -454,6 +460,8 @@ class _Export:
             else:
                 ordered = obj
             result = {"kind": kind.__name__, "items": [self.value(value, scope=scope) for value in ordered]}
+            if kind is deque:
+                result["maxlen"] = obj.maxlen
             if reference is not None:
                 result["identity"] = reference
             return result

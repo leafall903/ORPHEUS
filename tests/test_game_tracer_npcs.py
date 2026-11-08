@@ -93,6 +93,7 @@ class TracerNpcTests(unittest.TestCase):
                 self.assertEqual(vitals.total, before - 12)
                 self.assertIsNotNone(bot.body_script)
                 self.assertEqual(len(player.client.messages(combat.HIT)), 2)
+                self.assertEqual(player.body_script.component.entity_var(342).value(), 12)
 
     def test_melee_damages_all_five_classes_once(self):
         for definition in self.definitions.values():

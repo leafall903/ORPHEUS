@@ -151,6 +151,12 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if self.hero == 0x02E0000000000003 and instance.graph.index == 0x0B8B:
+            from ow174.game import ultimate
+
+            value = ultimate.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if cls == "STU_082FA44E":
             from ow174.game import pulse_bomb
 
@@ -374,8 +380,9 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
-        from ow174.game import tracer
+        from ow174.game import tracer, ultimate
 
+        ultimate.prepare(self)
         tracer.remember(self.world, frame)
         self.component.run_frame(frame, tracer.filter_edges(self.world, edges))
         self._report_shots()
@@ -386,6 +393,10 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
+        from ow174.game import ultimate
+
+        if ultimate.active(self) and self.ult_seconds == ULT_SECONDS:
+            return  # actual0B8B Wait/action loop owns normal Tracer passive gain
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())

@@ -76,7 +76,8 @@ NPC columns mean the specific requested class, not a training-bot substitute.
 | Recall selected invulnerability / targeting | S | O | O | O | O | O | O |
 | Pulse Bomb selected throw / stick / fuse / explosion | S | S | S | S | S | S | O |
 | Ultimate spending / windup / end / cancel | S | O | O | O | O | O | O |
-| Ultimate passive / damage gain | O | O | O | O | O | O | O |
+| Ultimate selected passive / damage gain | S | S | S | S | S | S | O |
+| Ultimate full native eligibility / long skipped-frame recovery | O | O | O | O | O | O | O |
 | Incoming primary fire | S (Soldier) | O | O | O | O | O | O |
 | Incoming abilities / control / death | O | O | O | O | O | O | O |
 | Outgoing death / notices | S | S | S | S | S | S | O |
@@ -122,7 +123,7 @@ python -B -m unittest discover -s tests -p test_game_tracer_npcs.py
 python -B -m unittest discover -s tests -p test_game_npc.py
 ```
 
-The31 Tracer tests cover actual body graphs and player command processing:
+The32 Tracer tests cover actual body graphs and player command processing:
 paired damage, per-bullet armour, shields, lethal first bullet, whole magazine,
 wall occlusion, team filtering, explicit reload, melee, incoming Soldier fire,
 and retained training-NPC death. Added checks exercise missed/out-of-range shots,
@@ -139,7 +140,9 @@ self damage, death/windup/retirement, Recall detachment, bounded lifetime,
 scheduler gaps,350/450 mode branches, separate armour/shield stages and210
 damage at3m surface distance.
 Twenty-eight combat,37 projectile,27 driver, five actual-class NPC and six shared
-NPC/catalog tests also pass (153 total;25 class subcases within five tests).
+NPC/catalog tests also pass. Eleven ultimate, two live Recall storage,12 script
+ability,23 VM snapshot and14 server snapshot tests bring the total to216 distinct
+tests;25 class subcases remain within five NPC tests.
 Ruff and `git diff --check` pass. NPC fixtures require
 `ORPHEUS_PVE_NPC_DATA_DIR` and `ORPHEUS_NPC_XML_DIR`; a skip is not acceptance.
 
@@ -156,6 +159,40 @@ ultimate probe was undercharged and must not be treated as a full-charge test.
 The known skill
 graphs are Recall001A, Blink0024 and Pulse Bomb0034. No general State fallback
 or fault-free execution is treated as a gameplay implementation.
+
+## Authored charge graph and snapshot follow-up
+
+Graph0B8B owns normal live Tracer passive gain: its one-second Wait adds5 points,
+with authored capability/busy gates, multipliers and cost clamping. Damage uses
+actual message0012 and its original filters/actions, supplying resolved pool loss,
+victim entity, authored damage tags and an empty exclusion-record tuple. Hit
+and melee definitions retain original tags. Pulse contact/blast tags exclude
+ultimate damage gain; Recall self healing grants none. Five actual NPC classes
+each grant12 from paired primary damage. Training tag02ED is a classification
+alternative, not a half-gain policy. Special-target03C3/011E filters remain open.
+
+Live-owner eligibility, actor mask1, hostile teams and the empty-record fold are
+explicit reconstructed host services scoped to Tracer0B8B, not full native filter
+emulation. Debug charge-time overrides remain available; a non-hosted VM retains
+the debug policy. Earned charge survives player death/respawn but resets on an
+explicit hero change; this retention policy is reconstructed.
+
+A20-second probe skipping command and world updates grants25, not100, points:
+the existing256-frame driver catch-up cap collapses overdue recurring Waits.
+Duplicate commands grant no more. Full elapsed-time recovery is OPEN. Ordinary
+passive loop, cap, multipliers, resolved armour/shield loss, friendly/miss
+exclusion, Pulse exclusions and death retention execute in tests.
+
+Graph0016 sets a0.2-second post-volley guard with a0.15-second early-press buffer.
+A rapid re-press is delayed until that guard ends, then fires; the initial short
+observation window did not establish a lost-input bug.
+
+Read-only VM/server snapshots now register both Recall states, bounded history/
+session and active Pulse storage. Tests forbid variable evaluation and payload
+execution during export, retain deterministic hashes, detect changed history/
+fuses and reject unknown fields. These are observation formats, not restorable
+checkpoints. The14-test server replay suite passes on frozen source; source edits
+mid-replay invalidate its pinned package manifest.
 
 ## Client and delivery status
 
