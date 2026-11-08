@@ -62,8 +62,10 @@ Actual controller scope
 Three explicit profiles for unresolved81A9AB10 (PC no-output, false and true),
 with declared hero catalog/availability and filter inputs, pass the former
 65ABFCCC stop. Actual0C90/node41 prepares message02400000000006FF for mode
-entityD0000010: parameter03BE is the three-Asset hero tuple and parameter008D
-is scalar integer0. The mode entity is created but its live script component
+entityD0000010: parameter03BE is the three-Asset hero tuple. The team query
+returns scalar integer0; the subsequent outgoing-action repair collects it as
+tuple(0,) in parameter008D (see GAME_MESSAGE_ACTION.txt). The mode entity is
+created but its live script component
 is unknown. All three profiles retain the strict message-target-component
 boundary. This verifies parameter preparation, not delivery or its consumer.
 

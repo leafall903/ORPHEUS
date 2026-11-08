@@ -22,6 +22,7 @@ from ow174.game.script import (
     entity_queries,
     entity_team,
     expr,
+    game_message,
     graph,
     model_look,
     modifiers,
@@ -230,6 +231,44 @@ class SceneWorld(runtime.World):
         if component is NotImplemented or component.fault is not None:
             return NotImplemented
         return component.entity_var(var, create=create)
+
+    def _game_message_component(self, instance, node):
+        component = instance.component
+        component.ensure_valid()
+        if (self.script_components.get(component.entity) is not component
+                or component.instances.get(instance.id) is not instance
+                or instance.stopped or instance.teardown):
+            component.unsupported(instance, 'scene message source lifecycle', node.cls, node)
+        return component
+
+    def game_message_owner(self, instance, node):
+        return self._game_message_component(instance, node).entity
+
+    def validate_game_message_source(self, instance, node):
+        self._game_message_component(instance, node)
+
+    def game_message_source(self, instance, node):
+        self._game_message_component(instance, node)
+        source = instance.source_entity()
+        self._game_message_component(instance, node)
+        return source
+
+    def submit_game_message(self, instance, node, request):
+        source = self._game_message_component(instance, node)
+        if type(request) is not game_message.Request or request.owner != source.entity:
+            source.unsupported(instance, 'scene message request owner', node.cls, node)
+        if request.instigator != request.owner:
+            source.unsupported(instance, 'scene message instigator delivery', node.cls, node)
+        params = {}
+        for key, values in request.params:
+            identifier = key & 0xFFFF
+            if identifier in params:
+                source.unsupported(instance, 'scene message repeated parameter delivery', node.cls, node)
+            params[identifier] = values
+        for target in request.targets:
+            self.send_script_message(instance, node, target, request.message, params, request.owner)
+        if request.self_target:
+            self.send_script_message(instance, node, source.entity, request.message, params, request.owner)
 
     def send_script_message(self, instance, node, target, message, params, sender):
         source = instance.component

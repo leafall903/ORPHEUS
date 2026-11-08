@@ -20,6 +20,7 @@ from ow174.game.script import (
     effect_routing,
     entity_control,
     expr,
+    game_message,
     model_look,
     modifiers,
     play,
@@ -2054,7 +2055,10 @@ def stop_ability(instance: Instance, node, caller) -> bool:
 
 @handler("STUStatescriptActionSendGameMessage")
 def send_game_message(instance: Instance, node, caller) -> bool:
-    send(instance, node, caller)
+    if instance.component.strict:
+        game_message.execute(instance, node)
+    else:
+        send(instance, node, caller)
     instance.follow(node, "m_outPlug", None)
     return True
 

@@ -6,6 +6,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native outgoing game-message construction
+
+- Restore strict ActionSendGameMessage scalar message selection, generic target
+  collection and guard/evaluation order. Preserve duplicate external targets,
+  coalesced self delivery and distinct owner/inherited/overridden source inputs.
+- Collect every parameter into a typed array, including empty arrays. Retain
+  ordered full keys and duplicates in the request. Actual0C90/node41 parameter
+  008D is now tuple(0,), correcting the earlier scalar parameter while preserving
+  the team query's scalar0. Unknown mode receiver still stops delivery.
+- Preserve scalar destination and success separately: empty hero iteration writes
+  int0 with failure, so source overrides retain their inherited source. Existing
+  scalar-value callers keep their behavior. Bind new services to actual component
+  lifetimes and shared budgets. Unsupported instigator/repeated-key delivery stays
+  strict; non-strict compatibility and the separate sending State are unchanged.
+- Pass3456 original action construction and1296 hero-iterator comparisons with
+  declared engine/storage/status adapters. Add18 behavior tests;967 related and33
+  server tests pass with frozen hashes, plus Ruff/diff. See GAME_MESSAGE_ACTION.txt.
+  PC code constructs external target lists but only dispatches self; it does not
+  establish server forwarding or complete native message consumers.
+- Ordinary controller retains81A9AB10; real Match retains rootD38/node106 before
+  controller execution. Placed50/123, failed-receiver rejection and cleanup remain
+  unchanged. No fresh original-client run, normal deployment or complete story,
+  cinematic/enemy-AI acceptance is claimed. Normal inputs and unrelated work remain
+  intact. Publication helper missing; no GitHub push is performed.
+
 #### Native entity team query and filter dependencies
 
 - Implement65ABFCCC with native no-output versus signed-1 behavior, uint32

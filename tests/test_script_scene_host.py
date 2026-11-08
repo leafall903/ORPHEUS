@@ -129,17 +129,16 @@ class SharedSceneTests(unittest.TestCase):
         self.assertEqual(sender.find_var(0, 7).value(), 31)
         self.assertEqual(len(receiver.queue), 1)
         self.assertEqual(receiver.queue[0].time, 400)
-        self.assertEqual(receiver.queue[0].message, (MESSAGE, {7: 17}, A))
+        self.assertEqual(receiver.queue[0].message, (MESSAGE, {7: (17,)}, A))
         self.assertIsNone(receiver.find_var(0, 7, create=False))
         target.run_now()
         self.assertEqual(receiver.find_var(0, 7).value(), 23)
-        self.assertEqual(receiver.find_var(0, 9).value(), 17)
+        self.assertEqual(receiver.find_var(0, 9).value(), (17,))
 
     def test_unknown_message_transport_stops_before_following_success(self):
         source = runtime.Component(A, world=runtime.World(), strict=True)
         sender = source.create(sender_model(), init=False)
-        sender.evaluate = lambda *args, **kwargs: expr.Entity(B)
-        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'game message transport'):
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'game message owner'):
             sender.run_node(sender.graph.node(0), None)
         self.assertIsNone(sender.find_var(0, 7, create=False))
 

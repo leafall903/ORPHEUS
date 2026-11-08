@@ -1,0 +1,96 @@
+Outgoing game-message action (BD6F5F83)
+Target: original PC build104319. Partial shared script communication restoration.
+
+Construction and ordering
+The priority2 record2F645F8 uses constructors90BE70/90C200 and runtime table
+2622398, with action905F80. The strict ActionSendGameMessage path now evaluates
+m_gameMessage through its scalar interface and converts its first value to an
+Asset. Missing/failed/non-Asset/zero messages skip all subsequent inputs.
+
+The actual component VM supplies the owner before target collection. Generic
+config traversal flattens nested target arrays/groups, casts only Entity values
+and wraps identities to uint32. Invalid targets are skipped. External targets
+retain order and duplicates; any number of self targets sets one self flag.
+Missing/empty target configs select nothing, rather than implying self. With no
+usable target the action skips source and parameter evaluation.
+
+The inherited source getter runs after target collection and before optional
+m_8B34E9C3. A successful override is converted to Entity; an invalid successful
+override falls back to owner. A failed override keeps the inherited source.
+Message initialization seeds caller+98 and instigator+9C from owner, then accepts
+only a valid instigator override. This differs from unconditionally using owner
+as sender or retaining the inherited source after an invalid successful override.
+
+Scalar output and success are separate
+The new scalar-result interface preserves both destination and native AL.
+06610EBC delegates only to its first config, including failure. Missing configs
+and no-output failure preserve the supplied destination. Successful null remains
+a successful null. Controller hero iteration can write integer0 while returning
+failure; that written value must not override an inherited message source.
+Existing scalar-value callers retain their previous destination semantics.
+
+Array parameters
+Original1BA7C60 always creates an array, including a single item or no items.
+Every parameter uses generic config traversal, preserving nested order and null
+members of existing arrays. Missing, failed and scalar-null configs yield an
+empty array. Null rows and absent identifier pointers are skipped before value
+evaluation. Request construction preserves full parameter GUIDs, declaration
+order and repeated keys. It does not reduce the request to a scalar dictionary.
+
+Actual0C90/node41 now prepares06FF parameter008D as tuple(0,), with parameter
+03BE remaining the supplied three-Asset tuple. The earlier team-query fixture's
+scalar0 parameter exposed the old message-construction bug; the team query's
+own scalar result0 remains correct. This repair verifies the outgoing shape,
+not successful delivery or complete controller startup.
+
+Host boundaries and remaining work
+World exposes explicit owner, inherited-source, source-lifecycle and submission
+services. SceneWorld obtains identities from the actual live entity component,
+checking detach/replacement/stop/failure before and after callbacks. Traversal
+and parameter rows consume shared work budgets. A retired source cannot submit
+or follow the success plug.
+
+The current shared-scene backend can deliver unique low-identifier parameters
+when caller and instigator agree. Different instigators and repeated/colliding
+parameter identifiers remain strict delivery errors, before any target receives
+the request. Their information survives construction for a future complete
+consumer. Known missing targets/components retain the existing declared drop
+path; unknown or failed components remain errors. This backend policy is not
+claimed as recovered native server transport.
+
+In the captured PC action, external identities are collected but no foreign
+dispatch occurs. Only the self flag invokes1B8C580, whose body traverses the
+component VM's instances. The ordinary action base returns success. The PC
+body therefore does not establish server forwarding or engine-component
+consumers. Static06FF receivers belong to non-PVE modes0009/0029/0046 and are
+not in100B's literal graph-reference closure. No receiver is invented for Rialto.
+
+The non-strict compatibility sender and independent38EE1100 sending State are
+unchanged and outside this action acceptance. In635 retained graphs there are
+778 actions and927 sending States. Two State nodes have repeated parameter
+keys; their reply/lifetime/consumer behavior still needs separate native work.
+
+Verification
+3456 original905F80 construction comparisons verify guards, evaluation order,
+message/target conversions, self coalescing, duplicate external targets, source
+fallbacks, ordered repeated parameter keys and collected arrays. Original
+generic traversal,1BA7C60, value append and message initialization run with
+declared literal/status, owner/source, heap/variant/vector, self-dispatch and
+security-cookie adapters. These do not execute complete engine storage or
+foreign delivery.1296 hero iterator/wrapper comparisons also pass after the
+scalar-status refactor, including ordinary iterator/vector cleanup; their
+catalog/availability adapters and native null-environment limits remain.
+
+Eighteen new behavior tests cover callback retirement, stale instances, budgets,
+guard order, typed arrays and strict backend limits.967 related and33 server
+journal/snapshot/injection tests pass (1000 total), with matching frozen source
+hashes, plus Ruff/diff checks. Three explicit controller profiles retain the
+unknown mode receiver with corrected008D. Ordinary controller remains81A9AB10;
+real Match remains root100B/D38D0035/node106 before controller execution. Placed
+startup remains50/123 nonempty first frames complete, with73 strict faults.
+
+No fresh original-client run or deployment is claimed. Full mode/controller,
+body/actor lifetimes, native clocks/phases/transport, cinematics, five enemy AI
+types and complete mission through extraction/results remain open. Local-only
+records use verification/retribution/game-message-*. Game inputs and native
+captures/probes stay outside Git; normal runtime inputs remain unchanged.

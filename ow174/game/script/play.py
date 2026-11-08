@@ -243,6 +243,25 @@ def evaluate_scalar(instance, cfg, *, initial=None, watcher=None):
         return _scalar(instance, cfg, initial=initial, watcher=watcher)
 
 
+def evaluate_scalar_result(instance, cfg, *, initial=None, watcher=None, _depth=0):
+    """The +20 destination and success flag, which need not change together."""
+    with instance.component.operation():
+        instance.component.consume_work('native scalar result evaluation')
+        if _depth >= MAX_CONFIG_DEPTH:
+            instance.component.budget_exceeded('native scalar result depth exhausted')
+        if cfg is None:
+            return initial, False
+        if isinstance(cfg, dict) and cfg.get('$') == 'STU_06610EBC':
+            configs = cfg.get('m_configVars') or ()
+            return (evaluate_scalar_result(instance, configs[0], initial=initial, watcher=watcher,
+                                           _depth=_depth+1) if configs else (initial, False))
+        result = controller_heroes.scalar_result(instance.context(watcher), cfg)
+        if result is not NotImplemented:
+            return result
+        value = instance.evaluate(cfg, watcher, initial=_FAILED)
+        return (initial, False) if value is _FAILED else (value, True)
+
+
 def resolve_request(instance, node, resource: Resource, *, context_provider) -> Request | None:
     """906E49..9070D0: targets, explicit context, then ordered array parameters.
 

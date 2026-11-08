@@ -122,13 +122,20 @@ def values(evaluation, cfg):
     return iterate()
 
 
-def scalar(evaluation, cfg):
+def scalar_result(evaluation, cfg):
+    """Return (destination, AL), preserving a written int0 on empty failure."""
     iterator = values(evaluation, cfg)
     if iterator is NotImplemented:
         return NotImplemented
     with closing(iterator):
-        # 1B781A0 copies its initialized int0 value even when start returns false.
-        return next(iterator, 0)
+        missing = object()
+        value = next(iterator, missing)
+        return (0, False) if value is missing else (value, True)
+
+
+def scalar(evaluation, cfg):
+    result = scalar_result(evaluation, cfg)
+    return result if result is NotImplemented else result[0]
 
 
 def collect(evaluation, cfg):

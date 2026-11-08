@@ -421,6 +421,22 @@ class World:
         """Strict authored messages require a declared cross-component transport."""
         instance.component.unsupported(instance, 'game message transport', node.cls, node)
 
+    def game_message_owner(self, instance: "Instance", node: Node):
+        instance.component.unsupported(instance, 'game message owner', node.cls, node)
+
+    def game_message_source(self, instance: "Instance", node: Node):
+        instance.component.unsupported(instance, 'game message source', node.cls, node)
+
+    def validate_game_message_source(self, instance: "Instance", node: Node) -> None:
+        component = instance.component
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, 'game message source lifecycle', node.cls, node)
+
+    def submit_game_message(self, instance: "Instance", node: Node, request) -> None:
+        instance.component.unsupported(instance, 'game message submission', node.cls, node)
+
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
         from ow174.game.script.play import resolve_resource
