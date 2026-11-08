@@ -29,6 +29,10 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Lobby and match lifecycle.** Verify queues, team assignment, game setup, hero selection, match handoff, joining, leaving, reconnecting and returning to the lobby.
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
+  - [ ] Accept Zarya's complete player/five-NPC combat and original-client presentation.
+    The authored primary beam now deals server damage in command-driven tests;
+    barriers, energy generation/decay, ultimate pull, cross-hero defenses and
+    original-client acceptance remain open. See [Zarya combat](ZARYA_COMBAT.txt).
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.

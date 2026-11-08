@@ -365,6 +365,7 @@ class Combat:
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
+        self.beam_seen: dict[int, tuple] = {}  # body -> authored activation and consumed command time
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
@@ -393,6 +394,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.beam_seen.pop(player.body, None)
         # The owner's leased projectiles and their observer copies retire with the old body.
         self.rockets[:] = [
             rocket for rocket in self.rockets if rocket.shooter is not player or rocket.shot is None
@@ -429,9 +431,63 @@ class Combat:
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         try:
+            self._beam(player, command, script)
+        except Exception:
+            log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
+        try:
             self._melee(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
+
+    def _beam(self, player, command, script) -> None:
+        """Bridge Zarya's authored continuous ModifyHealth, not a WeaponVolley.
+
+        0241/node28 supplies DPS (75..170); node81 supplies range 15 and radius .15.
+        Reconstruction: integrate DPS over consumed command time and sweep expanded body
+        capsules from the eye. Native muzzle geometry, barrier interactions and the ray's
+        output bindings still need engine services and original-client acceptance.
+        """
+        if command is None:
+            return
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x0241:
+                continue
+            state = instance.state(10)
+            if not state.active:
+                return
+            ray = instance.graph.node(81)
+            now = command.frame * script.component.frame_ms
+            activation = (instance.id, state.counter, state.start)
+            previous = self.beam_seen.get(player.body)
+            since = previous[1] if previous is not None and previous[0] == activation else state.start
+            if now <= since:
+                return
+            self.beam_seen[player.body] = (activation, now)
+            direct = hit_def(state, {"m_modifyHealth": state.node.field("m_modifyHealth")})
+            if direct is None or direct.amount <= 0:
+                return
+            reach = _number(state.evaluate(ray.field("m_F5732403.m_6A79BD98"), watch=False), 0)
+            radius = _number(state.evaluate(ray.field("m_57DAE1B5"), watch=False), 0)
+            origin, direction = self._eye(player), aim(*command.aim())
+            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            best = None
+            for target in self._enemies(player):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                distance = ray_capsule(origin, direction, a, b, shown.radius + radius)
+                if distance is not None and distance <= reach and (best is None or distance < best[0]):
+                    best = distance, target
+            if best is None:
+                return
+            distance, target = best
+            wall = ray_world(self._collision(), origin, direction, distance)
+            if wall is not None and wall < distance:
+                return
+            self._damage(player, target, direct.amount * (now - since) / 1000,
+                         False, direct.loadout, command.frame)
+            return
 
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of

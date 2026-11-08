@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Zarya primary beam damage bridge (independent lane)
+
+- Consume active0241/node28 continuous damage using its authored damage expression
+  and TrackRay range/radius, with enemy selection, world obstruction and ordinary
+  health/death handling. Consume each command interval once and retire body clocks.
+  Eye-origin/capsule geometry and integration timing are reconstructed assumptions.
+- Pass78 command-driven Zarya, combat and projectile tests, including actual health
+  changes, energy expression, allies, walls, duplicate commands, death, incoming
+  shield damage, melee, secondary fire and training-bot retained corpse. Ruff and
+  diff checks pass. Full hero combat remains OPEN: barriers, energy charge/decay,
+  ultimate field/pull, five requested NPC types and cross-hero defenses are unaccepted.
+- No original-client session, root merge or publication is claimed. An existing
+  client was preserved; the workspace publication helper is absent. Deliver this
+  lane as a reviewed patch. See docs/ZARYA_COMBAT.txt for the required matrix.
+
 #### Optional persistent NPC corpses
 
 - Add an opt-in Bot.retain_corpse policy for the requested Rialto combat sandbox.

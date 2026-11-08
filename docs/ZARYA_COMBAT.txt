@@ -1,0 +1,77 @@
+Zarya independent combat lane (hero 02E0000000000068)
+Target: 1.74.0.0.104319. Acceptance status: OPEN.
+
+This record describes an incremental server fix, not complete hero combat.
+Source baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
+Prepared runtime is external and read-only. No extracted assets accompany this file.
+
+Resource observations
+---------------------
+The Zarya body has common pools of 200 health and 200 regenerating shields.
+Weapon graph 0241/node28 is continuous ModifyHealth, rather than WeaponVolley.
+Its damage expression evaluates to 75 at energy 0 and 170 at energy 100.
+TrackRay node81 supplies range 15 and radius .15. Secondary fire uses
+0241/node41 WeaponVolley with explosion data. Personal barrier is graph0244;
+projected barrier is graph025C; both depend on pets and graph0256 health pools.
+Ultimate025F launches a projectile that refers to field graph0260.
+These are local target-runtime resource observations, not gameplay timing captures.
+
+Implemented change
+------------------
+An active authored primary ModifyHealth State now consumes command time once per
+activation and integrates the evaluated damage rate. It selects the nearest live
+enemy with the existing historical body poses, checks static world obstruction,
+and calls normal health/death/notice/stat handling. It cannot critically hit.
+Body retirement drops its clock; repeated command consumption adds no damage.
+No manual button-to-damage shortcut bypasses ammo or authored activation.
+
+Reconstructed assumptions: eye-origin beam; expanded capsule intersection;
+damage integrated over command time; instant target selection from current aim.
+Native muzzle transforms, TrackRay output bindings, target acquisition/loss timing,
+beam-specific armor rules and continuous hit-feedback cadence remain unaccepted.
+Existing shared damage rules are used; this does not prove their retail fidelity.
+
+Required combat matrix
+----------------------
+Operation             Enemy player    Enemy NPC         Ally semantics
+Primary beam          Damage tested   Training bot only  No damage tested
+Secondary projectile  Damage tested   OPEN              No friendly fire via shared filter
+Quick melee           30 once tested  OPEN              No friendly fire via shared filter
+Personal barrier      OPEN            OPEN              Self protection only, no damage conversion
+Projected barrier     OPEN            OPEN              Ally protection/selection; never enemy damage
+Energy passive        0/100 expression OPEN              Barrier charge/decay/HUD OPEN
+Graviton Surge        OPEN            OPEN              Enemy pull/control; allies excluded required
+Incoming attacks      Rifle->shields  OPEN              Healing retains allied semantics
+Death/lifetime        Stops beam      Training bot      Manual NPCs retain corpse; player respawn separate
+                                      retained corpse
+
+The NPC column requires separate native-backed cases for Trooper, Enforcer,
+Sniper, Assassin and Heavy Assault. The current ai_spawners catalog only exposes
+training/friendly bots; none of these five types is accepted by this test.
+Parent lane owns the five-type spawner/control entry point. No local fake renaming
+of training bots is used as evidence for those types.
+
+Cross-hero matrix still OPEN: barriers and shield entities; reflect vs beam and
+projectile; absorption/deletion; invulnerability; stun/interrupt/cleanse; Graviton
+pull, escape and immunity; damage credit, death and restoration across these states.
+Personal/projected pet hosting and health/damage interception are absent in the
+current production damage target path. Ultimate field hosting/pull is also absent.
+The patch intentionally does not pretend active animation States implement these.
+
+Validation
+----------
+Command-driven tests use the production Match, body scripts, combat target and
+health/death path with a delivery-model client. They cover primary damage, energy
+expression, input duplication, release, allies, range, static walls, lifecycle,
+incoming rifle shields, melee, secondary projectile, death and training-bot corpse.
+78 tests pass: test_game_zarya (13), test_game_combat (28), test_game_projectiles (37).
+Ruff and git diff --check pass. These are headless tests, not original-client proof.
+
+Original client and publication
+-------------------------------
+An existing Overwatch process (PID12292) and title were observed. No client lease
+was acquired and no client, window or existing service was controlled. Original
+client evidence for every row remains OPEN, including HUD, beam, barrier, VFX,
+sound, knockback, pull and all five NPC attacks/specials/corpse presentation.
+Patch delivery only: no merge to root source and no manual push. The configured
+workspace work/sync_orpheus_publication.py helper is absent; no publication claimed.
