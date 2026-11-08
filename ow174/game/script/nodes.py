@@ -27,6 +27,7 @@ from ow174.game.script import (
     modifiers,
     play,
     scopes,
+    self_heal,
     shared_vars,
     voice_stimulus,
 )
@@ -63,6 +64,11 @@ from ow174.game.world import MAX_MOVEMENT_AXIS
 
 MS = f32(0.001)  # 0.0010000000475, the client's float constant
 REEVALUATE = 1  # BooleanSwitch / Switch / Watch timer param
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(self_heal.TimedSelfHeal):
+    """Only the documented Roadhog timed self-heal subset has an engine consumer."""
 
 
 def _field(state: State, name: str):

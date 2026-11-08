@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Roadhog lane: reconstructed timed self healing
+
+- Connect only authored 0240/node18 to authoritative self healing: distribute
+  its 300 amount over its one-second field after the graph's windup. Stop at
+  state end, cap at maximum health, credit actual healing and reject dead bodies.
+  This interval interpretation is reconstructed; damage reduction, control
+  interrupts and original-client timing/presentation remain open.
+- Pass 111 combat, projectile, Roadhog, ability and body-driver tests, including
+  real E input, windup, self/enemy distinction, overheal, state abort and death.
+  Ruff and diff checks pass. No original-client acceptance or publication.
+- Correct the early ultimate gap probe: it wrote the wrong charge variable.
+  With charge342 set to cost338 (2240), real Q input kills a 200-health enemy
+  player with 29 notices. Knockback, spread, interrupts and full ultimate
+  acceptance remain open. Save the reproducible audit outside Git in lane0040.
+- The complete static acceptance goal stays active: all weapons, cooldowns,
+  statuses, defenses and five-NPC bidirectional interaction must pass before
+  integration readiness. No merge into the original main is claimed.
+
 #### Roadhog lane: direct projectile distance scaling
 
 - Apply authored direct-hit falloff and critical multipliers to projectile pool
@@ -19,8 +37,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Full Roadhog combat remains open: volley pellet count/spread, secondary burst,
   hook, Breather, ultimate, five-enemy AI, cross-hero defenses and original-client
   presentation are unaccepted. A real-input offline audit observes 6.6 primary
-  damage, 50 secondary damage, 30 melee damage, zero hook/ultimate damage and
-  no Breather healing. These are gap measurements, not acceptance evidence.
+  damage, 50 secondary damage, 30 melee damage, zero hook damage and initially
+  no Breather healing. The early ultimate probe was invalid (see correction
+  above). These are gap measurements, not acceptance evidence.
 - Private lane only; no original-client session or publication. The workspace's
   required publication helper is absent, and this lane must deliver patches
   without merging or pushing the original source.

@@ -362,6 +362,9 @@ class World:
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
+    def heal_self(self, entity: int, amount: float) -> None:
+        """Optional authoritative self-heal consumer; the empty world has no pools."""
+
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode

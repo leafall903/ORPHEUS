@@ -750,6 +750,21 @@ class Combat:
         if rocket.shot is not None:
             self.projectiles.flown(rocket.shot, rocket.flown)
 
+    def heal_self(self, entity: int, amount: float) -> None:
+        """Apply an owned self heal to a live body's pools, never to another actor."""
+        for target in self._targets():
+            if target.entity != entity:
+                continue
+            vitals = self.vitals_of(target)
+            if vitals.dead:
+                return
+            given = vitals.heal(amount)
+            if given > 0.0:
+                if not isinstance(target.owner, bots.Bot):
+                    target.owner.stats.add(stats.HEALING, given)
+                self._sync_body_health(target.owner, vitals)
+            return
+
     def heal_area(self, healer, centre, radius: float, amount: float) -> None:
         """Heal the healer and his teammates (everyone's own team in a free-for-all is his alone) whose body
         is within `radius` of `centre` (unverified: to the body's capsule)."""

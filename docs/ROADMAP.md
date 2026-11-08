@@ -18,7 +18,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   enemy types: primary/secondary/melee, hook, Breather, Whole Hog, incoming
   damage, defenses/status interactions and original-client presentation.
   Lane 0040 repairs shared direct-projectile falloff/critical application with
-  pool-damage regressions; pellet counts/spread and all hero acceptance stay open.
+  pool-damage regressions and reconstructs the authored timed self-heal consumer.
+  A charged ultimate can kill a player in an offline real-input audit. Pellet
+  counts/spread, cooldown/status/defense/NPC matrix and complete hero acceptance
+  stay open. Original-client acceptance is separate from the static goal.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

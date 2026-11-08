@@ -134,6 +134,10 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def heal_self(self, entity: int, amount: float) -> None:
+        if self.match is not None and entity == self.body:
+            self.match.combat.heal_self(entity, amount)
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body

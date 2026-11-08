@@ -4,7 +4,7 @@ import unittest
 
 from test_game_combat import KANEZAKA_DM, Run
 
-from ow174.game import combat
+from ow174.game import combat, stats
 from ow174.game.content import heroes
 
 ROADHOG = 0x02E0000000000040
@@ -64,6 +64,67 @@ class RoadhogProjectileTests(unittest.TestCase):
         )
         self.assertEqual(body_hits[-1]["+0x78"]["+0x8"] & combat.CRITICAL, 0)
         self.assertEqual(head_hits[-1]["+0x78"]["+0x8"] & combat.CRITICAL, combat.CRITICAL)
+
+
+class RoadhogSelfHealTests(unittest.TestCase):
+    def session(self, missing=400.0):
+        run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
+        run.match.bots.clear()
+        run.match._pending_bot_scripts.clear()
+        hog, enemy = run.players
+        run.match.switch_hero(hog, heroes()[ROADHOG])
+        fight = run.match.combat
+        target = next(t for t in fight._targets() if t.owner is hog)
+        vitals = fight.vitals_of(target)
+        vitals.damage(missing)
+        fight._sync_body_health(hog, vitals)
+        return run, hog, enemy, target, vitals
+
+    def advance(self, run, hog, count):
+        for _ in range(count):
+            run.step({hog: (0, 0, 0)})
+
+    def test_real_breather_input_heals_only_self_and_respects_windup(self):
+        run, hog, enemy, _, vitals = self.session()
+        fight = run.match.combat
+        other = fight.vitals_of(next(t for t in fight._targets() if t.owner is enemy))
+        other.damage(100)
+        run.step({hog: (0, 0, 16)})
+        self.advance(run, hog, 25)
+        self.assertEqual(vitals.total, 200.0)
+        self.advance(run, hog, 160)
+        self.assertAlmostEqual(vitals.total, 500.0)
+        self.assertEqual(other.total, 100.0)
+        self.assertAlmostEqual(hog.stats.value(stats.HEALING), 300.0)
+
+    def test_overheal_is_capped_and_not_counted_as_healing(self):
+        run, hog, _, _, vitals = self.session(missing=50)
+        run.step({hog: (0, 0, 16)})
+        self.advance(run, hog, 180)
+        self.assertEqual(vitals.total, 600.0)
+        self.assertAlmostEqual(hog.stats.value(stats.HEALING), 50.0)
+
+    def test_ending_heal_state_stops_future_healing(self):
+        run, hog, _, _, vitals = self.session()
+        run.step({hog: (0, 0, 16)})
+        self.advance(run, hog, 60)
+        instance = next(i for i in hog.body_script.component.instances.values() if i.graph.index == 0x0240)
+        state = next(s for s in instance.states.values() if s.node.pos == 18)
+        self.assertTrue(state.active)
+        self.assertGreater(vitals.total, 200)
+        state.end(False)
+        stopped = vitals.total
+        self.advance(run, hog, 150)
+        self.assertEqual(vitals.total, stopped)
+
+    def test_death_during_heal_does_not_resurrect(self):
+        run, hog, enemy, target, vitals = self.session()
+        run.step({hog: (0, 0, 16)})
+        self.advance(run, hog, 60)
+        run.match.combat._damage(enemy, target, 2000, False, None, run.frame)
+        self.assertTrue(vitals.dead)
+        self.advance(run, hog, 150)
+        self.assertEqual(vitals.total, 0)
 
 
 if __name__ == "__main__":
