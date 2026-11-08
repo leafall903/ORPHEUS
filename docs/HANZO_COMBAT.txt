@@ -55,6 +55,25 @@ Bow charge/cancel and flight boundaries (test_game_hanzo_bow.py):
   and continuous/skipped updates agree. Remaining range/distance affect the
   stored-state digest. Native headshot default and full defense matrix stay OPEN.
 
+Reconstructed Lunge command/mover bridge (test_game_hanzo_movement.py):
+- Keep010C's actual logical-button11, airborne gate,0.1s input qualification,
+  direction expressions, scalar14960 and5s cooldown path. Previously417e and
+  the two yaw-basis queries were absent and FF3471E9 only followed its output.
+- Explicit host policy maps417e to this player's mover IN_AIR and supplies
+  owner-only yaw-left/yaw-forward bases to010C. Interpret only node82's exact
+  clear0/add-vector rows as replacing launch velocity. Resource expressions
+  produce horizontal15/up4.5 at default scalar1; scalar0.5 gives7.5/up2.25.
+  Strict mode refuses the unverified basis/velocity semantics; unknown rows
+  defer to the previous unsupported behavior. This is not native mover parity.
+- Real Match commands cover five yaw/throttle directions, horizontal projection
+  under steep pitch, actual subsequent displacement, held jump/early edges,
+  cooldown rejection and fresh post-cooldown reuse, static-wall collision and
+  return to ground, ruleset scaling, death rejection and Soldier isolation.
+  The command's stored movement snapshot includes its launch velocity.
+- Wall-climb geometry/contact states remain unsupported. Lunge's native timing,
+  control/knockback/interruption, body/entity collision, all NPC special/defensive
+  interactions, animation/FX and client prediction agreement remain OPEN.
+
 Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
 - The literal1s/1.2s phases on0101 nodes29/37 now expire in the permissive body
   path. This is reconstructed server timing, not native54FEB21C semantics.
@@ -139,7 +158,7 @@ Incoming weapon damage/death          P      P       O        P      O        P
 Incoming abilities/ultimate/control  O      O       O        O      O        O
 Barrier/reflect/absorb/invulnerability O     O       O        O      O        O
 
-Climb010C, Lunge/midair movement, cooldowns, all first/third-person effects,
+Climb010C, full Lunge/state interaction acceptance, remaining cooldowns, all first/third-person effects,
 audio, health/ultimate HUD, hit/kill feed and cross-client agreement are OPEN.
 No support/healing semantics are changed by this patch.
 

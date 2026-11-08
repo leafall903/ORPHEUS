@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Reconstructed Hanzo Lunge input and mover bridge
+
+- Connect this body's airborne input and yaw basis to authored010C. Its real
+  second-jump path now evaluates direction and launch quantities, then sends
+  the exact node82 clear/add pair to an explicitly reconstructed velocity host.
+  Default horizontal15/up4.5 launch continues through the existing capsule
+  mover's gravity, drag and static collision. Preserve the current command's
+  launch velocity in movement history. No replacement input/cooldown timer.
+- Seven new actual-command tests cover five directions, steep-pitch projection,
+  displacement, held/early jump rejection,5s cooldown and fresh reuse, wall
+  collision/landing, ruleset scaling, death and other-hero isolation. Strict
+  mode refuses this unverified host; unknown velocity rows remain unsupported.
+  Pass585 game tests with explicit NPC/profile data,817 script tests, eight
+  snapshot regressions, Ruff and diff checks.
+- Native airborne/basis/velocity semantics, wall climb, control/knockback and
+  body collision, NPC special/defensive matrix and original-client prediction
+  remain OPEN. Full static acceptance stays active; no parent integration,
+  client controls or publication in this lane.
+
 #### Hanzo bow draw and independent ballistic range/lifetime
 
 - Separate positive projectile range from authored lifetime for gravity motion.

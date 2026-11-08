@@ -2205,6 +2205,15 @@ def stop_ability(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_FF3471E9")
+def velocity_action(instance: Instance, node, caller) -> bool | NotImplementedType:
+    result = instance.component.world.velocity_action(instance, node)
+    if result is NotImplemented:
+        return NotImplemented
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 @handler("STUStatescriptActionSendGameMessage")
 def send_game_message(instance: Instance, node, caller) -> bool:
     if instance.component.strict:

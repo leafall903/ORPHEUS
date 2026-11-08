@@ -446,6 +446,10 @@ class World:
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 
+    def velocity_action(self, instance: "Instance", node: Node):
+        """Optional explicit host for one-shot velocity changes; unknown by default."""
+        return NotImplemented
+
     def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)

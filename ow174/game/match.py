@@ -32,7 +32,19 @@ import math
 from collections import deque
 from copy import deepcopy
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    hanzo_movement,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -1134,6 +1146,7 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            hanzo_movement.sync(player)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now

@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import hanzo_movement, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -135,6 +135,9 @@ class BodyWorld(runtime.World):
         return super().position(entity)
 
     def native(self, cfg: dict, instance):
+        movement = hanzo_movement.native(self, cfg, instance)
+        if movement is not NotImplemented:
+            return movement
         cls = cfg.get("$")
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
@@ -160,6 +163,9 @@ class BodyWorld(runtime.World):
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
+
+    def velocity_action(self, instance, node):
+        return hanzo_movement.velocity_action(self, instance, node)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
