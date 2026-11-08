@@ -11,8 +11,8 @@ Implemented here
 ----------------
 Projectile direct impacts now use the evaluated HitDef distance falloff and
 explicit critical multiplier. The hit flag follows the explicit multiplier;
-blast damage is unaffected. Distance is flown time times the constant speed of
-the existing straight-line solver. Critical hit geometry remains the existing
+blast damage is unaffected. Distance accumulates the swept flight segments.
+Critical hit geometry remains the existing
 capsule/eye approximation, not an authored hitbox reconstruction.
 
 Actual 1683/st13 per-pellet damage is 12.5, full through 10m, declining to 30%
@@ -33,7 +33,8 @@ attack/special behavior, team identity and manual corpse retention must be
 tested through the parent-owned sandbox once available.
 
 Action             Server evidence / remaining implementation
-Primary rivet      70 direct damage to player; native gravity9.8 is ignored;
+Primary rivet      70 direct damage to player; authored gravity9.8 is consumed
+                   by a reconstructed ballistic solver with 16ms sweeps;
                    critical defaults, true hitboxes and presentation OPEN.
 Secondary rivets   Single pellet falloff repaired; 10 pellets declared by the
                    graph, but combat still creates only one. Spread OPEN.
@@ -73,6 +74,7 @@ Validation
 Run from this clone with ORPHEUS_RUNTIME_DIR pointing to runtime-104319 and
 PYTHONPATH pointing to this clone and its tests directory:
   python -B -m unittest test_game_torbjorn -v
+  python -B -m unittest test_game_projectile_motion -v
   python -B -m unittest test_game_combat test_game_projectiles test_game_health -q
 
 The external source venv lacks pytest; unittest is the working runner. No
@@ -80,3 +82,10 @@ client was started/controlled, no lease claimed and no normal server modified.
 An existing Overwatch PID12292/window was observed on 2026-11-08, without a
 lane lease. It was left untouched; absence of a lease does not grant ownership
 of an already running client.
+
+Ballistic reconstruction evidence: five motion tests cover the authored rivet
+dropping 0.50176m over0.32s, ground collision before a distant player (no damage),
+analytical free-flight displacement, continuous/gap equivalence, clipped final
+lifetime and independent identities for two otherwise identical projectiles.
+Only E1A5B579 acceleration is interpreted. Exact native numerical integration,
+other motion classes and the prediction/presentation of gravity remain OPEN.

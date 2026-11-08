@@ -1,5 +1,17 @@
 # Changelog
 
+### Torbjorn lane: authored projectile gravity reconstruction
+
+- Evaluate E1A5B579 acceleration and sweep ballistic flight in16ms intervals,
+  including scheduler gaps and partial lifetime expiry. Accumulate flight-path
+  distance for impact falloff and keep projectile lifetimes distinct by identity.
+- Pass five new motion tests, four Torbjorn tests and71 shared combat/projectile/
+  health tests (80 total); Ruff and diff checks pass. An actual rivet volley drops
+  and hits ground before a distant player. No original-client acceptance claimed.
+- The solver is an explicit reconstruction, not verified native integration.
+  Remaining motion classes, prediction and the full hero acceptance matrix stay
+  open. Source-only lane commit/patch; no root merge or GitHub publication.
+
 ### Torbjorn lane: projectile impact damage definitions
 
 - Apply evaluated direct-projectile falloff and explicit critical multipliers at

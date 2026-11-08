@@ -334,7 +334,7 @@ class Target:
         return (x, y + self.radius, z), (x, y + max(self.radius, self.height - self.radius), z)
 
 
-@dataclass
+@dataclass(eq=False)
 class Rocket:
     """A projectile in flight."""
 
@@ -349,6 +349,8 @@ class Rocket:
     shot: object = None  # its projectiles.Shot: told when it ends
     flown: float = 0.0  # seconds in the air
     last_tick: int | None = None  # last world tick, or None before player input is simulated
+    gravity: float = 0.0  # authored E1A5B579 downward acceleration, m/s^2
+    distance: float = 0.0  # accumulated flight path, including the impact segment
 
 
 class Combat:
@@ -639,6 +641,11 @@ class Combat:
             if reach:
                 lifetime = min(lifetime, reach / speed)
             blast = hit_def(state, node.field("m_D2D11CE9"))
+            gravity = sum(
+                _number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+                for motion in node.field("m_projectileMotions") or []
+                if isinstance(motion, dict) and motion.get("$") == "STU_E1A5B579"
+            )
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
             definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
             shot = None
@@ -655,6 +662,7 @@ class Combat:
                     Rocket(
                         shooter, shooter.team, origin, direction, speed, lifetime, direct, blast, shot,
                         last_tick=self.tick if npc else None,
+                        gravity=gravity,
                     )
                 )
             return
@@ -699,32 +707,51 @@ class Combat:
         if duration <= 0.0:
             self._landed(rocket)
             return
+        # Reconstruct a ballistic path with a sweep for each normal simulation
+        # interval. A scheduler gap must not become a single chord through terrain.
+        remaining = duration
+        while remaining > EPSILON and rocket in self.rockets:
+            step_time = min(TICK, remaining)
+            self._fly_step(rocket, step_time)
+            remaining -= step_time
+
+    def _fly_step(self, rocket: Rocket, duration: float) -> None:
+        """Sweep one ballistic chord (reconstructed; native integration unverified)."""
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
-        step = rocket.speed * duration
+        displacement = tuple(rocket.speed * axis * duration for axis in rocket.direction)
+        displacement = (
+            displacement[0],
+            displacement[1] - rocket.gravity * (rocket.flown * duration + 0.5 * duration * duration),
+            displacement[2],
+        )
+        step = math.sqrt(_dot(displacement, displacement))
+        direction = tuple(axis / step for axis in displacement) if step > EPSILON else rocket.direction
         best = None
         for target in self._enemies(rocket.shooter):
             a, b = target.segment()
-            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
+            t = ray_capsule(rocket.position, direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
-        wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
+        wall = ray_world(self._collision(), rocket.position, direction, step)
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
         if best is None:
-            rocket.position = _along(rocket.position, rocket.direction, step)
+            rocket.position = _along(rocket.position, direction, step)
             rocket.flown += duration
+            rocket.distance += step
             rocket.left -= duration
             if rocket.left <= 0.0:
                 self._landed(rocket)
             return
         t, struck = best
-        rocket.flown += t / rocket.speed
+        rocket.flown += duration * t / step if step > EPSILON else 0.0
+        rocket.distance += t
         self._landed(rocket)
-        point = _along(rocket.position, rocket.direction, t)
+        point = _along(rocket.position, direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             direct = rocket.direct
             critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
-            amount = direct.amount * direct.scale(rocket.flown * rocket.speed)
+            amount = direct.amount * direct.scale(rocket.distance)
             if critical:
                 amount *= direct.critical
             self._damage(

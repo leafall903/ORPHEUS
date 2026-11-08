@@ -16,7 +16,8 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 - [ ] Verify Torbjorn bidirectional player/five-NPC combat and every ability.
   Direct projectile falloff and explicit critical multipliers now reach actual
-  health damage in server tests. Ten-pellet spread, rivet gravity, hammer/repair,
+  health damage in server tests. Authored rivet gravity now uses a documented
+  fixed-step ballistic reconstruction. Ten-pellet spread, native flight parity, hammer/repair,
   combat turret, Overload pools, Molten Core areas, cross-hero protections and
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
 
