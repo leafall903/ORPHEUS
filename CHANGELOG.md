@@ -6,6 +6,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Native entity existence and current-possession queries
+
+- Implement E72F6348/0AC15F78 with explicit owner namespace/environment, complete
+  lookup and dependency inputs. Preserve no-output failure, Bool false and typed
+  Entity(0) as distinct outcomes, nested variable watches and callback ordering.
+  Retire contexts on detach/fault/unbind; do not infer forward current possession
+  from the reverse primary-possessor catalog or map bindings.
+- Pass1680 original-instruction comparisons with declared engine/storage adapters,
+  including112 unchanged current-object getter calls. Two earlier read-only
+  original-client hero-switch captures agree with component44+D8. No fresh client
+  session, full engine timing or complete mission acceptance is claimed.
+- Actual000E/0F44 with explicit created controller/body and query inputs now creates
+  0C90/1194 and retains81A9AB10/frame0. Failed bound controller messages still fail
+  closed. Real Match still prepares148 components/queues and retains rootD38/node106
+  before controller execution, then retires bindings. No readiness or deployment.
+- Add19 behavior tests;894 related and33 server tests pass, with Ruff/diff checks.
+  Full controller/body/actor lifetimes, engine services/phases, cinematics, enemy
+  AI and mission/results remain open. See ENTITY_QUERIES.txt. Normal inputs and
+  unrelated working changes remain intact. Publication helper remains missing;
+  the required synchronization cannot run and no GitHub push is performed.
+
 #### Declarative shared-variable State and original-client acceptance
 
 - Model9D7BF987 with common State lifecycle and strict agreement between Dynamic

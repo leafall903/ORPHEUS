@@ -259,7 +259,12 @@ class InstanceContext(Context):
             if not self.watcher.polled:
                 self.watcher.polled = True
                 self.watcher.ticks()
-        return self.instance.component.world.native(cfg, self.instance)
+        from ow174.game.script import entity_queries
+
+        result = entity_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            return self.instance.component.world.native(cfg, self.instance)
+        return result
 
 
 def insert_link(var: Var, link: Link) -> None:
@@ -377,6 +382,10 @@ class World:
 
     def data_flow_context(self, entity: int):
         """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def entity_query_context(self, entity: int):
+        """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
 
     def script_failed(self, component: "Component") -> None:

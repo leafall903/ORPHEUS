@@ -18,6 +18,7 @@ from ow174.game.script import (
     data_flow,
     effect_routing,
     entity_control,
+    entity_queries,
     expr,
     graph,
     model_look,
@@ -111,6 +112,7 @@ class SceneWorld(runtime.World):
         self.script_components: dict[int, runtime.Component | None] = {}
         self.play_queues: dict[int, play_queue.Queue] = {}
         self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
+        self.query_contexts: dict[int, entity_queries.Context] = {}
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -195,6 +197,9 @@ class SceneWorld(runtime.World):
         if component is not None and self.script_components.get(entity) is not component:
             raise ValueError('script component binding belongs to another lifecycle')
         previous = self.script_components.pop(entity, None)
+        query = self.query_contexts.pop(entity, None)
+        if query is not None:
+            query.retire()
         queue = self.play_queues.pop(entity, None)
         if queue is not None:
             queue.retire()
@@ -413,6 +418,17 @@ class SceneWorld(runtime.World):
     def model_look_context(self, entity: int):
         return self.look_contexts.get(entity, NotImplemented)
 
+    def set_entity_query_context(self, entity: int, context: entity_queries.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not entity_queries.Context or context.owner != entity or context.retired:
+            raise ValueError('expected live entity-query context for this entity')
+        if entity in self.query_contexts and self.query_contexts[entity] is not context:
+            raise ValueError('detach the existing query context before replacement')
+        self.query_contexts[entity] = context
+
+    def entity_query_context(self, entity: int):
+        return self.query_contexts.get(entity, NotImplemented)
+
     def _retire_control_contexts(self, *, entity=None, component=None):
         for source, context in list(self.control_contexts.items()):
             target = context.component if type(context) is entity_control.Context else None
@@ -447,6 +463,9 @@ class SceneWorld(runtime.World):
         actual = self.script_components.get(component.entity, NotImplemented)
         if actual is not NotImplemented and actual is not component:
             return  # A stale source cannot retire its replacement's engine services.
+        query = self.query_contexts.pop(component.entity, None)
+        if query is not None:
+            query.retire()
         if self.script_components.get(component.entity) is component:
             voice = self.voice_contexts.pop(component.entity, None)
             if voice is not None:
