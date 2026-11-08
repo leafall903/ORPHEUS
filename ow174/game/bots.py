@@ -123,6 +123,9 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
+        self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.combat_owner = None  # player attribution for an owned summoned body
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
@@ -307,6 +310,8 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.attack_target = None
+        self.attack_input = False
         self.keys = False
         self.held = (0, 0)
         self._stand()
@@ -344,7 +349,7 @@ class Bot:
         return Movement(
             self.position,
             s16(round(self.yaw)),
-            0,
+            s16(round(self.pitch)),
             self.velocity,
             DEAD if self.dead else 0,
             throttles=self.held,
