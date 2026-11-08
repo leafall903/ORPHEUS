@@ -4,6 +4,39 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Soldier authored charge and scoped defensive interactions
+
+- Evaluate Soldier's shared0B8B damage/node23, healing/node32 and passive/node4
+  expressions with actual eligible HP inputs. Preserve authored caps, defaults,
+  multipliers9532/13022/12918 and passive Wait/node3 interval. Serialize the
+  passive clock remainder in body/server snapshots and replay hashes. Native
+  message/tag/mode eligibility and passive phase/long-gap fidelity remain open;
+  other heroes retain the previous declared passive reconstruction.
+- Reuse parent7cd1ed7's nearest-capsule-surface static melee visibility policy.
+  Keep the separate existing splash/Field visibility reconstruction unchanged.
+- Consume real Orisa0CF4/state4 Fortify amount and lifetime in shared damage;
+  use one direct-hit path for rifle/projectile critical suppression. Reduction
+  before armour and critical immunity are explicit reconstructed policies.
+  Add the current-self aggregate health query required by the authored graph;
+  foreign query semantics and native pool getter equivalence remain open.
+- Consume Zenyatta017B/state3 Transcendence lifetime as damage immunity while
+  retaining body collision. Its017B/state13 zero-duration output-free callback
+  finishes at the end of the command as a scoped reconstruction. This does not
+  implement the general native callback, self restoration, allied healing aura,
+  movement/animation, native filters, or the complete Zenyatta ability.
+- Pass98 final focused driver/charge/defense/native-replay/manifest/body-snapshot
+  tests (32.823s) and Ruff/diff checks. The preceding209-test fixed-source run
+  had two historical crash-wire failures (207 methods passed): switching default
+  charge cadence removed a55-bit per-frame charge update. Both historical
+  fixtures now explicitly select their old continuous60-second sandbox policy;
+  fixed bit positions and captured-frame assertions remain intact. That failed
+  aggregate is not recorded as a complete pass. The final focused run includes
+  both repaired fixtures and six defensive-interaction methods.
+- Full Soldier static milestone and all original-client combat acceptance remain
+  open. No root merge or push; the publication helper is still absent.
+
 ### 2026-11-08
 
 #### Shared authored-array selection in Soldier lane

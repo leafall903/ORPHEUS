@@ -33,11 +33,13 @@ _RUNTIME_FIELDS = {
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.defenses",
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
     "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
+    "ow174.game.ultimate",
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
     "ow174.game.server", "ow174.game.statescript",
     "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world",
@@ -53,7 +55,7 @@ _REQUIRED_CONFIG = {
     },
     "ow174.game.script.expr": {"MAX_EXPRESSION_STEPS"},
     "ow174.game.script.driver": {
-        "MAX_GAP", "MAX_SHOTS", "MAX_REPORTS", "ULT_SECONDS", "ULT_PASSIVE_POINTS_PER_SECOND",
+        "MAX_GAP", "MAX_SHOTS", "MAX_REPORTS", "ULT_SECONDS",
         "SETTLE_FRAMES",
     },
 }

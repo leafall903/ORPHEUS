@@ -1,6 +1,23 @@
 Soldier: 76 combat lane / 02E000000000006E / 104319
 Status: OPEN, not combat accepted. Original-client acceptance: none in this lane.
 
+2026-11-09 scoped extension (not full acceptance)
+- Soldier0B8B authored damage23/healing32/passive4 expressions now own charge
+  amounts, caps, defaults and multipliers. Passive Wait3 supplies the interval;
+  the host bridges actual eligible HP and reconstructs inactive-timer time.
+  Native message/tag/mode eligibility and phase/long-gap fidelity remain open.
+- Fortify0CF4/state4 owns live duration and reduction amount. Reduction before
+  armour and direct critical suppression are reconstructed combat consumers.
+- Transcendence017B/state3 rejects HP damage while retaining solid body hits.
+  The output-free zero-duration017B/state13 callback receives a scoped host
+  completion, not a general native54FEB21C implementation. Self restoration,
+  allied healing, movement/animation and the complete ability remain open.
+- Melee uses reviewed parent7cd1ed7 nearest-capsule-surface visibility. Splash,
+  Field and Visor retain their separately documented probe policies.
+- See test_soldier_defenses.py and test_soldier_ultimate_charge.py; execution
+  tests use actual body scripts and commands, synthetic flat collision and
+  recording transports. Original-client equivalence is not established.
+
 Implementation checkpoint
 - Authored Soldier volleys feed Combat._shoot; rifle 20 damage, 2x critical,
   falloff 30..50 m to 30%; Helix direct 40 plus splash 80 from asset configs.

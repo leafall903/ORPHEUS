@@ -391,6 +391,9 @@ class BodyTests(unittest.TestCase):
         (0x7FF78991D6DB, 'reading 0x90' at payload bit 2842 in both crash dumps)."""
         with mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}):
             body, client = spawned(9198)
+            # Preserve the historical encoder's continuous sandbox charge field;
+            # retail-backed default charge now advances at authored one-second intervals.
+            body.ult_seconds = driver_module.ULT_SECONDS
             body.command(9199, 0)
             with without_payloads("STU_D74D4F47"):
                 [first] = body.frames()
@@ -434,7 +437,7 @@ class BodyTests(unittest.TestCase):
         whose store crashes, its reader at bit 857. Now the frame reads whole."""
 
         def frame_at_4094():
-            body = BodyScript(SOLDIER, 0xA0000101, 3880)
+            body = BodyScript(SOLDIER, 0xA0000101, 3880, ult_seconds=driver_module.ULT_SECONDS)
             client = ClientModel()
             [tree] = body.spawn_frames()
             client.apply(tree)

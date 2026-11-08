@@ -12,6 +12,7 @@ from test_game_combat import aim
 from ow174.game import combat
 from ow174.game.collision import World, flat_world
 from ow174.game.commands import Command
+from ow174.game.native_replay import snapshot_hash
 
 
 class SoldierUltimateChargeTests(unittest.TestCase):
@@ -160,6 +161,58 @@ class SoldierUltimateChargeTests(unittest.TestCase):
         for _ in range(400):
             self.input(run, soldier)
         self.assertEqual(self.charge(soldier), 0)
+
+    def test_authored_damage_multipliers_and_explicit_zero_change_points_not_hp_loss(self):
+        run, soldier, other = self.arena()
+        script = soldier.body_script
+        script.ult_seconds = 0
+        script.component.set(9532, 2.0)
+        script.component.set(13022, 3.0)
+        yaw, pitch = aim(run.match.combat._eye(soldier), (0.0, 0.8, 1.0))
+        self.input(run, soldier, 1, yaw, pitch)
+        self.assertEqual(self.vitals(run, other).total, 180)
+        self.assertEqual(self.charge(soldier), 120)
+        script.component.set(13022, 0.0)
+        for _ in range(30):
+            self.input(run, soldier)
+        self.input(run, soldier, 1, yaw, pitch)
+        self.assertEqual(self.vitals(run, other).total, 160)
+        self.assertEqual(self.charge(soldier), 120)
+
+    def test_authored_healing_multipliers_apply_to_actual_eligible_self_healing(self):
+        run, soldier, other = self.arena()
+        script = soldier.body_script
+        script.ult_seconds = 0
+        other.body_script.ult_seconds = 0
+        script.component.set(9532, 2.0)
+        script.component.set(13022, 3.0)
+        yaw, pitch = aim(run.match.combat._eye(other), (0.0, 0.8, -3.0))
+        self.input(run, other, 1, yaw, pitch)
+        self.input(run, soldier, 0x10)
+        for _ in range(180):
+            self.input(run, soldier)
+        self.assertEqual(self.vitals(run, soldier).total, 200)
+        self.assertAlmostEqual(self.charge(soldier), 120, delta=0.0001)
+
+    def test_authored_passive_interval_multipliers_and_stored_remainder(self):
+        run, soldier, _ = self.arena()
+        script = soldier.body_script
+        script.component.set(9532, 2.0)
+        script.component.set(12918, 3.0)
+        for _ in range(61):
+            self.input(run, soldier)
+        self.assertEqual(self.charge(soldier), 0)
+        for _ in range(2):
+            self.input(run, soldier)
+        self.assertEqual(self.charge(soldier), 30)
+        self.assertEqual(script.passive_charge_ms, 8)
+        before = snapshot_hash(script)
+        script.passive_charge_ms = 0
+        self.assertNotEqual(snapshot_hash(script), before)
+        script.passive_charge_ms = 8
+        for _ in range(62):
+            self.input(run, soldier)
+        self.assertEqual(self.charge(soldier), 60)
 
 
 if __name__ == "__main__":

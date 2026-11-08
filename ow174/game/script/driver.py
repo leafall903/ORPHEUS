@@ -25,7 +25,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import pools, ultimate
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -96,13 +96,11 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# Charge #342e is server-owned; authored Entries supply cost #338e and spend the
-# charge on activation. Passive 5 points/s and 1 point per eligible HP are explicit
-# OW1 reconstruction policies, not recovered server instructions. A positive
-# ult_seconds remains a sandbox time-to-full override; zero disables passive gain.
+# Charge #342e is server-owned. Soldier uses authored0B8B point expressions;
+# the host bridges eligible HP and the inactive passive timer. Positive
+# ult_seconds retains a sandbox time-to-full override; nonpositive disables passive gain.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
-ULT_PASSIVE_POINTS_PER_SECOND = 5.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -139,6 +137,16 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_9B7648C3":
+            # Captured CEB6C0 -> D177C0/component51 route. Aggregate health is
+            # a reconstructed current-self getter; foreign queries stay unknown.
+            target = cfg.get("m_entity")
+            if (instance.component.entity == self.body and isinstance(target, dict)
+                    and instance.evaluate(target) == Entity(self.body)):
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if type(value) in (int, float):
+                    return f32(value)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -280,6 +288,7 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.ult_seconds = ult_seconds
+        self.passive_charge_ms = 0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
@@ -354,8 +363,20 @@ class BodyScript(ReplicatedBody):
         """Explicit GM/test override of #342e; ordinary combat uses gain_ult_charge."""
         self.component.set(ULT_CHARGE, f32(points))
 
-    def gain_ult_charge(self, points: float) -> float:
-        """Apply eligible points once, bounded by authored cost and the body's lifecycle."""
+    def _ult_charge_allowed(self) -> bool:
+        return (not self.retired and not self.component.owner_dead
+                and not any(state.flags & nodes.Ability.RUNNING for state in self.ultimates))
+
+    def gain_ult_charge(self, points: float, *, kind: str = "damage") -> float:
+        """Bridge actual HP into Soldier's authored charge expression, then apply it once."""
+        if not math.isfinite(points) or points <= 0 or not self._ult_charge_allowed():
+            return 0.0
+        if self.hero == SOLDIER:
+            points = ultimate.combat_points(self, points, kind)
+        return self._gain_ult_points(points)
+
+    def _gain_ult_points(self, points: float) -> float:
+        """Apply already-evaluated points, with lifecycle and authored-cost bounds."""
         if (self.retired or self.component.owner_dead or not math.isfinite(points) or points <= 0
                 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return 0.0
@@ -368,14 +389,19 @@ class BodyScript(ReplicatedBody):
         return after - charge
 
     def _charge_ult(self) -> None:
-        if self.ult_seconds is not None and self.ult_seconds <= 0:
+        if (not self._ult_charge_allowed()
+                or (self.ult_seconds is not None and self.ult_seconds <= 0)):
+            self.passive_charge_ms = 0
+            return
+        if self.ult_seconds is None and self.hero == SOLDIER:
+            ultimate.passive_points(self)
             return
         if self.ult_seconds is None:
-            step = f32(ULT_PASSIVE_POINTS_PER_SECOND * self.frame_ms / 1000)
+            step = f32(5.0 * self.frame_ms / 1000)  # other heroes retain the declared reconstruction
         else:
             cost = expr.to_float(self.component.entity_var(ULT_COST).value())
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-        self.gain_ult_charge(step)
+        self._gain_ult_points(step)
 
     # --- what the client gets ----------------------------------------------------------------------
 

@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, defenses, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -153,6 +153,20 @@ def segment_distance(point, a, b) -> float:
     closest = _along(a, ab, t)
     d = _sub(point, closest)
     return math.sqrt(_dot(d, d))
+
+
+def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
+    """Parent7cd1ed7's reconstructed melee ray to the nearest capsule surface."""
+    ab, ap = _sub(b, a), _sub(origin, a)
+    length = _dot(ab, ab)
+    share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
+    toward = _sub(_along(a, ab, share), origin)
+    distance = math.sqrt(_dot(toward, toward))
+    if distance <= radius + EPSILON:
+        return True
+    reach = distance - radius
+    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach)
+    return hit is None or hit + EPSILON >= reach
 
 
 def ray_world(
@@ -428,6 +442,7 @@ class Combat:
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.is_dead(player):
             return
+        defenses.advance_entry(player)
         if command is not None:
             for state, number, time, activation in shots:
                 try:
@@ -471,7 +486,7 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
-                        and self._blast_visible(self._eye(player), shown)):
+                        and capsule_visible(self._collision(), self._eye(player), a, b, shown.radius)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -690,9 +705,8 @@ class Combat:
             return
         hit_y = origin[1] + direction[1] * t
         critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
-        amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
-        self._damage(
-            shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
+        self._direct_hit(
+            shooter, target, direct, t, critical, shot_frame,
             world_tick=self.tick if npc else None,
         )
 
@@ -776,8 +790,8 @@ class Combat:
         self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
-            self._damage(
-                rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
+            self._direct_hit(
+                rocket.shooter, struck, rocket.direct, 0.0, False, self.tick,
                 world_tick=self.tick,
             )
         blast = rocket.blast
@@ -844,17 +858,17 @@ class Combat:
             if given <= 0.0:
                 continue
             healer.stats.add(stats.HEALING, given)
-            self._gain_ult_charge(healer, min(given, eligible))
+            self._gain_ult_charge(healer, min(given, eligible), kind="healing")
             self._sync_body_health(target.owner, vitals)
 
     @staticmethod
-    def _gain_ult_charge(owner, points: float) -> None:
+    def _gain_ult_charge(owner, points: float, *, kind: str = "damage") -> None:
         if isinstance(owner, bots.Bot):
             return
         script = getattr(owner, "body_script", None)
         gain = getattr(script, "gain_ult_charge", None)
         if callable(gain):
-            gain(points)
+            gain(points, kind=kind)
 
     @staticmethod
     def _sync_body_health(owner, vitals: Vitals) -> None:
@@ -872,13 +886,24 @@ class Combat:
 
     # --- damage and death --------------------------------------------------------------------------
 
+    def _direct_hit(
+        self, shooter, target: Target, hit: HitDef, distance: float, critical: bool, frame: int,
+        *, world_tick: int | None = None,
+    ) -> None:
+        critical = critical and hit.critical > 1.0 and defenses.fortify_scale(target.owner) is None
+        amount = hit.amount * hit.scale(distance) * (hit.critical if critical else 1.0)
+        self._damage(shooter, target, amount, critical, hit.loadout, frame, world_tick=world_tick)
+
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
         *, world_tick: int | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
-        if vitals.dead or amount <= 0.0:
+        if vitals.dead or amount <= 0.0 or defenses.invulnerable(target.owner):
             return
+        reduction = defenses.fortify_scale(target.owner)
+        if reduction is not None:
+            amount *= reduction
         dealt = vitals.damage(amount)
         if dealt <= 0.0:
             return

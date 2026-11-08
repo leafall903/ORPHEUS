@@ -28,6 +28,8 @@ HEADER_FIELDS = {
     "body_epoch", "server_tick", "gap_policy", "shot_policy", "initial_hash",
 }
 MODEL_FILES = (
+    "ow174/game/defenses.py",
+    "ow174/game/ultimate.py",
     "ow174/game/native_replay.py", "ow174/game/commands.py", "ow174/game/pools.py",
     "ow174/game/script/driver.py", "ow174/game/script/runtime.py", "ow174/game/script/expr.py",
     "ow174/game/script/nodes.py", "ow174/game/script/graph.py", "ow174/game/script/rulesets.py",
@@ -121,7 +123,8 @@ def _snapshot(script: BodyScript, encode) -> dict:
         # Cross-body routing belongs to the full match replay, outside this command trace.
         "world": encode({key: value for key, value in vars(script.world).items() if key != "match"}),
         "server_only": sorted(script.server_only),
-        "ult_seconds": encode(script.ult_seconds), "instances": instances,
+        "ult_seconds": encode(script.ult_seconds), "passive_charge_ms": encode(script.passive_charge_ms),
+        "instances": instances,
         "component": {
             "frame": component.frame, "now": component.now, "held": list(component.held),
             "button": component.button, "owner_dead": component.owner_dead,
