@@ -20,11 +20,12 @@ chunks sent after it carried (the client may have applied them), so it needs no 
 """
 
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import pools, ultimate
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -95,9 +96,8 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# Roadhog's default uses shared graph0B8B charge expressions. Other heroes retain
+# the timed surrogate; numeric overrides remain sandbox time-to-full (0: never).
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -258,7 +258,7 @@ class BodyScript(ReplicatedBody):
         quanta: int = 16000,
         mode: int = PRACTICE_RANGE_MODE,
         health: float | None = None,
-        ult_seconds: float = ULT_SECONDS,
+        ult_seconds: float | None = None,
         *,
         match: "Match | None" = None,
     ) -> None:
@@ -281,6 +281,7 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.ult_seconds = ult_seconds
+        self.passive_charge_ms = 0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
@@ -352,17 +353,42 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Set charge (#342e; cost #338e), including explicit GM/sandbox overrides."""
         self.component.set(ULT_CHARGE, f32(points))
 
-    def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
-            return
+    def _ult_charge_allowed(self) -> bool:
+        return (not self.retired and not self.component.owner_dead
+                and not any(state.flags & nodes.Ability.RUNNING for state in self.ultimates))
+
+    def gain_ult_charge(self, points: float, *, kind: str = "damage") -> float:
+        """Bridge actual eligible HP into Roadhog's authored expression once."""
+        if (self.hero != ultimate.ROADHOG or not math.isfinite(points) or points <= 0
+                or not self._ult_charge_allowed()):
+            return 0.0
+        return self._gain_ult_points(ultimate.combat_points(self, points, kind))
+
+    def _gain_ult_points(self, points: float) -> float:
+        if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+            return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
-        if cost > 0 and charge < cost:
-            step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-            self.set_ult_charge(min(cost, f32(charge + step)))
+        if cost <= 0 or charge >= cost:
+            return 0.0
+        after = min(cost, f32(charge + points))
+        self.set_ult_charge(after)
+        return after - charge
+
+    def _charge_ult(self) -> None:
+        if (not self._ult_charge_allowed()
+                or (self.ult_seconds is not None and self.ult_seconds <= 0)):
+            self.passive_charge_ms = 0
+            return
+        if self.ult_seconds is None and self.hero == ultimate.ROADHOG:
+            ultimate.passive_points(self)
+            return
+        seconds = ULT_SECONDS if self.ult_seconds is None else self.ult_seconds
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        self._gain_ult_points(f32(cost * self.frame_ms / (1000.0 * seconds)))
 
     # --- what the client gets ----------------------------------------------------------------------
 

@@ -104,6 +104,10 @@ BodyScript fields covered by the VM adapter:
 record identifies the body definition covered by the source/data signature.
 ultimates is an ordered list of State references: future charge updates depend
 on those states and cannot reconstruct it merely by inspecting active states.
+passive_charge_ms stores the fallback authored-interval charge clock remainder.
+ult_seconds may be None (Roadhog authored policy; other heroes retain the60s
+surrogate), zero (no passive gain), or a positive sandbox override. Eligible
+healing deficit is in the full server Vitals adapter, outside the body VM.
 
 Five known BodyScript fields belong to a later owner-transport adapter and are
 explicitly excluded from this VM storage document:

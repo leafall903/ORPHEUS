@@ -121,7 +121,8 @@ def _snapshot(script: BodyScript, encode) -> dict:
         # Cross-body routing belongs to the full match replay, outside this command trace.
         "world": encode({key: value for key, value in vars(script.world).items() if key != "match"}),
         "server_only": sorted(script.server_only),
-        "ult_seconds": encode(script.ult_seconds), "instances": instances,
+        "ult_seconds": encode(script.ult_seconds), "passive_charge_ms": script.passive_charge_ms,
+        "instances": instances,
         "component": {
             "frame": component.frame, "now": component.now, "held": list(component.held),
             "button": component.button, "owner_dead": component.owner_dead,
@@ -292,6 +293,8 @@ def replay_document(document: dict) -> dict:
     _int(header.get("mode"), "mode", 0, (1 << 64) - 1)
     for name in ("health", "maximum_health", "ult_seconds"):
         value = header.get(name)
+        if name == "ult_seconds" and value is None:
+            continue
         if type(value) not in (int, float) or not math.isfinite(value):
             raise ValueError(f"Invalid {name}")
     if header["health"] != header["maximum_health"]:

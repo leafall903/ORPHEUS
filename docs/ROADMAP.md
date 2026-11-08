@@ -29,6 +29,12 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   hits/ammo use or finish reload. Native timing agreement and wider loss remain open.
   Whole Hog's16-pellet path now executes charge consumption, repeated damage,
   end, uncharged rejection and death cancellation with miss/team/wall regressions.
+  Roadhog now bridges actual damage/eligible Breather healing into shared0B8B
+  charge expressions and uses its default passive interval/amount/multipliers.
+  Full-cost combat gain, Q spend, active/dead suppression and post-end resumption
+  have real-input checks. Host event eligibility/clock remain reconstruction;
+  victim-specific passives and native charge exclusions remain open.
+  See [charge evidence](ROADHOG_CHARGE.txt).
   Explicit external five-Talon inputs now cover weapon/melee/ultimate damage and
   retained-death bodies for all five. Manual Trooper/Heavy/Sniper input now causes
   reverse damage into Roadhog and respects stop; NPC weapon-manager startup restores

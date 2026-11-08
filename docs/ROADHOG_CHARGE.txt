@@ -1,0 +1,40 @@
+Roadhog charge bridge -- build1.74.0.0.104319
+
+Resource evidence
+- Actual Roadhog body initialization creates shared graph0B8B (instance14 in
+  the current fixture), alongside its hero graphs. Cost338e evaluates to2240;
+  charge342e is consumed by the existing Whole Hog Ability graph.
+- 0B8B/node3 Wait timeout is1s. Node4 evaluates the passive charge expression:
+  min(cost, current +5 * default(9532e,1) * default(12918e,1)).
+- Node23 evaluates damage input336i and node32 healing input499i, each through
+  min(cost,current +input * default(9532e,1) * default(13022e,1)).
+- The expression bridge is adapted from the Soldier lane's ultimate.py.
+  This lane gates the host integration to Roadhog; it does not replace the
+  other lane's work or establish other heroes' acceptance.
+
+Executed host policy (explicit reconstruction)
+- Actual hostile damage supplies mitigated, pool-clamped HP loss before the
+  authored charge multipliers; armor, Breather reduction and overkill affect
+  the input rather than supplying the unmitigated requested damage.
+- Enemy-caused missing HP is tracked as Vitals.ult_healing_deficit. Every heal
+  drains it; only actual eligible self healing earns Breather charge. Self and
+  environment damage and overhealing do not grant healing points.
+- Dead/retired owners and running ultimates reject gains. Suppressed healing
+  is consumed rather than deferred for later charge. Numeric ult_seconds=0
+  disables passive gain only; positive values remain time-to-full sandbox
+  overrides. Default None uses the Roadhog graph, other heroes retain60s.
+- When the authored Wait is inactive, accepted command-frame time accumulates
+  to the authored interval. An active Wait owns its own cadence and the host
+  fallback does not add a second clock. This is not native game-server timing.
+- Passive remainder and healing deficit are causal stored state. Body VM,
+  command-trace and full server snapshots retain the relevant fields. Replay
+  headers accept None and finite numeric charge policies.
+
+Acceptance boundaries
+- Tests use actual firing/casts and actual player/NPC pools. A high-health
+  fixture permits full-cost acquisition and Whole Hog duration; it does not
+  change retail hero health. Authored multipliers and zero overrides are tested.
+- Native game-message/tag/mode eligibility, shielding exclusions, native time
+  under arbitrary input gaps, victim-specific passive modifiers and every
+  Roadhog-specific passive remain unaccepted. Full static acceptance stays open.
+- No original-client session, charge HUD, sound or effects acceptance is claimed.

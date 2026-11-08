@@ -65,6 +65,16 @@ class NativeReplayTests(unittest.TestCase):
     def setUpClass(cls):
         logging.getLogger("ow174.script").setLevel(logging.ERROR)
 
+    def test_default_and_numeric_charge_policies_round_trip(self):
+        for policy in (None, 0, 2, 60):
+            with self.subTest(policy=policy):
+                script = BodyScript(SOLDIER, 0xA0000101, 1000, ult_seconds=policy)
+                document = {"header": header(script), "events": []}
+                document["events"].append(command_event(script, Command(1001), 0))
+                document["events"].append(ending(script, 1))
+                result = replay_document(document)
+                self.assertEqual(result["status"], "matched_observed_body_trace")
+
     def test_recording_helpers_never_evaluate_values_payloads_or_consume_shots_rng_or_sequences(self):
         script = body()
         script.command(1001, FIRE)

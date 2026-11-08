@@ -39,7 +39,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "reports", "report_count", "passive_charge_ms",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",

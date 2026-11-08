@@ -97,7 +97,7 @@ FIELDS = {
         "projectiles observers voice hooks"
     ),
     hook.Hooks: _names("combat flights seen"),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer ult_healing_deficit"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -113,7 +113,7 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count passive_charge_ms"
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
     BotScript: _names(

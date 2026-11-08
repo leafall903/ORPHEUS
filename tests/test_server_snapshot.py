@@ -31,6 +31,18 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_ultimate_healing_eligibility_is_causal_read_only_storage(self):
+        session, _, players = self.scene()
+        player = players[0]
+        target = next(t for t in player.match.combat._targets() if t.owner is player)
+        vitals = player.match.combat.vitals_of(target)
+        before = snapshot_digest(self.capture(session))
+        vitals.ult_healing_deficit = 20.0
+        changed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(changed, before)
+        self.assertEqual(snapshot_digest(self.capture(session)), changed)
+        self.assertEqual(vitals.ult_healing_deficit, 20.0)
+
     def test_active_hook_and_secondary_fragment_storage_is_read_only_and_hashed(self):
         session, _, players = self.scene()
         player = players[0]

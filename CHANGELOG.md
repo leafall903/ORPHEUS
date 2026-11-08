@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Roadhog lane: bridge actual combat into authored charge expressions
+
+- Reuse the Soldier lane's expression-bridge design for Roadhog's actual0B8B
+  graph: damage336i/healing499i, passive1s/5 points, defaults/multipliers and
+  cost cap are evaluated from the resource. Retain numeric sandbox overrides.
+- Feed actual hostile pool loss and enemy-caused eligible Breather healing;
+  armor/reduction/overkill, self/environment damage, overheal and duplicate
+  input cannot inflate gain. Running Whole Hog/dead/retired guards reject gain.
+  Host event/tag eligibility and accepted-command fallback time are explicitly
+  reconstructed, with native exclusions/passives still open.
+- Store passive remainder and healing deficit in VM/trace/server adapters;
+  permit default None in command-trace replay headers and register the new
+  charge module in model manifests. Other heroes retain the timed surrogate.
+- Pass178 combat/hero/NPC/driver/ability checks and14 model-manifest checks.
+  The long storage/trace run passed57 checks; its one loader error used the
+  wrong manifest module name, corrected by the separate14-check run. No
+  implementation assertion failed in that fixed-source long run. Ruff/diff pass.
+  Rerun9 charge tests after replacing the full-cost fixture with normal-multiplier
+  continuous fire:2240 cost is earned from actual damage, spent, suppressed
+  during Q and earned again after its end.
+- Full static and original-client combat acceptance remain open. No publication.
+
 #### Roadhog lane: exercise magazine and reload lifecycle through combat
 
 - Add real-command, real-pool regressions for held primary/secondary/both-button

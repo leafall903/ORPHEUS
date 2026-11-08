@@ -198,6 +198,7 @@ class Vitals:
         self.died_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
+        self.ult_healing_deficit = 0.0  # reconstructed enemy-caused HP eligible for healing charge
 
     @property
     def dead(self) -> bool:
@@ -234,7 +235,11 @@ class Vitals:
                 self.now[kind] += give
                 self.changed.add(kind)
                 left -= give
-        return max(0.0, amount) - left
+        given = max(0.0, amount) - left
+        self.ult_healing_deficit = max(
+            0.0, min(self.ult_healing_deficit - given, sum(self.most.values()) - self.total),
+        )
+        return given
 
     def component(self, kinds) -> dict:
         """Component 51 with these pools' fields set (the others are left as they are)."""
@@ -849,10 +854,12 @@ class Combat:
             vitals = self.vitals_of(target)
             if vitals.dead:
                 return
+            eligible = vitals.ult_healing_deficit
             given = vitals.heal(amount)
             if given > 0.0:
                 if not isinstance(target.owner, bots.Bot):
                     target.owner.stats.add(stats.HEALING, given)
+                    self._gain_ult_charge(target.owner, min(given, eligible), kind="healing")
                 self._sync_body_health(target.owner, vitals)
             return
 
@@ -869,11 +876,21 @@ class Combat:
             a, b = target.segment()
             if segment_distance(centre, a, b) - target.radius > radius:
                 continue
+            eligible = vitals.ult_healing_deficit
             given = vitals.heal(amount)
             if given <= 0.0:
                 continue
             healer.stats.add(stats.HEALING, given)
+            self._gain_ult_charge(healer, min(given, eligible), kind="healing")
             self._sync_body_health(target.owner, vitals)
+
+    @staticmethod
+    def _gain_ult_charge(owner, points: float, *, kind: str = "damage") -> None:
+        if isinstance(owner, bots.Bot):
+            return
+        gain = getattr(getattr(owner, "body_script", None), "gain_ult_charge", None)
+        if callable(gain):
+            gain(points, kind=kind)
 
     @staticmethod
     def _sync_body_health(owner, vitals: Vitals) -> None:
@@ -912,6 +929,14 @@ class Combat:
         dealt = vitals.damage(amount * self.incoming_damage_scale(target.owner))
         if dealt <= 0.0:
             return
+        hostile = target.owner is not shooter and (
+            self.match.game_map.free_for_all or target.team != shooter.team
+        )
+        if hostile:
+            vitals.ult_healing_deficit = min(
+                sum(vitals.most.values()) - vitals.total, vitals.ult_healing_deficit + dealt,
+            )
+            self._gain_ult_charge(shooter, dealt)
         killed = vitals.now[HEALTH_POOL] <= EPSILON
         if killed:
             vitals.now[HEALTH_POOL] = 0.0

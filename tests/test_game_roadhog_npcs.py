@@ -87,12 +87,15 @@ class RoadhogFiveNpcTests(unittest.TestCase):
             for button in (1, 2, 0x800):
                 with self.subTest(npc=definition.name, button=button):
                     run, hog, _, vitals, angles = self.session(definition, distance=1.0)
+                    hog.body_script.ult_seconds = 0
                     before = vitals.total
                     run.step({hog: (*angles, button)})
                     for _ in range(40):
                         run.step({hog: (*angles, 0)})
                     self.assertLess(vitals.total, before)
                     self.assertGreater(len(hog.client.messages(combat.HIT)), 0)
+                    self.assertAlmostEqual(hog.body_script.component.entity_var(ULT_CHARGE).value(),
+                                           before - vitals.total, places=3)
 
     def test_charged_whole_hog_damages_each_authored_npc(self):
         for definition in self.definitions.values():
