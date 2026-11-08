@@ -72,7 +72,7 @@ INSTANCE_FIELDS = {
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
