@@ -465,7 +465,8 @@ class Combat:
                 if shown is None:
                     continue
                 a, b = shown.segment()
-                if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                        and self._blast_visible(self._eye(player), shown)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -666,6 +667,7 @@ class Combat:
         view_tick = self.tick
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
+            direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         best = None
         for target in self._enemies(shooter):
             shown = self.seen(target, view_tick)
@@ -688,6 +690,52 @@ class Combat:
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
             world_tick=self.tick if npc else None,
         )
+
+    def _soldier_visor_direction(self, shooter, volley, origin, direction, view_tick):
+        """Reconstructed Soldier rifle acquisition using active 0259 search data.
+
+        The authored graph gates this search after the activation animation and
+        removes it at expiry/death. Radius and cone come from that node. Capsule
+        centre aim and angle/distance ranking are explicit server reconstruction;
+        the general native TrackTargets/filter/scoring backend is still absent.
+        This does not steer Helix projectiles or synthesize client lock effects.
+        """
+        if volley.instance.graph.index != 0x0254:
+            return direction
+        script = shooter.body_script
+        if script is None or script.component.owner_dead:
+            return direction
+        searches = [
+            state for instance in script.component.instances.values()
+            if instance.graph.index == 0x0259
+            for state in instance.states.values()
+            if state.active and isinstance(state, nodes.TrackTargets)
+            and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337
+        ]
+        best = None
+        for search in searches:
+            radius = _number(search.evaluate(search.node.field("m_radius"), watch=False), 0.0)
+            cone = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
+            if radius <= 0.0 or not 0.0 < cone <= 180.0:
+                continue
+            threshold = math.cos(math.radians(cone))
+            for target in self._enemies(shooter):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                centre = (shown.feet[0], shown.feet[1] + shown.height / 2, shown.feet[2])
+                offset = _sub(centre, origin)
+                distance = math.sqrt(_dot(offset, offset))
+                if distance <= EPSILON or distance > radius:
+                    continue
+                candidate = tuple(value / distance for value in offset)
+                alignment = _dot(direction, candidate)
+                if alignment < threshold or not self._blast_visible(origin, shown):
+                    continue
+                rank = (-alignment, distance, target.entity)
+                if best is None or rank < best[0]:
+                    best = (rank, candidate)
+        return direction if best is None else best[1]
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""

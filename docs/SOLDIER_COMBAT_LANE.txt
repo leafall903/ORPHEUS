@@ -14,6 +14,25 @@ Implementation checkpoint
   authored player and generic-NPC rifle damage to Soldier, and healing teams.
 - Generic NPC tests deliberately use the training-bot capsule and an authored
   Soldier rifle. They do not validate the five requested PvE classes or AI.
+- Actual rifle pool tests cover 20 body, 40 critical, 6 far-falloff damage,
+  miss/ally/static-wall rejection and an empty magazine rejecting aimed fire
+  until reload completes, followed by one 20-damage shot consuming one round.
+- Static goal is active: full weapons/skills/ultimate/interactions must pass,
+  separately from original-client combat acceptance. No partial checkpoint
+  completes this goal.
+- Melee now rejects static occlusion. Pool-changing tests cover hit/miss,
+  range, ally exclusion and wall blocking; melee and Helix reject cooldown
+  represses and deal damage again after recovery. Authored Biotic Field heals
+  174.72 HP in its single five-second window at 35 HP/s, then stops; repress
+  during cooldown cannot add healing and a recovered cast heals again.
+- Soldier rifle Visor acquisition is reconstructed in Combat, gated by the
+  authored 0259 TrackTargets active state. It evaluates m_radius=45 and
+  m_A30B383E=45 for range/cone, chooses capsule centres by aim angle then
+  distance, excludes allies/dead/occluded targets and honors startup/expiry.
+  Graph-supplied rifle stats during Visor remain 20 damage, 1x critical and
+  1.0 falloff floor. Target ranking, aim points and the cone interpretation
+  are reconstructed rather than native search/filter code. Helix steering,
+  target-list replication and client lock effects remain open.
 
 Acceptance matrix: each row applies to enemy player, Trooper, Enforcer, Sniper,
 Assassin and Heavy Assault. Every original-client cell remains OPEN.
@@ -21,17 +40,18 @@ Assassin and Heavy Assault. Every original-client cell remains OPEN.
 Feature             Server evidence                  Remaining acceptance
 Heavy Pulse Rifle   Authored 20/crit/falloff;          All six target classes,
                     existing shot/ammo tests          reload/prediction, effects
-Quick melee         Existing once-per-activation      All six targets, reach,
-                    30-damage tests                   controls, presentation
+Quick melee         30 damage, range/miss/team/LOS,    Five PvE targets,
+                    cooldown rejection and recovery   controls, presentation
 Helix Rockets       Authored 40+80; new static        All six targets, self-hit,
                     occlusion pool tests              prediction/effects, cover
 Sprint              Existing input/flags tests        Actual speed, firing and
                                                      control interruptions
-Biotic Field        Self/live allied player/NPC       Authored field vs all five
-                    heal; enemy/dead exclusion;       NPCs, placement, LOS,
-                    existing duration/wire tests      visual/audio, heal charge
-Tactical Visor      Charge/activation/expiry VM       Real acquisition and aim,
-                    tests only                        range/LOS, hit/UI/audio
+Biotic Field        Team/dead filtering and actual    Authored field vs all five
+                    healing lifecycle/repress tests   NPCs, placement, LOS,
+                                                      visual/audio, heal charge
+Tactical Visor      Actual off-axis damage, startup,  Native filters/scoring,
+                    expiry, range/cone/team/LOS/dead   five NPCs, Helix, UI/audio
+                    checks on reconstructed policy
 Incoming attacks    Authored enemy rifle from         Five actual enemy weapons,
                     player/generic NPC changes HP     specials, status and death
 Death/corpses       Existing retained generic bot     Five body death animations,
@@ -42,8 +62,9 @@ Cross-hero          Existing health/shield/armour     Barriers, reflect, absorb,
 Concrete implementation gaps
 - nodes.TrackTargets.payload always returns an empty tuple, and the state has
   no search backend. Soldier graph 0259 contains three TrackTargets nodes.
-  Combat._shoot uses the command direction, not a Visor-acquired target. A
-  successful ultimate VM activation therefore cannot prove a working Visor.
+  Combat has a scoped reconstructed rifle aim resolver; native target filters,
+  replicated locks and Helix steering are still absent. This does not complete
+  Tactical Visor acceptance.
 - Combat._damage applies health pools directly. It has no shared resolution
   for barriers, Deflect, Defense Matrix, invulnerability or control effects.
 - Ultimate charge in driver.py is still a configurable timed surrogate;
@@ -52,8 +73,10 @@ Concrete implementation gaps
   lane's baseline 100c66c. No placeholder renamed NPC is an acceptance result.
 
 Validation checkpoint (external runtime read-only, source cwd/PYTHONPATH set)
-- 5 new lane tests pass (wall test includes four player/NPC + side cases).
-- 28 game combat, 37 projectile and 12 script ability tests pass.
+- 15 lane tests pass, including player/generic NPC acquisition and active-death
+  attack rejection; wall test includes four player/NPC + side cases.
+- 28 game combat, 37 projectile, 12 script ability and 2 Sprint movement tests
+  pass (94 total).
 - Ruff and git diff --check pass. No original-client evidence is claimed.
 
 Integration/publication

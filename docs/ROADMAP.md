@@ -15,9 +15,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 ## Project-wide checklist
 
 - [ ] Accept Soldier: 76 against enemy players and all five manual PvE NPCs,
-  including every skill, ultimate and cross-hero interaction. Static Helix
-  splash occlusion has server pool tests; targeting/protection mechanisms and
-  original-client acceptance remain open. See [Soldier lane](SOLDIER_COMBAT_LANE.txt).
+  including every skill, ultimate and cross-hero interaction. Static Helix and
+  melee occlusion, cooldown recovery, field healing and reconstructed rifle
+  Visor acquisition have pool tests. Native targeting/protection, five actual
+  NPCs and original-client acceptance remain open. See [Soldier lane](SOLDIER_COMBAT_LANE.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

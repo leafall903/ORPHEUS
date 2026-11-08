@@ -9,7 +9,7 @@ import unittest
 from test_game_combat import Run, aim
 
 from ow174.game import bots, combat, stats
-from ow174.game.collision import World
+from ow174.game.collision import World, flat_world
 from ow174.game.commands import Command
 from ow174.game.content import SOLDIER
 
@@ -54,6 +54,234 @@ class SoldierCombatLaneTests(unittest.TestCase):
             fight.tick += 1
             fight._fly(rocket)
         self.fail("projectile did not terminate")
+
+    def input(self, run, soldier, buttons=0, yaw=0, pitch=0):
+        """Run authored input, consume its actual reports and advance shared effects."""
+        frame = soldier.body_script.frame + 1
+        fight = run.match.combat
+        soldier.body_script.command(frame, buttons)
+        fight.command(soldier, Command(frame, yaw=yaw, pitch=pitch, buttons=buttons))
+        fight.update(frame * combat.TICK, frame, frames=False)
+
+    def test_melee_hit_miss_range_team_and_static_wall(self):
+        for z, ally, wall, expected in (
+            (-1.5, False, False, 170), (-1.5, True, False, 200),
+            (2.0, False, False, 200), (-1.5, False, True, 200),
+        ):
+            with self.subTest(z=z, ally=ally, wall=wall):
+                run, soldier, other = self.arena()
+                other.mover.position = (0.0, 0.0, z)
+                if ally:
+                    other.team = soldier.team
+                if wall:
+                    run.match.collision_world = World([
+                        (-10, -10, -2, 10, -10, -2, 10, 10, -2),
+                        (-10, -10, -2, 10, 10, -2, -10, 10, -2),
+                    ])
+                pool = self.vitals(run, other)
+                self.input(run, soldier, 0x800)
+                for _ in range(40):
+                    self.input(run, soldier)
+                self.assertEqual(pool.total, expected)
+
+    def test_melee_cooldown_rejects_repress_until_recovered(self):
+        run, soldier, other = self.arena()
+        other.mover.position = (0.0, 0.0, -1.5)
+        pool = self.vitals(run, other)
+        self.input(run, soldier, 0x800)
+        self.input(run, soldier)
+        self.input(run, soldier, 0x800)
+        for _ in range(40):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 170)
+        for _ in range(30):
+            self.input(run, soldier)
+        self.input(run, soldier, 0x800)
+        for _ in range(40):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 140)
+
+    def test_helix_cooldown_repress_cannot_damage_until_six_seconds(self):
+        run, soldier, other = self.arena()
+        other.mover.position = (0.0, 0.0, 1.0)
+        pool = self.vitals(run, other)
+        self.input(run, soldier, 2)
+        for _ in range(20):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 80)
+        pool.heal(120)
+        self.input(run, soldier, 2)
+        for _ in range(20):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 200)
+        for _ in range(360):
+            self.input(run, soldier)
+        self.input(run, soldier, 2)
+        for _ in range(20):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 80)
+
+    def test_authored_field_heals_over_time_expires_and_rejects_cooldown_repress(self):
+        run, soldier, other = self.arena()
+        run.match.collision_world = flat_world(0.0)
+        other.team = soldier.team
+        other.mover.position = soldier.mover.position
+        own, ally = self.vitals(run, soldier), self.vitals(run, other)
+        own.damage(199)
+        ally.damage(199)
+        self.input(run, soldier, 0x10)
+        for _ in range(120):
+            self.input(run, soldier)
+        self.assertGreater(own.total, 1)
+        self.assertGreater(ally.total, 1)
+        self.assertEqual(own.total, ally.total)
+        self.input(run, soldier, 0x10)  # still cooling down; no second field
+        for _ in range(330):
+            self.input(run, soldier)
+        self.assertFalse(run.match.combat.projectiles.shots)
+        self.assertLess(own.total, 200)  # one field cannot restore 199 HP
+        self.assertAlmostEqual(own.total, 175.72, places=5)  # 312 healing ticks at 35 HP/s
+        stopped = own.total
+        for _ in range(40):
+            self.input(run, soldier)
+        self.assertEqual(own.total, stopped)
+        for _ in range(510):
+            self.input(run, soldier)
+        self.input(run, soldier, 0x10)
+        for _ in range(120):
+            self.input(run, soldier)
+        self.assertGreater(own.total, stopped)
+
+    def start_visor(self, run, soldier):
+        script = soldier.body_script
+        script.ult_seconds = 0  # isolate active-use tests from the existing timed surrogate
+        script.set_ult_charge(script.component.vars[338].value())
+        self.input(run, soldier, 0x20)
+        self.assertEqual(script.component.vars[342].value(), 0)
+        for _ in range(80):
+            self.input(run, soldier)
+
+    def test_visor_acquires_off_axis_enemy_player_and_npc_only_while_active(self):
+        for npc in (False, True):
+            with self.subTest(npc=npc):
+                run, soldier, other = self.arena()
+                other.mover.position = (3.0, 0.0, 3.0)
+                victim = other
+                if npc:
+                    other.spawned = False
+                    victim = self.add_bot(run, other.team, other.mover.position)
+                pool = self.vitals(run, victim)
+                self.input(run, soldier, 1)  # unassisted ray misses
+                self.input(run, soldier)
+                self.assertEqual(pool.total, 200)
+                self.start_visor(run, soldier)
+                self.input(run, soldier, 1)
+                self.assertEqual(pool.total, 180)
+                for _ in range(400):
+                    self.input(run, soldier)
+                self.input(run, soldier, 1)
+                self.assertEqual(pool.total, 180)  # expired: the same ray misses again
+
+    def test_visor_rejects_allied_dead_occluded_out_of_range_and_outside_cone(self):
+        for case in ("ally", "dead", "wall", "range", "cone"):
+            with self.subTest(case=case):
+                run, soldier, other = self.arena()
+                other.mover.position = (3.0, 0.0, 3.0)
+                if case == "ally":
+                    other.team = soldier.team
+                elif case == "range":
+                    other.mover.position = (3.0, 0.0, 50.0)
+                elif case == "cone":
+                    other.mover.position = (10.0, 0.0, -1.0)
+                elif case == "wall":
+                    run.match.collision_world = World([
+                        (-10, -10, 0, 10, -10, 0, 10, 10, 0),
+                        (-10, -10, 0, 10, 10, 0, -10, 10, 0),
+                    ])
+                pool = self.vitals(run, other)
+                if case == "dead":
+                    pool.died_at = run.match.combat.now
+                self.start_visor(run, soldier)
+                self.input(run, soldier, 1)
+                self.assertEqual(pool.total, 200)
+
+    def test_visor_cannot_acquire_without_full_charge_or_before_activation_delay(self):
+        run, soldier, other = self.arena()
+        other.mover.position = (3.0, 0.0, 3.0)
+        pool = self.vitals(run, other)
+        script = soldier.body_script
+        script.ult_seconds = 0
+        script.set_ult_charge(0)
+        self.input(run, soldier, 0x20)
+        self.input(run, soldier, 1)
+        self.assertEqual(pool.total, 200)
+        self.input(run, soldier)
+        script.set_ult_charge(script.component.vars[338].value())
+        self.input(run, soldier, 0x20)
+        self.input(run, soldier, 1)
+        self.assertEqual(pool.total, 200)
+        for _ in range(80):
+            self.input(run, soldier)
+        self.input(run, soldier, 1)
+        self.assertEqual(pool.total, 180)
+
+    def test_death_during_visor_prevents_rifle_helix_melee_and_field_inputs(self):
+        run, soldier, other = self.arena()
+        other.mover.position = (0.0, 0.0, -1.5)
+        self.start_visor(run, soldier)
+        fight = run.match.combat
+        victim = next(target for target in fight._targets() if target.owner is soldier)
+        fight._damage(other, victim, 200, False, None, fight.tick)
+        self.assertTrue(fight.is_dead(soldier))
+        pool = self.vitals(run, other)
+        self.input(run, soldier, 1 | 2 | 0x800 | 0x10)
+        for _ in range(80):
+            self.input(run, soldier)
+        self.assertEqual(pool.total, 200)
+        self.assertFalse(fight.rockets)
+        self.assertFalse(fight.projectiles.shots)
+
+    def test_rifle_body_critical_far_falloff_miss_ally_and_wall_change_real_pools(self):
+        for case, expected in (("body", 180), ("head", 160), ("far", 194),
+                               ("miss", 200), ("ally", 200), ("wall", 200)):
+            with self.subTest(case=case):
+                run, soldier, other = self.arena()
+                other.mover.position = (0.0, 0.0, 57.0 if case == "far" else 1.0)
+                if case == "ally":
+                    other.team = soldier.team
+                if case == "wall":
+                    run.match.collision_world = World([
+                        (-10, -10, 0, 10, -10, 0, 10, 10, 0),
+                        (-10, -10, 0, 10, 10, 0, -10, 10, 0),
+                    ])
+                height = 1.55 if case == "head" else 1.0
+                yaw, pitch = aim(run.match.combat._eye(soldier),
+                                 (0.0, height, other.mover.position[2]))
+                if case == "miss":
+                    yaw = 16384
+                pool = self.vitals(run, other)
+                self.input(run, soldier, 1, yaw, pitch)
+                self.assertAlmostEqual(pool.total, expected, places=5)
+
+    def test_rifle_empty_magazine_and_reload_prevent_extra_damage(self):
+        run, soldier, other = self.arena()
+        other.mover.position = (3.0, 0.0, 3.0)  # deliberate miss while draining ammo
+        pool = self.vitals(run, other)
+        rifle = soldier.body_script.component.instances[11]
+        for _ in range(204):
+            self.input(run, soldier, 1)
+        self.assertEqual(rifle.vars[53].value(), 0)
+        yaw, pitch = aim(run.match.combat._eye(soldier), (3.0, 1.0, 3.0))
+        self.input(run, soldier)
+        self.input(run, soldier, 1, yaw, pitch)
+        self.assertEqual(pool.total, 200)  # no ammunition, despite an aimed press
+        self.input(run, soldier, 4)  # reload
+        for _ in range(150):
+            self.input(run, soldier)
+        self.assertEqual(rifle.vars[53].value(), 30)
+        self.input(run, soldier, 1, yaw, pitch)
+        self.assertEqual(pool.total, 180)
+        self.assertEqual(rifle.vars[53].value(), 29)
 
     def test_wall_impact_keeps_front_splash_and_blocks_rear_players_and_npcs(self):
         for npc in (False, True):

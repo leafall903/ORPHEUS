@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Soldier static skill acceptance checkpoint
+
+- Reconstruct rifle Visor acquisition from active 0259 search nodes using the
+  authored 45 m radius and 45 degree cone. Honor activation delay/expiry and
+  team/dead/static-LOS filtering; use explicit capsule-centre and angle/distance
+  ranking policy. Native filters/scoring, target-list replication, Helix steering
+  and original-client lock effects remain open. Timed charge is still a surrogate.
+- Reject quick melee through static collision. Add actual damage and healing
+  tests for melee/Helix cooldown rejection and recovery, Field deployment/35 HP/s
+  healing/expiry/repress/recovery, Visor off-axis player/generic-NPC damage and
+  invalid targets, startup/expiry, and death during ultimate rejecting attacks.
+- Add actual rifle body/critical/falloff and miss/ally/wall tests, plus magazine
+  exhaustion preventing aimed fire until reload and resumed ammo consumption.
+- Pass 94 tests (15 lane, 28 combat, 37 projectile, 12 ability, 2 Sprint movement),
+  Ruff and diff checks. Full static goal remains active: five actual NPCs,
+  cross-hero protection/control, charge fidelity and remaining matrix rows are
+  unaccepted. Client combat is separate and entirely open. Private lane only.
+
 #### Soldier lane static splash occlusion
 
 - Stop Helix splash through static collision for players and NPCs. Probe the
