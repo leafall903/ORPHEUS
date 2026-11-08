@@ -7,10 +7,84 @@ reconstructions. The charge target queries below are a limited world adapter;
 barriers and other defensive services remain separate acceptance items.
 """
 
+import math
+
 from ow174.game.script import expr, graph
 
 HERO = 0x02E0000000000016
 WEAPON = 0x157C
+
+
+def play_transit_script(world, instance, node):
+    """Continue only 15F5's authored own-body 1647 invocation.
+
+    Portal eligibility and the intervening 54FEB21C host signal remain external.
+    This does not supply the generic native PlayScript target/policy service.
+    """
+    if world.match is None or instance.graph.index != 0x15F5 or node.pos != 10:
+        return NotImplemented
+    target = instance.evaluate(node.field("m_targets"))
+    definition = instance.evaluate(node.field("m_script"))
+    if target != expr.Entity(world.body) or definition != expr.Asset(0x0580000000001647):
+        return NotImplemented
+    params = tuple((int(row["m_B5051BCE"], 16), instance.evaluate(row["m_value"]))
+                   for row in node.field("m_params"))
+    destination = next(value for key, value in params if key == 0x0A40000000000078)
+    if not isinstance(destination, expr.Vec3):
+        return False
+    source = expr.to_entity(instance.find_var(graph.INSTANCE, 40).value())
+    return instance.component.play_loaded_graph(
+        graph.graph(0x1647), source=source, params=params, policy=1, instigator=source) is not None
+
+
+def teleport_body(world, instance, node):
+    """Execute 1647's own-body relocation with explicit graph entry inputs.
+
+    The portal's placement, pair membership and transit admission are separate
+    services. Preserve current orientation/velocity as this authored action asks.
+    Discontinuity/history handling is a reconstructed server policy.
+    """
+    if world.match is None or instance.graph.index != 0x1647 or node.pos != 1:
+        return NotImplemented
+    if world.match.ended:
+        return False
+    target = node.field("m_target")
+    rotation, velocity = node.field("m_E3779CD0"), node.field("m_C0EDD7EC")
+    if (not isinstance(target, dict) or target.get("$") != "STU_B5A0CAF0"
+            or not isinstance(rotation, dict) or rotation.get("$") != "STU_C8C4C20D"
+            or not isinstance(velocity, dict) or velocity.get("$") != "STU_40AC5AE4"
+            or rotation.get("m_entity") != target or velocity.get("m_entity") != target):
+        return NotImplemented
+    destination = instance.evaluate(node.field("m_AF774F7D"))
+    if (not isinstance(destination, expr.Vec3)
+            or not all(math.isfinite(expr.f32(v)) for v in (destination.x, destination.y, destination.z))):
+        return False
+    player = next((p for p in world.match.players if p.body == world.body), None)
+    if (player is None or player.gone or not player.spawned or not player.has_body
+            or player.client is None or world.match.combat.is_dead(player)):
+        return False
+    from ow174.game.mover import quantise
+
+    mover = player.mover
+    try:
+        position = [quantise(v) for v in (destination.x, destination.y, destination.z)]
+    except (OverflowError, ValueError):
+        return False
+    mover.position = position
+    if mover.body is not None:
+        x, y, z = mover.position
+        mover.body.teleport((x, expr.f32(y + mover._lift()), z))
+    frame = instance.component.now // instance.component.frame_ms
+    snapshot = mover.snapshot(frame)
+    if mover.history and mover.history[-1].frame == frame:
+        mover.history[-1] = snapshot
+    else:
+        mover.history.append(snapshot)
+    # Never interpolate an ordinary hit trace across the teleport distance.
+    fight = world.match.combat
+    fight.history.pop(world.body, None)
+    fight.record_replacement(world.body)
+    return True
 
 
 def target_query(world, cfg, instance):

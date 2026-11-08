@@ -102,6 +102,8 @@ Sentry turret       PARTIAL: real input launches/attaches/boots; health, beams,
 Teleporter          OPEN: valid/invalid placement, two ends, allied transit,
                     enemies denied transit, enemy destruction, health,
                     duration/cancel/death/range and cooldown lifecycle.
+                    Shared 15F5->1647 relocation has declared-input evidence;
+                    this does not prove actual use eligibility or placement.
 Photon Barrier      OPEN: ultimate charge/cost, release/orientation, infinite
                     plane bounds, team filtering, health, duration, death,
                     destruction, client entities/effects and all attacks.
@@ -164,3 +166,31 @@ Primary charge/decay query adapter
   The extra five-NPC case keeps original maxima, capsules and graphs and heals
   each measured hit explicitly so low-HP targets survive to the third level.
   This does not add NPC attack AI, shield interception or defense fidelity.
+
+Teleporter shared relocation action (declared inputs only)
+- Actual 1571 ability/state23 begins placement States39/40. The original create
+  actions3/70 name 272D/26F2; their native hosting is not supplied. 157D's track
+  radius is1.5m and it invokes15F5 on eligible targets; its native acquisition,
+  filtering and callback services remain open.
+- 15F5 uses logical button30 (command bit4), then depends on54FEB21C and
+  code/trigger-State550D0C5C services. An isolated input probe reaches these
+  service boundaries, not a completed teleport. Do not replace their signals
+  with guessed timers. Its own-body PlayScript action10 names1647 and carries
+  destination0078, pair055A and cooldown0619 parameters.
+- 1647 action1/CFCE55DC previously did nothing. The new explicit BodyWorld host
+  handles only that graph/action and self-target transform profile. With finite
+  declared destination it moves the same mover and CharacterBody, preserving
+  current yaw/pitch/velocity, and replaces the current pose snapshot. Old combat
+  history is discarded and a discontinuity boundary prevents interpolation
+  across the jump. These transform/history policies are server reconstructions;
+  their exact native behavior remains unverified.
+- Nine tests cover actual authored entries, 15F5->1647 parameter binding, known
+  position lookup, Symmetra/another hero, physics/next-command persistence,
+  pose/velocity/orientation, discontinuity, invalid inputs, death, match end and
+  unsupported profiles. Tests supply admitted entry inputs explicitly. They
+  do not establish actual paired actors, team/range/collision admission, use
+  cooldown, deployment/cancellation, endpoint health/destruction or lifetime.
+- 1571 initializes469=50 and8994=350 and passes them as158E parameters008F/03D1.
+  Entity records independently have0033 pool defaults. The meaning and runtime
+  effect of those extra parameters are unresolved; do not assume that8994 is
+  a shield pool or replace the actor's pool maximum from its number alone.

@@ -449,6 +449,14 @@ class World:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
+    def teleport_body(self, instance: "Instance", node: Node):
+        """A world host must explicitly supply body/physics relocation."""
+        return NotImplemented
+
+    def play_body_script(self, instance: "Instance", node: Node):
+        """Optional permissive body host; strict PlayScript uses its native backend."""
+        return NotImplemented
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
 

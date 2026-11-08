@@ -136,6 +136,12 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == "STU_71A87E92" and instance.graph.index == 0x15F5 and self.match is not None:
+            target = instance.evaluate(cfg.get("m_entity"))
+            if isinstance(target, Entity):
+                position = self.match.script_body_position(target.id, self.body)
+                if position is not None:
+                    return Vec3(*position)
         if cls in {"STU_E72F6348", "STU_AC829876"}:
             from ow174.game import symmetra
 
@@ -191,6 +197,16 @@ class BodyWorld(runtime.World):
                 and match.queue_body_message(target, message, params, sender)):
             return
         super().send_message(target, message, params, sender)
+
+    def teleport_body(self, instance, node):
+        from ow174.game import symmetra
+
+        return symmetra.teleport_body(self, instance, node)
+
+    def play_body_script(self, instance, node):
+        from ow174.game import symmetra
+
+        return symmetra.play_transit_script(self, instance, node)
 
 
 @dataclass

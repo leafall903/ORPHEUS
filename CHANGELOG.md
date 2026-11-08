@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-09
+
+#### Symmetra shared transit action (declared inputs only)
+
+- Add an explicit world-host hook for 1647's CFCE55DC own-body relocation.
+  Previously this action followed its output without moving the server body.
+  Update the existing mover, physics proxy and current pose; preserve velocity
+  and orientation. Prevent lag-compensation interpolation across the jump with
+  a reconstructed discontinuity boundary. Reject dead/retired bodies, ended
+  matches and invalid destinations without mutating their transform.
+- Continue only the authored 15F5/node10 own-body PlayScript into 1647 and
+  resolve its position query for registered bodies. Generic strict PlayScript
+  still requires its explicit native backend; unrelated permissive calls keep
+  their previous behavior.
+- Pass 57 combined transit/primary/base/driver tests, nine final transit tests,
+  136 runtime/ability/PlayScript/body-VM snapshot tests and 542 game regressions.
+  Ruff and whitespace checks pass.
+- Transit fixtures supply declared admitted entry inputs. They do not supply
+  placement, actual paired actors, trigger/code signals, team/range eligibility,
+  endpoint damage/lifetime or cooldown. Native transform-input interpretation
+  and discontinuity policy still require evidence. Teleporter and full static
+  hero acceptance remain open; no client use, shared merge or publication.
+
 ### 2026-11-08
 
 #### Symmetra primary charge and decay world queries

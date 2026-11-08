@@ -41,6 +41,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     including five NPCs. Client Pet reconciliation and surface hit geometry,
     armor cadence/barrier refill, other deployables, ultimate and cross-hero/five-NPC
     matrices remain open. Original-client acceptance is separate and pending.
+    Teleporter's 15F5-to-1647 shared action now relocates actual mover/physics
+    state with declared admitted inputs; placement/pairing/use gates and endpoint
+    lifecycle remain open, so this does not complete teleporter acceptance.
     See [Symmetra combat](SYMMETRA_COMBAT.txt).
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
