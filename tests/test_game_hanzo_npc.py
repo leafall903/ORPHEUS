@@ -156,25 +156,28 @@ class HanzoCatalogNpcTests(unittest.TestCase):
     def test_static_wall_blocks_direct_attacks(self):
         self.exercise("wall")
 
-    def test_authored_npc_fire_hit_miss_faction_and_wall(self):
-        # A declared logical fire edge bridges the missing AI selector. The real
-        # NPC body graphs, volleys and Combat damage path execute; navigation,
-        # acquisition, special attacks and client transport are not established.
+    def test_authored_npc_controller_hit_range_faction_and_wall(self):
+        # The public reconstructed manual controller supplies actual slot input
+        # and aim. Native autonomous acquisition/specials remain unestablished.
         for key, hit_health in (("1", 20), ("3", 100), ("5", 0)):
             definition = self.catalog[key]
-            for situation in ("hit", "miss", "ally", "wall"):
+            for situation in ("hit", "range", "ally", "wall"):
                 with self.subTest(npc=definition.name, situation=situation):
-                    run, hero, bot = self.arena(definition, "bow", situation)
+                    run, hero, bot = self.arena(
+                        definition, "bow", "hit" if situation == "range" else situation,
+                    )
                     bot.firing = True
-                    bot.yaw = -16384 if situation == "miss" else -32768
-                    bot.body_script.component.edges([(20, True)])
+                    bot.attack_target = hero.entity
+                    if situation == "range":
+                        hero.mover.position[:] = (bot.position[0], bot.position[1], bot.position[2] + 110)
+                        hero.mover.body = None
                     fight = run.match.combat
                     target = next(t for t in fight._targets() if t.owner is hero)
                     vitals = fight.vitals_of(target)
                     with patch.object(fight, "_shoot", wraps=fight._shoot) as fire:
                         for _ in range(200):
                             run.step({})
-                    self.assertTrue(fire.called)
+                    self.assertEqual(fire.called, situation == "hit")
                     self.assertIsNotNone(bot.body_script)
                     expected = hit_health if situation == "hit" else 200
                     self.assertEqual(vitals.total, expected)

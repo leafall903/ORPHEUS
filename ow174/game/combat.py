@@ -456,6 +456,9 @@ class Combat:
             return
         component = script.component
         component.edges([(value, False) for value in tuple(component.held)])
+        from ow174.game import hanzo_control
+
+        hanzo_control.interrupt(script)
         for instance in list(component.instances.values()):
             for state in list(instance.states.values()):
                 if isinstance(state, nodes.Ability):

@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Hanzo Flashbang interruption and manual ultimate cleanup
+
+- Privately import reviewed parent engagement, canonical visibility and
+  Flashbang commitsfbcaf767/7cd1ed7/64bf71c; preserve lane projectile physics,
+  critical/piercing/source identity, dragon and movement changes. Move incoming
+  Trooper/Sniper/Heavy fixtures onto real reconstructed controller input/aim;
+  hit,110m range refusal, ally and wall cases pass. Native AI remains open.
+- Standard Ability.stop missed Hanzo0101's manual duration phases. Actual
+  Flashbang could therefore leave a delayed ultimate arrow after control ended.
+  Add a scoped reconstructed cancellation of active cast states/timers/stacks,
+  preserving permanent guards and spent charge. A separately refilled new cast
+  works; complete projectile/control combinations remain open.
+- Five actual-control scenarios cover bow cancellation/recovery, Lunge stop,
+  a still-active wall-facing climb at impact, manual ultimate interruption and
+  recast, and the distinct prepared Sonic-retained/Storm-cancelled resource paths.
+  These record reconstructed host behavior, not native immunity/224E parity.
+- Pass608 game tests with explicit NPC/profile inputs and42 shared melee,
+  Flashbang, VM/server snapshot checks. After strengthening the climb fixture,
+  all five control scenarios pass again. Ruff/diff checks pass. Full static
+  acceptance remains OPEN: native control/cleanse/stacking, full cross-hero/NPC
+  matrix, remaining skills/charge rules and original-client agreement. No root
+  integration, shared-runtime changes, client controls or publication.
+
 #### Reconstructed Hanzo wall-climb contact and lifetime host
 
 - Drive active010C/node21 through its actual held-jump/disable gates and the

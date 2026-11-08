@@ -95,6 +95,26 @@ Reconstructed wall-climb host (test_game_hanzo_climb.py):
   fidelity, slopes/moving surfaces/body collision, incoming control/knockback,
   all five NPC special/defensive cases and original-client agreement remain OPEN.
 
+Actual incoming Flashbang under reconstructed host control (test_game_hanzo_control.py):
+- Privately import parentfbcaf767,7cd1ed7,64bf71c. Preserve the lane's ballistic
+  range/gravity/critical/piercing/source-identity and dragon host changes. Reuse
+  canonical eye-to-capsule visibility and explicit world-tick stun deadlines.
+- Actual McCree input removes25HP and applies the source0.8s control branch.
+  Draw cancellation produces no release damage; fresh post-control draw works.
+  Lunge loses horizontal movement and ignores jump input while controlled.
+  A wall-facing fixture records climbing still active immediately before the
+  actual Flashbang effect, then verifies retirement/fall without a turn-away
+  confound. Held jump does not restart the climb during control.
+  Prepared Sonic Arrow remains selected while Storm Arrows cancels under the
+  current resource/Ability host path; record this distinction, not native parity.
+- The manual0101 duration phases previously survived standard Ability.stop and
+  emitted an arrow after stun expiry. An explicit Hanzo-only interruption host
+  aborts live cast states/timers/stacks while retaining permanent guards. Charge
+  remains spent; a separately GM-refilled fresh cast executes normally afterward.
+- Native immunity/cleanse/stacking/unstoppable semantics, complete timing and
+  projectile/dragon/control combinations, all other cross-hero/NPC specials and
+  original-client status/HUD/animation/audio agreement remain OPEN.
+
 Reconstructed initial Dragonstrike (test_game_hanzo_ultimate.py):
 - The literal1s/1.2s phases on0101 nodes29/37 now expire in the permissive body
   path. This is reconstructed server timing, not native54FEB21C semantics.
@@ -154,10 +174,11 @@ Explicit five-NPC fixtures (test_game_hanzo_npc.py):
   sonic125, five Storm Arrows totaling350 (clamped at death) and melee30.
   Ally, off-axis and static-wall cases lose no health. Dead bodies have terminal
   script callbacks, no respawn deadline and remain after1000 skipped ticks.
-- A declared logical fire edge bridges missing AI selection. Actual Trooper,
-  Sniper and Heavy Assault graphs produce volleys and damage Hanzo through the
-  shared Combat path. After200 ticks their hit cases leave20/100/0HP; miss,
-  ally and wall cases leave200HP. This does not establish AI or specials.
+- The public reconstructed manual controller now supplies actual slot input and
+  target aim. Trooper, Sniper and Heavy Assault graphs damage Hanzo through the
+  shared Combat path. After200 ticks hit cases leave20/100/0HP; explicit110m
+  out-of-range, ally and wall cases refuse firing and leave200HP. These12 cases
+  replace the older fixed-yaw/fire-edge fixture; native AI/specials remain OPEN.
 - BotScript previously omitted weapon manager/slot graphs. Initializing those
   authored graphs restores Sniper's actual volley and100 damage. Fixture death
   callbacks are recorded, and real NPC projectile transport ACKs are absent.

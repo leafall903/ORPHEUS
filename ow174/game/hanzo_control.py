@@ -1,0 +1,28 @@
+"""Explicit reconstructed interruption of Hanzo's manual ultimate cast.
+
+0101's54FEB21C phases are not standard Ability states. Flashbang cancellation
+must also retire their cast states; otherwise the delayed volley survives the
+control window. This host policy is not native224E execution or immunity logic.
+"""
+
+HANZO = 0x02E0000000000005
+
+
+def interrupt(script):
+    if script is None or getattr(script, "hero", None) != HANZO:
+        return
+    progress = script.world.hanzo_climb
+    if progress is not None:
+        progress.active = False
+        script.component.set(1204, False)
+    for instance in list(script.component.instances.values()):
+        if instance.graph.index != 0x0101:
+            continue
+        if not any(state.active and state.node.pos in (29, 37)
+                   for state in instance.states.values()):
+            continue
+        # Preserve the permanent button/availability/animation guards. Abort the
+        # current cast's phases, stacks, presentation and timers through State.end.
+        for state in list(instance.states.values()):
+            if state.active and state.node.pos not in (1, 2, 54):
+                state.end(False)
