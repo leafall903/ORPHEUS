@@ -35,6 +35,7 @@ _RUNTIME_FIELDS = {
 _CONFIG_MODULES = (
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.genji", "ow174.game.heroselect",
+    "ow174.game.interception", "ow174.game.npc_control", "ow174.game.npc_console",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.npc", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
     "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",

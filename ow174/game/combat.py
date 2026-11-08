@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, interception, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -868,6 +868,7 @@ class Combat:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
         travelled = 0.0
         for bounce in range(8):  # bounded reconstructed multi-Deflect interaction
+            absorbed = interception.absorption(self, shooter, direct, origin, direction, reach)
             best = None
             for target in self._enemies(shooter):
                 shown = self.seen(target, view_tick)
@@ -877,6 +878,12 @@ class Combat:
                 t = ray_capsule(origin, direction, a, b, shown.radius)
                 if t is not None and t <= reach and (best is None or t < best[0]):
                     best = (t, target, shown)
+            if absorbed is not None and (best is None or absorbed[0] <= best[0]):
+                distance, state = absorbed
+                wall = ray_world(self._collision(), origin, direction, distance)
+                if wall is None or wall >= distance:
+                    interception.absorbed(state, direct.amount * direct.scale(travelled + distance))
+                return
             if best is None:
                 return
             t, target, shown = best
@@ -914,6 +921,9 @@ class Combat:
             return
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
+        absorbed = interception.absorption(
+            self, rocket.shooter, rocket.direct, rocket.position, rocket.direction, step,
+        )
         best = None
         for target in self._enemies(rocket.shooter):
             a, b = target.segment()
@@ -923,6 +933,14 @@ class Combat:
         wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
+        if absorbed is not None and (best is None or absorbed[0] <= best[0]):
+            if rocket in self.rockets:
+                self.rockets.remove(rocket)
+            if rocket.shot is not None:
+                self.projectiles._end(rocket.shot, self.tick, False)
+            amount = rocket.direct.amount + (rocket.blast.amount if rocket.blast is not None else 0.0)
+            interception.absorbed(absorbed[1], amount)
+            return
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
             rocket.flown += duration

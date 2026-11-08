@@ -125,8 +125,11 @@ bundle; the normal runtime is unchanged. Six fixture tests cover20 outgoing
 attack cases (primary87/secondary87/Strike50/Blade110 for each actual body),
 Trooper/Heavy firing into Genji, and Genji reflecting their fire back for60/35
 respectively over the selected60-frame window. NPC scripts are permissive and
-transport/collision/poses are fixtures. Explicit button20/firing flags do not
-prove autonomous AI. Enforcer/Sniper/Assassin incoming attacks remain unresolved.
+transport/collision/poses are fixtures. Reviewed parent updates through7cd1ed7
+now supply manual npc_control inputs, actual weapon managers/sparse slots and
+array selection. Sniper damages Genji and ceases after explicit stop control.
+These manual controls do not prove autonomous AI. Enforcer/Assassin incoming
+attacks remain unresolved.
 Their initial pools are direct base-schema pools, not complete difficulty totals.
 Manual NPCs must opt into retain_corpse; no automatic cleanup or respawn.
 An additional fixture kills each of the five wounded real NPC bodies with
@@ -141,6 +144,18 @@ nonlethal hits, Q draw reset, recent/expired contributions and identity changes.
 Charge/contribution state and passive helper constants are part of the causal
 snapshot/model manifest. 247 combined Genji/shared VM/driver/combat/
 projectile/movement/NPC/model-manifest tests pass (247 total, not native cases).
+
+Sigma Kinetic Grasp graph1D02 now has reconstructed view-local box admission
+for eligible enemy physical/hitscan projectiles. Its active authored State1
+supplies the box bounds and absorbed-damage output/event. The actual script
+accumulates incoming amounts in21312; absorbed attacks cause no body damage,
+hit notice, contribution or damage charge. Walls and nearer enemy bodies still
+win. Strike/Blade bypass this projectile-only consumer; rear/expired/allied/dead
+volumes do not intercept. Reflection transfers ownership before later absorption.
+Actual Soldier rifle and Helix cover hitscan and direct-plus-splash suppression.
+Eligibility remains the reconstructed003BF tag contract, and the local box
+anchor/basis is inferred. Temporary shield-pool graph1D03, its60-percent gain,
+cap/decay, other absorbing heroes and actual beam exceptions remain OPEN.
 
 Original client: not exercised by this change. Existing client PID12292 and
 OWNeacClient parent33924 were observed with no lease at initial inspection;

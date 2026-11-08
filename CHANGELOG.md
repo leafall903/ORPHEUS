@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Sigma absorption against Genji attacks (partial)
+
+- Reconstruct view-local admission using active Grasp1D02 boxes and the existing
+  projectile tag contract. Deliver each absorbed amount to the authored event;
+  suppress body damage, hit feedback, contributions, charge and Helix splash.
+  Preserve nearer walls/bodies, friendly/dead/expired exclusions, Strike/Blade
+  bypass and reflection ownership before subsequent absorption.
+- Pass199 combined Genji/combat/projectile/NPC/control/model-manifest tests,
+  including14 absorption methods with actual Genji and Soldier inputs. Ruff and
+  diff checks pass. Track the interception and NPC numeric configuration aliases
+  in model identity. Native box/eligibility semantics, temporary shield-pool
+  hosting/decay, other absorbing heroes and original-client acceptance remain open.
+
 #### Genji shared NPC/control and melee dependency intake
 
 - Merge reviewed parent updates through7cd1ed7 into this isolated lane: manual
