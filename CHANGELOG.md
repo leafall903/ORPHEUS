@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Authored Sombra Camo damage interruption
+
+- Carry ModifyHealth identifier tags through hitscan, melee, projectile direct
+  and splash damage. Queue received-damage message0011.025/tag003D after
+  actual positive pool damage so the extracted body handles its own reactions.
+  Event production timing/sender are reconstructed; full event fidelity is open.
+- Add seven real-Match Camo behavior cases: enemy rifle/melee/Helix interruption,
+  zero-damage and authored excluded-tag preservation, primary-fire cancellation,
+  real movement change, cancel/cooldown rejection/expiry/reuse. Do not equate
+  these checks with implemented visibility, proximity reveal or complete Camo.
+- Pass 105 combined Sombra/combat/NPC-script/projectile regressions; Ruff and
+  staged diff checks pass. No native-client session or publication is claimed.
+- Full static Sombra acceptance remains OPEN under the independent lane goal.
+  Native-client acceptance, actual five-NPC combat, Hack, Translocator, EMP,
+  passive, headshots and dynamic defense/status interactions remain unaccepted.
+
 #### Sombra combat baseline and static melee occlusion
 
 - Reject quick melee through static collision between the eye and the rewound

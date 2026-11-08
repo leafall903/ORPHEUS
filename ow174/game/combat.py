@@ -71,6 +71,8 @@ CRITICAL, KILLING = 0x01, 0x02  # 25001 flags (unverified, see above)
 DEAD = 0x2000  # movement-state flag: dead (the 3P anim's dead pose)
 # 003E.025's parameters, by the low 16 bits of their 026 identifiers (01CF rid4).
 KILLER, CRIT, LOADOUT, ASSISTS = 0x0012, 0x0095, 0x03E6, 0x03E7
+RECEIVED_DAMAGE = 0x0240000000000011  # authored body entries; see damage_tags below
+DAMAGE_TAGS = 0x003D
 MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notices 1FC0 (client-only)
 
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
@@ -241,6 +243,7 @@ class HitDef:
     falloff_floor: float | None = None
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
+    tags: tuple[int, ...] = ()  # ModifyHealth's identifier tags, for authored damage reactions
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -277,6 +280,21 @@ def _number(value, default=None):
         return default
 
 
+def damage_tags(state, modify: dict) -> tuple[int, ...]:
+    """Evaluate the authored ModifyHealth tag array (0011.025 parameter003D).
+
+    The event's production timing is reconstructed; the receiver/tag tests and
+    the filtering actions are the extracted body's unchanged graph semantics.
+    """
+    result = []
+    for item in modify.get("m_148F3152") or ():
+        if isinstance(item, dict):
+            value = state.evaluate(item.get("m_EE3055BD"), watch=False)
+            if isinstance(value, expr.Asset):
+                result.append(value.guid)
+    return tuple(result)
+
+
 def hit_def(state, cfg) -> HitDef | None:
     """Evaluate a volley's hit definition (STU_00D9C7E1) or explosion (STU_4AA6CA44) with the shooter's
     body script."""
@@ -307,6 +325,7 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_floor=value("m_72A81154"),
         critical=value("m_A872C70E", 1.0),
         rings=tuple(sorted(rings)),
+        tags=damage_tags(state, modify),
     )
 
 
@@ -479,7 +498,10 @@ class Combat:
                     wall = ray_world(self._collision(), origin, direction, length)
                     if wall is not None and wall < length:
                         continue
-                self._damage(player, target, amount, False, loadout, command.frame)
+                self._damage(
+                    player, target, amount, False, loadout, command.frame,
+                    tags=damage_tags(state, modify),
+                )
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
@@ -700,6 +722,7 @@ class Combat:
         self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
             world_tick=self.tick if npc else None,
+            tags=direct.tags,
         )
 
     def _fly(self, rocket: Rocket) -> None:
@@ -739,6 +762,7 @@ class Combat:
             self._damage(
                 rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
                 world_tick=self.tick,
+                tags=rocket.direct.tags,
             )
         blast = rocket.blast
         if blast is None or blast.amount <= 0.0:
@@ -751,6 +775,7 @@ class Combat:
                 self._damage(
                     rocket.shooter, target, blast.amount * scalar, False, blast.loadout, self.tick,
                     world_tick=self.tick,
+                    tags=blast.tags,
                 )
 
     def _landed(self, rocket: Rocket) -> None:
@@ -797,7 +822,7 @@ class Combat:
 
     def _damage(
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
-        *, world_tick: int | None = None,
+        *, world_tick: int | None = None, tags: tuple[int, ...] = (),
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
@@ -816,6 +841,13 @@ class Combat:
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
         victim = target.owner
+        script = getattr(victim, "body_script", None)
+        component = getattr(script, "component", None)
+        if isinstance(component, runtime.Component):
+            runtime.send_message(
+                component, RECEIVED_DAMAGE,
+                {DAMAGE_TAGS: tuple(expr.Asset(tag) for tag in tags)}, _source_entity(shooter),
+            )
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick)

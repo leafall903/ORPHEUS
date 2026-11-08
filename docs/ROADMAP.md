@@ -15,9 +15,11 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 ## Project-wide checklist
 
 - [ ] Restore Sombra's complete player/five-NPC bidirectional combat and every
-  ability/ultimate/status with original-client presentation. Eleven offline Match
+  ability/ultimate/status with original-client presentation. Eighteen offline Match
   scenarios cover selected pistol/melee/pool/death behavior, including a shared
-  static melee occlusion fix. Hack, Camo, Translocator, EMP, headshots, dynamic
+  static melee occlusion fix and authored damage-triggered Camo interruption.
+  Camo movement/cancel/cooldown gates have partial evidence. Hack, full Camo,
+  Translocator, EMP, headshots, dynamic
   defenses, actual five-NPC combat and native acceptance remain open. See
   [Sombra combat restoration](SOMBRA_COMBAT.txt).
 

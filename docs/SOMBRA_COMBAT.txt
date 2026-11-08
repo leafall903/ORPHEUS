@@ -3,7 +3,7 @@ Target: 1.74.0.0.104319; hero02E000000000012E; body040000000000121C.
 
 Evidence scope
 --------------
-The eleven tests in tests/test_game_sombra_combat.py run the extracted Sombra
+The eighteen tests in tests/test_game_sombra_combat.py run the extracted Sombra
 graphs in a real Match, consume command/button input and assert health, ammo,
 notices, death flags and statistics. FakeClient acknowledges delivery immediately;
 this is offline server behavior, not a native-client presentation/transport proof.
@@ -29,7 +29,7 @@ Machine Pistol headshots          -          -       -       -       -       -
 Quick melee/repeated activation   O          -       -       -       -       -
 Taking damage/death/dead fire     O          -       -       -       -       -
 Hack/channel/interrupt/lockout    -          -       -       -       -       -
-Camo/speed/visibility/reveal      -          -       -       -       -       -
+Camo/speed/visibility/reveal      O          -       -       -       -       -
 Translocator/flight/recall        -          -       -       -       -       -
 EMP/charge/cast/hack/pool effects -          -       -       -       -       -
 Opportunist/passive detection     -          -       -       -       -       -
@@ -47,6 +47,14 @@ Additional applicable interactions:
   into enemy damage and no ally-target filter is widened by this change.
 - Open: actual owner/observer HUD, reticle, beam, visibility, animation, sound,
   hit/kill feed delivery and prediction agreement in the original client.
+- O: Camo's actual movement exceeds7m in60 forward-input frames after its
+  entry transition. Cancellation starts cooldown, a fresh press during cooldown
+  is rejected, and a fresh press after expiry starts it again. Primary fire
+  exits Camo and then spends ammo/deals damage. Real enemy rifle, melee and
+  Helix hits now interrupt Camo through the original graph, starting cooldown.
+  Zero damage does not interrupt. Authored excluded tag191F is preserved and
+  causes real10-point damage without exiting Camo. Visibility/proximity reveal
+  and status cleanup still remain open; speed evidence is not invisibility proof.
 
 Authored data versus reconstruction
 ----------------------------------
@@ -62,6 +70,14 @@ The shared melee fix adds a static ray to the rewound capsule's nearest surface
 along its axis. It uses existing collision geometry, not a fabricated game asset.
 This is a reconstructed visibility policy. The original melee volume, partial
 cover, dynamic barriers and native-client agreement remain open.
+
+The receiving-damage event0011.025 and tag parameter003D are identified by the
+authored entries/contains predicates. Combat now preserves ModifyHealth tags
+for hitscan, melee, projectile direct and splash damage, and queues the event
+only when pools really lose health/shield/armour. The event production clock,
+sender and ordering are reconstructed. Other event parameters and complete
+native damage-event fidelity are not established. No graph is forcibly stopped
+and the191F exception follows the original authored Camo branches.
 
 Implementation blockers
 -----------------------

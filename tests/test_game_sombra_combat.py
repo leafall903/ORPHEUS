@@ -6,8 +6,9 @@ from test_game_combat import KANEZAKA_DM, Run, aim
 
 from ow174.game import combat, stats
 from ow174.game.collision import World
-from ow174.game.commands import FIRE
+from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
+from ow174.game.script import expr
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, SHIELDS_POOL
 
 SOMBRA = 0x02E000000000012E
@@ -53,6 +54,92 @@ class SombraCombatTests(unittest.TestCase):
 
     def weapon(self):
         return next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0B1B)
+
+    def camo(self):
+        return next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0C9B)
+
+    def test_camo_taking_actual_enemy_damage_ends_the_ability(self):
+        self.press(8)
+        self.press(0, 60)
+        ability = self.camo().state(13)
+        self.assertTrue(ability.flags & ability.RUNNING)
+        self.press(FIRE, shooter=self.b, target=self.a)
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 180)
+        self.assertFalse(ability.flags & ability.RUNNING)
+        self.assertGreater(ability.remaining(), 0)
+
+    def test_authored_excluded_damage_tag_does_not_end_camo(self):
+        self.press(8)
+        self.press(0, 60)
+        ability = self.camo().state(13)
+        fight = self.run.match.combat
+        target = next(t for t in fight._targets() if t.owner is self.a)
+        excluded = 0x0D8000000000191F  # both authored Camo damage-entry branches exclude this tag
+        fight._damage(self.b, target, 10, False, None, self.run.frame, tags=(excluded,))
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 190)
+        self.assertTrue(ability.flags & ability.RUNNING)
+        self.assertEqual(self.camo().vars[510].value(), (expr.Asset(excluded),))
+
+    def test_zero_damage_does_not_produce_a_camo_interrupt(self):
+        self.press(8)
+        self.press(0, 60)
+        fight = self.run.match.combat
+        target = next(t for t in fight._targets() if t.owner is self.a)
+        fight._damage(self.b, target, 0, False, None, self.run.frame)
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 200)
+        self.assertTrue(self.camo().state(13).flags & self.camo().state(13).RUNNING)
+
+    def test_primary_fire_exits_camo_and_then_deals_damage(self):
+        self.press(8)
+        self.press(0, 60)
+        self.press(FIRE, 100)
+        self.assertFalse(self.camo().state(13).flags & self.camo().state(13).RUNNING)
+        self.assertLess(self.health(self.b), 200)
+        self.assertLess(self.weapon().vars[53].value(), 60)
+
+    def test_actual_enemy_melee_interrupts_camo(self):
+        self.press(8)
+        self.press(0, 60)
+        self.press(MELEE, shooter=self.b, target=self.a)
+        self.press(0, 65)
+        self.assertEqual(self.health(self.a), 170)
+        self.assertFalse(self.camo().state(13).flags & self.camo().state(13).RUNNING)
+
+    def test_actual_enemy_helix_interrupts_camo(self):
+        self.press(8)
+        self.press(0, 60)
+        self.press(2, shooter=self.b, target=self.a)
+        self.press(0, 65)
+        self.assertLess(self.health(self.a), 200)
+        self.assertFalse(self.camo().state(13).flags & self.camo().state(13).RUNNING)
+
+    def test_camo_speed_changes_real_movement_and_cancel_starts_cooldown(self):
+        self.press(8)
+        self.press(0, 60)
+        ability = self.camo().state(13)
+        self.assertTrue(ability.flags & ability.RUNNING)
+        start = self.a.mover.position[2]
+        for _ in range(60):
+            self.run.frame += 1
+            self.run.match.update(self.run.frame * 0.016, self.run.frame)
+            self.a.take_commands([Command(self.run.frame, forward=127)])
+            self.b.take_commands([Command(self.run.frame)])
+        self.assertGreater(self.a.mover.position[2] - start, 7)
+        self.press(8)
+        self.press(0, 65)
+        self.assertFalse(ability.flags & ability.RUNNING)
+        self.assertGreater(ability.remaining(), 0)
+        self.press(8)
+        self.press(0, 10)
+        self.assertFalse(ability.flags & ability.RUNNING)
+        self.press(0, 400)
+        self.assertEqual(ability.remaining(), 0)
+        self.press(8)
+        self.press(0, 65)
+        self.assertTrue(ability.flags & ability.RUNNING)
 
     def test_machine_pistol_uses_authored_damage_rate_and_ammunition(self):
         self.press(FIRE, 30)
