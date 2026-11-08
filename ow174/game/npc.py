@@ -58,7 +58,8 @@ def aim_at(match, bot: bots.Bot, point) -> tuple[int, int]:
     if len(point) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in point):
         raise ValueError('NPC aim needs three finite coordinates')
     x, y, z = bot.position
-    dx, dy, dz = point[0] - x, point[1] - y - combat.EYE, point[2] - z
+    eye = bot.combat_geometry[2] if bot.combat_geometry else combat.EYE
+    dx, dy, dz = point[0] - x, point[1] - y - eye, point[2] - z
     if dx * dx + dy * dy + dz * dz < combat.EPSILON:
         raise ValueError('NPC aim target coincides with muzzle')
     bot.yaw = bots.s16(round(math.atan2(dx, dz) * 65536 / (2 * math.pi)))
@@ -67,7 +68,8 @@ def aim_at(match, bot: bots.Bot, point) -> tuple[int, int]:
     return bot.yaw, bot.pitch
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
+          current_health: float | None = None) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -75,6 +77,9 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC spawn needs a validated definition')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
+    if current_health is not None and (type(current_health) not in (int, float)
+            or not math.isfinite(current_health) or not 0 < current_health <= definition.health):
+        raise ValueError('initial NPC health must be positive and within its maximum')
     position = tuple(position)
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
@@ -96,6 +101,10 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    if current_health is not None:
+        vitals = match.combat.vitals[entity]
+        vitals.now[world.HEALTH_POOL] = current_health
+        match.combat._sync_body_health(bot, vitals)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -104,11 +113,12 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     return bot
 
 
-def remove_spawned(match) -> tuple[int, ...]:
-    """Explicitly remove only manual NPCs, including corpses and owned attacks."""
+def remove_spawned(match, *, entities: set[int] | None = None) -> tuple[int, ...]:
+    """Remove manual NPCs by default, or explicitly selected spawned actors."""
     removed = []
     for bot in tuple(match.bots):
-        if bot.spawner.get('manual_spawn') is not True:
+        if ((entities is None and bot.spawner.get('manual_spawn') is not True)
+                or (entities is not None and bot.entity not in entities)):
             continue
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None

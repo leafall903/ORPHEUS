@@ -137,6 +137,8 @@ class Bot:
         self.position = tuple(spawner["position"])
         self.yaw = float(yaw_of(spawner["rotation"]))
         self.pitch = 0.0  # explicit combat aim, in command-angle units
+        self.combat_geometry = None  # optional(height,radius,muzzle/eye,critical_allowed)
+        self.combat_owner = None  # a deployable's player; ordinary NPCs have no player owner
         self.velocity = (0.0, 0.0, 0.0)
         variables = spawner.get("vars", {})
         roots = {int(g, 16) for g in spawner["graphs"]}

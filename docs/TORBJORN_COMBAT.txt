@@ -54,10 +54,15 @@ Forge Hammer       168C/st6 declares55 damage and st5 tracks around a local
                    substitute for unimplemented native54FEB21C. Delay, repeated
                    swing cadence, misses/range/team/LOS and holster/death cancel
                    pass; native animation timing and five-NPC interactions OPEN.
-Hammer repair      Friendly owned turret repair is distinct from enemy damage;
-                   turret target/query/health ownership OPEN. Never heal enemies.
-Deploy Turret      16C5 projectile28B7 confirmation exists; no persistent combat
-                   turret actor, build/target/fire/repair/destroy/redeploy OPEN.
+Hammer repair      Own live turret receives50 repair per reconstructed swing,
+                   clamped to its maximum, with range/LOS and no hostile damage.
+                   Other allied owners/native query policy remains OPEN.
+Deploy Turret      Prepared-data path:16C5 projectile2931 lands and creates28B7.
+                   Persistent actor builds75to250 over3s, then authored1689/st1
+                   deals14 at4Hz within40m/LOS to enemies, crediting its owner.
+                   Own repair/destroy/redeploy/death/switch/cooldown tested;
+                   in-combat redeploy lock, manual dismantle input, native
+                   firing state/FX, special scoring and native policy OPEN.
 Overload           1721/st3 now grants its authored100 temporary armour pool
                    (type1). Damage consumes it before base armour; one armour
                    reduction applies across both. No re-fill on repeated input,
@@ -173,3 +178,46 @@ To execute (not skip) the external-data tests, set ORPHEUS_NPC_CATALOG_DIR to th
 directory holding pve_npcs_174.json and game_graphs_174.json.gz, then run:
   python -B -m unittest test_game_torbjorn_npcs test_game_npc test_extract_pve_npcs test_bots -q
 Keep ORPHEUS_RUNTIME_DIR at the normal read-only runtime-104319 directory.
+
+Persistent turret reconstruction
+-------------------------------
+tools/prepare_torbjorn_deployables.py reads an explicit external base bundle,
+DataTool XML dump and OWLib type checkout. It adds28B7(turret)/2903(pool) body
+definitions and missing1688/1689 dependencies, preserving all original graphs.
+Outputs and provenance stay outside the source checkout; a source-local output
+is rejected. The lane pack adds2graphs with no new missing references. Its
+embedded deployable catalog reads250maximum/75initial health from body33
+overrides,3seconds build from1688,40m from the native targeting config,50repair
+from1688/st5, and1m height/0.5m radius from28B7's collider component. The gun's
+damage/rate are evaluated by its actual runtime1689/st1 definition.
+
+Linearly adding the build health, nearest-visible-enemy selection, capsule
+targeting and a0.75height muzzle are explicit reconstructions. The native build,
+target-lock and animation/shot-report consumers are not completed by this bridge.
+The missing-data normal bundle emits an explicit deployment-unavailable warning
+and continues running. Normal runtime data was not promoted or changed.
+
+Twelve turret tests cover actual input/ground landing, initial/build/ready health,
+no early fire,5bullets/70 damage to a player in the first firing second, range/
+ally/real-wall exclusion, owned-hammer50repair, single-actor replacement, death
+removal/no respawn, manual NPC-clear isolation, owner-death persistence and hero-
+switch/disconnection cleanup. Actual throw spam cannot bypass the5second redeploy cooldown;
+enemy destruction restarts the authored10second cooldown through a real instance
+write, which notifies Ability's linked variable and rejects early casts. Enemy
+Soldier fire damages the1m turret without a headshot multiplier. The same gun
+deals70 across5bullets to each actual NPC body, attributing damage to Torbjorn.
+A passive server snapshot observes owned actor geometry and next-fire timing.
+
+Remaining turret acceptance includes in-combat rethrow denial, manual dismantle
+input, native firing/observer effects and muzzle poses, owner-lock/target-marking
+policies, allied-other-owner repair, destruction-specific scoring/feedback,
+moving-platform/surface/bounce placement and all protections/status interactions.
+Turret death currently uses shared NPC death before manager removal; this is not
+native destruction-message or visual explosion acceptance.
+
+Prepare a separate pack (all arguments are external input/output paths):
+  python -B tools/prepare_torbjorn_deployables.py --base NPC_BUNDLE --xml XML_DUMP --owlib OWLIB --output EXTERNAL_GAME_GRAPHS
+Set ORPHEUS_TORBJORN_GRAPH_BUNDLE to that external game_graphs_174.json.gz for
+the explicit static test fixture; production runtime graph selection is separate.
+  python -B -m unittest test_game_torbjorn_turret -q
+The lane's full155-test related regression passes with explicit prepared inputs.

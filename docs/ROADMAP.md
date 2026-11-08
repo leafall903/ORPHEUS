@@ -19,10 +19,13 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   health damage in server tests. Authored rivet gravity now uses a documented
   fixed-step ballistic reconstruction. Ten-pellet ring launches now cause actual
   per-pellet damage/ammo use with explicit reconstructed spread; native phase/
-  jitter/flight parity and repair remain open. Hammer55 damage now uses an
+  jitter/flight parity and other-owner repair remain open. Hammer55 damage now uses an
   authored-duration/threshold reconstruction with hit/miss/LOS/team/cancel tests.
   Overload grants100 temporary armour with expiry/death cleanup and spam-proof
-  cooldown evidence; speed/fire/reload effects remain open. Combat turret,
+  cooldown evidence; speed/fire/reload effects remain open. A prepared-data
+  turret reconstructs persistent build/fire/repair/ownership/destruction with
+  player/five-NPC damage and5/10second cooldown evidence. Native firing effects,
+  combat redeploy lock, dismantle input, placement/scoring policies,
   Molten Core areas, cross-hero protections and
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
   Actual five-NPC fixtures cover four outgoing attacks, basic incoming identity/

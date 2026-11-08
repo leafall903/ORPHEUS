@@ -376,6 +376,7 @@ class Target:
     radius: float
     eye: float
     owner: object  # a match.Player or a bots.Bot
+    critical_allowed: bool = True
 
     def segment(self, feet=None):
         """The capsule's segment (from the feet to the top, a radius in from both ends)."""
@@ -419,6 +420,7 @@ class Combat:
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
+        self.turrets = {}  # controller entity -> reconstructed Torbjorn deployable state
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -527,9 +529,9 @@ class Combat:
             return
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
-        if self.tick and tick > self.tick + 1 and any(
+        if self.tick and tick > self.tick + 1 and (self.turrets or any(
             bot.firing and not bot.dead and isinstance(bot.body_script, BotScript) for bot in self.match.bots
-        ):
+        )):
             first = retained
         for target in self._targets():
             history = self.history.setdefault(target.entity, deque(maxlen=HISTORY))
@@ -541,6 +543,7 @@ class Combat:
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
+            hero_torbjorn.update_turrets(self)
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
@@ -580,9 +583,11 @@ class Combat:
             )  # fmt: skip
         for bot in self.match.bots:
             data = mover_data(bot.body)
+            height, radius, eye, critical = (bot.combat_geometry or
+                                           (data.stand_height, data.stand_radius, EYE, True))
             found.append(
                 Target(
-                    bot.entity, bot.team, tuple(bot.position), data.stand_height, data.stand_radius, EYE, bot
+                    bot.entity, bot.team, tuple(bot.position), height, radius, eye, bot, critical
                 )
             )
         return found
@@ -600,9 +605,11 @@ class Combat:
     def _enemies(self, shooter) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
         source = _source_entity(shooter)
+        owner = shooter.combat_owner if isinstance(shooter, bots.Bot) else shooter
         found = []
         for target in self._targets():
-            if target.owner is shooter or target.entity == source:
+            if (target.owner is shooter or target.entity == source or target.owner is owner
+                    or (owner is not None and getattr(target.owner, "combat_owner", None) is owner)):
                 continue
             if not free_for_all and target.team == shooter.team:
                 continue
@@ -634,7 +641,8 @@ class Combat:
             share = (view_tick - before[0]) / (after[0] - before[0])
             feet = tuple(a + (b - a) * share for a, b in zip(before[1], after[1], strict=True))
             height, eye = (before[2], before[3]) if share < 0.5 else (after[2], after[3])
-        return Target(target.entity, target.team, feet, height, target.radius, eye, target.owner)
+        return Target(target.entity, target.team, feet, height, target.radius, eye, target.owner,
+                      target.critical_allowed)
 
     # --- shots -------------------------------------------------------------------------------------
 
@@ -681,7 +689,8 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
+            eye = shooter.combat_geometry[2] if shooter.combat_geometry else EYE
+            origin, direction = (x, y + eye, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
         direct = hit_def(state, node.field("m_6396149F"))
@@ -744,7 +753,7 @@ class Combat:
         if wall is not None and wall < t:
             return
         hit_y = origin[1] + direction[1] * t
-        critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
+        critical = shown.critical_allowed and hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
         self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
@@ -803,9 +812,10 @@ class Combat:
         rocket.distance += t
         self._landed(rocket)
         point = _along(rocket.position, direction, t)
+        hero_torbjorn.projectile_impact(self, rocket, point, struck)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             direct = rocket.direct
-            critical = point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
+            critical = struck.critical_allowed and point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
             amount = direct.amount * direct.scale(rocket.distance)
             if critical:
                 amount *= direct.critical
@@ -872,6 +882,7 @@ class Combat:
         self, shooter, target: Target, amount: float, critical: bool, loadout, frame: int,
         *, world_tick: int | None = None,
     ) -> None:
+        shooter = getattr(shooter, "combat_owner", None) or shooter
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
             return

@@ -1,5 +1,24 @@
 # Changelog
 
+### Torbjorn lane: persistent combat turret and owned repair
+
+- Prepare external28B7/2903 body definitions and1688/1689 dependencies with
+  source provenance, no new missing graphs and no game assets in source. Derive
+  health/build/range/repair/collider values from104319 XML; evaluate the actual
+  turret gun for14damage at4Hz.
+- Reconstruct ground-impact deployment,75to250 build over3s,40m enemy/LOS
+  targeting, owner damage credit, own-hammer50repair, actor destruction and
+  no-respawn cleanup, owner-death persistence and hero-switch retirement.
+  Keep own deployables distinct from manual NPC clear and exclude their owner
+  even in free-for-all. Replicate/store explicit geometry and prevent headshots.
+- Preserve actual throw cooldown gating and use notifying instance writes for
+  the full10second post-destruction cooldown. Missing prepared data emits an
+  unavailable diagnostic rather than crashing ordinary combat updates.
+- Pass155 related tests, including12 turret tests and live passive snapshot
+  evidence; Ruff/diff checks pass. All new prepared data stays external. Native
+  firing/FX, combat rethrow lock, dismantle input, placement/scoring policies,
+  allied-other-owner repair, protections and client acceptance remain open.
+
 ### Torbjorn lane: five-body NPC combat fixtures and vertical aim
 
 - Review/import parent NPC lifecycle/catalog commits c2d3ae1/a15d554 into the
