@@ -28,7 +28,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   base pools and command backend are implemented. Authored weapon roots are
   mounted; three enemy types have selected offline damage evidence. Companion
   dashboard code is not imported into this lane. Full enemy combat and original-
-  client acceptance remain open. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  client acceptance remain open. McCree melee has player/NPC static-wall checks;
+  see [McCree combat](MCCREE_COMBAT.txt) for the partial attack frontier and open
+  Flashbang/Deadeye requirements. See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
