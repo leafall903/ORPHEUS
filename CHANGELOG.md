@@ -66,6 +66,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   ultimate cases and seven added ownership/cancellation cases. Ruff/diff checks pass.
   Full static acceptance, original-client acceptance and serial integration remain open.
 
+#### Resource-backed Flashbang control reconstruction
+
+- Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
+  explicit server control policy. Resource-derived mode flag13408 chooses0.8s
+  or1.7s; exclusive deadlines use world ticks. Release held/buffered input, stop
+  running abilities through their authored exit paths, suppress player movement
+  and attacks, pause NPC routes without catch-up and consume suppressed shots.
+- Retire control on expiry, death, body replacement and manual NPC removal.
+  Retained corpses remain present. Include deadlines in server snapshots and
+  verify that they change the causal digest. Splash now checks static impact-
+  to-capsule visibility before applying damage and control through cover.
+- Pass138 relevant tests:125 combat/NPC/projectile/route/McCree and13 server
+  snapshot checks, including8 new actual-input/control/lifetime methods. Ruff
+  and diff checks pass. Fix a test fixture's shared-spawner mutation discovered
+  by the combined regression; subsequent fresh-process regressions pass.
+- Actual-five-Talon offline probes show25 Flashbang damage and input release
+  for all five; Trooper/Sniper/Heavy resume damage after expiry. Console stop
+  during control prevents automatic recovery attacks. Enforcer/Assassin incoming
+  attacks remain unresolved. Fixtures use adapter transport/permissive VM.
+- This policy does not execute the complete native224E status manager. Native
+  immunity/cleanse/stacking/barrier interactions, dynamic mode status, status
+  replication/HUD/animation/audio and original-client acceptance remain open.
+  Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
+  lane merged. Normal runtime/services and original working changes preserved.
+
 #### McCree melee static-wall occlusion
 
 - Prevent quick melee from damaging targets through static walls: retain the

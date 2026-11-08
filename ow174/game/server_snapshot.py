@@ -95,7 +95,7 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice beam_seen zarya_barriers zarya_gravitons zarya_recovery"
+        "projectiles observers voice beam_seen zarya_barriers zarya_gravitons zarya_recovery stuns"
     ),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
     zarya.Barriers: _names("combat active projected"),
