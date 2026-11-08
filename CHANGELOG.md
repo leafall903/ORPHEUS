@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Genji reconstructed Deflect authority (partial)
+
+- Reflect explicitly tagged frontal hitscan and physical volley projectiles
+  during the authored Deflect State, transferring attacker/team attribution
+  while retaining remaining range/lifetime. Block frontal quick melee/Blade
+  without reflecting them; preserve rear, splash and noneligible damage.
+  Body-capsule/angle/tag admission is reconstructed. Native boxes/filter policy,
+  beam heroes, status payload transfer and reflected client visuals remain open.
+- Pass14 Deflect command tests including critical/kill credit, team transfer,
+  rear hits, melee, expiry/cancel/cooldown reuse, death and splash/negative
+  eligibility. A136-test Genji/shared combat/projectile/ability/NPC suite passes;
+  six explicit external-NPC fixture tests pass20 outgoing and four incoming/
+  reflection scenarios across the selected real body definitions.
+- Complete static hero acceptance remains open: passive movement, critical
+  defaults, resources/reload, combat ultimate charge, dash resets, shield/absorb/
+  invulnerability/control and all five enemy attack/special behaviors still need
+  execution evidence. No original-client acceptance or shared-main merge claim.
+
 #### Genji static regression and NPC dependency intake
 
 - Pass78 Genji/shared combat/movement/ability checks and14 frozen-source passive

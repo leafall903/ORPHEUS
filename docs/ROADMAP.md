@@ -18,8 +18,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Primary and secondary shuriken have partial command-path damage evidence;
   the fan now flies three independently resolved projectiles. Reconstructed
   Strike movement/damage and Dragonblade damage/charge gates have command-path
-  checks; exact native geometry remains unaccepted. Deflect, passive movement,
-  combat charging, five mission NPCs and cross-hero interactions remain open.
+  checks; reconstructed Deflect also covers selected player/NPC fire. Exact native
+  geometry remains unaccepted. Passive movement, combat charging, full five-NPC
+  attacks/specials and cross-hero defenses/control remain open.
   See [Genji combat restoration](GENJI_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

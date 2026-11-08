@@ -31,7 +31,7 @@ Primary         partial headless damage / OPEN / OPEN
 Secondary       partial headless damage / OPEN / OPEN
 Quick melee     inherited generic path  / OPEN / OPEN
 Swift Strike    partial movement/damage / OPEN / OPEN
-Deflect         missing authority       / OPEN / OPEN
+Deflect         partial reflection      / partial two NPCs / OPEN
 Dragonblade     partial sword damage    / OPEN / OPEN
 Double jump     unaccepted movement     / n/a  / OPEN
 Wall climb      unaccepted movement     / n/a  / OPEN
@@ -56,9 +56,17 @@ amount110, range5 and angle90 once per target/window with static LOS. Cone and
 capsule geometry are reconstructed. Eight command-path tests cover charge gate,
 consumption, damage, kills, misses, walls, teams, multiple targets and ending.
 Current evaluated ultimate cost is1932. Charging from damage remains open.
-Deflect graph03A3 has authored lifecycle/effects but no authority intersection,
-projectile ownership transfer or reflected-hit path. Beams/melee/explosions
-require distinct eligibility; blocking all incoming damage would be incorrect.
+Deflect graph03A3 now admits frontal body-capsule hits while State10 is active.
+Volley hit tag003BF is reconstructed as eligible for reflected bullet/physical
+projectile attacks. Reflected hitscan re-traces the defender's aim (eight-bounce
+bound, conserved range); physical shots transfer owner/team and retain remaining
+lifetime. Original prediction is retired, but reflected visual replication is
+not restored. Native authored-box, filter and tag semantics remain unverified.
+Quick melee and Blade are blocked without return damage. Strike, splash and
+noneligible projectiles are not blanket-blocked. Actual beam heroes remain open.
+Fourteen command-path checks cover reflection/attribution, critical and killing
+hits, rear vulnerability, projectile transfer/team change, melee block, duration,
+cancel/cooldown/reuse, death and negative damage eligibility/splash behavior.
 
 Cross-hero acceptance remains OPEN for barrier interception, reflected and
 absorbed projectiles, nondeflectable beams, melee block, invulnerability,
@@ -66,8 +74,16 @@ crowd control, armor/shields, health/death feedback, elimination/dash resets,
 ultimate charge from combat and friendly support/heal semantics.
 
 Required NPCs: Trooper, Enforcer, Sniper, Assassin, Heavy Assault. Parent lane
-owns manual spawn/control and archetype integration. Current external hero and
-AI-spawner tables expose training bots, not these five configured enemy types.
+owns manual spawn/control and archetype integration. Its c2d3ae1/a15d554 lifecycle
+and catalog source were reviewed/merged into this independent clone. Explicit
+ORPHEUS_NPC_DATA_DIR selects the authorized read-only separate NPC graph/catalog
+bundle; the normal runtime is unchanged. Six fixture tests cover20 outgoing
+attack cases (primary87/secondary87/Strike50/Blade110 for each actual body),
+Trooper/Heavy firing into Genji, and Genji reflecting their fire back for60/35
+respectively over the selected60-frame window. NPC scripts are permissive and
+transport/collision/poses are fixtures. Explicit button20/firing flags do not
+prove autonomous AI. Enforcer/Sniper/Assassin incoming attacks remain unresolved.
+Their initial pools are direct base-schema pools, not complete difficulty totals.
 Manual NPCs must opt into retain_corpse; no automatic cleanup or respawn.
 
 Original client: not exercised by this change. Existing client PID12292 and

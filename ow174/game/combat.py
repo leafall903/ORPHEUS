@@ -265,6 +265,7 @@ class HitDef:
     falloff_floor: float | None = None
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
+    deflectable: bool = False  # reconstructed admission: explicit projectile/bullet tag003BF
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -331,6 +332,10 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_floor=value("m_72A81154"),
         critical=value("m_A872C70E", 1.0),
         rings=tuple(sorted(rings)),
+        deflectable=any(
+            (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
+            for tag in modify.get("m_148F3152") or [] if isinstance(tag, dict)
+        ),
     )
 
 
@@ -568,8 +573,33 @@ class Combat:
                     if wall is not None and wall < distance:
                         continue
                 victims.add(target.entity)
+                if self._genji_deflects(target, facing):
+                    continue  # sword damage is blocked, not reflected
                 self._damage(player, target, amount, False,
                              loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+
+    def _genji_deflects(self, target, incoming) -> bool:
+        """Reconstruct a frontal block while the authored Deflect State is on.
+
+        Body-capsule admission and the 90-degree directional gate are a server
+        approximation of the authored boxes. Eligibility belongs to each caller:
+        bullet/projectile transfer, melee block, no blanket damage immunity.
+        """
+        owner = target.owner
+        hero = getattr(owner, "hero", None)
+        if getattr(hero, "guid", None) != 0x02E0000000000029 or self.vitals_of(target).dead:
+            return False
+        script = getattr(owner, "body_script", None)
+        if script is None:
+            return False
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x03A3:
+                continue
+            state = instance.states.get(10)
+            if state is not None and state.active:
+                facing = aim(owner.mover.yaw, owner.mover.pitch)
+                return _dot(facing, incoming) < -EPSILON
+        return False
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
         m_radius 1.0 at (0, 0, 1.5) from the eye (DATA; unverified: along the aim), #476 = 30 damage (DATA),
@@ -602,6 +632,8 @@ class Combat:
                     continue
                 a, b = shown.segment()
                 if segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0:
+                    if self._genji_deflects(target, aim(*command.aim())):
+                        continue
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
@@ -804,28 +836,40 @@ class Combat:
         view_tick = self.tick
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
-        best = None
-        for target in self._enemies(shooter):
-            shown = self.seen(target, view_tick)
-            if shown is None:
+        travelled = 0.0
+        for bounce in range(8):  # bounded reconstructed multi-Deflect interaction
+            best = None
+            for target in self._enemies(shooter):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                t = ray_capsule(origin, direction, a, b, shown.radius)
+                if t is not None and t <= reach and (best is None or t < best[0]):
+                    best = (t, target, shown)
+            if best is None:
+                return
+            t, target, shown = best
+            wall = ray_world(self._collision(), origin, direction, t)
+            if wall is not None and wall < t:
+                return
+            point = _along(origin, direction, t)
+            travelled += t
+            if direct.deflectable and self._genji_deflects(target, direction):
+                shooter = target.owner
+                direction = aim(shooter.mover.yaw, shooter.mover.pitch)
+                origin = _along(point, direction, 1e-4)
+                reach -= t
+                view_tick = self.tick
+                shot_frame = self.tick
                 continue
-            a, b = shown.segment()
-            t = ray_capsule(origin, direction, a, b, shown.radius)
-            if t is not None and t <= reach and (best is None or t < best[0]):
-                best = (t, target, shown)
-        if best is None:
+            critical = point[1] >= shown.feet[1] + shown.eye - HEAD_BELOW
+            amount = direct.amount * direct.scale(travelled) * (direct.critical if critical else 1.0)
+            self._damage(
+                shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
+                world_tick=self.tick if npc or bounce else None,
+            )
             return
-        t, target, shown = best
-        wall = ray_world(self._collision(), origin, direction, t)
-        if wall is not None and wall < t:
-            return
-        hit_y = origin[1] + direction[1] * t
-        critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
-        amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
-        self._damage(
-            shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
-            world_tick=self.tick if npc else None,
-        )
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
@@ -858,8 +902,21 @@ class Combat:
             return
         t, struck = best
         rocket.flown += t / rocket.speed
-        self._landed(rocket)
         point = _along(rocket.position, rocket.direction, t)
+        if (struck is not None and rocket.direct is not None and rocket.direct.deflectable
+                and self._genji_deflects(struck, rocket.direction)):
+            # Authority transfers without resetting remaining range/lifetime.
+            # Retire the original prediction; reflected client visuals remain open.
+            if rocket.shot is not None:
+                self.projectiles.flown(rocket.shot, rocket.flown)
+                rocket.shot = None
+            rocket.shooter = struck.owner
+            rocket.team = struck.team
+            rocket.direction = aim(struck.owner.mover.yaw, struck.owner.mover.pitch)
+            rocket.position = _along(point, rocket.direction, 1e-4)
+            rocket.left -= t / rocket.speed
+            return
+        self._landed(rocket)
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             self._damage(
                 rocket.shooter, struck, rocket.direct.amount, False, rocket.direct.loadout, self.tick,
