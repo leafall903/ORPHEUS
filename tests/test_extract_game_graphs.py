@@ -384,6 +384,22 @@ class StatusClosureTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "status XML directory does not exist"):
             extractor.collect(self.root, EnumTables(self.root), status_xml=self.root / "missing")
 
+    def test_supplement_keeps_only_new_graphs_without_copying_body_catalog(self):
+        base = {"graphs": [{"index": 0x266}]}
+        extended = {"graphs": [{"index": 0x266}, {"index": 0x267}], "bodies": {"body": {}},
+                    "status_definitions": {}, "missing": [], "missing_statuses": []}
+        result = extractor.status_supplement(extended, base)
+        self.assertEqual(result["graphs"], [{"index": 0x267}])
+        self.assertNotIn("bodies", result)
+        self.assertEqual(result["target_build"], "1.74.0.0.104319")
+
+    def test_supplement_rejects_conflicting_base_graph_and_unextended_data(self):
+        with self.assertRaisesRegex(ValueError, "requires --status-xml"):
+            extractor.status_supplement({"graphs": []}, {"graphs": []})
+        with self.assertRaisesRegex(ValueError, "conflicts with base graph 0266"):
+            extractor.status_supplement({"status_definitions": {}, "graphs": [{"index": 0x266}]},
+                                        {"graphs": [{"index": 0x266, "field": 1}]})
+
 
 class NumericScalarTests(unittest.TestCase):
     def test_locales_and_exponents_produce_numeric_values(self):

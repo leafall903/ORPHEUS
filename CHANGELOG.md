@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Reconstructed Crossfade and Amp healing (0079 lane)
+
+- Mount actual0267 with explicit source/target leases and live player/NPC body
+  member slots. Consume its continuous healing through authoritative health,
+  source stats and body-health synchronization. Preserve team/FFA, range/LOS
+  exit, death and body-retirement boundaries.
+- Add external status supplements; preserve immutable runtime input and reject
+  conflicting base graphs. Support external hero catalogs and reproducible
+  supplement extraction. Game-derived resources stay outside Git.
+- Eight aura behavior tests pass: ordinary/amped self/ally rates, switch/end,
+  range/LOS, team/FFA, death, overlapping ordinary sources and Amp cooldown
+  rejection/expiry. One training-NPC case skips for missing body data and does
+  not establish NPC healing acceptance.
+- Pass4 loader,21 extractor,11 prior Lucio,27 driver,5 body script,22 NPC script,
+  28 combat,37 projectile and23 VM snapshot regressions. Ruff and diff checks
+  pass. NPC Match ownership is constructor-injected and excluded from local
+  snapshot payloads, as for player worlds.
+- Geometry/integration are reconstructed. Speed, native status replication,
+  skipped-interval transitions, cross-body rollback, healing-control effects,
+  real five-type NPC combat and the full static matrix remain open. No client
+  acceptance, shared merge or publication is claimed.
+
 #### Reachable status graphs and Lucio cooldown evidence (0079 lane)
 
 - Add opt-in --status-xml extraction of reachable .053 definitions and child

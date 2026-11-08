@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, lucio, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -368,6 +368,7 @@ class Combat:
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
         self.voice = voicelines.VoiceLines(match)  # the hero's spawn voice line (voicelines.py)
+        self.lucio_auras = lucio.Auras(self)
 
     # --- hooks (match.py) --------------------------------------------------------------------------
 
@@ -389,6 +390,7 @@ class Combat:
 
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
+        self.lucio_auras.retire(player.body)
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
@@ -431,6 +433,7 @@ class Combat:
         try:
             self._melee(player, command, script)
             self._soundwave(player, command, script)
+            self.lucio_auras.refresh()
         except Exception:
             log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
 
@@ -541,6 +544,7 @@ class Combat:
             self._bot_weapons(at)
         self.projectiles.update(tick, first_tick=retained)
         self.match.deliver_body_messages()
+        self.lucio_auras.update(tick)
         if frames:
             self.observers.update()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.

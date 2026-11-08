@@ -731,6 +731,7 @@ def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
     *, ai_spawners: Path | None = None, map_entities: dict[int, Path] | None = None,
     status_xml: Path | None = None,
+    heroes_json: Path | None = None,
 ) -> dict:
     if status_xml is not None and not status_xml.is_dir():
         raise ValueError(f"status XML directory does not exist: {status_xml}")
@@ -742,7 +743,7 @@ def collect(
         records, used = map_script_instances(path, enums)
         map_scripts[f"0x{0x0800000000000000 | map_index:016X}"] = records
         map_roots.update(used)
-    heroes = json.loads(HEROES.read_text(encoding="utf-8"))
+    heroes = json.loads((heroes_json or HEROES).read_text(encoding="utf-8"))
     bodies, reason, queue = {}, {}, []
     for hero, entry in heroes.items():
         body = int(entry["body"], 16)
@@ -837,6 +838,21 @@ def status_closure(xml, folder, enums, records, missing):
     return graphs
 
 
+def status_supplement(data: dict, base: dict) -> dict:
+    """Keep only new status-linked graphs; never replace a base graph."""
+    if "status_definitions" not in data:
+        raise ValueError("status supplement requires --status-xml extraction")
+    originals = {record["index"]: record for record in base["graphs"]}
+    for record in data["graphs"]:
+        original = originals.get(record["index"])
+        if original is not None and original != record:
+            raise ValueError(f"status supplement conflicts with base graph {record['index']:04X}")
+    return {"status_supplement_version": 1, "target_build": "1.74.0.0.104319",
+            "graphs": [record for record in data["graphs"] if record["index"] not in originals],
+            "status_definitions": data["status_definitions"],
+            "missing": data["missing"], "missing_statuses": data["missing_statuses"]}
+
+
 def entity_index(text: str) -> int:
     if not re.fullmatch(r"[0-9a-fA-F]{1,12}", text):
         raise argparse.ArgumentTypeError("use a hexadecimal 003 asset index such as 1403")
@@ -853,6 +869,7 @@ def map_source(text: str) -> tuple[int, Path]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--xml", type=Path, required=True, help="DataTool XML dump")
+    parser.add_argument("--heroes", type=Path, help="external hero catalog, instead of repository data")
     parser.add_argument("--owlib", type=Path, required=True, help="the OWLib checkout that made the dump")
     parser.add_argument("--entity", action="append", type=entity_index, default=[],
                         help="additional 003 asset index such as 1403, repeatable")
@@ -862,11 +879,17 @@ def main() -> None:
                         help="include local map spawner graph roots and AI weapon controls")
     parser.add_argument("--status-xml", type=Path,
                         help="follow reachable .053 status definitions and their child graphs")
+    parser.add_argument("--status-supplement-base", type=Path,
+                        help="emit only new status graphs against this immutable gzip JSON bundle")
     parser.add_argument("--map-entities", action="append", type=map_source, default=[],
                         help="placed script roots/overrides as HEX_MAP_INDEX=ENTITIES_XML, repeatable")
     parser.add_argument("--output", type=Path, help="destination bundle")
     args = parser.parse_args()
     output = args.output or OUT
+    if args.status_supplement_base is not None and args.status_xml is None:
+        parser.error("--status-supplement-base requires --status-xml")
+    if args.status_supplement_base is not None and output.resolve() == args.status_supplement_base.resolve():
+        parser.error("status supplement output must not overwrite its base")
     if args.entity and output.resolve() == OUT.resolve():
         parser.error("--entity requires --output outside the canonical hero bundle")
     for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners),
@@ -884,6 +907,7 @@ def main() -> None:
             args.xml, enums, tuple(args.entity), mode_xml=args.mode_xml, ai_spawners=args.ai_spawners,
             map_entities=dict(args.map_entities),
             status_xml=args.status_xml,
+            heroes_json=args.heroes,
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
@@ -897,10 +921,13 @@ def main() -> None:
         print(f"{why}: {' '.join(f'{index:04X}' for index in sorted(indexes))}")
     if data["missing"]:
         print("referenced but not in the dump: " + " ".join(f"{index:04X}" for index in data["missing"]))
+    if args.status_supplement_base is not None:
+        base = json.loads(gzip.decompress(args.status_supplement_base.read_bytes()))
+        data = status_supplement(data, base)
     text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
     output.write_bytes(gzip.compress(text.encode("utf-8"), compresslevel=9, mtime=0))
     nodes = sum(len(graph["nodes"]) for graph in data["graphs"])
-    print(f"{len(data['graphs'])} graphs, {nodes} nodes, {len(data['bodies'])} hero bodies, "
+    print(f"{len(data['graphs'])} graphs, {nodes} nodes, {len(data.get('bodies', {}))} hero bodies, "
           f"{len(data.get('entities', {}))} additional entity definitions -> {output}")
     print(f"{output.stat().st_size / 1e6:.2f} MB ({len(text) / 1e6:.1f} MB of JSON)")
 

@@ -5,7 +5,13 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_initial_graphs
+from ow174.game.script.driver import (
+    OWNER_HEALTH,
+    ReplicatedBody,
+    Snapshot,
+    create_initial_graphs,
+    live_body_var_slot,
+)
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -35,6 +41,14 @@ class BotWorld(runtime.World):
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.match = None
+
+    def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        if self.match is not None:
+            slot = live_body_var_slot(self.match, entity, var, create=create)
+            if slot is not NotImplemented:
+                return slot
+        return super().entity_var_slot(entity, var, create=create)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return self.weapon_buttons.get(str(slot))
@@ -77,7 +91,7 @@ class BotScript(ReplicatedBody):
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, match=None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -87,6 +101,7 @@ class BotScript(ReplicatedBody):
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
         world = BotWorld(hero, mode, buttons, position)
+        world.match = match
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms

@@ -597,7 +597,7 @@ class Match:
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
-                firing_position=bot.position if firing else None,
+                firing_position=bot.position if firing else None, match=self,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)

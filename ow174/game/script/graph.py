@@ -296,7 +296,27 @@ def _records() -> dict[int, dict]:
 def graph(index: int) -> Graph | None:
     """The graph with a 16-bit index (0x13C1), or None when the server does not have it."""
     record = _records().get(index)
+    if record is None:
+        from ow174.game.script import status_data
+
+        supplement = status_data.configured()
+        if supplement is not None:
+            record = next((item for item in supplement["graphs"] if item["index"] == index), None)
     return Graph(record) if record is not None else None
+
+
+def status_definition(definition: int):
+    """A known .053 definition, or NotImplemented when its data is unavailable."""
+    if type(definition) is not int or definition >> 48 != 0x04A0 or not definition & 0xFFFFFFFFFFFF:
+        raise ValueError("expected a nonzero .053 resource GUID")
+    key = f"0x{definition:016X}"
+    found = (_data().get("status_definitions") or {}).get(key)
+    if found is not None:
+        return found
+    from ow174.game.script import status_data
+
+    supplement = status_data.configured()
+    return supplement["status_definitions"].get(key, NotImplemented) if supplement else NotImplemented
 
 
 def graph_indexes() -> list[int]:

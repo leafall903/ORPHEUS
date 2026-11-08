@@ -117,6 +117,20 @@ def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int
     return edges
 
 
+def live_body_var_slot(match, entity: int, var: int, *, create: bool = False):
+    """A live player/NPC component slot, or unknown for non-body entities."""
+    bodies = [(player.body, player) for player in match.players if player.has_body]
+    bodies.extend((bot.entity, bot) for bot in match.bots)
+    for body, actor in bodies:
+        if body != entity:
+            continue
+        script = actor.body_script
+        if script is None or getattr(script, "retired", False):
+            return None
+        return script.component.entity_var(var, create)
+    return NotImplemented
+
+
 class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
@@ -133,6 +147,16 @@ class BodyWorld(runtime.World):
             if position is not None:
                 return position
         return super().position(entity)
+
+    def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        """Read live source-body slots used by status graphs' member queries."""
+        if self.match is None:
+            return super().entity_var_slot(entity, var, create=create)
+        slot = live_body_var_slot(self.match, entity, var, create=create)
+        if slot is not NotImplemented:
+            return slot
+        # Preserve the mode's configured scalar fallback in World.entity_var.
+        return super().entity_var_slot(entity, var, create=create)
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")

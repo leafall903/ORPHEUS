@@ -37,9 +37,10 @@ Quick melee             O              O               O no friendly damage
 Soundwave damage        H              H training Bot H ally exclusion, FFA
 Soundwave cooldown      H 4s boundary  O five types    H repeated/replayed input
 Soundwave knockback     O              O               O control/immunity
-Crossfade healing       O              O               O ally/self only
+Crossfade healing       H rates/LOS    O five types    H ally/self only
 Crossfade speed         O              O               O ally/self only
-Amp It Up heal/speed    O              O               O ally/self only
+Amp It Up healing       H rates/end/CD O five types    H ally/self only
+Amp It Up speed         O              O               O ally/self only
 Sound Barrier           O              O               O ally/self shields
 Wall Ride/wall jump     O              O               O movement/presentation
 Taking damage/death     H player src   H training src  O client death/respawn
@@ -94,7 +95,46 @@ Read-only build104319 .053 extraction and a Lucio-only graph closure are stored
 outside Git under the lane directory. The closure finds two status definitions,
 58 graphs, no missing .053 and a missing graph0F9C. 0267 has21 states with two
 continuous ModifyHealth operations;073B has8 states including a HealthPool
-operation. Status execution/targeting and replication remain unimplemented.
+operation. At this resource-only checkpoint status execution was unimplemented;
+the bounded healing implementation below supersedes that limitation.
+
+Bounded Crossfade/Amp healing host
+---------------------------------
+An optional external status supplement now provides missing graphs without
+overriding any base graph or copying the shared runtime. Set
+ORPHEUS_STATUS_BUNDLE to the generated gzip supplement before process startup.
+Legacy runtimes without status data retain explicit absence; no invented heal
+constants stand in for missing data.
+
+The reconstructed Combat host mounts actual0267 per eligible source/target,
+binds source variable27, and reads live player/NPC body member slots. Actual
+graph branches select ordinary/amped and self/ally healing rates. Active
+continuous operations change authoritative Vitals, source healing stats and body
+health. World ticks deduplicate healing; new leases do not heal retroactively.
+
+Eight external-resource aura behavior tests pass, proving16/s ally and16/1.3/s
+self healing,52/s ally and40/s self while amped, no healing during speed song,
+switch stop, range/LOS removal/reentry, ally/enemy/FFA semantics, dead-target
+exclusion, source death cleanup and ordinary two-source nonstacking. Amp
+re-presses every other tick yield on@12,off@200,on@962: cast, three-second effect,
+end-started twelve-second cooldown and next cast. A training-NPC fixture skips
+for missing body data; this is NOT a passed NPC healing requirement.
+
+Target acquisition, centre-ray visibility, immediate exit, graph allocation and
+world-time integration are reconstructed. Speed, native status replication,
+source transitions inside skipped world intervals, cross-body VM rollback,
+healing denial/amplification and all five real Archives archetypes remain open.
+Native-client presentation is not accepted.
+
+Rebuild the small external supplement using the source-only CLI:
+python -B -m tools.extract_game_graphs --xml <shared XML dump>
+  --owlib <shared OWLib> --heroes <external hero catalog>
+  --status-xml <external053 dump> --status-supplement-base <immutable base gzip>
+  --output <lane-local supplement gzip>
+Run the command on one line. The tested Lucio catalog is a local one-hero
+projection of runtime-104319/data/game_heroes_174.json. The generator rejects
+conflicting base records and output over the base; only new graphs and status
+definitions enter the supplement. Game-derived output stays outside Git.
 
 Client evidence
 ---------------

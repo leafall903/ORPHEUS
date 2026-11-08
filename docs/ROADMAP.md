@@ -22,7 +22,9 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   - [ ] Complete the full static skill/weapon/passive/ultimate and interaction
     matrix before requesting integration as an accepted hero. Soundwave's
     four-second cooldown and duplicate-input checks pass; status-linked child
-    extraction is available, while status execution remains open.
+    extraction is available. Actual0267 leases now execute bounded Crossfade/Amp
+    healing with eight behavior checks. Speed, native status/rollback,
+    interception and real NPC matrices remain open; this gate stays unchecked.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
