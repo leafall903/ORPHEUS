@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-08
 
+#### Pharah static acceptance criteria and interruption cases
+
+- Add an explicit per-action/static-interaction acceptance matrix. No scope is
+  marked complete: remaining NPC attacks/specials, projectile motions, damage
+  charge, defense/resistance and cross-hero controls remain visible open items.
+- Execute death cancellation of hover fuel use/flight and Barrage shot creation;
+  verify concussion miss/range and cooldown rejection/expiry with new knockback,
+  reject undercharged Barrage without spending charge, and verify actual Soldier
+  Field healing for allied Pharah while excluding enemy Pharah.
+- 35 Pharah behavior tests pass with the external five-body pack, zero skips.
+  The self-blast case also asserts no outgoing hero-damage statistics. Ruff/diff
+  checks pass. Full static goal remains active; native client acceptance is open.
+
 #### Partial Pharah interaction with actual PvE enemy bodies
 
 - Mount the separately supplied read-only NPC graph/catalog pack in tests and

@@ -83,6 +83,22 @@ class PharahCombatTests(unittest.TestCase):
         self.assertEqual(self.health(run, ally).total, 200.0)
         self.assertFalse(shooter.client.messages(combat.HIT))
 
+    def test_actual_soldier_field_heals_friendly_pharah_but_not_enemy(self):
+        for ally, expected in ((True, 151.52), (False, 100.0)):
+            with self.subTest(ally=ally):
+                run, pharah, soldier = self.encounter()
+                run.match.game_map = replace(run.match.game_map, free_for_all=False)
+                soldier.team = pharah.team if ally else 1 - pharah.team
+                soldier.mover.position = [0, pharah.mover.position[1], 0.5]
+                soldier.mover.body = None
+                fight = run.match.combat
+                target = next(t for t in fight._targets() if t.owner is pharah)
+                fight._damage(soldier, target, 100, False, None, run.frame)
+                run.step({soldier: (0, 0, 16)})
+                for _ in range(130):
+                    run.step({})
+                self.assertAlmostEqual(self.health(run, pharah).total, expected, places=5)
+
     def test_primary_damages_retained_training_npc_and_preserves_corpse(self):
         run, shooter, victim = self.encounter()
         victim.mover.position[0] = 20.0

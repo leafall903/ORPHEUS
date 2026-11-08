@@ -86,6 +86,20 @@ class PharahMovementTests(unittest.TestCase):
         self.step(run, player, 3, 2)
         self.assertGreater(player.mover.velocity[1], 15)
 
+    def test_death_cancels_hover_fuel_use_and_blocks_flight_input(self):
+        run, player, enemy = self.encounter()
+        hover = self.instance(player, 0x25)
+        self.step(run, player, 20, 2)
+        fuel = hover.vars[87].value()
+        fight = run.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        fight._damage(enemy, target, 1000, False, None, run.frame)
+        position = list(player.mover.position)
+        self.step(run, player, 30, 2 | 8)
+        self.assertEqual(player.mover.position, position)
+        self.assertGreaterEqual(hover.vars[87].value(), fuel)
+        self.assertFalse(any(s.active and s.node.cls == "STU_A9C4FF83" for s in hover.states.values()))
+
 
 if __name__ == "__main__":
     unittest.main()

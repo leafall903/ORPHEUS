@@ -1,0 +1,220 @@
+{
+  "hero": "Pharah",
+  "guid": "02E0000000000008",
+  "build": "1.74.0.0.104319",
+  "status": "open",
+  "static_acceptance_complete": false,
+  "evidence_policy": "Every complete criterion needs executed behavior evidence. Parameter inspection, permissive VM startup, mocks of effects and native-client presentation are distinct evidence. Current tests use real Match/input and extracted graphs with flat collision and immediate-ACK client adapters.",
+  "numerical_source": "External target-build graphs/rulesets/base-pool catalog. Flight, radial impulses, self-scale interpretation and static visibility sampling are explicitly reconstructed adapters.",
+  "required_dimensions": [
+    "hit and miss",
+    "range, line of sight and target team",
+    "damage/healing and status outcome",
+    "release conditions and resource consumption",
+    "duration, end and cancellation",
+    "cooldown start, rejection while cooling, expiry and no bypass",
+    "ultimate charge, activation, hit and end",
+    "applicable control, barriers, reflect, absorb, invulnerability, death and interruption",
+    "enemy players and each of the five actual NPC types in both directions"
+  ],
+  "actions": {
+    "rocket_launcher": {
+      "status": "partial",
+      "passed": [
+        "40 direct +80 splash from primary input",
+        "enemy player death and no critical flag",
+        "allies excluded",
+        "static wall blocks far-side splash and keeps same-side splash",
+        "six-round ammo, automatic/manual reload",
+        "100m range miss",
+        "Reinhardt armor/Zenyatta shield pool damage",
+        "self splash without self hitmarker/stats",
+        "five actual NPC base pools each lose120"
+      ],
+      "open": [
+        "full falloff/radius boundaries and projectile collision radius",
+        "self damage/knockback edge cases and resistance",
+        "dynamic barriers/bubbles/reflect/absorb/invulnerability/amplification",
+        "all NPC incoming/control interactions"
+      ]
+    },
+    "quick_melee": {
+      "status": "partial",
+      "passed": [
+        "30 once per swing",
+        "miss, static wall exclusion and recovery recast",
+        "five actual NPC base pools each lose30"
+      ],
+      "open": [
+        "ally and exact capsule/range boundaries",
+        "cooldown spam edge cases, attack cancellation and cross-hero defenses"
+      ]
+    },
+    "hover_jets_passive_secondary_jump": {
+      "status": "partial",
+      "passed": [
+        "secondary and jump both lift",
+        "authored fuel use, recharge and empty-fuel cessation",
+        "authored acceleration/cap integrated by reconstructed adapter",
+        "preserves faster Jump Jet",
+        "death stops fuel consumption and movement"
+      ],
+      "open": [
+        "ceiling/sloped/partial collision boundaries",
+        "full empty/fuel restart timing and release cases",
+        "stun/sleep/freeze/hack/knockback/slow interactions",
+        "native integration order comparison"
+      ]
+    },
+    "jump_jet": {
+      "status": "partial",
+      "passed": [
+        "authored vector causes actual movement at two headings",
+        "10-second cooldown rejects stale presses and allows expiry recast",
+        "fresh150ms input buffer retained",
+        "dead body cannot fly"
+      ],
+      "open": [
+        "ceiling/slope collision and exact airborne edge cases",
+        "all control/interrupt/resistance interactions",
+        "full hero/NPC target interaction matrix"
+      ]
+    },
+    "concussive_blast": {
+      "status": "partial",
+      "passed": [
+        "zero health damage with actual enemy/self player displacement",
+        "no hitmarker for zero damage",
+        "ally excluded",
+        "static wall excludes far-side impulse",
+        "miss expires at range",
+        "9-second cooldown rejects repress and allows new displacement after expiry"
+      ],
+      "open": [
+        "NPC displacement and authored resistance/immunity",
+        "exact edge/radius/vertical field interpretation",
+        "barriers/reflect/absorb/invulnerability/control interactions",
+        "all death/cancel/cooldown boundaries"
+      ]
+    },
+    "barrage": {
+      "status": "partial",
+      "passed": [
+        "insufficient charge rejected without spending or damage",
+        "full charge starts real volley, damages/kills enemy and consumes charge",
+        "passive charge pauses during volley and resumes at end",
+        "death ends channel and prevents new shots"
+      ],
+      "open": [
+        "charge gain from dealt damage and exact passive-charge semantics",
+        "authored projectile motions, spread and alternating muzzle geometry",
+        "full duration/recovery/cancel/control matrix",
+        "all shields/reflect/absorb/invulnerability and NPC interactions"
+      ]
+    },
+    "incoming_enemy_players": {
+      "status": "partial",
+      "passed": [
+        "Soldier rifle reduces Pharah health",
+        "death stops own attacks"
+      ],
+      "open": [
+        "other hero primary/secondary/ultimate/status interactions",
+        "exact all damage/reduction/healing/control values"
+      ]
+    },
+    "friendly_support": {
+      "status": "partial",
+      "passed": [
+        "actual Soldier field heals friendly Pharah and excludes enemy Pharah"
+      ],
+      "open": [
+        "other support healing/buffs and enemy/ally targeting matrix",
+        "dead, anti-heal/amplification and invulnerability cases"
+      ]
+    },
+    "npc_trooper": {
+      "status": "partial",
+      "passed": [
+        "actual body/creates/base pools",
+        "primary120/melee30",
+        "retained corpse after lethal health change"
+      ],
+      "open": [
+        "authored dynamic attack setup",
+        "return attacks/specials/AI",
+        "all skill/status/defense interactions"
+      ]
+    },
+    "npc_enforcer": {
+      "status": "partial",
+      "passed": [
+        "actual body/creates/base pools including shield-health routing",
+        "primary120/melee30",
+        "retained corpse after lethal health change"
+      ],
+      "open": [
+        "authored dynamic attack setup",
+        "return attacks/specials/AI",
+        "all skill/status/defense interactions"
+      ]
+    },
+    "npc_sniper": {
+      "status": "partial",
+      "passed": [
+        "actual body/creates/base pools",
+        "primary120/melee30",
+        "retained corpse after lethal health change"
+      ],
+      "open": [
+        "return attack path and specials/AI",
+        "all skill/status/defense interactions"
+      ]
+    },
+    "npc_assassin": {
+      "status": "partial",
+      "passed": [
+        "actual body/creates/base pools including shield-health routing",
+        "primary120/melee30",
+        "retained corpse after lethal health change"
+      ],
+      "open": [
+        "return attack/grapple/control path and specials/AI",
+        "all skill/status/defense interactions"
+      ]
+    },
+    "npc_heavy_assault": {
+      "status": "partial",
+      "passed": [
+        "actual body/creates/base pools",
+        "primary120/melee30",
+        "retained corpse after lethal health change",
+        "actual114F/state25 trigger causes15 damage/10frames, kills Pharah, stops on NPC death"
+      ],
+      "open": [
+        "target acquisition/AI and all specials",
+        "range/LOS/team/reflect/absorb/resistance attack edge cases",
+        "all skill/status/defense interactions"
+      ]
+    }
+  },
+  "cross_hero_open": [
+    "Reinhardt/Winston/Orisa/Sigma static/dynamic barriers",
+    "Zarya personal/projected barriers and energy",
+    "Genji reflect and changed ownership",
+    "D.Va/Sigma absorption",
+    "Reaper/Moira/Mei/Transcendence invulnerability or phase",
+    "Baptiste immortality death clamp",
+    "Ana sleep/anti-heal, Mei freeze, Sombra hack",
+    "stun/hook/knockback/slow and interruption",
+    "damage amplification/reduction and allied support semantics"
+  ],
+  "test_modules": [
+    "test_pharah_combat",
+    "test_pharah_weapon",
+    "test_pharah_movement",
+    "test_pharah_impulse",
+    "test_pharah_pve"
+  ],
+  "client_acceptance": "All original-client combat acceptance remains separately open."
+}
