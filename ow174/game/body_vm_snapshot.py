@@ -30,7 +30,7 @@ _INSTANCE = frozenset((
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -184,7 +184,7 @@ class _Export:
             raise BodyVMSnapshotError("unknown instance class")
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
-        _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("queue", "ticking", "deferred", "params", "join_inputs"), list, "instance")
         _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
