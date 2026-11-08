@@ -157,6 +157,15 @@ Eligibility remains the reconstructed003BF tag contract, and the local box
 anchor/basis is inferred. Temporary shield-pool graph1D03, its60-percent gain,
 cap/decay, other absorbing heroes and actual beam exceptions remain OPEN.
 
+Shared parent64bf71c supplies resource-backed Flashbang control reconstruction.
+Two actual-input Genji tests prove temporary command suppression and subsequent
+firing, plus rear Flashbang interrupting Deflect, delayed authored cooldown and
+rejected reuse. The effect's native224E graph execution is still incomplete.
+A separate probe activates Dragonblade then casts Flashbang: Ability flags
+change1 to0. Selective persistent-ultimate control/draw/swing recovery remain
+OPEN; this probe is evidence of current behavior, not accepted native behavior.
+Dash interruption, frontal reflected status, immunity and cleansing remain open.
+
 Original client: not exercised by this change. Existing client PID12292 and
 OWNeacClient parent33924 were observed with no lease at initial inspection;
 ownership was unknown, so the lane did not acquire/control/close that client.
