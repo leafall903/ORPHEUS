@@ -6,6 +6,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from test_game_graph_analysis import make_graph, node
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.game.script import graph as graphs
@@ -149,6 +151,40 @@ class FireTests(unittest.TestCase):
 
 
 class MechanicsTests(unittest.TestCase):
+    def test_priority_queries_recheck_equal_value_push_and_pop_without_waking_scalar_readers(self):
+        condition = {
+            "$": "STU_3ACE35FB",
+            "m_E50CF556": {"$": "STUConfigVarDynamic", "m_identifier": 7, "m_60DB8F99": 1},
+        }
+        definition = make_graph(1, [
+            node(0, "STUStatescriptStateBooleanSwitch", state=0, fields={"m_condition": condition}),
+            node(1, state=1), node(2, state=2),
+        ], states=(0, 1, 2))
+        component = runtime.Component(123)
+        instance = component.create(definition)
+        component.update()
+        priority, scalar, entry = (instance.state(index) for index in range(3))
+        priority.begin()
+        scalar.begin()
+        entry.begin()
+        variable = component.entity_var(7)
+        scalar.watch(variable)
+        priority.watch(variable)  # a scalar read must retain the priority dependency
+        self.assertTrue(priority.current)
+        self.assertIsNone(variable.value())
+
+        entry.link((runtime.ENTITY, 7), priority=1, stack=True)
+        self.assertIsNone(variable.value())
+        self.assertFalse(scalar.flags_changed)
+        component.update()
+        self.assertFalse(priority.current)
+
+        entry.unlink(variable)
+        self.assertIsNone(variable.value())
+        self.assertFalse(scalar.flags_changed)
+        component.update()
+        self.assertTrue(priority.current)
+
     def test_button_edges(self):
         self.assertEqual(button_edges(0, FIRE), [(20, True), (111, True)])
         self.assertEqual(button_edges(FIRE, RELOAD), [(20, False), (14, True), (111, False)])

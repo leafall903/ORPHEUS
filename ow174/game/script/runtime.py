@@ -255,7 +255,9 @@ class InstanceContext(Context):
         slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
         if slot is not NotImplemented:
             return self._read(slot)
-        value = component.world.entity_var(entity, var)
+        value = component.world.polled_entity_var(entity, var, self.watcher)
+        if value is NotImplemented:
+            value = component.world.entity_var(entity, var)
         if value is NotImplemented:
             if component.strict:
                 component.unsupported(self.instance, "entity variable service", f"{entity:08X}:{var}")
@@ -271,6 +273,33 @@ class InstanceContext(Context):
             return expr.Vec3(0.0, 0.0, 0.0)
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def tracks_ruleset_target(self):
+        return getattr(self.instance.component.world, "dva_queries", None) is not None
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, 'foreign entity ruleset', f'{entity:08X}:{key}')
+        return value
+
     def ruleset(self, key: int):
         found = self.var(ENTITY, key)
         if found is not None:
@@ -283,7 +312,7 @@ class InstanceContext(Context):
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            self.watcher.watch(target, stack=True)
         return would_stack_to_top(target, priority)
 
     def poll_native(self, cfg: dict):
@@ -295,6 +324,10 @@ class InstanceContext(Context):
                 self.watcher.polled = True
                 self.watcher.ticks()
 
+    def ruleset_key(self, cfg):
+        key = self.instance.component.world.ruleset_key(cfg, self.instance)
+        return super().ruleset_key(cfg) if key is None else key
+
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         if cfg.get("$") == "STU_4BD39CFD":
@@ -302,9 +335,11 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -369,6 +404,7 @@ class World:
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
+        self.health_pools: tuple[bytes | None, ...] | None = None  # explicit owner's component51 records
 
     def ruleset(self, key: int):
         from ow174.game.script import rulesets
@@ -386,11 +422,48 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def polled_entity_var(self, entity: int, var: int, watcher: "State | None"):
+        """Optional host member service with explicitly reconstructed polling."""
+        return NotImplemented
+
+    def script_component_present(self, entity: int):
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def state_condition(self, state):
+        return NotImplemented
+
+    def track_body_ray(self, state: "State"):
+        return NotImplemented
+
+    def track_targets(self, state: "State"):
+        return NotImplemented
+
+    def play_gameplay_script(self, instance, node) -> None:
+        pass
+
+    def placement_probe(self, state: "State"):
+        return NotImplemented
+
+    def create_actor(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def destroy_script_body(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -431,6 +504,10 @@ class World:
         """Explicit component47 mapping registry and native namespace availability."""
         return NotImplemented
 
+    def body_owner_context(self, entity: int):
+        """Explicit direct component43 ownership namespace, distinct from possession."""
+        return NotImplemented
+
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
@@ -446,7 +523,17 @@ class World:
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 
+    def ruleset_key(self, cfg, instance):
+        return None
+
     def native(self, cfg: dict, instance: "Instance | None"):
+        from ow174.game.script import health_queries
+
+        getter = health_queries.GETTERS.get(cfg.get("$"))
+        if (getter is not None and instance is not None and self.health_pools is not None
+                and instance.evaluate(cfg.get("m_entity")) == Entity(instance.component.entity)):
+            maximum, normal_only = getter
+            return health_queries.pool_sum(self.health_pools, maximum=maximum, normal_only=normal_only)
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
@@ -650,7 +737,8 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None,
+                structure_changed: bool = False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
         changed = not expr.same(before, after)
@@ -668,9 +756,9 @@ class Component:
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (structure_changed and state.watched.get(var)):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -939,6 +1027,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, last resolved member VM for CCFAC0.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -993,8 +1082,9 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None,
+                structure_changed: bool = False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, structure_changed=structure_changed)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1415,7 +1505,7 @@ class State:
         self.start = 0
         self.ended_at = 0
         self.ticked_at = None
-        self.watched: dict[Var, None] = {}
+        self.watched: dict[Var, bool | None] = {}  # True also watches priority/entry changes.
         self.flags_changed = False
         self.flags_check = False
         self.polled = False
@@ -1485,6 +1575,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # The coalescing bits describe queued events, which cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1517,10 +1609,11 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, stack: bool = False) -> None:
         if self.active and not self.ending:
             var.watchers[self] = None
-            self.watched[var] = None
+            # A later scalar read must preserve a priority query's dependency.
+            self.watched[var] = True if stack else self.watched.get(var)
 
     def unwatch(self) -> None:
         for var in self.watched:
@@ -1619,7 +1712,7 @@ class State:
         var = self.instance.find_var(*target)
         before = var.value()
         insert_link(var, Link(self, slot, priority, above, stack))
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, structure_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
         return var
@@ -1629,7 +1722,7 @@ class State:
         if bake:
             var.base = self.output(0)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, structure_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
 

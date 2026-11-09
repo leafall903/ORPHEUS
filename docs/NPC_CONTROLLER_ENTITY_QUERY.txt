@@ -1,0 +1,82 @@
+NPC related-entity query frontier --104319 --partial native proof
+
+Enforcer13EB/st1 evaluates:
+  !F7262B36(owner).#7681
+    ? (F7262B36(owner).#9134 || B96D3A98(owner))
+    : B96D3A98(owner)
+Its manual body currently lacks the required related-entity context. No native
+query has been replaced with an unconditional true or body-equality shortcut.
+
+Proved original code execution, using the captured mapped image:
+- BD42D0 decodes component43+D8 using the seed at+E0 through BAD060, writes a
+  uint32 entity ID to the supplied destination and returns that destination.
+  512 cases match an independent Python formula;12 bytes beyond the output stay
+  intact. The original caller return is D157E1, in the F726 handler D15520.
+- BD3F50 resolves that ID in the component owner's entity namespace.128 cases
+  cover exact full-ID matches, empty buckets, matching-null pointers and a
+  different full ID sharing the bucket. The genuine caller return is DA6443.
+- DA6910/DA5FA0 consumes component43's relation and resolves component44 on the
+  related entity, returning that component's owner. If43 is absent, the source's
+  own44 is checked.128 cases cover the related44, missing44, ID mismatch and
+  direct source44 path. The genuine caller return is CC9F6B.
+- The original B96 predicate block CC9F61 ->CC9F9D passes64 cases covering all
+  eight presence combinations of controller44,4B and5C. Its result is exactly
+  resolved-controller && has4B && !has5C. Input entity selection is supplied and
+  execution stops before result conversion; this is not a full-evaluator run.
+- These runs execute the complete original helpers and native component cipher,
+  with original tables and return-address guards. Component/namespace/output,
+  TEB/PEB/heap and stack storage are explicit synthetic inputs. No instructions
+  or helper functions are patched, skipped or hooked; there is no client access.
+
+Declared manual Enforcer bridge (server reconstruction):
+- Reuse the parent's explicit4B-present/5C-absent controller-set policy for
+  manual Enforcer01CE only. BotWorld stores the tuple as causal VM/server input.
+  The13EB owner B96 query consumes it. Unprovided context,other heroes/graphs,
+  foreign entities and F726 retain the unknown service. No foreign variables
+  or body/controller namespace aliases are supplied.
+- Existing generic health pool queries remain in use;the parent's separate
+  owner-slot health fallback is unnecessary in this private line. Assassin's
+  declared context/pin bridge and NPC navigation have not been imported here.
+- The current helper agrees with64 unchanged original predicate-tail executions,
+  including absent-controller and4B/5C combinations. Original related getter512,
+  namespace128 and controller128 comparisons also rerun unchanged. This proves
+  the conditional predicate,not the sandbox choice or native controller allocation.
+- At the initial binding checkpoint,actual13EB directed input at8m damaged all
+  three forms:the first nonempty30-frame window lost1HP in Recon and.8HP in Sentry/Tank. Before this
+  binding,300-frame probes produced zero damage in every form. Damage values
+  were observed under the then-one-payload/armour/Ironclad model;complete
+  pellets/spread/native collision and cadence remain open.
+- Historical follow-up found13EB/node24's25 projectiles reduced to one. Current
+  Combat consumes the complete ring set with a declared stateless manual context,
+  now producing25/20/20 close damage against all3 Bastion forms. The old1/.8/.8
+  windows are historical one-payload evidence. Native key/table ownership and
+  complete weapon fidelity remain open;see NPC_PROJECTILE_LAUNCH.txt.
+- Wall/range/friendly/stop/Bastion-death checks now include Enforcer. Actual
+  support Flashbang interrupts it and real attacks recover. Bastion's actual
+  gun/Tank kills stop incoming damage,retain the corpse and allow removal.
+
+Remaining boundary:
+- F726 config evaluation and its outer entity/component selection have not been
+  executed here. The 512 getter cases do not prove its complete evaluator.
+- B96's verified predicate requires a resolved controller entity with component
+  4B present and5C absent. Its complete evaluator has not yet been executed.
+  Do not give those components guessed high-level names.
+- The actual NPC's related ID, controller lifecycle and variables7681/9134 are
+  unknown. Existing live possession records contain component44 bytes, but not
+  the required component43+D8/E0 pair, so they cannot establish this relationship.
+- The extracted bundle has four references to these gate variables:0255/node4
+  and50,114F/node56 and13EB/node1.114F's entity-scope7681 stack belongs to the
+  Heavy Assault body definition; this alone does not bind it to an Enforcer.
+- Full native Enforcer combat,actual Assassin pin and full AI/specials remain open.
+
+External lane evidence (not publication assets):
+  validate_component43_entity_native.py
+  component43-entity-native-validation.json
+  enforcer-controller-variable-references.json
+  native-query-frontier.json
+Image SHA256:
+  e7ce15c45774dc9f3865dc059a5f789790f0e4e19a0024218a341af689b79e8d
+
+Tank self effects remain separately open: resource024F/st15's.25 scalar and
+knockback rings are present, but their native target/impulse semantics have not
+been proved by this related-entity work. No guessed Tank self-effect was added.

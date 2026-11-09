@@ -5,7 +5,7 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
+from ow174.game.script.driver import OWNER_HEALTH, BodyWorld, ReplicatedBody, Snapshot, create_body_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -31,19 +31,68 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.body = 0
+        self.dva_queries = None
+        self.manual_target = None
+
+    entity_query_context = BodyWorld.entity_query_context
+    body_owner_context = BodyWorld.body_owner_context
+    polled_entity_var = BodyWorld.polled_entity_var
+    script_component_present = BodyWorld.script_component_present
+    entity_ruleset = BodyWorld.entity_ruleset
+
+    def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        from ow174.game import dva
+
+        if (self.dva_queries is not None and self.match is not None and sender == self.body
+                and message in (dva.RETURN_TO_PILOT, dva.SELF_DESTRUCT_COMPLETE)
+                and self.match.queue_body_message(target, message, params, sender)):
+            return
+        super().send_message(target, message, params, sender)
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        from ow174.game import assassin
+
+        if self.hero == assassin.HERO and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
+
+    def weapon_launch_inputs(self, state, number, activation, count):
+        from ow174.game import npc_context
+
+        return npc_context.launch_inputs(self, state, number, activation, count)
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
         # Reconstruction policy for the single authored firing placement behavior.
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, dva, heavy_charge, npc_context
+
+        if self.dva_queries is not None:
+            value = dva.shell_native(self, instance, cfg)
+            if value is not NotImplemented:
+                return value
+
+        if self.dva_queries is not None and cfg.get("$") == "STU_FDBB0B67":
+            scale = BodyWorld.unit_body_scale(self, cfg, instance)
+            if scale is not NotImplemented:
+                return scale
+        value = heavy_charge.pose(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,6 +120,46 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def track_targets(self, state):
+        from ow174.game import dva, heavy_assault, heavy_charge, npc_melee
+
+        if state.node.pos == 8 and dva.shell_owner(self, state.instance) is not None:
+            dva.shell_targets(self, state)
+            return False
+        targets = npc_melee.targets(self, state)
+        if targets is not NotImplemented:
+            return targets
+        if state.instance.graph.index == heavy_charge.GRAPH:
+            return NotImplemented  # the swept charge driver owns these contacts
+        return heavy_assault.tracked_targets(self, state)
+
+    def destroy_script_body(self, instance, node):
+        from ow174.game import dva
+
+        shell = dva.shell_owner(self, instance)
+        if shell is None or node.pos != 13:
+            return NotImplemented
+        shell.dva_shell_spent = True
+        return True
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, dva, heavy_assault, heavy_charge, npc_melee
+
+        result = npc_melee.apply(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        if state.instance.graph.index != heavy_charge.GRAPH:
+            result = heavy_assault.modify_health(self, state, elapsed_ms)
+            if result is not NotImplemented:
+                return result
+        result = dva.shell_damage(self, state, elapsed_ms)
+        return assassin.modify_health(self, state, elapsed_ms) if result is NotImplemented else result
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +167,8 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
+        frame_ms: int = 16, dva_match=None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,8 +177,15 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
-        component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
+        if dva_match is not None:
+            from ow174.game import dva
+
+            world.match = dva_match
+            world.body = entity
+            world.dva_queries = dva.QueryRegistry(world)
+        component = self.component = runtime.Component(
+            entity, frame_ms, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
@@ -119,14 +217,17 @@ class BotScript(ReplicatedBody):
     def replicated_instances(self):
         return (instance for instance in super().replicated_instances() if instance is not self.behavior)
 
-    def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
+    def advance_live(self, frame: int, position: tuple | None = None, *, edges=()) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
-        self.component.run_frame(frame)
+        self.component.run_frame(frame, edges)
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -143,6 +244,9 @@ class BotScript(ReplicatedBody):
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
+        from ow174.game import assassin
+
+        assassin.bind(component.world, component, None)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)

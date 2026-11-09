@@ -1,0 +1,99 @@
+Bastion ultimate charge --104319 --resource-backed partial acceptance
+
+The actual Bastion body creates shared graph0B8B. Cost #338e is2310 points;
+charge is #342e. The previous60-second fill approximation awarded about385
+points in ten seconds and ignored all damage. Both defects were executed before
+the change; the two initial methods retain four failing subcases in the external
+lane's bastion-charge-before.txt.
+
+Authored expressions executed by the bridge:
+- node3 Wait interval:1second.
+- node4 passive: min(cost,charge +5 *valueOr(#9532e,1)*valueOr(#12918e,1)).
+- node23 damage: min(cost,charge +#336 *valueOr(#9532e,1)*valueOr(#13022e,1)).
+  #336 is supplied as actual enemy pool loss after mitigation and HP capping.
+- node32 has the corresponding healing expression using#499. Actual Self-Repair
+  notifications now supply restored HP, authored tags and the self target through
+  message0044. The graph owns qualification after the static host default.
+
+Host policy and compatibility:
+- Bastion's default ult_seconds=None selects these expressions. Other heroes
+  retain the existing60s fallback. An explicit numeric override is still available;
+  zero disables passive ticking without disabling earned damage points.
+- The one-second timer is advanced in retained input frames when the authored
+  Wait is inactive. If that Wait is active, this host does not double its timer.
+  This is a reconstruction of host timing, not original server clock proof.
+- Dead/retired bodies and the running ultimate reject points. Bastion modes4..7
+  remain blocked through Tank entry/active/exit after its activation Ability ends.
+- Explicitly closed #2426 or true suppression #842 blocks both numeric damage
+  and passive gains. A newly initialized Bastion body with an unbound #2426
+  uses True as the static host default. Authored overrides remain effective.
+  A later unbound value keeps the numeric bridge fallback while the full
+  healing graph rejects it.
+- Blizzard's July 2016 retail notes establish charge from self-healing.
+  The 104319 Self-Repair notification and 0B8B resource graph establish the
+  charge route. The spawn default is reconstructed and the native writer
+  behind #2426 remains unverified.
+  https://overwatch.blizzard.com/en-us/news/patch-notes/live/2016/07/
+- Each Tank projectile freezes an ineligible-for-charge flag at emission. A last
+  rocket landing after mode0 returns therefore cannot charge the next Tank.
+  This scoped origin policy is not a general native damage-tag implementation.
+- Damage eligibility requires a different owner and an enemy team (or FFA).
+  Native damage-message tags, PvE/difficulty/mode eligibility and exact event
+  boundaries remain open. No shield/barrier damage eligibility is inferred.
+- A diagnostic healing message0044 with Self-Repair tag1BAE matches the real
+  graph but grants no points while #2426 is uninitialized. The mounted01C7 graph
+  writes that gate at node39 through message002D and the STU_ABB6C23E config, or
+  stacks it at node77 from messages0694/0700. These full message/gate routes are
+  not replaced by this numeric bridge. Establishing
+  their actual host state is the next eligibility boundary. See external lane
+  bastion-healing-charge-frontier.json and bastion-charge-gate-references.json.
+- Before the default was implemented, the encrypted-input probe used the controlled map fixture with mode 0018,
+  0017 after assembly, and 001E after switching from Soldier. Passive points
+  are disabled to isolate healing. All three restore 44.64 HP while #2426
+  remains unset and healing charge stays zero. The explicitly eligible
+  001E control restores 44.64 HP and earns the same amount. This localizes
+  the host gap to eligibility rather than input delivery or heal accounting.
+  After the default, the same unmodified gates in all three mode fixtures
+  earn 44.64 charge for 44.64 HP restored. See probe_bastion_raw_healing_gate.py,
+  bastion-raw-healing-gate-modes-retest.txt and bastion-default-healing-charge-raw.txt.
+- Original client wrapper/evaluator/setter execution for ABB6C23E and9622CAD6
+  returns typed empty Asset/Entity in512 cases. This does not establish their
+  authoritative server meaning. No server literal fallback is enabled from the
+  client results. See external charge-context-client-native-validation.json.
+- Passive clock phase and projectile eligibility are stored causal state. Body
+  and server snapshots preserve them without callbacks; native stored hashes
+  include the clock and model hash includes ultimate.py. Native trace export
+  remains Soldier-only; this does not declare Bastion trace/client acceptance.
+
+Executed checks:
+- Ten seconds grant50 passive points; duplicate commands cannot add more.
+- Actual Recon/Sentry/melee hits grant40/75/30 points. Mitigation and overkill
+  grant actual pool loss only; misses/walls/friendlies grant none.
+- Explicit resource multipliers affect damage and passive points, and authored
+  cost caps further gains. Death/retirement reject subsequent gains.
+- All five actual Talon bodies grant expected normal attack points; Tank hits
+  give damage but no points. Fixtures use supplied base pools, permissive NPC VM
+  and declared collision/transport inputs, not autonomous AI or client proof.
+- On actual Heavy Assault, Sentry damage earns a full Tank, activation spends
+  it, Tank damage adds none, expiry returns to Recon and an empty meter rejects
+  reuse. A fresh real Heavy supplies enough actual damage to earn and activate
+  Tank again. Only the initial meter is cleared, never filled by a test override.
+- A late Tank rocket fired shortly before exit kills its90m target after Recon
+  returns and still leaves the next meter empty.
+- An actual Heavy exchange starts with zero points and passive disabled.
+  Sentry damage earns all but the final healing portion. Heavy return fire
+  wounds Bastion, then default Self-Repair supplies the final charge. Tank
+  spends it, hits the Heavy for 205 and exits with zero charge.
+- Actual Self-Repair under default static eligibility restores36HP and earns
+  matching points. Closed/suppressed/target-blocked/uninitialized profiles still
+  heal but earn none. Resource multipliers apply only to actual restored HP;
+  full health cannot farm points. Actual Tank suppression rejects healing charge,
+  and a dead source emits no healing notification. These declared profiles do
+  not prove native host initialization or dynamic engine-added damage/heal tags.
+- Actual NPC geometry now requires the43-row mover input; earlier geometry used
+  defaults. See NPC_AUTHORED_MOVERS.txt for corrected scope and provenance.
+
+Shared expression helper is adapted from the Soldier lane's bfde211 implementation.
+This lane's binding, Tank-origin exclusion and Bastion tests are independently
+reviewed here. Parent serial integration must reconcile both helper/driver changes.
+Full hero/static/native event eligibility and original-client acceptance stay open.

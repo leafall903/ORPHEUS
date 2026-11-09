@@ -6,6 +6,706 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Bastion static combat integration
+
+- Verify weapons, reload, Reconfigure, Self-Repair fuel, Ironclad and Tank
+  charge and lifecycle using actual commands.
+- Verify bidirectional combat with all five Talon NPCs. Heavy Assault's
+  swept charge applies its 50-point side graze once.
+- Exercise called D.Va's Matrix and Fusion Cannons. Share Reinhardt's
+  authored shield pool across mesh queries and route Zarya hitscan damage
+  through the active cast. Preserve Sigma's single shield grant and Mei's
+  spray and Blizzard freeze lifecycle.
+- Pass all 470 combined regression tests in the reconstructed 104319 host,
+  including 230 Bastion tests and 3 called-mech combat tests.
+  Parent integration and original-client acceptance are separate.
+
+#### Bastion and D.Va Call Mech rehearsal
+
+- Route the summoned mech through the Matrix contact test and preserve
+  authored Fusion Cannon ring pellets. The combined static smoke test
+  covers three Bastion forms, Matrix release and Ironclad return damage.
+
+#### Bastion versus Orisa Halt
+
+- Route Orisa's authored second input to the in-flight orb and use Bastion's
+  original target graph for the pull, slow and recovery.
+- Honor Sentry immunity from the authored target graph and cancel a pending
+  pull when the target completes Reconfigure into Sentry.
+- Verify the 5 m pull boundary across all three forms. Native probes exclude
+  both traced mover collider paths from the separate 7 m impulse.
+
+#### Bastion Self-Repair charge
+
+- Initialize the missing host charge gate at Bastion spawn. Self-Repair earns
+  charge through its authored healing graph, with suppression and target
+  filters intact.
+
+#### Bastion versus Winston
+
+- Route actual Barrier Projector casts through a static sphere with durability,
+  expiry, team filtering and ordered mesh and sphere contact.
+- Resolve Tesla Cannon's authored health effect against Bastion, including
+  Ironclad, armor, projected protection and release and reuse.
+
+#### Bastion versus Roadhog and Talon
+
+- Resolve an actual Roadhog Chain Hook cast through static contact, damage,
+  pull and recovery. Cover all three Bastion forms, Self-Repair interruption,
+  cooldown reuse, caster replacement and in-progress snapshot capture.
+- Verify lethal damage and kill attribution from each of the five actual Talon
+  NPCs against a prewounded Bastion. Verify attack and pin cleanup on death.
+- Verify all 20 Bastion weapon and Talon target pairs can deliver a lethal
+  hit with single damage and elimination credit and no duplicate corpse hit.
+
+#### Bastion control cadence and Nano
+
+- Cover Flashbang against launch recovery, reload before and after refill,
+  and Self-Repair input across all five transitions.
+- Exercise Reconfigure before and after refill in Recon and Sentry, including
+  attack rejection during the transition and the first shot after returning.
+- Run Ana's authored Nano selection and release for Bastion, with healing,
+  incoming mitigation and damage preserved on an already launched shell.
+
+#### Talon Heavy Assault charge and Sniper retreat
+
+- Route the actual Heavy charge through static sweep, capture, graze,
+  wall impact and authored cooldown.
+- Run the Sniper's authored wait, retreat and weapon recovery when
+  a visible static destination can be selected.
+
+#### Bastion versus Sombra and Talon melee
+
+- Run Sombra's authored Hack channel and apply a scoped Bastion skill lock
+  that preserves weapon fire.
+- Resolve actual Trooper and Heavy Assault manual melee through their
+  authored tracker and health nodes, including Heavy knockback.
+
+#### Bastion freeze and projected control protection
+
+- Resolve Mei spray frost, slow, freeze and thaw from actual contacts.
+- Apply Assassin pin only after contact damages a surviving body.
+
+#### Bastion versus Ana
+
+- Apply enemy grenade healing block and friendly grenade amplification to
+  effective Self-Repair healing. Preserve authored repair fuel use.
+- Interrupt Bastion with the authored Sleep Dart effect. Preserve form
+  timers, natural wake and a separate damage-shortened sleep deadline.
+
+#### Bastion versus Zarya barriers
+
+- Resolve personal and projected barrier durability before body damage,
+  charge or Tank knockback. Apply the authored energy event to the caster
+  and exercise the barrier's expiry, break, cooldown and reuse.
+
+#### Bastion versus D.Va Defense Matrix
+
+- Use the selected 0407 mech's own pools and graphs. The live Matrix
+  consumes eligible Bastion bullets and Tank shells within its authored
+  volume, with static terrain precedence and an input-driven resource cycle.
+
+#### Bastion versus Reinhardt, Mei and Zenyatta
+
+- Route Bastion weapon contact through Reinhardt's active shield mesh.
+  Exercise shield break, recovery and rearm. Resolve Tank splash visibility
+  against the shield state at the instant of impact.
+- Honor the active Mei and Zenyatta protection scopes for Bastion damage
+  and Tank knockback. Exercise expiry, Cryo cancel and recast rejection.
+
+#### Bastion versus Sigma Kinetic Grasp
+
+- Route eligible Recon and Sentry shots and Tank rockets through the active
+  authored Grasp volume before body contact. Feed absorbed damage into the
+  authored shield conversion and model temporary shield depletion and decay.
+
+#### Bastion Tank knockback
+
+- Tank splash now displaces eligible players and the five manual Talon NPCs.
+  Reuse authored mover dimensions and a reconstructed contact direction with
+  native-checked ring interpolation and axis scaling.
+
+#### Bastion Tank self-splash
+
+- Use the Tank explosion's authored 0.25 scalar for owner splash in the
+  reconstructed damage path. Self-damage runs through Ironclad and armour,
+  and can end the owner's life without awarding combat credit.
+
+#### Bastion Sentry rear core
+
+- Use a static capsule from the 104319 model and deploy animation endpoint.
+  Historical Sentry aim and pose select the core, and the first ray intersection
+  determines whether the shot reaches the core or the main body.
+
+#### Bastion Recon critical damage
+
+- Recon now uses a reconstructed 2x multiplier when its authored critical
+  override is absent. Actual Recon and Sentry inputs cover torso hits, upper
+  hits and high misses with live damage and hit flags.
+
+#### Assassin pin against Bastion
+
+- Manual Assassin engagement binds logical button 36 and supplies graph 1157
+  with the current victim body. Authored health nodes apply entry and ongoing
+  damage through server vitals. Pin control interrupts Bastion input and clears
+  on stop, lost contact, team change or Assassin death.
+- Actual NPC tests cover Recon, Sentry and Tank. The manual 3 m contact rule,
+  continuous damage clock and controller binding are server reconstruction.
+
+#### Bastion Recon and Sentry combat rays
+
+- Recon and Sentry now apply their authored cone bounds to the damage ray.
+  The private spread helper regenerates both captured tables. Its caller uses
+  declared server entity, instance, node and activation identities with a
+  uniform radial sample. Original handle and radius mode binding remain open.
+- `D886A5` reads launch field `+0x50` and `D88978` stores the result at
+  profile `+0x2c`. Recon's authored 0.075 coefficient now affects the live
+  spread output between shots. An offline comparison matched 540 original
+  constant-rate cases with explicit preparation and subtype adapters.
+- The shot cone uses the pre-increment launch count at `AE71CF` through
+  `D5FF60`, with 216 offline comparisons. Live VM output uses `D5F920` and
+  the time-based decay. Actual input hit off-axis targets in both forms. The baked
+  coefficient participates in causal snapshots. Other decay profiles, native
+  launch context, and animated muzzle transforms remain open.
+
+#### Restore Enforcer pellet consumption and no-decay spread output
+
+- Reproduce the25-to-one projectile defect through actual manual13EB inputs
+  in all3 Bastion forms. Reuse the reviewed ring helper and consume all25
+  distinct trajectories,retaining each payload's range,lifetime,damage and
+  cancellation. A scoped stateless manual SHAKE context is explicitly server
+  reconstruction;native engine random-key/table ownership stays unproved.
+- Local native math comparisons pass669 ring,675 uniform and788 vector cases.
+  Actual close impacts deal25/20/20HP to Recon/Sentry/Tank,with pending-wall,
+  stop,missing-context and recovery checks. Existing negative/control/death
+  and repair-charge cases now use the full physical pellet set. More-than7
+  predicted pellet presentation remains unsupported;no client acceptance is claimed.
+- Adopt only the shared WeaponVolley no-decay spread_ramp fix and causal layout,
+  preserving this lane's last_ammo field. Local native140 normalized/20 angle
+  comparisons pass. Actual Sentry output follows its40-shot ramp;Recon decay
+  and actual Bastion ray scatter remain open. See NPC_PROJECTILE_LAUNCH.txt.
+- Frozen340 tests pass1013.385s and15 server snapshots pass761.040s,with all
+  39 Python/7 input hashes unchanged. Ruff and staged diff pass. Full hero/static
+  gate remains open;no partial commit.
+
+#### Bastion declared Enforcer context and authored eye offsets
+
+- Actual Enforcer13EB attacks previously produced zero damage to Recon/Sentry/
+  Tank over300 frames. Adopt the parent's explicit manual controller component
+  set4B-present/5C-absent,scoped to Enforcer owner queries. Unprovided context,
+  other entities/graphs/heroes and F726 remain unknown;existing generic health
+  pool queries stay in use. Native controller allocation is not reconstructed.
+- Current predicate agrees with64 unchanged original tail comparisons;original
+  getter512/namespace128/controller128 comparisons rerun unchanged. Actual
+  incoming damage now reaches all three forms,with wall/range/friendly/stop/
+  death and support Flashbang/recovery checks. Actual weapon kills retain the
+  corpse and stop damage. Assassin's pin bridge and NPC navigation stay open.
+- Bind the authored FirstPerson fields for Bastion01FD (1.82m standing/1.35m
+  crouched) and enemy McCree02A3 (1.425m/.9975m) through a shared eye_height
+  helper in shot origins and Target.eye. The new baseline reproduces8 failed
+  subcases,including low-cover errors. Aim forward combat fixtures at declared
+  torso points and compute the falloff ray distance from the quantized angle.
+  Native animated camera/muzzle/bone geometry and transformation overrides
+  remain unproved. McCree critical-default changes are not part of this patch.
+- Eye/kit/Deflect/Flashbang/lifetime55 methods pass266.057s;context/eye/Enforcer
+  lifetime10 pass27.117s. Frozen317 tests pass818.722s and15 server snapshots
+  pass641.732s;all35 Python/7 input hashes stay unchanged. Resource inspection
+  also identifies25 authored Enforcer projectiles versus one emitted payload;
+  complete Enforcer weapon damage remains unaccepted. These checks do not
+  complete the hero or authorize a partial commit.
+
+#### Bastion state notification retirement
+
+- Reproduce both parent notification-lifetime failures in this private source.
+  Canceling an ending state's queued notifications now clears their coalescing
+  markers, and cleanup variable writes skip the ending state. The same actual
+  Bastion input probe records8 stale endings before and0 after, including Recon
+  012E/st26 and Sentry012F/st123; the probe's firing already worked before the fix.
+- Adopt only the parent's Ability.stop cleanup-before-unlink change, retaining
+  its explicit reconstructed server ordering. This does not establish the native
+  order across objects. No global arbitration phase or persistent VM field is added.
+- Three new methods pass27.417s:two minimal VM lifetime regressions and actual
+  Recon/Sentry reload interrupted by repair, fresh reload and damage across three
+  cycles per mode, followed by Reconfigure return. Frozen307 tests pass836.190s
+  and15 snapshots pass627.587s;31 Python/5 input hashes are unchanged. Full
+  static/native protection and original-client gates remain open.
+
+#### Bastion melee Deflect predicate
+
+- Reproduce actual frontal melee penetration and penetration after Deflect
+  cooldown reuse: target200->170 and170->140 while the actual03A3/st59 filter
+  is active. Execute that zero modifier's authored direction predicate in a
+  scoped temporary context instead of granting generic damage immunity.
+  Parameter8 is supplied as the attacker eye origin, owner position as the
+  retained feet and021D01CD as the defender's mover-facing vector. These host
+  bindings remain reconstructed; no entity variable, global query or flag is forced.
+- Actual commands now block front melee without reflected damage, hit notices
+  or damage charge; back/side/inactive/expired cases still deal30HP. Actual
+  cooldown reuse blocks again. A wall and a friendly deflector preserve normal
+  filtering, including damage to an enemy behind the friendly actor.
+- Nine Deflect methods pass32.549s on final source. The original direction
+  query's success-result conversion matches256 unchanged-instruction cases and
+  guard bytes; this proves the third-vector Vec3 copy, not outer entity/animated
+  transform lookup or native event parameter/tag population. Frozen304 tests pass
+  758.647s and15 server snapshots pass649.096s, with all29 Python/5 input hashes
+  unchanged. Full static/native protection and original-client gates stay open.
+
+#### Bastion scoped Deflect interception and shared press lifetime
+
+- Consume actual Genji03A3/st10 boxes for original Bastion Recon/Sentry/Tank
+  shots before the nearest body/wall. Re-cast guns and continue Tank's remaining
+  sweep with defender ownership/team, retaining its payload, speed, remaining
+  lifetime and Tank-origin charge exclusion. Returned damage is30/35/154HP
+  after the real Bastion armour/Ironclad; the defender receives no frontal damage.
+  A reflected Tank kills a real third party with Genji credit.
+- Actual tests cover front/back/inactive/friendly/wall, expiry and cooldown
+  reuse. The first inactive-state lookup/friendly teleport fixture and invented
+  critical expectation are corrected without relaxing the intended interception
+  contract. Snapshot hashes retain the projectile's deflectable field. Native
+  pose/angular/tag filters, reflected projectile presentation and melee blocking
+  remain open; this scoped host reconstruction is not full native Genji support.
+- Independently reproduce the parent's shared Ability press-refresh defect with
+  actual Bastion melee: an expired released tap wrongly adds30 damage(170->140).
+  Retain its original press timestamp until start gates pass, then consume it.
+  The authored0.15s window now expires early taps while near-expiry short input,
+  held input and a fresh ready press still deal actual damage. Reconcile this
+  small shared nodes.py fix with the parent's uncommitted equivalent at integration.
+- Eight focused methods pass20.039s; all29 changed Python files pass Ruff.
+  Frozen301 combat/VM/NPC/replay tests pass958.470s;15 server snapshots pass
+  707.874s. All29 Python/5 input hashes remain unchanged; staged diff passes.
+  The parent's mover helper and existing lane inline code also match120 source
+  comparisons; no duplicate mover edit is imported. Full static gate remains open;
+  no hero commit or original-client acceptance.
+
+#### Bastion cross-hero protection failures and native Deflect boxes
+
+- Execute eight actual Genji Deflect profiles: Recon/Sentry/melee/Tank from
+  both facing directions.03A3/st10 is active before every loss, but current
+  frontal attacks still deal40/75/30/200 cappedHP and never return damage.
+  Record these as unresolved failures; no test turns the wrong damage into an
+  accepted contract. The real defender mover confirms the requested facing.
+- Match the original Deflect registration/factories/vtables and execute its
+  unchanged XYZ box-ordering instructions in515 bit-identical cases, including
+  actual three boxes and randomized/special floats. Preserve W and unordered/
+  equal endpoints. The third authored Genji box reverses its X endpoints.
+- See BASTION_CROSS_HERO_PROTECTION.txt. Native owner pose, angular/tag filters,
+  physical interception, ownership transfer and melee blocking remain open.
+  Do not treat unknown54FEB21C as an invulnerability flag or an inactive D.Va
+  Matrix/Zarya Pet profile as completed protection. Production Python and the
+  prior26 source/5 input hashes are unchanged; no client acceptance or hero commit.
+
+#### Bastion Tank blast radius and occlusion acceptance
+
+- Execute54 actual wall-impact subcases: six positions around authored1m/4m
+  ring boundaries on an enemy player and all five actual NPC capsules, plus
+  inner/middle/outer wall occlusion on those same six target types. Verify
+  splash-only damage, no damage outside4m, shield-first pool distribution and
+  NPC script-health synchronization. Use the actual43-row NPC mover provider.
+- First run:3 methods with four player-boundary failures because sqrt-based
+  placement was quantized by the mover. Replace those positions with exact
+  1/64m-grid lateral offsets and a short impact-wall patch; retain strict damage
+  and final-position assertions. All4 final methods pass62.889s; Ruff and staged
+  diff checks pass. No production Python edit; previous25 Python/5 input hashes
+  remain unchanged. These are reconstructed capsule/interpolation semantics;
+  native collision, self-damage and knockback are still unproved.
+- Correct the prior054B frontier fixture-mode attribution to001E(KANEZAKA_DM).
+  The0EC2 binding is0017 and remains unrelated to this fixture lifecycle.
+
+#### Bastion Tank release and repress acceptance
+
+- Execute five actual input schedules around Tank's recovery. Early repress
+  cannot advance the second shot; repress after recovery fires immediately.
+  Each schedule settles three actual65+140 impacts against a declared large
+  enemy pool. Released input queues no extra shot, and a later ready tap damages.
+  See test_bastion_tank_cadence.py. These16ms server samples do not prove native
+  subframe timing or remaining interrupt/control/self-effect behavior.
+  Both new methods pass13.851s on final test source; Ruff and staged diff pass.
+  Prior287+15 source/input hashes remain unchanged; no production Python edit.
+- Bound the054B graph lead to mode0017's0EC2 graph; it is not the current001E
+  fixture lifecycle. Original57692020 source registration exists, but its name is
+  Unknown and runtime receiver semantics remain unproved. No host event is added.
+
+#### Bastion qualified healing and authored NPC mover inputs
+
+- Honor explicitly closed2426 and active842 suppression in the numeric charge
+  bridge. Reproduce both45-point leaks before fixing them; reopening declared
+  profiles restores gains. Uninitialized host state remains an explicit boundary.
+- Emit Self-Repair0044 notifications with actual restored HP, authored1BAE tag
+  and self target. Execute0B8B's own qualification/multiplier/cap path instead of
+  directly adding healing points. Declared allowed/closed/suppressed/target-blocked
+  and unknown profiles, full-health clipping, actual Tank suppression and death
+  guards pass. Default native eligibility/dynamic engine tags remain open.
+- Require the parent's43-row actual NPC mover table; fail rather than falling
+  back to Soldier dimensions. Verify height/radius/speed and actual Target shape
+  for all five. Aim at each body center, preserve Assassin's horizontal miss,
+  and place the melee wall strictly before Heavy's0.7m-radius capsule. Historical
+  NPC runs used fallback geometry and cannot prove actual NPC geometry.
+- Twelve corrected NPC methods pass328.461s, including all four attacks and
+  misses/range/walls/team/lifetimes, plus repair charge after actual Trooper,
+  Sniper and Heavy damage under declared eligibility. Prepared inputs are read
+  only; collision remains fixtures and no AI/model hitbox/client acceptance is made.
+- Verify512 original client wrapper/evaluator/setter cases for ABB6C23E and
+  9622CAD6:typed empty Asset/Entity. This does not establish server semantics;
+  no server literal fallback is added. See BASTION_ULTIMATE_CHARGE.txt and
+  NPC_AUTHORED_MOVERS.txt. Fixed-source287 combat/VM/NPC/replay tests pass568.512s;
+  15 server snapshots pass543.627s. All24 Python and5 input hashes remain unchanged;
+  Ruff and staged diff checks pass. Full static acceptance stays open; no hero commit.
+
+#### Bastion authored passive and damage ultimate charge (partial acceptance)
+
+- Replace Bastion's60s fill approximation with its actual0B8B one-second passive
+  and damage expressions, including resource multipliers and2310-point cap.
+  Combat supplies eligible actual enemy pool loss after mitigation/overkill.
+  Reuse the Soldier bfde211 expression helper with explicit Bastion binding;
+  other heroes retain the existing fallback and numeric overrides remain.
+- Freeze Tank-origin ineligibility on projectiles so delayed impacts cannot
+  refill after Recon returns. Dead/retired sources and Tank modes4..7 reject
+  gains. Keep passive clock phase and projectile eligibility in causal storage;
+  register the helper in native model identity without expanding trace support.
+- Actual enemy player/five-NPC checks cover normal attack gains, Tank exclusion,
+  misses/team/walls, mitigation, replay/cap and resource multipliers. Actual Heavy
+  damage earns, spends and reearns Tank; an empty meter rejects reuse. Initial
+  passive/damage diagnostic fails as expected, then focused33, earned-loop/storage2
+  and native-replay18 checks pass. Final281 combat/VM/NPC/replay tests pass604.251s
+  and15 snapshots pass577.281s;24 changed Python files retain frozen hashes.
+  Ruff/diff pass. Focused checks overlap the final run and are not added to it.
+- Healing charge and native event/tag/PvE eligibility/clock/presentation remain
+  open. This is partial static evidence; no hero completion or own commit.
+
+#### Bastion Tank projectile body lifetime (partial acceptance)
+
+- Reproduce an unleased real Tank projectile killing its target after the firing
+  body was replaced. Retire all body-owned damage projectiles on replacement,
+  matching the existing leased path. Network lease availability no longer changes
+  that server lifetime policy or attributes an old attack to a replacement body.
+- Actual Tank commands cover death with a retained body and body replacement,
+  both with normal leases and explicitly disabled network lease allocation.
+  Already flying shots still hit after death, preserve their source and settle
+  once. Enemy players and all five actual Talon bodies are checked.
+- This extends the existing reconstructed body-retirement policy; native lifetime
+  equivalence and original-client presentation remain open. No hero commit.
+- Final fixed-source255 combat/VM/NPC tests pass in470.777s and15 server-snapshot
+  tests in480.667s;20 changed Python files retain their frozen hashes. Ruff and
+  staged diff checks pass. Initial34-test diagnostic retains its one unleased
+  replacement failure; it is not counted as successful acceptance.
+
+#### Bastion NPC related-entity native frontier
+
+- Execute original component43 getterBD42D0 for512 synthetic storage cases;
+  independently decoded uint32 results, returned pointers and output guards agree.
+  Execute128 originalBD3F50 namespace and128 DA6910 controller-component lookup
+  cases, including missing targets, full-ID collisions and source44 fallback.
+- Execute64 original B96 predicate-block cases across all controller44/4B/5C
+  combinations; result requires44 and4B with5C absent. Input selection and output
+  conversion remain outside this block proof; full evaluator is not claimed.
+- Preserve original code/tables/cipher/return guards with synthetic storage and
+  TEB/PEB/heap inputs. No native helper hooks, live process access or forced
+  production predicates. Record13EB's exact gate and remaining related-entity
+  binding/7681/9134 boundary in NPC_CONTROLLER_ENTITY_QUERY.txt.
+- Production Python is unchanged from the prior266 passing checks. Full NPC
+  incoming, Tank self effects and full static acceptance remain open; no commit.
+#### Matrix query and catalog lifecycle follow-up (uncommitted)
+
+- The preceding108-file model completed566 battle methods in551.869s,
+  22 server snapshot/replay methods in1013.050s and841 script methods in25.991s,
+  zero skips. All three reports and final disk hashes matched. This checkpoint
+  is historical after the following source changes; it is not full hero acceptance.
+- A diagnostic found that an inactive Matrix query allocated lazy State3.
+  Read the existing state registry instead. All18 Matrix checks pass26.061s,
+  including no query allocation, nearer-body priority, Harmony/Transcendence,
+  no per-hit drain and actual back Flashbang interruption followed by Orb damage.
+- A separate actual finite-Zen STORED journal reproduced an initial-state
+  mismatch when the process-global catalog changed from cold to loaded during
+  recording. The earlier47-root wire-only match did not verify stored state.
+  Bind the immutable configured catalog at module initialization before the
+  first controlled root (empty catalog when unconfigured). Keep catalog/path
+  observable in snapshots. The actual finite-Orb registered-domain stored
+  replay passes551.213s. All841 current script regressions pass24.238s,zero skips;
+  complete current battle/snapshot suites are not yet rerun after these fixes.
+- No commit/submission/client control. Parent's later McCree-only cone helper
+  and native random-table notice is recorded but not imported. Existing Fan
+  factor checks here do not prove current shared scatter accuracy or parity.
+
+#### Selected0407 forms and Zenyatta Matrix combat (uncommitted, partial)
+
+- Select an explicit prepared body through Match/BodyScript, validating its
+  record, pools and mover before retiring the current body. Real0407 uses its
+  own graphs,600 total pools and0.7m radius; returning to040A restores150.
+  These are explicit form commands, not a completed Q possession transition.
+- Port the frozen007A direct-body-owner backend and ruleset null-selector
+  fallback, with scoped DVa Match bindings and causal owner/cache snapshots.
+  Own-lane original-instruction probes pass1056 owner and1296 ruleset cases
+  under declared engine storage/lookup/selector/property adapters. Candidate
+  references are still unreviewed WIP, not imported committed dependencies.
+- Host current-pose active02CC/st3 boxes for known finite Volley projectiles.
+  Manifest-verified primary0236 and secondary0261 tags are separately exported;
+  unknown definitions pass through. Tag0145 exclusion and eye/aim attachment
+  are reconstructions; the complete native097 filter is not implemented.
+  Consumption precedes a farther body/wall/barrier and ends prediction records
+  without an explosion release or direct/splash/status/ultimate-damage award.
+- Seven real form/resource checks pass;13 Matrix checks plus two causal server
+  snapshot checks pass51.693s. The new frozen model passes all841 script tests
+  in25.991s,zero skips. Full battle and server snapshot/replay reruns are pending.
+  Hitscan/beam Matrix, arbitrary payloads, historical activation/pose, all five
+  NPC combinations, native filter/attachment and Q ownership remain open.
+- The earlier530-method clock run had four death-adapter failures. Restricting
+  component-clock access to real BotScript restores all four old interfaces;
+  those four plus seven actor-clock checks pass9.579s. The old snapshot run was
+  explicitly stopped for this confirmed source fix and is not acceptance.
+  Parent's later spread_ramp notice has not been imported; reconcile before any
+  eventual submission. No complete static hero/client/merge-ready claim.
+
+#### Notification lifetime, created-body clocks and combat eyes (uncommitted, partial)
+
+- Clear canceled CHANGED/CHECK markers when State ends and prevent cleanup
+  writes from notifying an ending state. Finish Ability scope/resource cleanup
+  before releasing its arbitration link; that cross-object order is an explicit
+  reconstruction. Two formerly failing minimal cases and all825 script tests
+  now pass without skips. Actual Zen held-primary empty-magazine reload and
+  full-burst-to-primary traces retain their real ammunition consumption.
+- Advance Q-created unpossessed0407 scripts continuously using their creator's
+  frame origin/quantum and elapsed world time. Map projectile/death times across
+  those domains; bootstrap with actual600 combined pools before publication.
+  Roll back failed required-script creation and retire only the source's owned
+  actors on source-script failure/replacement. Seven actual-Q clock tests pass,
+  including7ms frames, positive/negative origins, skipped ticks, the authored
+  350ms wait, an actual Zen kill and preservation of an unrelated manual corpse.
+- Read manifest-verified104319 FirstPerson fields for Zen0216, McCree02A3 and
+  mech0407; share stance lookup between firing origin and target head proxy.
+  Four checks pass for resource hashes/fields, actual crouch commands, Zen low
+  cover and selected McCree primary/Fan critical factors. Missing McCree primary
+  factor2 is reconstructed only at01D2/31; explicit Fan1 remains unchanged.
+  Camera/muzzle/bone transforms and native head regions remain unverified.
+- Complete combat and server snapshot reruns are pending on this frozen model.
+  The515/19 results below belong to its predecessor. Full Zen static matrix,
+  DVa possession/Matrix and original-client acceptance remain open. No commit,
+  merge submission, deployment, client control or push was performed.
+
+#### D.Va actual entity queries and summon input limits (uncommitted, partial)
+
+- Bind DVa BodyWorld to the existing104319 entity-query interpreter through
+  an explicit Match-backed registry: mode, controllers, current player bodies
+  and actual unpossessed bodies. Controller44 reads its real current body.
+  Unknown/invalid identities stay absent; no body alias or constant true result.
+- Read foreign body variables from their actual components without creating
+  slots or borrowing the caller's variables. Poll these reads explicitly;
+  cross-component Var subscriptions and a generic native namespace remain open.
+  Retire the binding with the source BodyScript. Store namespace flags, callback
+  bindings and retirement causally; VM export rejects unknown callbacks.
+- Actual Q now takes026A/28's true branch and reaches authored seat20 after
+  the original wait; the previous65 false fallback is superseded. The seat
+  remains a carrier: no current-body change, owner script adoption or Matrix.
+- The shared throttle-modifier report applies to026A's active17/18/19 rows.
+  Adapt only the direction split/sign/clamp fix from a frozen read-only parent
+  mover reference; the dependency is uncommitted and must be reconciled before
+  submission.120 original instruction-prefix comparisons pass with scalar-mod
+  lookup explicitly stubbed. This is not full native mover equivalence.
+- Nine actual query/movement methods pass: real identity and received-health
+  reads, no foreign slot creation/watch links, source retirement, callback
+  snapshot guards, directional input suppression with raw bytes/look retained,
+  next-frame onset with inertia, and hero replacement restoring movement. The
+  boundary fixture originally expected the factory in Q's first frame; replace
+  that incorrect assumption with observed input-scope onset and a matched
+  held-versus-neutral physical trajectory.515 full regressions and19 complete
+  snapshot/replay checks pass with zero skips on the same frozen106-file model;
+  both reports and the final on-disk input/source hashes agree.
+  Original-client, possession/seat/actor lifecycle and Matrix gates stay open;
+  all new source remains uncommitted.
+- Follow-up inspection found the unpossessed mech VM does not advance after
+  creation: world/pilot1020->1120 leaves mech1013 because the ordinary bot loop
+  skips non-firing, non-manual bodies. Creator command frames and world ticks
+  also need explicit mapping. Record this failed execution; creation/received
+  health/query evidence does not prove live timers/resources. Fix advancement
+  and clock domains before owner adoption or Matrix acceptance. A read-only007A
+  reference has useful explicit-form interfaces and an uncommitted factory,
+  but its explicit-form tests do not prove Q transformation. Nothing imported.
+- A later shared lifecycle notice reproduces two additional failing minimal
+  cases in this lane: canceled CHANGED/CHECK markers survive State.end and
+  cleanup writes notify an ending state. These failures are retained outside
+  Git, not covered by the green515/19 selection. Fix notification lifetime and
+  review cleanup-before-arbitration against actual Zen resources before the
+  next actor-clock/ownership stage; do not claim the shared parent fix imported.
+
+#### D.Va independent mech factory before possession (uncommitted, partial)
+
+- Reconstruct only026A/64's null-config completion, corroborated by original
+  null-config/output/event instruction segments with a declared clock binding.
+  Opaque engine-clock traversal and generic54 timing remain unverified. The
+  scoped factory handler stops without output/success plugs when data is absent.
+- Actual pilotQ now runs026A/15 and allocates an independent0407 body through
+  the existing unpossessed-body host. Read its0033 overrides as300 health and
+  300 armour; run its own initial/weapon graphs and actual2m/.7m mover data.
+  Record source body/controller identities. Keep it separate from manual NPC
+  removal; the five manually spawned NPCs' corpse policy is unchanged.
+- Fourteen actual-input placement/factory methods pass. Actual Zen primary,
+  five-Orb burst and quick melee deal43/215/25 through mech armour; friendly
+  fire, insufficient charge and missing-data failure paths execute. The actual
+  mech VM exports its received health. This is an unpossessed mech; pilot input
+  does not activate Matrix and no player-form replacement is claimed.
+- Prepare an owned44-row runtime variant: only graph/mover metadata are new;
+  unchanged files are read-only hardlinks. Traverse58 graph indexes:50 existing
+  records match, seven are new, and one is inherited missing.
+  Shared01C7 retains the base bundle's missing0F9C reference; selective104319
+  OpenFile also fails for that asset. Record the unresolved reference rather
+  than claiming a complete native resource closure.
+- After factory creation,026A/28's unhosted existence query still takes the
+  legacy fallback and leaves65 active. Real entity/foreign-variable queries,
+  1.75-second possession/seat path, actor/controller cleanup, native factory
+  flags and Matrix combat remain open. The FFA third-player probe exposed the
+  reused manual-NPC0/1 team restriction; summoned bodies now use native FFA
+  filter4 and an actual Q/Orb regression passes. Manual NPC team rules stay0/1.
+  The two verified pre-fix test processes were stopped and their partial logs
+  retained.486 final-model regressions and18 full snapshot/replay checks pass
+  with zero skips; both reports and the final on-disk hashes agree on the same
+  frozen106-file production model and declared inputs. Earlier
+  479/18 logs describe the prior model. Keep all new work uncommitted.
+- Review the shared cooldown-buffer report without importing parent WIP. The
+  lane already reinserts the original consumed press tuple on failed start
+  gates. Four actual Zen/Genji checks pass: early expiry, near-ready buffer,
+  held input preserving its original timestamp, and a new ready press. The held
+  method is supplemental to the full run; no production change was required.
+
+#### D.Va pilot placement before the Matrix interaction (uncommitted, partial)
+
+- Host only026A/node38's explicit placement request. Read direction and reach
+  from the actual nested70C754CD query, then reconstruct a ground ray, authored
+  slope limit, static capsule clearance and living-body rejection. Publish only
+  the placement position1626 whose Vec3 consumer is identified; other native
+  outputs, filters, animated hardpoints and footprint search remain open.
+- Actual full-chargeQ now follows placement success. Missing ground, steep
+  ground, low ceiling and allied/enemy occupancy follow failure. Actual yaw,
+  pitch and insufficient-charge cases execute; the stored result and query
+  count participate in VM snapshots. Eight placement methods and the complete
+  479-method regression run pass with zero skips and unchanged input/model
+  hashes. This supersedes the earlier471-method model for combat regressions.
+  All18 full snapshot/replay checks also pass on the identical106-file model;
+  both reports and the final on-disk input/source hashes agree.
+- The prior placement-only model retained54FEB21C/node64 after400 frames, with no
+  B6E3C77D factory call or mech actor38. Existing offline-image inspection shows
+  timing/output/event services requiring further verification. Do not bypass
+  that gate or count placement as mech/possession/Matrix acceptance. All new
+  work remains uncommitted; full static and original-client acceptance stay open.
+
+#### Zenyatta versus manual Assassin, melee guard and field status timing (uncommitted, partial)
+
+- Port the contact-pin portion of the shared parent's uncommitted bridge from
+  a stable external12-file SHA256 reference snapshot. This is not a reviewed
+  dependency commit. Keep unrelated navigation/Deadeye/launcher work out, retain
+  the lane's Enforcer difficulty checks, and preserve all work uncommitted.
+- Parent data review found the canonical38-row mover table omitted all five
+  Talon NPCs. Revalidate using the separate43-row npc-navigation-runtime inputs;
+  the test fixture now rejects fallback dimensions. All-five edge hit/miss,
+  170m-hit/190m-miss, wall and team fixtures pass. Fixed eye/muzzle placement,
+  capsule interpretation and animated poses remain reconstructed. Historical
+  NPC geometry results are not full original-geometry acceptance.
+- Declare the manual controller context and supply1157's original target536
+  expression through a data-only possessor Map/#1650. Reconstruct3m contact/LOS,
+  one-shot25 then one-second delay and100/s health-state mode, pin control and
+  cleanup. Preserve corpses. Clock/target/controller/pin state is stored.
+- Execute actual1157 input versus Zen: contact/continuous damage, pinned weapon,
+  ultimate and movement rejection, look continuation, allied Harmony and
+  Transcendence healing without cleansing pin, stop/restart, range/wall/team,
+  actual support Flashbang and wounded-source bullet kill, body replacement and
+  removal. Active017B now rejects pin control before interruption can stop it.
+- The immediate-release test exposed delayed charged Orbs after control ended.
+  Bind interruption to0164 Stack122's authored under branch:98 clears charge
+  and aborts35/visual scopes before button release; active35 follows its own end
+  and cooldown plugs. Cancel does not refund ammunition; new primary input works.
+- Host actual03A3/CombatModFilter107 for0043 quick melee: its zero factor,
+  listed tags and unchanged positive-dot expression block the front without
+  returned damage/charge. Actual back/end,80/90/100-degree, team/FFA/range/wall
+  and body replacement tests execute. Tag matching and source parameter binding
+  remain reconstructed; no generic native filter equivalence is claimed.
+- Biotic Field now passes its retained healing interval and actual last healing
+  tick to anti/amp integration. Actual casts prove normal/skipped anti expiry,
+  amp expiry and field expiry agree; the former endpoint-only rule over-healed.
+- Pass471 regressions with zero skips using actual NPC mover rows and explicit
+  read-only canonical map collision inputs;18 complete snapshot/replay checks
+  pass on the same frozen105-file model. Input/model hashes remain unchanged.
+  The first43-row run exposed above-head aim fixtures and missing-cache skips;
+  retain its failed log, use body-centre command aim and the external input
+  runner for current evidence. Ruff/diff checks pass. Native
+  controller allocation/wire, pin pose/approach/escape/recovery and broader
+  immunity/cleanse/cooldown semantics remain open, along with the wider matrix.
+
+#### Ana healing-status interactions with Zenyatta (uncommitted, partial)
+
+- Selectively manifest-check grenade1426/053-0267 and graphs0C71/0B99/0C72
+  outside Git. Host the human branch literals: enemy60, friendly100, received
+  healing factors0/1.5, four-second duration and0.05-second modifier delay.
+  Replace the generic carrier50 explosion with the faction branch; do not add
+  both damage amounts. Reflected ownership chooses the new faction/source.
+- Apply the modifier to Harmony, Transcendence, shield regeneration and shared
+  area healing. Integrate activation/expiry overlap for Zen's continuous rates.
+  Anti-heal takes precedence; amplification does not stack; refresh preserves
+  the active interval. Retire status on death/body replacement. Actual017B
+  flag8440 cleanses recognized anti-heal and rejects a later grenade branch.
+- Actual-input evidence covers player and all-five NPC healing, exclusive
+  expiry, effective ultimate gain, cooldown/recast, self/FFA, overlapping casts,
+  static walls, reflected source, grasp consumption and barrier splash rejection.
+  Status source/activation/expiry are registered in stored server snapshots.
+- Faction/routing, refresh, interval integration and shield-regeneration policy
+  are explicit reconstructions. Native PlayScript/CombatModFilter, AI tuning,
+  gravity, tag293E exclusions, general cleanse and presentation remain open.
+  Pass440 complete focused regressions and22 final healing methods (19 overlap
+  main, three supplementary clock/NPC-lifecycle cases), plus17 complete stored
+  snapshot/replay checks on the frozen model. Ruff/diff checks pass. Full static
+  acceptance remains open. No new
+  commit or submission is made.
+
+#### Zenyatta versus reconstructed Reinhardt barrier (uncommitted, partial)
+
+- Selectively export/manifest-check104319 Pet011A and its A3C model outside Git.
+  Prepare98 vertices/192 query triangles with a provenance-checking source tool;
+  pin model and geometry SHA256. Runtime accepts an external prepared file via
+  ORPHEUS_BARRIER_DATA or data/barriers_174.json and rejects modified geometry.
+- Host actual0095/Pet51 secondary deployment, resource1600 HP,200/s recovery
+  after lowering2s, and5s break boundary. Route projectile/hitscan damage through
+  the nearest hostile barrier, preserve friendly passage and physical back hits,
+  prevent one breaking projectile overflowing to the body, and clip splash.
+- Pass10 direct-input barrier methods: primary/head aim, charged burst, teams,
+  protected ally, lowering/back, static wall, recovery, repeated-fire break/rearm,
+  melee/replacement, Flashbang and invalid external inputs. The parent native
+  input-join fix is imported;112 hero/join/VM checks passed before this host.
+- Pass420 focused regressions and16 complete snapshot/replay checks on frozen
+  model source. A supplementary hitscan/integrity run passes2 methods (one
+  overlaps the main run), directly protecting Zen from actual Soldier fire.
+  Ruff/diff checks pass. None of these counts closes the full static matrix.
+- Pet health/attachment/regen/damage routing are reconstructed; animated
+  hardpoint29, native raycast filter classes, Pet entity transport and original-
+  client presentation are unaccepted. Cast/LOS status interactions, other shield
+  heroes, Matrix, Assassin and the wider matrix remain open. Keep this new work
+  uncommitted until full hero static acceptance, per the latest user instruction.
+
+#### Sigma grasp versus Zenyatta and Flashbang control boundaries (lane0020, partial)
+
+- Reuse actual active1D02 DeflectProjectiles boxes to consume incoming physical
+  projectiles. Follow the authored per-hit output/sum path and retire prediction
+  records without damage, splash or a reflected return. Preserve Genji's distinct
+  reflection response. Eye-space geometry/front incidence remain reconstructed.
+- At the resource conversion boundary, grant60% of intercepted payload up to
+  the authored400 cap in a separate extra-shield pool. Run decay after actual
+  Wait71/ModifyHealth70. Extra-pool priority, unhealable policy, aggregate slot
+  and five-per-second interpretation are explicit reconstructions; the general
+  native PlayScript/HealthPool and projectile tag engine remain unimplemented.
+- Execute actual Orb/burst/three-Zen cap, wall/back, death/replacement, Discord,
+  skipped-clock and Flashbang-front-consume/back-interrupt cases. Resource sum240
+  becomes144 extra shields; three bursts sum720 and cap at400. Absorbed Orbs grant
+  no damage charge. Extra-shield state and conversion/decay bookkeeping are
+  registered in stored snapshots with a direct causal-digest check.
+- Actual Zen melee bypasses grasp for30 damage. Extra shields fully decay
+  without draining normal pools; a later actual cast resets the resource sum
+  and one new48 Orb grants28.8, without replaying the prior burst's shield gain.
+- Import parent64bf71c Flashbang control in the isolated lane. Actual Flashbang
+  cancels a charged Zen volley and permits later weapon recovery. Fix its new
+  ability to interrupt Transcendence despite rejected damage: this reconstructed
+  ultimate now rejects the control as well. Native immunity/status presentation
+  and full hero static acceptance remain open; no original-client session/push.
+- Pass400 combat/NPC/VM/movement regressions and15 complete server snapshot/
+  replay checks on frozen model source; Ruff and diff checks pass. The first
+  broad run exposed placeholder NPC scripts without a VM component: require
+  actual runtime components before polling and rerun the full checks afterward.
+
 #### Native state-input joins and Deadeye timing
 
 - Implement1113EBD5 distinct-input joins from the104319 input handler rather
@@ -29,6 +729,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   an external bundle. Normal runtime data/services and original working changes
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
+
+#### Bastion Flashbang interruption and delayed input (partial acceptance)
+
+- Adopt the parent resource-backed Flashbang foundation and reuse its splash
+  visibility. Discard pending Bastion healing on control and retain control
+  intervals until the owner's simulation cursor has passed them. A late command
+  cannot replay healing from a controlled minimum-repair window after expiry.
+  Merge overlapping intervals; death and body retirement clear report/history state.
+- Mask accepted late attack and movement commands whose frames fall inside the
+  retained control intervals after live expiry. Reproduce the damage/movement
+  leak first, then cover both Bastion and Soldier with actual Flashbang casts.
+  Adopt parent2ca9178 distinct-input joins for the final transformation checks.
+- Exercise actual McCree casts against all Bastion configurations, held input and
+  motion rejection, damaging reuse, all five transform boundaries, repair restart,
+  wall/aim/range/team refusal, death and replacement. Reproduce a real queued-heal
+  leak and an early-window delayed-heal leak before fixing them; test a later
+  second cast followed by a monotonic late command as well.
+- Preserve passive body/server snapshots for the retained history. These checks
+  validate a resource-backed server reconstruction, not complete native224E,
+  immunity/cleansing/stacking, early repair fuel cancellation or client effects.
+- Final private-source regression passes251 combat/VM/NPC tests in389.597s and
+  15 server-snapshot tests in441.408s on2ca9178. All19 changed Python files retain
+  their frozen hashes; Ruff and staged diff checks pass.
+  Full static acceptance and original-client acceptance remain open; no hero commit.
 
 #### Resource-backed Flashbang control reconstruction
 
@@ -55,6 +779,28 @@ This log records tested changes and their acceptance status. Entries are grouped
   Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
   lane merged. Normal runtime/services and original working changes preserved.
 
+#### Bastion owner health-pool queries (partial combat acceptance)
+
+- Replace the Bastion-only HUD health approximation with explicit owner pool
+  records. Native HealthComponent virtual 40 sums every active current pool;
+  virtual 48/58 sum normal current/maximum pools using their two flag bytes.
+  Preserve pool order and float32 rounding after each addition.
+- Execute the three original getters in Unicorn: 256 synthetic pool cases,
+  768 bit-for-bit matches, no patched instructions or helper hooks. Component
+  storage/stack are synthetic; the outer entity lookup and live client are not
+  covered. Keep unknown foreign health services unsupported.
+- Synchronize actual combat pools into player/NPC query inputs and passive VM
+  and server snapshots. Six source tests cover flags, layout, float ordering,
+  owner scope, snapshot causality and real damage/repair updates.
+- Reuse the parent NPC weapon/array and nearest-surface melee foundations;
+  remove duplicate NPC assembly and midpoint visibility. Enforcer now passes
+  its real health gate, then stops at its unresolved controller query. Assassin
+  and full bidirectional/protection/control matrices remain open. No hero commit,
+  normal deployment, publication or original-client acceptance is claimed.
+- Pass 222 expanded combat/script tests and all 15 server-snapshot tests on the
+  private 7cd1ed7 baseline, including passive health-flag causality without getter
+  execution. Ruff and diff checks pass. These checks retain the full static gate.
+
 #### McCree melee static-wall occlusion
 
 - Prevent quick melee from damaging targets through static walls: retain the
@@ -70,6 +816,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
   five-NPC AI/navigation/specials and original-client combat remain open. Normal
   inputs/services and original working changes are preserved; no hero lane merged.
+
+#### Reconstructed manual Enforcer volleys (lane0020, partial)
+
+- Integrate the parent's manual NPC attack controls and shared body weapon-root
+  mounting in the isolated lane. Enforcer13EB now evaluates two explicitly
+  reconstructed readiness queries from living-owner attack input and selects
+  its authored damage array. Manual start defaults an absent index to entry0;
+  preserve valid explicit indices and reject invalid values before starting.
+  This does not select native mission difficulty or conditional health pools.
+- Emit all25 authored Enforcer projectiles across its three resource rings.
+  Ring counts/radii are resource facts; degree interpretation and angular phase
+  are reconstructed. Fixed8m geometry executes28/56/84/112 damage for the four
+  array entries, one ammo per volley, stop/LOS/range/team rejection and repeated
+  reloads. Multi-pellet observer transport and original-client effects remain
+  unaccepted.
+- Pass14 actual-body NPC tests, adding five-body secondary/melee/ultimate-heal
+  execution and four ranged reverse attacks versus Transcendence. Reuse shared
+  native array selection and melee static-wall occlusion; all five real Zen
+  wall tests first reproduced30 damage and now require zero damage. Assassin
+  reverse damage/pin/control and broader defense/control interactions remain
+  open. Full static hero acceptance remains active; no client session or push.
+- Pass299 final-source focused regressions (22 NPC/array/melee and277 shared
+  combat/VM/ability cases) and14 complete server snapshot/replay tests on frozen
+  game model source. Ruff and staged diff checks pass.
 
 ### 2026-11-08
 
@@ -126,6 +896,88 @@ This log records tested changes and their acceptance status. Entries are grouped
   Full enemy navigation/specials/McCree skills/client combat and normal deployment
   remain open. No complete hero lane is merge-ready. Publication helper is absent.
 
+#### Preserve original buffered ability press time
+
+- Fix a shared Ability.can_start bug reproduced with real Genji Deflect input:
+  failure during cooldown replaced the press time with each poll time, so a
+  stale press could trigger an automatic cast many seconds later. Retain the
+  consumed original press tuple while waiting; keep the Boolean take_press API
+  for stop-button semantics and add no mutable snapshot state.
+- Pass three real-input boundaries: stale Deflect input expires, an input inside
+  its authored early window still starts, and failed Zenyatta ultimate input
+  does not trigger after charge later becomes available. All12 existing Soldier
+  ability/client-model regressions pass. Full hero static combat remains open.
+- Pass243 focused regressions and14 full server snapshot/replay checks on
+  frozen game model source, plus all8 expanded real-input Deflect cases including
+  charged-burst kill attribution, Discord preservation and final retirement.
+
+#### Zenyatta charge resource boundaries and Genji Deflect (lane0020, partial)
+
+- Fix actual low-ammunition overcharge:0164 counted five damaging Orbs with
+  only one/three rounds. Reconstruct a charge-start budget at its first authored
+  increment, cap further increments before the release volley is planned, and
+  keep the budget in registered BodyWorld snapshot state. Other hero/graph
+  assignments retain their native value semantics.
+- Sweep actual active Genji03A3 DeflectProjectiles boxes before body impacts;
+  redirect to his aim and transfer damage/hit credit. Spend residual elapsed
+  travel and retain finite lifetime, including a bounded overlapping-box policy.
+  Eye-space placement/incidence/redirection remain explicit reconstructions;
+  no hitscan, beam, melee, absorption or original-client effects are inferred.
+- Execute partial/full/forced charge, one/three-round limits, empty/reload
+  boundaries and melee/death/body-replacement cancellation; execute real Genji
+  input front/back/end/wall cases, reflected damage versus Transcendence and
+  skipped-world-frame travel. Full hero static acceptance remains active.
+- Pass228 focused combat/NPC/VM/assignment regressions and14 full snapshot/
+  replay checks; Ruff/diff checks pass. A separately reproduced stale buffered
+  ability press remains open and is not counted as cooldown acceptance.
+
+#### Reconstructed Zenyatta support combat services (lane0020, partial)
+
+- Host Harmony/Discord acquisition, ally-only healing, enemy amplification,
+  LOS/range expiry and independent recovery in actual Combat. Track lifecycle
+  state in passive snapshots. Add shield-only regeneration and actual effective
+  healing/damage charge, replacing the default sixty-second diagnostic ultimate
+  refill with reconstructed passive gain for Zenyatta.
+- Reconstruct only017B's zero cast gate to allow its existing Ability/ChaseVar
+  charge/start/six-second/end lifecycle. Add self restoration, visible ally
+  healing and invulnerability while active. Other unknown gate uses remain
+  pending. Explicitly document inferred rates, targeting and gate semantics.
+- NPC bodies host their declared weapon manager/slots. Actual five-body
+  fixtures cover damage/Discord and friendly Harmony; Trooper/Sniper/Heavy actual
+  weapon input damages Zen and is rejected during his ultimate. Enforcer/Assassin attacks remain
+  incomplete. No native AI or original-client acceptance is claimed.
+- Static goal remains active: secondary boundaries, applicable cross-hero
+  defenses/control and two reverse NPC attack families remain open. Tests and
+  remaining evidence are recorded in docs/ZENYATTA_COMBAT.txt and the lane logs.
+- Pass203 focused combat/NPC/VM regressions and all14 server snapshot/replay
+  checks with the source frozen. Dedicated NPC tests also cover actual Orb kills
+  and unchanged zero-health corpses beyond the normal respawn deadline.
+
+#### Zenyatta weapon conditions (lane 0020, partial)
+
+- Extend actual graph execution tests to primary misses, exhausted projectile
+  range, ally immunity, static-wall interception, repeated input during the
+  fire interval, and reload rejection/restoration. A full charged volley spends
+  five of the actual20 rounds. All14 hero tests and all85 combined
+  hero/combat/projectile/health regressions pass; Ruff/diff checks pass.
+- Full static combat acceptance remains active: support acquisition/auras,
+  ultimate lifecycle, passive shields and five mission NPC interactions are
+  not accepted. Original-client combat remains a separate open matrix.
+
+#### Zenyatta projectile damage foundation (lane 0020, partial)
+
+- Apply direct projectile critical damage and distance falloff before target
+  pool damage; keep splash noncritical. Reconstruct the two graph0164 Orb
+  volleys' omitted critical scalar as2, scoped to Zenyatta and explicitly
+  pending native confirmation.
+- Eight extracted-graph combat tests cover actual damage, charged volleys,
+  reverse damage, melee, death gating, hit flags and armour/splash separation.
+  All79 combined hero/combat/projectile/health regressions pass; Ruff and
+  diff checks pass.
+- Original-client combat, all five mission NPCs, support auras and cross-hero
+  defenses remain OPEN. Actual ultimate execution stalls at017B/state13;
+  target tracking currently supplies no targets. See docs/ZENYATTA_COMBAT.txt.
+- No original-service changes, normal deployment, publication or push.
 #### Manual NPC console commands and engagement input
 
 - Implement console command semantics for menu/selection, explicit removal,
@@ -179,6 +1031,49 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Bastion static combat lane (partial, not accepted)
+
+- Connect reconstructed Bastion Self-Repair reports to authoritative health and
+  self-health queries to authored fuel consumption. Apply the active Ironclad
+  graph's incoming scalar before armour. Keep Tank charge empty through its
+  authored transition, active and exit modes. Register pending health reports
+  in passive snapshots. Add static visibility to shared quick melee.
+- Reject projectile splash through static walls; restore native 17/18/19 throttle
+  intent modifiers so Sentry cannot walk, jump or crouch. Assemble NPC weapon
+  manager/slot graphs so the actual Sniper can fire under directed control.
+- Restore linked-ammo change notification, including the terminal 1-to-0 edge,
+  so both guns automatically reload after depletion. Register the notification
+  sample and pending self-healing in body VM storage as well as server snapshots.
+- Execute all four Bastion attacks against all five real Talon bodies, friendly
+  exclusions and retained corpses; verify Trooper/Sniper/Heavy reverse damage in
+  all three configurations. Enforcer and Assassin reverse attacks remain open.
+- Adopt the parent manual-engagement foundation in this private clone; exercise
+  actual NPC stop/wall/range/team/target-death policy. Synchronize initial NPC
+  script health with all authoritative pools. Native health/controller-query
+  research remains explicitly incomplete; no forced-true fallback is retained.
+- Exercise actual Match inputs and extracted graphs for both guns, melee,
+  reconfiguration, repair/fuel/death, Ironclad and Tank. Existing combat,
+  projectile, body and passive-snapshot regression checks pass; final expanded
+  hero suite results are recorded in the lane STATUS.txt.
+- Extend Tank checks to actual sustained cadence, complete range lifetime,
+  friendly-player direct/splash exclusions and sampled entry/active/exit frames
+  from Recon and Sentry. Death in all five transition modes retires the mode
+  and rejects further held inputs. Native allied collision remains unverified.
+- Fix stale WouldVarStackToTop watchers on equal-valued/null stack pushes and
+  pops. Keep structural dependencies distinct from scalar value dependencies;
+  restore Self-Repair during Tank and after its exit without polling shortcuts.
+  Add an equal-value priority regression and causal snapshot-marker check.
+- Bracket each gun's refill and fire-recovery deadlines and exercise repair
+  cancellation before/after refill, reload retry and actual damaging reuse.
+  Sentry/Tank repair and their melee rejection execute through real Match input.
+- Preserve the original malformed Soldier packet's 977-bit/offset assertions
+  by explicitly freezing its historical missing priority notifications. Its
+  corrected-frame check keeps the current runtime; all27 driver checks pass.
+- Complete static acceptance and all original-client acceptance remain open,
+  including the five actual PvE NPCs and cross-hero protection/control. These
+  reconstructed semantics are not native-backed equivalence. See
+  [Bastion static combat](docs/BASTION_STATIC_COMBAT.txt).
 
 #### Optional persistent NPC corpses
 

@@ -69,8 +69,8 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
-    "initialized_frame",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire", "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
@@ -187,6 +187,20 @@ class BodyVMSnapshotTests(unittest.TestCase):
                 present = export_component_vm(component)
                 self.assertIsNone(fields(raw(present), ["state", 1, 0])[optional])
                 self.assertNotEqual(snapshot_digest(missing), snapshot_digest(present))
+
+    def test_priority_dependency_marker_is_causal_snapshot_state(self):
+        component, instance = fixture()
+        variable = component.entity_var(44)
+        state = instance.states[0]
+        state.watched[variable] = None
+        scalar_only = digest(component)
+        state.watched[variable] = True
+        document = export_component_vm(component)
+        self.assertNotEqual(snapshot_digest(document), scalar_only)
+        watched = fields(raw(document), ["state", 1, 0])["watched"]
+        self.assertEqual(elements(watched), [[ref("var", 0, 44), True]])
+        state.watched[variable] = None
+        self.assertEqual(digest(component), scalar_only)
 
     def test_watchers_watched_links_and_causal_work_queues_keep_their_actual_order(self):
         component, instance = fixture(("STU_TestPlainState",) * 3, allocation=(2, 0, 1))
@@ -507,7 +521,12 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        self.assertIn("self_repairs", body)
+        self.assertIn("control_windows", body)
+        self.assertIn("passive_charge_ms", body)
+        self.assertEqual(set(dict(body["world"]["fields"])),
+                         {"hero", "mode", "health_pools", "body", "throttles",
+                          "zenyatta_charge_ammo", "dva_queries"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):
@@ -516,6 +535,20 @@ class BodyVMSnapshotTests(unittest.TestCase):
         script.unknown_execution_state = 1
         with self.assertRaises(BodyVMSnapshotError):
             export_body_vm(script)
+
+    def test_pending_self_healing_changes_body_storage_and_is_not_consumed(self):
+        script = BodyScript(SOLDIER, 123, 1000)
+        baseline = snapshot_digest(export_body_vm(script))
+        script.self_repairs.append(1.44)
+        self.assertNotEqual(snapshot_digest(export_body_vm(script)), baseline)
+        self.assertEqual(script.self_repairs, [1.44])
+        script.self_repairs.clear()
+        self.assertEqual(snapshot_digest(export_body_vm(script)), baseline)
+        script.passive_charge_ms = 16
+        self.assertNotEqual(snapshot_digest(export_body_vm(script)), baseline)
+        self.assertEqual(script.passive_charge_ms, 16)
+        script.passive_charge_ms = 0
+        self.assertEqual(snapshot_digest(export_body_vm(script)), baseline)
 
     def test_snapshot_envelope_rejects_unknown_missing_and_noncanonical_typed_fields(self):
         component, _ = fixture()

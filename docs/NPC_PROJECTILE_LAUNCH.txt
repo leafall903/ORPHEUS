@@ -1,0 +1,67 @@
+Enforcer25-pellet physical launch -- partial104319 reconstruction
+
+Resource and consumer:
+Actual13EB/node24 authors25 projectiles and STU_613BDDB0 rings(0,1),(.5,8),
+(1,16). Its live spread230 is4 degrees and angular noise is2 degrees. The old
+combat consumer emitted one payload despite those fields. Current Combat._shoot
+evaluates the ring launch and emits25 distinct independent Rockets at speed80,
+damage2 and range100/lifetime1.25. Ammo and volley reporting still count one shot.
+Single-projectile consumers retain their prior direction. Unsupported multi-shot
+launch/context reports the missing service and emits nothing,not a single or
+coincident substitute. Hitscan multi-pellet and other launch classes remain open.
+
+Manual context is reconstructed:
+Only manual Enforcer01CE's declared controller context and13EB/node24 receive
+Inputs. A domain-separated SHAKE256 stream keys component entity,instance ID,
+node position,shot number and activation(counter,start time) to an azimuth and
+two uint32 words per pellet. It is deterministic from existing causal inputs,
+does not consume component RNG and stores no new mutable state. This is an
+explicit sandbox policy,not the native engine callback/key/table ownership.
+Missing/foreign/disallowed controller contexts retain an unknown launch service.
+
+Native math evidence:
+The ring helper is reviewed source reuse from the0065 lane. Local copies of the
+external oracles compare669 original scalar cases without function adapters,
+675 original uniform-table conversions without adapters,and788 full direction
+cases within1e-6 absolute error(maximum3.5762786865234375e-7). The direction
+oracle supplies a seed callback and selects the original CRT SSE path in emulator
+memory. Native tables/captured instructions are not patched on disk and no
+client process is accessed. See external ring-native/VALIDATION.json for hashes,
+programs and limits. These math comparisons do not prove manual context ownership.
+
+Actual input evidence:
+New before tests observe one payload in all3 forms(6 failed subcases). Actual
+manual engagement now emits25 distinct trajectories in Recon/Sentry/Tank. At
+1.4m all25 settle once:Recon loses25HP;Sentry/Tank lose20HP after per-pellet
+Ironclad and armour. A wall inserted after emission stops every flying pellet;
+removing it allows real attacks again. Manual stop retires the full pending set.
+A deliberately unavailable service emits no payload,and restored service recovers.
+Existing range/team/death/repair/Flashbang/recovery/actual weapon-kill/corpse tests
+also run against the25-pellet consumer. Transport/collision remain fixtures and
+body VM execution is permissive. See external enforcer-pellet-emission.json.
+
+At8m the frozen manual-context first nonempty30-frame windows lose25/19.2/20HP
+in Recon/Sentry/Tank. Per-activation noise can change which pellets intersect;
+those are declared fixture values,not a universal shotgun damage specification.
+Existing projectiles._sync selects non-predicted mode for more than7 pellets.
+All25 physical payloads therefore have no predicted presentation lease. Native
+projectile replication,prediction,muzzle/animation and original-client acceptance
+remain separate and unaccepted.
+
+Shared no-decay normalized spread:
+WeaponVolley now stores spread_ramp and snapshots it. For239B571E without
+23C72C36 decay,it bakes AC20B1C1 and applies the original D80A50 arithmetic
+using completed shots+1. Final output survives exit. The local native oracle
+matches140 normalized cases(including ramp40) and20 angle conversions;lookup,
+subtype and config services are explicit adapters. Six parent fixture tests and
+actual Bastion input check Sentry's40-shot ramp:.025 on first shot,.125 after
+five shots and.125 stored after exit. Recon's authored.075 decay is deliberately
+outside this no-decay model. Existing last_ammo causal state is retained.
+The later Bastion ray checkpoint implements scoped Recon and Sentry cone
+sampling and Recon's between-shot decay. See BASTION_STATIC_COMBAT.txt.
+
+Still open:
+Native random context allocation/key ownership,controller namespace/AI,specials,
+full pellet timing, falloff, pose, hitbox and transport equivalence. Bastion's
+native sampling context, recoil, muzzle and transformation camera offsets and the complete
+NPC/cross-hero/static matrix and original-client acceptance.

@@ -1,12 +1,12 @@
 """Manual NPC attack selection and input policy, reconstructed for the sandbox.
 
-Slot0 comes from each body's extracted AI definition. This is manual targeting,
-not restored native autonomous acquisition, navigation or enemy special behavior.
+Primary input uses slot 0 from each body's extracted AI definition.
+Trooper and Heavy Assault also accept explicit manual melee.
 """
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, heavy_charge, npc_melee, sniper_reposition
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -15,10 +15,19 @@ def manual(bot):
     return bot.spawner.get('manual_spawn') is True
 
 
-def button(bot):
+def button(bot, *, mode=None):
     script = bot.body_script
     if script is None:
         raise ValueError('NPC body script is unavailable')
+    mode = bot.attack_mode if mode is None else mode
+    if mode == "charge":
+        if bot.body != heavy_charge.BODY:
+            raise ValueError('NPC charge input is unavailable')
+        return heavy_charge.BUTTON
+    if mode == "melee":
+        if bot.body not in npc_melee.BODIES:
+            raise ValueError('NPC melee input is unavailable')
+        return npc_melee.BUTTON
     result = script.component.world.ai_weapon_button(0)
     if type(result) is not int:
         raise ValueError('NPC primary weapon input is unavailable')
@@ -50,11 +59,24 @@ def selected(match, player):
     return target.owner
 
 
-def start(match, player):
+def start(match, player, *, melee=False, charge=False, reposition=False):
     bot = selected(match, player)
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
-    button(bot)  # validate before changing policy
+    if sum((melee, charge, reposition)) > 1:
+        raise ValueError('select one NPC attack')
+    mode = "charge" if charge else "melee" if melee else "reposition" if reposition else "primary"
+    current = button(bot, mode=mode)  # validate before changing policy
+    if reposition:
+        sniper_reposition.begin(match.combat, bot, player)
+    elif bot.attack_mode == "reposition":
+        sniper_reposition.stop(bot, match.tick)
+    if bot.attack_input and (previous := button(bot)) != current:
+        bot.body_script.component.edges([(previous, False)])
+        bot.attack_input = False
+    if bot.attack_mode == "charge" and mode != "charge":
+        heavy_charge.finish(match.combat, bot)
+    bot.attack_mode = mode
     bot.attack_target = player.entity
     bot.firing = True
     return bot.entity
@@ -70,12 +92,19 @@ def stop(match):
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
-            primary = component.world.ai_weapon_button(0)
+            primary = (button(bot) if bot.attack_mode != "primary"
+                       else component.world.ai_weapon_button(0))
             if type(primary) is int:
                 values.add(primary)  # also cancel a down edge queued before the next VM update
             component.edges([(value, False) for value in sorted(values)])
             component.shots.clear()
+        if bot.attack_mode == "charge":
+            heavy_charge.finish(match.combat, bot)
+        if bot.attack_mode == "reposition":
+            sniper_reposition.stop(bot, match.tick)
+        bot.attack_mode = "primary"
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
@@ -91,12 +120,18 @@ def update_input(fight, bot):
                and target is not None and target.spawned and target.has_body
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and (fight.match.game_map.free_for_all or target.team != bot.team))
-    if enabled:
+    if bot.attack_mode == "reposition":
+        if not enabled:
+            sniper_reposition.stop(bot, fight.tick)
+        elif sniper_reposition.repositioning(bot):
+            enabled = False
+    if enabled and bot.entity not in fight.heavy_drives:
         origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -106,6 +141,10 @@ def update_input(fight, bot):
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    desired = target.body if enabled else None
+    if bot.hero == assassin.HERO and component.world.manual_target != desired:
+        assassin.bind(component.world, component, desired)
+        bot.attack_input = False
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

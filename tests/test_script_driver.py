@@ -454,7 +454,21 @@ class BodyTests(unittest.TestCase):
                         apply_instance_list(client, update)
                     body.stream.arrived(update.chunk_last)
 
-        with without_payloads("STU_691BFA55"):
+        # This is the old server's captured malformed packet, including its
+        # stale 02C5/st22 priority gate. New structural notifications correctly
+        # retire/restart that branch on firing; reproduce the old notification
+        # policy only while reconstructing the historical 977-bit crash below.
+        # The corrected frame at the end still uses the production runtime.
+        changed = runtime.Component.changed
+
+        def legacy_changed(component, variable, before, **kwargs):
+            kwargs.pop("structure_changed", None)
+            return changed(component, variable, before, **kwargs)
+
+        with (
+            without_payloads("STU_691BFA55"),
+            mock.patch.object(runtime.Component, "changed", legacy_changed),
+        ):
             update, client = frame_at_4094()
         bits, size = chunk_payload(update)
         self.assertEqual((size, bits >> 832 & (1 << 64) - 1), (977, 0x2098989898989898))

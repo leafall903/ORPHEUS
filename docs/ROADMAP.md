@@ -2,6 +2,49 @@
 
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
+- [ ] Zenyatta lane0020: complete the full executed static combat matrix and
+  separately verify original-client combat/presentation. Reconstructed support,
+  ultimate and regeneration now run in Combat, with selected real player/five-NPC
+  evidence. Charge ammunition caps and selected real Genji Deflect cases now
+  execute; shared early-input expiry/recast has executed boundary evidence.
+  Four NPC ranged reverse attacks now execute, including reconstructed Enforcer
+  readiness and25-pellet rings. All-five secondary/melee/ultimate-heal fixtures
+  execute. Selected actual Sigma absorption/conversion/decay and Flashbang
+  charge-interrupt/Transcendence-immunity cases now execute. Selected actual1157
+  Assassin reverse contact/rate/control, source interruption and victim immunity
+  now execute through a reconstructed manual bridge. Native pin/recovery,
+  remaining secondary control edges and broader
+  defenses/control remain open. See [lane evidence](ZENYATTA_COMBAT.txt).
+  Uncommitted work executes selected Reinhardt barrier mesh/damage/break/regen
+  cases with external prepared geometry; full shield/status/Matrix coverage is
+  still open. Do not submit new code before full static hero acceptance.
+  Uncommitted Ana grenade hosting executes selected anti-heal/amplification,
+  overlap/expiry, Transcendence flag8440 cleanse/immunity and all-five NPC
+  healing cases. Native status filters, other cleanses, AI tuning and broader
+  control/defense combinations remain open.
+  Actual Genji melee zero-filter and field anti/amp expiry integration now have
+  selected input evidence. Full static acceptance and original-client acceptance
+  remain separate open gates; parent reference work is not a reviewed commit.
+  Actual D.Va pilotQ now executes a scoped reconstructed placement query with
+  ground/slope/clearance/body rejection evidence. A scoped null-config cast gate
+  and actual026A/15 now create a separate0407 mech with300 health/300 armour;
+  actual Zen primary/burst/melee damage it. Broader possession and Matrix,
+  full actor lifecycle and native placement/timing/factory policies remain open.
+  Match-backed query hosting now recognizes the mech and reaches authored seat20.
+  Foreign health reads and source retirement execute with explicit polling.
+  Native17/18/19 direction handling now suppresses summon steering while keeping
+  raw input/look; next-frame onset and replacement recovery have input evidence.
+  Seat20 has not transferred ownership or activated Matrix; those gates stay open.
+  A subsequent execution reproduced an unpossessed mech VM stall; the current
+  uncommitted fix advances its creator-domain clock using elapsed world time.
+  Seven actual-Q timing/death/source-cleanup checks pass, including7ms frames
+  and the original350ms wait. Notification lifetime fixes pass825 script tests.
+  Explicit prepared0407 form selection now uses its own pools/mover/graphs.
+  Direct owner/ruleset fallback initializes real Matrix resource; selected Zen
+  primary/burst absorption, bypass, depletion/recovery and retirement execute.
+  All841 script tests pass on the new model. Complete battle/replay reruns are
+  pending; Q ownership, native Matrix filters/history and other cases stay open.
+
 | Milestone | Exit criteria | Current evidence |
 | --- | --- | --- |
 | M0 · Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |
@@ -13,6 +56,78 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 | M6 · Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
 
 ## Project-wide checklist
+
+- [x] **Bastion static combat acceptance (0015 lane).** All 470 combined
+  tests passed on runtime tree b50cd566e200, including 230 Bastion tests.
+  The verified package is staged for parent review. Actual
+  Match/input evidence covers guns/reload/falloff, melee visibility/cooldown,
+  reconfiguration/movement locks, repair/fuel, Ironclad and Tank lifecycle/splash,
+  sampled cadence/range/team filtering and death during every transformation.
+  Five Tank release/repress schedules preserve recovery and settle three actual
+  205HP impacts each; released input queues no extra shot and a ready tap damages.
+  Tank blast adds54 inner/outer-radius and wall-occlusion subcases on an enemy
+  player/all five actual NPC capsules. Host owner damage and impulse are tested.
+  Native hitboxes and entity delivery remain open. Halt tests distinguish
+  Sentry immunity from Recon and Tank pulls and verify death during the slow.
+  The 7 m physics effect lacks a verified character receiver.
+  Initial Genji Deflect input probes reproduced all four frontal protection failures;
+  original box ordering matches515 executions. A scoped host bridge reflects
+  Bastion gun/Tank attacks with real returned damage and Genji ownership;
+  scoped melee blocking now executes the actual directional predicate with
+  front/back/side/inactive/expiry/reuse/wall/team checks. Native transforms/filters,
+  event parameter population and projectile presentation remain open.
+  Actual melee also reproduces and fixes the shared press-refresh bug: expired
+  released input no longer auto-attacks;near/held/fresh presses still work.
+  Parent notification retirement now clears canceled coalescing markers and
+  skips ending-state cleanup writes;real repeated reload/repair/reconfigure
+  probes reduce stale endings8->0. Ability.stop cleanup-before-unlink uses
+  reconstructed server ordering;native cross-object equivalence remains open.
+  Tank flight now has posthumous-hit and body-replacement checks for enemy
+  players/all five NPCs, with and without network leases; unleased retirement
+  no longer leaks old damage into the replacement body's lifetime.
+  Equal-value priority notification now restores Tank/post-Tank Self-Repair;
+  Resource-backed0B8B passive/damage charging replaces the60s Bastion fill;
+  actual Heavy damage earns/spends/reearns Tank, with no Tank-origin refill.
+  Healing eligibility and native event/tag/clock fidelity remain open.
+  Self-Repair now emits the authored healing notification; declared eligibility
+  runs the graph's filters. The reconstructed spawn default allows Self-Repair
+  to earn actual healing charge through the same encrypted input in three mode
+  fixtures. Native eligibility initialization remains open.
+  reload refill/recovery and repair cancellation boundaries have executed checks.
+  Native health-getter pool math matches768 original executions; actual owner
+  pools replace the HUD approximation. Declared manual Enforcer context now
+  permits actual reverse attacks in all3 forms,negative filtering,Flashbang
+  recovery and actual weapon-kill/corpse checks;native controller allocation stays open.
+  The authored25-pellet ring is now physically consumed with explicit manual
+  random inputs;pending wall/stop and all3-form close damage pass. Native key/
+  table ownership and >7-pellet presentation remain open. Shared no-decay spread
+  output follows Sentry's 40-shot ramp. Recon applies between-shot decay and
+  both forms scatter their combat rays with declared server sampling inputs.
+  Original launch context, muzzle geometry, and recoil fidelity remain open.
+  Native related-ID/namespace/controller-component helpers now pass512/128/128
+  original executions; actual NPC relationship and gate flags remain unbound.
+  Shared Flashbang control now has direct Bastion input/transform/repair recovery
+  checks, including retained control windows that reject delayed healing, attack
+  and movement replay after expiry. Native distinct-input joins are adopted.
+  Native224E immunity/cleansing/fuel semantics and the other status matrices stay open.
+  All five real NPCs take all four attacks and retain corpses. Their fixtures
+  now require the actual43-row mover
+  input, assert each body shape/speed and preserve Assassin's horizontal miss.
+  Authored Bastion1.82/1.35m and McCree1.425/.9975m FirstPerson offsets now feed
+  combat rays/descriptors,with actual standing/crouched low-cover checks.
+  Native animated camera/muzzle and transformation overrides remain open.
+  The four NPC weapon graphs and the Assassin pin can each kill a prewounded
+  Bastion, credit the correct NPC and release attack input and control.
+  Each of Bastion's four attacks can kill each of the five NPCs and credits
+  damage and elimination once, including after a second attack at the corpse.
+  Actual Roadhog Hook casts damage all three Bastion forms, pull, interrupt
+  repair and permit input after recovery. Cooldown rejection and reuse pass.
+  Actual Orisa Halt casts cover the 5 m pull, Sentry immunity and three-form
+  annulus behavior. Native probes exclude both traced mover collider paths
+  from the separate 7 m impulse. Alternate registration remains open.
+  Native animated hitboxes, engine filter equivalence, autonomous NPC AI
+  and original-client acceptance have separate verification tracks.
+  See [Bastion static combat](BASTION_STATIC_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

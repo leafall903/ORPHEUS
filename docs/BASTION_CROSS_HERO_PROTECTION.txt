@@ -1,0 +1,196 @@
+Bastion cross-hero protection --104319 --executed failures/native frontier
+
+Partial scoped server reconstruction now handles Bastion gun/Tank interception
+and melee blocking by actual Genji Deflect. Full native filters/transforms and other
+protection types remain incomplete. No invulnerability variable is forced.
+
+Actual Genji Deflect input
+The actual Genji hero02E...0029 is selected in the Match fixture. Button16
+activates03A3/st10(STUStatescriptStateDeflectProjectiles). After21 input frames,
+Bastion fires Recon/Sentry/melee/Tank while the defender continues real commands.
+Both declared facing directions are confirmed in the defender's actual mover
+yaw(-32768 toward Bastion,0 away). Every pool-loss event has Deflect active
+immediately before settlement, including the Tank hit that kills Genji.
+
+Before the reconstruction, both directions produced:
+- Recon:Genji loses40HP; Bastion loses0; two hit notices.
+- Sentry:Genji loses75HP; Bastion loses0; five hit notices.
+- Melee:Genji loses30HP; Bastion loses0; one hit notice.
+- Tank:Genji loses200HP(capped),dies; Bastion loses0; direct/blast hit notices.
+
+These historical frontal failures are not accepted outputs. Tank's initial meter is
+supplied only to isolate the attack; earned Tank is covered separately.
+See historical external bastion-genji-deflect-before.json. The current diagnostic
+probe writes bastion-genji-deflect-current.json and lists remaining frontal damage.
+
+Current scoped reconstruction
+Combat queries03A3/st10's authored boxes before the nearest body or static wall.
+Only original Bastion weapon shots opt in; this is not generic Genji support for
+all incoming heroes/tags. Boxes use a declared eye/yaw/pitch host frame and the
+defender's aim supplies the outgoing direction. These pose/angular choices are
+not established by the bounded native box comparison below.
+
+The two guns re-cast their remaining reach as the defender and settle actual
+returned damage/credit. Frontal Recon returns two20-point hits against Bastion's
+armour(30HP total); Sentry returns five15-point hits against Ironclad then armour
+(35HP total). Tank transfers the same flying65 direct/140 blast payload to Genji,
+retaining speed/remaining lifetime and the ineligible-for-Tank-charge origin flag.
+Against active Tank Ironclad/armour it returns154HP. Unused sweep time after the
+interception is consumed rather than discarding the rest of that world tick.
+
+Actual commands verify front/back/inactive/friendly/wall filtering, expiry,
+cooldown reuse and a reflected Tank kill on a real third party credited to Genji.
+The friendly fixture teleports its existing physics bodies and primes pose history;
+changing only the public feet list would be overwritten by the existing body.
+The first returned-Recon expectation incorrectly invented critical damage and
+was corrected to the actual20-point payload minus armour. F32 modifiers retain
+their rounding. Initial invalid fixtures/failures remain in external logs.
+
+Rocket.deflectable freezes the scoped eligibility at emission. It is causal
+server snapshot state, alongside owner/team/direction and charge eligibility.
+On reflection the old predicted projectile lease ends; the physical projectile
+continues with no new native presentation lease. Original-client reflected
+projectile spawn/effects/observer correction are still OPEN.
+
+The host bounds recursion to eight interceptions per hitscan or projectile sweep;
+native loop/budget/tie policies are unproved. Multiple deflectors, animated pose,
+lagged defensive state/rotation, angular/tag filters, reflected falloff/event and
+ultimate-charge policy remain OPEN. The separate melee filter path is described
+below; no blanket damage immunity is used.
+See test_bastion_deflect.py and the final frozen regression record.
+The current fixed-source selection passes 341 combat/VM/NPC/replay tests and 15
+server snapshot checks, including the projectile eligibility's causal hash.
+
+Original box normalization
+0EC57928 has a priority2 registration atAE3490,factoryAE4150,constructorAE30A0
+and primary runtime vtable26543E0. SlotB8(AE1EB0) calls common beginD5BBD0;
+the priority1 registrationD5DA30/factoryD5ED40 uses that common callback directly.
+D5BBD0 evaluates each authored box's two endpoints, swaps inverted XYZ axes,
+then appends the two vectors to a native record's box array. W is not swapped.
+
+Original unchanged instructions D5BED4->D5BF39 match515 comparisons bit-for-bit:
+512 randomized/special-value pairs plus three evaluated actual Genji boxes.
+NaNs,equal endpoints and signed zero preserve their original side; inverted
+finite axes swap. Tests use the default masked floating-point environment.
+The normalized actual local bounds are:
+- (-.75,-1.5,0) to(.75,.75,1)
+- (.5,-1.5,-.5) to(.75,.75,0)
+- (-.75,-1.5,-.5) to(-.5,.75,0)
+The last authored box reverses its X endpoints; treating the first endpoint as
+an already sorted minimum would lose that box.
+
+This bounded execution does not run outer component lookup/config evaluation,
+allocation/append, owner pose/eye transform, angular/tag filters, ray queries,
+ownership transfer, melee filtering or full game-client execution. See external
+validate_deflect_box_native.py/deflect-box-native-validation.json. Native record
+registration uses the parent VM's+240 system and BDE640 keyed record lookup;
+its transform/query/application context is the next boundary.
+
+Other defender inputs
+A separate six-hero diagnostic reaches additional states on Mei/Reaper/Zarya/
+Zenyatta and observes40HP Recon loss. Reaching unknown54FEB21C does not prove
+the full invulnerability lifecycle. Its native callbacks contain config/time/
+output processing; no proven invulnerability meaning is assigned to it.
+The current D.Va profile activates no named Matrix state, and Zarya's Pet state
+does not prove that a functional barrier entity exists. These rows remain
+diagnostic leads. Barriers/absorption/invulnerability and their real activation,
+expiry/cancel/reuse/negative/team/geometry boundaries are still OPEN.
+
+Sombra Hack and Talon melee checkpoint
+- Actual Hack uses 0B1B and 0B1F. Bastion retains its three weapons while
+  Self-Repair, Reconfigure and ultimate input are suppressed. Damage
+  interruption, line of sight, range, team, release and recast are covered.
+- Five-second skill silence is a host policy. The unmounted native tag
+  path leaves the application graph on its three-second fallback.
+- Actual Trooper and Heavy Assault use logical 31 and authored
+  1422/140E trackers, with static contact geometry. Each can hit all
+  three Bastion forms. Tests cover Heavy impulse, walls, range, team,
+  stop and a new Trooper press.
+- The final combined 18 tests include Bastion weapon damage and retained
+  corpse handling for all five actual NPCs. A damage notification guard
+  preserves the NPC script path when the victim lacks a player hero field.
+
+Mei freeze and projected Assassin checkpoint
+- Actual spray freezes each Bastion form at 30 contacts for 1300 ms
+  under default settings. Movement, aim, repair, thaw and independent
+  sources are covered. Timings and aggregation are reconstructed.
+- Actual Assassin contact spends 25 projected barrier durability without
+  pinning Bastion. Normal damage and pin resume after shield expiry.
+- The standalone body VM schema includes both sleep and frost histories.
+  The corrected body VM and active projected export selection passes 26 tests.
+
+Ana control and healing checkpoint
+- Actual grenade casts verify enemy damage and healing rejection, friendly
+  impact healing and 1.5 times Self-Repair, and normal healing on expiry.
+  Wall and Zarya projected protection reject the corresponding impact.
+- Actual Sleep Dart interrupts Self-Repair and suppresses attacks in every
+  form. Authored form clocks continue. Tests verify natural wake, grace
+  before damage-triggered wake, Flashbang overlap and death cleanup.
+- Host deadlines, effect dispatch and quantized command history are
+  reconstructed. Original-client status presentation is tracked separately.
+- Four healing tests, 22 combined control tests and two targeted snapshot
+  tests passed. The larger healing integration run remains pending.
+
+Zarya barrier checkpoint
+- Authored 0244/st2 and 025C/st10 activate the personal and projected
+  shields. Tests exercise Recon, Sentry, Tank and melee, plus team and
+  wall target rejection, expiry, cooldown and reuse.
+- Shield target selection and per-damage-event absorption are host
+  reconstructions. Energy receives actual durability lost. A breaking
+  Tank hit can still damage an unprotected nearby body.
+- Three corrected focused tests passed. The earlier integration run passed
+  171 methods, with two errors in the one negative-target test because
+  it indexed an absent selection slot. The corrected test passed.
+- A whole-server export probe verifies both durability records independently.
+  Original Pet replication and additional control interactions remain open.
+
+D.Va Defense Matrix checkpoint
+- A selected 0407 mech loads its 600-point body and 0276/02CC graphs.
+  Actual secondary commands verify front interception for Recon, Sentry
+  and Tank, rear exposure, friendly passage, wall priority, depletion,
+  release, recovery and reuse.
+- Controller ownership, contact order and pose are reconstructed. This
+  evidence covers a directly selected mech and host projectile deletion.
+  Call Mech possession and original-client projectile release remain open.
+- Four focused and 186 integration tests passed. Active Matrix resource
+  consumption also changed the body VM digest under repeated export.
+
+Reinhardt, Mei and Zenyatta checkpoint
+- Reinhardt uses the active 0095 Pet state and the authored mesh. Tests
+  cover Recon, Sentry and Tank, wall precedence, break, regeneration and
+  rearm. Tank splash tests verify damage on the approach side and shielding
+  on the far side of the breaking impact.
+- Mei Cryo-Freeze and Zenyatta Transcendence protect their caster from all
+  Bastion weapon forms and melee. Tests cover expiry, Cryo cancel and reuse.
+- Shield pose, splash midpoint visibility and the defensive cast entry
+  bridge are host reconstructions. Client presentation is tracked separately.
+- The fixed selections passed 23 defensive-cast, 180 combined defense and
+  50 splash regression tests.
+
+Scoped melee filter reconstruction
+03A3/st59's directional condition is
+dot(param(8)-owner(),STU_021D01CD(owner())) >0.
+Parameter8 is an event parameter, not an instance variable to force. Twenty-four
+declared-context comparisons accept front and reject back/side for attacker
+Entity/Vec3 inputs.021D01CD matches factoryD075B0,vtable26612F0,evaluatorCCDD80;
+it queries D1B5E0 and returns the third transform vector. Its unchanged success
+conversion CCDE4D->CCDE5F plus F67550 matches256 raw XYZ/variant/guard comparisons.
+Outer lookup and actual engine parameter/tag population have not been executed.
+
+Combat now invokes only active Genji03A3/st59 for original Bastion melee. Its
+zero modifier/mode guard and actual predicate decide the result. A temporary
+expression context supplies parameter8 as attacker eye position, owner position
+as retained target feet and the native direction query as current mover yaw/pitch.
+It never writes component variables, flags, callbacks, component RNG or a global BodyWorld query.
+These bindings are explicit host policy, not native animation/event equivalence.
+
+Actual front input loses0HP, emits no hit/return-damage notice and earns no
+damage charge. Both side orientations, back, inactive and expired Deflect take
+30HP; actual cooldown reuse blocks again. A separate actual-command probe also
+confirms the blocked strike is consumed:duplicate frame and released expiry do
+not defer its damage; a fresh real strike after expiry damages30HP. A wall blocks even when the filter
+would not, and a friendly Genji does not protect a nearby enemy from Bastion's
+normal melee sphere. Nine total Deflect methods pass32.549s before the full run.
+See external genji-melee-condition-frontier.json and
+melee-forward-result-native-validation.json. Native tag/enum/direction-event
+semantics, lagged facing, other damage sources and protection matrices stay OPEN.

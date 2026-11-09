@@ -39,10 +39,10 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
     grid, the spring offsets as 1/32768 steps of their range (0x7FF789B745E0).
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
-adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
-states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
-other bodies.
+adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Throttle intent mods
+(17-19) follow C33960. Not modelled: mods of heroes whose statescript the server does not run,
+velocity mods (STU_FF3471E9 states) and knockback, abilities that take over the move (the tick's phase hooks),
+moving platforms, other bodies.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
 
 Besides the pose it keeps what other clients animate the body from, as the client's own mover writes it
@@ -169,6 +169,7 @@ SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE,
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
+FORWARD_INTENT, BACKWARD_INTENT, STRAFE_INTENT = 17, 18, 19
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
 # m_9B7A63EA value): class -> (op, value of an empty config var) (0x7FF789C4C1E0, by their type objects).
@@ -283,6 +284,11 @@ def _clear_movers() -> None:
 
 
 _movers.cache_clear = _clear_movers  # retain the previous private cache reset interface
+
+
+def defined_mover_data(body: int) -> MoverData | None:
+    """Only the selected definition's prepared mover, with no generic fallback."""
+    return _movers().get(body)
 
 
 def mover_data(body: int | None) -> MoverData:
@@ -620,9 +626,17 @@ class Mover:
         self.last_command = command
         pose(command, seconds, tick)
 
+    def apply_impulse(self, impulse: tuple[float, float, float]) -> None:
+        """Add a reconstructed world-space combat impulse before the next pose."""
+        self.velocity = tuple(f32(current + delta)
+                              for current, delta in zip(self.velocity, impulse, strict=True))
+        if impulse[1] > 0.0 and not self.flags_word & IN_AIR:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+
     def step_pose(
         self, command: Command, seconds: float, tick: int,
-        *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        *, move_to: tuple[tuple[float, float, float], float] | None = None, speed_scale: float = 1.0,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -633,6 +647,8 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        if speed_scale != 1.0:
+            active.append(Mod(0, 1, speed_scale, frame, priority=99))
         self.values = data = modded(self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
@@ -640,6 +656,15 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
+        # Original 104319 C33960: modify positive forward, backward magnitude
+        # and strafe magnitude independently (17/18/19), restore strafe sign,
+        # subtract forward-backward and clamp both context axes to [-1, 1].
+        # Keep command bytes for the movement record; these are context values.
+        ahead = intent(active, FORWARD_INTENT, max(0.0, forward))
+        back = intent(active, BACKWARD_INTENT, max(0.0, -forward))
+        side = intent(active, STRAFE_INTENT, abs(right))
+        right = f32(max(-1.0, min(1.0, -side if right < 0.0 else side)))
+        forward = f32(max(-1.0, min(1.0, f32(ahead - back))))
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end

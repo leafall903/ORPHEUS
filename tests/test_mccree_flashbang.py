@@ -86,6 +86,24 @@ class FlashbangTests(unittest.TestCase):
             self.step(run, caster, target, target_buttons=8)
             self.assertFalse(sprint.flags & nodes.Ability.RUNNING)
 
+    def test_late_controlled_player_input_is_masked_after_world_deadline_expires(self):
+        run, caster, target = self.arena(distance=3)
+        self.cast(run, caster, target)
+        hit = run.frame
+        end = run.match.combat.stuns[target.body]
+        while run.frame <= end + 2:
+            run.frame += 1
+            run.match.update(run.frame * combat.TICK, run.frame)
+            caster.take_commands([Command(run.frame)])
+        before, position = self.health(run, caster), tuple(target.mover.position)
+        point = caster.mover.position
+        yaw, pitch = aim(run.match.combat._eye(target), (point[0], point[1] + 1, point[2]))
+        target.take_commands([Command(hit + 20, yaw=yaw, pitch=pitch, buttons=1, forward=127)])
+        self.assertEqual(target.body_script.frame, hit + 20)  # accepted, then masked; not an ignored packet
+        self.assertEqual(self.health(run, caster), before)
+        self.assertEqual(tuple(target.mover.position), position)
+        self.assertFalse(target.body_script.component.held)
+
     def test_wall_allies_and_distant_targets_receive_neither_damage_nor_control(self):
         for is_npc in (False, True):
             for options in ({"wall": True}, {"ally": True}, {"distance": 20}):

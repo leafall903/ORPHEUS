@@ -11,6 +11,7 @@ pools come from her own graphs (0109), which only her body statescript would add
 import logging
 from functools import cache
 
+from ow174.game import dva_matrix
 from ow174.game.script import graph
 
 log = logging.getLogger("ow174.game")
@@ -35,16 +36,45 @@ def _numbers(entries) -> dict[int, float]:
 def hero_pools(hero: int) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
     record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    values = record_pools(record)
+    if values is None:
+        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
+    return values
+
+
+def record_pools(record: dict | None) -> tuple[float, float, float] | None:
+    """Read actual0033 schema pools for a selected definition, without hero fallback."""
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
-        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
         return None
     values = _numbers(body.fields["m_publicSchema"]["m_entries"])
     values.update(_numbers(item.get("m_1EB5A024")))
     return values.get(HEALTH_VAR, 0.0), values.get(ARMOUR_VAR, 0.0), values.get(SHIELDS_VAR, 0.0)
 
 
-def body_pools(hero: int) -> tuple[float, float, float]:
+def body_pools(hero: int, definition: int | None = None) -> tuple[float, float, float]:
     """hero_pools, or FALLBACK (logged) for a hero without data."""
+    if hero == dva_matrix.HERO and definition == dva_matrix.MECH:
+        values = record_pools(graph.entity_body(definition))
+        if values is None:
+            raise ValueError("missing selected D.Va mech pools")
+        return values
     return hero_pools(hero) or FALLBACK
+
+
+def active_pools(hero: int, definition: int) -> tuple[float, float, float]:
+    """Read a selected body's actual pools; an absent alternate form cannot borrow the pilot."""
+    record = graph.bodies().get(definition) or graph.entity_body(definition)
+    if record is not None:
+        if record.get('hero') not in (None, f'0x{hero:016X}'):
+            raise ValueError('selected body pools belong to another hero')
+        values = record_pools(record)
+        if values is None:
+            raise ValueError(f'selected body {definition:016X} has no0033 health pools')
+        return values
+    canonical = next((body for body, row in graph.bodies().items()
+                      if int(row['hero'], 16) == hero), None)
+    if canonical is not None and canonical != definition:
+        raise ValueError(f'selected body {definition:016X} has no prepared definition')
+    return body_pools(hero)

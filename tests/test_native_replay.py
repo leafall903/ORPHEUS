@@ -27,7 +27,7 @@ from ow174.game.native_replay import (
     stored_snapshot,
 )
 from ow174.game.script import graph, runtime
-from ow174.game.script.driver import BodyScript
+from ow174.game.script.driver import BASTION, BodyScript
 
 
 def body(frame=1000):
@@ -64,6 +64,17 @@ class NativeReplayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.getLogger("ow174.script").setLevel(logging.ERROR)
+
+    def test_stored_hash_retains_bastion_passive_clock_without_claiming_trace_support(self):
+        script = BodyScript(BASTION, 0xA0000101, 1000)
+        initial = snapshot_hash(script)
+        script.passive_charge_ms = 16
+        self.assertNotEqual(snapshot_hash(script), initial)
+        self.assertEqual(script.passive_charge_ms, 16)
+        script.passive_charge_ms = 0
+        self.assertEqual(snapshot_hash(script), initial)
+        with self.assertRaisesRegex(ValueError, "Soldier"):
+            header(script)
 
     def test_recording_helpers_never_evaluate_values_payloads_or_consume_shots_rng_or_sequences(self):
         script = body()

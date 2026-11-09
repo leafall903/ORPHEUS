@@ -1,0 +1,768 @@
+Bastion static combat lane — 104319 — STATIC ACCEPTED
+
+Scope: hero 02E0000000000015, body 04000000000001FD. Real Match,
+Player.take_commands, BodyScript and extracted graphs execute in the tests.
+The tests exercise the reconstructed server. Original-client acceptance and
+autonomous NPC AI have separate verification tracks.
+
+Reproduction inputs
+- Use the lane 0020 build-104319 factory runtime for ordinary D.Va Call Mech
+  and the verified five-NPC data and mover table for the directed Talon tests.
+- Mount both Reinhardt geometry inputs and lane 013E Orisa geometry and Halt.
+  Load the extracted 03CE projectile tag record for Tank interception.
+- The lane 0015 regression script checks the runtime tree and resource hashes
+  before and after execution. MERGE_READY.json records exact inputs, logs
+  and the separate parent integration rehearsal.
+
+Implemented semantics and evidence:
+- 0153/st0 ModifyHealth self-target, authored constant 90, sampled once per
+  simulation frame as HP/second; bounded reports are consumed exactly once by
+  Combat. Heal through normal pools and sync body health/HUD; no revival.
+- Health getters use explicit owner's component-51 pool records. Native concrete
+  vtable260F630 dispatches virtual40/48/58 to5BBC80/5BC080/5BC9B0. All48 records
+  have stride20 and a nonzero id enables a pool; virtual40 sums current values,
+  while48/58 sum current/maximum only when byte17!=0 and byte18==0. Each add
+  rounds float32 in array order. Full original getter entry-to-return execution
+  matches768 Python results bit-for-bit across256 pool cases, without patched
+  instructions/helper hooks. Synthetic storage/stack are explicit inputs; the
+  outer entity/component lookup and original-client presentation were not run.
+- Runtime ownership binding is reconstructed and restricted to the known body;
+  unknown foreign-entity health services remain unimplemented. Combat supplies
+  its actual48 pool slots; standalone drivers initially supply one normal pool
+  from their provided totals. Pool records/flags are passive causal snapshot data.
+  This replaces the former Bastion-only current/max HUD approximation and lets
+  the authored Self-Repair current<maximum gate consume fuel using native math.
+- 012F/st124 CombatModFilter's authored -0.2 applies as an additive incoming
+  damage scalar before armour, only while that exact state is active. Generic
+  CombatModFilter filtering/stacking and other heroes remain unimplemented.
+- Tank mode #1216 states 4..7 prevent passive ultimate refill after 023B's
+  activation Ability finishes; normal charging resumes after mode exit.
+- Bastion now uses actual0B8B passive/damage expressions instead of the60s fill
+  approximation. Normal damage grants actual enemy pool loss with authored
+  multipliers/cap; Tank projectiles remain ineligible even after mode expiry.
+  Actual Heavy damage earns, spends, rejects empty reuse and reearns Tank.
+  Native host/message/tag policy remains open; see BASTION_ULTIMATE_CHARGE.txt.
+- Explicit charge gates block the numeric bridge. Actual Self-Repair emits
+  its authored healing notification and follows 0B8B's filters using the
+  reconstructed spawn default. Both Recon and Sentry reject a Tank request
+  10 points short, then actual healing supplies the remainder. The ultimate
+  consumes the meter, hits Roadhog for 205 and returns to Recon without
+  generating charge.
+- Shared quick melee now uses the parent's7cd1ed7 nearest capsule-surface
+  visibility policy. This replaces this lane's earlier midpoint approximation
+  and prevents sphere-only hits through walls. Native melee hitbox/corner
+  equivalence remains unverified.
+- Projectile explosions use the same capsule visibility query. Query from just
+  before the impact point so a wall at the impact cannot disappear through the
+  positive-distance ray cutoff. Static wall front/behind behavior is executed.
+- Mover input applies forward-positive/backward-magnitude/strafe-magnitude mods
+  17/18/19 before acceleration. Original 104319 C33960 calls C32FB0 with indexes
+  0x11 at C3398F, 0x12 at C339F4 and 0x13 at C33A06; C33A4F subtracts the forward
+  and backward results; C33A54..C33A85 clamp and store both context axes. This is
+  disassembly-backed behavior; a full native differential audit is not claimed.
+- NPC weapon assembly now uses the parent'sd1286b7 create_body_graphs helper;
+  the duplicate lane implementation was removed. Native-backed config-array
+  selection comes from6debff3. These foundations do not provide controllers/AI.
+- WeaponVolley reports time-driven linked-ammo changes to watchers, including
+  the final 1 -> 0 transition before unlinking. This reconstructs the invalidation
+  missing from the previous VM and lets the authored empty-clip branches start
+  automatic reload. The notification sample is included in body/server VM state.
+- WouldVarStackToTop records a structural dependency in the existing watched
+  map. Push/pop notifies that dependency even when the variable still reads null;
+  ordinary scalar readers keep value-change filtering. This fixes Self-Repair
+  staying unavailable during and after Tank when its priority gate went stale.
+  The dependency marker participates in passive body/server snapshot storage.
+  This is reconstructed invalidation, not a new native notification proof.
+  The historical malformed Soldier packet fixture also freezes the old missing
+  notification policy when reproducing its original 977 bits and crash offset;
+  its corrected-frame path uses the current production runtime and decodes whole.
+- Shared Flashbang control comes from parent64bf71c and remains an explicit
+  resource-backed server policy, not full native224E execution. Bastion discards
+  pending repair reports on a hit. Retained exclusive frame intervals also
+  suppress repair reports from controlled frames during delayed command catch-up,
+  after the live stun map has expired. Overlaps merge; only the owner simulation
+  cursor retires old intervals. Death/body retirement clears the history.
+  Accepted late commands can precede a later world hit, so world-clock-only
+  pruning would incorrectly forget an earlier relevant window.
+  The same retained history masks late attack and movement commands whose frame
+  falls inside control even after live expiry. Actual Bastion and Soldier input
+  tests reproduce this case; commands advance the owner cursor without damage
+  or movement, and subsequent post-control firing damages the enemy again.
+- Adopt parent2ca9178 native distinct-input joins; keep pending arrivals and plug
+  context in causal snapshots. Bastion transformation boundary tests use these
+  joins rather than the earlier permissive output forwarding.
+
+Executed coverage in tests/test_bastion_combat.py:
+- Recon: actual fire produces 40 HP over ten frames at 10 m (two shots).
+- Sentry: actual Reconfigure then fire produces 75 HP over ten frames.
+- Both weapon modes: aim miss, beyond 100 m reach, and static wall cause no damage.
+- Team allies are excluded; a team enemy receives damage.
+- Quick melee: 30 HP from real input; aim miss, range miss and wall rejection.
+- Melee's one-second cooldown rejects immediate reuse; it expires and permits
+  another actual damage event. An expired early-input buffer cannot bypass it.
+- Both gun modes reload their actual clips (35/300), reject firing during the
+  reload, refill, and fire afterward. Full/middle/floor falloff damage is executed
+  against real capsules at three distances per gun mode.
+- Both gun modes exhaust actual ammunition, cannot damage a target with an empty
+  clip, automatically reload, and again cause expected damage after refill.
+- From actual reload start, Recon refills after the authored rounded 734 ms and
+  recovers fire after 1500 ms; Sentry refills after 1546 ms and recovers after
+  2000 ms. Held fire cannot damage during either preceding phase; after recovery
+  it consumes a round and damages the target. Checks bracket both deadlines at
+  16 ms resolution. Repair before refill cancels without granting ammo, and a
+  fresh reload succeeds; cancelling after refill preserves loaded ammo and reuse.
+- Reconfigure: in-progress reentry rejected; successful sentry and recon reuse.
+- Sentry blocks all four horizontal input directions, jump and crouch; returning
+  to Recon restores motion. Actual mover/Player commands execute these checks.
+- Self-Repair: actual health/HUD change only for self, no bystander/enemy heal;
+  stops on release, consumes fuel while injured, runs out under sustained damage,
+  preserves fuel/full-health cap, consumes reports once, releases across missing
+  poses, cannot revive a dead owner or apply pending healing after death.
+- Start delay produces no healing for the first 15 simulation frames and 1.44 HP
+  on frame 16 in this 16 ms fixture. Early release honors the authored 0.5-second
+  minimum healing window; afterward healing stops, fuel recovers to its cap and
+  a new press heals again. This is sampled server behavior, not subframe fidelity.
+- Sentry and Tank each heal 50.4 HP over the tested 50-frame repair window, with
+  Tank fuel consumption and healing after returning to Recon. Both configurations
+  reject melee damage. These execute the authored priority gate and mode paths.
+- Ironclad: 100 input loses 75 with armour (100 * .8 - 5); recon removes it;
+  Tank also has .8, and mode exit restores 1.
+- Tank: insufficient charge rejected, charge consumed, mode 4 -> 6 -> 0,
+  projectile causes actual enemy player death and killer/victim notices.
+- Tank hits for 65 direct plus 140 splash, with actual victim HP capping; a second
+  target receives the authored distance-scaled splash. Wall-behind targets take
+  no blast damage while a front-side target still takes damage.
+- Tank blast boundaries now execute54 additional subcases on an enemy player
+  and all five actual NPC capsules. Surface distances1 +/-1/64m and4 +/-1/64m,
+  plus exactly1/4m, settle the authored140 ->42 splash interpolation and reject
+  outer-radius damage. Player positions are checked after mover quantization.
+  Each target type also rejects wall-occluded inner/middle/outer splash. Actual
+  NPC base shields drain before health, with #253 synchronized; no fallback mover
+  dimensions or invented Heavy armour are used. See test_bastion_tank_blast.py.
+  This accepts the explicit capsule/interpolation reconstruction, not native
+  collision/ring semantics, self effects or model/bone hitboxes.
+- Tank continuous fire emits at frames 1/63/126/189 in the 16 ms fixture, sampling
+  the authored one-second cadence. Aim misses and a target at 101 m survive the
+  full 100/60-second flight; a target at 100 m is hit on its near capsule surface.
+- Tank release/repress schedules (release/resume frames2/3,2/32,2/63,2/81,32/33)
+  preserve the sampled recovery. The first, second, third and fifth emit1/63/126;
+  the late resume emits1/81/143. Each settles three actual65+140 impacts. With
+  only taps at1/101, only two shots and two impacts occur; release never queues
+  another shot. These use a declared10000HP enemy pool to retain repeated hits.
+  test_bastion_tank_cadence.py covers the input transitions; native subframe and
+  other interruption/status semantics remain separate.
+- Sentry, melee and Tank pass a friendly player to hit an enemy; a friendly
+  player in Tank splash range also keeps all pools. These reconstruct collision
+  filtering; native allied collision equivalence is still unverified.
+- From Recon or Sentry, Tank enters active mode on frame 94, begins exit on 594
+  and reaches Recon on 657. Entry/exit reject Tank shots and passive refill;
+  active mode lasts 500 simulation frames (eight seconds). These are sampled
+  graph/Match boundaries, not native subframe or presentation proof.
+- Death while Recon/Sentry/Tank/repairing ends the mode and all active attack/heal
+  states; pressing fire/repair/reconfigure/ultimate afterward does not act.
+- Actual Tank shots already in flight survive shooter death while its body is
+  retained; enemy-player impact settles65+135 capped damage once with the original
+  source and kill notices. All five real NPCs also receive the expected205 capped
+  by their remaining pools. New attacks remain blocked on the dead source.
+- Body replacement retires those shots before an enemy player or any of the five
+  real NPCs can be hit. Both rows execute with normal network leases and with
+  only lease allocation disabled. A reproduced unleased200->0 post-replacement
+  leak is fixed by applying the existing retirement policy to all owned rockets.
+  See test_bastion_projectile_lifecycle.py and the NPC suite. Native body/projectile
+  lifetime equivalence and client presentation remain unverified.
+- Death in each transformation mode (1/3/4/5/7) also retires the transition;
+  120 subsequent held attack/skill frames cannot revive or emit a projectile.
+- Actual McCree Flashbang against Recon/Sentry/Tank deals20/15/15 pool damage
+  after armour/Ironclad. During the default50-frame exclusive control window,
+  held attack/skill/jump/crouch inputs and movement cannot act; after expiry
+  each weapon damages again. Existing airborne Tank projectiles keep flying.
+- All five transformation paths continue their authored timers through control.
+  Their sampled boundaries after the prepared transition frame are62/31/93/93/63
+  for modes1/3/4/5/7; checks bracket each boundary, including Recon return while
+  still stunned. Subsequent actual fire confirms the resulting weapon recovers.
+- Repair interrupted after its minimum window stops healing and fuel use during
+  control, then heals again. Earlier interruption can leave the authored minimum
+  state/fuel timer active; health reports from the control interval are suppressed.
+  Native cancellation/fuel semantics for that early window remain unverified.
+- A real queued repair report is retired by an actual hit with no further target
+  commands. Early minimum-window command gaps and a later second actual cast
+  cannot backfill healing from controlled frames. Pre-impact simulated healing
+  remains eligible; this is the reconstruction's frame policy, not full native
+  ordering of late healing versus already applied damage.
+- Flashbang aim/range/wall/friendly cases preserve all Bastion pools/control in
+  all three configurations. Death clears control/history and rejects skills;
+  replacement retires old history and starts a fresh body without it.
+- Actual NPC fixtures now also require ORPHEUS_NPC_MOVERS_PATH pointing to the
+  verified43-row table. Target dimensions/speeds are asserted and center aim is
+  used; Assassin's horizontal miss is separately preserved. Earlier NPC checks
+  used fallback geometry and are historical graph evidence, not complete geometry
+  acceptance. See NPC_AUTHORED_MOVERS.txt; native model hitboxes remain open.
+- Explicit external ORPHEUS_NPC_DATA_DIR supplies the parent's actual Talon
+  catalog and graph overlay; normal runtime remains read-only. All five bodies
+  receive the expected Recon/Sentry/melee/Tank damage, preserve friendly health,
+  and die under Sentry fire with retained corpses past the normal respawn deadline.
+  Each of the four attacks also kills each actual NPC in a prewounded 1 HP
+  fixture. All 20 pairs produce one lethal hit, one elimination and one point
+  of damage credit. A second attack preserves the original death tick and
+  leaves the corpse and accounting unchanged.
+  In reverse, each of the five actual Talon bodies supplies the lethal damage
+  against a prewounded 1 HP Bastion. The kill is credited to that NPC entity.
+  After death, Bastion cannot fire, manual attack input retires and no pin
+  survives. The prewound sets up the fixture; the terminal hit is graph-driven.
+  Heavy Assault can also capture each form at 200 HP and kill it on wall
+  impact. Death clears the drive and pin. The Assassin's entry leaves a
+  prewounded Recon alive at 5 HP and its later pin damage kills and releases
+  the target. The victim cannot fire after either lethal control outcome.
+- Sixty actual-body checks (five NPCs x four attacks x aim miss/range/wall) leave
+  every pool unchanged. Tank checks wait through the complete projectile range
+  lifetime so an undelivered delayed impact cannot look like a successful miss.
+- Directed Trooper/Sniper/Heavy weapons damage Bastion in all three configurations
+  through production npc_control.start. Checked amounts in the first nonempty
+  30-frame window are Recon 45/95/17.5 and Sentry/Tank 33/75/14. The Heavy uses
+  seven authored 5-HP rounds; armour halves each 5 or reduced 4 to 2.5 or 2.
+  These are specific execution windows, not declared attack cadence specifications.
+- These three actual NPCs stop damaging through walls, beyond the manual 100 m
+  engagement range, after explicit stop and when teams become friendly. Removing
+  the block/restarting allows real damage again. A dead Bastion releases input.
+  The long wall fixture includes a floor so targets cannot fall below the wall.
+- Manual NPC spawn synchronizes the script's initial owner-health value with
+  authoritative health+armour+shields, avoiding a shielded NPC beginning with only
+  its base health in #253. This equality is checked on all five actual bodies.
+- The three owner health queries also read actual initial pools on all five
+  NPCs. Enforcer's13EB/st12 health gate now evaluates true in production; its
+  subsequent13EB/st1 query emitted no reverse damage in the historical300-frame
+  probe. The declared manual binding below now supplies its scoped B96 input.
+- Pending self-heal reports affect the passive server digest; capturing state
+  does not consume them, and clearing them restores the original digest.
+
+Parent notification lifetime fix is adopted locally:two minimal before failures,
+  real Bastion reload/repair/reconfigure stale endings8->0 and3 focused methods
+  pass27.417s. Recon012E/st26 and Sentry012F/st123 were observed ending with
+  stale flags; this probe did not reproduce failed firing. Ability.stop's
+  cleanup-before-unlink ordering is reconstructed, with native inter-object
+  equivalence still unproved. Prior notification-only307 tests pass836.190s and15 server
+  snapshots pass627.587s with all31 Python/5 input hashes unchanged.
+
+Current authored FirstPerson offsets:
+- Bastion01FD XML supplies1.82m standing and1.35m crouched;McCree02A3 supplies
+  1.425m/.9975m. eye_height feeds both shot origin and player Target.eye.
+  Three methods cover4 body/stance descriptors,4 Bastion low-cover shots and
+  4 enemy McCree open/blocked shots. Baseline fails8 subcases;corrected tests pass.
+  XML hashes and exact fields are in lane bastion-eye-resource-validation.json.
+  This does not establish native animated camera/muzzle/bone hitboxes or
+  Sentry/Tank transformation-specific view overrides.
+- Forward combat fixtures explicitly aim at a torso point. Falloff expectations
+  independently intersect the capsule cylinder using the quantized aim angle;
+  deliberate horizontal misses and low-cover shots remain explicit inputs.
+
+Declared Enforcer controller context and subsequent pellet restoration:
+- Parent manual4B-present/5C-absent policy is scoped to13EB owner queries on
+  manual Enforcer01CE. Absent/foreign/other context and F726 stay unknown.
+  Generic health queries retain native-validated authoritative pool sums.
+- Before binding,actual300-frame probes caused no damage in all three forms.
+  Initial one-payload windows caused1/.8/.8HP in Recon/Sentry/Tank.
+  Wall/range/friendly/stop/Bastion-death checks now cover four actual attackers.
+  Actual support Flashbang interrupts/recovery works;actual Bastion gun/Tank
+  kills stop incoming damage and preserve/remove the retained corpse.
+- The production predicate agrees with64 original tail comparisons,plus the
+  repeated512 getter/128 namespace/128 controller cases. Native allocation,
+  full Enforcer pellets/spread/timing and AI/specials remain open. See
+  NPC_CONTROLLER_ENTITY_QUERY.txt and lane enforcer-context-native-validation.json.
+  That checkpoint still emitted one of25 authored projectiles. Current ring
+  consumption now executes25 distinct physical payloads with declared manual
+  random context:close damage25/20/20 across all3 forms,pending wall/stop and
+  unknown-context refusal/recovery pass. See NPC_PROJECTILE_LAUNCH.txt. Native
+  engine random ownership and full muzzle/transport equivalence remain open.
+  Prior317 tests pass818.722s and15 snapshots pass641.732s before the ring fix.
+  Earlier frozen340 tests pass1013.385s and15 server snapshots pass761.040s;
+  all39 Python/7 input hashes are unchanged. See pellets-spread-frozen-source.json
+  and run-pellets-spread-regression.ps1 in the external lane directory.
+
+Recon and Sentry now route their authored circular-cone spread into the damage
+ray. The launch count and live normalized output follow distinct native paths.
+The live Recon output applies the authored 0.075 coefficient between scheduled
+shots. The constant-rate model matches 540 offline native cases. The private
+generated random tables match both captured fingerprints. Actual off-axis
+damage checks use the declared uniform radius and server identity mapping.
+Original seed identity, muzzle pose, and complete volley reentry parity remain open.
+The frozen ray checkpoint passed 341 expanded tests in 1264.262s and 15
+server snapshot tests in 723.715s.
+
+A separate center-ray fixture executed 12 trigger cases on either side of
+the 25/45 m Recon and 30/50 m Sentry falloff boundaries, with a nominal
+boundary shot within 0.5 mm of each. It checked exact endpoint arithmetic
+on the authored HitDef and observed damage against the measured impact
+distance. The fixture suppresses cone deflection to isolate distance.
+See lane bastion-falloff-boundaries-asserted.txt and its probe script.
+
+Recon 012E/node30 omits m_A872C70E. Sentry 013A/node26 and Tank 024F/node23
+explicitly set it to 1. Recon alone now defaults to 2 in the server hit path.
+Native reflection registers m_A872C70E at hit-definition +0x98, and the located
+registration callback only installs a vtable. The native fallback is unresolved.
+The historical Blizzard live notes confirm Sentry stopped dealing critical
+damage in 2017 (https://overwatch.blizzard.com/en-us/news/patch-notes/live/2017/2/).
+The server uses the current capsule and height threshold. Actual close torso
+and upper hits deal 40/80 in Recon and 75/75 in Sentry, with high misses and
+critical flags checked. Incoming Soldier hits on Sentry currently deal 22 at
+center and 54 at upper height from both front and rear over two shots. This
+was the baseline before the rear-core reconstruction.
+
+Model 0B44 supplies the 0.08 m capsule on bone 0933. Clips 0E35 end and 0EB3
+start produce matching local endpoints behind the deployed body. Stable Sentry
+mode now records yaw with the historical combat pose and tests that capsule
+against the main body's first intersection. Eight actual input cases cover
+rear critical hits, front and off-core normal hits, rotated targets, walls and
+friendlies. Animation blending, hit-group activation and native body occlusion
+remain open.
+
+Talon manual charge and reposition checkpoint
+- Heavy 1408 logical 35 uses its authored windup, 15 m/s vector and
+  cooldown. Static host geometry supports graze, capture, wall damage,
+  manual stop, and cleanup when Bastion kills the charger.
+- Sniper 142C waits, retreats four metres at its authored 20 m/s, then
+  resumes rifle input. Tests exercise interruption, blocked route,
+  host cooldown and bidirectional rifle contact. The static destination
+  selection and cooldown policy are reconstructed.
+- Tests exercise all Bastion forms for Heavy wall damage and the first
+  Sniper rifle hit after retreat. The combined 18-test regression passed.
+
+Ironclad transition damage checkpoint
+- Actual Fusion Driver rounds launched before all five transition boundaries
+  remain in flight through completion and use Ironclad at contact. Sentry
+  and Tank arrivals spend 4.4 armor. Recon arrivals spend 6. No health loss.
+- Actual Soldier primary fire samples the last transition and first
+  completed frame for modes 1/3/4/5/7. Each 20-point body shot loses
+  15 health with armour alone or 11 with Ironclad and armour.
+- Ironclad begins on Sentry/Tank completion from Recon, continues through
+  the Sentry-to-Tank and return transitions, and ends when Recon returns.
+- Projected Zarya absorbs the raw 20-point hit in Sentry and Tank.
+  After barrier expiry the same shot loses 11 health. Two tests pass
+  with twelve actual frame and protection subcases.
+
+Control cadence, repair and Nano checkpoint
+- Actual Flashbang holds Tank fire until both control and authored
+  recovery end. A tap during control does not queue a shell. A shell
+  fired before the hit still lands during control.
+- Recon and Sentry retain their reload refill and recovery clocks when
+  hit before or after refill. Held fire resumes only after both gates.
+- All five transitions defer held Self-Repair without early fuel use.
+  An early released tap expires and a fresh post-transition press heals.
+- Ana Nano uses actual 0B9E targeting and release. The eight-second
+  host effect heals 250, multiplies incoming damage by 0.5 before
+  armour, and boosts Bastion weapon damage by 1.5. Tank carries the
+  emission amount across expiry. Sentry and enemy rifle samples show 22.5
+  outgoing and 4 incoming on the last active frame, then 15 and 11 on the
+  first expired frame. Ironclad stays active. Native tag stacking remains open.
+
+Static acceptance audit index
+- Primary fire: test_bastion_combat covers Recon and Sentry damage, spread,
+  falloff, misses, walls, teams and reload. test_bastion_control_cadence
+  covers interruption before and after refill.
+- Melee: test_bastion_combat, test_bastion_ability_buffer and
+  test_bastion_deflect cover reach, LOS, input, cooldown and interception.
+- Secondary and Self-Repair: test_bastion_combat covers healing, fuel,
+  minimum hold, release and reuse. Ana, Sombra, Roadhog and Orisa suites
+  cover status and control. Healing eligibility is a declared host policy.
+- Reconfigure and Ironclad: test_bastion_combat, test_bastion_ironclad_transitions,
+  test_bastion_control_cadence and test_bastion_orisa_halt cover timing,
+  death, movement lock, cancellation and incoming damage.
+- Tank: test_bastion_charge, test_bastion_tank_cadence, test_bastion_tank_blast,
+  test_bastion_projectile_lifecycle and test_bastion_ana_sleep cover earned
+  charge, rejection, emission, impact, death, exit and subsequent input.
+  Native impulse delivery and exact event eligibility remain open.
+- Cross-hero: the barrier, matrix, deflect, absorption, invulnerability,
+  flashbang, frost, hack, hook, Nano and Halt suites execute actual casts.
+  The traced Bastion mover proxies cannot receive the 0CCC 7 m impulse.
+  The 5 m 0CCE pull has separate static combat coverage. Alternate
+  registration and original-client form state remain open.
+- Talon: test_bastion_npc_combat executes all four attacks against Trooper,
+  Enforcer, Sniper, Assassin and Heavy Assault and checks their return
+  attacks, lethal outcomes and retirement with declared manual actions.
+- Integration: frozen tree 4f0fabbd61ff passed 371 tests. Frozen tree
+  74374914a549 passed 381 tests. Tree b528442eaa17 has its own regression.
+  The final commit, patch and readiness manifest remain gated. Original
+  client acceptance is tracked separately.
+
+Acceptance evidence and remaining comparisons
+- Recon and Sentry host checks cover damage, spread, falloff, magazine refill
+  and recovery. Flashbang is tested before and after refill. The Sentry static
+  rear-core test covers visible front and rear, rotation, walls and allies.
+  A Reconfigure press before refill immediately ends the refill wait. After
+  refill, the recovery wait remains active on the press frame. An attack tap
+  during either transition does no damage. On return, Recon retains its ammo
+  and Sentry has a full magazine. The next shot consumes one round and hits.
+  Native spread, falloff, reload timing and animated critical geometry remain
+  separate comparisons.
+- Melee host checks cover cooldown rejection and reuse, expired short taps,
+  near-expiry buffering, held input and directional Deflect. During actual
+  Flashbang a released melee tap produces no hit after expiry. A held
+  press or fresh post-stun press produces one hit and starts cooldown.
+- Reconfigure host checks cover transition reentry and reuse, authored timers
+  under Flashbang and Hack, death retirement, and movement or weapon
+  suppression. All five transitions reach the authored frame boundaries under
+  actual Hack. The resulting weapon can fire while new skill input is locked.
+  Original presentation-state replication remains open.
+- Self-Repair host checks cover startup, minimum duration, fuel depletion and
+  recovery, all five transitions, control interruption and restart, Hack,
+  grenade healing block or amplification, and actual healing charge. Native
+  immunity, early fuel cancellation and healing event eligibility remain open.
+- Ironclad with actual Nano has incoming rifle samples on the last transition
+  frame and first completed frame of all five transitions. An actual projected
+  barrier on a Nano-boosted Sentry spends 20 capacity before mitigation and
+  preserves both body pools. After expiry the same rifle contact costs 4 armor
+  with no health loss. Other modifier combinations and native tag stacking
+  remain open.
+- Tank native splash/collision/ring semantics and allied collision equivalence,
+  native impulse delivery, remaining cadence interrupts/native timing, control/hack,
+  native repeat-activation/earned/passive/healing event eligibility and exact host
+  clock fidelity. Actual Ana sleep spans the 500-frame Tank and 63-frame exit
+  boundaries without delaying either. Held fire launches no shell, and a
+  fresh Recon press hits Ana after wake. In separate unslept 90 m trials, the
+  host processes input before timers in the command frame. Taps at active
+  offsets 499 and 500 launch, and a tap at 501 is rejected. Each emitted shell
+  kills after Recon returns and earns no charge. Native same-frame ordering
+  remains a separate comparison. Resource-backed passive/damage and an actual earned/reearned
+  Tank loop now execute; this does not prove the native message/tag/clock policy.
+  The earlier baseline shot into a wall 1 m away left Bastion at 300 HP and
+  the same position. The current reconstruction uses the authored 0.25 scalar
+  for owner splash. Walls at 1, 2.5 and 5 m now deal 23, about 17.71 and 0 HP
+  after mitigation, with no damage or charge credit. Lethal self-splash retires
+  the owner. Tank knockback now runs for players and actual manual Talon NPCs.
+  Actual owner shots at walls 1 m and 2.5 m away deliver exactly one outward
+  impulse, a 5 m wall delivers none, and a vertical floor shot delivers 8 m/s
+  upward before gravity. Tests compare all vector components at mover delivery
+  and verify displacement afterward. A lethal self-hit supplies no impulse.
+  NPC ring and occlusion checks cover 45 inputs. The arithmetic matches 360
+  offline native samples. Contact direction and mover application are server
+  reconstruction. Native target selection and application remain open.
+  Static provenance separates the impulse multiplier from owner damage.
+  Explosion field 2FE97560 at STU +0x70 bakes to +0x44 at D8C88E.
+  B33460 loads it and B34279 passes it in stack argument seven to D6DC70.
+  D6DE2F/D6DE34 copy it to context +0xCC, which D6DAC7/D6DAD4 apply
+  to the vector before D73830. The separate owner scalar 8A3E3883 is at
+  STU +0x68 and baked +0x40. The original null evaluator and baked store wrote 1.0 for omitted
+  2FE97560 in offline execution. The same probe executes the argument copy
+  and vector multiply for 1.0, 0.25 and 1.5. It verifies the optional vertical
+  floor against explicit context inputs and confirms the omitted nested
+  fields bake to negative and positive FLT_MAX. The default lower bound
+  leaves the sampled Tank impulse unchanged. These slices take the resolved
+  displacement and context as inputs. Native entity application remains open.
+  A separate32-frame observer records one actual retirement at(0,2.82,.96),
+  carrying65 direct/140 blast, while every sampled self HP stays300 and position
+  stays(0,1,0). See lane tank-self-effect-frame-probe.json; no transient self
+  health/position effect was observed in that window.
+  Authored024F/st15 has m_8A3E3883=.25 plus knockback rings, but the scalar's
+  collision-time target policy and native impulse application are unresolved.
+  The 104319 compiler reads +0x68 and writes baked explosion +0x40, then passes
+  nested ModifyHealth to its own compiler. See lane tank-self-effect-frontier.json
+  for resource hashes, exact values and offline registration/constructor RVAs.
+  The additional tank-explosion-native-read-frontier.json records field metadata
+  and runtime read candidates;raw STU offsets do not by themselves identify a
+  runtime definition field or prove its consumer/target policy.
+- Relevant cross-hero barriers, shields, Deflect, absorption, invulnerability,
+  including remaining native Genji Deflect semantics. Its native
+  box-ordering block matches515 original executions. A scoped host bridge now
+  reflects original Bastion gun/Tank shots, with actual ownership/damage, wall/
+  team/back/inactive/expiry/reuse checks. Transform/angular/tag/native physical
+  query equivalence and reflected projectile presentation remain unproved.
+  Active03A3/st59 now evaluates the authored melee direction predicate in an
+  explicit host context:front blocks without return damage/charge;back/side/
+  inactive/expired inputs damage, and cooldown reuse/wall/friendly cases pass.
+  Native021D success-result conversion adds256 comparisons;event parameter8,
+  animated facing and generic combat-filter semantics remain unproved.
+  See BASTION_CROSS_HERO_PROTECTION.txt. Other unknown active defender states
+  do not establish complete invulnerability/Matrix/barrier activation.
+  Static host tests also cover Flashbang, Ana Sleep and grenade status,
+  Nano, Mei Frost, Sombra Hack and Roadhog Hook. Native stun immunity,
+  cleansing, competing controls, and original movement, status and
+  presentation rules still require separate evidence.
+- Complete actual Trooper, Enforcer, Sniper, Assassin and Heavy Assault attacks,
+  specials, misses/range/LOS/friendly/death/control cases. Before the declared
+  manual context above,Enforcer remained at13EB/st1 after its health gate;
+  Assassin produced no damage through manual primary button20. Historical
+  zero-damage probes and hashes are in lane bastion-npc-open-probe.json.
+  Native getter arithmetic is now verified, with explicit owner pool binding;
+  outer native lookup equivalence is not claimed. The remaining Enforcer gate
+  uses F7262B36/B96D3A98 and component43/entity-member context. See lane
+  health-getters-native-validation.json and native-query-frontier.json.
+  Further original execution verifies512 related-ID getter cases,128 namespace
+  resolution cases and128 controller-component resolution cases. Actual NPC
+  binding and gate variables7681/9134 remain unknown; see
+  NPC_CONTROLLER_ENTITY_QUERY.txt. Those native helper proofs alone do not
+  supply the actual relationship;the separate declared manual policy above does.
+  Assassin13B8 has no damage nodes;1157/button36
+  reads its target from GetPrimaryPossessorEntity(owner).#1650 before pin/damage.
+  The manual 1157 bridge now binds the selected body without creating a controller
+  entity. Actual close engagements pin all three Bastion forms and apply 20/15/15
+  entry damage after mitigation, followed by ongoing damage. Held primary does
+  not fire during pin. Stop releases control and a fresh press damages Assassin.
+  Wall, range, team change and Assassin death release without further damage.
+  The 3 m contact rule and mode-1 damage clock are reconstruction. Original target
+  acquisition, animation, QTE and native control lifetimes remain open.
+  NPC graph VM is permissive, collision/transport are fixtures, and only base
+  pools are supplied; difficulty/conditional pools remain unapplied.
+- All original-client weapon/skill/HUD/animation/audio/remote effects acceptance.
+
+Reaper Wraith checkpoint
+- Actual Reaper Shift enters 0020 state 1 at resource position 2. The scoped
+  zero-delay callback advances to the authored 3 s wait at state 3.
+- Recon, Sentry, melee and Tank reach a second enemy behind Wraith. No attack
+  damages or displaces the protected Reaper. This contact filter reconstructs
+  target acquisition separately from damage immunity.
+- With regular command frames, Wraith ends 188 frames after activation.
+  Immediate recast is rejected and Recon can deal 40 damage. After cooldown
+  ends, a new cast again rejects damage.
+- The host leaves one input frame open. With no Reaper commands, both
+  contiguous ticks and a scheduler gap expire protection at world frame 189.
+  Bastion can then hit. Cooldown continues and a stale command cannot change
+  pose or reactivate Wraith. A fresh cast after cooldown succeeds.
+- The lane 0002 scope informed this port. Original-client collision and
+  presentation remain open.
+
+Reaper Shadow Step checkpoint
+- Actual ability input opens 00F2 targeting, a valid primary confirm starts
+  the cast, and graph state 34 gates the protection window. Actual Recon
+  damages the vulnerable start and the landed Reaper. It cannot damage the
+  active protection window. A sky ray cannot start the cast. Secondary cancels
+  selection and a fresh activation can reopen it. Flashbang before protection
+  aborts the cast without moving Reaper and preserves the cast cooldown.
+- Contiguous ticks and scheduler gaps advance a confirmed cast, teleport to
+  the locked point, retire immunity and finish cooldown without new owner
+  commands. Bastion then hits the landed Reaper and a new cast can reopen.
+- Selection and movement use a declared visible walkable surface and a clear
+  standing capsule. Native landing adjustment and original-client presentation
+  remain separate work.
+- Recovered posed hitscan and melee frames now carry their own estimated
+  world tick to the Reaper protection check. Actual held Recon and Sentry
+  shots cannot hit in the expired Wraith interval. The Shadow Step regression
+  checks emitted hit frame IDs when held fire is recovered across protection
+  expiry. A Tank shell already in flight now retains its remaining sweep ticks
+  while a Reaper cast is active. With continuous frames and 30- or 100-frame
+  gaps, an early shell passes through Wraith and hits the enemy behind it.
+  A later shell hits Reaper for 205 after expiry. Shadow Step gives the same
+  early pass-through and late 205-damage hit at the landing point under
+  continuous, 30-frame and 100-frame schedules. An unadmitted Tank shell
+  advances one tick at the endpoint of a 100-frame gap and does not sweep
+  older protection frames.
+
+Orisa Fusion Driver checkpoint
+- At 10 m an actual primary tap spends 6 Recon armor or 4.4 Sentry and
+  Tank armor, with one hit notification and no base health loss. Aim miss,
+  static wall and team filtering preserve all Bastion health.
+
+Orisa Fortify checkpoint
+- Actual Shift starts 0CF4 damage and force stacks. Recon, Sentry, melee
+  and Tank remove 14, 22.5, 13 and 113 armoured HP in the fixture. The
+  host uses the authored 0.6 scalar before armour and suppresses Recon
+  critical hits while Fortify is active.
+- Tank does not displace a fortified Orisa. After expiry it removes 195 HP
+  and displaces the same target. Immediate Fortify recast is rejected and
+  a new press at zero cooldown restores the 0.6 multiplier. Native critical
+  and force consumers remain separate comparisons.
+
+Orisa Protective Barrier checkpoint
+- Actual ability input reports the zero-damage 0BD7 projectile at node 1.
+  The host consumes its speed 25, gravity 9.8 and deployment entity 14A1.
+  After landing, the 0.1 s delay precedes creation of the actual 0BD8 scope
+  with 600 durability and a 20 s lifetime.
+- ORPHEUS_ORISA_GEOMETRY mounts lane 013E's read-only 104319 model 4062 mesh,
+  with 460 triangles and raw digest
+  92c08849cb4348870aad667c74231e8c475cd05bf438c443860d2e8b9f55b28e.
+- Recon, Sentry and Tank deduct 40, 75 and 205 durability before hitting
+  Orisa. Friendly fire passes the mesh and a nearer world wall wins.
+  The Tank hit that destroys the barrier does not spill damage. A Tank
+  explosion on an exposed body can damage a nearby mesh at its nearest
+  point, while static cover blocks the radial hit. When radial damage
+  breaks the shield, that explosion still cannot hit the protected body.
+- Continuous, 30-frame and 100-frame world schedules preserve the order of
+  a pending deployment and an already flying Tank shell. An early shell
+  hits Orisa; a late shell deducts 205 from the deployed mesh. Ballistic
+  sweep, placement and hit ordering are reconstructed. Stored snapshots
+  include actual deployment velocity and the active mesh durability.
+- A cooldown re-press produces no new flight. After cooldown, the old mesh
+  remains active until the next deployment, then only the new mesh blocks.
+  The new mesh expires at its world deadline without owner commands.
+  Actual Recon damage resumes on the exposed Orisa.
+  Original-client
+  transport and rendering remain separate work.
+
+Winston Barrier Projector checkpoint
+- Actual ability input runs 00FA deployment and exits its 50 ms wait on
+  the fourth sampled frame. The graph supplies 700 health, 9 s duration
+  and a 13 s cooldown. Lane 0009 informed the radius-5 static sphere bridge.
+- Actual Recon, Sentry and Tank consume 40, 75 and 205 sphere durability.
+  Sphere entry and exit crossings protect bodies beyond the surface. Melee
+  contact spends 30 durability at the surface. A melee entirely inside can
+  hit Winston without spending sphere durability.
+- A nearer world wall prevents shield damage. Friendly shots cross the
+  sphere. A breaking Tank shell spends the last durability with no damage
+  spill. Natural expiry and cooldown rejection and reuse execute.
+- With Reinhardt's mesh and Winston's sphere active on the same lane, the
+  nearer barrier spends the entire Recon, Sentry or Tank hit. Neither
+  defender takes damage. Stored snapshots preserve a sphere deployed by
+  actual datagram input and include durability and expiry in the digest.
+- Sphere placement, crossing and splash occlusion use explicit host rules.
+  Native movement, actor replication and original-client visuals remain open.
+- Actual Winston primary activates 00FE's tracker and damage states. The
+  static host interprets the authored 8 m range, 40 degrees and 60-point
+  amount as a cone half-angle and damage per second, following lane 0009.
+  Recon loses 0.48 per 16 ms armoured slice. Ironclad forms lose 0.384.
+  Release stops damage and a fresh press resumes. Range, rear, wall and
+  allied controls reject damage. Actual projected protection spends 0.96
+  per slice before mitigation. A real Flashbang suppresses held Tesla until
+  its deadline. In prewounded fixtures each hero can kill the other with its
+  actual primary, credits one elimination and receives no return fire from
+  the dead body. Native target resolution remains separate.
+
+Roadhog Chain Hook checkpoint
+- Actual Shift input reaches 01C8 position 12 after 10 frames. The active graph
+  supplies 20 m range, 60 m/s flight, 0.5 m sweep radius and 30 base damage.
+  Graph 01C9 supplies 40 m/s pull, 3 m minimum separation, 1 m capsule gap,
+  2 s timeout and 0.3 s recovery.
+- Actual Recon, Sentry and Tank hits lose 25, 19 and 19 HP after Ironclad and
+  armor. Bastion input is suppressed during pull and recovery. A new primary
+  input after release can damage Roadhog in all three forms.
+- Aim, range, wall and friendly cases preserve health and position. Roadhog
+  body replacement releases a caught Bastion. An actual Zarya projected cast
+  absorbs the 30-point hook contact without damaging or pulling Bastion.
+- Flashbang on Roadhog interrupts an active pull and releases Bastion.
+  Flashbang on the caught Bastion during hook recovery keeps its own deadline
+  and continues suppressing input after the hook releases.
+- A catch interrupts active Self-Repair and drops pending healing during
+  control. A fresh repair input after release heals again. Actual release and
+  repress during the 8 s cooldown produce no second launch or damage. After
+  the cooldown reaches zero, a fresh cast launches and damages again.
+- Stored snapshot capture preserves an in-progress pull from an actual
+  datagram cast. Changing its arrival time changes the causal digest.
+- The sweep, barrier contact and world-space movement are host reconstruction
+  adapted from lane 0040. Native competition between controls, edge contact,
+  activation presentation and original-client behavior remain open.
+
+Orisa Halt checkpoint
+- Actual Orisa 0CCB commands launch an owned orb. A pre-arm press does not
+  detonate it or create a duplicate. A later press routes 024000000000003F
+  to the same entity and stops its flight.
+- ORPHEUS_ORISA_HALT mounts lane 013E's read-only 104319 graph supplement.
+  Actual Bastion 0CCE waits 25 frames, then pulls the body by more than one
+  meter in Recon and Tank. The movement graph consumes the 0.65 slow
+  after the pull. The slow clears, the graph retires, and health is unchanged.
+- Sentry sets entity flag 15882 through original 012F node 260. Original
+  0CCE node 17 reads that flag and routes through node 37 to termination
+  node 18. The host now retires this specific application at node 18.
+  Actual Sentry stays in place, takes no damage and gets no slow. Returning
+  to Recon clears the flag. After cooldown the same Orisa and starting pose
+  produce a successful pull on the reconfigured Recon body. In the reverse
+  direction, the first completed Sentry frame activates immunity while the
+  already selected pull is still winding up. The graph stops before movement
+  or slow. A separate
+  diagnostic supplies flag 9161
+  after an actual Recon pull and verifies that the same graph path
+  clears the active slow. This evidence covers the target graph, separate
+  from the orb's independent PhysicsExplosion.
+- The host reconstructs flight and capsule acquisition within 5 m. Original
+  0CCC node 1 samples and its offset-leg gate now use lane 013E's CA4450
+  implementation with the host root yaw and static rays. A thin cover test
+  blocks the center ray for both headings, then confirms the original samples
+  acquire one heading and reject the other. Full wall and range misses pass.
+- A two-peer datagram cast exports during live detonation. The read-only
+  server digest tracks both the orb request frame and the Bastion 0CCE link,
+  and returns to its original value after restoring the two fields. Capture
+  leaves the live graph running.
+- Recon fire can kill a prewounded Orisa before her orb hits a wall. The dead
+  caster cannot detonate it by input, but its wall impact still starts Bastion's
+  pull. Replacing Orisa's body while the orb is in flight retires it before
+  the same wall contact. These cases verify the static host lifecycle.
+- A friendly Bastion in range is excluded. Forty presses during 0CCB cooldown
+  produce no new orb. A fresh cast after the timer reaches zero pulls the same
+  Bastion on the opposing team. Recon can damage Orisa during active MoveTo.
+  Actual Recon and Tank Self-Repair each heal 1.44 HP per frame during
+  MoveTo, with the same fuel use as stationary controls. Release stops
+  healing normally.
+  Tank also fires during active MoveTo. Its shell resolves 195 damage
+  against armored Orisa once and is marked ineligible for ultimate charge.
+- An actual Zarya projected cast excludes Bastion at Halt acquisition. The
+  reconstructed filter checks the active shield and remaining capacity. The
+  test preserves all 200 capacity, Bastion health and Zarya's energy.
+  If the projection starts during 0CCE windup, the world update retires
+  the pending control graph before MoveTo and preserves all 200 capacity.
+  Cancellation once the post-pull slow is active remains outside this bridge.
+- The center ray remains a reconstructed outer fallback. Native pose and
+  collision masks, independent 7 m PhysicsExplosion, and original-client
+  presentation still require verification.
+- Twelve casts cover all three forms at four capsule distances. Recon and
+  Tank pull inside 5 m. Sentry stays in place under 15882. All forms stay
+  in place at both annulus samples and beyond 7 m in the host graph.
+- The 5 m target graph excludes a Bastion capsule in the 5 to 7 m annulus
+  and one outside both radii. Orisa's Fusion Driver can kill Recon during
+  the slow, which retires the live graph. Lane 013E's 7 m force evidence
+  uses fixture rigid bodies. Character mover reception remains open.
+  Extracted 01FD.003 declares STUCharacterMoverComponent, with null model
+  collision and rigid-body configs. Its declared parent 0D57 and direct
+  children 14D0, 2D33, 2AE5, 130D supply no non-null values for those fields.
+  The native fixture filter rejects team-only category 0x08 or 0x10 and
+  accepts 0x1000. The live Bastion proxy category is still unknown.
+  In 104319, BBDE42 calls DBAB30 and stores its wrapper at mover +0x1538.
+  BBDDA9 supplies type zero on this initialization path. DB88F0 type zero
+  calls E15330 and saves the handle at wrapper +8. DBAC80 passes it to
+  E01C60, which validates the scene +0x610 table and writes record +0x3A.
+  The alternate type-one mover path reads the +0x5F8 rigid-body table
+  also used by the explosion association lookup DEA960. The live mapping
+  from the normal type-zero proxy is now bounded. DB8B1A calls E01240,
+  which allocates a scene +0x628 collider through DFFEA0. DFFF18 writes
+  collider type 2 at +0xA8. Explosion association DF6970 requires type 1
+  at DF6A05 before reading the body index at +0x48. Offline execution
+  with identical supplied scene records returns a body for type 1 and
+  the invalid handle for type 2, type 0, and stale generation. This
+  excludes the traced type-zero mover collider from that association.
+  Evidence: bastion-halt-proxy-association-native.json.
+  Eighteen native scene-tree cases exercise the extracted 7 m packet.
+  At 3 m and 6 m, broadphase appends all candidates in both category
+  fixtures (0x100 and 0x1000). Type 1 receives an impulse. Types 2 and 0
+  stop after candidate validation with zero velocity change. At 8 m,
+  broadphase appends no candidates. These are supplied scene records.
+  See bastion-halt-proxy-dispatch-native.json.
+  Bastion 01FD.003 sets STU field FD92C072 to 1. The native copy preserves
+  it at mover +0x4C7 and the initializer takes the secondary-body branch.
+  Secondary registration writes type 1, category 0x2000 and flags 0x1100.
+  Both executed BBD100 replacement packet branches keep those words at
+  +0x50. Their shape words at +0x5C differ.
+  At 6 m the original broadphase rejects creation and both replacement
+  profiles. A type-1 positive control with category 0x100 receives the
+  impulse. See bastion-halt-secondary-mask-native.json. Live form state
+  and alternate registration paths remain open.
+  The Bastion body graph closure adds six literal 003 entity references.
+  All six extracted definitions have null or absent model collision and
+  rigid-body fields. The walk visits 60 graph references, with 0F9C missing
+  from the bundle. Common 01C7 node 93 requests it from message 0820.
+  Across all loaded graph fields, message 0240000000000820 appears only
+  in 01C7/91 and graph 0580000000000F9C only in 01C7/93. No literal sender
+  was found. Native or dynamic message dispatch is unverified.
+  The fresh 104319 export has 1,587 type-01B XML files and no 0F9C.
+  Only 01C7 references 0820.025. Short-index matches of types 026 and
+  078 refer to different resources. See bastion-halt-0f9c-extract-104319.txt.
+  The DataTool tracked-file dictionary does not contain type 025 for this
+  archive. Exact image literals for 0820 and 0F9C are absent, as is the
+  known 003F detonation ID. This scan cannot exclude encoded or dynamic
+  native senders.
+  Dynamic allocation remains outside the evidence. See
+  bastion-halt-body-graph-entity-closure.json.
+
+Sigma Kinetic Grasp checkpoint
+- Active 1D02/st1 intercepts 40 Recon, 75 Sentry and 205 Tank payloads in the
+  frontal fixtures. Inactive, rear and wall cases verify the contact order.
+- An absorbed 40 damage grants 24 temporary shield. Tests cover its 3 second
+  decay delay, 5 per second decay, damage notices and depletion before base
+  health. The host contact timing and shield port are reconstructed.
+- The frozen runtime passed 350 expanded tests and 15 snapshot tests.
+- Defensive cast and Reinhardt barrier changes remain in isolated overlays.
+
+Final combined verification
+- Runtime tree b50cd566e2001879f39c23f84d326ca1f163feff passed 470 tests across
+  50 modules without skips. The static evidence index includes 230 Bastion
+  cases and 3 ordinary D.Va Call Mech cases.
+- The delivery adds documentation and Ruff cleanup. Six Python files
+  preserve the parsed syntax tree after removing one unused local assignment.
+  The delivery candidate passed 44 additional targeted tests.
+- Combat values and graph states are exercised with actual server commands.
+  Mesh attachments, protection ordering and NPC input and movement hosting
+  include documented reconstructions. Original-client acceptance is separate.

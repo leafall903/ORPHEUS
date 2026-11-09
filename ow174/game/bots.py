@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -121,9 +122,17 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
+        self.attack_mode = "primary"
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
+        self.dva_mover = None
+        self.special_mover = None
+        self.special_attack = False
+        self.special_target_body = None
+        self.dva_buttons = 0
+        self.dva_shell = False
+        self.dva_shell_spent = False
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
@@ -156,10 +165,27 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.impulse_mover: Mover | None = None
 
     def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
+            return
+        if self.dva_shell:
+            first = max(self.last_tick+1, tick-CATCH_UP+1)
+            if first > tick:
+                return
+            self.dva_mover.use(world=collision)
+            for at in range(first, tick+1):
+                self.dva_mover.step_pose(
+                    Command(at, yaw=round(self.yaw), pitch=round(self.pitch)), seconds, at,
+                )
+            self.last_tick = tick
+            self.position, self.velocity = tuple(self.dva_mover.position), self.dva_mover.velocity
+            self.moved_tick = tick
+            return
+        if self.impulse_mover is not None:
+            self._step_impulse(tick, seconds, collision)
             return
         if not self.route:
             if tick < paused_until:
@@ -175,6 +201,27 @@ class Bot:
                 self._pause(at)
             else:
                 self._tick(at, seconds, collision)
+
+    def apply_impulse(self, impulse, tick: int, collision) -> None:
+        """Use the authored body mover for a manually spawned NPC's displacement."""
+        if self.dead or self.spawner.get("manual_spawn") is not True:
+            return
+        if self.impulse_mover is None:
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision, mover_data(self.body))
+            self.impulse_mover.velocity = self.velocity
+            self.last_tick = tick
+        self.impulse_mover.apply_impulse(impulse)
+
+    def _step_impulse(self, tick: int, seconds: float, collision) -> None:
+        mover = self.impulse_mover
+        mover.use(world=collision)
+        for at in range(max(self.last_tick + 1, tick - CATCH_UP + 1), tick + 1):
+            mover.step_pose(Command(at, yaw=round(self.yaw), pitch=round(self.pitch)), seconds, at)
+        self.last_tick = tick
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        self.moved_tick = tick
+        if not mover.airborne and not any(mover.velocity):
+            self.impulse_mover = None
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -296,8 +343,13 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.impulse_mover = None
         self.attack_target = None
+        self.attack_mode = "primary"
         self.attack_input = False
+        self.special_mover = None
+        self.special_attack = False
+        self.special_target_body = None
         self.keys = False
         self.held = (0, 0)
         self._stand()
@@ -337,7 +389,7 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else (self.impulse_mover.flags if self.impulse_mover else 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,

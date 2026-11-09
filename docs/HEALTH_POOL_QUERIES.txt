@@ -1,0 +1,45 @@
+Owner health-pool queries -- Overwatch 1.74.0.0.104319
+
+Native dispatch:
+- STU_9B7648C3: CEB6C0 -> D177C0 -> HealthComponent 51 virtual 40.
+- STU_32E6E4D8: CD1DA0 -> D18110 -> virtual 48.
+- STU_7D7D2470: CD8640 -> D17E00 -> virtual 58.
+- Concrete vtable 260F630, installed at 5BB3EA, selects getter functions
+  5BBC80 / 5BC080 / 5BC9B0. RVAs refer to the captured mapped 104319 image.
+
+Each getter visits 48 records beginning at component+D8, stride 20 bytes.
+The wire record is u32 id, float32 maximum, float32 current, u32 kind and four
+flag bytes. An id of zero excludes the slot. Virtual 40 sums all current values;
+virtual 48 sums current values where byte 17 is nonzero and byte 18 is zero;
+virtual 58 sums maximum values with that same flag test. Every addition rounds
+float32, in record order. These flags match the ordinary versus over-health HUD
+classification already documented in world.py; no broader healing rule is inferred.
+
+Offline evidence:
+256 synthetic record arrays, including all empty, all active, id-zero payloads,
+mixed flags, all three groups and finite random float32 values, produce 768
+bit-identical Python/original-getter comparisons. Unicorn executes each original
+entry through its return, using genuine original caller return addresses. The
+mapped code is unmodified and no helper functions are hooked. Storage and stack
+are synthetic. The config evaluator, namespace/entity/component lookup, live game
+objects, nonfinite payload policy and client presentation remain outside this proof.
+The lane's health-getters-native-validation.json records image hash and addresses.
+
+Runtime binding:
+World.health_pools is either None (service absent) or 48 explicit raw pool records,
+with None slots denoting absent ids. Only a query targeting that component's owner
+can use this service. Foreign-entity queries retain the existing unsupported path;
+no controller/body identity or missing component is invented.
+
+ReplicatedBody.set_health supplies one normal pool from standalone caller totals
+unless explicit records are provided. Combat._sync_body_health supplies actual
+Vitals pools for player and NPC bodies. This owner binding is a server restoration
+policy, not a claim to reproduce native entity lookup or native storage allocation.
+Pool values and flags participate in passive body/server snapshots without running
+getters. They are not derived lazily from HUD variables during a query.
+
+Six source tests exercise aggregation/filtering, order-sensitive rounding, layout
+rejection, strict unknown foreign services, causal snapshots and actual Match
+damage/repair. Actual five-NPC fixtures check their initial owner queries. Enforcer
+now passes its health condition but still needs the subsequent native controller
+context; this does not establish its attack, navigation or special-ability acceptance.

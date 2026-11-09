@@ -1,0 +1,42 @@
+Talon mover input correction --104319 --static fixtures only
+
+The canonical runtime's38-row mover table has no entries for the five Talon
+bodies. Earlier lane NPC tests therefore used mover_data's Soldier fallback.
+Those results retain graph/damage evidence but do not prove actual NPC geometry.
+
+The parent's independent npc-navigation-runtime provides43 rows, extracted with
+the existing mover field mapping from the original104319 body XML. This lane
+requires ORPHEUS_NPC_MOVERS_PATH for its actual-NPC fixture and rejects missing
+body entries. It reads the43-row table, restores the previous provider and clears
+the cache after the suite. No file in either runtime is modified.
+
+Body             Height   Radius   Forward speed
+1D40 Trooper      1.70     0.50       5.75
+2279 Enforcer     1.90     0.50       5.00
+1E7D Sniper       1.75     0.50       4.50
+1EBD Assassin     1.50     0.50      14.00
+1EBB Heavy        2.30     0.70       2.20
+
+Fixture assertions check each exact body entry, these dimensions/speeds and the
+actual Combat Target height/radius. Attacks aim from the player's eye toward the
+body's center. A separate case preserves the genuine horizontal Assassin miss:
+the old fixed1.55m ray passes above its1.50m capsule; center aim then damages it.
+The melee wall sits strictly ahead of every capsule, including Heavy's.70 radius.
+The source geometry is not changed to make an aim or occlusion test pass.
+
+Normal metadata and NPC graph/catalog overlay remain separate read-only inputs.
+Only the mover provider is changed in the actual-NPC suite. The prepared
+runtime's other metadata includes hardlinks; never write into those inputs.
+Its collision directory has no real map cache. All these scenarios retain the
+declared flat/static collision and transport fixtures. Speeds are checked as
+loaded inputs; no autonomous navigation or native motion fidelity is accepted.
+Mover capsules also do not prove model/bone/critical weapon hitboxes.
+
+Mover input SHA256:
+e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c
+Previous normal table SHA256:
+eac1d0d0f3c651b62b396ae91dd96917320bd7b1fb6225dd3cb0827a9e84402e
+Preparation/provenance:
+verification/retribution/npc-navigation-runtime/mover-preparation.json
+verification/retribution/prepare_npc_navigation_runtime.py
+Raw XML, runtime data and logs remain external to the publication source.
