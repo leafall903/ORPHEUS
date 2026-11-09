@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the four emote and four voice slots in original 104319
+  order. All 1,544 offline native lookup comparisons and 27 focused
+  wheel, replay and snapshot tests pass. Equipped-item execution and client
+  acceptance remain open.
 - Resolve the wheel's authored 104319 action categories. Offline 02A3
   selections reach the fixed and configurable callout branches and the
   emote and voice-line branches. Slot resolution, original selection

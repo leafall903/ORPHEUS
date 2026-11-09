@@ -79,3 +79,27 @@ class CommunicationWheelTests(unittest.TestCase):
             with self.subTest(value=value):
                 main.write((expr.INSTANCE, 29699), value)
                 self.assertIs(main.evaluate(condition), expected)
+
+    def test_emote_and_voice_actions_use_native_slot_order(self):
+        body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
+        instances = {instance.graph.index: instance for instance in body.component.instances.values()}
+        main, voice = instances[0x05AD], instances[0x02CF]
+        emote_slot = main.graph.node(107).field("m_condition")["m_configVars"][0]["m_slot"]
+        voice_slot = voice.graph.node(33).field("m_value")
+        for instance, config, actions, unmatched in (
+            (main, emote_slot, (0x172, 0x1A1, 0x1A0, 0x19F), 0x1A2),
+            (voice, voice_slot, (0x173, 0x1A5, 0x1A4, 0x1A3), 0x1A6),
+        ):
+            for slot, action in enumerate(actions):
+                with self.subTest(action=hex(action)):
+                    instance.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | action))
+                    self.assertEqual(instance.evaluate(config), slot)
+            instance.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | unmatched))
+            self.assertEqual(instance.evaluate(config), -1)
+
+        runtime.send_message(
+            body.component, 0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001A4)}, body.entity,
+        )
+        body.component.run_now()
+        self.assertEqual(voice.vars[9259].value(), 2)

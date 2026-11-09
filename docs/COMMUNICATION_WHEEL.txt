@@ -33,8 +33,14 @@ Source paths for the remaining actions
 - Direct offline 02A3 injection now reaches the correct branch in 05AD
   for fixed and configurable calls and emotes, and in 02CF for voice
   lines. The emote reaches node 107's equipped-animation query
-  STU_250DEABD. The voice selection reaches node 33's STU_2E708EC1 slot
-  query. These queries and the downstream action paths remain open.
+  STU_250DEABD. The slot queries use the original zero-based lookup
+  order. Client routines 44A7D0 and 44A950 search the emote and voice
+  tables at 25FB0E0 and 25FB120. Emote slots are 172, 1A1, 1A0 and 19F.
+  Voice slots are 173, 1A5, 1A4 and 1A3. Unmatched actions return -1.
+  A 1,544-case offline comparison against those client instructions
+  agrees with the slot resolver. An injected 1A4 reaches voice node 33
+  and sets slot 2. Equipped animation, equipped voice playback and the
+  original selection transport remain open.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

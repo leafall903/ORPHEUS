@@ -104,6 +104,9 @@ WHEEL_ACTION_CATEGORIES = {
     0x0D80000000007420: frozenset((0x173, 0x1A3, 0x1A4, 0x1A5, 0x1A6)),
     0x0D80000000007428: frozenset((*range(0x16B, 0x173), *range(0x1E5, 0x1F5), 0x1F7, 0x1F9)),
 }
+# 104319 44A7D0 and 44A950 return the zero-based index in these tables.
+WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
+WHEEL_VOICE_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -175,6 +178,11 @@ class BodyWorld(runtime.World):
         if (cls == "STU_4460419A" and self.communication_wheel and instance is not None
                 and instance.graph.index in (0x05AD, 0x02CF)):
             return self.wheel_action_has_category(cfg, instance)
+        if self.communication_wheel and instance is not None:
+            if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
+                return self.wheel_slot(cfg, instance, WHEEL_EMOTE_ACTIONS)
+            if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
+                return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
@@ -191,6 +199,15 @@ class BodyWorld(runtime.World):
         action = instance.evaluate(cfg.get("m_548E5344"))
         return (isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX
                 and (action.guid & 0xFFFFFFFF) in actions)
+
+    @staticmethod
+    def wheel_slot(cfg: dict, instance, actions: tuple[int, ...]) -> int:
+        action = instance.evaluate(cfg.get("m_548E5344"))
+        if isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX:
+            index = action.guid & 0xFFFFFFFF
+            if index in actions:
+                return actions.index(index)
+        return -1
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
