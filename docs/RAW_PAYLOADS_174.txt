@@ -1,10 +1,11 @@
 Strict raw statescript payload tools (1.74)
 
 ow174.game.script.raw_payloads encodes/decodes only the VERIFIED table layouts for
-STU_9935FBC8 (linked_target) and STU_861D9015. It supplies wire-format tools, not VM
-behavior: neither class is added to statescript.WRITERS/family/sendable or the driver.
-The seven optional f32 values have no assigned runtime purpose. 861D9015 v0..v6
-remain unsigned 16/16/32/32/32/16/16-bit patterns, including float-looking bit patterns.
+STU_9935FBC8 (linked_target) and STU_861D9015. These tools operate independently
+of the VM and body frame writers. The linked-target class still lacks a runtime
+writer. The spray writer uses a separate path for a resolved placement.
+The seven optional linked-target f32 values have no assigned runtime purpose.
+The raw 861D9015 tool preserves v0..v6 as unsigned 16/16/32/32/32/16/16-bit patterns.
 
     from ow174.game.bits import BitReader, BitWriter
     from ow174.game.script.raw_payloads import encode_payload, decode_payload, LinkMetadata

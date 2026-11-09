@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Encode resolved spray placements in owner and observer body frames.
+  Two packed directions, the point, and optional attachment data use
+  the 104319 writer's layout. The 89 focused tests, 2,051 native
+  direction comparisons and 540 native writer cases pass. The body
+  host still needs to solve placements. Original-client acceptance
+  remains open.
 - Correct the cosmetic paths using the 104319 STU registration and
   equipped-slot routines. 02CF reads a spray unlock and 0686 reads the
   voice unlock's .00D effect. The extractor found 1,043 voice effects.

@@ -46,8 +46,15 @@ Source paths for the remaining actions
   The priority-2 state vtable is 262CF20. Enter 97F950 reaches 98CAE0,
   which uses authored +F0 and the user's pose to build a query at
   D0FCB0. The result selects plug +100 or +F8. Reader 97FA30 uses
-  D0F760 to unpack the placement data. The placement result, state
-  transport, and 1313 client-local message route remain open.
+  D0F760 to unpack the placement. Writer D0FAA0 uses DB1050 to
+  encode both directions as pairs of 16-bit angles. It copies the
+  point as three f32 words, with an optional entity and optional
+  attachment value, then the terminal flag. The owner and observer
+  writers now carry resolved geometry for authored 02CF state 1.
+  Unresolved states stay out of those frames. Native execution
+  verifies 2,051 DB1050 vectors and 540 D0FAA0 writes against all
+  three frame contexts. The placement solver and the 1313
+  client-local message route remain open.
 - Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
   a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.

@@ -28,7 +28,7 @@ from ow174.game import pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, nodes, runtime, spray_placement
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -615,7 +615,10 @@ class BodyScript(ReplicatedBody):
             # Uncertain: the client would re-check it every update with its own answer and flip it against
             # ours in every frame. Not sent, it stays off there (its live subgraph is sent).
             return
-        payload = state.payload() if family(cls) != "none" else {}
+        codec = family(cls)
+        payload = state.payload() if codec != "none" else {}
+        if codec == spray_placement.CODEC and not payload:
+            return
         snap.states[(owner, index)] = (cls, state.active, tuple(sorted(payload.items())))
 
     def tree_frame(self) -> tuple[BitWriter, Snapshot]:

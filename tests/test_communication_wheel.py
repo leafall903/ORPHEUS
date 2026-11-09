@@ -226,6 +226,9 @@ class CommunicationWheelTests(unittest.TestCase):
         voice_query = voice.graph.node(67).field("m_value")
         self.assertEqual(spray.evaluate(spray_query), expr.Asset(chosen_spray))
         self.assertEqual(voice.evaluate(voice_query), expr.Asset(chosen_effect))
+        self.assertTrue(spray.state(1).active)
+        self.assertNotIn((spray.id, 1), body.snapshot().states)
+        self.assertNotIn((spray.id, 1), observers.snapshot(body).states)
 
         for slot, expected in ((0, default_spray), (2, 0), (3, 0), (-1, 0)):
             spray.write((expr.INSTANCE, 9259), slot)

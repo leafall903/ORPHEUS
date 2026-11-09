@@ -23,7 +23,7 @@ import struct
 from dataclasses import dataclass, field
 
 from ow174.game.bits import BitWriter
-from ow174.game.script import codecs
+from ow174.game.script import codecs, spray_placement
 from ow174.game.world import EntityUpdate
 
 
@@ -293,6 +293,7 @@ class Stream:
 # data/statescript_codecs_174.json, read in the client code): whether it is an StEC class and its codec. The
 # writers below cover these codecs; tests/test_statescript_codecs.py reads every writer back with the table.
 WRITERS = {
+    spray_placement.CODEC,
     "none", "switch", "stack", "anim", "chase", "button", "ability", "targets", "volley", "subscript",
     "message", "send", "link", "hits", "flags13", "frames", "counter2", "pulser",
 }  # fmt: skip
@@ -618,6 +619,8 @@ def write_payload(
     elif kind == "pulser":  # ClientOnlyPulser (0x7FF78990D760)
         out.bit(payload.get("fresh", False))
         out.bits(payload.get("count", 0) & 0xFF, 8)
+    elif kind == spray_placement.CODEC:
+        codecs.write(out, codecs.codec(cls).layout, spray_placement.wire_fields(payload), owner=True, full=False)
     elif kind == "unknown":
         raise ValueError(f"no payload writer for {cls}")
 
@@ -981,6 +984,8 @@ def remote_fields(cls: str, payload: dict) -> dict:
         return {"link": get("link")}
     if kind in ("none", "stack", "send", "subscript", "targets", "frames"):
         return dict(payload) if kind == "frames" else {}
+    if kind == spray_placement.CODEC:
+        return spray_placement.wire_fields(payload)
     raise ValueError(f"no H=0 payload for {cls}")
 
 
