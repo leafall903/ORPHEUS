@@ -230,6 +230,26 @@ class ReplayManifestTests(unittest.TestCase):
             with self.subTest(quanta=quanta, options=options), self.assertRaises(manifest.ManifestError):
                 manifest.runtime_configuration(quanta_us=quanta, run_options=options)
 
+    def test_reinhardt_descriptor_identity_follows_content_across_relocation(self):
+        first = self.base / "original.json"
+        second = self.base / "relocated.json"
+        payload = b'{"build":104319,"maximum":1600}'
+        first.write_bytes(payload)
+        second.write_bytes(payload)
+        key = "ow174.game.reinhardt_barrier.GEOMETRY_SHA256"
+        with mock.patch.dict(os.environ, {"ORPHEUS_REINHARDT_COLLISION": str(first)}):
+            original = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        with mock.patch.dict(os.environ, {"ORPHEUS_REINHARDT_COLLISION": str(second)}):
+            moved = manifest.runtime_configuration(quanta_us=16000, run_options={})
+            second.write_bytes(payload.replace(b"1600", b"1200"))
+            changed = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        self.assertEqual(original[key], hashlib.sha256(payload).hexdigest())
+        self.assertEqual(moved, original)
+        differences = manifest.compare_manifests(
+            self.capture(configuration=original), self.capture(configuration=changed),
+        )
+        self.assertEqual([row["path"] for row in differences], [f"configuration/{key}"])
+
     def test_digest_rejects_unsealed_tampering_and_malformed_typed_values(self):
         captured = self.capture()
         tampered = copy.deepcopy(captured)

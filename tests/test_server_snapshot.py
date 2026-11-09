@@ -17,6 +17,8 @@ from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, p
 
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.combat import ProjectedBarrier, TemporaryShield
+from ow174.game.commands import FIRE, SECONDARY, Command
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
 from ow174.game.match import Match
@@ -154,6 +156,353 @@ class ServerSnapshotTests(unittest.TestCase):
         client.entities[-1].stream = object()
         with self.assertRaises(ServerSnapshotError):
             self.capture(session)
+
+    def test_brigitte_bridge_and_temporary_armor_expiry_are_stored_without_getters(self):
+        session, _, players = self.scene()
+        player = players[0]
+        self.assertTrue(session.apply("switch_hero", {
+            "account": player.account_lo, "hero": 0x02E0000000000195,
+        }))
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        vitals = fight.vitals_of(target)
+        vitals.grant_armour(15, 100, fight.now + 30)
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            first = snapshot_digest(self.capture(session))
+        vitals.bonus_armour[0].until += 1
+        second = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, second)
+        # The missing-Pet consumer is causal state even before its getter runs.
+        fight.brigitte.barriers[player.body].health -= 1
+        self.assertNotEqual(second, snapshot_digest(self.capture(session)))
+
+    def test_repair_initial_controller_and_pending_cleanup_are_causal_without_getters(self):
+        from ow174.game import brigitte
+
+        session, _, players = self.scene(two=True)
+        source, target = players
+        self.assertTrue(session.apply("switch_hero", {
+            "account": source.account_lo, "hero": brigitte.HERO,
+        }))
+        fight = source.match.combat
+        effect = brigitte.RepairHeal(source, target.body, fight.now + 6, fight.now, 55,
+                                     source, brigitte.HERO, False, fight.now + 3)
+        fight.brigitte.repairs[source.body, target.body] = effect
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            first = snapshot_digest(self.capture(session))
+            effect.cleanup_at += 0.1
+            second = snapshot_digest(self.capture(session))
+            effect.controller = target
+            third = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, second)
+        self.assertNotEqual(second, third)
+
+    def test_pending_brigitte_passive_charge_clock_is_stored_without_getters(self):
+        session, _, players = self.scene()
+        player = players[0]
+        self.assertTrue(session.apply("switch_hero", {
+            "account": player.account_lo, "hero": 0x02E0000000000195,
+        }))
+        script = player.body_script
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            first = snapshot_digest(self.capture(session))
+            script.passive_charge_ms += 1
+            second = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, second)
+
+    def test_active_brigitte_stun_records_and_recipient_lease_are_stored_without_getters(self):
+        session, _, players = self.scene(two=True)
+        source, recipient = players
+        self.assertTrue(session.apply("switch_hero", {
+            "account": source.account_lo, "hero": 0x02E0000000000195,
+        }))
+        fight = source.match.combat
+        target = next(t for t in fight._targets() if t.owner is recipient)
+        parent = next(i for i in source.body_script.component.instances.values() if i.graph.index == 0xEE3)
+        self.assertTrue(fight.brigitte.host_control(source, target, parent, parent.graph.node(13)))
+        self.assertEqual(len(fight.brigitte.stuns), 1)
+        lease = fight.brigitte.stuns[0]
+        self.assertTrue(lease.instance.states[20].active)
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+        lease.instance.vars[215].base = 0.5
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_actual_counter_charge_stores_both_knockdowns_without_getters(self):
+        session, _, players = self.scene(two=True)
+        brig, rival = players
+        for player, hero in zip(players, (0x02E0000000000195, 0x02E0000000000007), strict=True):
+            self.assertTrue(session.apply("switch_hero", {"account": player.account_lo, "hero": hero}))
+        match = brig.match
+        x, y, z = brig.mover.position
+        rival.mover.position, rival.mover.body = [x, y, z + 3], None
+        frame = max(player.body_script.frame for player in players)
+
+        def step(brig_buttons, rival_buttons):
+            nonlocal frame
+            frame += 1
+            match.update(match.combat.now + 0.016, frame)
+            brig.take_commands([Command(frame, buttons=brig_buttons)])
+            rival.take_commands([Command(frame, yaw=-32768, buttons=rival_buttons)])
+
+        for _ in range(30):
+            step(SECONDARY, 0)
+        step(SECONDARY | FIRE, 8)
+        step(0, 0)
+        leases = match.combat.brigitte.stuns
+        self.assertEqual({lease.target for lease in leases}, {brig, rival})
+        self.assertTrue(all(lease.instance.states[20].active for lease in leases))
+        self.assertEqual({lease.instance.vars[215].value() for lease in leases}, {2})
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            for lease in leases:
+                duration = lease.instance.vars[215]
+                original = duration.base
+                duration.base = 1.5
+                self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+                duration.base = original
+            self.assertEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_actual_ice_wall_preview_and_pillars_are_stored_without_getters(self):
+        from test_game_combat import aim
+
+        from ow174.game.mei_wall import MEI
+
+        session, _, players = self.scene()
+        mei = players[0]
+        self.assertTrue(session.apply("switch_hero", {"account": mei.account_lo, "hero": MEI}))
+        match = mei.match
+        fight = match.combat
+        frame = mei.body_script.frame
+        x, y, z = mei.mover.position
+        yaw, pitch = aim(fight._eye(mei), (x, y, z + 4))
+
+        def step(buttons=0):
+            nonlocal frame
+            frame += 1
+            match.update(fight.now + 0.016, frame)
+            mei.take_commands([Command(frame, yaw=yaw, pitch=pitch, buttons=buttons)])
+
+        def assert_causal(record, **changes):
+            with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+                initial = snapshot_digest(self.capture(session))
+                for field, value in changes.items():
+                    original = getattr(record, field)
+                    setattr(record, field, value)
+                    try:
+                        self.assertNotEqual(initial, snapshot_digest(self.capture(session)))
+                    finally:
+                        setattr(record, field, original)
+
+        for _ in range(20):
+            step()
+        step(16)
+        step()
+        preview = fight.walls.inputs[mei.body]
+        self.assertTrue(preview.preview)
+        self.assertFalse(fight.walls.pieces)
+        assert_causal(preview, rotated=True)
+        step(FIRE)
+        step()
+        self.assertFalse(preview.preview)
+        self.assertEqual(len(fight.walls.pieces), 5)
+        centre = list(fight.walls.pieces.values())[2]
+        assert_causal(centre, health=330.0, expires=centre.expires - 1)
+
+    def test_actual_orisa_deployment_is_stored_without_getters(self):
+        from ow174.game import orisa_barrier
+
+        mesh = Path(__file__).resolve().parents[3] / "013E" / "orisa_geometry_174.json"
+        if not mesh.is_file():
+            self.skipTest("verified build 104319 Protective Barrier mesh required")
+        self.enterContext(mock.patch.dict("os.environ", {"ORPHEUS_ORISA_GEOMETRY": str(mesh)}))
+        session, _, players = self.scene()
+        orisa = players[0]
+        self.assertTrue(session.apply("switch_hero", {
+            "account": orisa.account_lo, "hero": orisa_barrier.HERO,
+        }))
+        match = orisa.match
+        frame = orisa.body_script.frame
+
+        def step(buttons=0):
+            nonlocal frame
+            frame += 1
+            match.update(match.combat.now + 0.016, frame)
+            orisa.take_commands([Command(frame, yaw=-32768, buttons=buttons)])
+
+        def until(predicate):
+            for _ in range(120):
+                if predicate():
+                    return
+                step()
+            self.fail("actual deployment did not advance to expected phase")
+
+        def assert_causal(record, field, value):
+            with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+                initial = snapshot_digest(self.capture(session))
+                original = getattr(record, field)
+                setattr(record, field, value)
+                self.assertNotEqual(initial, snapshot_digest(self.capture(session)))
+                setattr(record, field, original)
+                self.assertEqual(initial, snapshot_digest(self.capture(session)))
+
+        for _ in range(25):
+            step()
+        step(16)
+        fight = match.combat
+        manager = fight.orisa_barriers
+        until(lambda: any(r.deploy_body == orisa.body for r in fight.rockets))
+        rocket = next(r for r in fight.rockets if r.deploy_body == orisa.body)
+        assert_causal(rocket, "gravity", 0.0)
+        until(lambda: manager.pending)
+        [(due, rocket)] = manager.pending
+        assert_causal(rocket, "position", (0.0, 0.0, 0.0))
+        self.assertGreater(due, fight.tick)
+        until(lambda: manager.active)
+        [shield] = manager.active.values()
+        self.assertEqual(shield.health, 600)
+        assert_causal(shield, "health", 530.0)
+        assert_causal(shield, "until", shield.until - 1)
+
+    def test_winston_dome_health_and_expiry_are_causal_without_getters(self):
+        from ow174.game.winston_barrier import Dome
+
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        dome = Dome(player.entity, player.team, tuple(player.mover.position), 700, fight.now + 9)
+        fight.winston_domes[player.body] = dome
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            dome.health -= 70
+            damaged = snapshot_digest(self.capture(session))
+            self.assertNotEqual(before, damaged)
+            dome.until -= 1
+            self.assertNotEqual(damaged, snapshot_digest(self.capture(session)))
+
+    def test_reinhardt_capture_and_contact_history_are_causal_without_getters(self):
+        from ow174.game.combat import ChargeContact
+
+        session, _, players = self.scene(two=True)
+        source, target = players
+        fight = source.match.combat
+        contact = ChargeContact({target.body}, target.body)
+        fight.charge_contacts[source.body] = contact
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            captured = snapshot_digest(self.capture(session))
+            contact.captured = None
+            released = snapshot_digest(self.capture(session))
+            self.assertNotEqual(captured, released)
+            contact.hit.clear()
+            self.assertNotEqual(released, snapshot_digest(self.capture(session)))
+
+    def test_pending_rocket_punch_wall_hit_is_causal_without_getters(self):
+        from ow174.game.combat import PunchImpact
+
+        session, _, players = self.scene(two=True)
+        source, target = players
+        fight = source.match.combat
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            fight.punch_impacts[target.body] = PunchImpact(
+                source, source.body, (0.0, 0.0, 1.0), 150, fight.tick + 32,
+            )
+            self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+            del fight.punch_impacts[target.body]
+            self.assertEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_personal_barrier_pool_is_causal_without_getters(self):
+        session, _, players = self.scene()
+        player = players[0]
+        pools = player.match.combat.personal_barriers
+        pools[player.body] = (3, 1, 165.0)
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            pools[player.body] = (3, 1, 130.0)
+            self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_projected_barrier_health_and_cast_are_causal_without_getters(self):
+        session, _, players = self.scene(two=True)
+        source, recipient = players
+        combat = source.match.combat
+        barrier = ProjectedBarrier(source.body, combat.now + 2.0, 165.0)
+        combat.projected_barriers[recipient.body] = barrier
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            barrier.health = 130.0
+            reduced = snapshot_digest(self.capture(session))
+            self.assertNotEqual(before, reduced)
+            combat.projected_casts[source.body, 7] = 1
+            self.assertNotEqual(reduced, snapshot_digest(self.capture(session)))
+
+    def test_grasp_shield_decay_is_causal_without_getters(self):
+        session, _, players = self.scene()
+        player = players[0]
+        combat = player.match.combat
+        vitals = combat.vitals_of(next(t for t in combat._targets() if t.owner is player))
+        vitals.temporary_shield = TemporaryShield(37, 72, combat.now + 3, 5, (7, 1))
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            vitals.temporary_shield.decay_from += 1
+            self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_healing_modifier_windows_are_causal_without_getters(self):
+        session, _, players = self.scene()
+        player = players[0]
+        combat = player.match.combat
+        vitals = combat.vitals_of(next(t for t in combat._targets() if t.owner is player))
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            before = snapshot_digest(self.capture(session))
+            vitals.healing_block = (1.0, 5.0)
+            blocked = snapshot_digest(self.capture(session))
+            self.assertNotEqual(before, blocked)
+            vitals.healing_boost = (3.05, 7.0)
+            self.assertNotEqual(blocked, snapshot_digest(self.capture(session)))
+
+    def test_bot_impulse_physics_and_pending_tick_are_causal_without_getters(self):
+        from test_bots import make_bot
+
+        session, _, players = self.scene()
+        match = players[0].match
+        bot = make_bot()
+        match.bots.append(bot)
+        bot.impulse((0, 3, 25), match.tick, match.collision_world)
+        bot.step(match.tick + 1, .016, match.collision_world)
+        with (
+            mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")),
+            mock.patch.object(Mover, "step_pose", side_effect=AssertionError("no simulation")),
+            mock.patch.object(Mover, "snapshot", side_effect=AssertionError("no getter")),
+        ):
+            before = snapshot_digest(self.capture(session))
+            self.assertEqual(before, snapshot_digest(self.capture(session)))
+            bot.impulse_mover.fall += .5
+            changed = snapshot_digest(self.capture(session))
+            self.assertNotEqual(before, changed)
+            bot.last_tick += 1
+            self.assertNotEqual(changed, snapshot_digest(self.capture(session)))
+
+    def test_pin_recipient_and_manual_target_are_causal_without_getters(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        from test_game_brigitte_npcs import ActualNpcTests
+
+        from ow174.game import npc
+
+        fixture = ActualNpcTests()
+        fixture.setUpClass()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        definition = next(d for d in fixture.catalog.values() if d.name == "Assassin")
+        bot = npc.spawn(player.match, definition, tuple(player.mover.position), team=1 - player.team)
+        self.assertIsNotNone(bot.body_script)
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            initial = snapshot_digest(self.capture(session))
+            fight.pins[bot.entity] = player.body
+            controlled = snapshot_digest(self.capture(session))
+            self.assertNotEqual(initial, controlled)
+            bot.body_script.component.world.manual_target = player.body
+            self.assertNotEqual(controlled, snapshot_digest(self.capture(session)))
 
 
 class StoredJournalTests(unittest.TestCase):

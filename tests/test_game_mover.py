@@ -30,6 +30,9 @@ from ow174.game.mover import (
     SET,
     SPEED,
     STEP,
+    THROTTLE_BACKWARD,
+    THROTTLE_FORWARD,
+    THROTTLE_LATERAL,
     TOUCHING,
     TURN_HELD,
     Mod,
@@ -685,6 +688,43 @@ class MoverStateTests(unittest.TestCase):
 
 
 class ModTests(unittest.TestCase):
+    def test_directional_throttle_restrictions_preserve_unmodified_axes(self):
+        # Actual native properties17/18/19 are forward/back magnitude/lateral.
+        for slot, forward, right, axis in ((17, -127, 0, "back"),
+                                            (18, -127, 127, "right"),
+                                            (19, 127, -127, "forward"),
+                                            (19, 127, 127, "forward")):
+            with self.subTest(slot=slot, forward=forward, right=right):
+                mover = soldier((0.0, 1.0, 0.0))
+                mover.track_mods({(5, 0, 0): (slot, SET, 0.0, 0.0)}, 0)
+                walk(mover, 12, forward=forward, right=right, start=1)
+                self.assertEqual(mover.throttles, (right, forward))
+                if axis == "back":
+                    self.assertLess(mover.position[2], -0.1)
+                elif axis == "right":
+                    self.assertLess(mover.position[0], -0.1)
+                    self.assertEqual(mover.position[2], 0)
+                else:
+                    self.assertEqual(mover.position[0], 0)
+                    self.assertGreater(mover.position[2], 0.1)
+
+    def test_forced_horizontal_wish_overrides_opposite_input_and_ends_with_mod(self):
+        mover = soldier((0.0, 1.0, 0.0))
+        mover.track_mods({
+            (5, 0, 0): (THROTTLE_FORWARD, SET, 1.0, 0.0),
+            (5, 0, 1): (THROTTLE_BACKWARD, SET, 0.0, 0.0),
+            (5, 0, 2): (THROTTLE_LATERAL, SET, 0.0, 0.0),
+        }, 0)
+        walk(mover, 12, forward=-127, right=127, start=1)
+        self.assertGreater(mover.position[2], 0.5)
+        self.assertEqual(mover.position[0], 0.0)
+        self.assertEqual(mover.throttles, (127, -127))
+        mover.track_mods({}, 12)
+        before = tuple(mover.position)
+        walk(mover, 20, forward=-127, right=127, start=13)
+        self.assertLess(mover.position[0], before[0])
+        self.assertLess(mover.position[2], before[2])
+
     def test_a_mod_acts_from_the_frame_after_the_statescript_turned_it_on_up_to_the_one_it_went_off(self):
         mover = soldier((0.0, 1.0, 0.0))
         mover.track_mods({(5, 0, 0): (SPEED, ADD, 0.5, 0.0)}, 10)

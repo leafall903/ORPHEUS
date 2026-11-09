@@ -13,6 +13,7 @@ import test_game_combat as combat_tests
 
 from ow174.game import bodytrace, native_replay, projectiles
 from ow174.game.commands import FIRE, Command
+from ow174.game.script.driver import BodyScript
 
 
 class BodyTraceTests(unittest.TestCase):
@@ -31,11 +32,20 @@ class BodyTraceTests(unittest.TestCase):
             [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()] for path in paths
         ]
 
+    def run_body_only(self):
+        # Isolate the constructor and projectile hook from Match services that a body trace cannot replay.
+        def standalone(*args, **kwargs):
+            kwargs["match"] = None
+            return BodyScript(*args, **kwargs)
+
+        with (
+            mock.patch("ow174.game.match.BodyScript", side_effect=standalone),
+            mock.patch.object(projectiles, "definitions", return_value=()),
+        ):
+            return combat_tests.Run()
+
     def test_creation_commands_and_retirement_have_a_continuous_body_only_trace(self):
-        # Projectile-lease discovery first accesses states after capture starts.
-        # This scenario explicitly omits that hook; the next test covers the real hook.
-        with mock.patch.object(projectiles, "definitions", return_value=()):
-            run = combat_tests.Run()
+        run = self.run_body_only()
         player = run.players[0]
         script = player.body_script
         self.addCleanup(run.match.stop_body_script, player)
@@ -81,7 +91,7 @@ class BodyTraceTests(unittest.TestCase):
         result = native_replay.replay_document({"header": header, "events": events})
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["validated_commands"], 0)
-        self.assertEqual(result["diagnostics"][0]["kind"], "before_state_mismatch")
+        self.assertEqual(result["diagnostics"][0]["kind"], "initial_state_mismatch")
         self.assertFalse(result["complete_native_capture"])
 
     def test_disabled_capture_creates_no_files(self):
@@ -107,7 +117,7 @@ class BodyTraceTests(unittest.TestCase):
         run.match.stop_body_script(player)
 
     def test_command_fault_closes_capture_with_an_explicit_incomplete_result(self):
-        run = combat_tests.Run()
+        run = self.run_body_only()
         player = run.players[0]
         script = player.body_script
         with (

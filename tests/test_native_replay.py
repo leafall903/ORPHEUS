@@ -84,6 +84,19 @@ class NativeReplayTests(unittest.TestCase):
         self.assertEqual(script.component.rng.getstate(), rng)
         self.assertEqual(repr(script.component.seq), sequence)
 
+    def test_body_query_context_hashes_flags_and_rejects_foreign_callbacks(self):
+        script, peer = body(), body()
+        original = snapshot_hash(script)
+        self.assertEqual(original, snapshot_hash(peer))
+        context = script.world._entity_query_context
+        context.environment_present = False
+        self.assertNotEqual(original, snapshot_hash(script))
+        context.environment_present = True
+        self.assertEqual(original, snapshot_hash(script))
+        context.lookup = peer.world._lookup_entity_query
+        with self.assertRaisesRegex(ValueError, "Unsupported stored runtime value: method"):
+            snapshot_hash(script)
+
     def test_full_native_command_fields_survive_and_replay_is_repeatable(self):
         command = Command(1001, forward=127, right=-10, yaw=200, pitch=-300, buttons=FIRE | 0x10000,
                           action=0, extra=105, subframe=128, click_yaw=90, click_pitch=-210)
@@ -280,16 +293,13 @@ class NativeReplayTests(unittest.TestCase):
             quanta=context["quanta_us"], mode=context["mode"], health=context["health"],
             ult_seconds=context["ult_seconds"],
         )
-        # Match hooks, including projectile-lease discovery, can allocate inactive states.
-        # Those reads affect later traversal order; the body-only trace does not replay them.
+        # Match hooks can allocate states and supply values to live body queries.
+        # Allocation order affects later traversal; the body-only trace replays neither input.
         actual_snapshot, initial_snapshot = (
             stored_snapshot(script) for script in (player.body_script, initial)
         )
-        actual_order, initial_order = [], []
-        for snapshot, orders in ((actual_snapshot, actual_order), (initial_snapshot, initial_order)):
-            for instance in snapshot["instances"]:
-                orders.append(instance.pop("state_order"))
-        self.assertEqual(actual_snapshot, initial_snapshot)
+        actual_order = [instance["state_order"] for instance in actual_snapshot["instances"]]
+        initial_order = [instance["state_order"] for instance in initial_snapshot["instances"]]
         self.assertNotEqual(actual_order, initial_order)
         original = run.match.body_command
 

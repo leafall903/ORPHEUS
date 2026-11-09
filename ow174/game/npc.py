@@ -79,6 +79,7 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match.combat._sync_body_health(bot, match.combat.vitals[entity])
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -102,14 +103,19 @@ def remove_spawned(match) -> tuple[int, ...]:
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
+            if hasattr(component.world, "match"):
+                component.world.match = None
+                component.world.manual_target = None
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
-        for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+        for table in (match.combat.vitals, match.combat.history, match.combat.replacement_ticks,
+                      match.combat.melee_seen, match.combat.stuns, match.combat.projected_barriers):
             table.pop(bot.entity, None)
+        match.combat.clear_pins(bot.entity)
+        match.combat.brigitte.retire(bot.entity)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)
         match.bots.remove(bot)

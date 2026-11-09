@@ -262,6 +262,13 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -277,6 +284,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -302,9 +327,11 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -386,11 +413,25 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def tracked_targets(self, state: "State"):
+        return NotImplemented
+
+    def ability_start_allowed(self, state: "State") -> bool:
+        return True
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -431,6 +472,9 @@ class World:
         """Explicit component47 mapping registry and native namespace availability."""
         return NotImplemented
 
+    def body_owner_context(self, entity: int):
+        return NotImplemented
+
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
@@ -452,6 +496,12 @@ class World:
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
+
+    def modify_health(self, state, elapsed_ms):
+        return NotImplemented
+
+    def end_health(self, state):
+        pass
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
@@ -495,6 +545,15 @@ class World:
         resource = resolve_resource(instance, node)
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> None:
+        """Host explicitly supported actions on a permissive body."""
+
+    def create_compatible_pet(self, state: "State"):
+        return NotImplemented
+
+    def retire_compatible_pet(self, state: "State", entity: int) -> None:
+        pass
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -670,7 +729,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -939,6 +998,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -1224,6 +1284,7 @@ class Instance:
             state.flags_changed = False
             if state.active:
                 state.dependency_changed()
+                state.try_complete()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
         elif event.kind == ASSIGN:
@@ -1485,6 +1546,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These bits coalesce queued work; cancel just removed that work.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

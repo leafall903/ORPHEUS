@@ -26,6 +26,7 @@ from ow174.game.script import (
     model_look,
     modifiers,
     play,
+    record_assignment,
     scopes,
     shared_vars,
     voice_stimulus,
@@ -819,6 +820,35 @@ class DisableLogicalButton(State):
                     state.dependency_changed()
 
 
+@state_class("STU_54FEB21C")
+class ConditionalTimer(State):
+    """104319 game8E5A90/8E5F50, empty-output/empty-alt-subgraph variant.
+
+    ED97A97C seconds arms timer1. Only a present/truthy7C8AD485 requests finish
+    on that timer; missing/false deliberately keeps the state active. Native
+    engine time outputs and alternate subgraph ownership are not hosted here.
+    """
+
+    def on_enter(self) -> None:
+        subgraph = _field(self, "m_E5790891") or {}
+        unsupported = (any(_field(self, key) is not None
+                           for key in ("m_C7A42E2A", "m_F8CE386A", "m_C46403A5"))
+                       or self.node.links("m_E5790891")
+                       or (isinstance(subgraph, dict) and subgraph.get("m_FF3DAF1E")))
+        if unsupported:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(
+                    self.instance, "conditional timer engine outputs/subgraph", self.node.cls, self.node)
+            return
+        duration = self.evaluate(_field(self, "m_ED97A97C"), watch=False)
+        self.timer_at(seconds_to_ms(duration), 1)
+
+    def timer(self, param: int) -> None:
+        condition = _field(self, "m_7C8AD485")
+        if param == 1 and condition is not None and truthy(self.evaluate(condition, watch=False)):
+            self.request_finish()
+
+
 @state_class("STUStatescriptStateWait")
 class Wait(State):
     """OnEnter 0x7FF78AAA7570: `ms = R(timeout * 1000)`; 0 or less finishes now, else a timer (param 1) at
@@ -1039,6 +1069,7 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
 
@@ -1079,6 +1110,12 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            cfg = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1129,12 +1166,26 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        return self.spread0
+        return self.spread_at(self.now - self.start - self.offset)
+
+    def spread_at(self, elapsed: int) -> float:
+        """239B571E normalized spread, captured PC104319 D80A50-D80A99.
+
+        The ramp is baked when firing starts; the output is not an angle.
+        D5F979-D5F996 passes completed shots plus one to the ramp function.
+        Optional between-shot decay and other launch classes remain unmodeled.
+        """
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        increase = f32(max(0, self.shots_at(elapsed) + 1) / self.spread_ramp)
+        return min(1.0, f32(increase + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
@@ -1235,6 +1286,7 @@ class Ability(State):
         self.presses: list[tuple[int, int, int]] = []  # (time, button, activation)
         self.cur = 0.0
         self.cooldown_rate = 1.0
+        self.cooldown_observed = 0.0
         self.last = 0
         self.var: Var | None = None
         self.stack_var: Var | None = None
@@ -1264,6 +1316,7 @@ class Ability(State):
         self.cur = max(0.0, to_float(var.base))
         self.cooldown_rate = self.rate()
         self.last = self.now
+        self.cooldown_observed = self.cur
         self.var = self.link(target)
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
@@ -1303,19 +1356,26 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, consume: bool = True) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if consume:
+                    self.presses.remove(item)
                 return True
         return False
 
     # starting and stopping
 
     def tick(self) -> None:
+        # A linked cooldown changes with time even when nothing writes its slot.
+        if self.var is not None:
+            before = self.cooldown_observed
+            self.cooldown_observed = self.remaining()
+            if before != self.cooldown_observed:
+                self.instance.changed(self.var, before)
         self.activate()
 
     def timer(self, param: int) -> None:
@@ -1360,7 +1420,7 @@ class Ability(State):
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, consume=False)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1374,12 +1434,13 @@ class Ability(State):
             and self.condition("m_150F0D92")
             and self.condition("m_F495731F")
             and self.stack_allows("m_3C0EB4A6")
+            and self.instance.component.world.ability_start_allowed(self)
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
         if start:
+            if pressed:
+                self.take_press(start)  # retain the original timestamp while readiness was false
             self.flags |= self.HELD
         return True
 
@@ -1567,7 +1628,17 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
-        for number, case in enumerate(_field(self, "m_05706D1C") or []):
+        cases = _field(self, "m_05706D1C") or []
+        # 104319's 1248 weapon combo has explicitly disabled value matching and
+        # six null-valued cases. Its #59 counter indexes them (0, 1, 2, ...).
+        # Resource-backed reconstruction; native index coercion remains unverified.
+        mode = _field(self, "m_270252ED")
+        if mode is not None and not truthy(self.evaluate(mode, watch=False)) and cases and all(
+            isinstance(case, dict) and case.get("m_value") is None for case in cases
+        ):
+            index = to_int(value)
+            return f"m_05706D1C[{index}]" if 0 <= index < len(cases) else "m_A5EF385D"
+        for number, case in enumerate(cases):
             if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
@@ -1811,14 +1882,107 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Explicit world health service; supported manual1157 clock is reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
+@state_class("STUStatescriptStatePet")
+class CompatiblePet(State):
+    """A permissive Pet with an explicit world factory."""
+
+    def on_created(self) -> None:
+        self.pet_entity = None
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
+        entity = self.instance.component.world.create_compatible_pet(self)
+        if entity is NotImplemented:
+            return
+        if type(entity) is not int or not expr.valid_entity(entity):
+            raise ValueError("compatible Pet factory returned an invalid entity")
+        self.pet_entity = entity
+        self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(entity))
+
+    def on_end(self, finished: bool) -> None:
+        if self.pet_entity is not None:
+            self.instance.component.world.retire_compatible_pet(self, self.pet_entity)
+            self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(0))
+            self.pet_entity = None
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """A host-backed target search with an empty result for unhandled graphs."""
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = None
+        self.target_var = None
+
+    def on_enter(self):
+        targets = self.instance.component.world.tracked_targets(self)
+        if targets is NotImplemented:
+            return
+        self.targets = self.validate(targets)
+        target = lvalue(self.node.field("m_8A2905A0"))
+        if target is not None:
+            self.target_var = self.link(target)
+        self.ticks()
+
+    @staticmethod
+    def validate(targets):
+        if type(targets) is not tuple or any(type(target) is not Entity for target in targets):
+            raise ValueError("target search must supply a tuple of entities")
+        return targets
+
+    def tick(self):
+        targets = self.instance.component.world.tracked_targets(self)
+        if targets is NotImplemented:
+            return
+        targets = self.validate(targets)
+        if targets == self.targets:
+            return
+        before = self.target_var.value() if self.target_var is not None else None
+        self.targets = targets
+        if self.target_var is not None:
+            self.instance.changed(self.target_var, before)
+        self.try_complete()
+
+    def on_end(self, finished):
+        if self.target_var is not None:
+            var, self.target_var = self.target_var, None
+            self.unlink(var, bake=True)
+
+    def output(self, slot):
+        return self.targets
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in self.targets or ())}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1984,6 +2148,10 @@ def set_var(instance: Instance, node, caller) -> bool:
 def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> None:
     target = lvalue(out_cfg)
     if target is None:
+        #224E's pending records are explicitly hosted by the stun consumer.
+        # General record storage/transport for other graphs remains open.
+        if instance.graph.index == 0x224E and index_cfg is None and key_cfg is None:
+            record_assignment.store(instance, out_cfg, value)
         return
     if key_cfg is not None:
         key = instance.evaluate(key_cfg)
@@ -2192,6 +2360,8 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.play_compatible_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
 
