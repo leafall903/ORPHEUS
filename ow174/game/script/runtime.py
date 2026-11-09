@@ -490,6 +490,8 @@ class World:
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
+        if not instance.component.strict:
+            return
         from ow174.game.script.play import resolve_resource
 
         resource = resolve_resource(instance, node)

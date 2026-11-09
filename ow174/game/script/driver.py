@@ -107,6 +107,8 @@ WHEEL_ACTION_CATEGORIES = {
 # 104319 44A7D0 and 44A950 return the zero-based index in these tables.
 WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
 WHEEL_VOICE_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
+# The fixed, self-targeted PlayScript actions in the emote path.
+WHEEL_EMOTE_GRAPHS = {(0x05AD, 109): 0x069A, (0x069A, 9): 0x1040}
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -208,6 +210,28 @@ class BodyWorld(runtime.World):
             if index in actions:
                 return actions.index(index)
         return -1
+
+    def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
+        from ow174.game.script import play, play_queue
+
+        index = WHEEL_EMOTE_GRAPHS.get((instance.graph.index, node.pos))
+        if not self.communication_wheel or index is None:
+            super().play_script(instance, node)
+            return
+        resource = play.resolve_resource(instance, node)
+        if resource is None or resource.guid != ((graph.GRAPH_TYPE << 48) | index):
+            return
+        definition = graph.graph(index)
+        if definition is None:
+            return
+        component = instance.component
+        request = play.resolve_request(
+            instance, node, resource,
+            context_provider=lambda: play.InvocationContext(self.body, self.body, instance.source_entity()),
+        )
+        if request is not None and request.targets == (self.body,):
+            # The bundle already holds the resource, so submission can flush synchronously.
+            play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match

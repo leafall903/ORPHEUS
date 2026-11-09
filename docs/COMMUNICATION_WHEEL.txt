@@ -41,6 +41,13 @@ Source paths for the remaining actions
   agrees with the slot resolver. An injected 1A4 reaches voice node 33
   and sets slot 2. Equipped animation, equipped voice playback and the
   original selection transport remain open.
+- The body host now dispatches the fixed self-targeted PlayScript
+  actions 05AD:109 and 069A:9 through the existing request and queue
+  implementation. With the equipped animation query supplied by a test
+  fixture, selection 1A1 starts 069A, its 023A animation child and 1040.
+  The owner stream carries all three graph descriptors. Real loadout
+  lookup, repeat selection behavior and the shared 0686 callout graph
+  remain open.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

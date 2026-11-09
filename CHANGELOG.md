@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Route the authored emote PlayScript calls through the player body VM.
+  The offline owner-stream test decodes 069A, 023A and 1040 with a fixture
+  for the equipped animation. Loadout resolution, repeat selection and
+  original-client acceptance remain open.
 - Resolve the four emote and four voice slots in original 104319
   order. All 1,544 offline native lookup comparisons and 27 focused
   wheel, replay and snapshot tests pass. Equipped-item execution and client

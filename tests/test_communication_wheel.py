@@ -7,7 +7,7 @@ from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.script import decode, expr, runtime
-from ow174.game.script.driver import BodyScript
+from ow174.game.script.driver import BodyScript, BodyWorld
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -103,3 +103,39 @@ class CommunicationWheelTests(unittest.TestCase):
         )
         body.component.run_now()
         self.assertEqual(voice.vars[9259].value(), 2)
+
+    def test_equipped_animation_selection_replicates_authored_emote_graphs(self):
+        match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
+        player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+        [create] = match.own_body_updates(player)
+        body = player.body_script
+        client = decode.ClientBody.for_hero(SOLDIER)
+        create.stream.arrived(0)
+
+        def replicate():
+            for update in body.frames():
+                client.apply(update)
+                body.stream.arrived(update.chunk_last)
+
+        replicate()
+        original_native = BodyWorld.native
+
+        def equipped_animation(world, config, instance):
+            if config.get("$") == "STU_250DEABD" and instance.evaluate(config["m_slot"]) == 1:
+                return expr.Asset(0x028000000000006E)
+            return original_native(world, config, instance)
+
+        with patch.object(BodyWorld, "native", equipped_animation):
+            runtime.send_message(
+                body.component, 0x02400000000002A3,
+                {0x8FC: expr.Asset(0x0A900000000001A1), 0x3E1: True}, body.entity,
+            )
+            body.command(body.frame + 1, 0)
+        replicate()
+
+        instances = {instance.graph.index: instance for instance in body.component.instances.values()}
+        emote, animation, helper = (instances[index] for index in (0x069A, 0x023A, 0x1040))
+        self.assertIs(animation.parent, emote)
+        self.assertEqual(client.graphs[emote.id], 0x069A)
+        self.assertEqual(client.records[animation.id], (0x023A, (emote.id, animation.parent_state)))
+        self.assertEqual(client.graphs[helper.id], 0x1040)
