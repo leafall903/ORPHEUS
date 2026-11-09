@@ -20,11 +20,12 @@ chunks sent after it carried (the client may have applied them), so it needs no 
 """
 
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import immunity, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -124,6 +125,7 @@ class BodyWorld(runtime.World):
     def __init__(self, hero: int, mode: int, body: int) -> None:
         super().__init__(hero, mode)
         self.body = body
+        self.velocity_requests = []  # sampled Roll changes, applied once on the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
@@ -134,8 +136,58 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def track_targets(self, state):
+        if self.match is not None:
+            from ow174.game import deadeye
+
+            targets = deadeye.targets(self, state)
+            if targets is not NotImplemented:
+                return tuple(Entity(entity) for entity in targets)
+            targets = immunity.transcendence_targets(self, state)
+            if targets is not NotImplemented:
+                return targets
+            return self.match.combat.barriers.query_targets(state)
+        return NotImplemented
+
+    def modify_health(self, state, elapsed_ms):
+        return immunity.transcendence_heal(self, state, elapsed_ms)
+
+    def target_effects(self, state):
+        from ow174.game import deadeye
+
+        return deadeye.effects(self, state)
+
+    def velocity_action(self, instance, node):
+        from ow174.game import copied_roll
+
+        return copied_roll.velocity_action(self, instance, node)
+
+    def create_world_entity(self, instance, node):
+        if self.match is not None:
+            return self.match.combat.barriers.world.create(self,instance,node)
+        return NotImplemented
+
+    def play_static_actor(self, instance, node):
+        if self.match is not None:
+            return self.match.combat.barriers.world.host(self,instance,node)
+        return NotImplemented
+
     def native(self, cfg: dict, instance):
+        from ow174.game import copied_roll, deadeye
+
+        result = copied_roll.native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
+        result = deadeye.native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
         cls = cfg.get("$")
+        if (cls == 'STU_8CBDD81C' and self.match is not None and instance is not None
+                and self.hero == 0x02E0000000000009 and instance.graph.index in (0xFA,0xFC)
+                and instance.component.entity == self.body):
+            entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
+            if entity == self.body:
+                return self.position(entity)  # scoped authoritative creation position
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -246,6 +298,14 @@ class BodyScript(ReplicatedBody):
     """The statescript of one hero body: `spawn_frames()` once the body exists on the client, then
     `command()` for every new client command frame and `frames()` every server tick."""
 
+    def replicated_vars(self, instance=None):
+        values = super().replicated_vars(instance)
+        if instance is not None and instance.graph.index == 0xFA and self.world.match is not None:
+            # Private static actor38 has no native creation transport yet. Keep it
+            # in the authoritative VM/snapshot, never send a dangling client ID.
+            return ((key,var) for key,var in values if key != 38)
+        return values
+
     def __init__(
         self,
         hero: int,
@@ -277,6 +337,7 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.ult_seconds = ult_seconds
+        self.ult_gain_bonus = 0.0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
@@ -344,12 +405,39 @@ class BodyScript(ReplicatedBody):
 
     def _run(self, frame: int, edges: list) -> None:
         self.component.run_frame(frame, edges)
+        immunity.advance_startup(self.component)
         self._report_shots()
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
         """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
         self.component.set(ULT_CHARGE, f32(points))
+
+    def gain_ult(self, amount: float) -> float:
+        """Reconstructed health-event conversion: one point per actual HP, scaled by2819.
+
+        Cost/cap and the ruleset scalar are authored inputs. The one-point conversion
+        is explicit server reconstruction. Ultimate-sourced damage/heal tag policy
+        still requires a native-backed service.
+        """
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("ultimate health-event amount must be finite and nonnegative")
+        if not amount or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        scalar = expr.to_float(self.world.ruleset(0x2819))
+        if cost <= 0 or scalar <= 0 or not math.isfinite(scalar) or charge >= cost:
+            return 0.0
+        after = self._gain_ult_points(cost, max(0.0, charge), f32(amount * scalar))
+        return after - charge
+
+    def _gain_ult_points(self, cost: float, charge: float, points: float) -> float:
+        after = min(cost, f32(charge + points))
+        if self.ult_gain_bonus:
+            after = min(cost, f32(after + f32((after - charge) * self.ult_gain_bonus)))
+        self.set_ult_charge(after)
+        return after
 
     def _charge_ult(self) -> None:
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
@@ -358,7 +446,7 @@ class BodyScript(ReplicatedBody):
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if cost > 0 and charge < cost:
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-            self.set_ult_charge(min(cost, f32(charge + step)))
+            self._gain_ult_points(cost, charge, step)
 
     # --- what the client gets ----------------------------------------------------------------------
 
@@ -528,6 +616,12 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        for instance in tuple(self.component.instances.values()):
+            if instance.graph.index == 0x022F:
+                for state in instance.states.values():
+                    if isinstance(state, nodes.TargetEffects):
+                        state.clear_children()
+        self.world.velocity_requests.clear()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

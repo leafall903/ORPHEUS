@@ -389,6 +389,19 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def modify_health(self, state, elapsed_ms):
+        return NotImplemented
+
+    def end_health(self, state):
+        pass
+
+    def target_effects(self, state):
+        return NotImplemented
+
+    def track_targets(self, state):
+        """An explicit target-query provider; unsupported graphs retain the legacy empty result."""
+        return NotImplemented
+
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
@@ -487,6 +500,15 @@ class World:
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def velocity_action(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def create_world_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def play_static_actor(self, instance: "Instance", node: Node):
+        return NotImplemented
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -670,7 +692,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1485,6 +1507,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These bits describe queued notifications; cancel removed those events.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

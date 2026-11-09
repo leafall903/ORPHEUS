@@ -17,9 +17,11 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barriers,
     bots,
     combat,
     correction,
+    echo_duplicate,
     heroselect,
     notices,
     observers,
@@ -93,9 +95,14 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns pins echo_beam_seen echo_duplicates barriers"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    echo_duplicate.Duplicates: _names("combat states held busy"),
+    barriers.Barriers: _names("fight live seen next_entity world reinhardt"),
+    barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
+    barriers.world_bubbles.WorldBubbles: _names("fight actors next_id"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer temporary_shields "
+                          "temporary_capacity grasp_counter grasp_decay_at grasp_updated"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,13 +118,13 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ult_gain_bonus ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles match velocity_requests"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -137,7 +144,9 @@ FIELDS = {
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, echo_duplicate.Copy,
+    barriers.Bubble, barriers.world_bubbles.FixedBubble, barriers.reinhardt_barrier.Geometry,
+    barriers.reinhardt_barrier.RaisedBarrier,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

@@ -6,6 +6,538 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-09
 
+#### Echo static combat acceptance
+
+- Complete all 168 scoped static checks, with 265 distinct passing test
+  methods and strict Duplicate and Flight replay passes. Original-client
+  acceptance remains open.
+
+#### Echo Tri-Shot critical settlement
+
+- Apply a reconstructed 2x critical multiplier to head contacts from
+  Tri-Shot, including reflected projectiles. Preserve the 104319 base
+  damage of 17 and suppress the head multiplier during Fortify.
+
+#### Echo Focusing Beam cooldown boundary (partial)
+
+- Verify that a press on the last positive cooldown frame cannot
+  start a damage channel and a fresh press after zero can.
+
+#### Echo Glide landing (partial)
+
+- Verify that landing ends Glide with Jump held and that a fresh jump
+  can activate Glide on the next takeoff.
+
+#### Echo Flight natural expiry (partial)
+
+- Verify that Flight starts its cooldown on natural expiry while the
+  activation input is held, then rejects a fresh press during cooldown.
+
+#### Echo Flight cooldown boundary (partial)
+
+- Verify that Flight rejects a press on the last positive cooldown
+  frame and accepts a fresh press after the timer reaches zero.
+
+#### Echo Talon targeting after Duplicate (partial)
+
+- Verify that all five Talon NPCs can hit restored Echo after
+  damaging the copied body in the same encounter.
+
+#### Echo Duplicate stun cleanup (partial)
+
+- Verify that timed return clears a Flashbang stun tied to the copied
+  body and allows restored Echo to attack before the old stun deadline.
+
+#### Echo Sticky Bomb anchors at Duplicate expiry (partial)
+
+- Verify that enemy bombs attached to the copied body detonate at
+  their last positions after Echo returns.
+
+#### Echo copied Helix at timed return (partial)
+
+- Verify that Duplicate expiry retires a copied Soldier's in-flight
+  Helix Rocket without damaging the target or charging restored Echo.
+
+#### Echo Focusing Beam against Biotic Field (partial)
+
+- Verify that Soldier healing past half health returns the active
+  Beam to base damage when Echo reacquires him in the same channel.
+
+#### Echo Duplicate range boundary (partial)
+
+- Verify that the authored 40 m query rejects a target just beyond
+  the boundary even when the aim ray reaches its collision capsule.
+
+#### Echo Duplicate after the source hero dies (partial)
+
+- Verify that killing the copied hero with the copied rifle leaves
+  Duplicate active until its original deadline.
+
+#### Echo quick melee under Flashbang (partial)
+
+- Verify that Flashbang during melee recovery preserves the resolved
+  hit, blocks new strikes, and permits a fresh strike after recovery.
+
+#### Echo Tri-Shot after death (partial)
+
+- Verify that a lethal enemy rifle hit stops new volleys while the three
+  projectiles fired before death still deal damage.
+
+#### Echo quick melee strike lifetime (partial)
+
+- Verify that a missed swing cannot hit after release and that the next
+  legal swing deals one 30-damage hit without stunning the target.
+
+#### Echo airborne Focusing Beam filters (partial)
+
+- Verify that a single Beam channel during Flight or Glide respects aim,
+  range, walls, and team filtering, then damages the exposed enemy.
+
+#### Echo airborne Wraith interaction (partial)
+
+- Verify that Tri-Shot fired during Flight or Glide passes through
+  an actual Wraith phase and damages the enemy behind Reaper.
+
+#### Echo airborne projectile defenses (partial)
+
+- Exercise Tri-Shot during Flight and Glide against actual Genji
+  Deflect and Sigma Grasp.
+
+#### Echo airborne Barrier Field crossing (partial)
+
+- Verify that actual Flight and Glide movement crosses the raised
+  enemy Reinhardt mesh without damaging the shield or its owner.
+
+#### Echo Flight and Glide resource verification (partial)
+
+- Verify that held Glide can stop and resume in midair while Flight
+  remains on cooldown. Neither movement mode consumes Tri-Shot ammo.
+
+#### Echo quick melee against Talon NPCs (partial)
+
+- Verify actual incoming attacks from all five Talon classes and a
+  successful quick melee reply after their attack input stops.
+
+#### Echo Focusing Beam under Talon fire (partial)
+
+- Verify that each ranged Talon class damages Echo while Beam stays
+  active. Assassin's actual pin interrupts the channel.
+
+#### Echo Sticky Bombs under Talon fire (partial)
+
+- Verify incoming damage from all five Talon classes during a Sticky
+  Bombs volley. Assassin's pin stops the remaining launches.
+
+#### Echo Sticky Bombs stun interruption (partial)
+
+- Verify that an actual enemy Flashbang stops a Sticky Bombs volley
+  while already emitted bombs keep their contact and fuse damage.
+
+#### Echo ability resource verification (partial)
+
+- Verify that Sticky Bombs and Focusing Beam use their ability
+  cooldowns without consuming Tri-Shot ammunition.
+
+#### Echo Focusing Beam threshold verification (partial)
+
+- Use actual melee and Tri-Shot to bring the target to 119 HP.
+  Verify that one continuous beam changes from 0.8 to 3.2 damage
+  per tick after crossing half health.
+
+#### Echo quick melee cooldown verification (partial)
+
+- Verify that an ally miss starts cooldown, an early repeat does not
+  reset it, and a new press after expiry hits once without spending ammo.
+
+#### Echo Tri-Shot firing interval verification (partial)
+
+- Verify that an early repeat press cannot fire immediately. Releasing
+  it produces no delayed volley, while holding it resumes fire after
+  the authored interval.
+
+#### Echo Focusing Beam world obstruction (partial)
+
+- Exercise the active beam against a triangle wall and an allied target.
+  Removing the wall or making the target hostile restores damage on
+  the next tick without a new cast.
+
+#### Echo Sticky Bombs flight expiry verification (partial)
+
+- Launch all six bombs into clear space and verify their retirement
+  at the authored 100-second flight lifetime without a contact fuse.
+
+#### Echo Tri-Shot range verification (partial)
+
+- Stage targets on a live projectile ray just inside and outside
+  the authored 100 m limit. Verify damage inside and retirement at
+  the limit without damage to the farther target.
+
+#### Echo Tri-Shot collision and death verification (partial)
+
+- Exercise a real triangle wall, remove it and repeat the shot at the
+  same target. Verify that holding fire after an actual enemy kill
+  consumes no ammo and deals no damage.
+
+#### Echo quick melee collision and death verification (partial)
+
+- Replace the mocked melee obstruction with actual wall geometry.
+  Exercise both same-frame command orders for Echo's melee and a
+  lethal enemy rifle shot.
+
+#### Echo Duplicate charge acceleration (partial)
+
+- Use the build 104319 Duplicate subgraph's 5.5× bonus on positive
+  copied meter gain. Damage, healing and passive gain reach a total
+  6.5× rate, capped at the copied ultimate cost.
+- Read the bonus from the loaded 1544 graph when Duplicate activates.
+- Earn and fire Tactical Visor from actual Heavy Assault damage without
+  filling the copied meter by injection.
+
+#### Echo Glide under Flashbang (partial)
+
+- Verify that an actual enemy Flashbang suppresses held Glide through
+  the stun and that Glide resumes in midair after the deadline.
+
+#### Echo attack inputs during Glide (partial)
+
+- Verify that Tri-Shot, melee, Sticky Bombs contacts and Beam all damage
+  an enemy Soldier while Echo continues holding Glide.
+
+#### Echo Flight and Glide contact verification (partial)
+
+- Verify that movement alone deals no contact damage to enemy Soldier
+  or any of the five Talon NPC classes in the controlled fixture.
+
+#### Echo airborne Talon interactions (partial)
+
+- Exercise actual Talon attacks against Flight and Glide. Assassin pins
+  the hovering Echo, stops Flight and then settles the pin damage.
+
+#### Echo Tri-Shot against Talon NPCs (partial)
+
+- Verify incoming damage from each Talon class and a successful Tri-Shot
+  reply in the same encounter, after stopping the NPC's attack input.
+
+#### Echo Duplicate and Tactical Visor return verification (partial)
+
+- Verify that a fresh Q with an empty copied meter leaves Duplicate
+  active. A charged Tactical Visor can hit off-axis until timed return
+  retires the copied body and its targeting.
+
+#### Echo Duplicate and Wraith verification (partial)
+
+- Verify that entering copied Reaper's Wraith phase protects against
+  already armed Sticky Bombs and an active Focusing Beam in separate
+  input scenarios. Tri-Shot damages the copy again after phase expiry.
+
+#### Echo Duplicate and Deflect verification (partial)
+
+- Exercise an enemy Focusing Beam during copied Genji's second Deflect.
+  The beam damages the copy without reflection or copied charge gain.
+
+#### Echo Duplicate and Grasp verification (partial)
+
+- Verify that copied Sigma absorbs enemy Echo Tri-Shot while active
+  Focusing Beam damages the copy without adding to the Grasp accumulator.
+
+#### Echo Duplicate recast verification (partial)
+
+- Verify that timed return resets charge and that holding Q through
+  passive recharge cannot cast again until a release and fresh press.
+
+#### Echo Duplicate incoming Talon attacks (partial)
+
+- Verify damage to an active copied body from all five Talon NPC classes.
+  Assassin can break the copied body and release the pin as Echo returns.
+
+#### Echo Flight and Glide interruption verification (partial)
+
+- Exercise a lethal enemy Soldier rifle hit while each movement mode is
+  active and verify held movement commands leave the corpse in place.
+
+#### Echo Focusing Beam interruption verification (partial)
+
+- Verify that a lethal Soldier rifle shot stops an active beam from
+  dealing damage, and that a Talon Assassin pin ends the beam's damage state.
+
+#### Echo Sticky Bombs cooldown verification (partial)
+
+- Exercise a tap and release through contact and fuse damage, verify that
+  another press during the authored cooldown launches no bombs, and
+  verify that a new press after cooldown can kill the target.
+- Verify that a lethal enemy rifle shot stops the in-progress volley.
+  Bombs launched before death still settle their contact and fuse damage.
+
+#### Echo Duplicate return health (partial)
+
+- Restore the greater of Echo's pre-cast health and half of her maximum
+  health on timed return or when enemy damage breaks the copied body.
+  The 104319 graph supplies the half-health expression. Applying it
+  during the server's immediate body replacement is reconstructed.
+
+#### Echo Duplicate target selection (partial)
+
+- Use the authored range and sensitivity expression for enemy-player
+  targeting. A blocked target no longer prevents selecting a visible
+  target within the cone. The default angle and candidate order are
+  server reconstruction.
+
+#### Echo Beam trace inputs and cancellation (partial)
+
+- Read range and radius from the active authored server TrackRay. Actual
+  input verifies a graze within the trace radius and a miss beyond it.
+- Exercise tap and release, refusal before the cancel window, immediate
+  damage stop on a valid cancel, cooldown refusal and fresh activation.
+
+#### Echo Focusing Beam armour settlement (partial)
+
+- Apply the documented OW1 beam armour reduction to Echo's actual Beam
+  health hits. The unspent part of a hit carries into health after armour
+  is exhausted. Tests also exercise an actual tri-shot to empowered Beam kill.
+
+#### Echo charge across Duplicate body changes (partial)
+
+- Keep an already armed Sticky Bomb fuse across body replacement and retire
+  its old projectile lease. Delayed damage and healing grant ultimate charge
+  only to the emitting body. Reflection transfers that charge identity.
+- Verify the delayed blast still damages after Duplicate without filling the
+  copied meter. Actual copied Biotic Field heals allies and retires with its
+  copied body.
+
+#### Reinhardt Barrier Field against Echo (partial)
+
+- Use the optional 104319 Barrier Field mesh for directional projectile,
+  beam and area contact. The actual 0095 pet state gates the shield.
+- Verify frontal interception, rear body exposure, ally cover and friendly
+  fire passage, break, regeneration, cooldown rejection and reactivation.
+  Cooldown expiry now notifies dependent Statescript gates.
+- Apply the configured splash curve to the distance from the blast to the
+  nearest visible shield surface. Actual Helix ground impacts verify falloff.
+
+#### Echo against Fortify and Transcendence (partial)
+
+- Read the active 0CF4 Fortify scalar before armour and deny control while
+  Fortify or 017B Transcendence is active. Transcendence prevents body damage
+  and retains normal collision.
+- Drive Transcendence healing from the authored target and health states.
+  Actual casts cover wall, range and team filters, and copied healing stops
+  at body retirement.
+
+#### Echo tri-shot ring phase (partial)
+
+- Apply the recovered 104319 D80310 ring transform to actual 19E5 projectile
+  rays. Read the authored radius and spread and derive phase from the shot
+  identity. The server seed mapping and muzzle origin remain reconstructed.
+- Match 171 prepared native vectors within 5.96e-8 per component and exercise
+  successive actual volleys at the same aim.
+
+#### Copied Cassidy Fan scatter (partial)
+
+- Apply the build 104319 no-decay Volley spread output and uniform-cone
+  arithmetic to the owned 01D2/37 damage rays. Register the baked spread
+  ramp in causal snapshots.
+- Verify actual off-axis hits against all five authored NPC classes, six
+  distinct rays and full ammo consumption. The event seed mapping remains
+  a server reconstruction.
+
+#### Copied Cassidy Deadeye targeting and fire (partial)
+
+- Run the authored 022F targeting and 01EE effects with scoped enemy queries,
+  health reads and target-directed fire. Preserve the baked target arrays
+  through query exit so the firing graph can consume them.
+- Verify off-axis player and five-NPC hits, team exclusion, wall charge pause,
+  shot range, cancellation, stun, copy expiry and rejection after spending charge.
+
+#### Copied Cassidy Flashbang flight and cooldown (partial)
+
+- Resolve the owned 01E9/7 launch lift and gravity from build 104319. The
+  grenade uses 16 ms accelerated sweeps and detonates at its range or lifetime
+  limit under the reconstructed server policy.
+- Exercise copied Cassidy's hit, 10-second cooldown rejection and reuse.
+  An actual allied expiry airburst also releases Echo from an Assassin pin.
+
+#### Assassin incoming pin against Echo (partial)
+
+- Route the manual Assassin's authored 1157 pin through its target and health
+  states. Store victim control separately from timed stuns and include the
+  target binding, control registry and health clock in causal snapshots.
+- Verify the opening hit, sustained damage, primary input suppression, stop,
+  occlusion, death and respawn. Actual copied Wraith rejects acquisition until
+  its phase ends. The contact limit, health clock and control policy are
+  server reconstructions.
+
+#### Enforcer incoming fire against Echo (partial)
+
+- Resolve the manual Enforcer's scoped 13EB controller and owner-health queries
+  so its authored weapon graph can fire. Register the declared controller
+  components in both causal snapshots.
+- Exercise the real engagement input against Echo. A triangle wall and an ally
+  suppress attack input. After re-engagement the first hit costs 2 health, and
+  explicit stop prevents further damage. Native controller allocation and
+  projectile spread remain open.
+
+#### Echo copied Winston fixed world barrier (open)
+
+- Consume actual00FA/n26 entity creation and n2 PlayScript00FC requests in a
+  scoped permissive body provider. Native entry parameters bind700 health and9
+  seconds; the real00FC ChaseVar supplies expiry. Add independent actor identity,
+  component clock and full server snapshot fields, without a synthetic fixed timer.
+- Intersect the fixed model0D02 sphere5 surface, including exit rays from inside.
+  Keep movement separate from recipient protection. Bridge finite damage, nearest
+  surfaces, sticky anchors, Beam and once-per-area-event cover for multiple actors.
+  A Helix direct-impact break retains cover for that same explosion.
+- Preserve ally projectile/healing semantics and declare melee bypass as a
+  reconstruction. Live source death can keep the hosted timer; native copy expiry,
+  script retirement and body replacement retire its reconstructed actor ownership.
+- Keep private38 in authoritative state but omit it from owner wire variables;
+  no native actor creation transport is claimed. Strict VMs decline this body
+  reconstruction and retain the existing native PlayScript path.
+- Run547 actor/legacy/PlayScript/VM/server regressions in1174.029s:538 pass and9
+  map-dependent tests skip, including23 world-barrier tests and10 five-NPC team
+  subcases. Native spawn/filter/phase/transport
+  details, other barriers and full static/client acceptance remain open.
+
+#### Echo copied Cassidy authored view and critical policy (open)
+
+- Read body02A3 FirstPerson standing1.425/crouched0.9975 from104319 XML and
+  use both for shot origin and player Target.eye. Echo's1.7/1.1 remains verified.
+  Actual low-cover input reproduces the old generic-height false clear.
+- Scope implicit primary critical2x to owned Cassidy01D2/n31 as explicit server
+  reconstruction. Preserve Fan's authored1 and other heroes' existing defaults.
+  Native bone hit regions, camera/muzzle animation and Fan spread stay open.
+- Three actual-input baseline methods fail before repair. Current camera/critical
+  regression passes187 tests in259.635s including native-view/cover, head140 vs
+  Fan50, copied kit/NPC/health/control/codecs and VM snapshot checks. Prior431
+  full regression is pre-camera evidence, not a full rerun of this source.
+
+#### Echo copied Cassidy Roll and input lifetime (open)
+
+- Consume authored mover17/18/19 modifiers before acceleration while retaining
+  raw command bytes. Actual copied Roll steering reproduces the previous gap;
+  six direction cases verify scope suppression and next-frame restoration.
+- Adapt the reviewed parent01F0 velocity bridge in the private lane: native
+  speed15,0.4s scope, ammo refill and6s cooldown supply a one-frame sampled
+  delta before swept movement. Keep yaw/velocity getters and horizontal end
+  cap5.5 explicitly reconstructed. No parent files or uncommitted history change.
+- Real copy inputs cover6m motion, direction/yaw, wall collision, duplicate
+  input, cooldown/reuse, foreign Flashbang interruption, native copy expiry and
+  actual incoming Echo pool depletion. Pending requests participate in both
+  VM and server snapshots and clear when their body retires.
+- Reproduce the shared notification marker bug with two minimal cases and a
+  real empty-magazine Roll: ammo returns6 but the weapon stays unable to fire.
+  Clear canceled markers, skip ending-state notifications and queue ability
+  cleanup before releasing arbitration. The last ordering is server
+  reconstruction, not a claim of native inter-object ordering.
+- Pass53 motion/input/VM tests before the later notification repair,35 relevant
+  notification/Roll/ability/join tests after repair, and120 captured-instruction
+  prefix comparisons with scalar lookup explicitly stubbed. Frozen combined
+  regression passes431 tests in855.636s with9 map-dependent skips; one added
+  encrypted passive server-capture test passes17.124s without production changes.
+  Five authored NPC bodies pass25 refill/fire/team subcases in39.708s. Full
+  native/copied-kit/causal-replay/client acceptance remains open.
+
+#### Echo copied Zarya projected target queries (open)
+
+- Add an explicit world target provider for025C/st4/st7. Link actual target
+  arrays into the authored375/536 selection path, leaving the native graph to
+  reject empty results, run its2s pet and8s cooldown. Reconstruct centre-based
+  range/cone/ranking and missing9595 default1; native weighted filters/age remain open.
+- Distinguish caster ownership from protected player/NPC ownership. Personal
+  and projected shields keep independent pools; actual loss returns native0146
+  energy to the caster. Track target arrays/links in VM snapshots.
+- Reject stale retired script owners and include activation start in reuse
+  identity. Real stop/restart and a same-tick replacement caster reproduce and
+  cover the stale historical active-bit bug. Preserve native timer independence
+  when real Flashbang stops the caster's ability without ending its pet.
+- Pass47 target/NPC/codec regressions in63.021s, then44 foreign-Flashbang/VM
+  snapshot/alias methods in16.413s. Re-run60 authored-NPC miss/range/wall cases
+  with activation/ammunition proof. Pre-death-fix full regression passes360
+  methods in829.015s. The frozen death/buffer version passes364 methods in
+  1223.061s, including ordinary server snapshots; full Echo causal replay remains open.
+- Preserve a projected pet after actual caster death until its native timer
+  expires, while rejecting new casts. Three death/retirement/copy-expiry tests
+  pass12.932s. Audit original-age buffering against parent and add actual-input
+  Roll/Zarya checks, preserving their distinct authored buffer settings.
+- Actual Roll buffer subcases pass5.147s. A diagnostic timestamp-renewal mutation
+  reproduces the released early-tap auto-cast failure. A separate actual Flight
+  input probe preserves raw bytes, rejects takeoff steering and restores input
+  on the next pose after scope end; generic mover17/18/19 consumption remains open.
+- Retain native pet/bone/transport, target history/weighted filters, other
+  barrier heroes and full static/client acceptance open.
+
+#### Echo versus finite Zarya personal barriers (open)
+
+- Read model10D7's native sphere radius1.5 with an owned model inspector, and
+  receiver002A metadata from104319. Keep all extracted data/tools outside Git.
+- Consume0244/st2's real pet lifetime with a separate finite pool using0256's
+  default200/ruleset1D43. Reconstruct capsule-centre attachment, static identity,
+  whole-hit overflow handling and pet completion on break. Primary/hitscan,
+  beam, melee and sticky contact/fuse/blast now meet this collision target.
+- Bridge actual pool loss to native0146 with its authored parameters;0242 owns
+  the energy calculation. Separate health damage from blocked impacts before
+  applying Flashbang, including the explosion that breaks a low barrier.
+  Use Zarya's native1.6/1.12 standing/crouched FirstPerson heights.
+- Exercise real inputs for shield loss/break, range/geometry/wall/team/rear,
+  cooldown refusal/reuse, delayed bombs, low-pool beam, allied healing, native
+  copy expiry, passive snapshot registration and three actual firing NPCs.
+  Native pet/PlayScript hosting, bone transform, receiver/filter semantics,
+  source/credit, projected/other barriers and client replication remain open.
+- Revalidate NPC coverage with the parent's immutable43-row mover runtime.
+  The old38-row runtime supplied generic NPC geometry; earlier passes are not
+  authored NPC hitbox acceptance. Require an explicit mover row in NPC tests.
+  A standalone60-case five-NPC miss/range/static-wall probe passes with native
+  activation counters and actual primary ammo consumption, preserving input hashes.
+  All292 combined regressions pass in813.034s, including13 barrier methods,
+  ten actual-NPC methods and13 ordinary server snapshots. Ruff/whitespace
+  checks pass. The subsequent return-annotation correction preserves the
+  executable method body AST; full current barrier/copy causal replay is open.
+
+#### Echo versus Sigma Grasp reconstruction (open)
+
+- Distinguish actual Sigma absorption from Genji reflection. Consume captured
+  projectiles without fuse/blast and intercept hitscan before body/wall damage;
+  deliver captured damage through the authored output/accumulation callback.
+- Read captured*.6/cap400 from1D02's1D03 parameters. Reconstruct normal-completion
+  shield granting, merged temporary shields and5HP/s decay after3s. Preserve
+  all five new Vitals fields in snapshots and use native Sigma camera heights.
+  Native PlayScript hosting, separate tagged-pool replication and decay units
+  remain unaccepted.
+- Add twelve real-input Grasp tests and actual Trooper/Sniper/Heavy capture.
+  A real rear Flashbang exposed incorrect granting after abort; gate the grant
+  on the existing ChaseVar completion flag. The two focused interruption/NPC
+  methods pass in5.354s. All278 frozen-source regressions pass in647.712s,
+  including13 ordinary server snapshots. Grasp-checkpoint encrypted Echo Flight
+  strict stored replay also passes1 test in1407.788s. Its scope does not cover
+  full Duplicate/Grasp/cross-hero causal replay or complete static acceptance.
+- Keep projectile exception classification, stacking/bypass/source semantics,
+  remaining copied Sigma abilities and full Echo acceptance open.
+
+#### Echo Wraith immunity reconstruction (open)
+
+- Reuse reviewed parent2ca9178 as local03d502a;129 Echo/join/Soldier/driver
+  regressions pass before further changes. Keep the native join storage fields.
+- Adapt only Reaper0020/st1's missing zero-parameter startup service, then let
+  the authored3s main phase,0.4s exit/cancel gate and8s cooldown own the lifecycle.
+  Reconstruct damage/Flashbang immunity from its active registered phase and
+  running ability. Damage rays/projectiles skip that phase; healing/team rules
+  and Duplicate target policy are separate. Do not map broad entity flag530 or
+  every54FEB21C state to immunity or a timer.
+- Pass215 current-source combat regressions in110.619s, including9 Wraith tests
+  and8 actual-NPC tests. Real primary/sticky/beam/melee hits reject damage/credit,
+  projectiles hit an enemy behind Wraith, copied Wraith rejects real Flashbang
+  then takes25/stun after expiry, real allied Field heals Wraith but not Echo,
+  and copy expiry restores a vulnerable Echo body. Actual input covers early/
+  normal cancel, expiry, cooldown rejection/reuse, magazine refill7->8, attack
+  lock without ammunition loss and post-exit firing. Three actual firing NPCs
+  emit shots during protection and restore20/100/5 damage afterwards.
+- Fix the shared-component identity guard for real NPC scripts and tolerate
+  transport-only script fixtures without a VM. Explicitly omit NPC projectile
+  transport for the added observer; prove actual Sniper emission after its
+  windup. Use the script's end-of-frame clock for the immunity boundary.
+- Full native startup/filter/bypass/cleanse/stacking/presentation, other immunity
+  sources, remaining copied heroes/skills and all original-client acceptance
+  remain open. This is partial static reconstruction, not full Echo acceptance.
+
 #### Native state-input joins and Deadeye timing
 
 - Implement1113EBD5 distinct-input joins from the104319 input handler rather
@@ -29,6 +561,37 @@ This log records tested changes and their acceptance status. Entries are grouped
   an external bundle. Normal runtime data/services and original working changes
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
+
+#### Echo reflection and foreign control reconstruction (open)
+
+- Consume active Genji03A3/st10's three authored projectile boxes and90 angle
+  parameter in the projectile sweep. Reconstruct eye-relative look geometry,
+  aim-directed reflection and source/team transfer, preserving remaining tick
+  travel. Each defender can intercept a projectile once per simulation tick.
+- Match quick-melee tags against active03A3/st59's zero-scalar combat filter
+  for frontal melee blocking; beam damage remains unaffected. Native filter
+  hierarchy, shape origin and reflected projectile transport remain open.
+- Reuse reviewed parent fbcaf76/64bf71c in the isolated clone. Preserve Echo
+  sticky/fuse flow while routing shared hit effects and nearest-capsule LOS.
+  Actual NPC incoming tests now use manual target selection, authored AI input
+  and stop, replacing direct shot-report consumption. The44-test merge group
+  passes; no shared source/runtime or service is changed.
+- Pass195 frozen-source regressions in598.375s, including13 ordinary server
+  snapshot tests, before the final Genji camera correction. Pass183 combat
+  regressions in90.786s on corrected source, including8 reflection/copy tests
+  and2 foreign-control tests. They execute primary/sticky return damage,
+  front/rear melee and projectile cases, beam bypass, real walls/misses/expiry,
+  copied-Genji reflected damage/charge, and actual foreign Flashbang suppression
+  of Echo movement/attacks/full-charge copy, Flight/Beam interruption/recovery.
+  Copied Deflect rejects cooldown input and works again after expiry; actual
+  reflected health damage adds51 each time. Use Genji0225's authored1.2/.84
+  eye heights. Maintain real aim through the delayed six-shot sticky volley;
+  resetting the fixture's aim to horizon caused the prospective-camera failure.
+  A fresh final-source Echo strict stored replay remains required.
+- Native copied charge/protection, remaining copied heroes, shield/absorb/
+  immunity/cleanse/stacking/unstoppable and full status presentation remain open.
+  This is partial static reconstruction, not complete native Deflect or Echo
+  acceptance. Original-client combat remains separate and entirely open.
 
 #### Resource-backed Flashbang control reconstruction
 
@@ -126,6 +689,66 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Echo combat reconstruction (open)
+
+- Consume Echo 19E5/st3's authored three-projectile fixed ring as three
+  independent ballistic health hits while the volley consumes one round.
+  Label the eye-origin angular geometry as reconstructed and client-unaccepted.
+- Add an Echo-only 1FBD/st17 health consumer driven by the actual ability
+  lifetime, authored base rate/range and low-health multiplier. Preserve enemy
+  filtering, static occlusion and command-frame deduplication. Native beam
+  armour policy, target replication and all status/barrier services stay open.
+- Fix shared quick-melee static occlusion and preserve the original timestamp
+  of buffered ability presses; eligibility retries must not refresh their age.
+- Pass 21 Echo command-to-health/lifecycle tests, including enemy player kills, training
+  NPC damage, Zarya shield/Reinhardt armour pools, death, walls and retained
+  manual corpses, actual cooldown rejection/recovery, and clip/reload gating.
+  The shared combat/projectile/NPC-script/Soldier ability group passes 120 tests. Ruff/diff checks
+  pass. No original-client acceptance or deployment is claimed.
+- Add reconstructed sticky gravity/contact/fuse/attachment and explosion LOS.
+  Seven sticky tests and four actual-five-NPC interaction tests pass, including
+  primary-fire deaths and retained corpses. The frozen expanded regression
+  passes152 tests, including13 snapshot checks. One-second fuse stays inferred.
+- Add Echo-only Flight/Glide movement through swept capsule collision. Read
+  embedded mover parameters, modeled8/20 speeds,4 fall limit and+.5 speed.
+  Eight unique movement tests pass, including attacks while airborne;173 shared
+  movement/combat/physics checks pass. Takeoff/input arbitration is reconstructed.
+  Withdraw the earlier Glide counterexample that used incorrect button0x04.
+- Mount a reconstructed Duplicate lifecycle with enemy selection, native cost/
+  duration/radius inputs, pose/frame preservation, copied body/pools, timeout
+  and copied-health-break return. Test copied weapon damage, original-team
+  healing, rejection/resource/control gates and registered passive state.
+  The shared183-test group passes; additional targeted Duplicate cases pass.
+  Native charge acceleration and copied ultimates remain unaccepted.
+- Credit actual enemy health damage and actual allied healing to Echo/copied
+  bodies, capped at authored cost and scaled by ruleset0x2819; suppress gain
+  while the copied ultimate is running. The one-health/one-point conversion is
+  reconstructed. Eight charge tests plus twelve Duplicate and six NPC tests
+  pass (26 total,39.506s), including real Heavy damage filling2254 and enabling
+  copy without meter injection. Native passive/accelerated rates, source tags
+  and ownership of effects crossing body replacement remain open.
+- Use Echo0032593 FirstPerson standing1.7/crouched1.1 eye heights.
+- Reuse parent NPC weapon/array and nearest-capsule melee-wall fixes. Pass148
+  frozen-source regressions in91.785s, including real Trooper20/Heavy5/Sniper100
+  incoming damage to Echo. The fixture omits NPC observer projectile transport;
+  Enforcer/Assassin and original-client acceptance remain open.
+- Fix copied Soldier Visor health targeting: consume active0259/st7 radius45
+  and angle45 for0254/st10 rifle shots. The initial off-axis regression fails
+  (200HP unchanged); the reconstructed consumer now targets visible enemy
+  capsules. Angular-first ranking, angle-as-degrees and centre aim remain
+  declared reconstruction; native weights, target bindings and presentation open.
+- Pass156 frozen-source regressions in112.696s. Seven copied-Soldier tests and
+  a five-class real-NPC Visor test cover off-axis hits, team/wall/cone/range/death
+  filters, manual Helix, charge consumption/suppression, ultimate end/rejection,
+  actual Sprint8.25/5.5 speed, weapon cancellation and Helix120/cooldown reuse.
+  Ultimate execution uses injected copied charge; accelerated generation and
+  full copied-hero/status coverage remain open. No full-static completion claim.
+- The pre-Duplicate Flight stored replay passes in984.854s; final source must
+  rerun its explicit expensive gate before full-goal completion.
+- Remaining incoming NPC attacks,
+  status/reflect/absorb/invulnerability and visible effects remain open.
+  See docs/ECHO_COMBAT.txt. This private lane does not merge or publish.
 
 #### Optional persistent NPC corpses
 

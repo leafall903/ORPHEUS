@@ -57,3 +57,69 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+
+## Echo combat lane (02E0000000000206)
+
+- [x] Complete Echo static combat acceptance across 168 scoped checks.
+- [ ] Complete original-client Echo combat validation.
+
+- Evidence covers Echo versus players and Trooper/Enforcer/Sniper/Assassin/Heavy
+  Assault, including every ability/ultimate, incoming attacks, cross-hero
+  statuses/barriers and original-client presentation. Primary/beam/sticky health and Flight/Glide movement
+  and partial Duplicate lifecycle/actual damage-heal charge paths have offline
+  reconstruction evidence. Copied Soldier Sprint/Helix and partial Visor targeting
+  now have direct movement/health evidence. Genji/copy-Genji reflection and actual
+  foreign Flashbang interruption/recovery have partial health/control evidence;
+  Reaper/copy-Reaper Wraith has reconstructed phase immunity/lifetime/healing/
+  ammo/control evidence. Sigma/copy-Sigma Grasp has partial real projectile and
+  hitscan absorption, temporary-shield conversion, interruption and three-NPC
+  capture evidence; native shield hosting/replication and projectile exceptions
+  remain open. Zarya personal barrier has a finite collision/pool consumer and
+  real attack/control/heal/copy-lifetime evidence; native pet hosting, projected
+  barriers and other shield shapes remain open. NPC geometry is revalidated
+  using the parent's43-row mover runtime; older generic fallbacks are historical.
+  Projected Zarya shields now use real ally/player/five-NPC target arrays and
+  native timer/cooldown graphs, with explicit reconstructed query/hosting limits.
+  Existing projected pets survive actual caster death until native expiry;
+  retirement/copy expiry still clean them. Actual Roll and Zarya inputs verify
+  original-age cooldown buffering with distinct authored early-press settings.
+  Generic throttle modifiers now affect acceleration. Copied Cassidy Roll
+  consumes scoped native velocity actions with explicit phase/basis/cap
+  reconstruction; actual motion, input scope, wall/control/copy cleanup and
+  empty-magazine notification recovery have targeted evidence.
+  Copied Cassidy camera now uses native1.425/0.9975 standing/crouched values;
+  owned primary31's2x implicit critical remains explicit reconstruction, with
+  Fan's explicit1 preserved. Native hit regions/spread/full copied kits stay open.
+  Copied Cassidy Flashbang now uses authored lift and gravity. Actual hit,
+  cooldown rejection/reuse and an expiry airburst that frees Echo from Assassin
+  control have direct evidence.
+  Copied Deadeye now uses 022F and 01EE for actual player and five-NPC hits,
+  team/LOS/range, cancel/stun/expiry and target cleanup. Duplicate child graph
+  1544 supplies a 5.5× bonus to positive copied charge gain. Actual Heavy Assault
+  damage earns a copied Tactical Visor cast. Native watcher timing and
+  query/presentation details remain open.
+  Copied Cassidy Fan now applies generated spread to collision rays. All five
+  NPCs have actual off-axis hits, ammo and team evidence. Native seed identity
+  and the remaining copied kits stay open.
+  Echo tri-shot now uses the measured 19E5 ring transform with per-shot phase.
+  Tri-Shot's authored 17 base damage now has a scoped server reconstruction
+  for head contacts. The 2× fallback, capsule head cutoff, reflected impact
+  classification, and Fortify critical suppression have actual-input tests.
+  Final static regression passed. Original-client validation remains open.
+  Native seed identity, muzzle origin and full client presentation remain open.
+  Actual Fortify and Transcendence now have outgoing Echo damage, copied
+  Flashbang control, expiration and copied support healing evidence.
+  Reinhardt Barrier Field now uses the prepared external mesh for directional
+  interception. Actual copied ally cover, beam/sticky/primary and break/reuse
+  have offline evidence. Native attachment, filters and replication stay open.
+  Copied Winston now has a scoped actual creation/request/00FC host with native
+  pool700/ChaseVar9 and fixed sphere surface physics. Actor transport and native
+  spawn/filter/ownership/clock semantics remain open; this is partial reconstruction.
+  Manual Enforcer 13EB fire now hits Echo through the authored input path, with
+  wall, ally, re-engagement and stop evidence. Manual Assassin 1157 now has
+  actual incoming pin, damage, control release and copied Wraith evidence.
+  Native pin details and remaining Enforcer/Assassin interactions are open.
+  Full copied-hero/status coverage, other barriers/other absorption/other
+  immunity and native startup/targeting semantics remain open.
+  See [Echo combat evidence](ECHO_COMBAT.txt).

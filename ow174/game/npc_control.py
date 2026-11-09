@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, immunity
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -70,6 +70,7 @@ def stop(match):
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
@@ -87,16 +88,19 @@ def stop(match):
 def update_input(fight, bot):
     """Refresh manual aim and release input on death, occlusion, range or target loss."""
     target = next((p for p in fight.match.players if p.entity == bot.attack_target), None)
+    pinning = bot.hero == assassin.HERO
     enabled = (not bot.dead and not fight.is_stunned(bot) and bot.firing
                and target is not None and target.spawned and target.has_body
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and (fight.match.game_map.free_for_all or target.team != bot.team))
+    if enabled and pinning and immunity.control_immune(target):
+        enabled = False
     if enabled:
         origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        enabled = 0 < distance <= (assassin.PIN_RANGE if pinning else AIM_RANGE)
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -106,6 +110,8 @@ def update_input(fight, bot):
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    if pinning:
+        assassin.bind(component.world, component, target.body if enabled else None)
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

@@ -33,7 +33,20 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    copied_roll,
+    correction,
+    echo_movement,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -290,7 +303,8 @@ class Player:
             commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
         )
         if fresh:
-            self.mover.use(mover_data(self.hero.body), collision)
+            data = echo_movement.effective_data(self)
+            self.mover.use(data if data != self.mover.data else None, collision)
         if movelog.ENABLED:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
@@ -326,6 +340,7 @@ class Player:
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        copied_roll.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
         requests = []
         if script is not None and not stunned:
@@ -335,6 +350,15 @@ class Player:
                 for state in instance.states.values()
                 if isinstance(state, nodes.MoveTo) and (movement := state.move_request()) is not None
             ]
+        # Echo consumes its own authored flight mode through the same swept collision path.
+        echo_request = echo_movement.request(self, command)
+        data = echo_movement.effective_data(self)
+        if data != self.mover.data:
+            self.mover.use(data)
+        if echo_request is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=echo_request)
+            self._advance_body_frame(command)
+            return
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
         if len(requests) == 1:
@@ -345,7 +369,9 @@ class Player:
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            self.mover.step_pose(
+                command, seconds, tick, fall_limit=echo_movement.glide_limit(self, command)
+            )
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -353,6 +379,10 @@ class Player:
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
+            if posed and self.match.combat.echo_duplicates.command(self, command):
+                script = self.body_script
+                self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+                return
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
@@ -595,15 +625,22 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {"controller_components": components}
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                **context,
             )
+            if components is not None:
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -631,12 +668,12 @@ class Match:
         """Whether other players' clients get this player's body."""
         return player.spawned and player.has_body and player.client is not None
 
-    def own_body_updates(self, viewer: Player) -> list[EntityUpdate]:
+    def own_body_updates(self, viewer: Player, *, start_frame: int | None = None) -> list[EntityUpdate]:
         """The viewer's own body: its movement state rides in the create (at frame 0xFFFFFFFE) and in a
         movement record at the packet frame."""
         state = deepcopy(viewer.pose())
         create = EntityUpdate(viewer.body, OP_CREATE, movement=state)
-        self.start_body_script(viewer, create)
+        self.start_body_script(viewer, create, start_frame=start_frame)
         # The new script must exist before its projectile lease is captured. The create's
         # stream remains the native driver's arrival gate; only the payload is frozen here.
         create.build = self._body_builder(viewer, state, own=True)
@@ -1056,6 +1093,9 @@ class Match:
         for bot in self.bots:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
+        actor = self.combat.barriers.world.actors.get(entity)
+        if actor is not None:
+            return expr.Vec3(*actor.point)
         return None
 
     def _message_player(self, entity: int) -> Player | None:
@@ -1096,7 +1136,9 @@ class Match:
                 log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
                 self.stop_body_script(player, failed=True)
 
-    def start_body_script(self, player: Player, create: EntityUpdate) -> None:
+    def start_body_script(
+        self, player: Player, create: EntityUpdate, *, start_frame: int | None = None
+    ) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
         self.stop_body_script(player)
@@ -1106,7 +1148,7 @@ class Match:
             script = BodyScript(
                 player.hero.guid,
                 player.body,
-                self._newest_frame(player),
+                self._newest_frame(player) if start_frame is None else start_frame,
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
@@ -1236,11 +1278,18 @@ class Match:
                 return entity
         return None
 
-    def switch_hero(self, player: Player, hero: Hero) -> bool:
+    def switch_hero(
+        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None
+    ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        pose = None
+        if preserve_pose and player.has_body:
+            mover = player.mover
+            pose = (tuple(mover.position), mover.yaw, mover.pitch,
+                    mover.velocity, mover.flags_word, mover.air_ticks)
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
@@ -1251,11 +1300,16 @@ class Match:
             player.new_body(entity)
             self.combat.record_replacement(entity)
         player.hero = hero
+        if pose is not None:
+            mover = player.mover
+            mover.use(mover_data(hero.body))
+            mover.position = list(pose[0])
+            mover.yaw, mover.pitch, mover.velocity, mover.flags_word, mover.air_ticks = pose[1:]
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:
             components = self._possession(player)
-            player.client.queue_entities(self.own_body_updates(player))
+            player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame))
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,
