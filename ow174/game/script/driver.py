@@ -95,6 +95,15 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
+# STU_C5243F93 action categories from the 104319 .096 records.
+WHEEL_ACTION_PREFIX = 0x0A90000000000000
+WHEEL_CATEGORY_TYPE = 0x0C880000000000CD
+WHEEL_ACTION_CATEGORIES = {
+    0x0D8000000000741E: frozenset((0x172, 0x19F, 0x1A0, 0x1A1, 0x1A2)),
+    0x0D8000000000741F: frozenset((0x16F, 0x19B, 0x19C, 0x19D, 0x19E)),
+    0x0D80000000007420: frozenset((0x173, 0x1A3, 0x1A4, 0x1A5, 0x1A6)),
+    0x0D80000000007428: frozenset((*range(0x16B, 0x173), *range(0x1E5, 0x1F5), 0x1F7, 0x1F9)),
+}
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -163,10 +172,25 @@ class BodyWorld(runtime.World):
             gate = instance.graph.node(20)
             if cls == "STU_E18C7DE7" or (gate is not None and cfg == gate.field("m_condition")):
                 return True
+        if (cls == "STU_4460419A" and self.communication_wheel and instance is not None
+                and instance.graph.index in (0x05AD, 0x02CF)):
+            return self.wheel_action_has_category(cfg, instance)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
+
+    @staticmethod
+    def wheel_action_has_category(cfg: dict, instance) -> bool:
+        category = (cfg.get("m_D929182B") or {}).get("m_value") or {}
+        if expr.guid_of(category.get("m_type")) != WHEEL_CATEGORY_TYPE:
+            return False
+        actions = WHEEL_ACTION_CATEGORIES.get(expr.guid_of(category.get("m_id")))
+        if actions is None:
+            return False
+        action = instance.evaluate(cfg.get("m_548E5344"))
+        return (isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX
+                and (action.guid & 0xFFFFFFFF) in actions)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match

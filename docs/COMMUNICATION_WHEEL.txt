@@ -25,13 +25,16 @@ Source paths for the remaining actions
   slot. Node 40 reports the unlock through 1313 before starting voice
   stimulus node 48. The server-only 1313 entries in 02CF and 0686 both
   lead to an unlock-use action, after a wait.
-- Direct offline 02A3 injection reaches both entries. Thirteen sample
-  choices currently take the common fallback at 05AD node 182. The
-  STU_4460419A category queries at 05AD nodes 139/182 and 02CF node 24
-  need the authored action metadata. Extracting .096 from the 104319 CASC
-  yields category 7428.01C on 16B–172, 1E5–1F4, 1F7 and 1F9. Category
-  741E covers 172 and 19F–1A2. Category 7420 covers 173 and 1A3–1A6.
-  These rows use type 0CD.114. Action 172 belongs to both 7428 and 741E.
+- The wheel's STU_4460419A queries use .096 action metadata extracted
+  from the 104319 CASC. Category 7428.01C covers 16B–172, 1E5–1F4, 1F7
+  and 1F9. Category 741E covers 172 and 19F–1A2. Category 7420 covers
+  173 and 1A3–1A6. These rows use type 0CD.114. Action 172 belongs to
+  both 7428 and 741E, and 05AD checks 741E first.
+- Direct offline 02A3 injection now reaches the correct branch in 05AD
+  for fixed and configurable calls and emotes, and in 02CF for voice
+  lines. The emote reaches node 107's equipped-animation query
+  STU_250DEABD. The voice selection reaches node 33's STU_2E708EC1 slot
+  query. These queries and the downstream action paths remain open.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

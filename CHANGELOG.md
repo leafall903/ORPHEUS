@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the wheel's authored 104319 action categories. Offline 02A3
+  selections reach the fixed and configurable callout branches and the
+  emote and voice-line branches. Slot resolution, original selection
+  transport and playback remain open. Original-client acceptance is deferred.
 - Mount the authored 05AD communication and 02CF voice-line graphs on
   match-owned player bodies. The Practice Range regression decodes both
   child descriptors and their initial states through the ordinary body
