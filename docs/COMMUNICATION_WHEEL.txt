@@ -90,6 +90,22 @@ Source paths for the remaining actions
   state payloads. One-shot frame events for these authored actions remain
   unimplemented. The wheel's BD02E168 auxiliary plug dispatch needs its
   own verification alongside ordinary state activation.
+- The target frame reader reaches A0CCA0 from A0F1EB for remote
+  messages. A0CCA0 reads a group-presence bit followed by RMFr
+  (w_u32) and RMSz (w_var) for each group. It skips groups whose frame
+  has already been applied. After those groups, A0D031 also reads an
+  ungrouped entry list. Each entry starts with a presence bit, a long
+  flag and a length of 8 bits for short entries or 17 bits for long
+  entries. The length is relative to the start of the length field.
+  The body of the entry starts with a target-presence bit and TrID
+  (w_u16). H=0 reads a remote-sync index and resolves its raw node index
+  at A0CF10. The short branch dispatches through 1B73B90 and the long
+  branch uses the node's payload reader. The two empty lists account for
+  the current frame writer's two trailing zero bits.
+  An offline probe executed A0CCA0 on 253 generated H=0 frames.
+  The probe compared target IDs, the six 0686 callout node mappings,
+  cursor position, multiple entries and stale-group suppression.
+  RMSz includes the entries and excludes the group terminator.
 
 Remaining static work includes the original selection and targeting
 transport, callout delivery and recipient rules, the emote and cosmetic
