@@ -278,7 +278,7 @@ class NativeReplayTests(unittest.TestCase):
         initial = BodyScript(
             context["hero"], context["entity"], context["start_frame"],
             quanta=context["quanta_us"], mode=context["mode"], health=context["health"],
-            ult_seconds=context["ult_seconds"],
+            ult_seconds=context["ult_seconds"], communication_wheel=context["communication_wheel"],
         )
         # Match hooks, including projectile-lease discovery, can allocate inactive states.
         # Those reads affect later traversal order; the body-only trace does not replay them.

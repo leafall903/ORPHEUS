@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-10
+
+#### Communication wheel
+
+- Mount the authored 05AD communication and 02CF voice-line graphs on
+  match-owned player bodies. The Practice Range regression decodes both
+  child descriptors and their initial states through the ordinary body
+  create and owner stream. Body traces carry the wheel startup policy
+  so offline replay starts the same graphs. Wheel selection, broadcast
+  and presentation remain open. Original-client acceptance is deferred.
+  All 584 game tests passed with the prepared 104319 runtime.
+
 ### 2026-11-09
 
 #### Native state-input joins and Deadeye timing

@@ -188,6 +188,7 @@ def make_header(
         "health": health, "maximum_health": maximum, "ult_seconds": script.ult_seconds,
         "seed": 1, "command_epoch": command_epoch, "body_epoch": body_epoch, "server_tick": server_tick,
         "gap_policy": "reject", "shot_policy": "drain_after_command", "initial_hash": snapshot_hash(script),
+        "communication_wheel": script.world.communication_wheel,
     }
 
 
@@ -273,8 +274,11 @@ def replay_document(document: dict) -> dict:
     header, events = document["header"], document["events"]
     if not isinstance(header, dict) or header.get("schema") != SCHEMA or header.get("build") != BUILD:
         raise ValueError("Native trace schema/build mismatch")
-    if set(header) != HEADER_FIELDS:
+    if set(header) - {"communication_wheel"} != HEADER_FIELDS:
         raise ValueError("Native v2 header fields do not match the fixed schema")
+    communication_wheel = header.get("communication_wheel", False)
+    if type(communication_wheel) is not bool:
+        raise ValueError("Invalid communication_wheel")
     if not isinstance(events, list):
         raise ValueError("Events must be a list")
     if header.get("scope") != "body-script-only" or header.get("gap_policy") != "reject":
@@ -313,7 +317,8 @@ def replay_document(document: dict) -> dict:
     else:
         script = BodyScript(header["hero"], header["entity"], header["start_frame"],
                             quanta=header["quanta_us"], mode=header["mode"],
-                            health=header["health"], ult_seconds=header["ult_seconds"])
+                            health=header["health"], ult_seconds=header["ult_seconds"],
+                            communication_wheel=communication_wheel)
         if snapshot_hash(script) != header.get("initial_hash"):
             fail("initial_state_mismatch")
         previous_seq, previous_tick = 0, header["server_tick"]

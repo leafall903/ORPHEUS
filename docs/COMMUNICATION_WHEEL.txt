@@ -1,0 +1,49 @@
+Communication wheel — target PC build 1.74.0.0.104319
+
+The common player body graph 004B starts the main communication graph 05AD
+from node 12 and the voice-line graph 02CF from node 11. Both paths depend on
+the untagged filter at node 20. Node 19 adds STU_E18C7DE7 for the main wheel.
+The legacy body world previously returned false for the filter. The player
+body host now supplies the two positive answers only in this graph and
+match context. The tagged 01CB filter stays on its previous path.
+Body trace headers preserve that startup policy for standalone replay.
+
+The static Practice Range test confirms the native parent links (004B raw
+states 7 and 6) and initial wheel state carriers after body-create and
+descriptor ACKs. The client-side decoder consumes the emitted owner frame.
+This verifies startup and wire layout. It leaves selection and playback open.
+
+Source paths for the remaining actions
+
+- 05AD node 87 watches logical button 38. Node 99 is the original presenter.
+  Node 3 receives 02A3 with parameter keys 08FC, 03E1, 05FE and 0644.
+  Node 240 builds the authored configurable-action map. Other branches
+  handle the fixed context calls and start 0686 or 069A. Graph 069A starts
+  the emote graph 023A, with the selected slot and animation category.
+- 02CF node 22 also receives 02A3 and selects the voice-line submenu
+  actions. Node 2 reaches pulse 36 and client node 50 resolves the equipped
+  slot. Node 40 reports the unlock through 1313 before starting voice
+  stimulus node 48. The server-only 1313 entries in 02CF and 0686 both
+  lead to an unlock-use action, after a wait.
+- Direct offline 02A3 injection reaches both entries. Thirteen sample
+  choices currently take the common fallback at 05AD node 182. The
+  STU_4460419A category queries at 05AD nodes 139/182 and 02CF node 24
+  need the authored action metadata. Extracting .096 from the 104319 CASC
+  yields category 7428.01C on 16B–172, 1E5–1F4, 1F7 and 1F9. Category
+  741E covers 172 and 19F–1A2. Category 7420 covers 173 and 1A3–1A6.
+  These rows use type 0CD.114. Action 172 belongs to both 7428 and 741E.
+- On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
+  includes an entity, the parameter blob, the message GUID and an
+  instance index. The separate 21614 builder in 90988C carries its
+  message GUID in the blob. Both call 1BA7D30. The existing logs verify
+  21616 for hero selection. The radial selection's transport remains open.
+- Localized callout nodes use STU_7106C356. The handler at AD15D0
+  reaches the client chat path. The current remote-frame writer replicates
+  state payloads. One-shot frame events for these authored actions remain
+  unimplemented. The wheel's BD02E168 auxiliary plug dispatch needs its
+  own verification alongside ordinary state activation.
+
+Remaining static work includes the original selection and targeting
+transport, callout delivery and recipient rules, the emote and cosmetic
+selection paths, and end-to-end offline fixtures for each action.
+Original-client acceptance is deferred.

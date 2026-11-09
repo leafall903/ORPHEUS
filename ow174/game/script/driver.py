@@ -124,6 +124,7 @@ class BodyWorld(runtime.World):
     def __init__(self, hero: int, mode: int, body: int) -> None:
         super().__init__(hero, mode)
         self.body = body
+        self.communication_wheel = False
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
@@ -156,6 +157,12 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if self.communication_wheel and instance is not None and instance.graph.index == 0x004B:
+            # BodyScript is the match-owned human body. 004B's untagged filter
+            # and its player check gate the authored 05AD and 02CF wheels.
+            gate = instance.graph.node(20)
+            if cls == "STU_E18C7DE7" or (gate is not None and cfg == gate.field("m_condition")):
+                return True
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
@@ -257,6 +264,7 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        communication_wheel: bool = False,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
@@ -269,6 +277,7 @@ class BodyScript(ReplicatedBody):
         self.frame_ms = max(1, quanta // 1000)
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
+        self.world.communication_wheel = communication_wheel or match is not None
         self.component = runtime.Component(entity, self.frame_ms, self.world)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0
