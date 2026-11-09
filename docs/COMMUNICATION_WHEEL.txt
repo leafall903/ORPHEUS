@@ -67,6 +67,17 @@ Source paths for the remaining actions
   A separate offline comparison verifies all 20 authored text-map
   rows through observer frames. Each of the four spray choices emits
   a first-play pulse.
+- The 05AD initializer at node 240 also builds a separate table of 20
+  directed game messages. Node 183 indexes the table with the selected
+  action and takes the first entity from target variable 375. The body
+  VM now evaluates that message expression and binds caller and
+  instigator outputs before running the recipient's entry. In the
+  legacy body packet those two identities come from the same sender.
+  Offline fixtures supply the selected target and verify every table
+  row through the match delivery queue. The third player's graph does
+  not receive the message. The target search in nodes 113 and 115 uses
+  distinct collision query assets, 0111.097 and 0079.097. Their complete
+  target ranking and the recipient graph's short-action frames remain open.
   For a new spray graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.

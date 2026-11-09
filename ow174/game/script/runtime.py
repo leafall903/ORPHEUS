@@ -1404,6 +1404,12 @@ class Instance:
                         key = expr.guid_of(item.get("m_B5051BCE")) & 0xFFFF
                         if target is not None:
                             self.write(target, params.get(key))
+                # Legacy body messages have one source identity. The native
+                # entry binds caller and instigator before following its plug.
+                for field in ("m_B60ABDA4", "m_FF703F20"):
+                    target = expr.dynamic(node.field(field))
+                    if target is not None:
+                        self.write(target, Entity(sender))
                 self.follow(node, "m_outPlug", None)
 
 

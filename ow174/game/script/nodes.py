@@ -2136,8 +2136,7 @@ def message_params(instance: Instance, node) -> dict:
 
 def send(instance: Instance, node, caller) -> None:
     """Send a game message to each target, through the world for other entities."""
-    cfg = node.fields.get("m_gameMessage")
-    message = expr.guid_of(cfg.get("m_gameMessage")) if isinstance(cfg, dict) else 0
+    message = play._asset(play.evaluate_scalar(instance, node.fields.get("m_gameMessage")))
     if not message:
         return
     params = message_params(instance, node)

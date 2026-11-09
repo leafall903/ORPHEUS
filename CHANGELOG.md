@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Evaluate directed game-message expressions and bind the sender on the
+  recipient's entry. All 20 authored 05AD routes reach the chosen body
+  in offline fixtures, and all 97 focused tests pass. Target selection,
+  recipient playback and original-client acceptance remain open.
 - Emit the 0686 localized callouts as native short actions in owner
   and observer frames. Cumulative copies retain their first chunk stamp.
   All 87 focused tests and both 253-frame native reader probes pass.

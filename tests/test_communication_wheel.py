@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import patch
 
+from test_game_combat import Run
+
 from ow174.game import observers, statescript
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
@@ -262,3 +264,38 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(watcher.apply(viewer_next).actions, [])
         body.command(body.frame + 130, 0)
         self.assertIsNone(body.pending_callout())
+
+    def test_targeted_wheel_message_table_routes_to_the_selected_body(self):
+        run = Run(names=("Speaker", "Target", "Bystander"))
+        speaker, target, bystander = run.players
+        run.step({})
+
+        def wheel(player):
+            return next(instance for instance in player.body_script.component.instances.values()
+                        if instance.graph.index == 0x05AD)
+
+        source, receiver, other = (wheel(player) for player in run.players)
+        source.write((expr.INSTANCE, 375), (expr.Entity(target.body),))
+        dispatch = source.graph.node(183)
+        rows = source.graph.node(240).field("m_value")["m_configVars"]
+        self.assertEqual(len(rows), 20)
+        for row in rows:
+            action = expr.guid_of(row["m_key"]["m_548E5344"])
+            message = expr.guid_of(row["m_value"]["m_gameMessage"])
+            with self.subTest(action=hex(action)):
+                [entry] = runtime.message_entries(receiver, message)
+                source.write((expr.INSTANCE, 29699), expr.Asset(action))
+                with patch.object(receiver, "deliver", wraps=receiver.deliver) as receive:
+                    source.run_node(dispatch, None)
+                    receive.assert_not_called()
+                    run.match.deliver_body_messages()
+                    [delivery] = receive.call_args.args
+                self.assertIs(delivery.node, entry)
+                self.assertEqual(delivery.message, (message, {}, speaker.body))
+                self.assertEqual(receiver.vars[40].value(), expr.Entity(speaker.body))
+                self.assertEqual(receiver.vars[41].value(), expr.Entity(speaker.body))
+                self.assertNotIn(40, other.vars)
+
+        source.write((expr.INSTANCE, 29699), expr.Asset(0x0A900001000001E5))
+        source.run_node(dispatch, None)
+        self.assertEqual(run.match._body_messages, [])
