@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Correct the cosmetic paths using the 104319 STU registration and
+  equipped-slot routines. 02CF reads a spray unlock and 0686 reads the
+  voice unlock's .00D effect. The extractor found 1,043 voice effects.
+  Four native type registrations and 200 original lookup-tail cases
+  pass. The focused suite passes 96 tests. Spray placement,
+  client-side cosmetic access and original-client acceptance remain open.
 - Resolve the selected equipped voice unlock from the account's four
   voice slots. The Soldier: 76 fixture exercises the alternate slot,
   and 100 original evaluator-tail cases verify the lookup. All 76

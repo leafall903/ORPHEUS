@@ -1,7 +1,7 @@
 Communication wheel — target PC build 1.74.0.0.104319
 
 The common player body graph 004B starts the main communication graph 05AD
-from node 12 and the voice-line graph 02CF from node 11. Both paths depend on
+from node 12 and the spray graph 02CF from node 11. Both paths depend on
 the untagged filter at node 20. Node 19 adds STU_E18C7DE7 for the main wheel.
 The legacy body world previously returned false for the filter. The player
 body host now supplies the two positive answers only in this graph and
@@ -20,9 +20,9 @@ Source paths for the remaining actions
   Node 240 builds the authored configurable-action map. Other branches
   handle the fixed context calls and start 0686 or 069A. Graph 069A starts
   the emote graph 023A, with the selected slot and animation category.
-- 02CF node 22 also receives 02A3 and selects the voice-line submenu
-  actions. Node 2 reaches pulse 36 and client node 50 resolves the equipped
-  slot. Node 40 reports the unlock through 1313 before starting voice
+- 02CF node 22 also receives 02A3 and selects the spray submenu actions.
+  Node 2's success plug reaches pulse 36. Client node 50 resolves the
+  equipped spray unlock. Node 40 reports it through 1313 before starting
   stimulus node 48. The server-only 1313 entries in 02CF and 0686 both
   lead to an unlock-use action, after a wait.
 - The wheel's STU_4460419A queries use .096 action metadata extracted
@@ -31,34 +31,41 @@ Source paths for the remaining actions
   173 and 1A3–1A6. These rows use type 0CD.114. Action 172 belongs to
   both 7428 and 741E, and 05AD checks 741E first.
 - Direct offline 02A3 injection now reaches the correct branch in 05AD
-  for fixed and configurable calls and emotes, and in 02CF for voice
-  lines. The emote reaches node 107's equipped-animation query
+  for fixed and configurable calls and emotes, and in 02CF for sprays. The emote reaches node 107's equipped-animation query
   STU_250DEABD. The slot queries use the original zero-based lookup
-  order. Client routines 44A7D0 and 44A950 search the emote and voice
+  order. Client routines 44A7D0 and 44A950 search the emote and spray
   tables at 25FB0E0 and 25FB120. Emote slots are 172, 1A1, 1A0 and 19F.
-  Voice slots are 173, 1A5, 1A4 and 1A3. Unmatched actions return -1.
+  Spray slots are 173, 1A5, 1A4 and 1A3. Unmatched actions return -1.
   A 1,544-case offline comparison against those client instructions
-  agrees with the slot resolver. An injected 1A4 reaches voice node 33
+  agrees with the slot resolver. An injected 1A4 reaches spray node 33
   and sets slot 2. The STU_17B517B9 runtime constructor at 970420
   installs vtable 2627548. Evaluator 92E7E0 reads the selected slot
-  via BCC960 at component +D0 and returns the 0A5 unlock. The server
-  snapshots the merged +0x70 loadout at body creation. An offline
-  1A5 selection resolves Soldier: 76's second slot at 02CF:50.
-  A 100-case probe executes the native tail from 92EB64 with synthetic
-  component data. The authored 02CF:2 playback state and 1313
-  client-local message route remain open, as does selection transport.
-- Spray uses the adjacent 25FB100 table in 104319. CE6260 implements
+  via BCC960 at component +D0 and returns the 0A5 spray unlock. The
+  server snapshots the merged +0x58 loadout at body creation. Offline
+  action 1A5 resolves Soldier: 76's equipped Pixel spray at 02CF:2.
+  The priority-2 state vtable is 262CF20. Enter 97F950 reaches 98CAE0,
+  which uses authored +F0 and the user's pose to build a query at
+  D0FCB0. The result selects plug +100 or +F8. Reader 97FA30 uses
+  D0F760 to unpack the placement data. The placement result, state
+  transport, and 1313 client-local message route remain open.
+- Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
   a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.
   The category includes 19E, but the slot lookup returns -1 for that
   action. The resolver agrees with the native instructions on 1,544
   GUIDs. The enclosing STU_2977339D config at 0686:67 is installed
   by 970450 with vtable 2629388. Its evaluator at 93D1F0 uses BCC980
-  and resolves its result through 955C00. That helper requires type
-  descriptor 2E0F448 (C6A72877, STUUnlock_Pose). The result at +120
-  comes from the pose path. Ordinary STUUnlock_SprayPaint
-  (84515D93) has a separate descriptor and stores m_effectLook at
-  +110. The ordinary spray resource path and playback remain open.
+  and resolves its result through 955C00. The registration at
+  2B53F9 pairs descriptor 2E0F448 with 8A9D1F89 (STUUnlock_VoiceLine).
+  The result at unlock +120 is m_F57B051E, the .00D effect passed to
+  0686:55. The server snapshots voice effects from the merged +0x70
+  loadout. Generate data/voice_effects_174.json in the external
+  runtime with tools/extract_voice_effects.py and the same DataTool
+  0A5 XML directory. The 104319 extractor found 1,043 entries.
+  Offline action 19D resolves Soldier: 76's 1879.00D effect. The
+  two lookup tails pass 200 comparisons with declared native
+  component/unlock inputs. Client access to the equipped resources
+  remains open.
 - The body host dispatches self-targeted PlayScript actions 05AD:109
   and 069A:9. The selected action enters 069A via parameter 08FC as a
   one-item array. The slot reaches 023A through the subscript's variable
@@ -78,17 +85,17 @@ Source paths for the remaining actions
   Repeat selection behavior remains open.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
-  graph selects the fixed, configurable or spray branch. Initializer 62
+  graph selects the fixed, configurable or voice branch. Initializer 62
   builds typed action-to-value pairs. Each configurable callout value
   is a keyed array containing a display-text asset and an identifier.
   The owner stream carries the selected value using the full keyed
   array form read at D57430. The typed pairs use the D57899 form.
   Offline selections 16B, 1E5 and 19D verify the fixed texture,
-  configurable text and identifier, and spray pulse in owner and
+  configurable text and identifier, and voice pulse in owner and
   observer frames. With 130 command frames between selections, the
   body reuses the same 0686 instance for all three actions.
   A separate offline comparison verifies all 20 authored text-map
-  rows through observer frames. Each of the four spray choices emits
+  rows through observer frames. Each of the four voice choices emits
   a first-play pulse.
 - The 05AD initializer at node 240 also builds a separate table of 20
   directed game messages. Node 183 indexes the table with the selected
@@ -101,7 +108,7 @@ Source paths for the remaining actions
   not receive the message. The target search in nodes 113 and 115 uses
   distinct collision query assets, 0111.097 and 0079.097. Their complete
   target ranking remains open.
-  For a new spray graph, the first pulse sets the playback bit required
+  For a new voice graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and

@@ -57,9 +57,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     The emote graph chain reads untagged aliases from equipped unlocks.
     Tagged D.Va emotes and blend-tree selection remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
-    the spray playback pulse for offline selections.
-    The voice graph resolves the equipped unlock from the chosen slot.
-    Voice playback and the ordinary spray resource path remain open.
+    the voice playback pulse for offline selections.
+    The spray graph resolves the equipped unlock from the chosen slot.
+    The voice graph resolves the equipped .00D playback effect.
+    Spray placement and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     The recipient graph sends the actions in order with each action's source.

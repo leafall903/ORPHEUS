@@ -106,8 +106,8 @@ WHEEL_ACTION_CATEGORIES = {
 }
 # 104319 44A7D0, 44A980 and 44A950 return the zero-based index in these tables.
 WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
-WHEEL_SPRAY_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
-WHEEL_VOICE_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
+WHEEL_VOICE_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
+WHEEL_SPRAY_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
 # The wheel's fixed, self-targeted PlayScript actions.
 WHEEL_PLAY_GRAPHS = {
     (0x05AD, 109): 0x069A,
@@ -150,7 +150,7 @@ class WheelCallout:
     values: tuple
 
 
-WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "voice_unlocks": 0x0250}
+WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "spray_unlocks": 0x0250, "voice_effects": 0x0300}
 
 
 def valid_wheel_slots(slots: tuple[int, ...], guid_type: int) -> bool:
@@ -169,7 +169,8 @@ class BodyWorld(runtime.World):
         self.body = body
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
-        self.voice_unlocks: tuple[int, ...] = ()
+        self.spray_unlocks: tuple[int, ...] = ()
+        self.voice_effects: tuple[int, ...] = ()
         self.wheel_callouts: list[WheelCallout] = []
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
@@ -222,13 +223,19 @@ class BodyWorld(runtime.World):
                         and instance.evaluate(target.get("m_entity")) == Entity(self.body)):
                     return self.equipped_wheel_asset(self.emote_aliases, instance.evaluate(cfg.get("m_slot")))
             if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
-                return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
+                return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
+            if cls == "STU_2977339D" and instance.graph.index == 0x0686:
+                # 93D1F0 resolves the equipped voice unlock to its .00D effect.
+                target = cfg.get("m_target")
+                if (isinstance(target, dict) and target.get("$") == "STU_F7262B36"
+                        and instance.evaluate(target.get("m_801B298F")) == Entity(self.body)):
+                    return self.equipped_wheel_asset(self.voice_effects, instance.evaluate(cfg.get("m_slot")))
             if (cls == "STU_17B517B9" and instance.graph.index == 0x02CF
                     and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
-                # 92E7E0 returns the equipped voice unlock itself.
-                return self.equipped_wheel_asset(self.voice_unlocks, instance.evaluate(cfg.get("m_slot")))
+                # 92E7E0 returns the equipped spray unlock itself.
+                return self.equipped_wheel_asset(self.spray_unlocks, instance.evaluate(cfg.get("m_slot")))
             if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
-                return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
+                return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
@@ -431,7 +438,8 @@ class BodyScript(ReplicatedBody):
         match: "Match | None" = None,
         communication_wheel: bool = False,
         emote_aliases: tuple[int, ...] = (),
-        voice_unlocks: tuple[int, ...] = (),
+        spray_unlocks: tuple[int, ...] = (),
+        voice_effects: tuple[int, ...] = (),
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
@@ -445,7 +453,8 @@ class BodyScript(ReplicatedBody):
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
         self.world.communication_wheel = communication_wheel or match is not None
-        for name, slots in (("emote_aliases", emote_aliases), ("voice_unlocks", voice_unlocks)):
+        for name, slots in (("emote_aliases", emote_aliases), ("spray_unlocks", spray_unlocks),
+                            ("voice_effects", voice_effects)):
             if not valid_wheel_slots(slots, WHEEL_LOADOUT_TYPES[name]):
                 raise ValueError(f"{name} must contain up to four matching asset GUIDs or empty slots")
             setattr(self.world, name, slots)

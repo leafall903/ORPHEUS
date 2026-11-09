@@ -1838,7 +1838,7 @@ class ClientOnlyPulser(State):
     that moved on pulses the client as often (mod 256); a state the client reads for the first time pulses
     once only with the bit set (or the node's m_C85E2CBA, node +0xF0), else it takes the count as seen.
     The server marks recent pulses after the instance's first simulation frame as fresh. The wheel
-    creates its spray instance in response to the action, so that first pulse also requests playback.
+    creates its voice instance in response to the action, so that first pulse also requests playback.
     The original server's freshness policy is unverified."""
 
     FRESH_MS = 500

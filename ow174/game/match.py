@@ -389,8 +389,8 @@ def no_emote_aliases(account_lo: int, hero: int) -> tuple[int, ...]:
     return ()
 
 
-def no_voice_unlocks(account_lo: int, hero: int) -> tuple[int, ...]:
-    return ()
+def no_wheel_cosmetics(account_lo: int, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    return (), ()
 
 
 def card_message(player: Player) -> dict:
@@ -411,7 +411,7 @@ class Match:
         collision_provider: CollisionProvider | None = None,
         scene_host_factory=None,
         emote_aliases_of=no_emote_aliases,
-        voice_unlocks_of=no_voice_unlocks,
+        wheel_cosmetics_of=no_wheel_cosmetics,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         self.id = (
@@ -424,7 +424,7 @@ class Match:
         # The client's hero select equips a skin through the lobby (24500), even in a match.
         self.skin_of = skin_of
         self.emote_aliases_of = emote_aliases_of
-        self.voice_unlocks_of = voice_unlocks_of
+        self.wheel_cosmetics_of = wheel_cosmetics_of
         self.controller = heroselect.controller_of(game_map.mode_guid)
         self.tick = 0  # the server's frame number, set every tick
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
@@ -1115,7 +1115,7 @@ class Match:
         if BODY_SCRIPT_HEROES is not None and player.hero.guid not in BODY_SCRIPT_HEROES:
             return
         try:
-            voice_unlocks = self.voice_unlocks_of(player.account_lo, player.hero.guid)
+            spray_unlocks, voice_effects = self.wheel_cosmetics_of(player.account_lo, player.hero.guid)
             script = BodyScript(
                 player.hero.guid,
                 player.body,
@@ -1125,7 +1125,8 @@ class Match:
                 health=HEALTH,
                 match=self,
                 emote_aliases=self.emote_aliases_of(player.account_lo, player.hero.guid),
-                voice_unlocks=voice_unlocks,
+                spray_unlocks=spray_unlocks,
+                voice_effects=voice_effects,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)

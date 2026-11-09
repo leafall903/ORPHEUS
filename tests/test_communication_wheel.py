@@ -19,7 +19,7 @@ from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.script import decode, expr, graph, runtime
 from ow174.game.script.driver import BodyScript, BodyStream
-from ow174.paths import EMOTE_ALIAS_DATA
+from ow174.paths import EMOTE_ALIAS_DATA, VOICE_EFFECT_DATA
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -62,8 +62,8 @@ class CommunicationWheelTests(unittest.TestCase):
             (0x1E5, (0x05AD, 140)),  # configurable communication
             (0x172, (0x05AD, 107)),  # default emote is also in the main wheel
             (0x19F, (0x05AD, 107)),  # alternate emote
-            (0x173, (0x02CF, 33)),   # default voice slot
-            (0x1A5, (0x02CF, 33)),   # alternate voice slot
+            (0x173, (0x02CF, 33)),   # default spray slot
+            (0x1A5, (0x02CF, 33)),   # alternate spray slot
         )
         branches = {branch for _, branch in cases}
         with patch.object(runtime.Instance, "run_node", record):
@@ -92,15 +92,15 @@ class CommunicationWheelTests(unittest.TestCase):
                 main.write((expr.INSTANCE, 29699), value)
                 self.assertIs(main.evaluate(condition), expected)
 
-    def test_emote_and_voice_actions_use_native_slot_order(self):
+    def test_emote_and_spray_actions_use_native_slot_order(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
         instances = {instance.graph.index: instance for instance in body.component.instances.values()}
-        main, voice = instances[0x05AD], instances[0x02CF]
+        main, spray = instances[0x05AD], instances[0x02CF]
         emote_slot = main.graph.node(107).field("m_condition")["m_configVars"][0]["m_slot"]
-        voice_slot = voice.graph.node(33).field("m_value")
+        spray_slot = spray.graph.node(33).field("m_value")
         for instance, config, actions, unmatched in (
             (main, emote_slot, (0x172, 0x1A1, 0x1A0, 0x19F), 0x1A2),
-            (voice, voice_slot, (0x173, 0x1A5, 0x1A4, 0x1A3), 0x1A6),
+            (spray, spray_slot, (0x173, 0x1A5, 0x1A4, 0x1A3), 0x1A6),
         ):
             for slot, action in enumerate(actions):
                 with self.subTest(action=hex(action)):
@@ -114,7 +114,7 @@ class CommunicationWheelTests(unittest.TestCase):
             {0x8FC: expr.Asset(0x0A900000000001A4)}, body.entity,
         )
         body.component.run_now()
-        self.assertEqual(voice.vars[9259].value(), 2)
+        self.assertEqual(spray.vars[9259].value(), 2)
 
     def test_equipped_animation_selection_replicates_authored_emote_graphs(self):
         # Soldier's Heroic and Take a Knee unlocks from 104319.
@@ -169,10 +169,10 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(client.records[animation.id], (0x023A, (emote.id, animation.parent_state)))
         self.assertEqual(client.graphs[helper.id], 0x1040)
 
-    def test_spray_lookup_uses_the_authored_equipped_slot_config(self):
+    def test_voice_lookup_uses_the_authored_equipped_slot_config(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
-        spray = body.component.create(graph.graph(0x0686), init=False)
-        config = spray.graph.node(67).field("m_value")["m_slot"]
+        voice = body.component.create(graph.graph(0x0686), init=False)
+        config = voice.graph.node(67).field("m_value")["m_slot"]
         for action, expected in (
             (expr.Asset(0x0A9000000000016F), 0),
             (expr.Asset(0x0A9000000000019D), 1),
@@ -184,38 +184,57 @@ class CommunicationWheelTests(unittest.TestCase):
             (0x16F, -1),
         ):
             with self.subTest(action=action):
-                spray.write((expr.INSTANCE, 29699), action)
-                self.assertEqual(spray.evaluate(config), expected)
+                voice.write((expr.INSTANCE, 29699), action)
+                self.assertEqual(voice.evaluate(config), expected)
 
-    def test_voice_unlock_query_uses_the_equipped_slot(self):
+    def test_spray_unlock_and_voice_effect_use_their_own_equipped_slots(self):
+        default_spray, chosen_spray = 0x025000000000008D, 0x02500000000007F1
         default_voice, chosen_voice = 0x02500000000008D7, 0x0250000000000A31
-        collection = Collection(RetailTemplates(), ItemDB())
+        default_effect, chosen_effect = 0x03000000000018C4, 0x0300000000001879
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / VOICE_EFFECT_DATA).write_text(
+                json.dumps({hex(default_voice): hex(default_effect), hex(chosen_voice): hex(chosen_effect)}),
+                encoding="utf-8",
+            )
+            items = ItemDB(data)
+        collection = Collection(RetailTemplates(), items)
         profile = Profile()
-        self.assertEqual(collection.voice_unlocks(profile, SOLDIER), (default_voice,))
-        profile.loadouts[f"0x{SOLDIER:016X}"] = {"+0x70": [hex(default_voice), hex(chosen_voice), "0x0"]}
+        self.assertEqual(collection.wheel_cosmetics(profile, SOLDIER), ((default_spray,), (default_effect,)))
+        profile.loadouts[f"0x{SOLDIER:016X}"] = {
+            "+0x58": [hex(default_spray), hex(chosen_spray), "0x0"],
+            "+0x70": [hex(default_voice), hex(chosen_voice), "0x0"],
+        }
         match = Match(
             PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
-            voice_unlocks_of=lambda _, hero: collection.voice_unlocks(profile, hero),
+            wheel_cosmetics_of=lambda _, hero: collection.wheel_cosmetics(profile, hero),
         )
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
         [create] = match.own_body_updates(player)
         create.stream.arrived(0)
         body = player.body_script
-        runtime.send_message(
-            body.component, 0x02400000000002A3,
-            {0x8FC: expr.Asset(0x0A900000000001A5), 0x3E1: True}, body.entity,
-        )
-        body.command(body.frame + 1, 0)
-        voice = next(instance for instance in body.component.instances.values() if instance.graph.index == 0x02CF)
-        self.assertEqual(voice.vars[9259].value(), 1)
-        query = voice.graph.node(50).field("m_value")
-        self.assertEqual(voice.evaluate(query), expr.Asset(chosen_voice))
+        for action in (0x1A5, 0x19D):
+            runtime.send_message(
+                body.component, 0x02400000000002A3,
+                {0x8FC: expr.Asset(0x0A90000000000000 | action), 0x3E1: True}, body.entity,
+            )
+            body.command(body.frame + 1, 0)
+        instances = {instance.graph.index: instance for instance in body.component.instances.values()}
+        spray, voice = instances[0x02CF], instances[0x0686]
+        self.assertEqual(spray.vars[9259].value(), 1)
+        spray_query = spray.graph.node(2).field("m_E441DC25")
+        voice_query = voice.graph.node(67).field("m_value")
+        self.assertEqual(spray.evaluate(spray_query), expr.Asset(chosen_spray))
+        self.assertEqual(voice.evaluate(voice_query), expr.Asset(chosen_effect))
 
-        for slot, expected in ((0, default_voice), (2, 0), (3, 0), (-1, 0)):
-            voice.write((expr.INSTANCE, 9259), slot)
-            self.assertEqual(voice.evaluate(query), expr.Asset(expected))
+        for slot, expected in ((0, default_spray), (2, 0), (3, 0), (-1, 0)):
+            spray.write((expr.INSTANCE, 9259), slot)
+            self.assertEqual(spray.evaluate(spray_query), expr.Asset(expected))
+        for action, expected in ((0x16F, default_effect), (0x19C, 0), (0x19B, 0), (0x19E, 0)):
+            voice.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | action))
+            self.assertEqual(voice.evaluate(voice_query), expr.Asset(expected))
 
-    def test_callout_and_spray_selections_replicate_the_shared_graph(self):
+    def test_callout_and_voice_selections_replicate_the_shared_graph(self):
         cases = (
             (0x16B, 3793, expr.Asset(0x0C00000000005A0B), 27),
             (0x1E5, 29862, expr.Map((

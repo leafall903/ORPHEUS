@@ -230,7 +230,7 @@ class LobbyServer:
             on_leave=self.game_left,
             skin_of=self.skin_of,
             emote_aliases_of=self.emote_aliases_of,
-            voice_unlocks_of=self.voice_unlocks_of,
+            wheel_cosmetics_of=self.wheel_cosmetics_of,
             on_join=self.game_joined,
             on_clock_ready=self.game_clock_ready,
             collision_provider_factory=lambda: AsyncCollisionProvider(
@@ -257,11 +257,11 @@ class LobbyServer:
             return ()
         return self.content.collection.emote_aliases(account.profile, hero)
 
-    def voice_unlocks_of(self, account_lo: int, hero: int) -> tuple[int, ...]:
+    def wheel_cosmetics_of(self, account_lo: int, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
         account = self.accounts.by_id(account_lo)
         if account is None:
-            return ()
-        return self.content.collection.voice_unlocks(account.profile, hero)
+            return (), ()
+        return self.content.collection.wheel_cosmetics(account.profile, hero)
 
     def game_joined(self, player) -> None:
         """A player's game connected to its match: its client gets the match lobby (handlers/leaving.py)."""
