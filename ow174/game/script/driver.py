@@ -115,6 +115,8 @@ WHEEL_PLAY_GRAPHS = {
     (0x05AD, 131): 0x0686,
     (0x069A, 9): 0x1040,
 }
+MAX_WHEEL_CALLOUTS = 32
+DIRECTED_CALLOUT_MS = 2000
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -137,6 +139,17 @@ def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int
     return edges
 
 
+@dataclass(frozen=True)
+class WheelCallout:
+    serial: int
+    instance: int
+    start: int
+    node: int
+    time: int
+    choice: object
+    values: tuple
+
+
 class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
@@ -145,7 +158,7 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.communication_wheel = False
-        self.wheel_callout = None
+        self.wheel_callouts: list[WheelCallout] = []
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
@@ -243,10 +256,25 @@ class BodyWorld(runtime.World):
             play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
 
     def localized_callout(self, instance: runtime.Instance, node: graph.Node) -> None:
-        if self.communication_wheel and instance.graph.index == 0x0686 and node.remote >= 0:
-            selected = instance.vars.get(29699)
-            if selected is not None:
-                self.wheel_callout = (instance.id, instance.start, node.pos, instance.component.now, selected.value())
+        if (not self.communication_wheel or instance.graph.index not in (0x05AD, 0x0686)
+                or node.remote < 0 or not node.is_networked):
+            return
+        component = instance.component
+        selected = instance.vars.get(29699)
+        values = []
+        for row in node.field("m_BF5B22B7") or ():
+            var = expr.guid_of(row.get("m_0D09D2D9")) & 0xFFFF
+            if not var:
+                continue
+            entity_scope = row.get("m_56341592") == expr.ENTITY
+            slot = (component.vars if entity_scope else instance.vars).get(var)
+            values.append(((0 if entity_scope else instance.id, var), (slot.value() if slot else None, ())))
+        serial = self.wheel_callouts[-1].serial + 1 if self.wheel_callouts else 1
+        self.wheel_callouts.append(WheelCallout(
+            serial, instance.id, instance.start, node.pos, component.now, selected.value() if selected else None,
+            tuple(values),
+        ))
+        del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
@@ -265,19 +293,31 @@ class Snapshot:
     vars: dict = field(default_factory=dict)  # (instance or 0, var) -> (value, bindings)
     states: dict = field(default_factory=dict)  # (instance, state) -> (cls, on, payload)
     events: dict = field(default_factory=dict)  # instance -> ((time, state, finish, param), ...)
+    callout: int = 0  # newest event in a full projection, or last event carried by a delta
+    callouts: tuple[WheelCallout, ...] = ()
 
-    callout: tuple[int, int, int, int] | None = None  # instance, start, node position, action time
+    def next_callout(self, baseline: int) -> WheelCallout | None:
+        return next((event for event in self.callouts if event.serial > baseline), None)
+
+    def for_delta(self, baseline: int, keys: set) -> "Snapshot":
+        """Store the variables actually sent alongside the acknowledged action."""
+        serial = next((key[1] for key in keys if key[0] == "callout"), baseline)
+        if not self.callouts and self.callout == serial:
+            return self
+        event = next((item for item in self.callouts if item.serial == serial), None)
+        values = self.vars | dict(event.values) if event is not None and serial > baseline else self.vars
+        return replace(self, callout=serial, callouts=(), vars=values)
 
 
 def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_chunk: int):
-    """Keep the original chunk stamp on each cumulative copy until it is acknowledged."""
-    callout = snap.callout
-    if callout is None or callout == base.callout:
+    """Choose the next action for this stream and retain its original stamp until ACK."""
+    callout = snap.next_callout(base.callout)
+    if callout is None:
         return None
-    previous = (key[2] for key in touched if key[0] == "callout" and key[1] == callout)
+    previous = (key[2] for key in touched if key[0] == "callout" and key[1] == callout.serial)
     stamp = min(previous, default=next_chunk)
-    keys.add(("callout", callout, stamp))
-    return stamp, callout[0], callout[2]
+    keys.add(("callout", callout.serial, stamp))
+    return stamp, callout.instance, callout.node
 
 
 @dataclass
@@ -302,8 +342,8 @@ class ReplicatedBody:
     component: runtime.Component
     server_only: set[int]
 
-    def pending_callout(self):
-        return None
+    def callout_snapshot(self) -> Snapshot:
+        return Snapshot(self.frame)
 
     def set_health(self, health: float, most: float) -> None:
         """Update the shared health input. Player bodies also use the maximum for their HUD."""
@@ -470,7 +510,7 @@ class BodyScript(ReplicatedBody):
     def snapshot(self) -> Snapshot:
         """The body as the client should have it after the last frame run."""
         self.component.ensure_valid()
-        snap = Snapshot(self.frame, callout=self.pending_callout())
+        snap = self.callout_snapshot()
         for instance in self.component.instances.values():
             parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
             snap.instances[instance.id] = (instance.graph.index, parent)
@@ -487,21 +527,26 @@ class BodyScript(ReplicatedBody):
             self._add_var(snap, 0, var_id, var)
         return snap
 
-    def pending_callout(self):
-        pending = self.world.wheel_callout
-        if self.retired or pending is None:
-            return None
-        instance_id, start, _, _, choice = pending
-        instance = self.component.instances.get(instance_id)
-        if instance is None or instance.stopped or instance.start != start or instance.graph.index != 0x0686:
-            return None
-        # The client action reads the current graph variables. A later choice
-        # or the end of this callout's authored wait invalidates the old event.
-        wait = instance.states.get(10)
-        selected = instance.vars.get(29699)
-        if wait is not None and wait.active and selected is not None and expr.same(selected.value(), choice):
-            return pending[:4]
-        return None
+    def callout_snapshot(self) -> Snapshot:
+        history = self.world.wheel_callouts
+        if self.retired or not history:
+            return Snapshot(self.frame)
+        pending = []
+        for event in history:
+            instance = self.component.instances.get(event.instance)
+            if instance is None or instance.stopped or instance.start != event.start:
+                continue
+            if instance.graph.index == 0x0686:
+                wait = instance.states.get(10)
+                selected = instance.vars.get(29699)
+                if (wait is None or not wait.active or selected is None
+                        or not expr.same(selected.value(), event.choice)
+                        or event.time < wait.start):
+                    continue
+            elif self.component.now - event.time > DIRECTED_CALLOUT_MS:
+                continue
+            pending.append(event)
+        return Snapshot(self.frame, callout=history[-1].serial, callouts=tuple(pending))
 
     def _add_var(self, snap: Snapshot, owner: int, var_id: int, var: runtime.Var) -> None:
         bindings = tuple(
@@ -565,6 +610,8 @@ class BodyScript(ReplicatedBody):
             return wires[item]
 
         keys = set()
+        callout = frame_callout(base, snap, touched, keys, self.stream.last + 1)
+        snap = snap.for_delta(base.callout, keys)
         for item in snap.instances:
             if item not in base.instances:  # new (a repeated descriptor is taken as the same instance)
                 wire(item).descriptor = True
@@ -616,7 +663,6 @@ class BodyScript(ReplicatedBody):
                 self._volley_start(snap, owner, index, wire, entity_vars, keys)
         for item in snap.instances:
             wire(item).events = [EventWire(*event) for event in snap.events.get(item, ())]
-        callout = frame_callout(base, snap, touched, keys, self.stream.last + 1)
         frame = owner_delta(cmfd, correction, list(wires.values()), entity_vars, graphs, self.frame_ms,
                             callout=callout)
         return frame, keys, snap
@@ -832,7 +878,7 @@ class BodyStream:
 
     def full(self, frame: BitWriter, snapshot: Snapshot):
         self.last += 1
-        self.pending[self.last] = (snapshot, set())
+        self.pending[self.last] = (replace(snapshot, callouts=()) if snapshot.callouts else snapshot, set())
         self.latest_lost = None
         self.full_update = self._update(frame, 0, resend=True)
         return self.full_update
@@ -840,6 +886,9 @@ class BodyStream:
     def delta(self, frame: BitWriter, snapshot: Snapshot, keys: set, cmfd: int):
         self.last += 1
         self.cmfd = cmfd
+        baseline = self.base.callout if self.base is not None else 0
+        if snapshot.callout or baseline:
+            snapshot = snapshot.for_delta(baseline, keys)
         self.pending[self.last] = (snapshot, keys)
         self.latest_lost = None
         return self._update(frame, self.base_last + 1, resend=False)

@@ -38,7 +38,7 @@ log = logging.getLogger("ow174.game")
 def snapshot(script) -> Snapshot:
     """The body as other clients should have it: every instance, every value (no bindings) and the remote
     states that are on (or StEC states that ran)."""
-    snap = Snapshot(script.frame, callout=script.pending_callout())
+    snap = script.callout_snapshot()
     for instance in script.replicated_instances():
         parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
         snap.instances[instance.id] = (instance.graph.index, parent)
@@ -119,6 +119,8 @@ def delta(script, stream: BodyStream, snap: Snapshot):
         known.update(pending.instances)
     wires: dict[int, InstanceWire] = {}
     keys: set = set()
+    callout = frame_callout(base, snap, touched, keys, stream.last + 1)
+    snap = snap.for_delta(base.callout, keys)
 
     def wire(item: int) -> InstanceWire:
         if item not in wires:
@@ -166,7 +168,6 @@ def delta(script, stream: BodyStream, snap: Snapshot):
             state = StateWire(now[0], now[1], dict(now[2]))
         keys.add(("state", *key))
         wire(owner).states[index] = state
-    callout = frame_callout(base, snap, touched, keys, stream.last + 1)
     if not keys:
         return None, keys
     return remote_delta(list(wires.values()), entity_vars, graphs, callout=callout), keys
@@ -175,12 +176,12 @@ def delta(script, stream: BodyStream, snap: Snapshot):
 LAZY_TICKS = 8  # a delta of values only (no state on or off) goes at most this often (the ultimate's meter)
 
 
-def _activity(snap: Snapshot) -> tuple:
+def _activity(snap: Snapshot, action: int = 0) -> tuple:
     """What must reach the other clients at once: the instances, the states that are on, the StEC states'
     payloads (their counters start them again)."""
     on = frozenset(key for key, (_, active, _) in snap.states.items() if active)
     stec = frozenset((key, value) for key, value in snap.states.items() if value[0] in stec_classes())
-    return frozenset(snap.instances), on, stec, snap.callout
+    return frozenset(snap.instances), on, stec, action
 
 
 class Watch:
@@ -277,7 +278,8 @@ class Observers:
             return
         if stream.base is None:
             return  # the full frame is still on its way
-        activity = _activity(snap)
+        callout = snap.next_callout(stream.base.callout)
+        activity = _activity(snap, callout.serial if callout is not None else 0)
         if activity == watch.sent and tick < watch.next_lazy:
             return
         frame, keys = delta(script, stream, snap)

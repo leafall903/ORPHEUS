@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Replicate directed 05AD callouts in order, with the synchronized
+  speaker data sampled separately for each action. Owner and observer
+  frames preserve that data across a lost acknowledgment. All 75 tests
+  and both 1,555-frame native reader probes pass. Target selection, recipient
+  rules and original-client acceptance remain open.
 - Evaluate directed game-message expressions and bind the sender on the
   recipient's entry. All 20 authored 05AD routes reach the chosen body
   in offline fixtures, and all 97 focused tests pass. Target selection,

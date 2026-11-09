@@ -164,7 +164,7 @@ State base required fields, inherited by every concrete State class:
 
 BodyWorld required fields, including those inherited from runtime.World:
 
-  hero mode body throttles communication_wheel wheel_callout
+  hero mode body throttles communication_wheel wheel_callouts
 
 The exact runtime.World representation, when accepted by export_component_vm, has
 hero and mode. A custom World subclass with additional behavior or hidden storage

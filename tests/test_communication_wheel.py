@@ -6,6 +6,7 @@ from unittest.mock import patch
 from test_game_combat import Run
 
 from ow174.game import observers, statescript
+from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
@@ -263,7 +264,7 @@ class CommunicationWheelTests(unittest.TestCase):
         if viewer_next is not None:
             self.assertEqual(watcher.apply(viewer_next).actions, [])
         body.command(body.frame + 130, 0)
-        self.assertIsNone(body.pending_callout())
+        self.assertEqual(body.callout_snapshot().callouts, ())
 
     def test_targeted_wheel_message_table_routes_to_the_selected_body(self):
         run = Run(names=("Speaker", "Target", "Bystander"))
@@ -299,3 +300,65 @@ class CommunicationWheelTests(unittest.TestCase):
         source.write((expr.INSTANCE, 29699), expr.Asset(0x0A900001000001E5))
         source.run_node(dispatch, None)
         self.assertEqual(run.match._body_messages, [])
+
+    def test_directed_callouts_keep_each_speaker_until_its_action_is_acknowledged(self):
+        run = Run(names=("First speaker", "Second speaker", "Recipient"))
+        first, second, recipient = run.players
+        run.step({})
+        body = recipient.body_script
+        owner = decode.ClientBody.for_hero(SOLDIER)
+        watcher = decode.ClientBody.for_hero(SOLDIER)
+        tree, baseline = body.tree_frame()
+        update = body.stream.full(tree, baseline)
+        owner.apply(update)
+        body.stream.arrived(update.chunk_last)
+        watch = observers.Watch(body.entity)
+        observer = observers.Observers(run.match)
+        with patch.object(first.client, "queue_entities") as send:
+            observer._frames(first, recipient, watch, observers.snapshot(body))
+        [update] = send.call_args.args[0]
+        watcher.apply(update)
+        watch.stream.arrived(update.chunk_last)
+
+        def wheel(player):
+            return next(instance for instance in player.body_script.component.instances.values()
+                        if instance.graph.index == 0x05AD)
+
+        for speaker, action in ((first, 0x1E5), (second, 0x1E6)):
+            source = wheel(speaker)
+            source.write((expr.INSTANCE, 375), (expr.Entity(recipient.body),))
+            source.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | action))
+            source.run_node(source.graph.node(183), None)
+        run.match.deliver_body_messages()
+        main = wheel(recipient)
+        self.assertEqual(main.vars[40].value(), expr.Entity(second.body))
+        export_body_vm(body)
+
+        def transmit():
+            body.command(body.frame + 16, 0)
+            [owner_update] = body.frames()
+            with patch.object(first.client, "queue_entities") as send:
+                observer._frames(first, recipient, watch, observers.snapshot(body))
+            [viewer_update] = send.call_args.args[0]
+            return owner_update, viewer_update
+
+        def check(updates, speaker, node, stamps):
+            for client, update, stamp in zip((owner, watcher), updates, stamps, strict=True):
+                self.assertEqual(client.apply(update).actions, [(stamp, main.id, node)])
+                self.assertEqual(client.vars[main.id, 40], expr.Entity(speaker.body))
+
+        first_updates = transmit()
+        stamps = tuple(update.chunk_last for update in first_updates)
+        check(first_updates, first, 188, stamps)
+        for update in first_updates:
+            update.stream.lost(update.chunk_last)
+
+        run.match.tick += observers.LAZY_TICKS
+        retry = transmit()
+        check(retry, first, 188, stamps)
+        for update in retry:
+            update.stream.arrived(update.chunk_last)
+
+        run.match.tick += 1
+        second_updates = transmit()
+        check(second_updates, second, 195, tuple(update.chunk_last for update in second_updates))

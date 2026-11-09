@@ -12,7 +12,7 @@ import random
 from ow174.game import replay_values
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
-from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -93,6 +93,7 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -388,7 +389,7 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match", "communication_wheel", "wheel_callout"))
+                fields.update(("body", "throttles", "match", "communication_wheel", "wheel_callouts"))
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position"))
             # The match and its pending deliveries belong to the enclosing server snapshot.

@@ -77,7 +77,7 @@ Source paths for the remaining actions
   row through the match delivery queue. The third player's graph does
   not receive the message. The target search in nodes 113 and 115 uses
   distinct collision query assets, 0111.097 and 0079.097. Their complete
-  target ranking and the recipient graph's short-action frames remain open.
+  target ranking remains open.
   For a new spray graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.
@@ -123,6 +123,17 @@ Source paths for the remaining actions
   repeats that stamp until ACK, and stops sending after the authored wait
   or a superseding choice. A fresh observer full frame establishes a
   baseline without replaying a pending callout.
+- The same path now carries the 05AD recipient actions. It samples the
+  variables named by the action's sync declarations when the action
+  runs. Each stream sends its oldest pending action with those sampled
+  values and advances on ACK. An offline fixture delivers two actions
+  from different speakers in the same match batch and verifies the
+  speaker in both frame forms, including the first action's retry.
+  The original 104319 frame reader accepts 1,555 generated 05AD frames
+  per form. The server keeps up to 32 recent callouts per body and
+  expires 05AD actions after two seconds of body simulation time.
+  Those bounds are server delivery policy. Target acquisition and the
+  client's filtering and presentation still need verification.
 
 Remaining static work includes the original selection and targeting
 transport, callout delivery and recipient rules, the emote and cosmetic

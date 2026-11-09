@@ -113,7 +113,7 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match communication_wheel wheel_callout"),
+    driver.BodyWorld: _names("hero mode body throttles match communication_wheel wheel_callouts"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
@@ -136,6 +136,7 @@ FIELDS = {
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
+    driver.WheelCallout,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
