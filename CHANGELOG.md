@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the selected equipped voice unlock from the account's four
+  voice slots. The Soldier: 76 fixture exercises the alternate slot,
+  and 100 original evaluator-tail cases verify the lookup. All 76
+  focused tests pass. Voice playback, ordinary spray playback and
+  original-client acceptance remain open.
 - Resolve equipped emote aliases from the account loadout and 104319
   unlock metadata. The selected slot reaches the 023A animation graph
   through 069A's PlayScript parameter. The extractor covers 284 untagged

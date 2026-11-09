@@ -39,14 +39,26 @@ Source paths for the remaining actions
   Voice slots are 173, 1A5, 1A4 and 1A3. Unmatched actions return -1.
   A 1,544-case offline comparison against those client instructions
   agrees with the slot resolver. An injected 1A4 reaches voice node 33
-  and sets slot 2. Equipped animation, equipped voice playback and the
-  original selection transport remain open.
+  and sets slot 2. The STU_17B517B9 runtime constructor at 970420
+  installs vtable 2627548. Evaluator 92E7E0 reads the selected slot
+  via BCC960 at component +D0 and returns the 0A5 unlock. The server
+  snapshots the merged +0x70 loadout at body creation. An offline
+  1A5 selection resolves Soldier: 76's second slot at 02CF:50.
+  A 100-case probe executes the native tail from 92EB64 with synthetic
+  component data. The authored 02CF:2 playback state and 1313
+  client-local message route remain open, as does selection transport.
 - Spray uses the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
-  the equipped-spray query. Its zero-based order is 16F, 19D, 19C, 19B.
+  a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.
   The category includes 19E, but the slot lookup returns -1 for that
   action. The resolver agrees with the native instructions on 1,544
-  GUIDs. Equipped-spray lookup and effect playback remain open.
+  GUIDs. The enclosing STU_2977339D config at 0686:67 is installed
+  by 970450 with vtable 2629388. Its evaluator at 93D1F0 uses BCC980
+  and resolves its result through 955C00. That helper requires type
+  descriptor 2E0F448 (C6A72877, STUUnlock_Pose). The result at +120
+  comes from the pose path. Ordinary STUUnlock_SprayPaint
+  (84515D93) has a separate descriptor and stores m_effectLook at
+  +110. The ordinary spray resource path and playback remain open.
 - The body host dispatches self-targeted PlayScript actions 05AD:109
   and 069A:9. The selected action enters 069A via parameter 08FC as a
   one-item array. The slot reaches 023A through the subscript's variable

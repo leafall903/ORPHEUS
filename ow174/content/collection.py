@@ -230,6 +230,12 @@ class Collection:
             return ()
         return tuple(self.items.emote_aliases.get(unlock, 0) for unlock in equipped[:4])
 
+    def voice_unlocks(self, profile: Profile, hero: int) -> tuple[int, ...]:
+        equipped = self.loadout(profile, hero).get(LIST_SLOT_BY_TYPE["VoiceLine"])
+        if not isinstance(equipped, list):
+            return ()
+        return tuple(unlock if unlock >> 48 == 0x0250 and unlock & 0xFFFFFFFFFFFF else 0 for unlock in equipped[:4])
+
     def equip(self, profile: Profile, hero: int, guid: int, slot: int) -> bool:
         """Store an equipped item in the profile. Returns False when the item has no slot there.
 

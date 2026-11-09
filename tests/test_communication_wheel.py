@@ -187,6 +187,34 @@ class CommunicationWheelTests(unittest.TestCase):
                 spray.write((expr.INSTANCE, 29699), action)
                 self.assertEqual(spray.evaluate(config), expected)
 
+    def test_voice_unlock_query_uses_the_equipped_slot(self):
+        default_voice, chosen_voice = 0x02500000000008D7, 0x0250000000000A31
+        collection = Collection(RetailTemplates(), ItemDB())
+        profile = Profile()
+        self.assertEqual(collection.voice_unlocks(profile, SOLDIER), (default_voice,))
+        profile.loadouts[f"0x{SOLDIER:016X}"] = {"+0x70": [hex(default_voice), hex(chosen_voice), "0x0"]}
+        match = Match(
+            PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
+            voice_unlocks_of=lambda _, hero: collection.voice_unlocks(profile, hero),
+        )
+        player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+        [create] = match.own_body_updates(player)
+        create.stream.arrived(0)
+        body = player.body_script
+        runtime.send_message(
+            body.component, 0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001A5), 0x3E1: True}, body.entity,
+        )
+        body.command(body.frame + 1, 0)
+        voice = next(instance for instance in body.component.instances.values() if instance.graph.index == 0x02CF)
+        self.assertEqual(voice.vars[9259].value(), 1)
+        query = voice.graph.node(50).field("m_value")
+        self.assertEqual(voice.evaluate(query), expr.Asset(chosen_voice))
+
+        for slot, expected in ((0, default_voice), (2, 0), (3, 0), (-1, 0)):
+            voice.write((expr.INSTANCE, 9259), slot)
+            self.assertEqual(voice.evaluate(query), expr.Asset(expected))
+
     def test_callout_and_spray_selections_replicate_the_shared_graph(self):
         cases = (
             (0x16B, 3793, expr.Asset(0x0C00000000005A0B), 27),

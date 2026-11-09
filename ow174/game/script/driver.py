@@ -150,10 +150,13 @@ class WheelCallout:
     values: tuple
 
 
-def valid_emote_aliases(aliases: tuple[int, ...]) -> bool:
-    return isinstance(aliases, tuple) and len(aliases) <= 4 and all(
-        type(alias) is int and (alias == 0 or 0x0C80000000000000 < alias <= 0x0C80FFFFFFFFFFFF)
-        for alias in aliases
+WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "voice_unlocks": 0x0250}
+
+
+def valid_wheel_slots(slots: tuple[int, ...], guid_type: int) -> bool:
+    return isinstance(slots, tuple) and len(slots) <= 4 and all(
+        type(guid) is int and (guid == 0 or (guid >> 48 == guid_type and guid & 0xFFFFFFFFFFFF))
+        for guid in slots
     )
 
 
@@ -166,6 +169,7 @@ class BodyWorld(runtime.World):
         self.body = body
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
+        self.voice_unlocks: tuple[int, ...] = ()
         self.wheel_callouts: list[WheelCallout] = []
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
@@ -216,18 +220,23 @@ class BodyWorld(runtime.World):
                 target = cfg.get("m_target")
                 if (isinstance(target, dict) and target.get("$") == "STU_33980609"
                         and instance.evaluate(target.get("m_entity")) == Entity(self.body)):
-                    slot = instance.evaluate(cfg.get("m_slot"))
-                    if type(slot) is int and 0 <= slot < len(self.emote_aliases):
-                        return Asset(self.emote_aliases[slot])
-                    return Asset(0)
+                    return self.equipped_wheel_asset(self.emote_aliases, instance.evaluate(cfg.get("m_slot")))
             if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
                 return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
+            if (cls == "STU_17B517B9" and instance.graph.index == 0x02CF
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                # 92E7E0 returns the equipped voice unlock itself.
+                return self.equipped_wheel_asset(self.voice_unlocks, instance.evaluate(cfg.get("m_slot")))
             if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
                 return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
+
+    @staticmethod
+    def equipped_wheel_asset(slots: tuple[int, ...], slot) -> Asset:
+        return Asset(slots[slot] if type(slot) is int and 0 <= slot < len(slots) else 0)
 
     @staticmethod
     def wheel_action_has_category(cfg: dict, instance) -> bool:
@@ -422,6 +431,7 @@ class BodyScript(ReplicatedBody):
         match: "Match | None" = None,
         communication_wheel: bool = False,
         emote_aliases: tuple[int, ...] = (),
+        voice_unlocks: tuple[int, ...] = (),
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
@@ -435,9 +445,10 @@ class BodyScript(ReplicatedBody):
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
         self.world.communication_wheel = communication_wheel or match is not None
-        if not valid_emote_aliases(emote_aliases):
-            raise ValueError("emote_aliases must be up to four animation alias GUIDs or empty slots")
-        self.world.emote_aliases = emote_aliases
+        for name, slots in (("emote_aliases", emote_aliases), ("voice_unlocks", voice_unlocks)):
+            if not valid_wheel_slots(slots, WHEEL_LOADOUT_TYPES[name]):
+                raise ValueError(f"{name} must contain up to four matching asset GUIDs or empty slots")
+            setattr(self.world, name, slots)
         self.component = runtime.Component(entity, self.frame_ms, self.world)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0

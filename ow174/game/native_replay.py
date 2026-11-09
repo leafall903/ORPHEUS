@@ -13,7 +13,7 @@ from functools import cache
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, frame_distance
 from ow174.game.content import SOLDIER
 from ow174.game.script import graph, runtime
-from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, BodyScript, valid_emote_aliases
+from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, WHEEL_LOADOUT_TYPES, BodyScript, valid_wheel_slots
 from ow174.paths import DATA_DIR, ROOT
 
 SCHEMA = "ow174.native-body-replay.v2"
@@ -190,8 +190,9 @@ def make_header(
         "gap_policy": "reject", "shot_policy": "drain_after_command", "initial_hash": snapshot_hash(script),
         "communication_wheel": script.world.communication_wheel,
     }
-    if script.world.emote_aliases:
-        header["emote_aliases"] = list(script.world.emote_aliases)
+    for name in WHEEL_LOADOUT_TYPES:
+        if slots := getattr(script.world, name):
+            header[name] = list(slots)
     return header
 
 
@@ -277,14 +278,17 @@ def replay_document(document: dict) -> dict:
     header, events = document["header"], document["events"]
     if not isinstance(header, dict) or header.get("schema") != SCHEMA or header.get("build") != BUILD:
         raise ValueError("Native trace schema/build mismatch")
-    if set(header) - {"communication_wheel", "emote_aliases"} != HEADER_FIELDS:
+    if set(header) - {"communication_wheel", *WHEEL_LOADOUT_TYPES} != HEADER_FIELDS:
         raise ValueError("Native v2 header fields do not match the fixed schema")
     communication_wheel = header.get("communication_wheel", False)
     if type(communication_wheel) is not bool:
         raise ValueError("Invalid communication_wheel")
-    aliases = header.get("emote_aliases", [])
-    if not isinstance(aliases, list) or not valid_emote_aliases(tuple(aliases)):
-        raise ValueError("Invalid emote_aliases")
+    equipment = {}
+    for name, guid_type in WHEEL_LOADOUT_TYPES.items():
+        slots = header.get(name, [])
+        if not isinstance(slots, list) or not valid_wheel_slots(tuple(slots), guid_type):
+            raise ValueError(f"Invalid {name}")
+        equipment[name] = tuple(slots)
     if not isinstance(events, list):
         raise ValueError("Events must be a list")
     if header.get("scope") != "body-script-only" or header.get("gap_policy") != "reject":
@@ -324,7 +328,7 @@ def replay_document(document: dict) -> dict:
         script = BodyScript(header["hero"], header["entity"], header["start_frame"],
                             quanta=header["quanta_us"], mode=header["mode"],
                             health=header["health"], ult_seconds=header["ult_seconds"],
-                            communication_wheel=communication_wheel, emote_aliases=tuple(aliases))
+                            communication_wheel=communication_wheel, **equipment)
         if snapshot_hash(script) != header.get("initial_hash"):
             fail("initial_state_mismatch")
         previous_seq, previous_tick = 0, header["server_tick"]
