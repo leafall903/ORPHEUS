@@ -481,6 +481,9 @@ class World:
         """None: known absent compiled filter; bool: known predicate result."""
         return NotImplemented
 
+    def localized_callout(self, instance: "Instance", node: Node) -> None:
+        pass
+
     def message_state_context(self, entity: int, *, component: "Component | None" = None):
         """Persistent State manager, explicit native frame/role/priority services."""
         return NotImplemented

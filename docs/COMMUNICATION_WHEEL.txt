@@ -86,10 +86,11 @@ Source paths for the remaining actions
   service, which updates properties 631B and 585E on the active wheel
   data source. This identifies the presenter callback before transport.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
-  reaches the client chat path. The current remote-frame writer replicates
-  state payloads. One-shot frame events for these authored actions remain
-  unimplemented. The wheel's BD02E168 auxiliary plug dispatch needs its
-  own verification alongside ordinary state activation.
+  reaches the client chat path. The six authored 0686 actions now enter
+  owner and observer deltas as short frame actions. They use the graph's
+  synchronized variables and leave text rendering and filtering to the
+  native action handler. Recipient rules still need individual verification.
+  The wheel's BD02E168 auxiliary plug dispatch also remains open.
 - The target frame reader reaches A0CCA0 from A0F1EB for remote
   messages. A0CCA0 reads a group-presence bit followed by RMFr
   (w_u32) and RMSz (w_var) for each group. It skips groups whose frame
@@ -106,6 +107,11 @@ Source paths for the remaining actions
   The probe compared target IDs, the six 0686 callout node mappings,
   cursor position, multiple entries and stale-group suppression.
   RMSz includes the entries and excludes the group terminator.
+  A second 253-frame probe verified H=1 with the graph's raw node index.
+  The server uses each stream's first carrying chunk as the group stamp,
+  repeats that stamp until ACK, and stops sending after the authored wait
+  or a superseding choice. A fresh observer full frame establishes a
+  baseline without replaying a pending callout.
 
 Remaining static work includes the original selection and targeting
 transport, callout delivery and recipient rules, the emote and cosmetic

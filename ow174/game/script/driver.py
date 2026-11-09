@@ -145,6 +145,7 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.communication_wheel = False
+        self.wheel_callout = None
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
@@ -241,6 +242,12 @@ class BodyWorld(runtime.World):
             # The bundle already holds the resource, so submission can flush synchronously.
             play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
 
+    def localized_callout(self, instance: runtime.Instance, node: graph.Node) -> None:
+        if self.communication_wheel and instance.graph.index == 0x0686 and node.remote >= 0:
+            selected = instance.vars.get(29699)
+            if selected is not None:
+                self.wheel_callout = (instance.id, instance.start, node.pos, instance.component.now, selected.value())
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
         if (match is not None and sender == self.body
@@ -258,6 +265,19 @@ class Snapshot:
     vars: dict = field(default_factory=dict)  # (instance or 0, var) -> (value, bindings)
     states: dict = field(default_factory=dict)  # (instance, state) -> (cls, on, payload)
     events: dict = field(default_factory=dict)  # instance -> ((time, state, finish, param), ...)
+
+    callout: tuple[int, int, int, int] | None = None  # instance, start, node position, action time
+
+
+def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_chunk: int):
+    """Keep the original chunk stamp on each cumulative copy until it is acknowledged."""
+    callout = snap.callout
+    if callout is None or callout == base.callout:
+        return None
+    previous = (key[2] for key in touched if key[0] == "callout" and key[1] == callout)
+    stamp = min(previous, default=next_chunk)
+    keys.add(("callout", callout, stamp))
+    return stamp, callout[0], callout[2]
 
 
 @dataclass
@@ -281,6 +301,9 @@ def _same_var(a, b) -> bool:
 class ReplicatedBody:
     component: runtime.Component
     server_only: set[int]
+
+    def pending_callout(self):
+        return None
 
     def set_health(self, health: float, most: float) -> None:
         """Update the shared health input. Player bodies also use the maximum for their HUD."""
@@ -447,7 +470,7 @@ class BodyScript(ReplicatedBody):
     def snapshot(self) -> Snapshot:
         """The body as the client should have it after the last frame run."""
         self.component.ensure_valid()
-        snap = Snapshot(self.frame)
+        snap = Snapshot(self.frame, callout=self.pending_callout())
         for instance in self.component.instances.values():
             parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
             snap.instances[instance.id] = (instance.graph.index, parent)
@@ -463,6 +486,22 @@ class BodyScript(ReplicatedBody):
         for var_id, var in self.replicated_vars():
             self._add_var(snap, 0, var_id, var)
         return snap
+
+    def pending_callout(self):
+        pending = self.world.wheel_callout
+        if self.retired or pending is None:
+            return None
+        instance_id, start, _, _, choice = pending
+        instance = self.component.instances.get(instance_id)
+        if instance is None or instance.stopped or instance.start != start or instance.graph.index != 0x0686:
+            return None
+        # The client action reads the current graph variables. A later choice
+        # or the end of this callout's authored wait invalidates the old event.
+        wait = instance.states.get(10)
+        selected = instance.vars.get(29699)
+        if wait is not None and wait.active and selected is not None and expr.same(selected.value(), choice):
+            return pending[:4]
+        return None
 
     def _add_var(self, snap: Snapshot, owner: int, var_id: int, var: runtime.Var) -> None:
         bindings = tuple(
@@ -577,7 +616,9 @@ class BodyScript(ReplicatedBody):
                 self._volley_start(snap, owner, index, wire, entity_vars, keys)
         for item in snap.instances:
             wire(item).events = [EventWire(*event) for event in snap.events.get(item, ())]
-        frame = owner_delta(cmfd, correction, list(wires.values()), entity_vars, graphs, self.frame_ms)
+        callout = frame_callout(base, snap, touched, keys, self.stream.last + 1)
+        frame = owner_delta(cmfd, correction, list(wires.values()), entity_vars, graphs, self.frame_ms,
+                            callout=callout)
         return frame, keys, snap
 
     def _volley_start(self, snap: Snapshot, owner: int, index: int, wire, entity_vars: dict, keys: set):

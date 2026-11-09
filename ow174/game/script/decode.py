@@ -330,6 +330,7 @@ class Frame:
     cmfd: int = 0
     instances: dict[int, DecodedInstance] = field(default_factory=dict)
     entity_vars: dict = field(default_factory=dict)
+    actions: list[tuple[int | None, int, int]] = field(default_factory=list)  # stamp, instance, node position
 
     @property
     def full(self) -> bool:
@@ -544,9 +545,36 @@ def _read_chunk(data: bytes, bits: int, known, frame_ms: int, records) -> Frame:
             raise DecodeError(f"LBSS says the body ends at {lbss}, it ends at {reader.pos}")
         if reader.bit():
             raise DecodeError("more sub-frames")
-    if reader.bits(2):
-        raise DecodeError("frame events")
+    while reader.bit():
+        stamp = w_u32(reader)
+        size = w_var(reader)
+        end = reader.pos + size
+        _frame_actions(reader, frame, graphs, stamp)
+        if reader.pos != end + 1:
+            raise DecodeError("frame action group length")
+    _frame_actions(reader, frame, graphs, None)
     return frame
+
+
+def _frame_actions(reader: BitReader, frame: Frame, graphs: dict, stamp: int | None) -> None:
+    while reader.bit():
+        if reader.bit():
+            raise DecodeError("long frame action")
+        start = reader.pos
+        end = start + reader.bits(8)
+        if not reader.bit():
+            raise DecodeError("frame action without a target")
+        target = w_u16(reader)
+        if target not in graphs:
+            raise FrameRefused(f"frame action target {target} is unknown")
+        definition = graph_of(graphs[target])
+        if frame.owner:
+            node = definition.by_rid(reader.bits(definition.nodes_bits))
+        else:
+            node = definition.remote_node(reader.bits(definition.remote_bits))
+        if node is None or not node.is_action or reader.pos != end:
+            raise DecodeError("invalid short frame action")
+        frame.actions.append((stamp, target, node.pos))
 
 
 def initial_graphs(hero: int) -> list:

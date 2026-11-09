@@ -829,6 +829,8 @@ def owner_delta(
     entity_vars: dict,
     graphs: dict,
     frame_ms: int = 16,
+    *,
+    callout: tuple[int, int, int] | None = None,
 ) -> BitWriter:
     """An owner (H = 1) delta frame of a body. `graphs` maps every instance id of the entity to its graph
     (a binding names the bound instance's state with that graph's width)."""
@@ -871,8 +873,32 @@ def owner_delta(
     out.w_var(body.count)  # LBSS: the body up to the "more" bit
     out.append(body)
     out.bit(0)  # no more sub-frames
-    out.bits(0, 2)  # no frame events
+    _write_frame_action(out, callout, graphs, owner=True)
     return out
+
+
+def _write_frame_action(out: BitWriter, action, graphs: dict, *, owner: bool) -> None:
+    """104319 A0CCA0, one timestamped short action and an empty ungrouped list."""
+    out.bit(action is not None)
+    if action is not None:
+        stamp, target, position = action
+        definition = graphs[target]
+        node = definition.node(position)
+        if node is None or not node.is_action or not node.is_networked or node.remote < 0:
+            raise ValueError("frame action has no networked node")
+        entry = BitWriter()
+        entry.bit(1)  # TrID present
+        entry.w_u16(target)
+        entry.bits(node.rid if owner else node.remote, definition.nodes_bits if owner else definition.remote_bits)
+        out.w_u32(stamp)
+        out.w_var(2 + 8 + entry.count)  # RMSz excludes the group terminator
+        out.bit(1)  # one entry
+        out.bit(0)  # short length and no node payload
+        out.bits(8 + entry.count, 8)
+        out.append(entry)
+        out.bit(0)  # no more entries
+        out.bit(0)  # no more groups
+    out.bit(0)  # no ungrouped entries
 
 
 def body_full_frame(instances: list[InstanceWire], entity_vars: dict, graphs: dict) -> BitWriter:
@@ -1012,7 +1038,10 @@ def remote_full_frame(instances: list[InstanceWire], entity_vars: dict, graphs: 
     return out
 
 
-def remote_delta(instances: list[InstanceWire], entity_vars: dict, graphs: dict) -> BitWriter:
+def remote_delta(
+    instances: list[InstanceWire], entity_vars: dict, graphs: dict, *,
+    callout: tuple[int, int, int] | None = None,
+) -> BitWriter:
     """A plain (H = 0) delta: the instances that changed, the variables, and per listed instance a mask over
     its raw m_remoteSyncNodes list with the states that changed (item.states by m_states index)."""
     out = BitWriter()
@@ -1044,5 +1073,5 @@ def remote_delta(instances: list[InstanceWire], entity_vars: dict, graphs: dict)
         mask(out, len(nodes), set(chosen))
         for index in sorted(chosen):
             _remote_state(out, chosen[index], full=False, graphs=graphs)
-    out.bits(0, 2)  # no frame events
+    _write_frame_action(out, callout, graphs, owner=False)
     return out

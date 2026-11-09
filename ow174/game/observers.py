@@ -23,7 +23,7 @@ from functools import lru_cache
 
 from ow174.game.script import expr, graph
 from ow174.game.script.codecs import stec_classes
-from ow174.game.script.driver import BodyStream, Snapshot
+from ow174.game.script.driver import BodyStream, Snapshot, frame_callout
 from ow174.game.statescript import (
     InstanceWire,
     StateWire,
@@ -38,7 +38,7 @@ log = logging.getLogger("ow174.game")
 def snapshot(script) -> Snapshot:
     """The body as other clients should have it: every instance, every value (no bindings) and the remote
     states that are on (or StEC states that ran)."""
-    snap = Snapshot(script.frame)
+    snap = Snapshot(script.frame, callout=script.pending_callout())
     for instance in script.replicated_instances():
         parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
         snap.instances[instance.id] = (instance.graph.index, parent)
@@ -166,9 +166,10 @@ def delta(script, stream: BodyStream, snap: Snapshot):
             state = StateWire(now[0], now[1], dict(now[2]))
         keys.add(("state", *key))
         wire(owner).states[index] = state
+    callout = frame_callout(base, snap, touched, keys, stream.last + 1)
     if not keys:
         return None, keys
-    return remote_delta(list(wires.values()), entity_vars, graphs), keys
+    return remote_delta(list(wires.values()), entity_vars, graphs, callout=callout), keys
 
 
 LAZY_TICKS = 8  # a delta of values only (no state on or off) goes at most this often (the ultimate's meter)
@@ -179,7 +180,7 @@ def _activity(snap: Snapshot) -> tuple:
     payloads (their counters start them again)."""
     on = frozenset(key for key, (_, active, _) in snap.states.items() if active)
     stec = frozenset((key, value) for key, value in snap.states.items() if value[0] in stec_classes())
-    return frozenset(snap.instances), on, stec
+    return frozenset(snap.instances), on, stec, snap.callout
 
 
 class Watch:

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Emit the 0686 localized callouts as native short actions in owner
+  and observer frames. Cumulative copies retain their first chunk stamp.
+  All 87 focused tests and both 253-frame native reader probes pass.
+  Original input, targeted callouts, and client acceptance remain open.
 - Start the shared 0686 graph for fixed callouts, configurable callouts
   and sprays. Its authored text map and first spray pulse now replicate
   through owner and observer frames. All 83 focused tests and the

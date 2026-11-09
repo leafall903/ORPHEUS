@@ -2202,13 +2202,18 @@ def no_op(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_7106C356")
+def localized_callout(instance: Instance, node, caller) -> bool:
+    instance.component.world.localized_callout(instance, node)
+    return no_op(instance, node, caller)
+
+
 for _name in (
     "STUStatescriptActionEffect",
     "STUStatescriptActionCriteria",
     "STU_CEBDAF17",  # TrackStat
     "STU_100EF8C2",  # SendClientOnlyGameMessage
     "STUStatescriptActionSendClientGlobalGameMessage",
-    "STU_7106C356",
     "STU_C43F9944",
 ):
     handler(_name)(no_op)

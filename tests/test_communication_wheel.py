@@ -8,7 +8,7 @@ from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.script import decode, expr, graph, runtime
-from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.script.driver import BodyScript, BodyStream, BodyWorld
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -161,14 +161,14 @@ class CommunicationWheelTests(unittest.TestCase):
 
     def test_callout_and_spray_selections_replicate_the_shared_graph(self):
         cases = (
-            (0x16B, 3793, expr.Asset(0x0C00000000005A0B)),
+            (0x16B, 3793, expr.Asset(0x0C00000000005A0B), 27),
             (0x1E5, 29862, expr.Map((
                 (2464, expr.Asset(0x0DE0000000010AF3)),
                 (1384, expr.Asset(0x0D800000000074BD)),
-            ))),
-            (0x19D, 3793, expr.Asset(0x0C00000000007114)),
+            )), 59),
+            (0x19D, 3793, expr.Asset(0x0C00000000007114), None),
         )
-        for action, variable, value in cases:
+        for action, variable, value, node in cases:
             with self.subTest(action=hex(action)):
                 match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
                 player = match.add_player(1, "Soldier", SOLDIER, 0, False)
@@ -191,6 +191,8 @@ class CommunicationWheelTests(unittest.TestCase):
                 [callout] = [number for number, index in client.graphs.items() if index == 0x0686]
                 self.assertEqual(client.vars[callout, 29699], choice)
                 self.assertEqual(client.vars[callout, variable], value)
+                actions = [item for frame in frames for item in frame.actions]
+                self.assertEqual(actions, [] if node is None else [(frames[-1].last, callout, node)])
                 remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
                 remote_callout = decode.read_chunk(remote.getvalue(), remote.count).instances[callout]
                 self.assertEqual(remote_callout.vars[variable][0], value)
@@ -202,3 +204,61 @@ class CommunicationWheelTests(unittest.TestCase):
                     ]
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
+
+    def test_callout_deltas_retry_with_one_stamp_and_stop_after_ack(self):
+        match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
+        player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+        [create] = match.own_body_updates(player)
+        body = player.body_script
+        owner = decode.ClientBody.for_hero(SOLDIER)
+        create.stream.arrived(0)
+        [tree] = body.frames()
+        owner.apply(tree)
+        body.stream.arrived(tree.chunk_last)
+        body.command(body.frame + 1, 0)
+        [initial] = body.frames()
+        owner.apply(initial)
+        body.stream.arrived(initial.chunk_last)
+
+        watcher = decode.ClientBody.for_hero(SOLDIER)
+        stream = BodyStream(body.entity)
+        baseline = observers.snapshot(body)
+        tree = stream.full(observers.full_frame(body, baseline), baseline)
+        watcher.apply(tree)
+        stream.arrived(tree.chunk_last)
+
+        def observer_update():
+            snap = observers.snapshot(body)
+            frame, keys = observers.delta(body, stream, snap)
+            return stream.delta(frame, snap, keys, 0) if frame is not None else None
+
+        runtime.send_message(
+            body.component, 0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001E5), 0x3E1: True}, body.entity,
+        )
+        body.command(body.frame + 16, 0)
+        [owner_first] = body.frames()
+        viewer_first = observer_update()
+        first_seen = watcher.apply(viewer_first).actions
+        body.stream.lost(owner_first.chunk_last)
+        stream.lost(viewer_first.chunk_last)
+
+        body.command(body.frame + 1, 0)
+        [owner_retry] = body.frames()
+        viewer_retry = observer_update()
+        [callout] = [instance.id for instance in body.component.instances.values()
+                     if instance.graph.index == 0x0686]
+        self.assertEqual(owner.apply(owner_retry).actions, [(owner_first.chunk_last, callout, 59)])
+        self.assertEqual(first_seen, [(viewer_first.chunk_last, callout, 59)])
+        self.assertEqual(watcher.apply(viewer_retry).actions, first_seen)
+        body.stream.arrived(owner_retry.chunk_last)
+        stream.arrived(viewer_retry.chunk_last)
+
+        body.command(body.frame + 1, 0)
+        [owner_next] = body.frames()
+        self.assertEqual(owner.apply(owner_next).actions, [])
+        viewer_next = observer_update()
+        if viewer_next is not None:
+            self.assertEqual(watcher.apply(viewer_next).actions, [])
+        body.command(body.frame + 130, 0)
+        self.assertIsNone(body.pending_callout())
