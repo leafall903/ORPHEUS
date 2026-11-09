@@ -48,7 +48,7 @@ from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, s
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
-from ow174.game.script import expr, graph, nodes, runtime, scene_host
+from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
@@ -1069,6 +1069,20 @@ class Match:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
         return None
+
+    def resolve_body_spray(self, entity: int, length: float) -> dict | None:
+        collision = self.collision_world
+        player = next((player for player in self.players if player.body == entity and player.has_body), None)
+        if collision is None or player is None or self.combat.is_dead(player):
+            return None
+        mover = player.mover
+        x, y, z = mover.position
+        origin = (x, y + combat.eye_height(player.hero.body, mover.crouched), z)
+        direction = combat.aim(mover.yaw, mover.pitch)
+        hit = collision.cast_ray(origin, direction, length, spray_placement.SURFACE_CATEGORY)
+        if hit is None:
+            return None
+        return {"direction": direction, "point": hit.point, "normal": hit.normal}
 
     def _message_player(self, entity: int) -> Player | None:
         shown = (player for player in self.players if player.body == entity and self._shown(player))

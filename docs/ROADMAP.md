@@ -60,8 +60,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
-    Resolved spray placements can be encoded in owner and observer frames.
-    Spray placement solving and client-side cosmetic access remain open.
+    The spray graph resolves eligible surfaces in loaded static collision and
+    replicates the placement in owner and observer frames. Dynamic attachment,
+    native lifetime and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     The recipient graph sends the actions in order with each action's source.

@@ -8,12 +8,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Place equipped sprays on eligible static map surfaces within the
+  authored 4.5 metre range. Hits enter owner and observer frames.
+  Empty slots and misses take the graph's failure path. Dynamic
+  attachment, native lifetime and client playback remain open.
 - Encode resolved spray placements in owner and observer body frames.
   Two packed directions, the point, and optional attachment data use
   the 104319 writer's layout. The 89 focused tests, 2,051 native
-  direction comparisons and 540 native writer cases pass. The body
-  host still needs to solve placements. Original-client acceptance
-  remains open.
+  direction comparisons and 540 native writer cases pass.
 - Correct the cosmetic paths using the 104319 STU registration and
   equipped-slot routines. 02CF reads a spray unlock and 0686 reads the
   voice unlock's .00D effect. The extractor found 1,043 voice effects.

@@ -389,6 +389,9 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def resolve_spray(self, length: float) -> dict | None:
+        return None
+
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 

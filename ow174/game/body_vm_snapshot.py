@@ -90,6 +90,7 @@ _STATE_LAYOUTS = {
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.SprayPlacement: (("placement",), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {

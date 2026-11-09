@@ -115,6 +115,12 @@ def _along(origin, direction, t: float):
     return (origin[0] + direction[0] * t, origin[1] + direction[1] * t, origin[2] + direction[2] * t)
 
 
+def eye_height(body: int, crouched: bool = False) -> float:
+    if crouched:
+        return EYE_CROUCHED.get(body, EYE_CROUCHED_DEFAULT)
+    return EYE
+
+
 def ray_capsule(origin, direction, a, b, radius: float) -> float | None:
     """Where a ray (unit direction) first meets the capsule around segment a-b: its distance, 0 from
     inside, None when it misses."""

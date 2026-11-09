@@ -28,6 +28,7 @@ from ow174.game.script import (
     play,
     scopes,
     shared_vars,
+    spray_placement,
     voice_stimulus,
 )
 from ow174.game.script.expr import (
@@ -1828,6 +1829,37 @@ class Effect(State):
 
     def payload(self) -> dict:
         return {"counter": self.counter & 3}
+
+
+@state_class(spray_placement.STATE_CLASS)
+class SprayPlacement(State):
+    """Resolve the selected spray and keep its geometry for replication."""
+
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.placement = {}
+
+    def on_enter(self) -> None:
+        self.reentry()
+
+    def reentry(self) -> None:
+        unlock = self.evaluate(self.node.field("m_E441DC25"), watch=False)
+        length = expr.to_float(self.evaluate(self.node.field("m_7F47658A"), watch=False))
+        hit = None
+        if isinstance(unlock, Asset) and unlock.guid >> 48 == 0x0250 and math.isfinite(length) and length > 0:
+            hit = self.instance.component.world.resolve_spray(length)
+        if hit is None:
+            self.instance.follow(self.node, "m_9254FB21", self)
+            self.request(ABORT)
+            return
+        self.placement = hit
+        self.instance.follow(self.node, "m_A39D2005", self)
+
+    def on_end(self, finished: bool) -> None:
+        self.placement = {}
+
+    def payload(self) -> dict:
+        return self.placement
 
 
 @state_class("STU_B9898052")

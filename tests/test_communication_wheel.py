@@ -12,12 +12,12 @@ from ow174.accounts.profile import Profile
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates
 from ow174.content.collection import Collection
-from ow174.game import observers, statescript
+from ow174.game import combat, observers, statescript
 from ow174.game.body_vm_snapshot import export_body_vm
-from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.collision import StaticCollisionProvider, World, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
-from ow174.game.script import decode, expr, graph, runtime
+from ow174.game.script import decode, expr, graph, runtime, spray_placement
 from ow174.game.script.driver import BodyScript, BodyStream
 from ow174.paths import EMOTE_ALIAS_DATA, VOICE_EFFECT_DATA
 
@@ -226,7 +226,7 @@ class CommunicationWheelTests(unittest.TestCase):
         voice_query = voice.graph.node(67).field("m_value")
         self.assertEqual(spray.evaluate(spray_query), expr.Asset(chosen_spray))
         self.assertEqual(voice.evaluate(voice_query), expr.Asset(chosen_effect))
-        self.assertTrue(spray.state(1).active)
+        self.assertFalse(spray.state(1).active)
         self.assertNotIn((spray.id, 1), body.snapshot().states)
         self.assertNotIn((spray.id, 1), observers.snapshot(body).states)
 
@@ -236,6 +236,77 @@ class CommunicationWheelTests(unittest.TestCase):
         for action, expected in ((0x16F, default_effect), (0x19C, 0), (0x19B, 0), (0x19E, 0)):
             voice.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | action))
             self.assertEqual(voice.evaluate(voice_query), expr.Asset(expected))
+
+    def test_spray_selection_places_on_the_nearest_eligible_static_surface(self):
+        def wall(z):
+            return (-3, 0, z, 3, 0, z, -3, 4, z), (3, 0, z, 3, 4, z, -3, 4, z)
+
+        pixel = 0x02500000000007F1
+        for distance, unlocks, yaw, expected in (
+            (3.0, (pixel,), 0, True),
+            (4.51, (pixel,), 0, False),
+            (3.0, (pixel,), 32768, False),
+            (3.0, (), 0, False),
+        ):
+            with self.subTest(distance=distance, unlocks=unlocks, yaw=yaw):
+                world = World((*wall(1.0), *wall(distance)), masks=(0x18, 0x18, 0x40, 0x40))
+                match = Match(
+                    PRACTICE_RANGE, collision_provider=StaticCollisionProvider(world),
+                    wheel_cosmetics_of=lambda *_: (unlocks, ()),
+                )
+                self.assertTrue(match._refresh_collision())
+                player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+                player.has_body = True
+                [create] = match.own_body_updates(player)
+                body = player.body_script
+                player.mover.position = (0.0, 0.0, 0.0)
+                player.mover.yaw = yaw
+                player.mover.pitch = 0
+                create.stream.arrived(0)
+                owner = decode.ClientBody.for_hero(SOLDIER)
+                [tree] = body.frames()
+                owner.apply(tree)
+                body.stream.arrived(tree.chunk_last)
+                runtime.send_message(
+                    body.component, 0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True}, body.entity,
+                )
+                body.command(body.frame + 1, 0)
+                spray = next(i for i in body.component.instances.values() if i.graph.index == 0x02CF)
+                state = spray.state(1)
+                self.assertEqual(state.active, expected)
+                owner_frames = [owner.apply(update) for update in body.frames()]
+                remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
+                watched = decode.read_chunk(remote.getvalue(), remote.count).instances[spray.id]
+                self.assertEqual(owner.states.get((spray.id, 1), False), expected)
+                self.assertEqual(watched.states.get(1, (False, {}))[0], expected)
+                if expected:
+                    self.assertEqual(state.payload(), {
+                        "direction": (0.0, 0.0, 1.0),
+                        "point": (0.0, combat.eye_height(player.hero.body), distance),
+                        "normal": (0.0, 0.0, -1.0),
+                    })
+                    result = (True, spray_placement.wire_fields(state.payload()))
+                    self.assertEqual(watched.states[1], result)
+                    self.assertIn(result, [
+                        frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
+                    ])
+                    self.assertTrue(spray.state(14).active)
+                    self.assertEqual(spray.state(14).pulses, 1)
+                    # A failed replacement cannot carry the new slot with the old geometry.
+                    player.mover.yaw = 32768
+                    body.command(body.frame + 300, 0)
+                    runtime.send_message(
+                        body.component, 0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True}, body.entity,
+                    )
+                    body.command(body.frame + 1, 0)
+                    self.assertFalse(state.active)
+                    self.assertEqual(state.payload(), {})
+                    self.assertEqual(spray.state(14).pulses, 1)
+                else:
+                    self.assertEqual(state.payload(), {})
+                    self.assertFalse(spray.state(14).active)
 
     def test_callout_and_voice_selections_replicate_the_shared_graph(self):
         cases = (
