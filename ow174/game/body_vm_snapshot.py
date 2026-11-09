@@ -94,7 +94,7 @@ _STATE_LAYOUTS = {
 }
 _VALUE_LAYOUTS = {
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
-    expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
+    expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
                     "message", "assignment", "transient"),

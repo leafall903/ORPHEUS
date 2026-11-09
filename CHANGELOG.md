@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Start the shared 0686 graph for fixed callouts, configurable callouts
+  and sprays. Its authored text map and first spray pulse now replicate
+  through owner and observer frames. All 83 focused tests and the
+  offline comparison of 20 authored text rows pass. Callout delivery,
+  equipped effects and original-client acceptance remain open.
 - Resolve the four spray slots from the 104319 table used by 0686.
   All 1,544 offline native comparisons agree and 66 isolated tests pass.
   Equipped-spray playback and original-client acceptance remain open.

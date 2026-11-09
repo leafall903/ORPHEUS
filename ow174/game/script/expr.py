@@ -118,6 +118,13 @@ class Map:
         return None
 
 
+@dataclass(frozen=True)
+class PairArray:
+    """An ordered type-12 array of typed keys and values."""
+
+    items: tuple = ()
+
+
 def kind(value) -> str:
     if value is None:
         return "null"
@@ -376,6 +383,7 @@ CONSTANTS = {
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
     "STUConfigVarIdentifier": "m_identifier",
+    "STUConfigVarUXDisplayText": "m_displayText",
     "STUConfigVarGameMessage": "m_gameMessage",
     "STUConfigVarEffect": "m_effect",
     "STUConfigVarLoadout": "m_loadout",
@@ -546,9 +554,14 @@ def _index(obj, index):
     non-array, or the element equal to a non-numeric index."""
     if isinstance(index, (bool, int, float)) or index is None:
         number = to_int(index)
+        if isinstance(obj, PairArray):
+            return obj.items[number][1] if 0 <= number < len(obj.items) else None
         if isinstance(obj, tuple):
             return obj[number] if 0 <= number < len(obj) else None
         return obj if number == 0 else None
+    if isinstance(obj, PairArray):
+        matches = (value for key, value in obj.items if type(key) is type(index) and equal(key, index))
+        return next(matches, None)
     if isinstance(obj, tuple):
         for item in obj:
             if equal(item, index):

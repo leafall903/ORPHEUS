@@ -52,8 +52,24 @@ Source paths for the remaining actions
   implementation. With the equipped animation query supplied by a test
   fixture, selection 1A1 starts 069A, its 023A animation child and 1040.
   The owner stream carries all three graph descriptors. Real loadout
-  lookup, repeat selection behavior and the shared 0686 callout graph
-  remain open.
+  lookup and repeat selection behavior remain open.
+- The same PlayScript path now starts the self-targeted 0686 graph from
+  05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
+  graph selects the fixed, configurable or spray branch. Initializer 62
+  builds typed action-to-value pairs. Each configurable callout value
+  is a keyed array containing a display-text asset and an identifier.
+  The owner stream carries the selected value using the full keyed
+  array form read at D57430. The typed pairs use the D57899 form.
+  Offline selections 16B, 1E5 and 19D verify the fixed texture,
+  configurable text and identifier, and spray pulse in owner and
+  observer frames. With 130 command frames between selections, the
+  body reuses the same 0686 instance for all three actions.
+  A separate offline comparison verifies all 20 authored text-map
+  rows through observer frames. Each of the four spray choices emits
+  a first-play pulse.
+  For a new spray graph, the first pulse sets the playback bit required
+  by client reader 9FD760. It uses the body host's existing 500 ms
+  freshness window. The native server's freshness duration is unknown.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

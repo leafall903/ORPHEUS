@@ -15,6 +15,7 @@ GRAPH_KEY = 0x4065
 IDENTIFIER_TYPE = 0x0D80000000000000
 _FAILED = object()
 MAX_CONFIG_DEPTH = 64
+AUTHORED_PAIRS = "STU_7757D403"
 
 
 @dataclass(frozen=True)
@@ -51,10 +52,27 @@ def evaluate_value(instance, cfg, *, initial=0, watcher=None):
     with instance.component.operation():
         if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
             return tuple(_iter_values(instance, cfg, watcher=watcher))
+        if isinstance(cfg, dict) and cfg.get("$") == AUTHORED_PAIRS:
+            return _authored_pairs(instance, cfg, watcher=watcher)
         result = controller_heroes.collect(instance.context(watcher), cfg)
         if result is not NotImplemented:
             return result
         return instance.evaluate(cfg, watcher, initial=initial)
+
+
+def _authored_pairs(instance, cfg, *, watcher):
+    """104319 1B78280/1B77090 collect each value, then its typed key, in authored order."""
+    pairs = []
+    for row in cfg.get("m_configVars") or ():
+        instance.component.consume_work("authored pair")
+        if not isinstance(row, dict) or row.get("$") != "STU_98DD1872":
+            instance.component.unsupported(instance, "authored pair row", AUTHORED_PAIRS)
+        value = evaluate_scalar(instance, row.get("m_value"), initial=None, watcher=watcher)
+        key = evaluate_scalar(instance, row.get("m_key"), initial=None, watcher=watcher)
+        if not isinstance(key, expr.Asset):
+            instance.component.unsupported(instance, "authored resource pair key", AUTHORED_PAIRS)
+        pairs.append((key, value))
+    return expr.PairArray(tuple(pairs))
 
 
 def array_item(instance, cfg, *, watcher=None):

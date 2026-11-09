@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import patch
 
+from ow174.game import observers, statescript
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
@@ -157,3 +158,47 @@ class CommunicationWheelTests(unittest.TestCase):
             with self.subTest(action=action):
                 spray.write((expr.INSTANCE, 29699), action)
                 self.assertEqual(spray.evaluate(config), expected)
+
+    def test_callout_and_spray_selections_replicate_the_shared_graph(self):
+        cases = (
+            (0x16B, 3793, expr.Asset(0x0C00000000005A0B)),
+            (0x1E5, 29862, expr.Map((
+                (2464, expr.Asset(0x0DE0000000010AF3)),
+                (1384, expr.Asset(0x0D800000000074BD)),
+            ))),
+            (0x19D, 3793, expr.Asset(0x0C00000000007114)),
+        )
+        for action, variable, value in cases:
+            with self.subTest(action=hex(action)):
+                match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
+                player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+                [create] = match.own_body_updates(player)
+                body = player.body_script
+                client = decode.ClientBody.for_hero(SOLDIER)
+                create.stream.arrived(0)
+                [tree] = body.frames()
+                client.apply(tree)
+                body.stream.arrived(tree.chunk_last)
+
+                choice = expr.Asset(0x0A90000000000000 | action)
+                runtime.send_message(
+                    body.component, 0x02400000000002A3,
+                    {0x8FC: choice, 0x3E1: True}, body.entity,
+                )
+                body.command(body.frame + 1, 0)
+                frames = [client.apply(update) for update in body.frames()]
+
+                [callout] = [number for number, index in client.graphs.items() if index == 0x0686]
+                self.assertEqual(client.vars[callout, 29699], choice)
+                self.assertEqual(client.vars[callout, variable], value)
+                remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
+                remote_callout = decode.read_chunk(remote.getvalue(), remote.count).instances[callout]
+                self.assertEqual(remote_callout.vars[variable][0], value)
+                self.assertEqual(client.states.get((callout, 13), False), action == 0x19D)
+                if action == 0x19D:
+                    [pulse] = [
+                        frame.instances[callout].states[13] for frame in frames
+                        if callout in frame.instances and 13 in frame.instances[callout].states
+                    ]
+                    self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
+                    self.assertEqual(remote_callout.states[13], pulse)

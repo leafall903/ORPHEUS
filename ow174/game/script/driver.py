@@ -108,8 +108,13 @@ WHEEL_ACTION_CATEGORIES = {
 WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
 WHEEL_SPRAY_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
 WHEEL_VOICE_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
-# The fixed, self-targeted PlayScript actions in the emote path.
-WHEEL_EMOTE_GRAPHS = {(0x05AD, 109): 0x069A, (0x069A, 9): 0x1040}
+# The wheel's fixed, self-targeted PlayScript actions.
+WHEEL_PLAY_GRAPHS = {
+    (0x05AD, 109): 0x069A,
+    (0x05AD, 117): 0x0686,
+    (0x05AD, 131): 0x0686,
+    (0x069A, 9): 0x1040,
+}
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -179,7 +184,7 @@ class BodyWorld(runtime.World):
             if cls == "STU_E18C7DE7" or (gate is not None and cfg == gate.field("m_condition")):
                 return True
         if (cls == "STU_4460419A" and self.communication_wheel and instance is not None
-                and instance.graph.index in (0x05AD, 0x02CF)):
+                and instance.graph.index in (0x05AD, 0x02CF, 0x0686)):
             return self.wheel_action_has_category(cfg, instance)
         if self.communication_wheel and instance is not None:
             if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
@@ -217,7 +222,7 @@ class BodyWorld(runtime.World):
     def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
         from ow174.game.script import play, play_queue
 
-        index = WHEEL_EMOTE_GRAPHS.get((instance.graph.index, node.pos))
+        index = WHEEL_PLAY_GRAPHS.get((instance.graph.index, node.pos))
         if not self.communication_wheel or index is None:
             super().play_script(instance, node)
             return

@@ -55,6 +55,8 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [ ] Restore and verify the C-key communication wheel and its submenus. The
     authored 05AD and 02CF graphs now mount through the player body stream.
     The emote graph chain replicates with a fixture for the equipped animation.
+    The shared 0686 graph replicates fixed and configurable callout data and
+    the spray playback pulse for offline selections.
     Selection routing, action execution, recipient playback and original-client
     acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.

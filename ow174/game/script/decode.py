@@ -124,14 +124,26 @@ def read_value(reader: BitReader):
             while (byte := reader.bits(8)) != 0:
                 data.append(byte)
             return data.decode("utf-8")
-        if sub == 6:
+        if sub in (6, 7):
             size = w_u16(reader)
-            if reader.bit():
-                raise DecodeError("keyed array")
+            keyed = reader.bit()
             if size and reader.bit():
                 raise DecodeError("untagged array")
+            if keyed:
+                return _read_keyed_array(reader, size)
+            if sub == 7:
+                return expr.PairArray(tuple((read_value(reader), read_value(reader)) for _ in range(size)))
             return tuple(read_value(reader) for _ in range(size))
     raise DecodeError(f"value tag {tag}")
+
+
+def _read_keyed_array(reader: BitReader, size: int) -> expr.Map:
+    pairs = []
+    for index in range(size):
+        if index and not reader.bit():
+            raise DecodeError("absent pair in full keyed array")
+        pairs.append((reader.bits(16), read_value(reader)))
+    return expr.Map(tuple(pairs))
 
 
 @dataclass(frozen=True)

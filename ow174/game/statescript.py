@@ -427,6 +427,10 @@ def _write_object(out: BitWriter, value) -> None:
         out.w_var(value.instance)
         out.w_u16(value.state)
         out.w_u16(value.extra)
+    elif isinstance(value, expr.Map):
+        _write_keyed_array(out, value.items)
+    elif isinstance(value, expr.PairArray):
+        _write_pair_array(out, value.items)
     elif isinstance(value, expr.Vec3):
         out.bits(12, 4)
         parts = (value.x, value.y, value.z)
@@ -437,6 +441,38 @@ def _write_object(out: BitWriter, value) -> None:
                 out.bits(_f32_bits(part), 32)
     else:
         raise ValueError(f"cannot send the value {value!r}")
+
+
+def _write_keyed_array(out: BitWriter, pairs: tuple) -> None:
+    """Full type-13 array, as read at 104319 RVA D57430 (tag 15, subtype 6)."""
+    if len(pairs) > 0xFFFF or any(type(key) is not int or not 0 <= key <= 0xFFFF for key, _ in pairs):
+        raise ValueError("keyed array exceeds uint16 count or key")
+    out.bits(15, 4)
+    out.bits(6, 3)
+    out.w_u16(len(pairs))
+    out.bit(1)  # keyed
+    if pairs:
+        out.bit(0)  # every value tagged
+    for index, (key, value) in enumerate(pairs):
+        if index:
+            out.bit(1)  # later pairs have a presence bit
+        out.bits(key, 16)
+        write_value(out, value)
+
+
+def _write_pair_array(out: BitWriter, pairs: tuple) -> None:
+    """Full type-12 pairs, as read at 104319 RVA D57899 (tag 15, subtype 7)."""
+    if len(pairs) > 0xFFFF:
+        raise ValueError("pair array exceeds uint16 count")
+    out.bits(15, 4)
+    out.bits(7, 3)
+    out.w_u16(len(pairs))
+    out.bit(0)  # keys are values, not uint16 indexes
+    if pairs:
+        out.bit(0)  # each key and value has its own tag
+    for key, value in pairs:
+        write_value(out, key)
+        write_value(out, value)
 
 
 @dataclass(frozen=True)
