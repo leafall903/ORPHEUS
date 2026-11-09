@@ -6,7 +6,7 @@ from unittest.mock import patch
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
-from ow174.game.script import decode, expr, runtime
+from ow174.game.script import decode, expr, graph, runtime
 from ow174.game.script.driver import BodyScript, BodyWorld
 
 
@@ -139,3 +139,21 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(client.graphs[emote.id], 0x069A)
         self.assertEqual(client.records[animation.id], (0x023A, (emote.id, animation.parent_state)))
         self.assertEqual(client.graphs[helper.id], 0x1040)
+
+    def test_spray_lookup_uses_the_authored_equipped_slot_config(self):
+        body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
+        spray = body.component.create(graph.graph(0x0686), init=False)
+        config = spray.graph.node(67).field("m_value")["m_slot"]
+        for action, expected in (
+            (expr.Asset(0x0A9000000000016F), 0),
+            (expr.Asset(0x0A9000000000019D), 1),
+            (expr.Asset(0x0A9000000000019C), 2),
+            (expr.Asset(0x0A9000000000019B), 3),
+            (expr.Asset(0x0A9000000000019E), -1),
+            (expr.Asset(0x0A9000010000016F), -1),
+            (expr.Asset(0x02E000000000016F), -1),
+            (0x16F, -1),
+        ):
+            with self.subTest(action=action):
+                spray.write((expr.INSTANCE, 29699), action)
+                self.assertEqual(spray.evaluate(config), expected)

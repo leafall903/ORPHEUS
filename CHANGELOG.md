@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the four spray slots from the 104319 table used by 0686.
+  All 1,544 offline native comparisons agree and 66 isolated tests pass.
+  Equipped-spray playback and original-client acceptance remain open.
 - Route the authored emote PlayScript calls through the player body VM.
   The offline owner-stream test decodes 069A, 023A and 1040 with a fixture
   for the equipped animation. Loadout resolution, repeat selection and

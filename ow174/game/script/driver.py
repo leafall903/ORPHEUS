@@ -104,8 +104,9 @@ WHEEL_ACTION_CATEGORIES = {
     0x0D80000000007420: frozenset((0x173, 0x1A3, 0x1A4, 0x1A5, 0x1A6)),
     0x0D80000000007428: frozenset((*range(0x16B, 0x173), *range(0x1E5, 0x1F5), 0x1F7, 0x1F9)),
 }
-# 104319 44A7D0 and 44A950 return the zero-based index in these tables.
+# 104319 44A7D0, 44A980 and 44A950 return the zero-based index in these tables.
 WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
+WHEEL_SPRAY_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
 WHEEL_VOICE_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
 # The fixed, self-targeted PlayScript actions in the emote path.
 WHEEL_EMOTE_GRAPHS = {(0x05AD, 109): 0x069A, (0x069A, 9): 0x1040}
@@ -183,6 +184,8 @@ class BodyWorld(runtime.World):
         if self.communication_wheel and instance is not None:
             if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
                 return self.wheel_slot(cfg, instance, WHEEL_EMOTE_ACTIONS)
+            if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
+                return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
             if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
                 return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
