@@ -389,7 +389,7 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match", "communication_wheel", "wheel_callouts"))
+                fields.update(("body", "throttles", "match", "communication_wheel", "wheel_callouts", "emote_aliases"))
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position"))
             # The match and its pending deliveries belong to the enclosing server snapshot.

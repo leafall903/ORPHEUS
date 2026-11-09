@@ -54,7 +54,8 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **HUD, menus and visual feedback.** Verify health, ammo, overhead bars, reticles, hit markers, material-specific effects, elimination names, kill feed, on-fire meter, scoreboards and match screens.
   - [ ] Restore and verify the C-key communication wheel and its submenus. The
     authored 05AD and 02CF graphs now mount through the player body stream.
-    The emote graph chain replicates with a fixture for the equipped animation.
+    The emote graph chain reads untagged aliases from equipped unlocks.
+    Tagged D.Va emotes and blend-tree selection remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the spray playback pulse for offline selections.
     Its localized actions travel in owner and observer deltas.

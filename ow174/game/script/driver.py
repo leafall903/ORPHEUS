@@ -150,6 +150,13 @@ class WheelCallout:
     values: tuple
 
 
+def valid_emote_aliases(aliases: tuple[int, ...]) -> bool:
+    return isinstance(aliases, tuple) and len(aliases) <= 4 and all(
+        type(alias) is int and (alias == 0 or 0x0C80000000000000 < alias <= 0x0C80FFFFFFFFFFFF)
+        for alias in aliases
+    )
+
+
 class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
@@ -158,6 +165,7 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.communication_wheel = False
+        self.emote_aliases: tuple[int, ...] = ()
         self.wheel_callouts: list[WheelCallout] = []
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
@@ -203,6 +211,15 @@ class BodyWorld(runtime.World):
         if self.communication_wheel and instance is not None:
             if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
                 return self.wheel_slot(cfg, instance, WHEEL_EMOTE_ACTIONS)
+            if cls == "STU_250DEABD" and instance.graph.index in (0x05AD, 0x023A):
+                # CD7490 reads the equipped slot from the target body.
+                target = cfg.get("m_target")
+                if (isinstance(target, dict) and target.get("$") == "STU_33980609"
+                        and instance.evaluate(target.get("m_entity")) == Entity(self.body)):
+                    slot = instance.evaluate(cfg.get("m_slot"))
+                    if type(slot) is int and 0 <= slot < len(self.emote_aliases):
+                        return Asset(self.emote_aliases[slot])
+                    return Asset(0)
             if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
                 return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
             if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
@@ -227,6 +244,9 @@ class BodyWorld(runtime.World):
     @staticmethod
     def wheel_slot(cfg: dict, instance, actions: tuple[int, ...]) -> int:
         action = instance.evaluate(cfg.get("m_548E5344"))
+        # 069A receives the selected action in a one-item PlayScript parameter array.
+        if isinstance(action, tuple) and len(action) == 1:
+            action = action[0]
         if isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX:
             index = action.guid & 0xFFFFFFFF
             if index in actions:
@@ -401,6 +421,7 @@ class BodyScript(ReplicatedBody):
         *,
         match: "Match | None" = None,
         communication_wheel: bool = False,
+        emote_aliases: tuple[int, ...] = (),
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
@@ -414,6 +435,9 @@ class BodyScript(ReplicatedBody):
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
         self.world.communication_wheel = communication_wheel or match is not None
+        if not valid_emote_aliases(emote_aliases):
+            raise ValueError("emote_aliases must be up to four animation alias GUIDs or empty slots")
+        self.world.emote_aliases = emote_aliases
         self.component = runtime.Component(entity, self.frame_ms, self.world)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0

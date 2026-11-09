@@ -47,12 +47,23 @@ Source paths for the remaining actions
   The category includes 19E, but the slot lookup returns -1 for that
   action. The resolver agrees with the native instructions on 1,544
   GUIDs. Equipped-spray lookup and effect playback remain open.
-- The body host now dispatches the fixed self-targeted PlayScript
-  actions 05AD:109 and 069A:9 through the existing request and queue
-  implementation. With the equipped animation query supplied by a test
-  fixture, selection 1A1 starts 069A, its 023A animation child and 1040.
-  The owner stream carries all three graph descriptors. Real loadout
-  lookup and repeat selection behavior remain open.
+- The body host dispatches self-targeted PlayScript actions 05AD:109
+  and 069A:9. The selected action enters 069A via parameter 08FC as a
+  one-item array. The slot reaches 023A through the subscript's variable
+  9254. The owner stream carries 069A, its 023A child and 1040.
+- In 104319, the STU_250DEABD evaluator at CD7490 calls BCC930 for
+  slots 0–3, resolves the equipped 0A5 unlock and checks STUUnlock_Emote.
+  CD7B08 reads m_emote at +F8. When the m_7E3ED979 tag count is zero,
+  CD7B12 jumps to the alias return at CD7D3C. There are 284 such unlocks.
+  Eight D.Va unlocks require the separate tag and skin branch. Their
+  fallback selection and the 023A blend-tree query remain open.
+  Use DataTool extract-stu-type on the 104319 installation with type 0A5
+  and --xml. Run tools/extract_emote_aliases.py with the extracted XML
+  directory and the external runtime's data/emote_aliases_174.json path.
+  The server loads that optional map and snapshots each player's merged
+  +0x88 loadout when the body is created. The offline test selects
+  Soldier: 76's Take a Knee in slot 1 and reads 0476.014 in 023A:102.
+  Repeat selection behavior remains open.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
   graph selects the fixed, configurable or spray branch. Initializer 62

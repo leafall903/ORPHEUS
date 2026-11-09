@@ -43,7 +43,7 @@ from ow174.game.link import (
     delivery,
     peek_connection,
 )
-from ow174.game.match import SEND_EVERY, Match, Player, no_skin, pong, sends
+from ow174.game.match import SEND_EVERY, Match, Player, no_emote_aliases, no_skin, pong, sends
 from ow174.game.projectiles import MAX_LEASE_FRAME, _ObservedProjectile
 from ow174.game.script.bot import practice_nameplate
 from ow174.game.script.driver import BodyStream, Snapshot, warm_up
@@ -1035,6 +1035,7 @@ class GameServer:
         collision_provider_factory=None,
         scene_host_factory=None,
         on_clock_ready=None,
+        emote_aliases_of=no_emote_aliases,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         # None preserves the default per-match asynchronous provider. Explicit factories support
@@ -1047,6 +1048,7 @@ class GameServer:
         self.on_join = on_join  # called with each player whose game connected to its match
         self.on_clock_ready = on_clock_ready
         self.skin_of = skin_of  # (account, hero) -> the equipped (skin theme, golden weapon); no locks
+        self.emote_aliases_of = emote_aliases_of
         self.sock: socket.socket | None = None
         self.lock = threading.RLock()
         # connection id -> (the 20600 data, the waiting player, when to give up on them)
@@ -1096,6 +1098,7 @@ class GameServer:
                 game_map,
                 on_leave=self._left,
                 skin_of=self.skin_of,
+                emote_aliases_of=self.emote_aliases_of,
                 card=card,
                 environment=self.environment,
                 collision_provider=(

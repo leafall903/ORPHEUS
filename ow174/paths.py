@@ -22,6 +22,8 @@ PLAYER_NAME_FILE = ROOT / "player_name.txt"  # the name used to join last time
 PUBLIC_ADDRESS_FILE = ROOT / "public_address.txt"  # the host's public address, asked when hosting
 REQUIREMENTS = ROOT / "requirements.txt"
 
+EMOTE_ALIAS_DATA = "emote_aliases_174.json"
+
 LOBBY_RUNTIME_DATA = (
     "schemas_174.json", "retail_templates.json", "extracted_items.json", "extracted_general_unlocks.json",
     "extracted_heroes.json", "extracted_maps.json", "resource_keys_174.json", "arcade_cards_174.json",

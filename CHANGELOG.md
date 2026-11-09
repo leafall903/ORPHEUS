@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve equipped emote aliases from the account loadout and 104319
+  unlock metadata. The selected slot reaches the 023A animation graph
+  through 069A's PlayScript parameter. The extractor covers 284 untagged
+  unlocks. All 71 focused tests pass. Eight tagged D.Va unlocks, the
+  blend-tree lookup and original-client acceptance remain open.
 - Replicate directed 05AD callouts in order, with the synchronized
   speaker data sampled separately for each action. Owner and observer
   frames preserve that data across a lost acknowledgment. All 75 tests

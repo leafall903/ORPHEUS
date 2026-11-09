@@ -1,17 +1,25 @@
 """The native wheel graphs enter the ordinary player body stream."""
 
+import json
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from test_game_combat import Run
 
+from ow174.accounts.profile import Profile
+from ow174.catalog.items import ItemDB
+from ow174.catalog.templates import RetailTemplates
+from ow174.content.collection import Collection
 from ow174.game import observers, statescript
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.script import decode, expr, graph, runtime
-from ow174.game.script.driver import BodyScript, BodyStream, BodyWorld
+from ow174.game.script.driver import BodyScript, BodyStream
+from ow174.paths import EMOTE_ALIAS_DATA
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -109,7 +117,23 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(voice.vars[9259].value(), 2)
 
     def test_equipped_animation_selection_replicates_authored_emote_graphs(self):
-        match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
+        # Soldier's Heroic and Take a Knee unlocks from 104319.
+        heroic, kneel = "0x0250000000000904", "0x0250000000000BE2"
+        default_alias, chosen_alias = 0x0C8000000000045C, 0x0C80000000000476
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / EMOTE_ALIAS_DATA).write_text(
+                json.dumps({heroic: hex(default_alias), kneel: hex(chosen_alias)}), encoding="utf-8",
+            )
+            items = ItemDB(data)
+        collection = Collection(RetailTemplates(), items)
+        profile = Profile()
+        self.assertEqual(collection.emote_aliases(profile, SOLDIER), (default_alias,))
+        profile.loadouts[f"0x{SOLDIER:016X}"] = {"+0x88": [heroic, kneel, "0x0"]}
+        match = Match(
+            PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
+            emote_aliases_of=lambda account, hero: collection.emote_aliases(profile, hero) if account == 1 else (),
+        )
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
         [create] = match.own_body_updates(player)
         body = player.body_script
@@ -122,24 +146,25 @@ class CommunicationWheelTests(unittest.TestCase):
                 body.stream.arrived(update.chunk_last)
 
         replicate()
-        original_native = BodyWorld.native
+        self.assertEqual(body.world.emote_aliases, (default_alias, chosen_alias, 0))
+        wheel = next(instance for instance in body.component.instances.values() if instance.graph.index == 0x05AD)
+        query = wheel.graph.node(107).field("m_condition")["m_configVars"][0]
+        for choice, expected in ((0x172, default_alias), (0x1A1, chosen_alias), (0x1A0, 0), (0x19F, 0), (0x1A2, 0)):
+            with self.subTest(choice=hex(choice)):
+                wheel.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | choice))
+                self.assertEqual(wheel.evaluate(query), expr.Asset(expected))
 
-        def equipped_animation(world, config, instance):
-            if config.get("$") == "STU_250DEABD" and instance.evaluate(config["m_slot"]) == 1:
-                return expr.Asset(0x028000000000006E)
-            return original_native(world, config, instance)
-
-        with patch.object(BodyWorld, "native", equipped_animation):
-            runtime.send_message(
-                body.component, 0x02400000000002A3,
-                {0x8FC: expr.Asset(0x0A900000000001A1), 0x3E1: True}, body.entity,
-            )
-            body.command(body.frame + 1, 0)
+        runtime.send_message(
+            body.component, 0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001A1), 0x3E1: True}, body.entity,
+        )
+        body.command(body.frame + 1, 0)
         replicate()
 
         instances = {instance.graph.index: instance for instance in body.component.instances.values()}
         emote, animation, helper = (instances[index] for index in (0x069A, 0x023A, 0x1040))
         self.assertIs(animation.parent, emote)
+        self.assertEqual(animation.vars[2254].value(), expr.Asset(chosen_alias))
         self.assertEqual(client.graphs[emote.id], 0x069A)
         self.assertEqual(client.records[animation.id], (0x023A, (emote.id, animation.parent_state)))
         self.assertEqual(client.graphs[helper.id], 0x1040)

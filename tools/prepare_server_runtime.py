@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.paths import LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA
+from ow174.paths import EMOTE_ALIAS_DATA, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA
 
 
 def prepare(source: Path, destination: Path, maps: list[str], *, game_graphs: Path | None = None) -> None:
@@ -21,6 +21,9 @@ def prepare(source: Path, destination: Path, maps: list[str], *, game_graphs: Pa
         raise ValueError("Choose a new destination outside the source checkout")
 
     inputs = {f"data/{name}": source / "data" / name for name in LOBBY_RUNTIME_DATA + MATCH_RUNTIME_DATA}
+    emote_aliases = source / "data" / EMOTE_ALIAS_DATA
+    if emote_aliases.is_file():
+        inputs[f"data/{EMOTE_ALIAS_DATA}"] = emote_aliases
     if game_graphs is not None:
         inputs["data/game_graphs_174.json.gz"] = game_graphs
     inputs["bnet/descriptors.pb"] = source / "ow174" / "bnet" / "descriptors.pb"

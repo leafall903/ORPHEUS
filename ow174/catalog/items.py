@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ow174.paths import DATA_DIR
+from ow174.paths import DATA_DIR, EMOTE_ALIAS_DATA
 
 UNLOCK_BASE = 0x0250000000000000
 SKIN_THEME_BASE = 0x0A50000000000000  # skin themes (0A6)
@@ -63,6 +63,10 @@ class ItemDB:
 
     def __init__(self, data_dir: Path = DATA_DIR) -> None:
         self.unlocks: dict[int, Unlock] = {}
+        self.emote_aliases = {
+            int(unlock, 16): int(alias, 16)
+            for unlock, alias in _read_json(data_dir / EMOTE_ALIAS_DATA).items()
+        }
         self.hero_names: dict[int, str] = {}
         self.hero_classes: dict[int, str] = {}  # "Tank", "Damage" or "Support"
         for guid, hero in _read_json(data_dir / "extracted_heroes.json").items():
