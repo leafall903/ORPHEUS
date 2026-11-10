@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the eight tagged D.Va emote unlocks against the known body
+  definition. The pilot falls back to the base Heroic alias and no
+  equipped blend set. The mech definition accepts the authored assets.
+  All 91 focused offline tests pass. Live mech relation and skin remaps
+  remain open. Original-client acceptance is deferred.
 - Feed the wheel emote graph its movement and logical-button cancel inputs.
   Take a Knee remains in its loop while idle, takes the 367 ms exit
   animation on primary fire, and releases the wheel stack through the

@@ -3,6 +3,7 @@
 import json
 import struct
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -19,12 +20,12 @@ from ow174.game.bits import BitWriter
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import RayAttachment, RayHit, StaticCollisionProvider, World, flat_world
 from ow174.game.commands import FIRE, Command
-from ow174.game.content import PRACTICE_RANGE, SOLDIER
+from ow174.game.content import PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.match import Match
 from ow174.game.world import OP_CREATE, EntityUpdate
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
 from ow174.game.script.driver import BodyScript, BodyStream
-from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, VOICE_EFFECT_DATA
+from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_TAGGED_DATA, VOICE_EFFECT_DATA
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -345,6 +346,44 @@ class CommunicationWheelTests(unittest.TestCase):
         for index in (0x069A, 0x023A, 0x1040):
             self.assertNotIn(current[index].id, body.component.instances)
             self.assertNotIn(current[index].id, client.graphs)
+
+    def test_tagged_dva_unlock_uses_body_tags_and_pilot_fallback(self):
+        dva, mech, pilot = 0x02E000000000007A, 0x0400000000000407, 0x040000000000040A
+        unlock, alias, blend = 0x0250000000000BFC, 0x0C80000000000476, 0x0040000000000690
+        fallback = 0x0C8000000000045C
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / EMOTE_TAGGED_DATA).write_text(json.dumps({
+                "unlocks": {hex(unlock): {"alias": hex(alias), "blend": hex(blend), "tags": ["0x0D60000000000069"]}},
+                "bodies": {hex(mech): ["0x0D60000000000069"], hex(pilot): ["0x0D60000000000121"]},
+            }), encoding="utf-8")
+            collection = Collection(RetailTemplates(), ItemDB(data))
+        profile = Profile()
+        profile.loadouts[f"0x{dva:016X}"] = {"+0x88": [hex(unlock), "0x0"]}
+        self.assertEqual(heroes()[dva].body, pilot)
+        self.assertEqual(collection.emote_aliases(profile, dva), (fallback, 0))
+        self.assertEqual(collection.emote_blend_trees(profile, dva), (0, 0))
+        mech_hero = replace(heroes()[dva], body=mech)
+        with patch("ow174.content.collection.heroes", return_value={dva: mech_hero}):
+            self.assertEqual(collection.emote_aliases(profile, dva), (alias, 0))
+            self.assertEqual(collection.emote_blend_trees(profile, dva), (blend, 0))
+
+        match = Match(
+            PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
+            emote_aliases_of=lambda _, hero: collection.emote_aliases(profile, hero),
+            emote_blend_trees_of=lambda _, hero: collection.emote_blend_trees(profile, hero),
+        )
+        player = match.add_player(1, "D.Va", dva, 0, False)
+        match.own_body_updates(player)
+        body = player.body_script
+        runtime.send_message(
+            body.component, 0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
+        )
+        body.command(body.frame + 1, 0)
+        animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
+        self.assertEqual(animation.vars[2254].value(), expr.Asset(fallback))
+        self.assertEqual(animation.vars[8908].value(), expr.Asset(0))
 
     def test_equipped_kneel_timing_and_cancel_follow_body_commands(self):
         alias, blend = 0x0C80000000000476, 0x00400000000006B2

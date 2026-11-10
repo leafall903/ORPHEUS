@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA, VOICE_EFFECT_DATA
+from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, EMOTE_TAGGED_DATA, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA, VOICE_EFFECT_DATA
 
 
 def prepare(source: Path, destination: Path, maps: list[str], *, game_graphs: Path | None = None) -> None:
@@ -21,7 +21,7 @@ def prepare(source: Path, destination: Path, maps: list[str], *, game_graphs: Pa
         raise ValueError("Choose a new destination outside the source checkout")
 
     inputs = {f"data/{name}": source / "data" / name for name in LOBBY_RUNTIME_DATA + MATCH_RUNTIME_DATA}
-    for name in (EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, VOICE_EFFECT_DATA):
+    for name in (EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, EMOTE_TAGGED_DATA, VOICE_EFFECT_DATA):
         metadata = source / "data" / name
         if metadata.is_file():
             inputs[f"data/{name}"] = metadata

@@ -129,9 +129,15 @@ Source paths for the remaining actions
   blend query follow the related entity from DA5E80 and check the native
   component 76 tag list when it exists. On a mismatch, the alias query
   selects 045C before the skin remap and the blend query returns zero.
-  The extracted 040A body lists tags 0121 and 015A, and the 0407
-  mech lists 0069. The active relation, tag lifetime and skin remap
-  still need to be bound for tagged unlocks.
+  The extracted 040A pilot lists tags 0121 and 015A. The 0407
+  mech also has 0069. The loadout resolver checks the target-tag
+  component of the hero's configured gameplay body. The 104319
+  hero table currently selects 040A, so the pilot gets the base
+  045C alias and a zero blend set for tagged unlocks. A fixture
+  selecting 0407 verifies the authored 0476 alias and 0690 set for
+  0A5:0BFC. The offline pilot selection reaches 023A with the
+  fallback values. The native active relation, tag lifetime and
+  skin remaps still need to be bound.
   STU_DF7C7C63 evaluates at CE18E0 and reads the accepted unlock's
   blend tree set at +108. Six offline executions of the native tail
   cover no tag requirement, missing component, matching and mismatching
@@ -142,7 +148,11 @@ Source paths for the remaining actions
   Use DataTool extract-stu-type on the 104319 installation with type 0A5
   and --xml. Run tools/extract_emote_aliases.py with the extracted XML
   directory and the external runtime's data/emote_aliases_174.json path.
-  It also writes emote_blend_trees_174.json beside the alias table.
+  It also writes emote_blend_trees_174.json and emote_tagged_174.json
+  beside the alias table. Supply both 040A.003 and 0407.003 XML
+  files to --body-definitions. The first two generated tables
+  retain the 284 untagged entries byte for byte. The tagged table
+  holds all eight equipped unlock records and both body tag lists.
   The server snapshots both optional maps from each player's merged
   +0x88 loadout when the body is created. The offline test selects
   Soldier: 76's Take a Knee in slot 1 and reads 0476.014 and 06B2.021

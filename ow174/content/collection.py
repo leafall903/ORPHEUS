@@ -7,6 +7,7 @@ list of heroes, what each owns by default, what the store sells, and which items
 from ow174.accounts.profile import Profile
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates
+from ow174.game.content import heroes
 from ow174.jam.groups import HERO_CATALOG, PROGRESSION_IN
 from ow174.jam.values import clone
 
@@ -225,16 +226,32 @@ class Collection:
         return slots
 
     def emote_aliases(self, profile: Profile, hero: int) -> tuple[int, ...]:
-        return self._equipped_emote_assets(profile, hero, self.items.emote_aliases)
+        return self._equipped_emote_assets(profile, hero, blend=False)
 
     def emote_blend_trees(self, profile: Profile, hero: int) -> tuple[int, ...]:
-        return self._equipped_emote_assets(profile, hero, self.items.emote_blend_trees)
+        return self._equipped_emote_assets(profile, hero, blend=True)
 
-    def _equipped_emote_assets(self, profile: Profile, hero: int, assets: dict[int, int]) -> tuple[int, ...]:
+    def _equipped_emote_assets(self, profile: Profile, hero: int, *, blend: bool) -> tuple[int, ...]:
         equipped = self.loadout(profile, hero).get(LIST_SLOT_BY_TYPE["Emote"])
         if not isinstance(equipped, list):
             return ()
-        return tuple(assets.get(unlock, 0) for unlock in equipped[:4])
+        assets = self.items.emote_blend_trees if blend else self.items.emote_aliases
+        resolved = []
+        for unlock in equipped[:4]:
+            tagged = self.items.tagged_emotes.get(unlock)
+            if tagged is None:
+                resolved.append(assets.get(unlock, 0))
+                continue
+            # Match currently instantiates the hero's gameplay entity.
+            # None denotes a verified body with no target-tag component.
+            body = heroes().get(hero)
+            tags = self.items.emote_body_tags.get(body.body if body is not None else 0, frozenset())
+            alias, tree, required = tagged
+            if tags is not None and required.isdisjoint(tags):
+                # CD7B18 uses the base Heroic alias before applying a skin remap.
+                alias, tree = 0x0C8000000000045C, 0
+            resolved.append(tree if blend else alias)
+        return tuple(resolved)
 
     def wheel_cosmetics(self, profile: Profile, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
         loadout = self.loadout(profile, hero)

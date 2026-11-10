@@ -60,8 +60,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The emote VM follows authored loop and empty-alias timing and reads
     prepared model durations for supported category switches. The offline
     Take a Knee path reaches the authored exit and cleans up on primary fire.
-    Other model duration graphs, remaining interrupt inputs, tagged D.Va
-    emotes and original-client playback remain open.
+    D.Va's pilot applies the tagged unlock fallback. Other model duration
+    graphs, remaining interrupt inputs, active mech tag selection, skin remaps
+    and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.
