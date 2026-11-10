@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Identify the greeting blend trees' high-bit data-flow inputs. Check
+  the 104319 manifest and the declared parameter IDs in 03B1 and 0054.
+  Runtime provider values and client acceptance remain open.
 - Trace both 0341 greeting tracks to their original animation slots.
   Verify 72 native instruction cases and the alias rows for 33 bodies.
   The two tracks register in slots 3 and 5. Pose weights and client

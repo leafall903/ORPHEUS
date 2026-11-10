@@ -752,6 +752,16 @@ Source paths for the remaining actions
   tree is 0054.020, with an 081.013 weight driver and additive
   layer nodes. Model layer registration is resolved. Pose weights
   and composition are still open.
+  The 104319 local manifest has 443 .020, 596 .021 and 10523 .006
+  entries, including the inspected greeting controls. It has zero
+  .013 entries. Opening the 14 inspected .013 references returns no
+  stream. The 014 XML dump is a null export. In 03B1, m_paramIds
+  contains 80000014 and 800001FE, matching the .013 references of
+  the two declared parameter inputs. Brigitte 0054 has 80000014,
+  80000081 and 800000B6. All five high-bit entries match a .013
+  reference in their respective trees. The remaining work is to
+  trace the provider values in the evaluator. A missing local file
+  supplies no evidence for a constant weight.
   104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
   branches. The extractor accepts a blend duration if all eligible
   leaves agree. Eleven offline native runs check Soldier: 76, Echo
