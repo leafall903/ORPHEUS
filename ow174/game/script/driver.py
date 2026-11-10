@@ -667,9 +667,10 @@ class BodyScript(ReplicatedBody):
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
             self._run(missing, [])
         self.world.throttles = (forward, right)
-        if self.world.communication_wheel and grounded is not None:
-            # 01C7:7 projects the mover's in-air mask and current axes.
-            self.component.set(545, grounded)
+        if self.world.communication_wheel:
+            # 01C7:7 reads the mover's flags and the command axes separately.
+            if grounded is not None:
+                self.component.set(545, grounded)
             self.component.set(2070, bool(forward or right))
         self._run(frame, button_edges(self.buttons, buttons, action))
         self.buttons = buttons

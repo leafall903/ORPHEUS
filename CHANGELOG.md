@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Feed both movement axes into emote cancellation when the replay omits
+  a grounded sample. The 13-case offline match input matrix and 86 focused
+  offline tests pass. Animation-dependent airborne cancellation and
+  original-client acceptance remain open.
 - Respect active logical-button blocks when checking emote cancellation.
   Six native registry cases and 85 focused offline tests pass.
   Complete interrupt-input coverage and original-client acceptance remain open.

@@ -298,6 +298,18 @@ Source paths for the remaining actions
   545 and 2070. Seven native instruction cases cover the in-air
   flags, both axes and an unrelated flag. The host uses the existing
   mover's airborne flag and the command's axes for the wheel path.
+  Commands without a mover sample still update 2070 from both axes and
+  preserve 545. This covers offline replays with no grounded field.
+  In the offline match, all nine held buttons emitted by D56AA0 that are
+  named in 023A:38 cancel the loop, as do the forward and right axes.
+  Reload and camera rotation leave it active. Logical buttons 7 through
+  10 are named in the graph but are absent from D56AA0's edge list.
+  The separate 023A:79 branch uses 30472 and 545. State 109 sets 30472
+  after checking the Y component of animation variable 681. The Anim
+  field EBEFB4A7 names 681. The field table gives offset +178, and CBDAD1
+  links that offset as slot 2. Three native CBD170 cases with a populated
+  cache returned float tag 3 from that slot. The cache producer and the
+  graph's vector consumption still need to be reconciled.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored

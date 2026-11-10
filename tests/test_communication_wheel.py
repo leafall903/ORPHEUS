@@ -653,6 +653,27 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertNotIn(0x069A, {i.graph.index for i in body.component.instances.values()})
                 self.assertNotIn(0x1040, {i.graph.index for i in body.component.instances.values()})
 
+    def test_emote_cancel_reads_axes_without_a_grounded_sample(self):
+        for forward, right in ((127, 0), (0, -127)):
+            with self.subTest(forward=forward, right=right):
+                body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
+                component = body.component
+                body.command(body.frame + 1, 0, grounded=True)
+                animation = component.create(graph.graph(0x023A), init=False)
+                animation.initialized = True
+                animation.write((expr.INSTANCE, 488), False)
+                cancel = animation.node_state(animation.graph.node(38))
+                cancel.begin()
+                body.command(body.frame + 1, 0)
+                self.assertTrue(cancel.active)
+                self.assertFalse(component.entity_var(2070).value())
+
+                body.command(body.frame + 1, 0, forward=forward, right=right)
+                self.assertTrue(component.entity_var(545).value())
+                self.assertTrue(component.entity_var(2070).value())
+                self.assertTrue(animation.vars[488].value())
+                self.assertFalse(cancel.active)
+
     def test_emote_intro_with_no_alias_takes_its_authored_loop_transition(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
         component = body.component
