@@ -61,6 +61,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
+    The 21616 cosmetic-use report reaches the corresponding body instance.
+    The native unlock-use action remains open.
     The spray graph resolves eligible surfaces in loaded static collision and
     replicates the placement in owner and observer frames. Declared attachment
     poses produce local point and normal data for both streams.

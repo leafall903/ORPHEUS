@@ -1220,6 +1220,36 @@ class Match:
         params = {0x8FC: expr.Asset(action), 0x3E1: value["+0x80"]}
         self.queue_body_message(player.body, 0x02400000000002A3, params, player.body)
 
+    def _wheel_use_report(self, player: Player, value: dict, parameters: bytes) -> None:
+        # 904C20 uses the default message header, then one 053B Asset row.
+        prefix = b"\x00\x00\x00\x00\x01\xC3\x3B\x05\x40\x0A\x04"
+        if len(parameters) != 27 or parameters[:11] != prefix or parameters[19:] != bytes(8):
+            return
+        script = player.body_script
+        if (script is None or script.retired or script.component.fault is not None
+                or not player.has_body or script.entity != player.body
+                or (value.get("+0x78") or {}).get("+0x0") != player.body):
+            return
+        instance = script.component.instances.get(value.get("+0xB0"))
+        if instance is None or instance.stopped:
+            return
+        if instance.graph.index == 0x02CF:
+            placement = instance.state(1)
+            if placement is None or not placement.active:
+                return
+            query = instance.graph.node(2).field("m_E441DC25")
+            pulse = instance.state(14)
+        elif instance.graph.index == 0x0686:
+            query = instance.graph.node(67).field("m_value")
+            pulse = instance.state(13)
+        else:
+            return
+        if pulse is None or not pulse.active:
+            return
+        reported = int.from_bytes(parameters[11:19], "little")
+        if reported and instance.evaluate(query) == expr.Asset(reported):
+            runtime.send_instance_message(instance, 0x0240000000001313, {0x53B: expr.Asset(reported)}, player.body)
+
     def game_message(self, player: Player, value: dict, now: float) -> None:
         """21616: a game message a statescript action sends to the server, such as a hero pick."""
         message = value.get("+0xA8", 0)
@@ -1232,6 +1262,9 @@ class Match:
             value.get("+0xB0"),
             parameters.hex(" "),
         )
+        if message == 0x0240000000001313:
+            self._wheel_use_report(player, value, parameters)
+            return
         if isinstance(self.controller, heroselect.FixedController):
             return  # Tutorial has no hero picker or reopen request.
         if message == heroselect.PICK_HERO:

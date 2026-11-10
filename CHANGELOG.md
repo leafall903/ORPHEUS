@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Route valid 21616 cosmetic-use reports to the originating spray or
+  voice instance. All 41 focused tests and five native serializer cases
+  pass offline. The server's unlock-use side effect and original-client
+  acceptance remain open.
 - Replicate the local point and normal for spray hits with a declared
   attachment pose. Both streams carry the entity and optional anchor
   key. All 44 focused tests and eight native reconstruction cases pass.

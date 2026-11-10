@@ -490,6 +490,62 @@ class CommunicationWheelTests(unittest.TestCase):
                     frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
                 ])
 
+    def test_client_unlock_use_report_reaches_only_the_current_wheel_instance(self):
+        run = Run(names=("Speaker",))
+        player, = run.players
+        match = run.match
+        script = player.body_script
+        connection = game_client()
+        connection.player = player
+        player.client = connection
+        pixel, effect = 0x02500000000007F1, 0x0300000000001879
+        script.world.spray_unlocks = (pixel,)
+        script.world.voice_effects = (effect,)
+        player.mover.position = (0.0, 0.0, 0.0)
+        player.mover.yaw = player.mover.pitch = 0
+        match.collision_world = World(((-3, 0, 3, 3, 0, 3, -3, 4, 3),), masks=(0x40,))
+
+        def select(action):
+            match.communication_action(player, {"+0x78": 0x0A90000000000000 | action, "+0x80": True})
+            match.deliver_body_messages()
+            script.command(script.frame + 1, 0)
+
+        def report(sequence, target, instance, asset, tag=4):
+            blob = bytes.fromhex("00 00 00 00 01 C3 3B 05 40 0A") + bytes((tag,))
+            blob += struct.pack("<QII", asset, 0, 0)
+            record = messages.encode(21616, {
+                "+0x78": {"+0x0": target}, "+0x80": blob,
+                "+0xA8": 0x0240000000001313, "+0xB0": instance.id,
+            })
+            packet = BitWriter()
+            messages.write_channel(packet, [(sequence, record)])
+            packet.bit(0)
+            connection._payload_in(packet.getvalue(), 17.0)
+            script.command(script.frame + 1, 0)
+
+        select(0x173)
+        select(0x16F)
+        instances = {instance.graph.index: instance for instance in script.component.instances.values()}
+        spray, voice = instances[0x02CF], instances[0x0686]
+        for sequence, target, instance, asset, tag in (
+            (0, player.entity, spray, pixel, 4),
+            (1, player.body, voice, pixel, 4),
+            (2, player.body, spray, pixel, 2),
+            (3, player.body, instances[0x05AD], pixel, 4),
+        ):
+            report(sequence, target, instance, asset, tag)
+        self.assertNotIn(8022, spray.vars)
+        self.assertNotIn(8022, voice.vars)
+
+        report(4, player.body, spray, pixel)
+        self.assertEqual(spray.vars[8022].value(), expr.Asset(pixel))
+        self.assertNotIn(8022, voice.vars)
+        report(5, player.body, voice, effect)
+        self.assertEqual(voice.vars[8022].value(), expr.Asset(effect))
+        self.assertEqual(spray.vars[8022].value(), expr.Asset(pixel))
+        self.assertTrue(spray.node_state(spray.graph.node(38)).active)
+        self.assertTrue(voice.node_state(voice.graph.node(71)).active)
+
     def test_callout_and_voice_selections_replicate_the_shared_graph(self):
         cases = (
             (0x16B, 3793, expr.Asset(0x0C00000000005A0B), 27),

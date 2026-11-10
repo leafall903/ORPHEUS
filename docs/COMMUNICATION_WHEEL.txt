@@ -23,8 +23,24 @@ Source paths for the remaining actions
 - 02CF node 22 also receives 02A3 and selects the spray submenu actions.
   Node 2's success plug reaches pulse 36. Client node 50 resolves the
   equipped spray unlock. Node 40 reports it through 1313 before starting
-  stimulus node 48. The server-only 1313 entries in 02CF and 0686 both
-  lead to an unlock-use action, after a wait.
+  stimulus node 48. The server-only 1313 entries in 02CF and 0686
+  begin a 0.5-second state that calls the unlock-use action on entry.
+  STU_79A131B4 registers at 2F64398. Its constructor 90BE40 installs
+  vtable 26220C8, whose handler 904C20 builds 21616. It writes the body,
+  message GUID and source instance outside the serialized parameters.
+  Five offline executions of 1BA7D30 use the original message initializer
+  and a single 053B Asset row. The 27-byte payload has the default header,
+  one compact key and type 4, the little-endian Asset GUID, and two
+  default entity values. 02CF reports the equipped 0A5 unlock. 0686
+  reports the .00D effect passed to node 55.
+  The match admits this layout for the sender's current body and
+  indicated instance, with an active pulse and the expected equipped
+  resource. For spray it also requires an active placement. It queues
+  the typed parameter on that instance's normal event queue. The tests
+  exercise the receive channel and both authored entry states.
+  STU_94771561 is described at 31B3F20. The mapped image has no
+  constructor row for key 2DF3C18. The server-side unlock-use effect
+  remains open.
 - The wheel's STU_4460419A queries use .096 action metadata extracted
   from the 104319 CASC. Category 7428.01C covers 16B–172, 1E5–1F4, 1F7
   and 1F9. Category 741E covers 172 and 19F–1A2. Category 7420 covers
@@ -82,7 +98,7 @@ Source paths for the remaining actions
   the authored state in owner and observer frames.
   Current production ray caches still supply world-space static
   hits. Dynamic hit ownership and anchor production, decal lifetime,
-  full collision filtering and the 1313 client-local route remain open.
+  full collision filtering and the server-side unlock-use effect remain open.
 - Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
   a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.
