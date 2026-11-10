@@ -1116,6 +1116,43 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
 
+    def test_configured_callout_textures_replicate_after_wire_selection(self):
+        for action, texture in ((0x1E5, 0x2A9FB), (0x1F7, 0x2A9FE), (0x1F9, 0x3A73)):
+            with self.subTest(action=hex(action)):
+                run = Run(names=("Speaker",))
+                player, = run.players
+                body = player.body_script
+                connection = game_client()
+                connection.player = player
+                player.client = connection
+                owner = decode.ClientBody.for_hero(SOLDIER)
+                [tree] = body.frames()
+                owner.apply(tree)
+                body.stream.arrived(tree.chunk_last)
+
+                record = b"\x01\x08" + struct.pack("<QBI", 0x0A90000000000000 | action, False, 0)
+                packet = BitWriter()
+                messages.write_channel(packet, [(0, record)])
+                packet.bit(0)
+                connection._payload_in(packet.getvalue(), 17.0)
+                run.match.deliver_body_messages()
+                body.command(body.frame + 1, 0)
+
+                [update] = body.frames()
+                frame = owner.apply(update)
+                [callout] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
+                expected = expr.Asset(0x0C00000000000000 | texture)
+                self.assertEqual(frame.actions, [(frame.last, callout.id, 59)])
+                self.assertEqual(owner.vars[callout.id, 3793], expected)
+                remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
+                observed = decode.read_chunk(remote.getvalue(), remote.count).instances[callout.id]
+                self.assertEqual(observed.vars[3793][0], expected)
+
+                config = callout.graph.node(58).field("m_value")
+                for invalid in (action, expr.Asset(0x0A90000100000000 | action), expr.Asset(0x0A9000000000019E)):
+                    callout.write((expr.INSTANCE, 29699), invalid)
+                    self.assertEqual(callout.evaluate(config), expr.Asset(0))
+
     def test_greeting_followup_uses_the_authored_source_body_tag_outside_practice(self):
         for game_map, hero_name, follows_up in (
             (PRACTICE_RANGE, "Soldier: 76", True),

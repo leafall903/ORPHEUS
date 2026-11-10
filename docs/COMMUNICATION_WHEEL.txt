@@ -363,6 +363,12 @@ Source paths for the remaining actions
   A separate offline comparison verifies all 20 authored text-map
   rows through observer frames. Each of the four voice choices emits
   a first-play pulse.
+  Node 58 uses STU_1ECB66A0. Native evaluator CDB390 calls 44A820
+  to look up the full action GUID in 01A5.054 and return the .004
+  texture. Offline native runs verify all 26 rows in both compiled
+  storage forms and ten miss or invalid-resource cases. The VM
+  writes the original texture to 3793. Offline 21608 selections for
+  01E5, Sorry and Countdown verify it in both replication streams.
 - The 05AD initializer at node 240 also builds a separate table of 20
   directed game messages. Node 183 indexes the table with the selected
   action and takes the first entity from target variable 375. The body
@@ -548,9 +554,16 @@ Source paths for the remaining actions
   index. Graph node 103 computes variable 9191 from the selected
   menu. Node 1's false transition reaches node 27, then node 26
   for an index other than -1. Node 26 resolves the action through
-  STU_BA2607C0 with the menu, index and hero. Nodes 169 and 180
-  feed the same STU_26CC910A action from a local message and a
-  logical button, respectively.
+  STU_BA2607C0 with the menu, index and hero. Native evaluator 922AD0
+  uses menu IDs 0 (voice), 1 (main), 2 (emote) and 3 (spray).
+  Main defaults at 25FB0A0 are 172, 16B, 16C, 16D, 16E, 16F, 170
+  and 171. 612480 selects the last matching hero row for the slot,
+  then the last global row, then the default. The three cosmetic
+  menus use four-entry tables at 25FB100, 25FB0E0 and 25FB120.
+  Menu labels 19E, 1A2 and 1A6 have no corresponding playback slot.
+  Sixty offline native cases verify the four bounded tables and
+  custom-row precedence using fixture settings storage. Nodes 169
+  and 180 feed STU_26CC910A from a local message and logical button.
 - STU_26CC910A's runtime registry row 2F77170 matches the class's
   type key 2DF72B0. Constructor ADDD60 installs vtable 2650078,
   whose +50 handler ACDA00 calls the dispatch service from 611C10.

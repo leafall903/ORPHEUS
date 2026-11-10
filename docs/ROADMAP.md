@@ -73,8 +73,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     An explicitly selected mech body with its prepared graphs uses its tagged
     emote. Automatic form transitions, runtime tag changes, live model remaps
     and original-client playback remain open.
-    The shared 0686 graph replicates fixed and configurable callout data and
-    the voice playback pulse for offline selections. It retires after the
+    The shared 0686 graph replicates fixed and configurable callout data,
+    original icon textures and the voice playback pulse for offline selections.
+    Native probes verify main menu defaults, per-hero and global override
+    precedence, and the three cosmetic slot tables. 0686 retires after the
     authored wait so subsequent selections restart. A typed internal 02A3
     category reaches both owner and observer gesture states. Primary fire
     retires the gesture while the callout remains live. Natural completion

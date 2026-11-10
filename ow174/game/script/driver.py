@@ -123,6 +123,35 @@ WHEEL_ACTION_CATEGORIES = {
     0x0D80000000007420: frozenset((0x173, 0x1A3, 0x1A4, 0x1A5, 0x1A6)),
     0x0D80000000007428: frozenset((*range(0x16B, 0x173), *range(0x1E5, 0x1F5), 0x1F7, 0x1F9)),
 }
+# Action-to-texture rows from 104319 01A5.054 (44A820).
+WHEEL_CALLOUT_TEXTURES = {
+    0x16B: 0x0C00000000005A0B,
+    0x16C: 0x0C000000000039DD,
+    0x16D: 0x0C000000000039DA,
+    0x16E: 0x0C000000000039DB,
+    0x16F: 0x0C00000000007114,
+    0x170: 0x0C00000000005A0E,
+    0x171: 0x0C00000000005A0D,
+    0x172: 0x0C00000000005A0A,
+    0x1E5: 0x0C0000000002A9FB,
+    0x1E6: 0x0C0000000002AA02,
+    0x1E7: 0x0C0000000002AA01,
+    0x1E8: 0x0C0000000002A9F9,
+    0x1E9: 0x0C0000000002A9F4,
+    0x1EA: 0x0C0000000002A9F1,
+    0x1EB: 0x0C0000000002A9FD,
+    0x1EC: 0x0C0000000002A9EF,
+    0x1ED: 0x0C0000000002A9FC,
+    0x1EE: 0x0C0000000002A9F5,
+    0x1EF: 0x0C0000000002AA00,
+    0x1F0: 0x0C0000000002A9F2,
+    0x1F1: 0x0C0000000002A9FA,
+    0x1F2: 0x0C0000000002A9EC,
+    0x1F3: 0x0C0000000002A9ED,
+    0x1F4: 0x0C00000000005A0C,
+    0x1F7: 0x0C0000000002A9FE,
+    0x1F9: 0x0C00000000003A73,
+}
 # Static ray categories from the first request word, packed from m_category.
 WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
 WHEEL_HEALING_TAG = 0x0D60000000000308
@@ -296,6 +325,11 @@ class BodyWorld(runtime.World):
             if (cls == "STU_DF7C7C63" and instance.graph.index == 0x023A
                     and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
                 return self.equipped_wheel_asset(self.emote_blend_trees, instance.evaluate(cfg.get("m_slot")))
+            if cls == "STU_1ECB66A0" and instance.graph.index == 0x0686:
+                action = instance.evaluate(cfg.get("m_548E5344"))
+                if isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX:
+                    return Asset(WHEEL_CALLOUT_TEXTURES.get(action.guid & 0xFFFFFFFF, 0))
+                return Asset(0)
             if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
                 return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
             if cls == "STU_2977339D" and instance.graph.index == 0x0686:

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Restore configurable callout icons from the original action-to-texture
+  table. All 85 focused tests pass, including offline wire selections in
+  both streams. Native probes cover all 26 texture rows, slot bounds and
+  custom-menu override precedence. Client presentation remains unaccepted.
 - Resolve the greeting follow-up gate from the selected source body. All 73
   focused tests pass, including Ashe and Soldier: 76 across two modes. The
   original 0B9C receiver is traced to B.O.B. Its target query, actor lifecycle
