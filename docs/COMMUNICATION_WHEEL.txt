@@ -137,8 +137,24 @@ Source paths for the remaining actions
   Raw STU instances 65–68 preserve the event, link, input and input owner.
   The node is client-only. Its registered constructor ADDE50 installs
   vtable 2652628. The handler at AD50A0 invokes 5EB6A0 on the local UI
-  service, which updates properties 631B and 585E on the active wheel
-  data source. This identifies the presenter callback before transport.
+  service. Constructor 5E6640 installs vtable 2610B08. Its +18 slot
+  calls 5E92D0, which checks the active option kind through E19580
+  and applies an extra count check for kind 4. Accepted confirmation
+  sets boolean 631B, clears 585E and calls 5EB650 to clear 6755 and
+  reset the service's +94 field.
+  The 1DCCCD0 property setter jumps to 1DCB4E0. A changed boolean
+  appends an 88-byte event at 1DCD480 and can flush via 1C628B0.
+  1DCE410 also notifies the source's registered callbacks with the
+  property ID and change kind 1. An unchanged boolean skips both.
+  Offline execution of the original callback verifies kinds 1, 2
+  and 4 and three closed gates with stubbed service dependencies.
+  With a fixture property store, the native setter writes and queues
+  all three changes and calls the registered watcher. Repeating the
+  same values or disabling the wheel queues nothing. The queue flush
+  and registered watcher were fixtures. 1C628B0 copies the pending
+  records with 1DCBE10 and passes the resulting event to 1C648A0.
+  Its consumer and the mapping from a selected item to 02A3 remain
+  open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's
