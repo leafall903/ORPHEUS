@@ -1028,8 +1028,22 @@ Source paths for the remaining actions
   and writes +1B0 at C14B9A for ID 14. Twenty-eight offline
   cases execute the native writer fragments and read their
   results through C131C0 for both scopes and seven supplied
-  input pairs. The upstream B6 source and how the greeting
-  actor supplies the packed angle still require tracing.
+  input pairs. The input +42 word is signed movement pitch,
+  also used by the spray and movement-config paths.
+  At C14A14, C14650 calls C0E6C0 with selected block +D0.
+  That routine writes the B6 source at filter +3C (block
+  +10C). Filter +41 gates the update. Its reset flag clears
+  +3C, its active branch takes 1762E90's filter result, and
+  its inactive branch scales the previous value by
+  max(0, 1 - dt - dt). Twelve native cases use both scopes
+  and exercise the disabled, reset and decay paths through
+  the filter, copy and query. Biped3P slot +8 calls C0BBB0
+  at C11EC0 to configure the primary filter at provider +E0.
+  C0BBB0 enables it for an inclusive input interval of
+  [0.00011920929, 6.28306627] radians and clears it otherwise.
+  C121B7 copies the primary block to the secondary block.
+  The authored config mapping and active turn-filter inputs
+  for a greeting frame still require tracing.
   The builtin resolver C0CD30 reads 1FE as a float word at
   context +B0, or animation component +810 for BB8970. IDs 14,
   81 and B6 miss that resolver. Twelve original-instruction cases

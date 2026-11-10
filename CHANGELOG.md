@@ -8,6 +8,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace greeting pitch and B6 turn-filter inputs. Twelve offline cases verify the B6 reset and decay paths.
+
 - Verify Biped3P greeting parameter writes and reads in 28 offline instruction cases.
   Upstream state inputs and greeting pose composition remain open.
 

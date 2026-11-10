@@ -173,8 +173,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     more verify scoped provider field selection, clamping and misses.
     All 33 exported greeting bodies select the Biped3P updater in their
     model tree sets. Twenty-eight native cases verify two of its field
-    writes and their scoped reads. Upstream state inputs and pose
-    composition remain open.
+    writes and their scoped reads. The pitch input and B6 turn-filter
+    update are traced, with twelve more cases for filter reset and decay.
+    Turn-filter configuration and pose composition remain open.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.
