@@ -71,6 +71,89 @@ iteration reuses the existing config iterator and explicit entity conversion.
 If radius >=0 the refresh requests ticking. Unknown engine context still faults;
 an explicitly absent native context returns only after cache/tick preparation.
 
+Junkenstein Reaper, 0CE0 node 17
+
+The natural Normal Revenge and Endless runs reach this node at frames 9504
+and 3504. It is raw State 10, remote slot 5, and is eligible on both sides.
+Its only authored rule is 7E42F868=true. The native 8F93C0 instruction replay
+matches 256 combinations of registration, context, target script component,
+capability, permission, extra query, and model availability. With this as the
+sole registered rule and a present target script component, the protected
+consumer receives false regardless of capability and permission. The extra
+query is skipped during registration. After removal, the input depends on
+capability and permission, with the extra-query override when applicable.
+The authored node does not request distance ticking or change cached d.
+
+The protected consumer 6CA4B0 resolves component 1 with mask 2. It invokes
+5D8820 twice on false to set model +230 bits 200000000000 and 8000, or
+6C9750 twice on true to clear them. It does no model write when component 1
+is absent. An isolated replay of 64 combinations executed the original
+component-pointer decode and both bit setters on a supplied model, with
+the environment-key check adapted. The two cases are documented separately
+because the dispatch replay supplies the engine context and intercepts the
+protected call. The flag meanings in the server collision and targeting
+systems and live client behavior still need evidence. The headless match
+binds the actual Reaper script component and applies the two verified model
+bits. Its baseline uses the no-capability, no-extra-query branch and has no
+recursive model consumer. The isolated lifecycle test verifies clearing on
+removal. The natural Normal Endless replay sets the pair on frame 3504 and
+advances to the voice stimulus at node 61 on frame 3597.
+
+The native reader at 6A4829 uses model +230 bit 45 to bypass the rest
+of its entity update and return at 6A5EF5. The clear branch continues
+through another model lookup and transform evaluation. A 130-case replay
+of the instructions with single-bit and single-cleared-bit masks confirms
+this branch depends only on bit 45. This reader alone does not establish
+damage immunity or a physics filter.
+
+In diagnostic runs, supplying the Reaper body script component and recording
+the model request lets the authored encounter reach node 39 in both modes.
+The original runtime factory resolves F08E1453 through parent typeinfo
+2DD53F0 to base record 160, with constructor 1B702C0 and an empty reader.
+The strict runtime now executes that node's ordinary subgraph lifecycle.
+Nodes 29 (43994F1B) and 30 (93B8758C) below it use priority-2 records 1122
+and 1121. Their vtables 262D9B8 and 262C4D0 share registered-state begin,
+cleanup, and successor serialization with 9028E035. Each authored type
+keeps its own list. Nodes 40 and 42 also select base record 160. The
+isolated authored node 39 subtree now starts and retires all six states,
+including the existing five-row numeric modifier at node 41.
+
+After that subtree restoration, a Normal Endless encounter with the explicit
+diagnostic context advances to frame 3565, 63 frames after Reaper is spawned.
+Graph 14B1 then reaches the server-only ED45C5E8 query in its periodic
+00BD message path. The original XML, deployed graph, and candidate agree:
+node 12's message target uses 5A72EEF5=true, while the assignments at nodes
+37 and 53 use false. This class and its intermediate parent have no own PC
+factory. The PC selects ConfigVar record 155 through D05AEF31. Replaying
+the original +20, +28 and +30 calls shows failure with the destination
+untouched in 15 cases. This establishes the PC fallback only. The server
+must supply the correct recipient list for the authored query. The encounter
+host now supplies live team-zero player bodies for the all-false, zero-radius
+self selector used by nodes 37 and 53. The recipient policy comes from the
+authored 0CA5 team body receiver and the match roster. The PC fallback does
+not establish the original server's complete selection rules, and the
+true-flag 00B8 selector is still unimplemented.
+
+The Junkenstein player body graph 0CA5 receives 00BD at node 78. Node 80
+uses 021D01CD and the body positions to check whether the sender is in
+front of the receiver. The spawned player and enemy bindings now expose
+their current body rotation through the same yaw-to-quaternion conversion
+used for replicated creates. An isolated execution of the authored receiver
+predicate is true with the sender in front, false after turning away, and
+true after turning back. The recipient lookup leaves that facing test in the
+receiver.
+
+Player and encounter NPC bodies now use the same team lookup over bound
+match actors. It verifies the current body identity and excludes a departed
+player or retired enemy. In the Match fixture, 14B1 nodes 53 and 54 select the
+current player body and send 00BD. The actual 0CA5 node 78 binds the sender and
+the singleton team/body parameter arrays, checks facing, and node 77 reads the
+receiving body's own team. Switching heroes changes the selected body, and
+leaving the match removes it from the recipient list.
+
+Local probes: verification/retribution/probe_junkenstein_0ce0_dispatch.py
+and probe_junkenstein_control_consumer.py.
+
 Ordered native rule aggregation
 With a native context, refresh offers the State to route6, then obtains the native
 capability flag and, only when that flag is true, its permission result. Their

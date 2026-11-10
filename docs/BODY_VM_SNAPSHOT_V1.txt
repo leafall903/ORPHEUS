@@ -193,7 +193,7 @@ present-with-None must remain distinct.
   WaitForServerFrames      none
   WaitFrames               target
   ChaseVar                 cur reached remaining last var interrupted
-  WeaponVolley             offset volleys per_shot ammo0 rate spread0 links reported
+  WeaponVolley             offset volleys per_shot ammo0 rate spread0 spread_ramp links reported
                            max_shots min_shots
   Anim                     none
   Ability                  flags presses cur cooldown_rate last var stack_var

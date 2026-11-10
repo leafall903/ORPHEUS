@@ -118,7 +118,9 @@ def wire_frame(packet):
             start = reader.pos
             decode.w_u32(reader)
             decode.w_var(reader)
-            assert not reader.bit()  # no fragments
+            if reader.bit():
+                decode.w_u16(reader)  # fragment index
+                reader.bit()  # final part
             size = decode.w_var(reader)
             reader.bits(size)
             chunk = BitWriter()

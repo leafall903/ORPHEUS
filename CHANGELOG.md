@@ -4,6 +4,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Combined hero server
+
+- Checkpoint the Rialto PvE and McCree server foundation for isolated integration.
+  The combined worktree passed 96 targeted NPC, hotkey, McCree and PvE entrance tests.
+  Previous original-client results apply to the foundation build. Combined original-client acceptance remains open.
+
 ### 2026-11-11
 
 #### Communication wheel
@@ -449,7 +455,2123 @@ This log records tested changes and their acceptance status. Entries are grouped
   and presentation remain open. Original-client acceptance is deferred.
   All 584 game tests passed with the prepared 104319 runtime.
 
+#### Rialto PvE
+
+- Retire the manual Talon Sniper's aim stack on stop, target change,
+  or primary input release. The real-map probe verifies both aim
+  retirement and cancellation of the in-flight shot, then hits for
+  100 after reengagement. The windowed client ACKs aim retirement
+  after `{` and McCree takes no further damage.
+- End the manual Heavy Assault's minigun stack on stop or attack
+  interruption so the original client retires windup and firing.
+  The real-map probe verifies stop and reengagement. The windowed
+  client confirms windup retirement and no extended muzzle flashes.
+- Cancel a manual NPC's previous close attack or Heavy Assault charge
+  when a different player retargets it with `0`. Repeating the command
+  for the current target preserves the attack. Target changes discard
+  queued presses. The real Rialto resource fixture verifies immediate
+  charge cancellation and the authored cooldown with simulated transport.
+- Send the original 09F7 hit voice to McCree's client when a living
+  manual Talon NPC starts a damage or Flashbang reaction. The 104319
+  client resolves the shared ACB3 key through the target's own voice
+  set. Coalesced Fan hits reuse the current reaction and voice. All 569
+  game tests passed. Native recording confirms Trooper, Enforcer,
+  Assassin and Sniper playback. Heavy Assault selected the expected
+  line and its audible output remains unverified.
+- Let Talon damage animations finish through Fan the Hammer bursts.
+  The Rialto simulation recorded six damaging hits and two complete
+  animation states on the Heavy Assault. Flashbang can still interrupt
+  a short reaction immediately.
+- Play the reconstructed Talon damage animation after McCree quick melee
+  and nonlethal Deadeye. The real-map probes distinguish this reaction
+  from Flashbang and preserve the lethal Deadeye death path. All 565 game
+  tests passed. Rendered animation and target-side audio still need
+  original-client acceptance.
+
+#### Game link
+
+- Preserve nondecreasing hit-notice frames when body-create ACKs release
+  hits out of order. The encrypted-link regression reproduces the older
+  frame and the 104319 handler replay verifies it would be discarded.
+- Resume the game frame immediately after the last JAM field, including a
+  final packed boolean. Preserve alignment between message headers and the
+  standalone lobby codec. Replayed the 104319 reader on the captured
+  Deadeye crash packet and added a regression for single and batched
+  elimination notices. The original client survived a lethal Deadeye and
+  then reloaded, rolled and hit another Talon Trooper with Flashbang.
+  All 565 game tests passed with the prepared Practice Range runtime.
+
+#### Junkenstein
+
+- Route the Summoner's authored 185D cast and confirmation inputs to its
+  possessed body. The original Normal wave fills the first ultimate and
+  waits for an eligible close defender. The wave replay lets the AI deploy
+  the 4000-health shield and spend its charge without supplied inputs or
+  charge. Applied beam damage now enters the original 0B8B charge graph,
+  using the scene's two live teams for the hostility check.
+
+- Send the shield's 26B0 create, health updates and destroy through the
+  acknowledged entity stream. A transport replay verified the initial
+  0033 and 156C graphs after create acknowledgement, the current health
+  when joining during a cast, and removal at expiration. The focused
+  suite passed 297 tests. Original-client shield rendering remains open.
+
+- Apply the Three They Were blue-team Damage Dealt rule (2539) at 120%
+  to body and barrier hits. An offline Arcade-card comparison measured
+  60 damage in the three-slot challenge and 50 in Normal for the same hit.
+
+- Run Volatile Zomnics' 2B33 proximity search against living defenders
+  within the authored reach and with a clear line of sight. A wave replay
+  triggered the authored detonation and recorded defender damage.
+- Apply the Frenzied Stampede movement modifier to the gate approach.
+  The challenge replay measured both the scripted increase and the
+  resulting higher movement speed. The same Expert tier without the
+  challenge produced no Frenzied speed samples.
+- Start Shocking Surprise's authored tire generation from an enemy
+  death, resolve its 0E60 narration to the original enUS voice line
+  E39E, and run the 0CB7 tire startup state. A replay of the Arcade card
+  killed its first Zombardier and spawned a Shock-Tire from that death.
+
+- Accept the authored 0045 pose-rate cue on living linked Junkenstein
+  enemies during the phase exit. A replay with a surviving Summoner
+  passed the previous frame 7811 fault and continued to frame 10500.
+
+- Prevent persistent message senders from waking receivers in the
+  same retiring graph. This fixes the 0CBC/133 cleanup fault during
+  enemy retirement. A teardown regression reproduces the fault before
+  the fix. All 345 focused tests passed with the fix.
+
+- Create the Summoner's 26B0 shield from the authored pet state and attach
+  the 0033 and 156C scripts. Bind the owning controller and the live
+  health pool. A seeded cast and hitscan replay creates the 4000-health
+  shield at the map marker, passes allied rays, absorbs a defender shot
+  and removes the shield when its health reaches zero. A second replay
+  confirms projectile collision, the authored half-damage tag, and
+  removal at the original 12-second lifetime. The default 104319 runtime
+  now contains the authored shield definition, target tag and model collision.
+  Original-client visuals still need verification.
+
+- Resolve the Summoner's authored map placement vectors from their
+  message arrays. Confirmation follows the cast branch and the two
+  156B voice states resolve to the original 104319 enUS lines. The
+  opposing team receives the cast call. A replay with seeded charge
+  and input now stops at the shield creation state, 156B/17.
+  Prepare the authored 26B0 entity and its 156C receiver for that state.
+
+- Keep the Summoner's sustained beam running when the original body
+  enables its beam criterion. The authored target effect only reports a
+  criterion to the caster. The NPC controller has no player stats
+  record. A close-range replay clears the prior frame 1752 fault and
+  runs through frame 2000 while the beam damages a defender.
+- Route the Summoner's placement direction through its authored 185D
+  facing state. A charge-seeded replay resolves the placement marker and
+  sends position and orientation to 156B without a facing fault. An
+  input-seeded diagnostic reaches 156B/57, where the placement cast is
+  still unsupported. Normal autonomous placement remains open.
+
+- Count the admitted defenders for the authored hero-ready switch so an
+  underfilled Arcade match can start. The count follows players who leave
+  during selection. In a one-player replay with four available slots,
+  enemies spawn, damage the player and destroy the gate without any
+  injected combat. The match emits 06E1 and retires all enemies in phase 5.
+  Replay all 14 Arcade cards with their extracted rules and one defender.
+  Each advances past hero selection to its first enemy spawn.
+- Replay the current Normal encounter from hero selection through victory.
+  The four-defender server fixture reaches phase 5 at frame 35500 with
+  the 06E0 action queued and no registered enemies. The fixture applies
+  defender damage through combat to advance the waves. In a separate
+  Endless encounter, an authored Reaper spawn descends from the balcony,
+  pursues defenders and deals about 748 shotgun damage autonomously.
+  The full Endless fixture reaches 50000 frames with later waves and
+  repeated bosses, with no script fault or premature result.
+- Install the extended Junkenstein data in the local 104319 runtime pack.
+  All 646 existing graphs are unchanged. The three added graphs and Witch
+  body/controller records match the verified candidate. Preserve rollback
+  copies of the previous bundle and its provenance. The default bundle
+  passes all 210 related server tests without a graph override.
+
+- Use the Summoner controller's close and distant target slots to select
+  beam or charged projectile fire. Offline match replays verify both
+  weapons switch and hit without injected input. A separate replay
+  verifies charged projectile hits from the authored spawn position.
+
+- Drive the Witch's ally and defender slots from live encounter bodies
+  and follow her controller's weapon-switch states. Report active boss
+  volleys at their firing frames so projectiles use the aim of each
+  shot. An offline match probe verifies pistol hits, full restoration
+  of a wounded ally and a return to pistol fire. All 208 related tests pass.
+
+- Reevaluate the mode's authored completion conditions when their
+  inputs change. A focused final-wave replay reaches the victory branch,
+  encodes its 06E0 action in a three-fragment reliable frame, and advances
+  to phase 5 after the cinematic and enemy cleanup. A separate replay
+  destroys the door through its authored damage message, emits 06E1,
+  and reaches phase 5 with a defeat result. The original-client sequence
+  remains to be verified.
+
+- Apply the Witch's 0019 staff effect on the recipient through graph 0079.
+  A focused replay with a manually selected ally verifies healing and
+  removal of the recipient graph when the beam disconnects.
+
+- Accept the tag array carried by the late-wave boss message when the
+  original 0CBC filter finds a matching live body. The tests cover a
+  single tag and arrays with both matching and missing tags.
+
+- Recheck the authored wave roster when a tracked body dies or is removed.
+  The final phase now accepts all three boss completions and the optional
+  branch before broadcasting its original 06C8 message in a focused Match
+  replay. All 206 related tests pass. Full-match outcome and original-client
+  presentation remain open.
+
+- Run Roadhog's 00CB auxiliary callback in the headless encounter and
+  route its follow-up voice message to live defenders. A focused offline
+  replay clears both callbacks and the 8-second timer.
+- Resolve the Witch's local input gate and the original ally-only death
+  queries. Bind defender health to the live combat pools and reuse the
+  model-state rule for the later 0D03 entrance. The Witch initialization
+  and death probe passes. All 277 related tests pass.
+
+- Restore signed pitch for the authored 00CB body aim lock. The headless
+  Endless replay clears the aim query and stops at the subsequent auxiliary
+  effect callback. All 212 related tests pass.
+
+- Prepare the Witch body and controller from the original encounter assets.
+  Bind her encounter skin voice set, apply the weapon target-tag exclusion and
+  wire the authored controller states. An exploratory four-defender probe
+  reached the Witch's death and exposed a separate ally query. The confirmed
+  native initialization flag and the death query still need host support.
+  All 211 related tests pass.
+
+- Run Symmetra's death filter against the current killer team, target
+  tags, and the authored entity variable. Both offline four-defender
+  replays clear her death path and retire her body and controller.
+- Send the four 0CB3 late-wave 06D3 messages to mounted 0CBC instances
+  and evaluate the tag delivered by each message. Declare the mode
+  owner's absent body modifier component for the Endless 0CBA spawn
+  branch. Project the 2035 sound and select authored 0CB7 and 0924
+  narration by the supplied hero. Passed 190 related tests.
+
+- Bound ordinary Zomnic and Zombardier corpse lifetime to eight seconds
+  after a kill. Retire both the body and controller through the scene
+  scheduler, without running the gate self-destruction branch. The
+  replay returned to zero registered enemies after the first waves.
+- Project Roadhog's authored chain-hook contact states through the
+  existing body observer stream. Four-defender offline replays passed
+  the previous hook fault and recorded Roadhog damage in both modes.
+  Endless also ran Junkrat's attack, death and retirement. The test
+  applied defender damage through the server combat entry to progress
+  the waves.
+- Resolve the Endless 1062/1063 wave cues with the available authored
+  narrator variants and enUS sample lengths. The two ultimate actions
+  at 0B8B nodes 14 and 16 use the original PC base Action factory.
+  Extend the existing NPC stat state to node 52 when the player stats
+  component is absent. Restore shield-only regeneration for the boss
+  body's authored 0033 state. All 173 related server tests passed. Full
+  victory, challenges and original-client acceptance are open.
+- Extend the 104319 relay's Gallery-only grid and row-cache roster
+  with 23 named NPCs. A Windows fixture installs the patch and verifies
+  code protection. The compiled branch matches the native Unicorn
+  replay, preserving the original checks and four non-Gallery call
+  paths. Install the rebuilt local DLL at the launcher path and keep the
+  prior DLL as a rollback copy. The original-client menu and previews
+  remain to be verified in a new session.
+
+- Resolve an entity-valued CreateEntity position through its bound
+  transform, preserving the original marker value for downstream
+  script inputs. Unbound markers still fault before allocation.
+  The offline boss allocator loads the four authored hero/controller
+  pairs and the scripts reachable from their startup definitions.
+- Accept a public schema that names its own graph, including the
+  bosses' common body graph `0033`. Queue component-level literal
+  floats as owner variables before ordinary Entry execution. All four
+  body/controller pairs pass isolated allocation and schema preflight.
+  Reaper and Symmetra queue `1A55 = 1.0`, and Roadhog queues the
+  authored float32 value of `0.85`. Other component config forms and
+  foreign public schema references remain strict. The Normal Revenge
+  and Endless offline waves both allocate Reaper with controller
+  `1958` at 152,016 ms. His body then stops at the authored tips State
+  `0020` node 22 before combat. Passed 258 focused tests and 12
+  ownership tests for this slice.
+- Follow the missing-service branch for the tips State in strict
+  headless execution. Native replay of `9FD280` and `9FD300` shows
+  both callbacks return without invoking their consumer when the
+  selected host slot is empty. The isolated Reaper body advances to
+  the UX presenter at `0020` node 40. Live tips presentation and
+  the boss's combat loop remain open.
+- Advance Reaper startup past the UX presenter in the offline host that
+  explicitly lacks the presentation service. Resolve the pet relation to
+  a typed null entity for a bound body known to lack component 72. Both
+  Normal wave probes reach the common body graph `0033` node 66 at
+  152,016 ms. The authored shield predicate now reads pool capacity
+  separately from current health. It is false with no shield or with a
+  full shield, and true for a depleted shield. The isolated controller
+  resolves its possessed body's current health and reaches `0AAA`
+  node 3. Passed 272 focused tests. The remaining body and controller
+  states still block combat and live client acceptance.
+- Implement the common body's delayed branch state `B591EBFE` from
+  callbacks `1B99670` and `1B99820`. Preserve the initial branch,
+  independent branch predicates and timers, and cancellation when a
+  predicate changes. Write its conditional branch bits in owner and
+  observer frames. The Normal Revenge and Endless offline probes now
+  advance to the separate `0033` HealthPool state at node 1 after Reaper
+  spawns. Its isolated inputs specify 250 health. Passed 284 focused
+  tests, including owner and observer codec round-trips. The body pool
+  service and controller weapon state `0AAA` node 3 still need
+  implementation.
+- Validate the three common `0033` base pools against the preallocated
+  body records when the authored initial amount matches capacity. Preserve
+  damage already applied to those records. Resolve the two normal-pool
+  totals using the native component 51 getters at vtable offsets
+  `48` and `58`. Read the active mode in Reaper's `0043` graph and
+  preserve the constant-false result of native evaluator `CEF730`.
+  Both Normal offline waves now reach `004B` node 28 at 152,016 ms,
+  where the data-flow mapping requires its scene registration service.
+  Read the authored controller weapon identifiers for the offline scene,
+  retaining the three distinct Roadhog controls on slot 0. Passed 333
+  focused tests. Reaper's controller weapon state and live scene
+  replication remain open.
+- Bind the bosses' data-flow providers to their scene script component.
+  The registry preserves distinct providers for the same resource,
+  exposes their typed answers, and removes registrations on state exit,
+  component detach or fault. Reaper's authored `05FD` provider answers
+  `1.0`. Apply literal any/all/excluded target tags after the existing
+  entity-mask checks. The body now resolves
+  `D3EB8D87` from declared component 92 presence, which the offline
+  controller lacks. Replayed the native bit selector and result tail for
+  four cases. Both Normal offline waves reach the networked `96F1DBCF`
+  state at `01C7` node 7, 152,016 ms into the encounter. Reaper's
+  isolated controller still stops at `0AAA` node 3. Passed 355 focused
+  tests.
+- Sample the boss's ordinary mover in `01C7` and publish its movement
+  flags, changed outputs, and takeoff and landing plugs. Matched 147
+  cases against native `D3D7AD` arithmetic and corrected the observer
+  codec for the high bits. Foreign mover subjects and extended movement
+  records remain strict. Reconstruct the encounter's scoped `0422`
+  tag from the two authored producer nodes and `0E24`'s required-tag
+  query. Cleanup removes a grant without deleting static tags or another
+  state's grant. This reconstructs the server tag effect from the assets.
+  Both Normal offline waves now stop at the `FDBB0B67` entity-scale query
+  in `01C7` after spawning Reaper. Passed 359 focused tests. The broader
+  run still has two legacy owner-frame crash fixtures whose exact bit
+  assertions also fail with the new state and observer changes disabled.
+- Resolve `FDBB0B67` through the selected entity's live scale reader.
+  Advance explicitly bound forward scopes with the scene frame, and let
+  the derived `E13B30A8` UX state take its missing-presenter branch in
+  the headless host. The Normal Revenge and Endless offline waves
+  both spawn Reaper at 152,016 ms and reach the controller query
+  `1ED4F039` in body graph `01CF` node 31. Controller graph `0AAA`
+  node 3 and live client acceptance remain open. Passed 361 focused
+  tests and Ruff.
+- Read `1ED4F039` from GMP stats on the body's linked controller.
+  Replaying `CD26D0` through the native bool writer confirmed that an
+  absent stats component preserves the destination and a present one
+  writes its live flag. The Normal Revenge and Endless offline waves
+  now pass `01CF` and reach the server stat state `441B50E4` at `0B8B`
+  node 66. An isolated body reaches the `ABB6C23E` identifier query;
+  the isolated controller still needs the server behavior for `0AAA`
+  node 3. Passed 362 focused tests and Ruff.
+- Apply the Zombardier's authored gravity to volley `0CA1` node 14.
+  Its controller's slot 0 maps `023A.01C` to logical button `0x1D`,
+  which the body graph listens for. The offline wave probe links a
+  test target and supplies one button-down edge after the authored
+  listener arms. Both Normal Revenge and Endless fire twice before
+  57 seconds. In an isolated collision run, the authored `16F2`
+  volley launched at 30 m/s with gravity 20 and dealt 60 damage to
+  the test target 8 m away. This covers the volley and server impact.
+  Automatic target selection, fire-control scheduling, and client
+  projectile delivery still need live scene integration. Passed 140
+  focused tests, including Flashbang flight and projectile timing.
+- Drive Zombardier slot 0 from the closest reachable living opponent
+  supplied by the scene host. Check the low arc with the server's
+  fixed-step sweep, and hold the authored logical input after the
+  weapon graph arms. Both Normal wave replays spawn two Zombardiers
+  that acquire a defender, fire through `0CA1`, and deal a combined
+  200 damage before releasing input when no defender is reachable.
+  The fixture uses stationary defenders placed before either enemy
+  spawns. Native target scoring, leading moving targets, movement
+  into firing range, and live match integration remain open. Passed
+  141 focused tests, including ally, wall, and target-loss cases.
+- Schedule a bound Zombardier's input in `SceneHost` and submit its
+  `0CA1` volleys once to Match combat. A launch uses the current scene
+  frame so it starts flying on the next tick. Retiring the controller
+  releases held input and prevents a reused ID from inheriting the
+  weapon binding. Already launched projectiles can still hit. An
+  isolated run of the extracted weapon graph launched on frame 47,
+  retired the controller, and hit for 60 on frame 63. Passed 125
+  focused tests, including the Match frame and retirement path.
+  The default Arcade scene factory, enemy death replication, and
+  native client projectile delivery remain open.
+- Route combat damage for registered scene enemies to their scene VM.
+  Lethal damage writes terminal health, cancels pending presses, and
+  posts `003E.025` with the actual killer. The scene's corpse request
+  retires the paired entities and removes the match actor and vitals.
+  The extracted Shock-Tire `0C93` retired the pair on frame 8 after
+  self-damage or a kill by another enemy. Passed 126 focused tests.
+  Other enemies' ordinary death timers and client destroy delivery
+  still need separate verification.
+- Prepare an external Junkenstein graph bundle with seven authored
+  body/controller pairs, the gate, and 27 additional graphs. The
+  loader isolates encounter startup definitions from playable hero
+  definitions and preserves ordered AI weapon controls, including
+  Roadhog's three actions in slot zero. All 14 entity components
+  passed startup allocation through `SceneHost`. The reachable set
+  contains 110 graphs with the existing `0F9C` gap. The accepted
+  Arcade bundle retains its deployed hash. Passed 135 focused tests
+  with the candidate. Both Normal wave replays reach 62,399 ms with
+  the same Zombardier fire inputs and 200 damage. Scene allocation
+  and replication still need to be wired into the default match factory.
+- Mount the Junkenstein CreateHero allocator on a configured match
+  scene. Validate the requested controller against the prepared pair,
+  then bind possession, health, script components, and Zombardier
+  weapon control. A controller setup failure releases the body and
+  both bindings before the allocator advances. The extracted `0CBA`
+  action allocated all seven authored pairs and wrote back each body
+  ID. A follow-on isolated run reaches `0C89` node 48, which still
+  needs the encounter's area-damage services in this host. Passed
+  128 focused tests. The default Arcade factory and native replication
+  still need integration.
+- Resolve `0C89` area-damage searches for match-owned Junkenstein
+  enemies and apply each victim's script-computed damage through combat
+  vitals. The health-pool search returns an empty list for the gate,
+  whose encounter meter uses a separate message. Offline playback from
+  the extracted `0CBA` allocation reached `0C89` at frame 298 and dealt
+  50 and 34.318 damage to two defenders at different distances. A
+  separate replay supplied a reference entity to the authored team
+  predicate and excluded its nearby ally. The search uses bound combat
+  bodies and feet distance. Passed 180 focused tests. Native shape and
+  classification parity, default Arcade hosting, and client contact
+  effect delivery remain open.
+- Run Zomnic and Shock-Tire gate approaches in the match-owned scene
+  scheduler. Publish the collision mover's pose and signal the authored
+  `0C87` arrival entry once. Stuns pause movement and retirement releases
+  the route. Offline replays allocate each enemy through `0CBA` at an
+  original wave's sampled spawn, traverse the 104319 map collision, deal
+  20 and 60 gate damage respectively, then retire both body/controller
+  pairs in both modes. Passed 181 focused tests and Ruff. Default Arcade
+  hosting, client presentation, and native route parity remain open.
+- Submit authored `0CBA` wave spawn searches to the match-owned scene's
+  collision sampler. Slice candidate work across frames, retain candidate
+  order, and drop queued work on cancellation or retirement. Only return
+  a result when the search meets the authored minimum. Both four-player
+  Normal replays produced 172, 56 and 100 positions across three searches,
+  spawned 14 enemies through the authored wave by 62,399 ms, and recorded
+  280 gate damage. Passed 182 focused tests. The replay supplies headless
+  player and presentation services. Default Arcade scene setup and native
+  navigation parity remain open.
+- Resolve Junkenstein enemy filters and participant queries from the live
+  scene combatants. Keep player and enemy sources separate. Exclude dead
+  bodies from the living participant query and retire their records with
+  the entity. Preserve the owner-supplied combined roster and the array
+  filter provider for other entities. Both four-player Normal replays use
+  the match's enemy filters and roster through 151,999 ms. Each spawns 26
+  Zomnics, three Zombardiers, and one Shock-Tire. The tire's gate hit at
+  123,008 ms accounts for 60 of the 580 gate damage. Timing differs from
+  the immediate-sampling fixture. The replays still supply player and
+  presentation services. Passed 205 focused tests and Ruff.
+- Allocate all four Junkenstein bosses from the encounter's prepared
+  body and controller pairs. Read the exact body override for each pool,
+  declare pet-component absence from the definition, and attach the
+  mover snapshot, data-flow providers and forward scopes. The Normal
+  Revenge wave now allocates Reaper at frame 9502. At frame 9503 the
+  body reaches the unimplemented `0B8B` stat state at node 66. Isolated
+  allocation passes for the four bosses. Their combat logic and client
+  synchronization remain open. Passed 223 focused tests.
+- Follow the verified 104319 base State lifecycle for the matching Reaper
+  controller placements in `0AAA`. An isolated authored controller starts
+  nodes 2, 3, 4, 5, 10 and 28, then stops on `4FC9D3E1` in `0C83`. The
+  server-only `441B50E4` stat state remains strict because the PC base
+  State fallback provides no evidence for server stat updates. Decode
+  unkeyed animation categories with the native resource literal rules.
+  Roadhog's body passes the empty category in `01EF` and reaches the
+  identifier query in `0BA4`. Passed 197 focused tests.
+- Notify scene script watchers when their observed controller gains,
+  changes, or loses its current body. Retirement drops the subscription
+  for that controller and releases bodies before an entity ID is reused.
+  The isolated Reaper controller now reaches `0C83` with the match's
+  possession service. The Normal Revenge wave also reaches 151,999 ms
+  with 30 spawns and 580 gate damage using this service. Replaying the
+  original PC loader and evaluator for `4FC9D3E1` and `7DCA538E` produced
+  40 failed evaluations with unchanged
+  destinations. The authoritative meaning of both queries remains open.
+  Passed 198 focused tests.
+- Assemble a Junkenstein candidate through the Match scene factory. Use
+  the exact 104319 map variants, the 16B2 mode component and the selected
+  0C5's shared and primary roots. Both modes start 19 scene components,
+  including the authored door. The factory mounts the enemy allocator and
+  PlayScript queues. Both four-player Normal Match replays reach frame
+  2499 with nine authored spawns and 100 gate damage. Player readiness
+  and presentation services in these runs come from a headless fixture.
+  Passed 216 focused tests. Default Arcade mounting and client replication
+  remain open.
+- Bind the candidate's team-zero player controllers and selected bodies to
+  the encounter. Start the authored `0C90` readiness sender from the
+  Match's accepted hero pick and route `06DE` and `14D4` to the live team
+  receivers. A hero switch rebinds the body while retaining one sender,
+  and leaving retires both bindings. Both four-player Normal replays use
+  Match's `21616` picks and reach frame 2499 with nine enemy spawns and
+  100 gate damage. The replays still supply headless presentation and mode
+  services. Passed 216 focused tests. Default client entry and replication
+  remain open.
+- Publish match-owned Junkenstein bodies through the existing combat entity
+  stream. Capture their initial pose and pools once for each viewer, withhold
+  movement until the create is acknowledged, and retire published bodies
+  when the scene removes them. An encrypted Zomnic replay drops its first
+  create and verifies the retry, movement, terminal health, and destroy.
+  The first Zomnic from the extracted Normal Revenge wave also produces a
+  decodable create with team and health at frame 1408. Passed 162 tests,
+  including packet-loss and server-snapshot regressions.
+  Scene mode and player script replication and original-client rendering
+  remain open.
+- Publish observer state for scene-owned enemy body scripts through the existing
+  body stream. The extracted Normal Revenge replay decodes all four Zomnic
+  script roots after the create acknowledgement at frame 1409, then decodes
+  five script deltas before retirement at frame 2244. An encrypted regression
+  also verifies that the destroy notice waits for the terminal script update.
+  Passed 134 focused tests.
+- Encode full tagged keyed arrays used by the Junkenstein mode scripts. The
+  original 104319 reader reconstructed three encoded cases in emulation with
+  array allocation supplied by the harness. Both extracted mode snapshots
+  round-tripped 13 instances and eight keyed variables at startup. Their
+  13,217-bit and 13,081-bit startup frames exceed the current datagram budget.
+  Passed 74 focused tests. Mode transport and client acceptance remain open.
+- Send large mode baselines as native statescript fragments after the mode
+  entity's create is acknowledged. Keep the baseline pending until all parts
+  are acknowledged, retry missing parts, and retain the latest waiting frame.
+  Both extracted Junkenstein startup snapshots fit in two datagrams and
+  reassemble bit-for-bit in the original 104319 routines, including after
+  dropping the first part. Passed 84 packet, lifecycle and entrance tests.
+  The Arcade entry has yet to use the scene baseline in a client session.
+- Let an explicitly mounted Junkenstein scene supply the Match's mode
+  baseline and reliable deltas. Wait for the mode entity create before the
+  baseline and the complete baseline before hero select. The extracted
+  0003 and 002A replays send encrypted map-load and hero-pick messages, lose
+  the first baseline part, and each decode one full frame and 394 mode
+  deltas before frame 2440. Passed 140 focused tests. Default lobby wiring
+  and original-client acceptance remain open.
+- Run the `0B8B` node 66 lifecycle for the encounter body with explicitly
+  absent player stats. The 104319 asset `05BF.086` identifies a lifetime hero
+  statistic, Time Building Ultimate. The authored state still runs when an
+  NPC has no player record to update. With the extracted encounter, the
+  first boss now reaches the `ABB6C23E` query in graph `0BA4` in both modes.
+  Passed 133 focused tests. That query's authoritative server value and the
+  rest of the boss combat loop remain open.
+- Preserve the native empty identifier for `0BA4`'s player objective-stat
+  gate on Junkenstein NPC bodies with a declared absent stats record. That
+  gate leaves variable 7059 unset. Both extracted Normal replays reach
+  Reaper's `05AD` resource-pair collector after startup. The same collector
+  blocks isolated Reaper, Roadhog and Junkrat. Isolated Symmetra reaches
+  `157E / 967463AB`. The original value reader reconstructed two authored
+  resource pairs from the full subtype 7 wire format in emulation. Passed
+  137 focused tests. The collector and the rest of boss combat remain open.
+- Collect `05AD`'s ordered resource pairs and preserve full GUIDs in keyed
+  lookup, ordinal selection, script snapshots, and type-12 wire values. The
+  extracted assignment reconstructs all 20 pairs, matches 28 original
+  selector cases, and produces a 1,579-bit value that the original 104319
+  reader reconstructs in emulation. Isolated Reaper, Roadhog and Junkrat
+  each produce a decodable observer body frame carrying all 20 pairs.
+  Their controllers still stop at `0C83 / 4FC9D3E1`, `0BC6 / E0D2F3AA`,
+  and `0CB5 / 4531992F` respectively. Both extracted Normal replays now
+  reach Reaper's controller stop after his first spawn. Symmetra still
+  stops at `157E`. Passed 141 focused tests.
+- Follow the 104319 base State lifecycle for the verified Roadhog and
+  Junkrat controller placements in `0BC6` and `0CB5`. Their native type
+  chains select registry record 160 and constructor `1B702C0`. Isolated
+  matches enter eight Roadhog and seven Junkrat root states before stopping
+  at `0C83 / 4FC9D3E1` and `0CF3 / B7D2C9C0` respectively. The latter has its
+  own native name-override class. Weapon-control behavior and the remaining
+  boss combat loop stay open. Passed 142 focused tests.
+- Follow the native `0CF3` display-name state when the authored owner
+  target is known to lack component 92. The 104319 callback at `8E2EA0`
+  resolves that component before it can publish the override. The
+  isolated Junkrat controller reaches node 24 with the Dr. Junkenstein
+  string, skips the write, and continues to the same `0C83 / 4FC9D3E1`
+  query as Reaper and Roadhog. The write path for targets with component
+  92 and original-client display remain unverified. Passed 143 focused
+  tests.
+- Preserve the original no-output evaluation of the two self queries in
+  Junkenstein's shared `0C83` boss gate. Native emulation of the authored
+  expression returns a successful boolean false with the captured PC
+  fallback and true with either operand set above its threshold. Isolated
+  Reaper, Roadhog and Junkrat advance to frame 64, where their body graph
+  `14B1` reaches the unresolved `ED45C5E8` target selector. In both
+  Normal mission replays the naturally spawned Reaper passes the gate
+  and reaches the tagged participant action `0C95 / 42578342` at frame
+  9503 (Revenge) or 3503 (Endless). Passed 144 focused tests.
+  Original-client and full combat acceptance remain open.
+- Resolve the authored `0C95` action's required `0321` tag against
+  live map bindings. Both mission variants bind that tag to placeable
+  `800000C8`. The original required-tag predicate accepts a matching
+  tag and rejects a non-match in emulation. The action writes the
+  matching array to variable 536 before continuing. Both Normal
+  mission replays now advance to `0C95` node 5 (`FC16FF45`), the next
+  unsupported controller state. Passed 145 focused tests. This change
+  covers the authored map tag. The general dynamic tag collector and
+  original-client combat remain open.
+- Evaluate the yaw/pitch forward vector consumed by `0C95 / FC16FF45`
+  using the original `CCC480` axis convention and float32 conversion.
+  Six original-instruction cases with scalar and trigonometric adapters
+  verify the zero, cardinal, combined and authored heading cases. Both
+  mission variants resolve the same vector from placeable `800000C8`.
+  The original state uses a priority-ordered record on the possessed
+  entity's component 86 and removes it on cleanup. Reaper's `0022` asset
+  has no explicit component 86 declaration, so runtime component
+  construction and record consumption still need verification. The
+  `1958` and `16FB` controllers both declare component 92, making the
+  scene's earlier absent binding provisional until runtime construction
+  is resolved.
+  Passed 163 focused tests.
+- Own the `0C95 / FC16FF45` direction record on the possessed body in
+  a separate component 86 list. Resolve the authored priority 10,
+  refresh the vector while active, and release the record on teardown.
+  The two Normal replays register direction `(0.28089035, 0, 0.95973986)`
+  on the naturally spawned Reaper body. They next stop at the difficulty
+  health-pool state `0CBC` node 1 at frames 9504 (Revenge) and 3504
+  (Endless). The scene's component 86 binding is explicit. Native body
+  construction and the movement consumer still need verification.
+  Passed 202 focused tests.
+- Apply `0CBC`'s difficulty-selected health as a separate state-owned
+  pool, with damage, healing, cleanup, and component 51 replication.
+  The zero Normal Shock-Tire modifier preserves its base pool. Reaper's
+  four authored difficulty amounts are covered by tests. Both Normal
+  mission replays pass the health state and reach node 64
+  (`76F3EAEF`). The instrumented Endless replay produces two records,
+  with 250 base and 750 supplemental health. The additive interpretation
+  follows the authored base and wave graphs. Original-client pool
+  display and exact damage order still need acceptance. Passed 234
+  focused tests.
+- Follow the 104319 base State lifecycle for the authored `0CBC`
+  continuations that use `76F3EAEF`. The original registry selects
+  record 160. The team's numeric field has no verified server scoring
+  behavior yet. Normal Revenge and Endless both advance past node 64
+  to the distinct native mover state `6CC90892` at node 129.
+- Bind component 92 on the seven authored Junkenstein controllers,
+  whose 003 definitions declare schema `76AF64F0`. The original
+  `F525E0` mapper and `18392F0` mask writer admit index 92 in each
+  controller's declaration set. Register and remove
+  the localized display-name records for their authored `0CF3` and
+  wave-graph states. A wave name shadows the controller name until its
+  state or source is retired. The positive component query exposes the
+  zero-valued `08B6 / D9843704` state, which follows the verified PC
+  base lifecycle. Isolated Junkrat writes `7108.07C` and reaches
+  `14B1 / ED45C5E8` at frame 64. Passed 235 focused tests.
+  Original-client name presentation remains open.
+- Apply `0CBC / 6CC90892` to the bound mover's same-team contact
+  mask and restore it when the state exits. The original `C363F0`
+  filter clears bit 8 for team 0, bit 16 for team 1, and neither bit
+  for the neutral case. Explicit peer contacts are refiltered on
+  begin and end. Static map contact and collision fingerprints retain
+  their previous behavior. Normal Revenge and Endless both advance
+  to query `60146072` in `0CBC`. The Junkenstein scene still supplies
+  static map geometry. Live actor proxy registration and original
+  client acceptance remain open. Passed 342 focused tests.
+
+- Bind `60146072` to the live wave health pools. The original component
+  51 vtable entry `+50` reaches `5BC5B0`, which sums the maximum of each
+  active slot in three 16-slot groups with float32 additions. A 178-case
+  instruction replay covers all slots, inactive values and rounding.
+  The `0CBC` Reaper switch stays false at exactly 75% and takes its true
+  branch after damage crosses that threshold. Normal Revenge and Endless
+  both pass the health query and stop at `0CE0` node 17, which requires an
+  entity-control context. Passed 237 focused tests and an isolated switch
+  replay. Original-client acceptance remains open.
+
+- Trace the next Reaper state, `0CE0` node 17, through the original
+  rule dispatcher and its protected model consumer. In 256 dispatch
+  cases the registered rule requests setting the two model flags, with
+  context-dependent restoration after removal. In 64 separate cases
+  the original consumer sets or clears both flags and preserves the
+  model when component 1 is absent. Recorded raw State 10, remote slot
+  5, and the remaining context and model-behavior requirements. Passed
+  37 focused Arcade, entrance, and entity-control tests. The deployed
+  entrance assets still match the prior native acceptance hashes.
+
+- Restore the authored Reaper spawn subtree below `0CE0` node 39. The
+  original factory selects base record 160 for nodes 39, 40, and 42.
+  Nodes 29 and 30 use the native ordered type lists and successor link
+  callbacks. The isolated authored subtree starts and retires all six
+  states. The diagnostic encounter uses a supplied entity-control context;
+  the production provider for node 17 remains open. Separately verified
+  130 original branch cases for model bit 45 at `6A4829` without assigning
+  that bit a server collision or damage meaning. Passed 166 focused tests.
+
+- Verify the next Normal Endless frontier at frame 3565 with a diagnostic
+  entity-control context. The authored server-only `14B1 / ED45C5E8`
+  recipient query resolves to the no-output base evaluator on PC. Passed
+  15 original-instruction cases for the scalar and wrapper paths. Keep the
+  unknown server recipient policy strict. Audit the gallery and gameplay
+  model and look references of 23 named NPCs. Verify the three Halloween
+  default themes have no runtime override and identify existing preview
+  candidates for B.O.B. and Boat. The Gallery selector remains open.
+
+- Read live Junkenstein player and enemy body rotations in `021D01CD` and
+  `C8C4C20D`. The authored `0CA5` receiver's `00BD` facing check now uses
+  the current body yaw. Verified the facing predicate in both directions
+  and after turning back. Passed 190 focused tests. The `ED45C5E8` server
+  recipient selection and original-client mission acceptance remain open.
+
+- Bind the Junkenstein `65ABFCCC` team query to current player and NPC
+  bodies. The Match fixture delivers `00BD` from actual `14B1` node 54
+  to `0CA5` with an explicit recipient, preserving the singleton parameter
+  arrays and the receiver's local team. Hero replacement retires the old
+  binding. Passed 146 focused tests. Server recipient discovery remains
+  open at node 53.
+
+- Consume the authored `0C95` spawn-facing record in the Junkenstein
+  scene. Apply the winning horizontal direction to the boss's body and
+  mover, and mark changed yaw for normal movement replication. An actual
+  `0C95` state test checks both direction updates and release on abort.
+  The priority rule matches 560 native `BC2E40` insertion comparisons.
+  The server applies the requested yaw directly. The native interpolation
+  and boss pursuit and attack policy remain open. Normal Endless with a
+  diagnostic entity-control context still reaches `14B1 / ED45C5E8` at
+  frame 3565. Passed 216 focused tests.
+
+- Mount the four boss bodies' authored weapon manager and weapon slots
+  on their existing scene components. The empty slot zero stays empty and
+  the primary weapon receives slot one. Route Reaper `0019` node 10 volley
+  reports through its 20 authored pellet rays, using the shared ring
+  reconstruction with a six-degree cone. The Match test injects the
+  report and supplies the tuning lookup. It verifies 20 distinct rays,
+  impact requests and a drained report queue. Automatic attack input,
+  exact native dispersion and tuning resolution remain open. Normal
+  Endless still reaches `14B1 / ED45C5E8` with the diagnostic context.
+  Isolated Roadhog and Junkrat also reach that query. Isolated Symmetra
+  reaches `157E / 967463AB` on the first update. Passed 98 focused tests.
+
+- Resolve `157E / 967463AB` using the scene's active deployable IDs,
+  grouped by controller and matched against the authored entity definition.
+  Retiring an entity clears its ownership entry before its ID can be reused.
+  The 104319 evaluator at `CCF2D0` reaches the original filtered count via
+  `D24A20` and `C6CDA0`. Isolated Symmetra now passes that query and stops
+  at `01A3` node 14, the `441B50E4` player stat state, on frame 2.
+  Sentry creation and retirement during combat remain open.
+
+- Run the `01A3` stat-time state for Symmetra's NPC body with a
+  declared absent player-stat record. 104319 resolves this node class
+  through base State record 160. Use the scene VM's native polling for
+  live team lookups from Junkenstein player and boss bodies. The isolated
+  Symmetra probe passes `01A3` and the watched `1571 / 65ABFCCC` lookup.
+  Match the original failed evaluation for `157C / 4049CF77`, whose PC
+  base ConfigVar 155 returns false without writing a value. Run the 21
+  authored `185D` controller placements that select base State 160.
+  The probe now enters 16 of those placements and reaches the shared
+  `14B1 / ED45C5E8` target query at frame 64. Passed 201 focused tests.
+
+- Supply current living team-zero bodies to the `14B1` encounter voice
+  query used by the `00BD` route. Node 53 now supplies recipients to node 54
+  directly, and the `0CA5` receiver retains its authored facing check.
+  The Match test covers replacement on hero switch and removal on leave.
+  Four isolated boss sessions each run 20 seconds without a VM fault.
+  The natural Normal Endless wave without a diagnostic provider still
+  stops at `0CE0` node 17 on frame 3504, where entity control needs a
+  production context. Passed 201 focused tests. The original server's
+  full voice audience rules, the `00B8` flag variant, and automatic boss
+  attacks remain open.
+
+- Bind Reaper's authored `0CE0` spawn rule to its match-owned script
+  component. The headless model flag consumer sets bits 45 and 15 on
+  entry and clears them on removal while preserving unrelated flags.
+  The natural Normal Endless wave sets `0x200000008000` on frame 3504
+  and reaches the `0CE0` voice stimulus at node 61 on frame 3597.
+  Passed 215 focused tests, including spawn-rule removal. Collision,
+  damage and original-client model behavior remain unverified.
+
+- Resolve the five Reaper opening cues from the authored mode voice
+  set `013B`, using the 104319 enUS sample counts for duration. Route
+  the mode speaker and current defender through the existing 27500
+  transport, ordered behind the Reaper body create. Deliver the three
+  `0CE0` `06DE` actions to the authored player team receiver. Normal
+  Endless submits `06B5` on frame 3598, retires the voice state by
+  frame 3808, and reaches `0CE0` node 3 (`2F07848F`) on frame 4004.
+  Passed 230 focused tests. Live audio and later cues remain open.
+
+- Encode Reaper's `0CE0` cinematic time-scale State `2F07848F` with
+  the component frame and authored delay for its start and release.
+  Owner and observer payloads carry the 33-bit boundary selector and
+  frame. Eight original callback cases and 12 writer/reader pairs agree.
+  The two later `0CE0` placements that select base State 160 also run
+  their ordinary lifecycle. Both the isolated branch and the natural
+  Normal Endless wave reach `0CE0` node 45 (`9935FBC8`). The natural
+  wave reaches it on frame 4004. Passed 162 focused tests. Client playback
+  and any effects on the authoritative simulation clock remain open.
+
+- Resolve `0CE0` node 45's pitch and yaw from the bound mover. Apply
+  the authored zero-width aim limits while the State is registered and
+  resume ordinary facing on removal. Observer frames and owner deltas
+  carry the linked-State field. Seven original yaw helper samples agree
+  with the signed heading convention. Normal Endless clears the earlier
+  spawn model flags and enters the aim lock on frame 4004, then stops
+  at `0CE0` node 77 (`06BD`, Reaper's own voice cue) on frame 4017.
+  Passed 152 focused tests. Relative aim targets, full-owner payloads,
+  original-client playback and automatic boss combat remain open.
+
+- Resolve Reaper's body voice cue `06BD` through voice set `0001` for
+  the authored encounter skin `1BEB`. The natural Normal Endless wave
+  submits line `8A2B` with a 3.591-second duration on frame 4017. Route
+  `06AC` to the player bodies and the live possessing controller with
+  the `0CDC` receiver. The headless replay enters the controller path on
+  frame 4021 and stops at `0CE2` node 7 (`9F3FE778`).
+  Passed 203 focused tests. Original-client playback remains open.
+
+- Forward `9F3FE778` through the native base action's output plug.
+  Three original callback cases confirm that the action leaves its
+  configuration unread. The natural Normal Endless wave passes
+  `0CE2` node 7 and reaches `0CE0` node 66 on frame 4209.
+  Bind that cue and the other four finishing cues to the active,
+  equally weighted lines in mode voice set `013B`. The isolated
+  `06D6` run submits line `A45E` and retires it after 6.729 seconds.
+  The natural run submits its 5.220-second variant on frame 4209,
+  retires the cue on frame 4536, and reaches frame 5000 with Reaper
+  alive. Passed 218 focused tests. The headless players did not
+  enter combat, and original-client playback remains open.
+
+- Resolve the Reaper boss shotgun's damage parameter `1961` from the
+  Arcade card difficulty and controller `1958`'s authored profile.
+  Read-only 104319 extraction gives 1.75, 3.5, 5.25 and 7 damage per
+  pellet in Normal, Hard, Expert and Legendary. Resolve ruleset defaults
+  from the querying scene entity's bound hero, so Reaper's `0019` weapon
+  initializes eight rounds. The isolated Normal replay holds the
+  controller's logical button 20 with a defender at three metres.
+  Two volleys reduce the defender from 200 to 154.5 health.
+  A separate natural Normal Endless run with four offline defenders
+  reaches frame 5500. Reaper stays at the spawn position and does not
+  hit a defender during that window. Automatic pursuit and attack
+  selection remain open. Passed 145 focused tests.
+
+- Publish Reaper's target to the possessing controller after the
+  authored `0C95` spawn-facing state releases. Choose the nearest
+  visible living defender within the shotgun's 20-metre falloff
+  boundary and apply body aim. This is a server targeting policy
+  based on the authored weapon range. In the natural Normal Endless
+  replay, a defender placed three metres away at frame 3510 is
+  acquired on frame 4022, after the `06AC` handoff. The target clears
+  on frame 4570 when that defender exits the combat roster. The run
+  reaches frame 4650. Weapon override consumption and pursuit remain
+  open.
+
+- Hold Reaper's authored logical button 20 when a defender is
+  acquired and the living-body `08B6` slot-zero record is the sole
+  active override. The `0019` weapon owns ammo, cadence and reload.
+  The natural Normal Endless replay acquires a defender placed
+  about three metres away and deals 35 damage on frame 4022.
+  Removing the defender releases the input on frame 4150.
+  After reacquiring, Reaper empties the first magazine, resumes
+  fire after reload and kills the defender on frame 4552.
+  The input clears on frame 4553 and the replay reaches frame 4650.
+  Native arbitration of other overrides and pursuit remain open.
+  A separate collision probe walks off the elevated spawn, lands
+  after 63 mover frames, and finds a 24-waypoint walking route from
+  the landing point to a clear shot at the default defender spawn.
+  Passed 127 focused tests and Ruff for the changed Python files.
+
+- Let Reaper pursue defenders outside shotgun range after the spawn
+  handoff. The known balcony spawn uses a collision-verified walking
+  exit, and the body mover carries the fall and landing. On the road,
+  a bounded floor search supplies walking waypoints to a visible
+  shooting position. Blocked or stalled waypoints trigger a replan.
+  Normal Endless with four defenders at their default spawn points
+  crosses the earlier stall and lands its first pellet on frame
+  4535, then continues firing after reload and reaches frame 5500.
+  A separate replay with the current waypoint tolerance also
+  pursues and damages a defender at their default spawn. The descent
+  and route policy are a server reconstruction. Passed 153 focused
+  tests and Ruff for the changed Python files.
+
+- Prepare authored target tags for the 32 player body definitions in
+  the Junkenstein bundle. Bind each selected player's tags, target
+  filter bits and live mover velocity to the scene body. The `05AC`
+  death graph now requires an enemy killer with the requested tag.
+  The `01D8` follow-up uses the killer's current velocity. An isolated
+  Reaper death runs from frame 800 through 1349 without a scene fault.
+  The body is dead and its weapon input stays clear during that window.
+  Normal Endless now passes both graphs after a lethal hit on frame
+  4700 and stops at the `0CCD` query `B3E67A36`.
+  Passed 166 focused tests and Ruff for the changed Python files.
+
+- Resolve `0CCD`'s tagged-body presence queries from the scene
+  combat roster. Apply the authored mask and exclude dead bodies,
+  including dead defenders still bound to the scene. An isolated
+  Reaper death with the authored `0CCD` graph passes the queries and
+  reaches the defeat voice cue at node 11. Normal Endless also
+  reaches that cue (`06D9`) on frame 4701 after the lethal hit.
+  Defeat voice selection, corpse retirement and later waves remain
+  open. Passed 167 focused tests and Ruff for the changed Python files.
+
+- Play the authored `0CCD` Reaper defeat cues through the mode voice
+  set. Filter the 106 enUS variants by killer hero and sample eligible
+  variants using their resource weights. Use the selected clip length
+  for the script callback. Native client playback and selection order
+  remain unverified. Normal Endless submits `06D9` on frame 4701
+  after an injected lethal hit on frame 4700.
+- Run the `0CBC` cleanup actions for a defeated boss's primary
+  possessor and body. Follow the authored controller-to-body links
+  and coalesce the requests at the scene's frame boundary. In Normal
+  Endless both entities remain present through frame 5199 and retire
+  on frame 5200 while the match continues.
+- Evaluate `1063`'s integer random selector from the seeded script
+  stream and dispatch its indexed ActionSwitch case before the common
+  output. The authored case layout supplies three Shock-Tire routes.
+  The headless Normal Endless replay passes the former frame 6064
+  fault and reaches frame 9000. Passed 236 focused tests, Ruff and
+  the scoped Git diff check.
+- In the extended Normal Endless replay, Shock-Tires spawn from three
+  distinct start positions at frames 6125, 6771 and 7417. All three
+  complete their death and retirement transitions. The next wave
+  spawns Zomnics, a Zombardier and Roadhog. Roadhog reaches the authored
+  `0CBC` combat modifier at node 141 on frame 9504, where strict
+  execution stops. The modifier has channel `0317`, tag `3FCE` and
+  value `-0.2`. Keep the channel and filter semantics open until the
+  native damage path confirms them.
+- Run Roadhog's `0CBC` damage filter with its authored lifetime.
+  The native `D275A0` branch rejects hits with any of the second
+  identifier array's tags. Carry those hit tags from ModifyHealth
+  through hitscan and projectile damage. Interpret channel `0317`
+  with mode zero as an additive outgoing scale. The focused test
+  observes 16 damage for an ordinary 20-damage hit, 20 for a hit
+  tagged `3FCE`, and 20 after the state ends. The native end-to-end
+  damage calculation still needs comparison.
+- Give the Junkenstein bosses the shared `0CE0` model control and
+  voice context, with each authored skin's voice set. The Roadhog
+  replay submits the opening, body and finishing cues on frames
+  9598, 10017 and 10209. Junkrat submits its three cues on frames
+  13035, 13454 and 13646. The headless model flags and submitted
+  notices still need original-client presentation checks.
+- Resolve Roadhog's primary and secondary damage in `01C6` from
+  the four `1959` controller difficulty profiles. Resolve the
+  Zombardier's initial `0CA1` damage lookup from controller
+  `171D` profiles. The latter uses 30, 60, 60 and 90 in ascending
+  difficulty. The Normal Endless replay passes the former 13437
+  fault and reaches frame 15000. Roadhog and Junkrat are still at
+  their spawn positions, with combat AI and later waves open.
+  Passed 237 focused tests and the scoped Git diff check. The
+  broader stored-journal test detected source edits during recording.
+- Drive Roadhog's primary attack from the shared defender pursuit
+  loop using the 8.749 metre distance authored at `0BC6` node 12.
+  Submit `01C6` node 26 through the combat projectile path with its
+  authored 25-pellet ring layout and exact Normal profile float.
+  In a headless control with a defender 12.65 metres away, Roadhog
+  closes about four metres, first deals damage on frame 758 and
+  releases fire on the lethal-hit frame 1010. The control explicitly
+  ends the authored facing state before handing over to pursuit.
+  Secondary fire and abilities remain open. Passed 243 focused
+  tests and the scoped Git diff check.
+- Retain the boss's spawn handoff after `0CE0` sends `06AC`.
+  Roadhog's receiver retires `0C95` before the next scene tick,
+  so the combat loop also recognizes completion of the sending
+  state. Keep the communication wheel's action handlers scoped
+  to their authored contexts so they do not replace the shared
+  voice dispatch and instance stop used by the encounter.
+  Normal Endless now moves Roadhog from the authored spawn by
+  frame 10032, lands the first projectile on frame 10458, and
+  continues firing against replacement defenders through frame
+  11800. Original-client combat presentation remains open.
+- Select Roadhog's authored secondary fire in the 8.75 to 19.75
+  metre band. Carry `01C6` node 29's secondary projectile and
+  embedded volley through the combat path. The unblocked slug
+  splits at its 0.15-second lifetime into 25 difficulty-scaled
+  pellets. A body or wall hit ends the slug without a split in
+  the server model. Normal Endless registers the first hit on
+  frame 10256 and keeps attacking through frame 11800. The
+  range-switch control passes both button transitions and lethal
+  release. Passed 263 focused tests. Native projectile presentation
+  and exact within-frame split timing remain open.
+- A manually injected Roadhog hook input reaches the authored
+  `01C8` node 100 raycast. The Junkenstein scene lacks the
+  query service for that cast, so hook and pull remain open.
+- Run the authored `01C8` node 100 start cast against the
+  collision scene and live opponents. Use the server body's
+  eye and aim pose and return the nearest body's capsule hit
+  or the occluding wall's point and normal. Focused controls
+  cover the body hit, wall hit and miss. The manual hook
+  input advances a near-body case to contact state 97 and
+  an open start to physics state 146 on frame 760. Native
+  muzzle placement, flight tracking and pull remain open.
+  Passed 270 focused tests and the scoped Git diff check.
+- Run the Roadhog hook flight's `01C8` node 137 wall ray and
+  node 17 opponent capture separately. The ray tracks the moving
+  hook tip and ignores player capsules. Capture checks the authored
+  radius and exclusion flags against live bodies with static line of
+  sight. The launch physics state runs in a scene without dynamic
+  map rigid bodies. Contact set `017D` uses the contact-effect
+  callback, which the offline fixture supplies.
+  The original map replay with manually injected hook input reaches
+  the captured-target hardpoint query `STU_FC99C77E` on frame 772.
+  The no-target replay reaches `STU_C1F83245` on frame 775. The
+  near-body branch reaches cleanup state 243 on frame 1010 after
+  lethal damage. Pull, clean miss and original-client presentation
+  remain open. Passed 271 focused tests, including wall occlusion.
+- Resolve Roadhog's `01C8` hook anchors with the 104319 bind-pose
+  hardpoints and live entity position and facing. Target hardpoint
+  `0014` uses bone `0053` on all four defender bodies. The normal
+  and Halloween Roadhog models share the `012D` bind position on
+  bone `0781`. The server uses the body branch of the return
+  expression. Animated hardpoint transforms remain open.
+- Skip client-only state references when exiting a server subgraph.
+  The near-target replay passes the former Roadhog death fault at
+  client-only node 243 and advances to frame 1049. The no-target
+  wall-impact replay advances to frame 1004 with the return anchor.
+- Apply the authored `01C8` node 19 hit to the captured opponent
+  with loadout and tags. Difficulty selector `1C96` uses 6, 15,
+  22.5 and 30 from profiles `000F`, `000E`, `0067` and `0010`.
+  The offline normal replay applies 6 on frame 772. The host
+  continues past hit telemetry node 189 and gives defender bodies
+  the existing entity lookup service used by the victim's `01C9`.
+  On frame 773 that graph reaches unsupported state 64
+  (`STU_875C9635`). Forced movement and client presentation remain
+  open. Passed 287 focused tests.
+- Resolve `01C9` victim states 64 and 65 through the ordinary
+  State lifecycle. The captured 104319 registry rebuild selects
+  factory `1B726B0` and vtable `27AC800` for both. Give Junkenstein
+  defender bodies a subgraph scope and a frame-clocked numeric
+  modifier backend. The authored node 60 action records a one-frame
+  `[0, 1]` clamp on property 32, as selected by `D35310` and
+  `C32860`. The mover consumer for this record remains open.
+  The normal offline hit replay applies 6 damage and reaches victim
+  state 22 on frame 773. Its native begin and end callbacks add and
+  remove a state key in component 43. The game-side use of that
+  registration and forced movement remain open.
+- Register the live `01C9` victim state, run the four authored
+  static occlusion rays, and attach the victim graph's data-flow
+  provider. Vector arithmetic and component reads preserve the
+  single-vector PlayScript parameters used by the side rays and
+  pull anchor. The scene models static collision. The authored
+  secondary damage query selects bit `0x80`, which no damageable
+  scene body carries.
+- Use the existing collision mover for `01C9` MoveTo on defender
+  command frames, with the authored speed, relative offset and
+  destination entity. The original-map offline replay pulls Ana
+  9.65 m at the normal 40 m/s setting and stops 3 m in front of
+  Roadhog. Strafe input resumes when the graph releases control.
+  Killing Roadhog during the pull releases the victim and the
+  replay continues. Command-gap behavior, dynamic shields and
+  original-client presentation remain open.
+- Drive Roadhog's hook through controller `1959` button 35 while
+  `0BC6` node 25 is active and the authored `01C8` ability is ready.
+  The host prioritizes eligible visible defenders within the authored
+  20 m range, releases the input edge after the cast starts, and
+  restores gun selection during cooldown. The original-map Easy
+  Endless replay (card `0043`) spawns Roadhog at frame 9502. He casts at 10250,
+  hits for 6 at 10279, pulls Ana to 3 m, and resumes firing at 10338.
+  When Hanzo replaces Ana, Roadhog uses secondary fire during cooldown
+  and casts again at 10750, 8 seconds after the first cast. The second
+  hook hits for 6 and pulls Hanzo to 3 m. Passed 266 focused tests,
+  including input release and cooldown fallback.
+- Run Dr. Junkenstein's primary grenade through controller `0CB5`
+  node 20 and weapon `022B` nodes 20 and 31. Read launch speed and
+  gravity from the live weapon graph, and use the same low-arc collision
+  check for aiming and pursuit. Controller `16FB` profiles `003C`
+  and `003E` supply 10/15 direct/splash on Easy and 20/30 on the
+  other tiers. The isolated original-map Normal control fires from
+  the authored spawn and lands four grenades at about 41 m before
+  releasing fire when the defender dies. The Easy Endless wave uses
+  the authored handoff at 13459, lands its first 10/15 hit at 13562
+  and attacks replacement defenders through frame 15000. Resolve the
+  wave's `0033` node 30 through its registered PC base State lifecycle.
+  Grenade bounce/fuse, secondary behavior, and
+  original-client presentation remain open. Passed 283 focused tests,
+  including authored damage and the pursuit firing-position check.
+- Route the Normal encounter's `0C8C` node 84 phase cue `06BE` to
+  mounted `0CA5`, `0CA7`, `0CBC`, and `0CC7` receivers. Use the
+  defender's entry pose for the authored `0CA5` node 70 aim lock and
+  release it through the existing registered-state lifecycle. Allow
+  only the `0CBC` phase-exit actions at 57 and 58 to retire a living
+  wave pair through the deferred queue. The Normal Endless replay now
+  clears three wave enemies at frame 6874 and reaches the gate model
+  control `0CA7` node 36 at frame 6881. The gate model consumer and
+  original-client phase presentation remain open. Passed 285 focused
+  tests, including receiver routing, aim-lock cleanup, and retirement
+  of the live wave pair.
+- Bind the Normal Junkenstein gate's `0CA7` node 36 to the two
+  model consumers recovered from 104319. The original-map offline
+  wave sets the `6CA4B0` flag pair and the `CA8570` phase flag
+  at frame 6881. The server models those flags; original-client
+  rendering and any dynamic collision effects remain open.
+- Run `0C8C` node 72 through its registered base Action and route
+  the `0CBB` node 68 phase cue `0045` to its mounted receivers.
+  In `180A`, resolve `STU_BEDA850F` as the presence of ruleset
+  key `2548` and use `STU_CBE8BDAA`'s single-value insertion.
+  Its native `1B6BCB0` path preserves a nested source array as
+  one element. Normal Endless passes frame 7155 and next stops
+  at `180A`'s `STU_A6B80C63` query on frame 7170.
+- Execute `STU_A6B80C63` as the 104319 iterator fold at `1B77D80`.
+  The native provider `1B76A60` exposes the accumulator, item, index,
+  and count through the scoped parameters. Normal Endless passes the
+  query at frame 7170 and reaches the distinct `180A` node 42
+  (`STU_77E13026`) on the same frame. Passed 198 focused tests,
+  including empty input and restoration of the enclosing scope.
+- Trace `180A` node 42 in the Normal Endless wave. Its input contains
+  graphs `027F`, `17DF`, `181E`, `0D94`, and `184C`, with the authored
+  phase array folded to 56.5 seconds. The 104319 `77E13026` factory is
+  `D4D0C0`. It collects non-null array rows at `D422B0`, reconciles
+  repeated values by occurrence at `D50F70`, and allocates child
+  contexts through `D42400`. The authored branch enters `180A` node
+  41, which uses `CB4905E9` to play the current graph. Its update at
+  `D4C080` resolves the graph and entity targets. `D50EA2` collects
+  named start values through `1BA7C60`, and `D51200` retires child
+  contexts whose targets were removed.
+- Run the authored `180A` list and same-owner play states in the strict
+  scene VM. Item scopes enter their authored branch without replaying root
+  entries. Unchanged occurrences retain their child, nulls are skipped,
+  and removed items or an ended phase release their descendants. The
+  regression exercises the five resource starts, inherited parameters,
+  duplicate items, list changes, and phase teardown. Normal Endless now
+  reaches `181E` node 0 (`2F07848F`, cinematic time scale) at frame
+  7170. Passed 126 focused tests. Native client
+  replication and broader variants of the two script states remain open.
+- Run the `181E` cinematic time-scale state with the shared boundary
+  model. Native opcode 15 at `1B81CE9` uses `1B80C30` and `F65300`
+  for non-entity member access. `F65300` requires outer tag 13, so the
+  start-parameter array containing the difficulty map follows the
+  authored false branch. The regression verifies activation and removal
+  frames. Passed 108 focused tests. Normal Endless now reaches
+  `0D94` node 3's `STU_1232F9A3` query at frame 7170. Original-client
+  playback remains open.
+- Resolve `0D94`'s `1232F9A3` and `AA7C7E9F` through their base
+  ConfigVar evaluator. Native loader `1B936E0` installs vtable
+  `26292E0` after the exact type misses. Sixteen native callback cases
+  retain the destination on failure. The authored SetVar defaults and
+  expression null stay distinct. Passed 95 focused tests. Normal
+  Endless now reaches `0D94` node 8 (`3218BAEB`) at frame 7170.
+- Run the four `0D94` helper actions through their native
+  `DD856C32` base action. The authored startup reaches positions
+  8, 7, 6, and 1 at offsets 0, 1, 2, and 4 frames. Normal Endless
+  passes frame 7170 and reaches `180A` node 46 (`4BD2E886`) at frame
+  7351. That state has its own native factory `ADE320` and runtime
+  vtable `2653AC8`. Passed 109 focused tests.
+- Advance the `180A` node 46 transition with the native
+  `AD73D0/AD76D0` open, hold, and release sequence. Full progress
+  dispatches the authored output once, and completion queues the
+  native abort operation. The isolated scene regression passes
+  normal release and early timer release. Normal Endless now
+  enters the state and reaches its `07F1` message action at
+  `180A` node 47 on frame 7351. The receiver and client transition
+  presentation remain open.
+- Queue the `180A` node 47 `07F1` action on the reliable mode
+  stream for current spawned clients. The prepared graph bundle's
+  receivers are client-only. The action waits for the previous mode
+  acknowledgement and can use an otherwise empty delta. The server
+  fixture checks the encoded action and single submission. Normal
+  Endless reaches the transition's `STU_DAAE1875` query at frame
+  7370. Original-client playback remains open.
+- Restore the tracking branch indentation in `BodyWorld` so the
+  shared working tree can import its game test suites.
+- Use the `91A7C0` missing-local-presentation result in the server
+  Junkenstein mode scene. The native fallback writes a successful
+  tag-10 entity zero in six starting-output cases. The `180A`
+  condition preserves this distinction and node 22 uses its
+  `DD856C32` base action. Passed 112 focused tests. Normal Endless
+  now starts `1F93` and reaches its node 1 routed-message action at
+  frame 7370.
+- Route the `1F93` helper's `0F58` message to the mounted `0CBB`
+  receiver. Its authored abort plug releases node 89 and the sender
+  stops itself. Run the `181D` helper's `7947FBE4` base action and
+  route `0669` to its mounted receivers once per component. Normal
+  Endless reaches `181D` node 1 (`523EE38D`) at frame 7370. The
+  tagged target lifecycle for this placement remains open.
+- Run `181D` node 1 through its `DD856C32` base action when the
+  authored tag `0044` is absent. The prepared map and script sources
+  contain no creation or assignment for that tag. The regression
+  confirms the helper stops and leaves an existing tagged target
+  unsupported. Normal Endless now reaches `0C90`'s `E72F6348` on the
+  player controller at frame 7370. Passed 135 focused tests.
+- Resolve Symmetra's `157C` nodes 202 and 203 through the authored
+  direction, length, and 0.2 m fallback radius. The scoped scene
+  casts model defender capsules and static wall occlusion. A
+  manual-fire offline probe passes ray initialization and reaches
+  the separate `STU_BA4C2296` contact state at node 143. Beam
+  damage and autonomous firing remain open. Passed 211 focused tests.
+- Resolve the two `157C` damage parameters through controller `1DD3`'s
+  original difficulty profiles `005C`, `005A`, `0065` and `005B`.
+  Primary values are 3.2, 8, 12 and 16. Secondary values are 16, 40,
+  60 and 80 before the authored charge multiplier. The regression runs
+  the primary assignment, evaluates the secondary expression, and verifies
+  that removing possession leaves the lookup output unchanged. Passed 114
+  focused tests. Damage application, autonomous firing and client acceptance
+  remain open.
+- Route the authored `157C` beam health state into match combat. Its mode-1
+  amount accrues over the state clock, using the live selected enemy and
+  authored damage tags. An isolated state replay verifies player health loss
+  and that empty targets, allies and dead casters cause no damage. Passed 115
+  focused tests. The sibling `026E.053` aura, autonomous firing and
+  original-client acceptance remain open.
+- Resolve `157C` node 200's `026E.053` aura as an inert player criterion for
+  the authored Symmetra NPC with no stats record. The original `0BD9` callbacks
+  count active auras by caster. Its only outgoing message reaches `01A3`'s
+  criterion gate, which requires entity variable 7059. The headless beam
+  test now starts both sibling states and verifies the guard rejects a body
+  with its criterion enabled. Passed 115 focused tests. Autonomous fire
+  and original-client acceptance remain open.
+
+- Run the Shock-Tire wave state through the original missing-context
+  guard for `0CBC` node 52 and the plain State continuation at node 60.
+  Native `8EF100` and `979210` replays skip scheduling for null and
+  wrong-type contexts and schedule once for the accepted context.
+  The offline fixture supplies the existing killer-team query from
+  bound body filter bits. The original death receiver sends `06A4`
+  for a player kill and skips it for self-damage or another enemy.
+  In both Normal modes the first naturally spawned tire reaches the
+  gate at 122,080 ms, deals 60 damage once, and retires with its
+  controller 127 ms after self-damage. Native present-context behavior
+  and live match services remain open.
+- Route the Junkenstein wave cues to the bound mode's live `0CBD`
+  receiver. This covers both `06CD` senders and the other three wave
+  cue messages, plus the root's `06CC` setup message. An explicit host
+  route still takes precedence. Both Normal offline runs pass the
+  second `06CD` cue and reach 151,999 ms without a strict fault,
+  with 35 enemies spawned and 660 gate damage. Passed 213 focused
+  tests and Ruff.
+
+- Feed the 104319 Arcade cards' difficulty identifiers into the
+  encounter's original switch. All 14 cards use their authored
+  identifiers, including Expert for the six challenges. Seed each
+  challenge's mode-level rule values before the scene's first frame.
+  A match-host test covers the full card set. The extracted Revenge
+  and Endless roots also select each of their four difficulty tiers.
+  The Three They Were team-level modifier still needs a host binding.
+- Preserve the existing Shock-Tire health pool when the authored
+  Normal wave modifier is zero. The strict state requires an explicit
+  Normal tier and an existing pool. In both offline modes, the first
+  naturally spawned tire now passes node 43 and reaches `0CBC` node 52
+  at 107,040 ms. Node 52 and the harder tiers' health modifiers still
+  need implementation. Passed 170 focused tests and Ruff.
+
+- Give the strict scene host an explicit service for effect-entity
+  actions (`STU_E0687628`, native callback `97EA70`). The offline
+  encounter fixture handles only its audited audio resources. The
+  wave cue `1B29.00D` contains sound `3B44.02C`. Both modes now
+  spawn their first Shock-Tire through the authored wave at about
+  107 seconds. Its wave-specific health-pool state (`0CBC` node 43)
+  reads zero with the fixture's unset difficulty slot, while the
+  body already has its 100 HP base pool. The Arcade difficulty binding,
+  wave health modifier, live audio and client acceptance remain open.
+  Passed 168 focused tests and Ruff on the changed script and test files.
+
 ### 2026-11-09
+
+#### Junkenstein and Hero Gallery
+
+- Run `STU_D38D0035` through the PC base action's output flow
+  (`DD856C32`, `1B6EBA0`). Both Junkenstein root probes now pass
+  `0C8C` node 137 in strict mode and reach `0CBD` node 27, where the
+  mode entity filter needs a host binding. Removed the node 137 override
+  from the offline probe. All 69 focused script tests passed.
+- Feed the Junkenstein scene's session iterator from the current match
+  controller roster when a scene host is installed. Preserve slot order,
+  omit departed players, and keep a host's explicit roster if supplied.
+  The scene iterator still requires an entity binding for each result.
+  The native classification bits and default match scene setup remain
+  open. All 79 match-scene and strict script tests passed.
+- Resolve the authored team-one participant query from the current
+  Junkenstein match when the scene host has no explicit participant
+  provider. Reuse the controller's replicated team and filter bits.
+  Other participant queries, including tagged placements, still require
+  their own provider. The mode entity definition `16B2` declares
+  components 47, 78, 89 and 114. Their static dependency closure contains
+  neither component 25 nor 97, so runtime classification remains open.
+  All 79 match-scene and strict script tests passed.
+
+- Enable Halloween when generating a local profile without an existing
+  template. The current normal runtime resolves all 14 offered
+  Junkenstein cards into matches and produces decodable entry and
+  hero-select frames. Existing saved event selections still load as-is.
+
+- Include all 23 named 104319 NPC assets marked non-playable in the
+  lobby Hero Catalog when their client metadata is installed. Their
+  catalog entries have empty cosmetic lists
+  and are separate from career loadouts. Wire round-trip, ownership,
+  Arcade, PvE entrance/controller and lobby smoke checks passed.
+  Original-client Hero Gallery visibility and preview still need acceptance.
+- Extracted build 104319 base pools and body bindings for Zomnic,
+  Shock-Tire and Zombardier using the existing external NPC extractor.
+- Resolve the authored unfiltered gate query `STU_160F2578` from the
+  unique bound map entity's definition tag. Standalone probes of the
+  104319 `0C8C` state resolve gate entity `80000032` in both Revenge
+  and Endless with flat placeable 50 explicitly bound. Ordinary startup
+  now reports unsupported action `STU_D38D0035` at node 137, frame 0.
+  Normal Revenge and Endless map resolution now adds the gate to the
+  server creates when the 104319 catalog lists it as a mirrored placement.
+  Both resolved maps bind `80000032` to definition `16F6` using the
+  extracted map-world input. Eight entrance tests passed. Original-client
+  acceptance of the additional create is pending. With an explicitly
+  supplied message context, the isolated `0CC8` graph registers its two
+  persistent receivers in both modes and runs for 180 frames. The root
+  `0C8C` still stops at `STU_D38D0035`. Map-backed scene hosts now accept
+  explicit entity and hero allocators through their factory.
+- Implement the active-only input of `STU_7B9E8909` from the 104319
+  hook at `1B97E10`. Isolated Revenge probes manually start authored
+  `0C8C` senders 11 and 18. `0CC8` receivers 72 and 64 select those
+  senders and activate their authored child states 70 and 65. The
+  root startup remains strict. All 35 strict and receiver tests passed.
+- In isolation, `0A98` writes the hero parameter to `0CC8` variable
+  940. The route stops when state 70 is inactive or the authored guard
+  is true. Otherwise hero `0005` selects effect action 5 (`STU_E0687628`).
+  Both authored `0C90` senders are client-only. Temporarily bypassing
+  `STU_D38D0035` in a diagnostic probe exposes `0C8C` node 240
+  (`STU_353AF1A9`) in both modes. This state has a dedicated PC factory.
+  Normal startup still stops at node 137.
+- Resolve the `STUConfigVoiceDefinition` resource used by `0C8C`
+  node 240. The 104319 config evaluator is `1B85C30`. The node targets
+  component bit 14, initializes its handle to `-1`, and releases a valid
+  handle through `A6E960`. This change models the resource input only.
+  All 50 literal, voice stimulus, and startup tests passed.
+- Confirm that match definition `16B2` includes `STUVoiceSetComponent`
+  with authored default `001D.05F`. The node's `D529E0` path uses
+  `BE6830` to install the resolved voice definition into the component,
+  set its override flag and give it a separate resource handle.
+  `D433A0` uses `BE67A0` to clear the flag and release that handle.
+- Model the owner-targeted `STU_353AF1A9` override in the scene host.
+  Isolated Revenge and Endless probes execute authored node 240, select
+  `013B.05F`, and restore `001D.05F` on exit. A regression test covers
+  component retirement. Other targets, concurrent overrides and live
+  voice resource playback remain outside this path. Root node 137
+  remains strict. All 52 focused tests passed.
+- Run both roots with the map, message and voice bindings together.
+  With only action 137 bypassed in the diagnostic harness, both modes
+  execute node 240 and reach `STU_BF916E6E` at node 272 in frame 0.
+  Node 272 supplies global data-flow value `05F2 = true`. The native
+  state registers the resource and authored row index (`9FF580`),
+  refreshes through `A075B0`, and removes the resource on cleanup
+  (`9FF730`). Normal startup still stops at node 137.
+- Model the literal `05F2` provider and its cleanup in the scene host.
+  The isolated authored state registers `true` and removes the entry
+  on exit in both modes. The combined diagnostic with only node 137
+  bypassed now reaches node 69 (`STU_1B93D61B`) in frame 0 in both modes.
+  Dynamic and multi-row global data flow and its client consumers remain
+  open. All 50 scene-host, data-flow and strict-script tests passed.
+- Model `STU_1B93D61B` registration and its verified link codec.
+  Authored node 69 links and unlinks in order in isolated probes of
+  both modes. The rendering consumer remains open. All 20 relevant
+  registered-state and strict-script tests passed.
+- Run both original mission roots with the forward scope phase and
+  actual map placements. The strict run still stops at node 137. The
+  diagnostic run bypassing only that action now passes scope registration
+  at node 348 and stops at node 231 in both modes. Node 231 uses the
+  same class as the gate query, but specifies a filter and no target
+  tag. The existing static gate lookup does not model this query.
+- Identify the candidates for the node 231 filter. Selector `0x40000`
+  reaches `D47730`, whose iterator setup at `6AC390` selects component
+  `0x4A` through `BCB900`. This is the match participant component that
+  the server adds to player entities. `D47B90`-`D47C35` extracts entity
+  IDs and applies a further filter before appending each result. The
+  server's team-zero bit matches the authored `0x800000` mask, while
+  the remaining predicate and exclusion checks need verification.
+- Resolve that predicate through script VM vtable `262C010` slot
+  `+150` (`D0DA20`) to `BCAAE0`. For node 231's masks the native
+  predicate requires an intersection with `0x40000`, all bits in
+  `0x800000`, and no intersection with `0x10`. The enumerator also
+  skips participant entries with bit 2 set at `+B4` before applying
+  those masks. The live participant binding remains to be connected.
+- Implement the authored participant filter for an explicitly supplied
+  scene roster. Tests preserve candidate order and exclude other teams,
+  rejected filter/participant flags and unbound entities. With an empty
+  roster in the map-only diagnostic, both roots pass node 231 and reach
+  world query `STU_58AA0A3B` in frame 0. The diagnostic still bypasses
+  node 137. All 54 scene and scene-host tests passed.
+- Implement `STU_58AA0A3B` as the native `1B778E0` value-presence
+  check. Null and failed evaluations return false, while typed false
+  and zero remain present. Both diagnostic roots now reach team query
+  `STU_D289FA32` at node 6 after bypassing node 137. All 58 literal,
+  expression and scene tests passed.
+- Resolve `STU_D289FA32` team capacity from the selected Junkenstein
+  match ruleset when a scene host is present. With four configured
+  slots, both diagnostics pass root node 6 and enter `0C8F`, stopping
+  at node 7 (`STU_5E805B5A`). These runs still bypass node 137.
+  All 54 scene and scene-host tests passed.
+- Model the initialization and inactive input of `STU_5E805B5A`.
+  The native begin hook `D43000` resets the history count. An active
+  input uses `D4F130` and remains strict. Both diagnostics bypassing
+  root node 137 now start `0C8F` and reach its dynamic target query
+  at node 2. All 43 scene and strict-script tests passed.
+- Inspect both live `0C8F` node 2 inputs at frame 0. Its tag expression
+  indexes element 1 of mode-entity variable 8364 and evaluates to null;
+  its additional dynamic input 11016 is also null. This follows the
+  native list-building route `D4E9A0` then `DB3850`, so the null input
+  cannot be treated as a failed unique gate lookup. The map contains
+  six placed spawn targets carrying `0310`, the tag root action 12
+  later writes at index 0. Empty-list selection still needs verification.
+- Model the `0C8F` target-tag list query for bound map placements. Native
+  `DB3850` enumerates component `0x4C`, and `DB5310` passes the tag
+  predicate when all three lists are empty. The scene uses bound map
+  order and supports an optional primary tag with no required or
+  excluded tags. Both root diagnostics now reach `STU_A753DC79` in
+  `0CBB` after bypassing node 137. All 54 scene tests passed.
+- Resolve `STU_A753DC79` from explicitly supplied typed engine settings.
+  Native `CF4A60` dispatches the full uint32 key to a typed getter.
+  The isolated probe uses three values read from the local 104319
+  capture and reaches `0CBB` node 2 (`STU_CD46AF93`, synchronized
+  ForCode) in both modes when node 137 is bypassed. The normal match
+  does not yet supply these settings. All 54 scene tests passed.
+- Honor the ForCode transport role check at `D44E0E`. The captured
+  PC VM returns zero, so an explicitly configured local host can run
+  authored sync-flagged bindings without transport. Unknown or enabled
+  transport remains strict. Both diagnostics now reach `0CBB` node 21
+  (`STU_57692020`) after bypassing root node 137. All 35 ForCode and
+  scene-host tests passed.
+- Route `STU_57692020` through explicit host recipients. With an empty
+  route for `0669` and root node 137 bypassed, both mode probes reach
+  `0CBB` state 87 (`STU_7F488C3E`). Live recipient selection remains open.
+- Register `STU_7F488C3E` as a base State using the 104319 factory winner
+  and empty native payload. Both offline mode probes with node 137
+  bypassed advance to the `STU_17330930` expression in `0CBB`. Normal
+  startup still stops at node 137. All 64 strict VM and scene tests passed.
+- Implement `STU_17330930` using the 104319 evaluator at `1B76C90`.
+  It converts and reduces the authored candidates to a float minimum, using
+  the default when the iterator is empty or a candidate cannot be converted.
+  Both offline probes advance into `0CC7` and stop at `STU_0C37A184` with
+  root node 137 bypassed. Normal startup still stops at node 137.
+- Read `STU_0C37A184` score thresholds from the mode's `013B.054` row,
+  preserving array order and replacing targets beyond the selected difficulty's
+  limit with `-1`. Both offline probes use the extracted 104319 table and reach
+  `0CBD` state 27 (`STU_0A6BE10E`) with root node 137 bypassed.
+- Add the `STU_0A6BE10E` array filter path with host entity predicates and
+  deferred assignment. Recognize the authored team-one filter at `0CBD`
+  state 17. Both offline probes now reach the `STU_BD2D717B` input to
+  state 27. Native participant enumeration and the live predicate remain open.
+- Add selector-zero `STU_BD2D717B` collection from the host's ordered
+  session entity roster. The isolated probes supply an empty player roster
+  and now reach state 27's `0x80000` entity predicate. Normal startup and
+  live roster and predicate bindings remain open.
+- Implement the bit-only array predicate with explicit native component
+  inputs, and honor the required `0326.06C` tag on `0CBD` state 18.
+  Both offline modes reach `03F2` action 35 (`STU_3D419B63`) under either
+  mode-entity classification fixture. The live classification is unverified.
+- Add `STU_3D419B63` voice category dispatch with ordered entity targets,
+  preserving a null category and the native absent-service exit. With the
+  voice service explicitly absent in the offline fixtures, both modes reach
+  the `STU_7042F028` expression in `180A`. Live voice dispatch remains open.
+- Implement the authored identifier map (`STU_7042F028`) and nested array
+  values (`STU_45B0D2B2`) used by `180A`. Both offline modes now reach
+  `1B4A` state 0 (`STU_25CBEFB0`) with the existing startup fixtures.
+- Reuse the linked-state lifecycle for `STU_25CBEFB0` and base State for
+  `STU_0FAD550D`, matching the 104319 factory winners. Both empty-roster
+  modes run 3,750 offline frames under both mode-entity classification
+  fixtures. No new live entities appear. Strict startup still stops at 137.
+- Exercise the authored `0C90` ready senders against the mission's actual
+  `068E` receiver in the offline startup probe. With four selected hero
+  assets and node 137 bypassed, both modes advance to phase 1 and reach
+  `0CBE` action 2 (`STU_22926252`) at 22,016 ms. With three senders the
+  four-slot mission remains in its initial phase through 1,500 frames.
+- Handle the default `STU_22926252` self-stop event and queue completion of
+  the matching parent SubScript. Both four-sender offline modes finish
+  `0CBE`, advance to phase 2 and reach `0C8C` action 125's routed message.
+  Targeted stop variants, live routing and normal startup remain open.
+- Route phase 2 message `06DE` to the four authored `0CA5` body receivers
+  in the offline fixture. Register `STU_F7216D4F` through the 104319 PC
+  base-State factory. Both modes queue all four receiver entries and start
+  the `0CB3` spawn graph. The root then requires gate entity `80000032`
+  variable 8571 before the probe observes any enemy spawn.
+- Start the placed gate from the extracted `0CA7` graph, the `16F6`
+  definition and its instance overrides. Both modes reach gate action 3
+  (`STU_0F647E55`) at frame 0 in the four-player offline probe.
+- Forward the authored team assignment to an explicit host setter. The
+  offline gate setter records team 2, allowing the original gate graph to
+  initialize and both probes to reach `0CB3` action 188 in phase 2.
+- Mount the team setter for the live `16F6` gate and expose its authored
+  team through the scene filter. Both real-map Match replays now pass
+  `0CA7` node 3 with no injected team service, then reach its persistent
+  message receiver at node 46. Supplying the existing message host in the
+  replay advances both modes to the `0C8C` mode voice-set initialization.
+  Passed 116 focused tests. Default Arcade mounting remains open.
+- Bind the shared persistent-message manager, authored initial voice set,
+  typed 104319 settings and score thresholds when assembling a Junkenstein
+  match. Route both authored `0669` senders to their mounted receivers.
+  Real-map Revenge and Endless replays without injected services now reach
+  the `0CBD` mode-entity filter at node 27. Its live classification and the
+  default Arcade mount remain open. Passed 116 focused tests and Ruff.
+- Bind the mounted `16B2` mode owner as the encounter narrator for `0CBD`,
+  and use the explicit absent-manager path for voice categories. Real-map
+  one-player replays reach mode readiness, accept a hero pick and run through
+  frame 6199 in both modes. The four-player Endless replay reaches `0CBD`
+  node 21 at frame 1987, where the conversation stimulus needs a host.
+  Read-only 104319 extraction confirms the five conversation stimuli have
+  no direct lines in the base or encounter mode voice set. Native filter-bit
+  parity and client acceptance remain open. Passed 116 focused tests and Ruff.
+- Extract the five `0CBD` conversation stimuli from 104319. The local
+  metadata resolves all 291 lines across 135 authored conversations to
+  their hero voice sets and enUS sample durations. One conversation offers
+  several lines at the same step, and five lines carry a separate hero
+  criterion. The four-player replay roster has eligible sequences for all
+  five stimuli. Selection and playback are not yet mounted in the match.
+- Bind the five authored `0CBD` conversation cues when a Junkenstein scene
+  loads the local 104319 enUS metadata. Select sequences from the living
+  defender roster and use the voice scheduler to dispatch lines in order
+  at their measured durations. The five variants with a separate native
+  hero criterion are skipped pending criterion recovery. All four server
+  replay connections receive the opening line by frame 1990 and its reply
+  by frame 2200. Bind the three `0CA7` gate cues to the encounter narrator
+  using the authored `013B.05F` lines, including the Shock-Tire variant for
+  the initial gate attack. The replay also receives the initial gate line.
+- Use the existing observer death snapshot for `0C89` node 49 contact
+  presentation. A four-player Endless server replay without an injected
+  contact service queues the active state and its target array for the
+  first three exploding enemies by frame 2200. Declare the headless scene's
+  tips, UX, and local combat consumers absent. The replay reaches frame
+  4200 with the mode still ready and delivers the first boss announcement
+  and a later gate cue to all four connections. Passed 157 focused tests
+  and Ruff.
+  Original-client playback and effect presentation remain open.
+- Mount the authored Junkenstein host for both Arcade modes when the
+  external runtime contains the encounter inputs in `data/junkenstein`.
+  The local `game_graphs_174.json.gz` includes 27 additional graphs and
+  preserves the existing 619 graphs.
+  Accept forward skips from the live network clock without stepping
+  synthetic frames. Offline hosts retain their contiguous-frame check.
+  Stop ticking the match after its last player leaves and the host closes.
+  Thirteen Arcade cards complete localhost UDP loading, mode
+  acknowledgement, and hero selection. Mystery Swap stops in `0C8C`
+  node 303 on the unsupported `STU_6EA8533F` query. A real matchmaker queue
+  issues four `20600` handoffs for Endless Normal, and all four protocol
+  test clients enter play through frame 3582 with nine concurrent enemies
+  observed. Passed 146 focused tests and Ruff. Original-client acceptance
+  for the new authored host remains open.
+- Restore Mystery Swap's opening roster query, weighted candidate count,
+  random removal by index, and the challenge narrator's authored enUS
+  cues. Route the opening conversation message after the challenge line.
+  Mystery Swap completes localhost UDP loading and hero selection. A
+  four-player lobby and UDP replay reaches frame 3723 with nine concurrent
+  enemies observed and two controllers selected on a swap pass. The
+  controller's `0CA2` swap receiver and actual hero replacement remain open.
+  Passed 142 focused tests and Ruff on the changed runtime files.
+- Queue `0CB3`'s authored `1B29.00D` wave sound as a remote mode action.
+  The 104319 resource contains the `3B44.02C` sound chunk. Bind the
+  autonomous Shock-Tire's participant lookup to its known absence of a
+  player owner so `0234` keeps its original guarded behavior. Both
+  four-player idle-defender replays reach frame 12000, with all three
+  common enemy types and Reaper observed. Mount the two unconditional
+  Endless objective narration cues and queue `0C8C`'s original outcome
+  messages for the client mode VM. The new tests verify defeat narration
+  eligibility for defeated defenders and outcome callout encoding after
+  an ACK. At frame 7600 of the Endless replay, the defeat stimulus has
+  submitted and the outcome action is pending for all four transports.
+  These transports did not ACK a mode frame in this replay. Passed 160
+  focused tests and Ruff. Native outcome presentation and full mission
+  acceptance remain open.
+- Route `0CB3` wave announcements to the authored `0CA2` controller
+  receivers in the offline fixture. Both modes queue all four receivers
+  and resolve the spawn location through the single required tag in
+  `STU_B3E67A36`. The probe now reaches `0CBA` state 15 (`STU_BA2FCDEB`).
+- Resolve the `0CBA` state 15 direction expression from the placed
+  marker's forward basis. The 104319 state evaluates the authored search
+  inputs at `C82B40` and submits them to an asynchronous service through
+  `BC5CC0`. Timer operation 2 publishes the buffered positions and
+  follows the finish plug. Candidate generation and result delivery
+  remain open. All 69 scene, scene-host and strict tests passed.
+- Add the `0CBA` spawn search request and deferred result handling.
+  Both four-player fixtures submit the authored 8-unit search with a
+  full arc and candidate bounds 10 through 300. The fixture records
+  the request without providing positions. Player body graph `0CA5`
+  then stops at node 69 (`STU_0FC6DAEA`). The actual search provider,
+  candidate subgraph execution and live NPC waves remain open.
+  All 80 focused tests passed.
+- Apply the inherited PC action flow to the `0CA5` Play of the Game
+  metadata action. Both four-player offline roots now run 1,500 frames
+  and remain in phase 2 with one pending spawn search and zero new
+  entities. Apply the inherited State lifecycle to six more classes in
+  enemy controller graph `0C87`. With fixed possession and body pools,
+  the extracted controllers now reach the component 86 states at node
+  30 for Zomnic and Shock-Tire and node 29 for Zombardier. The probe has
+  an `--enemy-controllers` option for reproducing those boundaries.
+  All 80 focused tests passed.
+- Register the two authored default-priority AI control records on
+  explicitly bound component 86 bodies. Preserve insertion order
+  among equal priorities and remove each record with its state or
+  binding. The isolated controllers now reach `0CF3` node 3 for
+  Zomnic, `0CB7` node 1 for Shock-Tire, and `0C87` node 15 for
+  Zombardier. AI movement consumers, nondefault priority resources
+  and live encounter integration remain open. All 81 focused tests
+  and Ruff passed.
+- Preserve the caller's output for the `B40ACFBA` config. The 104319
+  base factory at `1B7F3E0` selects the no-output evaluator at
+  `123CC10`. All three controller fixtures now reach the authored
+  `0682` send to the possessed body at 4,000 ms. The combined
+  `--enemy-bodies` fixture starts the actual body definitions and stops
+  at the `0C89` health-pool state on frame 0. Live body initialization
+  and message delivery remain open. All 147 focused tests and Ruff passed.
+- Bind the authored `0C89` base health state to the body's existing
+  combat pool capacity before running its inherited PC lifecycle.
+  A mismatched capacity fails strict startup. The check preserves any
+  damage already applied to the pool. With combat Vitals and explicit
+  message contexts, all three combined body/controller fixtures pass
+  `0C89` startup. Zomnic and Zombardier then reach the modifier state in
+  `0CB8`, and Shock-Tire reaches `0C93` node 26. These are offline
+  fixtures. All 154 focused tests and Ruff passed.
+- Apply the Shock-Tire `97B1B3EC` state to its owner's component 86
+  settings. Clamp the authored value at 0.1 and restore the native
+  defaults of 5 and false on exit. Resolve `0234`'s tag branch through
+  the PC base State and bind the existing component 31 backend for
+  the fixture bodies whose definitions declare a character mover.
+  The combined fixtures reach the Shock-Tire velocity query and the
+  Zomnic/Zombardier body filter. Live consumers and encounter delivery
+  remain open. All 155 focused tests and Ruff passed.
+- Read the default `309B0570` velocity from the bound mover and reuse
+  the three-mask entity predicate for `AC829876`. The combined fixture
+  supplies the server's existing team-two bot filter bits. Model the
+  successful false written by `4A101787` at `CEF730`. Shock-Tire
+  now reaches `0340A42A`, and Zomnic/Zombardier reach `A77AC2AC`.
+  These are frame-zero offline boundaries. All 157 focused tests and
+  Ruff passed.
+- Resolve `A77AC2AC` from the declared mode's Tutorial identity.
+  Add the `0340A42A` host lookup for a participant associated with
+  an entity, preserving the caller's output and subscribing to the
+  environment on a miss. With the isolated fixture's empty participant
+  roster, all three bodies now reach the dedicated presentation
+  state `DC80F7E6` in `0C18`. Live participant resolution and the
+  presentation state remain open. All 159 focused tests and Ruff passed.
+- Run the outline state through its native absent-context exit for the
+  explicitly headless fixture. Reuse the identical PC ForCode hooks
+  for `6A926B21`. The combined fixtures now deliver the controller's
+  `0682` message into `0C89`, resolve the authored gate tag against the
+  real map placements, and stop at the next position query. Shock-Tire
+  reaches it at 4,016 ms and the other two at 4,766 ms. Preserve the
+  legacy body snapshot types for the strict-only scene states.
+  All 196 focused tests and Ruff passed. Live waves remain open.
+- Read current body coordinates through the scene binding, keeping
+  placed map coordinates static. The combined enemy fixture starts
+  its mover at the authored spawn search marker's center. All three
+  bodies measure 39.54 units to the bound gate through `0C89` and reach
+  the authored self-targeted ModifyHealth state at node 46. The center
+  is a fixture origin. Walkable candidate selection and the live
+  health service remain open. All 197 focused tests and Ruff passed.
+- In the four-player offline probe, sample wave spawn positions on
+  Eichenwalde collision using the Zomnic movement profile. Both modes
+  return 172 positions to `0CBA` at 22,032 ms. Run the base lifecycle
+  for the three spawn-search branches so the graph can clean up and
+  advance to node 56, the enemy participant query. Live spawn candidate
+  delivery and the participant query remain open. Passed 211 focused
+  tests with the external 104319 runtime. Original-client acceptance is
+  pending.
+- Execute the `0CBA` team-two participant query and select a wave spawn
+  position from its candidate array. Follow the 104319 `D4F130` slot
+  history rules for expiry, oldest-slot eviction and wrapped search.
+  Both offline modes select a position and reach the authored hero
+  creation action at node 7. That action supplies additional configs
+  `m_D7F85181` and `m_246C47AF`, which the creation service still needs
+  to handle. No wave enemy is created by this probe yet. Passed 212
+  focused tests and Ruff on the changed script and test modules.
+- Forward optional AI controller and skin-theme resources from hero
+  creation, preserving the existing allocator call when overrides are
+  absent. In both offline modes the first wave now creates two Zomnics
+  at different sampled positions, starts their original body and `16C0`
+  controller graphs and delivers `0C95`. The fixture uses target tags
+  and default controller links from the body definitions. The second
+  body reaches the `0C89` health pool check at 22,128 ms. Live allocation,
+  health pool setup, movement and attacks remain open.
+- Preserve the component clock when its first update starts partway
+  through the current frame. A Zomnic created at 22,132 ms now applies
+  its queued 200 HP schema value before the first `0C89` entry runs.
+  Both four-player offline modes spawn five Zomnics and reach `0C89`
+  node 46, the self-targeted ModifyHealth state, at 27,198 ms. In the
+  Revenge trace, the controller sends `0682` from `0C87` node 20 at
+  26,432 ms. The combat service and live match path remain open.
+  Passed 140 focused tests. The broader script suite passed 878 of
+  880 tests. Both crash-replay failures reproduced with the old clock.
+- Route the self-targeted `0C89` node 46 damage into the owning body's
+  bound health service once on state entry. Both four-player offline
+  modes apply the authored 1,000 damage at 27,198 ms. The fifth Zomnic
+  reaches zero health, leaves the living roster and then reaches the
+  `23A00A53` contact state at node 49. Area damage, contact handling,
+  despawn and live combat integration remain open. Passed 170 focused
+  tests and Ruff on the changed server and test modules.
+- Forward `0C89` node 49's contact-effect request with its authored
+  resource and current target array. Model the elapsed-state condition
+  at `1B75730`, including its recheck timer. Both offline modes record
+  contact set `0015.049` at 27,198 ms and take the empty-victim damage
+  path with the gate outside the blast radius. The offline owner records
+  the request without resolving or rendering the material effect. Route
+  `06CC` to the encounter owner, where `0CBD` reaches its voice stimulus
+  at 30,016 ms. Nonempty splash damage, physical contact effects and live
+  combat remain open. Passed 179 focused tests and Ruff.
+- Apply `0C89` node 38's authored damage to the indexed player body
+  through the encounter owner, then finish the state to advance the
+  victim loop. Both four-player probes with controlled positions apply
+  50 damage at 1 m and approximately 30 damage at 2.25 m. Targets at
+  3.9 m and 6 m receive no damage in this branch. The fixture supplies
+  target positions and health pools. Gate damage, knockback, live target
+  selection and replication remain open. Passed 180 focused tests and
+  Ruff on the changed server and test modules.
+- Verify the gate's own `06B2` damage route from `0C89` to `0CA7`.
+  In both four-player offline modes, placing the fifth Zomnic 1 m
+  from the gate adds 20 damage and leaves 98% of the meter. At 4 m the
+  meter stays at 100%. Support the null-handle form of the gate's
+  animation-stop action and declare the absent headless audio service.
+  Both distances advance to the Zomnic's delayed `523EE38D` action at
+  30,198 ms. Movement to the gate, live presentation and retirement
+  remain open. Passed 181 focused tests and Ruff.
+- Queue `0C89` node 43's corpse retirement until the owning scene frame
+  finishes, then retire the dead body and its still-associated AI
+  controller. Use the base State for the fieldless `0CBB` branch and
+  accept its later waves' authored 70 m spawn search. Both offline modes
+  spawn 16 Zomnics and two Zombardiers, retire 14 body/controller pairs,
+  and reach the controller's `A37A910D` linked-target query at 53,024 ms.
+  The probe places one Zomnic near the gate. Live movement, linked target
+  production, combat and entity replication remain open. Passed 182
+  focused tests and Ruff on the changed script modules and host test.
+- Bind host-selected AI targets by controller and slot. Wake the
+  `A37A910D` dependency when a slot changes, and clear links when the
+  bound entity retires so a reused ID cannot inherit the old target.
+  Both four-player offline modes advance to 62,399 ms with empty slots
+  and with slot 0 of a Zombardier linked to a test player about 8 m away.
+  The fixture selects and places this target. Live target selection,
+  aiming, attacks and replication remain open. Passed 205 focused tests
+  and Ruff on the changed script module and entity-query tests.
+- Drive the first Zomnic group from sampled spawn points toward the
+  gate with bounded collision routing and the body mover. The offline
+  host supplies route viability to `0C87` and schedules its authored
+  `0682` action on arrival. Both four-player modes complete five
+  approaches, deal 100 gate damage and leave the meter at 90% by
+  38,399 ms. The route is a server reconstruction using static geometry.
+  Live host wiring, moving obstacles and the other enemy behaviors remain
+  open. Passed 157 focused tests, including routing around a wall.
+- Retire Shock-Tire bodies and linked AI controllers through the
+  authored `0C93` death timer. In both offline four-player modes, a
+  test tire added at a sampled wave spawn drove to the gate, delivered
+  one 60-point hit, and retired with its controller 127 ms after
+  self-damage. The fixture drives the collision mover and supplies the
+  body's death message. In separate natural-wave runs, routing
+  `06CD` to the mode owner let both modes reach 107,016 ms, where
+  `0CB3` node 127 still needs effect handling. Natural tire spawning
+  and original-client acceptance remain open. Passed 157 focused tests
+  and Ruff on the changed script and test.
+- Handle `066B4605` weapon overrides separately from other component
+  86 records. Match the linked controller's component 70 slot and
+  identifier before insertion, and order records using the authored
+  `.024` priority and tie flag. The offline Zombardier controller uses
+  slot 0 and identifier `023A.01C` from `171D.003` and reaches the
+  `A37A910D` component 46 query. The records still need live consumers
+  for aiming and firing. All 82 focused tests and Ruff passed.
+- Port the 104319 `A37A910D` linked-entity query into the shared
+  script runtime. Subscribe to environment dependency `0x20` before
+  evaluating the entity and selector. A host lookup with no record
+  returns a typed zero entity. With either an empty slot or an explicit
+  fixture target, the Zombardier probe reaches `0CF3` node 3 alongside
+  Zomnic. Shock-Tire still reaches `0CB7` node 1. Both blocked states
+  use enter hook `C7DCE0` and the component 88 queue at `BC48D0`.
+  Live component 46 record production and component 88 processing
+  remain open. All 144 focused tests and Ruff passed.
+- Register and refresh the three authored component 88 requests
+  `B61E6681`, `CFA338CB` and `600E3C59`. Keep priority ordering
+  and retire each request with its owning state. Read the possessed
+  body's hero resource for `93DCDDFD` and run two `0CF3` branch states
+  through their inherited PC lifecycle. With explicit scene bindings,
+  all three offline controllers run to frame 125 and reach the
+  `B40ACFBA` condition in `0C87`. Request consumption by the live
+  movement and targeting systems remains open. All 146 focused tests
+  and Ruff passed.
+- Preserve the array result of the `STU_160F2578` state for the
+  unfiltered gate query. `0C8C` node 15 now stores a one-entity array
+  in variable 8439. Node 231 writes a separate array to variable 8618,
+  whose consumers count and index it. The filtered candidate selection
+  remains open. Both root diagnostics reproduce the previous boundaries,
+  and all 53 scene and scene-host tests passed.
+  Mission AI and objective execution remain open.
+- Resolve the placed-only tag `0A69` in the position expression of the
+  authored `0C8C` create action at node 283. Both mode probes read
+  the source transform from flat placeable 145. The requested `3C53`
+  entity runs `2B72` and is distinct from the three enemy bodies
+  referenced by `0C95`. This verifies the placement input only.
+- Export selected NPC bodies' authored AI references, associated
+  definitions and their script roots. The isolated 104319 candidate
+  initializes all three Junkenstein bodies and serializes their first
+  observer frames. The strict `0C87` controller now runs its two entry
+  states with the base lifecycle observed in the PC client. With explicit
+  possession and live health pools, isolated controllers reach node 27
+  (`STU_14611C1B`) for Zomnic and Shock-Tire and node 12 (`STU_200B27C5`)
+  for Zombardier. The first two controller definitions override `0x20CC`
+  to false, while Zombardier retains the true default. Both blocked
+  classes resolve to the base PC constructor. Node 30 (`STU_473549CA`),
+  queued alongside node 27, has a dedicated PC constructor at `C7EE20`.
+  The strict-script regression test covers the two entry states and
+  rejects their use outside `0C87`. Encounter startup and enemy behavior
+  remain open.
+- Trace the original `STU_473549CA` enter and cleanup hooks. The enter
+  hook (`C77F60`) resolves the target entity's component bit 86 and
+  registers a record through `BC2F00`. The record carries two floats
+  with native fallback π (`C78AE0`) and priority with fallback 9999.
+  The component orders records by descending priority, with the new
+  record's flag controlling ties. Cleanup (`C78640`) removes the same
+  record by identity. `0BE2` and `0CF3` also use this state, so its
+  consumer needs to be understood before wiring it into controller or
+  body execution.
+- Confirm that `STU_CF8C7CC5` (`0C87` node 29) shares those enter and
+  cleanup hooks and the component's `+0x290` list. Its record builder
+  (`C78CE0`) produces kind 2 without the two floats. The body startup
+  state `STU_066B4605` targets the same component but uses separate
+  hooks (`C7C650`, `C7CD30`) and list `+0x280` via `BC2E40` and
+  `BC2680`.
+- Match enemy-body branches in `0C95` against the actual possessed
+  entity definition using `STU_1A3FA5B0` and `STU_8556841E`.
+  Isolated possession probes select the authored branches for all three
+  enemies. Model `STU_6E5C5F66`'s ordinary output flow, verified from
+  104319 RVA `1B6EBA0` and the optional trace callback at `97A170`.
+  Isolated strict `0CB3` startup now reaches `STU_57692020` at node
+  188. Client trace recording and mission behavior remain unverified.
+- Resolve current possession from explicitly bound scene entities and
+  preserve config groups as arrays in strict SubScript initializers.
+  In isolated `0C95` switch execution, Zomnic and Shock-Tire enter
+  `0C88`, which reaches an unsupported `STU_25ECB55F` query.
+  The Zombardier case executes without a child graph on this branch.
+- Extract default NPC target tags and implement `STU_25ECB55F`
+  membership queries against explicitly bound bodies. The isolated
+  `0C95`/`0C88` probes run 30 frames with the default Zomnic and
+  Shock-Tire tags. With the `0A6E` encounter tag they take the other
+  path and stop at `STU_9B7648C3` on frame 15.
+- Resolve `STU_9B7648C3` from the bound body's current combat pools.
+  Tagged Zomnic and Shock-Tire `0C88` probes run 1,500 strict frames
+  and change the authored health condition from true to false when
+  damage drains the pools. The probes enter through the body switch
+  and do not cover controller startup or encounter scheduling.
+- Evaluate the authored empty teString and two resource defaults in
+  NPC body startup graph `0BE2`. All three strict body probes now
+  reach node 7 (`STU_90C3BCEA`) after evaluating the schema. Its PC
+  state codec is known; authoritative server behavior remains open.
+- Use the base state lifecycle for fieldless `STU_90C3BCEA`, matching
+  the 104319 PC registration chain through `B4CD94F4`. Strict probes of
+  all three bodies reach the following `STU_066B4605` at node 8.
+  Its entity-bound service and mission integration remain open.
+- Evaluate the spawn heading config `STU_C8C4C20D` for bound map
+  placements. The original `0CBA` node 7 angle expression consumes
+  both probed 104319 map transforms and applies its authored 180-degree
+  adjustment. The probe does not invoke entity creation.
+- Resolve the `STU_71A87E92` position config for bound entities and
+  its nonzero vector fallback. In the isolated `0C95` state 7 probe,
+  two actual map bindings initialize `0CE2` with their positions and
+  headings and run the first frame. Entity allocation remains open.
+- Route explicit-definition CreateEntity through a supplied scene
+  allocator and publish only a newly bound entity ID to the script.
+  Isolated Revenge and Endless probes execute authored `0C8C` node 283,
+  bind `3C53` at the original marker, write variable 32557 and queue
+  node 314. Enemy/hero allocation and live replication remain open.
+- Pass the authored hero, team, heading and opaque creation options to
+  the scene's hero allocator. Isolated `0CB3` nodes 108 and 110 create
+  Zomnic and Zombardier combat bodies through the existing Match NPC
+  allocation in a test harness. The following `0C95` PlayScript target
+  query `STU_F7262B36` still requires the controller association.
+- Resolve that query using the body's declared component 43 link.
+  Retiring either entity invalidates the association across ID reuse.
+  The authored `0CB3` node 107 now delivers `0C95` to an explicitly
+  bound controller through the scene PlayScript queue in isolation.
+  Live controller creation and enemy behavior are still open.
+- Attach and retire spawned scene components with their PlayScript
+  queues. Isolated `0CB3` create nodes 108 and 110 now install the
+  authored Zomnic and Zombardier controller graphs and accept `0C95`
+  in the creation frame. Live encounter wiring remains open.
+- Roll back pending instances when a spawned component fails after
+  startup, so the scene can retry attaching scripts to the same actor.
+  The regression test injects a PlayScript queue install failure and
+  verifies that a replacement component initializes on the next frame.
+  All 64 scene host, startup and PlayScript queue tests passed.
+- Read selected live health pools for `STU_783B4CF0` without using the
+  body's aggregate health. In the isolated original `0C87` node 8
+  probe, the condition flips on pool depletion for all three NPCs.
+  This exercises the condition independently of controller startup.
+
+#### Rialto runtime integration
+
+- Run Heavy Assault's 1408 charge phase through the collision mover.
+  Actual Rialto probes cover a 175-damage contact, stop in motion and
+  pursuit to the lower platform. Charge policy and contact geometry
+  are reconstructed. Original-client charge presentation is open.
+
+- Deliver the retained terminal NPC body script to viewers joining after
+  a death. Wait for their own live baseline acknowledgement and suppress
+  historical kill-feed replay. The bot statescript suite covers the
+  ordering. The late-join corpse pose still needs client acceptance.
+
+- Verify direct NPC shortcuts from an isolated original 104319 window:
+  open the menu, spawn Trooper, target it, stop its attacks, and remove
+  its retained entity 44 seconds after a live Deadeye kill. The client
+  showed Trooper and 45 remaining Cassidy health. Corpse pose and the
+  other four NPCs remain open for visual acceptance. Reject occupied
+  spawn points, including retained bodies, in the server-side console.
+
+- Allow an engaged sandbox NPC to reacquire the closest visible enemy
+  player after losing its target. Keep pursuit through temporary cover
+  and clear engagement on stop. The fallback policy is reconstructed.
+
+- Add opt-in `--npc-hotkeys` for local retail launches. The foreground
+  client PID and its lobby TCP connection select the match session. The
+  sandbox menu and command replies are sent to that player in match chat.
+  Chat, CLI, NPC control and launcher tests pass. Original-client keyboard
+  delivery still needs acceptance.
+
+- Assemble a local 104319 runtime with Rialto's movement cache, mission binding,
+  Talon graphs and five authored mover records. Verify runtime preflight and
+  collision loading through the normal server paths.
+- Exercise all five NPCs from Rialto's authored entrance. The in-process match
+  verifies console spawn and acquisition, incoming damage, 100 frames of stop,
+  McCree primary and Fan damage, 300 frames of corpse retention and removal.
+  Flashbang deals 25 damage and uses Rialto's 107-frame stun deadline.
+  Five more in-process cases verify a 4.63 m Combat Roll, a 5-to-6 ammo refill,
+  and Deadeye lock, damage and cleanup with preset charge. Each release fires
+  01EE/14 and the weapon graph's 63-to-64 branch deducts one round.
+- Verify five same-floor pursuits on the Rialto entrance geometry with actual
+  McCree movement commands after acquisition. Each actor closes distance and
+  damages McCree. Assassin establishes a pin at 2.99 m and `{` releases it.
+  Add a one-way server-authored connection through the southern railing
+  opening to the lower platform. All five NPCs select it in the same Rialto
+  pursuit fixture, descend about 6 m using their character mover and reach
+  combat range. Other cross-level routes remain open.
+  Client presentation and native keyboard delivery remain pending.
+- Add a local in-game chat entry for the NPC sandbox. The .npc command uses
+  the existing console actions and sends its result to the requesting player.
+  The original 104319 client reached the Rialto first-person Cassidy HUD via
+  the isolated test host. Live chat commands and NPC presentation remain open.
+- Execute Sniper graph 142C's fixed-target MoveTo through the NPC mover.
+  The Rialto diagnostic verifies arrival, wall abort, stop and corpse
+  retention from a forced state activation. A reconstructed close-range
+  trigger starts a 4 m retreat in the Rialto match, with a 6 s cooldown.
+  Thirteen navigation tests and Sniper's ordinary lower-platform pursuit
+  pass. The original trigger and client presentation remain unresolved.
+- Cancel active and queued Sniper repositioning on stop-all, including
+  a stop and renewed attack command before the next host tick.
+- Cancel unsent start-attack commands when the web console receives stop-all.
+  An attack already sent completes before stop is sent, and a new start
+  command entered after stop retains its place in the queue.
+- Accept bare console keys in local match chat after opening .npc.
+  Closing the console or joining another match restores normal chat input.
+- Allow the NPC console to spawn closer when the five-metre point is
+  blocked. Seven sampled headings at the Rialto entrance now resolve to
+  walkable floor before a wall. Ten NPC control tests and five Rialto chat
+  lifecycle cases pass. The live client's spawn still needs retesting.
+
+#### McCree Flashbang accelerated flight and range-end blast (in progress)
+
+- Resolve01E9 node7's authored gravity20 and0.05 upward launch bias, speed30
+  and range7. Production gravity/launch helpers pass320 original-code cases;
+  velocity comparison stubs only subtype lookup, launch comparison uses no stubs.
+- Store accelerated projectile velocity/gravity/expiry policy in causal server
+  snapshots. Fixed16ms substeps preserve trajectory across skipped host ticks.
+  Declare velocity-before-sweep and the existing range/speed expiry clock as
+  server reconstruction; native full collision/phase equivalence stays open.
+- A scoped Flashbang range/lifetime-end blast now applies its radius3 damage/
+  control rather than silently disappearing. Keep other projectiles' default
+  linear/expiry paths. Pass30 actual-five-NPC contact/airburst/floor/wall/ally/
+  outside-radius cases and5 new flight/causal tests. All 1187 related tests
+  pass, including 13 stored server snapshot tests.
+- Actual inputs pass three resource10-second cooldown paths: stale early
+  release, held reactivation and late buffered press, without timer injection.
+- Native bounce, defenses/immunity, complete cast/cooldown and original-client
+  projectile/impact/stun acceptance remain open; full hero goal stays active.
+
+#### McCree Fan damage-ray scatter (in progress)
+
+- Apply the authored0..6degree cone to actual McCree01D2 node37 damage rays.
+  Generate the two native random tables from algorithms, with32768 exact
+  captured-value matches. Pass512 original-code seed/sampling comparisons
+  and140 original scatter/rotation cases against production helpers (libm
+  stubs, aspect1). Preserve the native near-pole normalization threshold.
+- Declare the server entity/instance/node/activation mapping for unresolved
+  native seed identities, and the scoped uniform-radius mode binding. Pure
+  immutable table caches and event-derived seeds add no advancing RNG state.
+- Pass40 actual-five-NPC cases/240 rays, including10 off-crosshair hit cases,
+  near/far damage, walls/allies, duplicate input and retained Fan-kill corpses.
+  Revalidate15 held-fire Roll,15 Deadeye and five incoming/lifetime cases.
+  Explicitly isolate the separate70-case critical/falloff matrix with a
+  command-ray adapter; it is not evidence of unmodified Fan accuracy.
+- Kill all five console-spawned NPC types through held Fan/automatic reload,
+  including Heavy4000 health. Retain each corpse and its position for300
+  further frames, then remove with minus; no health/damage/death injection.
+- Pass1170 final-source related Python tests, including9 new scatter checks
+  and the server causal mutation scenario. No new persistent fields are added;
+  the prior13-test snapshot run remains evidence for the unchanged layout.
+- Native seed parity, recoil/muzzle transforms and client impact/tracer
+  presentation remain open. Full static/native-client goal remains active;
+  keep this partial work uncommitted under the user's full-goal commit gate.
+
+#### Weapon volley normalized spread (in progress)
+
+- Model239B571E normalized spread from captured104319 instructions. Bake the
+  ramp on activation, preserve float32 arithmetic and retain the final output
+  when unlinked; zero ramp returns1 rather than freezing at its initial0.
+  Include the baked ramp in causal snapshots.
+- Pass120 native/model comparisons and20 native angle interpolation cases
+  with declared config/type-lookup stubs. Five actual Talon/RMB scenarios
+  produce30 shots with normalized1 and authored0..6 degree inputs.
+- Recover the seed lookup and sampling arithmetic with384 original-code
+  comparisons, and regenerate both16,384-entry random tables from algorithms
+  and seeds with exact captured-value matches. Firing argument/mode mapping
+  and ray integration remain open; no copied tables enter the source tree.
+- Pass128 original scatter/rotation comparisons at aspect1 with only scalar
+  libm stubs, covering both sampling modes with maximum component error7e-8.
+- Pass1173 related Python tests, including13 server snapshots and6 new
+  spread-state checks. The captured Soldier76 crash-frame regression passes;
+  its optional between-shot decay remains outside this no-decay model.
+- This fixes the VM spread value only. Combat rays still use command aim;
+  Fan sampling, native RNG, recoil, muzzle transforms and original-client
+  acceptance remain open. Full hero goal remains active and uncommitted.
+
+#### McCree view height and primary critical policy (in progress)
+
+- Recover02A3 first-person standing1.425/crouched0.9975 from pinned104319 XML.
+  Apply those offsets to combat ray origins and target descriptors. Standing
+  and crouching low-cover fixtures expose the earlier generic1.55/1.15 error.
+- Declare implicit primary2x critical damage only for the owner's McCree01D2
+  node31 when the config is absent. Honor explicit values, including Fan's1x.
+  This is a scoped server reconstruction, not a recovered global default;
+  capsule critical zones and original bones/muzzle transforms remain unproven.
+- Pass1154 related Python checks and70 actual-five-NPC gun cases covering
+  body/head, falloff, walls/allies/misses. Revalidate five incoming/lifetime,
+  fifteen held-fire Roll and fifteen Deadeye scenarios. No new state layout;
+  full hero/client acceptance remains open. Fan spread/recoil is still absent.
+
+#### Roll refill handoff and canceled notifications (in progress)
+
+- Queue outgoing Ability resource cleanup before releasing its arbitration
+  link, so held primary samples the authored refill before starting its volley.
+  This server cross-object ordering is a declared reconstruction; complete
+  native ordering remains open. Do not add a special WeaponVolley ammo setter.
+- Clear canceled CHECK/CHANGED coalescing markers when a state ends, and do not
+  notify ending states of variable changes. Re-entry previously retained a
+  stale marker, permanently blocking the empty-magazine reload condition.
+- Actual commands now restore partial/empty-magazine Roll primary fire and all
+  six secondary rounds. Fifteen actual-NPC cases pass: primary70 with ammo5 at
+  frame25; Fan up to300 with ammo0 at frame65. Corpse bodies remain retained.
+  Add two notification lifetime regressions. Full static/client scope remains
+  open; no new persistent VM fields or arbitration phase are introduced.
+- Pass1151 related Python checks and the causal server mutation test, plus
+  actual five-NPC15 held-fire, five catalog lifetime, Assassin12, Enforcer4 and
+  Deadeye15 cases. The stored VM layout is unchanged; no original client run.
+
+#### Authored Roll steering restrictions (in progress)
+
+- Apply movement properties17/18/19 to split forward/backward/lateral throttle
+  magnitudes before acceleration; restore lateral sign and clamp as captured
+  104319 C33960..C33A8D does. Existing records previously had no physical effect,
+  allowing ordinary input to turn Roll velocity. Preserve raw input bytes and
+  next-frame modifier start/end boundaries. Jump/crouch restrictions also pass.
+- Pass1147 related Python tests, including10 Roll and47 mover checks, plus120
+  isolated original instruction-prefix comparisons with a declared scalar
+  modifier-query stub. No state layout changes; previous13 causal snapshots
+  remain schema evidence. Revalidate all five actual NPC Roll/combat cases.
+- Diagnose further interlocks/air behavior without claiming native equivalence.
+  Holding primary through Roll still loses the refill despite an ammo53=6
+  authored write at its end; active volley output/cache and native ordering
+  remain the next investigation. Full static/client goal remains active.
+
+#### McCree Roll velocity and buffered cooldown input (in progress)
+
+- Connect authored01F0 velocity actions8/11/17 to sampled next-frame physical
+  movement. Keep resource direction/duration/refill/end/cooldown, clear pending
+  work on control/death/retirement, and include it in both causal snapshots.
+  Static104319 instructions support one-frame desired-minus-current velocity
+  scheduling; the horizontal end clamp and basis/phase behavior remain declared
+  reconstructions. This is not a general native velocity backend.
+- Independent40-frame input changes from0m to about6.15m with no throttle and
+  still refills5->6. Exercise direction, yaw, diagonal, wall, duplicate frames,
+  control cancellation, retirement and cooldown behavior in source tests.
+- Fix shared Ability early-press handling: retaining a press while gates fail
+  must preserve its original timestamp. Rewriting it each frame previously
+  caused released early presses to cast automatically at cooldown expiry.
+- Pass1098 related Python tests,13 causal server snapshot checks and3 frontend
+  key checks (1111 Python total), plus five actual NPC Roll/combat cases and
+  existing Assassin12/Deadeye15 matrices. Snapshot layout remains unchanged by
+  the final early-press fix. All five NPCs can damage McCree during/after Roll;
+  primary fire after recovery deals70 to each. Full hero/static, cross-hero and
+  original-client acceptance remain open; no commit or merge.
+
+#### Collision-aware manual NPC pursuit (in progress)
+
+- Add bounded floor/headroom/capsule-width A* routing and physical Mover pursuit
+  for engaged manual NPCs. Use2.5m Assassin contact and8m ranged standoff as
+  explicit policies; replan reachable24m prefixes for distant targets. Preserve
+  paused/duplicate/catch-up boundaries, stop/death/corpse/removal behavior and
+  final-yaw movement input. Include navigator/mover/path/goal in causal snapshots.
+- Correct strict contact arrival and final-waypoint retirement;105 original
+  Rialto regional forward/reverse movement routes pass with actual mover data.
+  Split runtime A* into retained4-pop-per-update slices, including catch-up;
+  cancel pending work on stop/control/death/body/world invalidation and export
+  its frontier in causal snapshots. A real Heavy search formerly taking3.37s
+  now stays within4 nodes per update in a120-update fixture (13.6ms observed
+  maximum); this is not a global timing or reachability guarantee. Sampled-goal
+  latency for moving targets remains a documented reconstruction limitation.
+- Recover five omitted Talon mover records from existing104319 XML into a
+  separate43-entry local runtime. The original38-entry table lacks these bodies;
+  earlier fallback-dimension probes are not original NPC geometry acceptance.
+  Preserve all normal inputs and keep extracted data out of Git. The task
+  runtime's real-map collision cache is not populated, so it is not deployment.
+- With real mover data, pass five default5m spawn/engage/damage/stop/corpse/remove
+  cases, five chase/speed/stop cases and two actual Assassin obstruction cases.
+  The079F original movement-cache spawn-area probe reaches contact/25 damage
+  in10 frames under isolated rules; full PvE/native-client acceptance is open.
+- Real dimensions expose Deadeye shooting over the short Assassin; constrain
+  reconstructed target hardpoint to the upper capsule. Pass the15-scenario
+  actual-resource ultimate matrix after the fix. Native animated bones remain
+  unproven. Range/body changes can release then legitimately reacquire via pursuit.
+- Thirteen navigation/locomotion and one short-target regression are added.
+  Current incremental-source broad regression passes1090 tests and3 frontend
+  key checks;13 causal server snapshot checks also pass (1103 Python total).
+  No original client was run; full AI/navigation/specials,
+  hero/cross-hero and native presentation remain open. Keep the goal active and
+  changes uncommitted pending the user's complete static-acceptance gate.
+
+#### Resource-backed manual Assassin pin (in progress)
+
+- Route declared manual Assassin slot0 to1157 button36 and supply a scoped,
+  data-only1650 target context for target536. Resolve owner/current-target health
+  from the match. Enforce an explicit3m contact/LOS policy; automatic approach
+  and native controller allocation remain open.
+- Add an explicit StateModifyHealth world service. The scoped graph supplies
+  amounts/delay; reconstructed default mode applies once and mode1 integrates
+  amount/second over VM time. Retain victim control across pin scope23, release
+  held input and stop running abilities through authored exits. Track source/
+  victim body identities separately from timed Flashbang stuns in Combat.pins.
+- Retire control and old target state on stop, geometry/team/range loss, source
+  stun/death/removal, target death/replacement and script failure. Preserve
+  corpses and independent stun deadlines. Include context, clock and pin registry
+  in causal snapshots. Manual reengagement interrupts unresolved release Anim31
+  through authored end plugs; its original asset duration is still unknown.
+- Eight new source tests and12 actual-resource scenarios pass damage clock,
+  interruption/control release and reengagement checks. In the tested base
+  resource configuration contact deals25 and continuous damage100/second.
+  No target/controller injection or native-query override is used in those
+  actual-resource cases; death fixtures use authoritative damage directly.
+  Pass1116 Python tests (1089 broad,13 server snapshot,14 console/API) and
+  three frontend key tests. Enforcer4 and Deadeye15 actual-resource scenarios
+  also pass again. Ruff/diff checks pass; no original client was run.
+- No original client was run. Native health-mode/clock/immunity/controller/wire,
+  full release/cooldown/counterplay, AI/navigation/special presentation and
+  complete McCree/cross-hero acceptance remain open. Goal stays active and this
+  partial hero work remains uncommitted.
+
+#### Declared manual Enforcer control context (in progress)
+
+- Declare4B-present/5C-absent controller components for manual Enforcer bodies.
+  Resolve only13EB owner B96D3A98 eligibility and9B7648C3 aggregate health from
+  explicit state. Synchronize initial NPC script health after all pools exist.
+  Preserve unknown foreign/controller services and other NPC/placement behavior.
+- Include declared controller components in VM/server causal snapshots. Six new
+  policy/query/snapshot tests and an initial pool-sync regression pass. Eight
+  offline original predicate-tail/bitset cases match Python with controller
+  lookup/output adapters; full native controller allocation remains unproven.
+- Four actual-data console/input scenarios pass open/restarted attacks, static
+  wall obstruction/recovery, allied rejection, Flashbang interruption/recovery,
+  stop with100 damage-free frames, actual primary kill, corpse retention and
+  explicit removal. Native queries are not overridden in these combat probes.
+  Pass1094 related tests:1081 combat/script/VM/bot tests and13 server snapshot
+  checks. Ruff and diff checks pass; no original client was run.
+- This remains a resource-backed server reconstruction. Native controller/entity
+  wiring, pellet/projectile/animation equivalence, full AI/navigation/specials,
+  Assassin attacks, client presentation and complete hero acceptance remain open.
+  Keep the full goal active and changes uncommitted.
+
+#### Deadeye per-target bridge (in progress)
+
+- Add scoped McCree022F target queries and431F3FCC ownership of external01EE
+  target effects. Supply message parameter92 as target536 and direct authored
+  volleys toward that target. Keep the original01EE charging/damage graph;
+  reconstruct target geometry and health lookup explicitly. Preserve baked
+  target arrays until the authored ability exit; encode target IDs with age0.
+- Retire owned effects on target loss/death/removal, scope exit, invalid owner
+  and body retirement. Include target queries and owned instance IDs in causal
+  snapshots. Missing external01EE produces no targets and an explicit warning.
+- Pass15 actual-input offline matrix scenarios and1087 related source tests,
+  including10 new bridge tests and13 full server snapshot checks. Ruff and
+  diff checks pass. Original-client acceptance was not run.
+- Starting Q charge is explicitly filled and visibility uses an adapter in the
+  external matrix. Native filters/immunity/cone/aging/effect-manager semantics,
+  charge economy, complete cross-hero behavior and presentation remain open.
+  Keep the full hero goal active and changes uncommitted pending complete static
+  acceptance. No hero lane is marked complete or merged from this partial work.
 
 #### Native state-input joins and Deadeye timing
 
@@ -1579,6 +3701,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   playthrough remain unaccepted. Publication requires the missing helper.
 
 ### 2026-11-07
+
+- Fixed local startup of a DevReg client on a machine whose Battle.net registry
+  retains the CN region: derive the asset region from installation tags and pass
+  `--tank_Region=US` for RDEV data. Pass the selected text language as the audio
+  language too, without changing the shared registry. Explicit region arguments
+  and installations without recognized tags retain their existing behavior.
+- Launcher regressions: 33 tests, Ruff and Git diff checks passed. An original
+  build-104319 client logged into the local lobby after the region override;
+  Practice Range and Soldier: 76 gameplay acceptance is still in progress.
 
 #### Complete map component research inputs
 

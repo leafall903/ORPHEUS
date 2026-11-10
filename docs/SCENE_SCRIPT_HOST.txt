@@ -5,8 +5,9 @@ Purpose and entry point
 GameServer and Match accept an explicit scene_host_factory(match). The factory
 returns SceneHost with the owner's actual entity catalog, exact map/mode and
 loaded graphs. The default server does not install this factory or expand its
-normal placeable catalog. This is the initial shared simulation host; live scene
-replication and original-client mission readiness have not been implemented.
+normal placeable catalog. The explicit Junkenstein factory supplies mode
+replication. Default lobby wiring, player script replication and original-client
+mission readiness remain open.
 
 SceneHost.from_map binds selected client placements and the explicitly supplied
 server creates through SceneWorld.from_map. It then binds their actual script
@@ -15,6 +16,43 @@ component and mode entity values join the same world. Existing ComponentStartup
 preserves definition defaults, matching instance overrides and additional graphs.
 Every component is bound before any startup schema is evaluated. The initial
 catalog seals after startup; this API does not create dynamic mission actors.
+
+Junkenstein candidate assembly
+junkenstein_scene.create_host assembles a candidate for the explicit Match
+factory. It requires the map-world extraction and a prepared encounter bundle
+that preserves the 16B2.003 mode component. The selected 0C5 contributes its
+shared and primary roots in that order. The host uses the same placeable variant
+selection as collision and mounts the authored door and enemy allocator.
+The caller supplies encounter world services and component contexts. The same
+component hook runs for initial scene entities and dynamically spawned enemies.
+The candidate also reconciles the Match's live team-zero player roster and
+selected bodies before each scene frame. It starts the original readiness sender
+after a hero pick and mounts the specific encounter receivers on the controller
+and body. These branches do not replace the normal hero-selection wire frames.
+Once a viewer is in the world, spawned enemy bodies use the combat entity
+stream for creation, health, acknowledged movement and retirement. Scene-owned
+enemy scripts also publish observer baselines and deltas after creation is
+acknowledged. Pending terminal script updates hold the destroy notice until
+their delivery is acknowledged.
+For the two Junkenstein modes, the factory opens the Match entrance after the
+authored common UI is present and the mode state can be encoded. Match waits
+for the client's acknowledgement of that baseline before sending hero select.
+
+The mode snapshot uses full tagged keyed arrays, read by 104319 RVA D57430.
+The first pair has a uint16 key and a tagged value. Each later pair adds a
+presence bit before its key. An offline run of the original reader with
+supplied array storage reconstructed all three probe maps, including a nested
+map and keys above 32767. The actual Normal mode snapshots for 0003 and 002A
+each decode 13 instances and eight keyed variables at startup. Their full
+payloads are 13217 and 13081 bits before the entity and chunk headers, above the
+1230-byte datagram payload budget. The mode stream can now send each snapshot
+as two acknowledged fragments after the mode entity's create. Both extracted
+snapshots reassemble bit-for-bit with 104319's original chunk reader and
+assembler, including when the final part arrives first. Both mode records
+select 0CC8 and 0C8C and have scripted_loading disabled. The factory sends
+reliable mode deltas against the last acknowledged state for each viewer. It
+retains one in-flight frame per viewer and begins late viewers with a full
+current snapshot.
 
 Shared values, messages and retirement
 Entity-instance PlayScript context now derives from the actual live component
@@ -59,9 +97,9 @@ connected players home, leaves them and closes the host before combat/spawn work
 Last-player leave and GameServer.stop also close owned hosts. Close destroys
 healthy instances, retains faulted diagnostics and retires all world bindings.
 
-SceneHost.client_ready remains false. A successful VM frame cannot release the
-prepared entrance readiness frame. A live scene replication/readiness layer must
-be implemented and verified before this host can authorize playable mission entry.
+The base SceneHost leaves client_ready false. Junkenstein supplies its own mode
+replication and entrance gate. Other scenes need their own verified readiness
+conditions before they can open the Match entrance.
 Match.snapshot exposes status only. Stored-server export rejects configured
 shared hosts because storage/restoration of their shared VM graph is not yet
 implemented; ordinary server snapshots retain their exact field audit.

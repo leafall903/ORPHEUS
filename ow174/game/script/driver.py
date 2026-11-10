@@ -138,7 +138,7 @@ TRUSTED_NATIVES = {
     "STU_A3DEF368",  # the mode entity and its configured initial values, when present in the bundle
     "STU_DB742151",  # Sprint's #2333: GetPrimaryPossessorEntity (CD1940, an EntityID config) ...
     "STU_295D117D",  # ... the AI predicate applied to that possessor is false for a player ...
-    "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
+    "STU_D3EB8D87",  # ... the selected controller's component 92 is absent for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
 # STU_C5243F93 action categories from the 104319 .096 records.
@@ -270,6 +270,7 @@ class BodyWorld(runtime.World):
         self.spray_unlocks: tuple[int, ...] = ()
         self.voice_effects: tuple[int, ...] = ()
         self.wheel_callouts: list[WheelCallout] = []
+        self.velocity_requests = []  # sampled one-frame changes for the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
@@ -280,31 +281,23 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
-    def tracked_targets(self, state: runtime.State):
-        if (not self.communication_wheel or self.match is None
-                or state.instance.graph.index != 0x05AD or state.node.pos not in (113, 115)):
-            return NotImplemented
-        collision_filter = state.node.field("m_3D667CE3") or {}
-        profile = collision_filter.get("m_C1903771") or {}
-        profile_id = expr.guid_of(profile.get("m_C1903771"))
-        category = WHEEL_TARGET_CATEGORIES.get(profile_id)
-        if category is None:
-            return NotImplemented
-        offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
-        radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
-        aperture = expr.to_float(state.evaluate(state.node.field("m_A30B383E"), watch=False))
-        target = self.match.combat.communication_target(
-            self.body, offset, radius, aperture, category, profile=profile_id,
-        )
-        return (target,) if target is not None else ()
-
     def resolve_spray(self, length: float) -> dict | None:
         if self.communication_wheel and self.match is not None:
             return self.match.resolve_body_spray(self.body, length)
         return None
 
     def native(self, cfg: dict, instance):
+        from ow174.game import mccree
+
+        result = mccree.native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
         cls = cfg.get("$")
+        if (cls == "STU_9B7648C3" and instance is not None and instance.graph.index == 0x1177
+                and instance.component.entity == self.body
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            health = instance.component.entity_var(OWNER_HEALTH, create=False)
+            return expr.to_float(health.value()) if health is not None else 0.0
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -608,6 +601,37 @@ class BodyWorld(runtime.World):
         self.wheel_callouts.append(event)
         del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
 
+    def velocity_action(self, instance, node):
+        from ow174.game import mccree
+
+        return mccree.velocity_action(self, instance, node)
+
+    def tracked_targets(self, state):
+        if (self.communication_wheel and self.match is not None
+                and state.instance.graph.index == 0x05AD and state.node.pos in (113, 115)):
+            collision_filter = state.node.field("m_3D667CE3") or {}
+            profile = collision_filter.get("m_C1903771") or {}
+            profile_id = expr.guid_of(profile.get("m_C1903771"))
+            category = WHEEL_TARGET_CATEGORIES.get(profile_id)
+            if category is None:
+                return NotImplemented
+            offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+            radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
+            aperture = expr.to_float(state.evaluate(state.node.field("m_A30B383E"), watch=False))
+            target = self.match.combat.communication_target(
+                self.body, offset, radius, aperture, category, profile=profile_id,
+            )
+            return (target,) if target is not None else ()
+
+        from ow174.game import mccree
+
+        return mccree.targets(self, state)
+
+    def target_effects(self, state):
+        from ow174.game import mccree
+
+        return mccree.effects(self, state)
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
         if (match is not None and sender == self.body
@@ -759,12 +783,8 @@ class ReplicatedBody:
 
     def _report_shots(self) -> None:
         """Collect shots due in active volleys. Volleys that ended reported their own shots."""
-        self.component.ensure_valid()
+        nodes.report_active_volleys(self.component)
         shots = self.component.shots
-        for instance in self.component.instances.values():
-            for state in instance.states.values():
-                if isinstance(state, nodes.WeaponVolley) and state.active:
-                    state.report(self.component.now)
         if len(shots) > MAX_SHOTS:
             del shots[: len(shots) - MAX_SHOTS]
 
@@ -913,8 +933,16 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
+
+    def add_ult_charge(self, points: float) -> None:
+        if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost > 0 and charge < cost:
+            self.set_ult_charge(min(cost, charge + points))
 
     def _charge_ult(self) -> None:
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
@@ -993,7 +1021,7 @@ class BodyScript(ReplicatedBody):
             return
         codec = family(cls)
         payload = state.payload() if codec != "none" else {}
-        if codec == spray_placement.CODEC and not payload:
+        if codec in ("value_slot", "linked_target", spray_placement.CODEC) and not payload:
             return
         snap.states[(owner, index)] = (cls, state.active, tuple(sorted(payload.items())))
 
@@ -1120,6 +1148,11 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        self.world.velocity_requests.clear()
+        for instance in list(self.component.instances.values()):
+            for state in list(instance.states.values()):
+                if isinstance(state, nodes.TargetEffects):
+                    state.clear_children()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False
@@ -1244,17 +1277,23 @@ class BodyScript(ReplicatedBody):
             stream.initial_owner.resend = True
 
 
-def create_body_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
-    """Allocate a body's initial graphs, weapon manager and authored weapon slots."""
+def create_body_graphs(
+    component: runtime.Component, record: dict, *, include_initial: bool = True,
+) -> list[runtime.Instance]:
+    """Allocate the weapon manager and slots, plus any initial graphs not already mounted."""
     weapons = record.get("weapons") or []
     component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
     component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
-    created = create_initial_graphs(component, record)
+    created = create_initial_graphs(component, record) if include_initial else []
     manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if component.strict and record.get("manager") is not None and manager is None:
+        raise ValueError("body weapon manager graph is unavailable")
     if manager is not None:
         created.append(component.create(manager, init=False))
     for slot, item in enumerate(weapons):
         weapon = graph.graph(item) if item is not None else None
+        if component.strict and item is not None and weapon is None:
+            raise ValueError(f"body weapon graph is unavailable for slot {slot}")
         if weapon is not None:
             created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
     return created
@@ -1372,9 +1411,20 @@ class BodyStream:
 
     def touched(self) -> set:
         found = set(self.lost_keys)
-        for _, keys in self.pending.values():
-            found |= keys
-        return {key for key in found if key[0] != _VOLLEY_INTRODUCTION}
+        base = self.base
+        for snapshot, keys in self.pending.values():
+            for key in keys - found:
+                if key[0] == _VOLLEY_INTRODUCTION:
+                    continue
+                if key[0] == "state" and base is not None:
+                    state = key[1:]
+                    if snapshot.states.get(state) == base.states.get(state):
+                        # This later packet only repeated a state the client has
+                        # now acknowledged. Keep the original key for future
+                        # baselines and possible loss, but don't propagate it.
+                        continue
+                found.add(key)
+        return found
 
     def kill_feed_snapshot(self, snap: Snapshot, *, allowed: bool) -> Snapshot:
         """Gate the first new death pulse and keep its wire value until acknowledged."""

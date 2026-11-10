@@ -3,7 +3,7 @@
 import unittest
 
 from ow174.game.script import entity_queries as query
-from ow174.game.script import expr, runtime, scene
+from ow174.game.script import expr, play, runtime, scene
 from tests.test_script_runtime_budget import graph, node
 
 OWNER, BODY = 0xA0000100, 0xA0000101
@@ -38,10 +38,77 @@ def setup():
 
 
 class EntityQueryTests(unittest.TestCase):
+    def test_scene_possession_changes_wake_only_the_watched_owner(self):
+        other = OWNER + 2
+        world = scene.SceneWorld()
+        for entity in (OWNER, BODY, other):
+            world.bind(entity)
+        world.set_possessions(possessors=(OWNER, other))
+        component = runtime.Component(OWNER, world=world, strict=True)
+        world.bind_script_component(OWNER, component)
+        world.set_entity_query_context(OWNER)
+        cfg = {'$': query.POSSESSED, 'm_entity': {'$': 'STU_B5A0CAF0'}}
+        instance = component.create(graph([node(0, 'STUStatescriptStateBooleanSwitch', state=0,
+                                               m_condition=cfg)]))
+        state = instance.state(0)
+        state.request(runtime.BEGIN)
+        component.run_frame(0)
+        self.assertFalse(state.current)
+
+        world.set_current_possession(other, BODY)
+        self.assertFalse(state.flags_changed)
+        world.set_current_possession(OWNER, BODY)
+        self.assertTrue(state.flags_changed)
+        component.run_frame(1)
+        self.assertTrue(state.current)
+        world.set_current_possession(OWNER, BODY)
+        self.assertFalse(state.flags_changed)
+
+        world.unbind(BODY)
+        world.bind(BODY)
+        component.run_frame(2)
+        self.assertFalse(state.current)
+        world.set_current_possession(OWNER, BODY)
+        component.run_frame(3)
+        self.assertTrue(state.current)
+        world.set_possessor(OWNER, False)
+        component.run_frame(4)
+        self.assertFalse(state.current)
+        self.assertFalse(state.watched)
+
+    def test_scene_ai_links_wake_the_watcher_and_do_not_survive_target_id_reuse(self):
+        world = scene.SceneWorld()
+        world.bind(OWNER)
+        world.bind(BODY)
+        world.set_possessions(possessors=(OWNER,))
+        world.bind_ai_behavior(OWNER)
+        component = runtime.Component(OWNER, world=world, strict=True)
+        world.bind_script_component(OWNER, component)
+        world.set_entity_query_context(OWNER, ai_links=True)
+        cfg = {'$': query.LINKED, 'm_152B6961': {'$': 'STU_B5A0CAF0'}}
+        instance = component.create(graph([node(0, 'STUStatescriptStateBooleanSwitch', state=0,
+                                               m_condition=cfg)]))
+        state = instance.state(0)
+        state.request(runtime.BEGIN)
+        component.run_frame(0)
+        self.assertFalse(state.current)
+        self.assertEqual(instance.evaluate(cfg), expr.Entity(0))
+
+        world.set_ai_linked_target(OWNER, 0, BODY)
+        component.run_frame(1)
+        self.assertTrue(state.current)
+        self.assertEqual(instance.evaluate(cfg), expr.Entity(BODY))
+
+        world.unbind(BODY)
+        world.bind(BODY)
+        component.run_frame(2)
+        self.assertFalse(state.current)
+        self.assertEqual(instance.evaluate(cfg), expr.Entity(0))
+
     def test_unknown_services_remain_strict_and_legacy_world_is_unchanged(self):
         world = ValueWorld()
         world.bind(OWNER)
-        for cls in (query.EXISTS, query.POSSESSED):
+        for cls in (query.EXISTS, query.POSSESSED, query.LINKED, query.PARTICIPANT):
             component = runtime.Component(OWNER, world=world, strict=True)
             instance = component.create(graph(), init=False)
             with self.assertRaises(runtime.UnsupportedScriptError) as error:
@@ -50,6 +117,34 @@ class EntityQueryTests(unittest.TestCase):
         permissive = runtime.Component(OWNER, world=world)
         instance = permissive.create(graph(), init=False)
         self.assertEqual(instance.evaluate(config(query.EXISTS)), expr.default_native(config(query.EXISTS)))
+
+    def test_participant_lookup_preserves_output_and_watches_environment_on_miss(self):
+        _, _, instance, state, context, _, events = setup()
+        context.lookup_participant = lambda entity, watcher: BODY if entity == OWNER else None
+        selected = config(query.PARTICIPANT, expr.Entity(OWNER))
+        self.assertEqual(instance.evaluate(selected, state), expr.Entity(BODY))
+        self.assertEqual(events, [])
+        self.assertEqual(instance.evaluate(config(query.PARTICIPANT, expr.Entity(BODY)), state, initial=7), 7)
+        self.assertEqual(events, [('environment', state, 0)])
+        context.environment_present = False
+        self.assertEqual(instance.evaluate(config(query.PARTICIPANT, expr.Entity(BODY)), state, initial=7), 7)
+        self.assertEqual(events[-1], ('environment', state, 46))
+
+    def test_linked_entity_reads_the_selected_record_after_subscribing(self):
+        _, _, instance, state, context, _, events = setup()
+        links = {(OWNER, 0): BODY}
+
+        def lookup(entity, selector):
+            events.append(('linked', entity, selector))
+            return links.get((entity, selector))
+
+        context.lookup_linked = lookup
+        cfg = {'$': query.LINKED, 'm_152B6961': {'$': 'Literal', 'value': expr.Entity(OWNER)}}
+        self.assertEqual(instance.evaluate(cfg, state), expr.Entity(BODY))
+        self.assertEqual(events, [('environment', state, 0x20), ('linked', OWNER, 0)])
+        cfg['m_A60150E2'] = {'$': 'Literal', 'value': 1}
+        self.assertEqual(instance.evaluate(cfg, initial=17), expr.Entity(0))
+        self.assertEqual(events[-1], ('linked', OWNER, 1))
 
     def test_namespace_failure_does_not_evaluate_or_subscribe(self):
         _, _, instance, state, context, _, events = setup()
@@ -104,6 +199,13 @@ class EntityQueryTests(unittest.TestCase):
         _, _, instance, _, _, _, events = setup()
         cfg = {'$': query.EXISTS, 'm_entity': {'$': 'STU_7BD2CA19', 'm_resourceKey': None}}
         self.assertIs(instance.evaluate(cfg, initial=17), False)
+        self.assertEqual(events, [])
+
+    def test_base_boolean_fallback_preserves_output_without_evaluating_operand(self):
+        _, _, instance, state, _, _, events = setup()
+        cfg = {'$': 'STU_B40ACFBA', 'm_52EA7AB9': {'$': 'Unknown'}}
+        self.assertEqual(play.evaluate_scalar_result(instance, cfg, initial=True, watcher=state),
+                         (True, False))
         self.assertEqual(events, [])
 
     def test_possession_context_failure_skips_selector(self):

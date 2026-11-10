@@ -12,7 +12,7 @@ ABSENT = object()
 
 
 def setup(value=ABSENT, *, index=ABSENT, key=ABSENT, unique=0, current=None,
-          source=ABSENT, output=ABSENT, world=None):
+          source=ABSENT, output=ABSENT, world=None, action_class='STU_4C3509FB'):
     fields = {'m_26E3B366': dynamic(1) if output is ABSENT else output,
         'm_value': dynamic(2) if source is ABSENT else source,
         'm_index': None if index is ABSENT else dynamic(3),
@@ -20,7 +20,7 @@ def setup(value=ABSENT, *, index=ABSENT, key=ABSENT, unique=0, current=None,
         'm_outPlug': plug((1, 'm_inPlug'))}
     following = setter(1, 19)
     following['fields']['m_out_Var']['m_identifier'] = 90
-    model = graph([node(0, 'STU_4C3509FB', **fields), following,
+    model = graph([node(0, action_class, **fields), following,
                    node(2, 'STUStatescriptState', state=0)])
     component = runtime.Component(123, strict=True, world=world)
     active = component.create(model, init=False)
@@ -39,6 +39,29 @@ def run(*args, **kwargs):
 
 
 class ArrayInsertTests(unittest.TestCase):
+    def test_fold_uses_the_native_accumulator_item_index_and_count_scope(self):
+        def expression(keys, code):
+            return {'$': 'STU_919FD47C', 'm_expression': {
+                'm_dynamicVars': [dynamic(key) for key in keys], 'm_opcodes': code,
+            }}
+
+        component, active, _ = setup((4, 7, 1))
+        fold = {'$': 'STU_A6B80C63', 'm_814F8EC3': dynamic(2),
+                'm_418D9D9D': expression((1294,), [13, 0, 0]),
+                'm_C239F989': expression((1293, 1294, 12), [13, 0, 13, 1, 23, 13, 2, 23, 0]),
+                'm_8054375D': expression((1293, 1050, 12), [13, 0, 13, 1, 23, 13, 2, 23, 0])}
+        with component.parameter_scope({1293: 99, 12: 9}):
+            self.assertEqual(active.evaluate(fold), 25)
+            self.assertEqual(active.context().param(1293), 99)
+        active.write((0, 2), ())
+        self.assertIsNone(active.evaluate(fold | {'m_8054375D': None}))
+        self.assertEqual(active.evaluate(fold), 0)
+
+    def test_single_value_insertion_keeps_nested_arrays_intact(self):
+        _, active = run((2, (3, None), 4), current=(1, 5), index=1, action_class='STU_CBE8BDAA')
+        self.assertEqual(active.find_var(0, 1).value(), (1, (2, (3, None), 4), 5))
+        self.assertEqual(active.find_var(0, 90).value(), 19)
+
     def test_append_flattens_nested_source_arrays_in_order_and_follows_output(self):
         _, active = run((2, (3, None), 4), current=(1,))
         self.assertEqual(active.find_var(0, 1).value(), (1, 2, 3, None, 4))

@@ -2,7 +2,8 @@
 variables. The client runs the graphs; the server says which instances exist and what is on.
 
 Read in the client (the chunk reader 0x7FF7898A6450, the frame 0x7FF78991E3C0):
-- A chunk is `w_u32 first | w_var span | bit fragmented | w_var size in bits | payload`. first 0 is a
+- A chunk is `w_u32 first | w_var span | bit fragmented | [w_u16 part | bit final] | w_var size in bits |
+  payload`. The bracketed fields are present only on fragments. first 0 is a
   full frame. The client keeps the highest `last` (first + span) it applied and drops chunks at or
   below it, so an unchanged chunk can be sent again safely.
 - The payload starts `bit lead | bit H`; with H (an owner frame): `bit C | w_var CmFD`, and in a delta
@@ -219,11 +220,14 @@ def owner_ack(cmfd: int) -> BitWriter:
     return out
 
 
-def chunk(payload: BitWriter, first: int, span: int) -> BitWriter:
+def chunk(payload: BitWriter, first: int, span: int, *, part: int | None = None, final=False) -> BitWriter:
     out = BitWriter()
     out.w_u32(first)
     out.w_var(span)
-    out.bit(0)  # not fragmented
+    out.bit(part is not None)
+    if part is not None:
+        out.w_u16(part)
+        out.bit(final)
     out.w_var(payload.count)
     out.append(payload)
     return out
@@ -257,6 +261,27 @@ class Stream:
         self.last += 1
         self.data_last = self.last
         return self._update(chunk(frame, 0, self.last), resend=True)
+
+    def reliable_frames(self, frame: BitWriter, part_bits: int, *, full: bool) -> list[EntityUpdate]:
+        """One acknowledged mode frame, split if needed for 104319's reassembler at RVA A0FE30."""
+        parts = (frame.count + part_bits - 1) // part_bits
+        if not 1 <= parts <= 0x10000:
+            raise ValueError("invalid number of mode frame fragments")
+        first = 0 if full else self.delivered + 1
+        self.last += 1
+        self.data_last = self.last
+        span = self.last - first
+        if parts == 1:
+            return [self._update(chunk(frame, first, span), resend=True)]
+        updates = []
+        for part in range(parts):
+            offset = part * part_bits
+            size = min(part_bits, frame.count - offset)
+            data = BitWriter()
+            data.bits((frame.value >> offset) & ((1 << size) - 1), size)
+            wire = chunk(data, first, span, part=part, final=part == parts - 1)
+            updates.append(self._update(wire, resend=True))
+        return updates
 
     def ack_delta(self, frame: BitWriter) -> EntityUpdate:
         """A delta that only moves CmFD on. A later one covers it, so a lost one is not sent again."""
@@ -294,8 +319,9 @@ class Stream:
 # writers below cover these codecs; tests/test_statescript_codecs.py reads every writer back with the table.
 WRITERS = {
     spray_placement.CODEC,
+    "linked_target",
     "none", "switch", "stack", "anim", "chase", "button", "ability", "targets", "volley", "subscript",
-    "message", "send", "link", "hits", "flags13", "frames", "counter2", "pulser",
+    "message", "send", "link", "hits", "flags13", "frames", "counter2", "pulser", "two_bits", "value_slot",
 }  # fmt: skip
 
 
@@ -563,6 +589,14 @@ def write_payload(
     kind = family(cls)
     if kind == "switch":
         out.bit(payload.get("current", False))
+    elif kind == "value_slot":
+        out.bit(payload["which"])
+        out.bits(payload["value"], 32)
+    elif kind == "two_bits":
+        selected = payload.get("a", False)
+        out.bit(selected)
+        if not selected:
+            out.bit(payload.get("b", False))
     elif kind == "stack":
         out.bit(payload.get("top", False))
         out.bit(payload.get("under", False))
@@ -596,7 +630,7 @@ def write_payload(
             out.bit(sender & 0xA0000000 == 0xA0000000)
             out.var_b(sender & 0x1FFFFFFF)
         out.bit(payload.get("stacked", False))
-    elif kind == "link":
+    elif kind in ("link", "linked_target"):
         _write_state_link(out, payload.get("link"), graphs, owner=True)
     elif kind == "send":
         reply = payload.get("reply", 0) & 0xFFFF
@@ -969,6 +1003,8 @@ def remote_fields(cls: str, payload: dict) -> dict:
         return fields
     if kind == "switch":
         return {"current": get("current", False)}
+    if kind == "two_bits":
+        return {"a": get("a", False), "b": get("b", False)}
     if kind in ("button", "counter2"):
         return {"counter": get("counter", 0)}
     if kind == "message":
@@ -979,11 +1015,13 @@ def remote_fields(cls: str, payload: dict) -> dict:
         return {"n": 0, "flag": get("flag", False)}
     if kind == "flags13":
         value = get("value", 0)
-        return {"value": value}
-    if kind == "link":
+        return {"low": value & 63, "more": value >> 6 != 0, "high": value >> 6 & 127}
+    if kind in ("link", "linked_target"):
         return {"link": get("link")}
-    if kind in ("none", "stack", "send", "subscript", "targets", "frames"):
-        return dict(payload) if kind == "frames" else {}
+    if kind in ("frames", "value_slot"):
+        return dict(payload)
+    if kind in ("none", "stack", "send", "subscript", "targets"):
+        return {}
     if kind == spray_placement.CODEC:
         return spray_placement.wire_fields(payload)
     raise ValueError(f"no H=0 payload for {cls}")

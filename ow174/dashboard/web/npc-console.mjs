@@ -5,13 +5,19 @@ export class NpcConsoleClient {
     this.menuOpen = false;
     this.menuRequested = false;
     this.queue = Promise.resolve();
+    this.attackEpoch = 0;
   }
   send(key, name = '') {
     if (!['=', '-', '0', '{', 'Escape', ...'123456789'].includes(key)) {
       return Promise.resolve({handled: false});
     }
     if (key === '=') this.menuRequested = true;
+    if (key === '{') this.attackEpoch++;
+    const attackEpoch = this.attackEpoch;
     const next = this.queue.catch(() => {}).then(async () => {
+      if (key === '0' && attackEpoch !== this.attackEpoch) {
+        return {handled: false, canceled: true};
+      }
       const response = await this.request('/api/npc_console', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({key, name, menu_open: this.menuOpen}),

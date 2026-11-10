@@ -448,8 +448,8 @@ class RawPayloadValidationTests(unittest.TestCase):
     def test_raw_support_is_independent_of_runtime_writers(self):
         for cls in (TARGET, OPAQUE):
             self.assertTrue(codecs.codec(cls).verified)
-        self.assertEqual(statescript.family(TARGET), "unknown")
-        self.assertFalse(statescript.sendable(TARGET, True))
+        self.assertEqual(statescript.family(TARGET), "linked_target")
+        self.assertTrue(statescript.sendable(TARGET, True))
         for cls in ("STUStatescriptStateLogicalButton", "BAD", None, []):
             self.assert_rejected(cls, {})
         for owner, full in ((1, False), (True, 0), (None, False)):

@@ -1,14 +1,17 @@
+import json
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.accounts.profile import Profile
-from ow174.catalog.items import ItemDB
+from ow174.catalog.items import HERO_BASE, ItemDB
 from ow174.catalog.templates import RetailTemplates
 from ow174.content import Content
 from ow174.jam.codec import Schemas
+from ow174.jam.groups import HERO_CATALOG
 
 AURISA = 0x250000000001149  # anniversary icon tagged with hero Orisa
 PACHIMARI = 0x2500000000008E9  # icon with no hero tag
@@ -112,6 +115,30 @@ class OwnershipRoutingTests(unittest.TestCase):
             if (u.hero, u.name) == ("Reaper", "Contenders Away")
         ]
         self.assertEqual((luchador["+0x10"], luchador["+0x17"]), (contenders["+0x10"], contenders["+0x17"]))
+
+    def test_npcs_have_gallery_records_without_playable_loadouts(self):
+        profile = Profile()
+        with TemporaryDirectory() as folder:
+            data = Path(folder)
+            (data / "extracted_heroes.json").write_text(json.dumps({
+                "000000000002.075": {"Name": "Reaper", "IsHero": True},
+                "00000000016B.075": {"Name": "Training Bot", "IsHero": False},
+                "000000000175.075": {"Name": "Zomnic", "IsHero": False},
+                "0000000001C7.075": {"Name": "Gunship", "IsHero": False},
+                "000000000165.075": {"Name": None, "IsHero": False},
+            }), encoding="utf-8")
+            items = ItemDB(data)
+        collection = Content(Schemas(), RetailTemplates(), items).collection
+        npcs = {HERO_BASE | index for index in (0x16B, 0x175, 0x1C7)}
+        self.assertEqual(items.npc_heroes, npcs)
+        catalog = collection.hero_catalog(profile)
+        schema = Schemas()
+        decoded = schema.decode(HERO_CATALOG, 24900, schema.encode(HERO_CATALOG, 24900, catalog))
+        self.assertEqual({row["+0x30"] for row in decoded["+0x80"]} - set(collection.heroes), npcs)
+        self.assertEqual({row["+0x18"] for row in decoded["+0x98"] if not row["+0x0"]} & npcs, npcs)
+        self.assertTrue(npcs.isdisjoint(collection.default_loadouts))
+        career = collection.hero_catalog(profile, include_npcs=False)
+        self.assertEqual([row["+0x30"] for row in career["+0x80"]], collection.heroes)
 
 
 if __name__ == "__main__":

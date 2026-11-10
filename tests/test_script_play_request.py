@@ -31,6 +31,50 @@ def resolve(caller, action, context=CONTEXT):
 
 
 class PlayRequestTests(unittest.TestCase):
+    def test_authored_map_preserves_nested_values_and_replaces_duplicate_keys(self):
+        caller, _ = requesting()
+        values = {'$': 'STU_45B0D2B2', 'm_configVars': [integer(4), None, integer(7)]}
+        inner = {'$': 'STU_7042F028', 'm_92829780': [
+            {'m_identifier': '0x0D80000000000004', 'm_value': values},
+        ]}
+        cfg = {'$': 'STU_7042F028', 'm_92829780': [
+            {'m_identifier': '0x0D80000000000002', 'm_value': integer(3)},
+            {'m_identifier': '0x0D80000000000001', 'm_value': inner},
+            {'m_identifier': '0x0D80000000000002', 'm_value': integer(8)},
+        ]}
+        self.assertEqual(dict(play.evaluate_value(caller, cfg).items),
+                         {1: expr.Map(((4, (4, 0, 7)),)), 2: 8})
+        self.assertEqual(play.evaluate_scalar_result(caller, values), (4, True))
+
+    def test_mode_score_thresholds_scalar_and_collection_use_the_difficulty_mask(self):
+        world = scene.SceneWorld(mode=3)
+        difficulty = 0x0D8000000000195E
+        world.mode_score_thresholds = {3: ((3000, 6000, 10000, 15000, 20000), {difficulty: 3})}
+        caller, _ = requesting(world=world)
+        cfg = {'$': 'STU_0C37A184', 'm_5B9DD0CB': dynamic(7)}
+        caller.write((0, 7), expr.Asset(difficulty))
+        expected = (3000.0, 6000.0, 10000.0, -1.0, -1.0)
+        self.assertEqual(play.evaluate_value(caller, cfg), expected)
+        self.assertEqual(play.evaluate_value(caller, array(cfg)), expected)
+        self.assertEqual(play.evaluate_scalar_result(caller, cfg), (3000.0, True))
+        caller.write((0, 7), 0)
+        self.assertEqual(play.evaluate_value(caller, cfg)[-2:], (15000.0, 20000.0))
+        world.mode_score_thresholds = {}
+        self.assertEqual(play.evaluate_value(caller, cfg), ())
+        self.assertEqual(play.evaluate_scalar_result(caller, cfg), (0, False))
+
+    def test_minimum_config_defaults_for_an_empty_iterator(self):
+        caller, _ = requesting()
+        cfg = {'$': 'STU_17330930', 'm_A53100D5': integer(2),
+               'm_814F8EC3': array(EMPTY, dynamic(7))}
+        for values, expected in ((None, 2.0), ((9, (7, 8)), 7.0), ((0, 7), 0.0),
+                                 ((expr.Asset(1), 7), 2.0), ((None, 7), 0.0)):
+            with self.subTest(values=values):
+                caller.write((0, 7), values)
+                result = caller.evaluate(cfg)
+                self.assertIs(type(result), float)
+                self.assertEqual(result, expected)
+
     def test_targets_flatten_typed_arrays_preserve_duplicates_and_reject_non_entities(self):
         caller, action = requesting(m_targets=array(dynamic(7), OWNER, None, EMPTY))
         caller.write((0, 7), (expr.Entity(7), (expr.Entity(8), expr.Entity(7)),

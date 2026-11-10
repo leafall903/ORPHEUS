@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from test_game_world import read_movement
 
-from ow174.game import correction, world
+from ow174.game import correction, mccree, world
 from ow174.game.bits import BitReader
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.commands import CROUCH, JUMP, Command
@@ -148,6 +148,29 @@ class CadenceTests(unittest.TestCase):
         self.match.tick = 7005
         self.assertIsNone(other.body_script)
         self.assertEqual([u for u in self.match.remote_movements(other) if u.entity == other.body], [])
+
+    def test_mccree_knockback_sends_only_post_impulse_owner_poses(self):
+        self.assertTrue(self.match.switch_hero(self.player, heroes()[mccree.HERO]))
+        self.match.start_body_script(self.player, EntityUpdate(self.player.body, OP_CREATE))
+        self.player.body_script.create_arrived = True
+        self.player.take_commands([Command(7000)])
+        self.assertEqual(self.own(7000), [])
+
+        correction.force_impulse(self.player)
+        first, through = self.player.impulse_correction
+        self.assertEqual(first, 7001)
+        self.player.mover.velocity = (20.0, 8.0, 0.0)
+        self.player.take_commands([Command(frame) for frame in range(first, first + 5)])
+        self.assertEqual(self.own(7000), [])
+        self.assertEqual(correction.command_ack(self.player, 7000), first + 1)
+        (record,) = self.own(first)
+        self.assertEqual(record["frame"], first)
+        self.assertNotEqual(record["position"], self.player.spawn[0])
+
+        self.player.take_commands([Command(frame) for frame in range(first + 5, through + 2)])
+        self.assertEqual([row["frame"] for row in self.own(through)], [through])
+        self.assertIsNone(self.player.impulse_correction)
+        self.assertEqual(self.own(through + 1), [])
 
     def test_sprint_from_the_statescript_moves_the_body_and_its_record(self):
         commands = [Command(7000 + n) for n in range(30)]

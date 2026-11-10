@@ -37,7 +37,7 @@ the ones whose movement the server's mover follows.
 
 from dataclasses import dataclass
 
-from ow174.game import movelog
+from ow174.game import mccree, movelog
 from ow174.game.content import SOLDIER
 from ow174.game.mover import Mover, Snapshot
 from ow174.game.world import NO_INPUT, EntityUpdate, Movement
@@ -45,6 +45,7 @@ from ow174.game.world import NO_INPUT, EntityUpdate, Movement
 CORRECTIONS = True  # False: the owner never gets its own body's state (each client then keeps its own)
 HEROES = {SOLDIER}  # the heroes whose movement abilities the mover follows
 ACK_LEAD = 2  # the client keeps the commands from ack - 1 on; a replay needs them from the record's frame + 1
+IMPULSE_WINDOW_US = 2_000_000  # cover the sandbox knockback and landing
 
 
 @dataclass(frozen=True)
@@ -91,8 +92,20 @@ def movement(snapshot: Snapshot) -> Movement:
     )
 
 
+def force_impulse(player, *, first_frame: int | None = None) -> None:
+    """Replicate a server-only velocity change for McCree's current body."""
+    if not CORRECTIONS or player.hero.guid != mccree.HERO or player.body_script is None:
+        return
+    last = player.commands.last_frame
+    first = first_frame if first_frame is not None else (player.match.tick if last is None else last + 1)
+    through = first + (IMPULSE_WINDOW_US - 1) // player.quanta
+    previous = getattr(player, 'impulse_correction', None)
+    player.impulse_correction = (previous[0] if previous is not None else first, through)
+
+
 def _eligible(player) -> bool:
-    return CORRECTIONS and player.has_body and player.body_script is not None and player.hero.guid in HEROES
+    return (CORRECTIONS and player.has_body and player.body_script is not None
+            and (player.hero.guid in HEROES or getattr(player, 'impulse_correction', None) is not None))
 
 
 def correcting(player) -> bool:
@@ -106,6 +119,9 @@ def own_record(player, tick: int) -> EntityUpdate | None:
         return None
     snapshot = snapshot_for(player.mover, tick)
     if snapshot is None:
+        return None
+    impulse = getattr(player, 'impulse_correction', None)
+    if impulse is not None and snapshot.frame < impulse[0]:
         return None
     update = EntityUpdate(player.body, movement=movement(snapshot))
     update.correction = SendToken(player.mover, player.body, snapshot.frame, tick)
@@ -126,6 +142,9 @@ def sent(player, update) -> None:
     if previous is not None and previous >= token.frame:
         return
     player.mover.corrected = token.frame
+    impulse = getattr(player, 'impulse_correction', None)
+    if impulse is not None and token.frame >= impulse[1]:
+        player.impulse_correction = None
     if movelog.ENABLED:
         movelog.sent(player, token.tick, token.frame, command_ack(player, token.tick))
 
@@ -141,6 +160,10 @@ def command_ack(player, tick: int, updates=()) -> int:
         token = update.correction
         if _current(player, token) and (sent is None or token.frame > sent):
             sent = token.frame
+    impulse = getattr(player, 'impulse_correction', None)
+    if impulse is not None:
+        # Earlier commands were already eligible for ACK before the impulse.
+        sent = impulse[0] - 1 if sent is None else max(sent, impulse[0] - 1)
     if sent is None:
         # While create ACK or packet budget delays the first record, its eligible frame
         # already bounds which commands the owner can drop. Future states cannot go yet.

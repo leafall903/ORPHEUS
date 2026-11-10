@@ -70,20 +70,14 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     bot = bots.Bot(entity, data, hero, {})
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True
-    # Import locally to keep Match's existing module graph acyclic.
-    from ow174.game.match import BOT_RECORD_DELAY
-
-    bot.records_from = match.tick + BOT_RECORD_DELAY
     match.combat.next_bot += 1
     match._prepare_bot_script(bot)
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match.combat._sync_body_health(bot, match.combat.vitals[entity])
     match.combat.record_replacement(entity)
-    for viewer in match.players:
-        if viewer.client is not None and viewer.spawned:
-            viewer.client.queue_entities([match._bot_create_update(bot)])
-            match.bots_shown.setdefault(viewer.slot, match.tick)
+    match.publish_bot(bot)
     return bot
 
 
@@ -94,6 +88,9 @@ def remove_spawned(match) -> tuple[int, ...]:
         if bot.spawner.get('manual_spawn') is not True:
             continue
         bot.died(match.tick)
+        bot.navigation = None
+        match.combat.clear_pins(bot.entity)
+        match.combat._end_npc_hit_reaction(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component
@@ -102,10 +99,10 @@ def remove_spawned(match) -> tuple[int, ...]:
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
-        for shot in list(match.combat.projectiles.shots):
-            if shot.player is bot:
-                match.combat.projectiles._end(shot, match.tick, False)
-        match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
+            if hasattr(component.world, 'match'):
+                component.world.match = None
+                component.world.manual_target = None
+        match.combat.cancel_npc_projectiles(bot)
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
                       match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):

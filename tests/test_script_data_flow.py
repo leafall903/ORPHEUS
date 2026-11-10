@@ -40,6 +40,43 @@ def setup_state(*, strict=True, **fields):
 
 
 class DataFlowTests(unittest.TestCase):
+    def test_scene_managed_providers_follow_the_bound_component_lifetime(self):
+        world = scene.SceneWorld()
+        world.bind(OWNER, position=(4, 5, 6))
+        component = runtime.Component(OWNER, world=world, strict=True)
+        world.bind_script_component(OWNER, component)
+        context = world.bind_data_flow_providers(OWNER)
+        mapping = 0x04800000000005FD
+        definition = graph([node(
+            0, data_flow.CLASS, state=0,
+            m_5A6D4FBD={'$': 'STUConfigVarDataFlow', 'm_5A6D4FBD': f'0x{mapping:016X}'},
+            m_answer={'$': 'STU_B5A0CAF0'},
+        )])
+        first, second = (component.create(definition, init=False).state(0) for _ in range(2))
+        first.begin()
+        second.begin()
+        self.assertEqual(context.providers(mapping), (first, second))
+        self.assertEqual(first.answer('vector'), (1, expr.Vec3(4, 5, 6)))
+        first.end(False)
+        self.assertEqual(context.providers(mapping), (second,))
+
+        world.unbind_script_component(OWNER, component)
+        self.assertTrue(context.retired)
+        self.assertEqual(context.providers(mapping), ())
+        replacement = runtime.Component(OWNER, world=world, strict=True)
+        world.bind_script_component(OWNER, replacement)
+        live_context = world.bind_data_flow_providers(OWNER)
+        live = replacement.create(definition, init=False).state(0)
+        live.begin()
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            second.answer('vector')
+        self.assertEqual(live_context.providers(mapping), (live,))
+        self.assertFalse(live_context.retired)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            replacement.unsupported(live.instance, 'test failure', data_flow.CLASS)
+        self.assertTrue(live_context.retired)
+        self.assertEqual(live_context.providers(mapping), ())
+
     def test_unknown_context_faults_instead_of_accepting_a_passive_mapping(self):
         world, component, _, state, _, _ = setup_state()
         world.data_flow_contexts.clear()

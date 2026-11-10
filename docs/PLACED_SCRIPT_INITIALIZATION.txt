@@ -58,8 +58,10 @@ Schema evaluation uses the callee before queued assignments execute. A zero
 full identifier or absent config is skipped; a failed evaluation queues no write,
 while a successful null queues null. Writes retain the native low16 identifier.
 Unknown used config classes poison the strict component instead of passing it.
-Nonempty component-level schemas, clientOnly startup and nonzero graph flags
-are rejected explicitly. No selected Rialto input needs those gated features.
+Component-level float literals queue owner-variable writes before ordinary
+Entry execution, with placed values after definition values. Other component
+config forms, clientOnly startup and nonzero graph flags remain gated.
+A public schema may reference its own graph, as 0033 does.
 
 An extended108-case native comparison executes BE9DE0/BEA2D0/BE9AC0/BE9CB0,
 1B8D150 and actual first-instance lookup. It matches production assignment

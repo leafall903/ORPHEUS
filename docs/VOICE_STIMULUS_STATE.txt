@@ -123,3 +123,45 @@ remains uninitialized in this explicit fixture; declared backend/clock responses
 do not establish real audio or full startup. The separate helper still stops
 at controller-message component/node22, and shared Match remainsD38/node106.
 See ARRAY_ACTIONS.txt for storage, notification and native-comparison limits.
+
+Junkenstein Reaper entrance
+
+The five opening cues in 0CE0 nodes 61 through 65 target the game mode
+entity and have no remote state slots. 0C8C installs voice set 013B on
+that entity. Read-only inspection of 104319 finds one unconditioned line
+for each of these five cues in 013B. The 48 kHz enUS Wwise sample counts
+supply the server's duration for each single-part line. The scoped
+backend requires the live mode voice set, then queues ClientInVoice
+27500 with the mode entity as speaker and each current defender as
+listener. Delivery waits for the Reaper body create acknowledgment.
+The encounter polls registered voice states before ordinary component
+updates. The test verifies the packet fields and removal at completion
+for 06B5, line 8CB1, with a rounded duration of 3.337 seconds.
+Original-client playback remains open.
+
+The natural Normal Endless spawn uses Reaper skin 1BEB and body 0022.
+Read-only 104319 inspection resolves 06BD through body voice set 0001.
+It selects line 8A2B, whose enUS media 2EC9E contains 172357 samples
+at 48 kHz. Node 77 starts on frame 4004. After the authored delay, the
+headless replay submits the cue on frame 4017 with a rounded 3.591-second
+duration. The notice uses Reaper's body for the speaker and anchor.
+The associated 06AC action routes to players and the source body's live
+possessing controller with the 0CDC receiver. On frame 4021 the natural
+replay reaches 0CE2 node 7, STU_9F3FE778, in the controller path.
+
+The native 9095A0 action dispatch uses D34A80, which succeeds without
+reading the trace configuration. Three offline callback cases execute
+the dispatch with synthetic observer, cast and output services. After
+modelling the base output, the natural replay reaches 0CE0 node 66 at
+frame 4209. Nodes 66 through 70 target the mode entity and link their
+end output to node 14. Voice set 013B has fifteen active single-clip
+lines for these five cues, all with weight 1 and no criteria. The
+host samples uniformly using a per-body voice RNG and derives the
+duration from the selected line's enUS media. The original RNG sequence
+has not been verified. In the isolated replay node 66 submits A45E
+at frame 270 with 6.729 seconds and retires at frame 691.
+The natural Normal Endless replay submits the 5.220-second 8CB3
+variant on frame 4209 and retires the cue on frame 4536. It reaches
+frame 5000 with Reaper alive and no scene fault. The replay does
+not connect player clients, so it does not exercise their combat
+or audio playback.

@@ -263,6 +263,8 @@ def same(a, b) -> bool:
 
 
 def _vec(value) -> Vec3:
+    if isinstance(value, tuple) and len(value) == 1:
+        value = value[0]
     return value if isinstance(value, Vec3) else Vec3(0.0, 0.0, 0.0)
 
 
@@ -338,6 +340,7 @@ def warn_once(key: str, message: str, *args) -> None:
 NATIVE_DEFAULTS = {
     "STU_CC623180": True,  # IsHUDEnabled
     "STU_98E9109B": False,  # CustomGameLogicEnabled
+    "STU_E95A9C77": False,  # 104319 CEF730 writes a typed false unconditionally.
     "STU_5E75FF05": 0,  # ReticleType
     "STU_C76C63AF": 0.0,  # ReticleNumericSetting
 }
@@ -379,36 +382,45 @@ CONSTANTS = {
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
     "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
+    "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),
 }
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
     "STUConfigVarIdentifier": "m_identifier",
     "STUConfigVarUXDisplayText": "m_displayText",
+    "STUConfigVarContactSet": "m_contactSet",
     "STUConfigVarGameMessage": "m_gameMessage",
     "STUConfigVarEffect": "m_effect",
     "STUConfigVarLoadout": "m_loadout",
     "STUConfigVarHardPoint": "m_hardPoint",
     "STUConfigVarGameMode": "m_gamemode",
     "STUConfigVarVoiceStimulus": "m_voiceStimulus",
+    "STUConfigVoiceDefinition": "m_C6C61CB0",
     "STUConfigVarAnimation": "m_animation",
-    "STUConfigVarAnimAlias": "m_animAlias",
     "STUConfigVarAnimCategory": "m_category",
+    "STUConfigVarAnimAlias": "m_animAlias",
     "STUConfigVarModelLook": "m_modelLook",
     "STUConfigVarDataFlow": "m_5A6D4FBD",
     "STUConfigVarHero": "m_hero",
+    "STUConfigVarTexture": "m_texture",
+    "STU_08305297": "m_C21DB248",
     "STU_43CF7A79": "m_entityDef",
+    "STU_8556841E": "m_entityDef",
     "STUConfigVarSkinTheme": "m_skinTheme",
     "STU_105E1BCC": "m_graph",  # Graph: keep an empty resource typed as Asset(0).
     "STU_357DABBB": "m_7D7C86A1",  # TargetTag, same native resource evaluator (1B85C30).
     "STU_BCD1C634": "m_id",  # Enumeration: an identifier of an enum type
     "STU_8A491388": "m_priority",  # StackPriority: a .024 asset
+    "STU_B70476F3": "m_548E5344",  # .096 resource key used by the 05AD message table
 }
 # These verified literal paths use 1B85C30. A real resource key also invokes
 # native availability services; leave that path to the supplied context.
 KEYED_RESOURCES = {
     "STUConfigVarVoiceStimulus", "STUConfigVarAnimation", "STUConfigVarHero",
+    "STUConfigVoiceDefinition", "STUConfigVarAnimCategory",
     "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias", "STUConfigVarModelLook",
-    "STUConfigVarDataFlow", "STUConfigVarAnimCategory",
+    "STU_8556841E", "STUConfigVarTexture", "STU_08305297",
+    "STUConfigVarDataFlow", "STU_B70476F3",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 
@@ -425,6 +437,12 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if not isinstance(cfg, dict):
         return cfg
     cls = cfg.get("$")
+    if cls == "STU_4A101787":
+        return False  # 104319 CEF730 writes a successful boolean false.
+    if cls in ("STU_B40ACFBA", "STU_1232F9A3", "STU_AA7C7E9F", "STU_383710EE"):
+        # 104319 loader 1B936E0 selects the base ConfigVar evaluator after
+        # the exact type misses. Its +20 method fails without writing.
+        return initial
     if cls == "STU_7BD2CA19" and cfg.get("m_resourceKey") is None:
         # 104319: a live empty-key instance caches the base ConfigVar evaluator
         # (vtable RVA 26292E0). Its +20 method, 123CC10, returns false and writes
@@ -436,6 +454,8 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.var(scope, var)
     if cls in CONSTANTS:
         return CONSTANTS[cls](cfg)
+    if cls == "STU_92CA44CC" and cfg.get("m_value") is None:
+        return ""  # 930A00 writes a typed empty string for the authored empty teString.
     if cls in EXPRESSIONS:
         return run(cfg, ctx)
     if cls == "STU_45EDF12D" and cfg.get("m_key") is None:
@@ -458,6 +478,10 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
         return value if value is not None else evaluate(cfg.get("m_default"), ctx)
+    if cls == "STU_58AA0A3B":  # 1B778E0 tests whether the child writes a non-null value tag.
+        failed = object()
+        value = evaluate(cfg.get("m_value"), ctx, initial=failed)
+        return value is not failed and value is not None
     if cls == "STU_3ACE35FB":  # WouldVarStackToTop
         var = dynamic(cfg.get("m_E50CF556"))
         return ctx.would_stack_to_top(var, stack_priority(cfg.get("m_012B7AF7")))
@@ -467,6 +491,18 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         low = f32(to_float(cfg.get("m_min")))
         high = f32(to_float(cfg.get("m_max")))
         return f32(ctx.rng.uniform(low, high))
+    if cls == "STU_1760BCAD":  # Integer bounds in the 1063 Shock-Tire route selector.
+        low, high = sorted((to_int(cfg.get("m_min")), to_int(cfg.get("m_max"))))
+        return ctx.rng.randint(low, high)
+    if cls == "STU_B113D362":  # CCC480: construct a forward vector from yaw and pitch in degrees.
+        radians_per_degree = f32(math.pi / 180)
+        yaw = f32(to_float(evaluate(cfg.get("m_7C831A8D"), ctx)) * radians_per_degree)
+        pitch = f32(to_float(evaluate(cfg.get("m_C0EDD7EC"), ctx)) * radians_per_degree)
+        yaw = yaw if math.isfinite(yaw) else math.nan
+        pitch = pitch if math.isfinite(pitch) else math.nan
+        sin_yaw, cos_yaw = f32(math.sin(yaw)), f32(math.cos(yaw))
+        sin_pitch, cos_pitch = f32(math.sin(pitch)), f32(math.cos(pitch))
+        return Vec3(f32(sin_yaw * cos_pitch), -sin_pitch, f32(cos_yaw * cos_pitch))
     if cls == "STUConfigVarVec3":
         value = cfg.get("m_value") or {}
         # The target build's DataTool export preserves the teVec3 field casing.
@@ -580,6 +616,11 @@ def _member(obj, key: int, ctx: Context):
 
 
 def _arith(op: int, a, b, ctx: Context):
+    # PlayScript parameters can carry a single vector in the same array wrapper as a scalar.
+    if isinstance(a, tuple) and len(a) == 1 and isinstance(a[0], Vec3):
+        a = a[0]
+    if isinstance(b, tuple) and len(b) == 1 and isinstance(b[0], Vec3):
+        b = b[0]
     vector = all(isinstance(x, (Vec3, Entity)) for x in (a, b))
     if op in (23, 24) and vector:
         va = ctx.position(a.id) if isinstance(a, Entity) else a
@@ -635,7 +676,7 @@ def _unary(op: int, a, ctx: Context):
         length = _length(v)
         return Vec3(*(f32(x / length) for x in v)) if length else Vec3(0.0, 0.0, 0.0)
     if op in (60, 61, 62):
-        return getattr(a, "xyz"[op - 60]) if isinstance(a, Vec3) else 0.0
+        return getattr(_vec(a), "xyz"[op - 60])
     x = to_float(a)
     if op == 39:
         return f32(math.sqrt(x)) if x > 0 else 0.0

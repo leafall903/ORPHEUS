@@ -12,8 +12,8 @@ from tests.test_script_runtime_budget import graph, node, plug
 CLASS = 'STU_9028E035'
 
 
-def model(*, count=1, server_only=(), remote=True):
-    records = [node(index, CLASS, state=index, m_type=index % 2) for index in range(count)]
+def model(*, count=1, server_only=(), remote=True, state_class=CLASS):
+    records = [node(index, state_class, state=index, m_type=index % 2) for index in range(count)]
     for index, item in enumerate(records):
         item['server_only'] = index in server_only
         # Remote-sync indexes deliberately differ from m_states indexes.
@@ -39,6 +39,20 @@ def begin(component, active, index=0):
 
 
 class RegisteredStateTests(unittest.TestCase):
+    def test_mission_registered_state_links_only_its_own_class(self):
+        component = runtime.Component(123, strict=True)
+        other = begin(component, instance(component))
+        for mission_class in ('STU_25CBEFB0', 'STU_43994F1B', 'STU_93B8758C'):
+            with self.subTest(mission_class=mission_class):
+                definition = model(state_class=mission_class)
+                first = begin(component, instance(component, definition))
+                last = begin(component, instance(component, definition))
+                self.assertEqual(component.state_registries[mission_class], [first, last])
+                self.assertEqual(first.payload(), {'link': (last.instance.id, 0)})
+                self.assertEqual(other.payload(), {})
+                last.end(False)
+                self.assertEqual(first.payload(), {})
+
     def test_registration_precedes_authored_begin_plug_and_m_type_does_not_split_lists(self):
         component = runtime.Component(123, strict=True)
         definition = model(count=2)

@@ -1,0 +1,233 @@
+Manual Assassin pin: partial104319 resource-backed server reconstruction
+
+Scope:
+Manual Assassin01BB bodies declare the sandbox controller context. Primary AI
+slot0 routes to button36 for1157, whose entry sets target536 from
+DB742151(owner).#1650. Its extracted button20 graph13B8 has no damage outlet.
+The scoped DB742151 service supplies a data-only Map containing1650 and the
+current engaged player body. It does not allocate or replicate a native
+controller entity, alias a body as a controller, or resolve every foreign query.
+Owner/current-target9B7648C3 reads authoritative match health. Other services
+and stock placements retain their existing behavior.
+
+Contact and targeting policy:
+The manual contact limit is3m with static line of sight. This limit is an
+explicit reconstruction, not a recovered native acquisition range. The console
+spawns5m ahead. Manual pursuit now approaches through the shared physical
+mover; use the real NPC mover inputs described in docs/NPC_NAVIGATION.txt.
+Full autonomous navigation/perception remains open. A bound target must remain the
+same living enemy player body with an active connection. Rebinding, stopping,
+occlusion, range/team changes, death and removal invalidate the old pin.
+Active pursuit can later establish a new contact engagement.
+
+Sandbox teammate rescue:
+A confirmed quick-melee hit on the living manual Assassin ends the pin when
+the victim is on the rescuer's team. It follows the existing melee range,
+damage and static-visibility checks. The victim's independent timed stuns
+remain in effect. The Assassin's two-second recovery uses the timeout of
+1157 Wait37 after release. Treating that window as an attack interruption
+is a sandbox reconstruction. The Rialto two-player probe uses McCree's
+actual quick-melee input, deals 30 damage, immediately frees the victim and
+observes no new pin over the next 100 frames.
+
+Damage clock:
+StateModifyHealth15/25 targets m_FA3ECC43=#536. The1157 graph supplies the
+amounts and phase delay. In the tested base resource configuration, node25 uses
+amount13230=25 and node15 uses11984=100. The reconstructed service applies the
+default mode once at entry; m_95F1FB0B=1 applies amount/second over elapsed VM
+milliseconds. Continuous entry has zero elapsed damage. Repeat frames do not
+repeat damage; the state stores its last-applied time as causal VM state.
+This mode interpretation and clock are not original-server/native comparisons.
+Unsupported health states retain an explicit unknown service in strict mode.
+
+Victim control and lifetime:
+Combat.pins records source body -> victim body separately from timed stuns.
+The authored pin scope23 retains control through the delay between contact and
+continuous damage. Entry releases held input and stops running abilities via
+their existing exit paths, including Deadeye and its owned target effects.
+Controlled player input suppresses movement/actions/attacks while look/gravity
+continue under the existing control policy. This is server control, not a
+complete native pin/camera/QTE/effect implementation. Independent Flashbang
+deadlines survive pin release.
+
+Pin/health scope exit, manual stop, source stun/death/removal, target death/body
+retirement, target/geometry/team loss and script failure release control.
+Retained NPC corpses remain until explicit removal. The frame-end bridge removes
+control when scope23 no longer exists. BotWorld match/target bindings, health
+clock and Combat.pins are included in their enclosing causal snapshots.
+
+Recovery difference:
+Release Anim31 currently has no resolved animation-asset duration and can retain
+its stack indefinitely. A new explicit manual engagement interrupts that state
+through its authored end plugs before starting the new target. No fabricated
+animation duration is installed. Original release duration, cooldown, animation
+interruptibility and the native pin lifecycle remain open.
+
+After a target leaves, the sandbox can select a replacement while the previous
+pin is still bound. The bridge releases the old input for one combat update
+before binding the new body. This gives the old scope's authored exits time to
+start Anim31 before the new binding interrupts it. The real Rialto resource
+probe reproduces the stuck release before this change and measures the new
+target taking 25 damage two frames after the first player leaves.
+
+Evidence:
+Eight new source tests use a synthetic1157 graph with real Match/vitals/player
+input. They cover elapsed/duplicate-frame damage, one-shot versus continuous
+application, scope exit, independent stuns, Deadeye interruption, source stun
+and death, range/occlusion/team refusal, target body replacement, explicit
+removal and causal clock storage. The server snapshot test also detects changes
+to the pin registry. These fixture tests do not prove native graph equivalence.
+
+A separate actual external-bundle matrix uses console selection/engagement and
+real player commands without target/controller injection or native-query
+overrides. Twelve cases pass stop, restart, removal, source death, actual support
+Flashbang, victim death, body replacement, a real triangle wall, range/team
+changes, pinned input and Deadeye interruption. The continuous phase deals16
+over ten16ms frames. Source/victim death cases use authoritative damage fixtures;
+they are not firing-input acceptance. Transport is an adapter, body VM execution
+is permissive, and original-client acceptance was not run.
+
+Still open:
+Native controller/foreign namespace/wire, health mode/clock/immunity/cleanse,
+complete native cooldown and recovery, other counterplay, autonomous
+approach/navigation/acquisition, lunge/pin victim poses, camera/animation/effects/
+audio/HUD/corpse presentation and full cross-hero/static/client acceptance.
+Teammate Flashbang on Rialto (`--assassin-flash-rescue`): a second McCree
+dealt 25 damage and released the pinned player four frames after the throw
+input. The Assassin remained stunned for 107 frames. The released player
+lost no further health through the last stunned frame, and the pin did not
+reapply. This verifies server gameplay; native rescue and stun presentation
+remain open. The two real-map rescue fixtures decode observer animation
+nodes 1157/44 (pin) and 1157/31 (release), both with activation counter 1.
+This does not establish the pinned player's camera behavior.
+
+In the real-map `--assassin-kill-rescue` fixture, a second McCree
+finishes the one-HP Assassin with primary fire while the pin is
+active. The owner's and observer's wire both remove the victim
+graph. The freed player moves 1.79 m and deals 70 damage to a new
+Trooper. The Assassin deals no further damage and stays as a corpse
+for the 12-second observation before explicit removal.
+The Assassin death path now cancels the queued or running ordinary
+release animation 1157/31 before the first corpse snapshot. Before
+the change, that animation was still active in the terminal frame.
+Nonlethal Flashbang rescue still plays 1157/31 and clears the victim
+graph on both wires.
+Original-client match 3F0E shows the pinned McCree from the victim's
+1280 x 720 window. The rescuer is a scripted teammate using the
+normal Peacekeeper command against an Assassin preset to one HP.
+The camera tilts up with STUNNED and disabled abilities, then
+returns to level with ability icons restored after the lethal hit.
+The client acknowledges removal of the active victim loop on frame
+4179 after the lethal hit at tick 4174. McCree remains at 200 HP,
+and the Assassin corpse is visible after 12 seconds and clears on
+explicit removal.
+
+Assassin pin entry and continued control now require a direct, supported
+capsule-width approach in addition to range and static sight. The navigator
+uses this same contact rule when selecting its approach. A test with a
+narrow wall exposes the target's side to a bullet ray, but the Assassin
+must go around the wall before contact. This is a server contact policy.
+
+Victim presentation: 1157/18 sends 024/08FE to target variable 536.
+The extracted receiver 1177/17 can start 1177/2 (animation alias
+0C8/0064), which runs for 0.55 seconds and leads into looping animation
+1177/3 (alias 0C8/0065). The lethal-pin Rialto probe decoded the active loop
+on the owner wire at frame 50. The alternate animation 1177/4 (alias
+0C8/0066) has a one-second play duration and routes completion to 1177/15.
+The authored 1177/2 completion instead links to 1177/3. The extracted
+1157 sends 08FE to arm the pin and has no matching release message for
+1177/4. The current sandbox release destroys the instance. The native
+condition that selects the alternate animation still needs verification.
+The source XML and runtime bundle identify 1157/45 as PlayScript for
+graph 1177 on target variable 536. The permissive VM currently follows
+PlayScript's output without creating the target instance.
+An isolated actual-map prototype confirmed that normal pin input
+reaches 1157/45. Loading the graph through the existing PlayScript
+helper starts its scope 1177/16. The receiver 1177/17 remained inactive
+and 08FE reached zero entries. Its parent switch 1177/21 reads native
+health query 9B7648C3. The player body world now resolves the query for
+1177's own body from authoritative health. The isolated attachment then
+delivered 08FE, encoded animation 1177/2 on the owner wire, and encoded
+graph removal after teardown. The manual Assassin now attaches the authored
+victim graph and delivers 08FE when the server confirms a pin. The shared pin
+release path removes the victim graph for that Assassin. Rialto match probes
+decoded owner animation 1177/2 and subsequent instance removal for both
+McCree quick-melee and Flashbang rescue. The Flashbang probe also decoded
+1177/2 and subsequent graph removal from the pinned player's observer delta.
+The same probe verified that pressing
+{ during an active pin immediately releases the victim, removes the victim
+graph on the owner wire, and prevents further damage or re-pinning over 180
+simulation frames. Pressing - during a pin removed the manual Assassin and
+released the victim. A full-health McCree died 187 frames after the pin began.
+After the runtime began executing the authored self-stop action, the first
+08FE exposed a bootstrap conflict. The receiver's idle subgraph had already
+started release Anim4. The first message aborted it and its on-end plug
+queued the self-stop before pin Anim2 could replicate. A confirmed manual
+pin now clears this temporary release animation and its subgraph before
+draining the first 08FE, suppressing only that bootstrap exit. The normal
+message and pin animation then run. Regressions verify stop, removal,
+Flashbang rescue and lethal pin through the owner wire, including the
+observer wire for Flashbang rescue. Native session 41000 acknowledged
+victim Anim2 at owner frame 3001, Anim3 at frame 3035 and graph removal
+at frame 3113 after plain [. The camera returned to level, both skill
+icons re-enabled and the health display held at 121/225. A mouse input
+after release reached Peacekeeper volley 01D2/31 and missed the target.
+Both paths cleared the control lock and encoded removal of 1177 on the owner
+wire. After the normal respawn, the new body had no pin graph. Returning the
+player to the encounter floor for the probe, a primary shot dealt 70 damage
+and a fresh engagement pinned the new body. Native 104319 acceptance at the
+isolated Rialto spawn (-103, 1.76703, -103) showed the first-person camera
+tilt upward toward the Assassin, the rendered blades, STUNNED, disabled
+ability icons, and 73/225 health during the pin. Server damage continued to
+zero and the camera returned to level. A second native run pressed { during
+incoming pin damage. The camera returned to level, Flashbang became usable,
+and health stayed at 189/225 on the HUD. The Shift chord also triggered Combat
+Roll on the release tick. A separate native run used the unshifted [ alias
+during an active pin. The camera and both ability icons returned to normal,
+health held at 182/225 on the HUD, and no roll was triggered. Afterward,
+Deadeye fired from the same position and dealt 471.93 damage to the Assassin.
+A separate native run held Deadeye for three seconds and killed the 500 HP
+Assassin. The client displayed ELIMINATED and a rendered corpse that remained
+visible after more than ten seconds, then disappeared on the - hotkey.
+The alternate victim animation remains
+unverified in the native client.
+
+In diagnostic match 0746, the native client acknowledged victim
+Anim2 at owner frame 50928, Anim3 at frame 50964 and graph removal at
+frame 51099. The server trace showed McCree taking 110 pin damage
+ticks from 50977 through lethal damage at tick 51086, after two
+25-damage contacts. Later in the same match, Peacekeeper hits took
+the same Assassin from 195 to 125, 55 and 0 HP. The observer
+acknowledged the matching health states and the shooter's client
+acknowledged the hit notices. This pass was verified from network
+and damage traces without a concurrent visual capture.
+
+The native recheck also surfaced unsent 1177/9 (STU_9935FBC8).
+Both factories for the same class allocate 0x218 bytes and finish with
+vtables 261ED08 and 261F320. They share C88180, C88210 and C88250,
+which call CAC810 for begin, end and refresh. The begin path initializes
+the runtime entity slot at +1E8 and seven scalar slots. C88260 and C883D0
+marshal this state after the shared link data, with the entity and
+scalars limited to the full owner branch. CAC810 can populate those
+slots from world data. The wire format alone does not establish the
+victim's proper target, transforms or other runtime values.
+
+Pin entry screen transition, 104319:
+The manifest-verified `222A.00D` referenced by 1177/30 contains two
+sound components and an ESHT hardpoint reference. The capture diagnostic
+uses the normal south-facing Rialto fixture and filters only the pinned
+player's owner snapshot. In match 078D, removing 1177/2 and its timers
+from that snapshot preserved the fade and the later 1177/3 loop.
+The control and treatment both dealt 25 damage and stopped without
+additional damage. In match 0877, omitting 1177/53 and /54 together
+preserved both owner animation states but removed the fade. Omitting
+all of 1177 also removed the fade while preserving the server's pin
+damage. Match 57C1 isolated the trigger to 1177/53. Removing only /53
+eliminated the fade while leaving the camera tilt, blades, STUNNED and
+both owner animations visible. Removing only /54 preserved the fade,
+with black samples from +0.253 to +0.539 seconds after the first hit.
+Both takes dealt 25 damage and had no additional damage after stop.
+The extracted /53 branch starts /29 and then the /26 sender of 06D7.
+The window comparison isolates the branch, while the exact native
+consumer of 06D7 remains open. The diagnostic filters leave the normal
+owner stream and gameplay implementation intact.

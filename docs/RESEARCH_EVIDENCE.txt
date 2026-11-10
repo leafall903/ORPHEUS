@@ -21,6 +21,73 @@ B. Locally observed behavior (previous session evidence)
   recorded a hero switch. That does not establish weapons, abilities, damage or full matches.
   This analysis tool adds no new live-client behavior verification.
 
+  The separate 2026-11-07 native entrance record covers all 14 Junkenstein cards.
+  As of 2026-11-10 the active runtime's game_maps_174.json and game_graphs_174.json.gz
+  still match their accepted deployment hashes. See PVE_ENTRANCES.md for the scope.
+
+  Hero Gallery NPC audit (104319, offline):
+  The lobby's 24900 ownership and store rows are separate from the native .075
+  asset roster. At RVA 676354 the client requests assets of type 075 and passes
+  the result to 5DFD90. The branch at 5DFE11 skips assets whose STUHero byte
+  +1BC (m_62746D34) is zero, before copying the gameplay and preview refs into
+  its cache. The roster builder at 7F1190 has the same flag gate at 7F11E9.
+  Replaying both branches with flag 0 and 1 confirmed the skip and fall-through
+  targets. These are shared client paths. A Gallery-only caller still needs to
+  be isolated before changing the roster behavior.
+
+  All 23 named non-playable assets in the extracted catalog have this byte
+  clear. Nine have the same root model in the gallery and gameplay definitions.
+  Eight Training/Friendly Bot entries use the shared gallery model B44.00C
+  and gameplay model 312E.00C. Six further entries have differing roots.
+  Zomnic 0175, Shock-Tire 0176 and Zombardier 0177 share gallery definition
+  C62.003, model ACE.00C and look B0D.01A. Their gameplay models are
+  3AF3.00C, 36D2.00C and 3AF0.00C. The 104319 skin themes 1AF9, 1AF3,
+  and 1B02 contain no runtime overrides, so applying the authored default
+  skins alone does not make those shared previews distinct. B.O.B. has
+  an existing model 7323.00C preview entity, 2D38.003, referenced by Ashe's
+  preview loadout. Boat has a script-free 5F07.00C candidate, 25F7.003.
+  These definitions have not been exercised as standalone gallery entries.
+
+  The .075 cache copies the m_26D71549 gallery GUID from +98 into record
+  +10. It also copies the separate showcase and highlight entity GUIDs.
+  A55CA0 is a Workshop hero argument picker, identified by its Hero label
+  and the adjacent Workshop argument and limit strings. Its 7F1190 call is
+  outside the gallery scope.
+  The shared 7F1190 roster also requires 171B800 to accept the asset
+  and checks the exclusion list at 2E38AE0 before appending a row.
+  The 99ADA0 preview initializer resolves a supplied .075, reads
+  the same +98 preview GUID and passes it to 173B8F0 without checking
+  +1BC in that initializer. This confirms a preview load path once
+  a hero GUID reaches it. The NPC preview assets still require verification
+  in the original client.
+  The localized Hero Gallery label 23B8.07C appears in menu graph
+  1214.01B under presenter 0079.116, with menu option value 3. Its
+  05CE.025 message selects 0B80.01B. The 0B80 presenter uses screen
+  04D7.05A and description 00AA.116. Its selection event 62D0.01C
+  passes the hero to detail graph 126E.01B. The extracted screen
+  binds its grid data to the Heroes property.
+  The shared roster calls at 91D3D4 and 94AACB are in the unlock-list
+  and unseen-unlock evaluators used by those graphs. The A20D49
+  caller also enumerates heroes, but loads a STUStat asset first.
+  The Gallery grid initializer A7DE90 validates description 00AA.116
+  through A764D0, then calls 7F1190 at A7E1C0 and builds its GUID rows.
+  Its A7EC20 helper has one direct caller, A7E19F after that description
+  check. The helper calls 7F1190 at A7EDA2 to build per-hero row data.
+  The native list at 2F5E4A8 had 56 rows in the module capture. The
+  heap entries themselves are outside that capture. An offline
+  Unicorn probe runs the original 7F1190 filter and append routine
+  with the two Gallery return addresses at the native stack offset.
+  An assembled x64 branch stub admits 23 NPCs in the Gallery calls while
+  preserving availability and exclusion checks. Four other native
+  callers still produce the original playable roster. The matching relay
+  installer passes a Windows process-memory fixture. Its compiled bytes
+  match the emulated branch. The client file contains encrypted bytes at
+  those RVAs, so the installer waits for all four runtime signatures.
+  The rebuilt candidate DLL has not been used by the original client.
+  Ownership rows have been verified at the wire boundary.
+  The repeatable local asset audit is in verification/npc-gallery-assets,
+  with its extracted skin themes and preview-inventory.json.
+
 C. Official architecture reference
   Timothy Ford, GDC 2017, Gameplay Architecture and Netcode:
   https://www.gdcvault.com/play/1024001/-Overwatch-Gameplay-Architecture-and
@@ -166,3 +233,207 @@ I. Local target-build resource extraction (2026-11-05)
 
   Static resource and chunk evidence still does not establish comp43 replication fields,
   ClientInCombat 25000 semantics or original client presentation. Those remain open work.
+
+104319 combat dispatch follow-up:
+- The switch at RVA 7D1DC0 subtracts 25000 and indexes the table at 7D1FB0.
+  Its first four handlers are 6C39A0, 6C2D40, 6C25C0, and 6C3190, in message
+  order. 25000 and the existing 25001 hit notification take separate paths.
+- 25000 calls C20550 to build a client event record. The converter copies the
+  two wire entity IDs at +7C/+80 to record +08/+3CC and the vector at +84 to
+  +360. Handler 6C39A0 can pass the record to 6C6BC0. These offsets identify
+  a candidate for combat presentation research. The entity roles, effect
+  selection, and actual audio or animation output still require verification.
+- Executing C20550 from the captured 104319 image with synthetic inputs and no
+  local player verifies all three vector copies, both IDs, and the +CA resource
+  conversion. The converter dereferences three u32s through the array at +A8
+  and two floats through the array at +D8. A diagnostic packet must supply
+  those elements. An empty-array packet is unsuitable for client testing.
+- The 6C6BC0 fallback queries components 43 and 51 using BD4680 and BCC870.
+  The component 51 branch queues the converted 0x450-byte record at +4C0
+  through 5B22F0. The same queue helper also has a native caller at 5B13DD.
+- Replaying the callback tail at 6C70D5 confirms that record kind 1 invokes
+  each registered callback only if the float product of record +408 and +410
+  is positive. Those operands are populated from wire +C0 and the second
+  float of +D8. The replay uses counter callbacks and does not identify the
+  production callback implementations.
+- In the component 80 branch, handler 6C39A0 passes record +42C (wire +C4)
+  to 5B7190. Native replay verifies that the lookup compares the key with
+  each of five entries. A match bypasses the 6C6BC0 fallback. The original
+  server key allocation and the audio or animation consumers are still open.
+- The resource type emitted from wire +CA is .049 after GUID type
+  unmangling. McCree 01D2 node 31 references projectile 02A7.003, whose
+  projectile visual component selects contact set 0141.049. The extracted
+  contact set maps contact types and material IDs to .04A effects.
+  The isolated 25000 probe now supplies 0141 for the primary-fire loadout.
+  This identifies an authored input. Actual client audio and animation
+  output for that packet remains unverified.
+
+104319 Rialto damage presentation:
+- An isolated native session injected primary-fire input into McCree's normal
+  weapon VM. Graph 01D2 node 31 dealt 70 body damage to the manual Talon
+  Trooper (200 to 130). The client acknowledged the shooter hit notice
+  (25001) and the diagnostic combat event (25000 with contact set 0141).
+  The acknowledgments establish delivery only.
+- Offline traversal of contact-set XML and the corresponding .04A chunk
+  containers found 37 direct effects for 0141 (contact types 0, 1, 2, 4).
+  The five NPC body contact sets 0624, 0626, 0627, 0629, 062E reference
+  32 direct effects. All 69 effects have at least one ECSO sound chunk.
+  They have no ECVS voice stimulus, ECEC entity animation control, ECMD
+  model animation, or ECEF nested effect chunks. 02F9 has no direct .04A
+  entries and needs separate Flashbang tracing. The offline reproducer is
+  research-rialto/trace-contact-effects.ps1 in the local research workspace.
+- Each of the five NPC body definitions also references a separate .021
+  animation blend tree set (Trooper 079C, Enforcer 08A3, Heavy 07C0,
+  Assassin 07C3, Sniper 07BA). Neither the contact assets nor the network
+  acknowledgments establish the runtime choice of hit sound or the
+  transition from hit reaction back to idle. Both are open original-client
+  acceptance items, separate from nameplate and shooter HUD checks.
+
+104319 queued combat-event consumers:
+- 7FA49B reads the component 51 queue length at +4C8. 7FA520 walks its
+  +4C0 buffer in 0x450-byte strides and calls 7F7120 and 7F81B0 for a
+  kind-1 event. 7FB5A9 clears the queue through 6C2560 after processing.
+- The 25001 handler builds a separate callback record at 6C30DA. Original
+  instructions write the local actor as the shooter at record +08, the wire
+  target at +3C0, and damage at +408. The 25000 consumer 7F81B0 instead
+  resolves record +3CC through the entity buckets and passes damage at +408
+  to the component-45 accumulator (646970). Native replay verifies the
+  lookup with a matching target and a reversed-ID miss.
+- 7F7120 requires the contact-set resource at +3E0, reads the directions
+  and position at +360/+350/+370, and hands a contact request to 5F2660.
+  5F2660 can reject the request when selector 5F5270 returns false.
+  C20550 copies +84 and +9C directly. In its receiver-transform branch,
+  the native replay at C20CEC confirms that wire +90 is converted to
+  world coordinates with basis columns and translation.
+- The native session probe now uses the shooter at wire +7C, the victim
+  at +80, an approximate torso-surface normal at +84 and the contact
+  point in the shooter's body frame at +90. The mover pose is a server-side
+  approximation of the receiver basis. Production combat is unchanged.
+  Runtime effect selection and actual sound and animation are still open.
+
+104319 contact request and Flashbang resource follow-up:
+- Native replay at 7F7CFE verifies the combat contact descriptor's initial
+  +28/+40 words are 0/1, +48 carries the contact set, and +58/+5C receive
+  the shooter ID. The replay varies record +414 without changing these
+  initialized fields. After spatial selection, 5F2660 creates a 0x120-byte
+  queued contact row. Its +68 preserves the contact-set ID, +88/+8A
+  preserve the descriptor's +40/+28, and +118 gets flag 0x1000.
+  The native admission test adapts the spatial selector and construction
+  helpers. A failed selection leaves the queue empty.
+- 6E6DB0 groups pending contact rows by their +68 set ID, and 6EB110
+  groups each run by +88. 6ED6EF forwards +68 to the loaded-resource path
+  at 6E8320 after the actor-specific branch returns false. The engine can
+  replace +88 with values 008D/008E/008F before lookup. These indices
+  also appear in the authored contact-set material table.
+- The offline asset trace now follows linked .091 sets and nested effects.
+  Peacekeeper 0141 links 0027.091 (26 material rows), Flashbang 02F9 links
+  00A2.091 (25), and the five NPC body sets share 0028.091 (7).
+  The Flashbang contact chain contains 17 unique effect containers with
+  no ECSO, ECVS, ECEC, or ECMD chunks. Its ability effect 0186.00D
+  references 0FCB.02C, and its projectile effect 0582.00D references
+  071D.02C and 071E.02C. These are authored ability/projectile sounds.
+  The target's own hit sound and animation remain separate acceptance
+  items. This trace does not establish a runtime-selected effect.
+
+104319 Peacekeeper contact-message comparison:
+- The isolated primary-fire probe now recomputes the impact and outward
+  normal using the same aim, view tick, and rewound capsule as the server
+  hit. Its Flashbang diagnostic still uses an approximate torso point.
+- Two native sessions used the same injected FIRE input, aim, and
+  Trooper spawn. In both, the ordinary 01D2/31 volley consumed one round
+  and dealt 70 (200 to 130). The treatment additionally sent 25000,
+  with contact set 0141 and world point (-103, 2.65934, -107.5).
+  Both reliable notices were acknowledged five ticks after damage.
+  The control sent 25001 only and showed the reduced health bar.
+- Both screenshots show a red zero below the nameplate position, so
+  its presence does not require the experimental 25000 packet. The
+  screenshots were taken at different elapsed times after impact.
+  They cannot establish a change in animation, sound, or nameplate
+  lifetime. No audio recording was obtained.
+- The reproducer is serve_native_rialto_session.py with --hotkeys-smoke,
+  --assassin-smoke, --combat-event-probe and --primary-hit-probe. Add
+  --primary-hit-control for the control. Session host IDs 69800 and
+  67132 identify the comparison in rialto-native-hotkeys-combat.jsonl.
+
+104319 Peacekeeper process-audio contact comparison:
+- Native session 62628 ran --primary-hit-alternating. Each fresh Trooper
+  took a single 01D2/31 body shot at the same spawn and lost 70 HP.
+  At ticks 2854 and 3214 the client received the normal 25001 notice.
+  At ticks 3034 and 3397 it also received 25000 with contact set 0141
+  and the same rewound impact point. Both contact events were ACKed.
+  One 24-second WASAPI process-tree recording contains all four shots.
+- After aligning each shot to its transient, the 0.35-0.60 second
+  band-limited tail was -48.3/-45.9 dBFS in controls and -41.1/-41.9
+  dBFS in treatments. This is a small-sample difference in mixed game
+  audio. It does not identify a sound or establish what caused it.
+- Extracted 158 unique media from the six 0141.049 sounds linked to
+  materials 008D-008F and six sounds in Trooper's body set 0624.049.
+  Normalized search found no repeatable match exclusive to the
+  treatment shots. The per-shot maxima were .254/.243 for controls
+  and .314/.265 for treatments, with different media and offsets.
+  The strongest treatment candidate also ranked in both controls.
+  Local evidence is under verification/retribution/process-audio.
+- Repeated the comparison with the corrected game-frame bit boundary
+  in match 4D65, client PID 56296. All four primary hits dealt 70 at
+  ticks 3991, 4119, 4252 and 4381. The client ACKed both alternating
+  25000 treatments at ticks 4125 and 4386. In 1.46-second windows
+  around each hit, the 158 contact references peaked at 0.244/0.228
+  for controls and 0.249/0.297 for treatments. The best treatment
+  clip also ranked first in the second control. No repeatable audio
+  was attributable to the contact event. The recording is
+  contact-boundary-fixed-56296.wav.
+
+Rialto Talon body hit-reaction tables in the extracted client:
+- Trooper 1D40 references graph 1231, Sniper 1E7D references 14D1,
+  Heavy Assault 1EBB references 0E54, and Enforcer 2279 references
+  142F. Each contains STU_F3104738 with authored STUAIHitReaction
+  rows. Reaction identifier 2596.01C occurs in all four. Other rows
+  vary by graph, so a shared animation alias alone cannot identify
+  the reaction to a particular hit.
+- Assassin 1EBD references 0E20 and 0E5E under its 0E62 AI graph.
+  0E20 compares an input against 2560.01C, also a reaction identifier
+  in Trooper, Sniper and Heavy Assault. That reference does not identify
+  the Assassin's reaction selection or establish any sound binding.
+
+104319 shooter hit indicator data path:
+- 25001 stores the damage value separately from the flags and increments
+  the hit or crit counter at +120/+124, with a separate kill counter at
+  +128. Native getters at 945580, 94D9B0 and 953BA0 read those offsets.
+  Their vtables at 262A148, 262AF70 and 262BC20 resolve through the
+  registered factories to C7378D18, FE8D5CCC and A01B60EB respectively.
+  The native replay in probe_combat_event_native.py executes the
+  notice tail for all four flag combinations at 25, 70 and 140 damage.
+  All twelve cases store the supplied damage and frame, increment
+  the flag-selected counters and dispatch shooter event 7. The
+  counter and event-object lookups are adapted in this replay.
+- 01CF/79 and 20E4/13 use those three getters as 08A.116 inputs
+  0FC4, 6124 and 0640 on HUD_Hero_Common (05D0.05A). Its HitIndicator
+  is backed by 00A3.05E, which binds HitCount, CritCount and KillCount.
+  The ordinary hitImage's X and Y scale keyframes are 1.2 at both 0
+  and 900 raw time units. The critImage's X and Y keys are 1.0 at 0
+  and 1.3 at 500. These are values from the original 104319 CASC
+  resource, not server-provided dimensions or measured screen pixels.
+  Rendered scale across hit types and timings still needs measurement.
+- The tables in 1231, 14D1, 0E54 and 142F do not provide a direct
+  mapping from those shooter counters to the target's animation.
+  In the loaded Rialto bundle the only 255F/2560 references outside
+  the AI hit-reaction tables are in 0E20, in two comparisons and two
+  STU_DE66D3F5 actions. That is a separate target AI path.
+
+104319 manual Rialto NPC nameplates:
+- In 0D24, stack node 34 uses instance variable 8812 (226C.01C)
+  as the explicit text for the name slot when present. The stock
+  fallback looked like a red zero on manual Rialto actors.
+- Manual actors now initialize this field with their sandbox catalog
+  label. The field travels with the original nameplate child in the
+  existing deferred observer update. All five catalog entries pass
+  the external-data nameplate check.
+- Client session 75396 rendered TROOPER below the reduced 130/200
+  health bar after McCree's 70 damage primary shot. The session also
+  acknowledged Heavy Assault health 3930/4000 and its nameplate
+  update. The Heavy Assault name was not visible in the screenshot.
+- Native match 0BAC showed Heavy Assault's segmented red health bar
+  after the manual spawn intro was suppressed. Enforcer, Sniper and
+  Assassin also rendered segmented bars in their hit samples. These
+  samples cover display and depletion. Exact pixel dimensions across
+  HUD scales have not been measured.

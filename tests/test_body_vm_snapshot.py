@@ -34,6 +34,7 @@ STATE_MODELS = (
     ("STU_BD02E168", nodes.ScopedSubgraph),
     ("STU_582E0D5F", nodes.AuxiliaryEffect),
     ("STUStatescriptStateBooleanSwitch", nodes.BooleanSwitch),
+    ("STU_B591EBFE", nodes.DelayedBooleanSwitch),
     ("STUStatescriptStateStack", nodes.Stack),
     ("STUStatescriptStateLogicalButton", nodes.LogicalButton),
     ("STU_E4A30BCF", nodes.DisableLogicalButton),
@@ -54,6 +55,8 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STU_431F3FCC", nodes.TargetEffects),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
@@ -64,7 +67,7 @@ COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes",
+    "state_registries", "parameter_scopes", "startup_entity_values",
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -162,13 +165,22 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 38)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
                 exported = record(data, ["state", 1, index])
                 self.assertEqual(exported["class"], f"{expected_type.__module__}.{expected_type.__name__}")
                 self.assertEqual(set(dict(exported["fields"])), set(vars(instance.states[index])))
+
+    def test_strict_movement_flags_export_before_activation(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(minimal_graph(("STU_96F1DBCF",)), init=False)
+        state = instance.state(0)
+        self.assertIsInstance(state, nodes.MovementFlags)
+        data = raw(export_component_vm(component))
+        exported = fields(data, ["state", 1, 0])
+        self.assertEqual((exported["value"], exported["last_frame"]), (0, None))
 
     def test_optional_lifecycle_storage_distinguishes_missing_from_present_none(self):
         models = (
@@ -356,6 +368,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         component.entity_var(1).base = (
             -0.0, b"\x00\xff", [True, 1], expr.Map(((7, "first"), (7, "second"))),
             expr.Asset(1 << 63), expr.Entity(5), expr.Vec3(-0.0, 1.5, 2.0), expr.Handle(1, 1, 0, 9),
+            expr.PairArray(((expr.Asset(0x0A90000000000171), expr.Asset(0x02400000000005AD)),)),
         )
         instance.params = [{None: ("fallback",), 8: [False]}]
         data = raw(export_component_vm(component))
@@ -372,6 +385,10 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(dict(values[5]["fields"])["id"], 5)
         self.assertEqual(math.copysign(1, dict(values[6]["fields"])["x"]), -1)
         self.assertEqual(dict(values[7]["fields"]), {"kind": 1, "instance": 1, "state": 0, "extra": 9})
+        stored_pairs = elements(dict(values[8]["fields"])["items"])
+        key, message = elements(stored_pairs[0])
+        self.assertEqual(dict(key["fields"])["guid"], 0x0A90000000000171)
+        self.assertEqual(dict(message["fields"])["guid"], 0x02400000000005AD)
         parameters = elements(fields(data, ["instance", 1])["params"])[0]
         self.assertEqual(elements(parameters)[0], [None, {"kind": "tuple", "items": ["fallback"]}])
         self.assertEqual(elements(parameters)[1][0], 8)
@@ -508,7 +525,8 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
         self.assertEqual(set(dict(body["world"]["fields"])),
-                         {"hero", "mode", "body", "body_definition", "throttles", "communication_wheel", "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"})
+                         {"hero", "mode", "body", "body_definition", "throttles", "velocity_requests", "communication_wheel",
+                          "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

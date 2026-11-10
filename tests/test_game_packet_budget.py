@@ -9,15 +9,25 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import bodytrace, correction, messages, movelog, projectiles, world
+from ow174.game import (
+    bodytrace,
+    combat,
+    correction,
+    junkenstein_scene,
+    messages,
+    movelog,
+    projectiles,
+    statescript,
+    world,
+)
 from ow174.game import server as server_module
-from ow174.game.bits import BitReader
+from ow174.game.bits import BitReader, BitWriter
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.link import ACK, KIND_CONTROL, KIND_FRAME, MAX_DATAGRAM, LinkCipher, Packet, ReceiveWindow
 from ow174.game.match import SEND_EVERY, Match, card_message
-from ow174.game.script import decode
+from ow174.game.script import decode, graph, runtime, scene
 from ow174.game.script.driver import HUD_HEALTH, SETTLE_FRAMES
 from ow174.game.server import MAX_PAYLOAD, Client, GameServer
 from ow174.game.world import OP_CREATE, OP_DESTROY, OP_UPDATE, EntityUpdate, Movement
@@ -109,6 +119,140 @@ class PacketBudgetTests(unittest.TestCase):
             patch = mock.patch.object(module, "ENABLED", False)
             patch.start()
             self.addCleanup(patch.stop)
+
+    def test_large_mode_frame_waits_for_create_and_retries_missing_part(self):
+        from test_game_repeated_lifecycles import wire_frame
+
+        server, client, player, peer = connection()
+        received = ReceiveWindow()
+        sequence = 0
+
+        def send(tick, *, drop=False):
+            nonlocal sequence
+            now = tick * 0.016
+            client.send_frame(tick, now)
+            packet, *_ = decoded(self, peer, server.sock.sent[-1][0])
+            if not drop:
+                self.assertTrue(received.accept(packet.seq))
+                ack = Packet(client.conn, KIND_CONTROL, sequence, received.expected, received.bits, ACK)
+                sequence += 1
+                server._datagram(peer.seal(ack), client.address, now)
+            _, records = wire_frame(packet)
+            record, = (item for item, _ in records if item.entity == world.GAME_MODE_ENTITY)
+            return record
+
+        def part(record):
+            reader = BitReader(record.chunk.getvalue())
+            self.assertEqual((decode.w_u32(reader), decode.w_var(reader), reader.bit()), (0, 1, 1))
+            index, final = decode.w_u16(reader), bool(reader.bit())
+            size = decode.w_var(reader)
+            return index, final, size, reader.bits(size)
+
+        value = "mode-data" * 190
+        frame = combat.mode_frame({1303: value})
+        client.queue_mode_frame(frame)
+        self.assertFalse(client.entities)
+        create = EntityUpdate(world.GAME_MODE_ENTITY, OP_CREATE, player.match._game_mode_create)
+        client.queue_entities([create])
+        self.assertIsNone(send(100).chunk)
+        self.assertEqual(len(client._mode_fragments), 2)
+        first = send(101, drop=True)
+        last = send(102)
+        self.assertEqual(part(first)[:2], (0, False))
+        self.assertEqual(part(last)[:2], (1, True))
+        self.assertEqual(player.mode_script.delivered, 0)
+
+        client.queue_mode_frame(combat.mode_frame({1303: 5.0}))
+        client.queue_mode_frame(combat.mode_frame({1303: 4.0}))
+        self.assertEqual(len(client.entities), 1)
+        retry = send(103)
+        self.assertEqual(part(retry), part(first))
+        self.assertEqual(player.mode_script.delivered, 1)
+        self.assertFalse(client._mode_fragments)
+
+        reassembled = BitWriter()
+        for record in (retry, last):
+            _, _, size, data = part(record)
+            reassembled.bits(data, size)
+        self.assertEqual((reassembled.count, reassembled.value), (frame.count, frame.value))
+        whole = statescript.chunk(reassembled, 0, 1)
+        self.assertEqual(decode.read_chunk(whole.getvalue(), whole.count).entity_vars[1303][0], value)
+        followup = send(104).chunk
+        self.assertEqual(decode.read_chunk(followup.getvalue(), followup.count).entity_vars[1303][0], 4.0)
+        self.assertEqual(player.mode_script.delivered, 2)
+
+    def test_scene_mode_enters_through_match_and_sends_acknowledged_deltas(self):
+        from test_game_repeated_lifecycles import wire_frame
+
+        server, client, player, peer = connection()
+        match = player.match
+        match.game_map = dataclasses.replace(match.game_map, placeables=())
+        model = scene.SceneWorld(mode=match.game_map.mode_guid)
+        model.map_guid = match.game_map.map_guid
+        model.bind(runtime.GAME_MODE_ENTITY)
+        host = junkenstein_scene.JunkensteinSceneHost(model)
+        component = host.add(runtime.GAME_MODE_ENTITY, {'$': 'STUStatescriptComponent'})
+        ui = component.create(graph.graph(combat.MODE_UI), init=False)
+        ui.initialized = True
+        component.set(1303, 3.0)
+        host.prepared = True
+        host.replicate_mode = True
+        host.match = match
+        match.scene_host_factory = lambda _: host
+        match.map_loaded(player, 0)
+        received = ReceiveWindow()
+
+        def send(tick):
+            client.send_frame(tick, 2.0 + tick * 0.016)
+            packet, *_ = decoded(self, peer, server.sock.sent[-1][0])
+            self.assertTrue(received.accept(packet.seq))
+            ack = Packet(client.conn, KIND_CONTROL, tick, received.expected, received.bits, ACK)
+            server._datagram(peer.seal(ack), client.address, 2.0 + tick * 0.016)
+            return [item for item, _ in wire_frame(packet)[1]]
+
+        # Only the mode projection is under test. Player and encounter VMs have their own fixtures.
+        with mock.patch.object(host, 'before_units'):
+            match.update(2.0, 100)
+            self.assertEqual(player.steps_done, 2)
+            self.assertEqual(send(100), [])
+            match.update(2.016, 101)
+            self.assertEqual(player.steps_done, 3)
+            self.assertFalse(match.assembling())
+            self.assertTrue(any(item.entity == world.GAME_MODE_ENTITY and item.op == OP_CREATE
+                                for item in send(101)))
+            match.update(2.032, 102)
+            self.assertEqual(player.steps_done, 3)
+            full, = (item.chunk for item in send(102) if item.entity == world.GAME_MODE_ENTITY)
+            self.assertEqual(decode.read_chunk(full.getvalue(), full.count).entity_vars[1303][0], 3.0)
+
+            component.set(1303, 2.0)
+            match.update(2.048, 103)
+            self.assertEqual(player.steps_done, 4)
+            delta, = (item.chunk for item in send(103) if item.entity == world.GAME_MODE_ENTITY)
+            decoded_delta = decode.read_chunk(delta.getvalue(), delta.count)
+            self.assertFalse(decoded_delta.full)
+            self.assertEqual(decoded_delta.entity_vars[1303][0], 2.0)
+
+    def test_elimination_notice_leaves_world_header_at_the_native_bit_boundary(self):
+        notice = messages.encode(25005, {
+            "+0x80": {"+0x0": 0xA0000101}, "+0x84": {"+0x0": 0xC0001005},
+            "+0x89": True,
+        })
+        for rows, boundary in (([(316, notice)], 217), ([(315, notice), (316, notice)], 409)):
+            with self.subTest(reliable=len(rows)):
+                payload = world.frame(6906, 6911, rows, entities=[EntityUpdate(0xA0000101)])
+                reader = BitReader(payload, boundary)
+                self.assertEqual(reader.var_a(), 6911)
+                self.assertEqual(reader.bits(7), 0b0100000)
+                self.assertEqual(reader.bits(7), 1)
+                self.assertEqual(reader.entity_id(), 0xA0000101)
+
+                reader = BitReader(payload)
+                self.assertEqual(reader.var_a(), 6906)
+                reliable, _ = messages.read_channel(reader)
+                self.assertEqual(reader.pos, boundary)
+                self.assertEqual([seq for seq, _, _ in reliable], [seq for seq, _ in rows])
+                self.assertTrue(all(value["+0x89"] for _, _, value in reliable))
 
     def test_trimmed_reliable_batch_refills_with_the_owner_rifle_delta(self):
         # The wire reader imports projectile fixtures that also use this module.
@@ -552,6 +696,55 @@ class PacketBudgetTests(unittest.TestCase):
                     client.send_frame(1005, 10.1)
                     client.acked(client.seq, 1)
                     self.assertEqual(client.entities, [])
+
+    def test_idle_npc_movement_retries_loss_and_is_tracked_per_viewer(self):
+        server, client, player, peer = connection()
+        other_server, other, other_player, other_peer = connection(number=2)
+        entity = 0xC0001000
+        idle = True
+        position = (1, 1, 1)
+
+        def movements(viewer):
+            velocity = (0, 0, 0) if idle else (1, 0, 0)
+            item = EntityUpdate(entity, movement=Movement(position, velocity=velocity))
+            item.npc_idle = idle
+            return [item]
+
+        def send(tick, expected):
+            client.send_frame(tick, tick * 0.016)
+            packet, _, _, _, _, count = decoded(self, peer, server.sock.sent[-1][0])
+            self.assertEqual(count, expected)
+            return packet.seq
+
+        with mock.patch.object(player.match, "remote_movements", side_effect=movements):
+            server.sock.fail_next = True
+            client.send_frame(1002, 16.0)
+            self.assertEqual(server.sock.sent, [])
+            lost = send(1005, 1)
+            send(1008, 0)  # Don't reset the pose while the first record is in flight.
+            client.acked(lost + 1, 0)
+            self.assertEqual(client.entities, [])  # Regenerate at a new frame instead of requeuing it.
+            recovered = send(1011, 1)
+            client.acked(recovered + 1, 1)
+            send(1014, 0)
+            with mock.patch.object(other_player.match, "remote_movements", side_effect=movements):
+                other.send_frame(1014, 16.2)
+                self.assertEqual(decoded(self, other_peer, other_server.sock.sent[-1][0])[5], 1)
+            idle = False
+            send(1017, 1)
+            idle = True
+            stopped = send(1020, 1)  # Returning to the same pose after movement still needs a send.
+            client.acked(stopped + 1, 1)
+            send(1023, 0)
+            position = (2, 1, 1)
+            older = send(1026, 1)
+            position = (3, 1, 1)
+            newer = send(1029, 1)
+            client.acked(older + 1, 0)
+            send(1032, 0)  # Losing the obsolete pose cannot release the latest pose.
+            client.acked(newer + 1, 1)
+            client._forget_body(entity)
+            send(1035, 1)
 
     def test_more_than_127_candidates_send_a_fifo_prefix_without_losing_tail(self):
         server, client, _, peer = connection()

@@ -95,6 +95,23 @@ class MessageReceiverTests(unittest.TestCase):
         self.assertNotIn(old, context.host.manager.channels)
         self.assertIn(message_manager.Key(OWNER, 0, (MESSAGE+1) & 0xFFFFFFFF), context.host.manager.channels)
 
+    def test_destroy_sender_and_receiver_in_same_instance(self):
+        _, source, _, _, _, context = setup(source=False)
+        component = source.component
+        definition = graph([
+            node(0, 'STU_38EE1100', state=0, m_gameMessage=message(), m_target=global_target()),
+            node(1, 'STUStatescriptStateGameMessageEntry', state=1, m_gameMessage=message()),
+        ])
+        instance = component.create(definition, init=False)
+        instance.initialized = True
+        sender, receiver = instance.state(0), instance.state(1)
+        begin(sender)
+        begin(receiver)
+        self.assertIs(receiver.message_selected, sender)
+        with component.operation():
+            component.destroy(instance)
+        self.assertFalse(context.host.manager.channels)
+
     def test_native_parameter_queries_enable_stacked_links_and_cache_stage_ticks(self):
         _, _, _, target, receiver, _ = setup(literal(7))
         begin(receiver)

@@ -113,7 +113,7 @@ def save_profile(profile: Profile, path: Path) -> None:
 
 def new_profile() -> Profile:
     boxes, next_id = starter_boxes()
-    return Profile(next_box_id=next_id, loot_boxes=boxes)
+    return Profile(next_box_id=next_id, loot_boxes=boxes, events=["goodbye", "halloween"])
 
 
 def _load_profile(path: Path) -> Profile:

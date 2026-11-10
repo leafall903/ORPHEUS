@@ -252,6 +252,34 @@ class PlaySchemaTests(unittest.TestCase):
 
 
 class ConfigCollectionTests(unittest.TestCase):
+    def test_authored_pairs_support_resource_and_ordinal_selection(self):
+        caller, _ = requesting()
+        key = 0x0A90000000000171
+        messages = (0x02400000000005AD, 0x02400000000005AC)
+        config = {'$': 'STU_7757D403', 'm_configVars': [
+            {'$': 'STU_98DD1872',
+             'm_key': {'$': 'STU_B70476F3', 'm_548E5344': f'0x{key - index:016X}'},
+             'm_value': {'$': 'STUConfigVarGameMessage', 'm_gameMessage': f'0x{message:016X}'}}
+            for index, message in enumerate(messages)
+        ]}
+        table = play.evaluate_value(caller, config)
+        self.assertEqual(table, expr.PairArray(tuple(
+            (expr.Asset(key - index), expr.Asset(message)) for index, message in enumerate(messages)
+        )))
+        caller.write((runtime.INSTANCE, 29859), table)
+        selector = {'$': 'STU_919FD47C', 'm_expression': {
+            'm_dynamicVars': [dynamic(29859), dynamic(29699)], 'm_opcodes': [8, 0, 8, 1, 17, 0],
+        }}
+        for candidate, expected in (
+            (expr.Asset(key), messages[0]), (expr.Asset(key - 1), messages[1]),
+            (None, messages[0]), (1, messages[1]),
+            (expr.Asset(key ^ (1 << 52)), None), (key & 0xFFFF, None), (2, None),
+        ):
+            with self.subTest(candidate=candidate):
+                caller.write((runtime.INSTANCE, 29699), candidate)
+                expected_value = None if expected is None else expr.Asset(expected)
+                self.assertEqual(caller.evaluate(selector), expected_value)
+
     def test_nested_groups_and_dynamic_arrays_flatten_in_order(self):
         caller, _ = requesting()
         caller.write((0, 7), (1, (None, 2), (), 3))

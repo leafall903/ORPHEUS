@@ -1,4 +1,4 @@
-"""In-match hero voice lines: a spawn bark.
+"""In-match hero spawn barks and Talon hit voices.
 
 When a player spawns, the server makes the player's own body statescript enter one of the hero's
 voice-stimulus states, and the client plays the bark. No new wire message is needed: a voice stimulus
@@ -40,6 +40,12 @@ import logging
 log = logging.getLogger("ow174.game")
 
 VOICE_CLASS = "STU_40E05F6B"  # STUConfigVarVoiceStimulus holder; the state that plays a bark on the client
+TALON_HIT_NOTICE = 27500
+TALON_HIT_STIMULUS = 0x0EE00000000009F7
+TALON_HIT_LINE = 0x076000000000ACB3  # Each 104319 Talon voice set resolves this key to its own clip.
+TALON_HIT_HEROES = frozenset(0x02E0000000000000 | hero for hero in (0x01AC, 0x01CE, 0x01B8, 0x01BB, 0x01BA))
+HEAVY_CHARGE_STIMULUS = 0x0EE00000000009F0
+HEAVY_CHARGE_LINES = (0x076000000000AE7B, 0x076000000000AE7C, 0x076000000000AE7E, 0x076000000000AE87)
 
 # Turn the feature off here to stop all spawn barks.
 VOICE_LINES = True
@@ -50,6 +56,38 @@ BARK_SECONDS = 4.0
 # hero GUID (the 02E...) -> the voice-stimulus GUID (0x0EE0...) to play on spawn, overriding the default
 # "first networked stimulus" pick. Empty by default; add entries once you have picked lines in the game.
 PREFERRED_STIMULUS: dict[int, int] = {}
+
+
+def talon_hit(shooter, victim) -> None:
+    """Send the shooter a native spatial voice request once per Talon reaction."""
+    if victim.hero not in TALON_HIT_HEROES:
+        return
+    _talon_voice(shooter, victim, TALON_HIT_STIMULUS, TALON_HIT_LINE)
+
+
+def heavy_charge(viewer, source, activation: int) -> None:
+    """Cycle through the four authored 104319 Heavy Assault charge lines."""
+    line = HEAVY_CHARGE_LINES[(activation - 1) % len(HEAVY_CHARGE_LINES)]
+    _talon_voice(viewer, source, HEAVY_CHARGE_STIMULUS, line)
+
+
+def _talon_voice(viewer, source, stimulus: int, line: int) -> None:
+    queue_voice_notice(viewer, source.entity, stimulus, line, anchor=source.entity)
+
+
+def queue_voice_notice(viewer, source: int, stimulus: int, line: int, *, anchor: int | None) -> None:
+    client = getattr(viewer, "client", None)
+    if client is None:
+        return
+    client.queue_combat_notice(anchor, TALON_HIT_NOTICE, {
+        "+0x78": {"+0x0": source},
+        "+0x7C": {"+0x0": viewer.body},
+        "+0x80": {"+0x0": 0xFFFFFFFF},
+        "+0x88": stimulus,
+        "+0x90": line,
+        "+0x98": 0,
+        "+0xA0": 0,
+    })
 
 
 def _candidates(body_script) -> list[tuple[object, int, int | None]]:

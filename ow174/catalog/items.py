@@ -87,11 +87,15 @@ class ItemDB:
         }
         self.hero_names: dict[int, str] = {}
         self.hero_classes: dict[int, str] = {}  # "Tank", "Damage" or "Support"
+        self.npc_heroes: set[int] = set()
         for guid, hero in _read_json(data_dir / "extracted_heroes.json").items():
             if hero.get("Name"):
                 index = int(guid.partition(".")[0], 16)
-                self.hero_names[HERO_BASE | index] = hero["Name"]
-                self.hero_classes[HERO_BASE | index] = hero.get("Class", "")
+                hero_id = HERO_BASE | index
+                self.hero_names[hero_id] = hero["Name"]
+                self.hero_classes[hero_id] = hero.get("Class", "")
+                if hero.get("IsHero") is False:
+                    self.npc_heroes.add(hero_id)
         for hero, groups in _read_json(data_dir / "extracted_items.json").items():
             self._load_groups(groups, hero)
         self._load_groups(_read_json(data_dir / "extracted_general_unlocks.json"), None)

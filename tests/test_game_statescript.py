@@ -7,10 +7,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.game import heroselect
-from ow174.game.bits import BitWriter
+from ow174.game.bits import BitReader, BitWriter
 from ow174.game.content import SOLDIER
-from ow174.game.script import decode, graph, runtime
-from ow174.game.statescript import Graph, Instance, chunk, owner_ack, owner_full_frame
+from ow174.game.script import decode, expr, graph, runtime
+from ow174.game.statescript import Graph, Instance, chunk, owner_ack, owner_full_frame, write_value
 from ow174.game.world import EntityUpdate, _write_entity
 
 
@@ -19,6 +19,42 @@ def bitstring(bits: BitWriter) -> str:
 
 
 class StatescriptTests(unittest.TestCase):
+    def test_tagged_pair_array_preserves_resource_keys(self):
+        first = (expr.Asset(0x0A90000000000171), expr.Asset(0x02400000000005AD))
+        second = (expr.Asset(0x0A90000000000170), expr.Asset(0x02400000000005AC))
+        for value in (expr.PairArray(), expr.PairArray((first, second))):
+            with self.subTest(value=value):
+                frame = BitWriter()
+                write_value(frame, value)
+                reader = BitReader(frame.getvalue())
+                self.assertEqual((reader.bits(4), reader.bits(3)), (15, 7))
+                self.assertEqual((decode.w_u16(reader), reader.bit()), (len(value.items), 0))
+                if value.items:
+                    self.assertEqual(reader.bit(), 0)
+                self.assertEqual(decode.read_value(BitReader(frame.getvalue())), value)
+
+    def test_tagged_keyed_array_wire_format(self):
+        # 104319 RVA D57430: first key directly, later keys after a presence bit.
+        value = expr.Map(((1, True), (0x8000, None)))
+        frame = BitWriter()
+        write_value(frame, value)
+        self.assertEqual(bitstring(frame),
+                         "1111011" "0" "0100" "10" "1000000000000000" "00001"
+                         "1" "0000000000000001" "1111110")
+        self.assertEqual(decode.read_value(BitReader(frame.getvalue())), value)
+
+    def test_keyed_array_preserves_nested_and_empty_values(self):
+        value = expr.Map(((13784, expr.Map(((7310, 2.5),))),
+                          (16748, (expr.Asset(0x058000000000027F), expr.Map())), (215, expr.f32(2.9))))
+        frame = BitWriter()
+        write_value(frame, value)
+        self.assertEqual(decode.read_value(BitReader(frame.getvalue())), value)
+
+    def test_keyed_array_rejects_unrepresentable_keys(self):
+        for key in (-1, 0x10000, True):
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, "uint16"):
+                write_value(BitWriter(), expr.Map(((key, None),)))
+
     def test_a_live_game_mode_frame(self):
         # 13C0 on the game mode entity, as it was sent live: owner frame, CmFD 10000000, 20 state bits.
         frame = owner_full_frame(10000000, [Instance(1, Graph(0x13C0, 20, 3))], {})

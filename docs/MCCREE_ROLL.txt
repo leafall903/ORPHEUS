@@ -1,0 +1,346 @@
+McCree Combat Roll01F0: partial resource-based server reconstruction
+
+The initial independent input fixture exposed missing motion: one primary shot
+left5 rounds; Roll refilled6 but moved0m with no throttle. Forward40 frames
+travelled3.4658m without Roll and3.4766m with Roll. These were ordinary movement,
+not proof of an implemented dash. Keep this earlier evidence as a correction.
+
+Resource/native evidence:
+01F0 node7 sets1648=15. Nodes8/11 execute STU_FF3471E9 with a vector replacement
+row STU_95A10547, field m_CFEC5F76=1. The resource computes normalized horizontal
+forward/right throttle direction, falling back to horizontal forward when idle,
+and adds current vertical velocity. The horizontal expression subtracts the
+orientation's lateral basis; double-negating this basis reverses strafing.
+Node4 waits0.4s with the authored movement modifiers. Node17 emits a scalar
+minimum STU_748FC65A, field m_A9561CA0=1, value5.5 on the movement scope's end.
+
+Read-only captured104319 instructions identify the FF3471E9 runtime constructor
+D39E70 and execution D2B350. The95A10547 case uses replacement operation2.
+C32CCA..C32D22 computes desired velocity minus sampled velocity; the resulting
+record is bounded to one frame by C32D67..C32DBA. D2B69D..D2B6BC supplies source
+frame+1. These are static instruction observations, not a full live mover trace.
+The end clamp maps through C32860 to numeric property33. Full native phase
+ordering and the general velocity/property backend are not implemented here.
+
+Implementation scope:
+Only declared McCree01F0 nodes8/11/17 are handled. Unsupported rows and other
+worlds still return NotImplemented. The body's existing state graph supplies
+the velocity expression, duration, refill, end and cooldown; no new ability
+activation or fixed dash timer is injected. The reconstructed basis/velocity
+getters are restricted to01F0 and its own authoritative living body.
+
+A BodyWorld list stores sampled next-frame delta/cap requests. Player posing
+consumes them once before the existing Mover collision/contact step. The end
+clamp currently limits horizontal speed while preserving vertical velocity;
+this is a reconstruction until original phase behavior is compared. Controlled
+input, authored interruption, death and retirement clear pending requests.
+Duplicate commands cannot consume or apply the request again. Both VM and
+server causal snapshots include the pending list.
+
+Cooldown discovery:
+Ability.can_start previously consumed a buffered press and reinserted it with
+"now" every unready frame. This indefinitely refreshed a released early press,
+causing a second Roll automatically at cooldown expiry. Retain the original
+press until gates pass, consume only on start, and let its authored early-press
+window expire. Actual command tests cover expired early presses, near-expiry
+short buffering, held input, countdown and fresh recast.
+
+Evidence and limits:
+The isolated40-frame no-throttle fixture now travels about6.15m and refills5->6.
+Eight source tests cover cardinal/diagonal/yaw vectors, next-frame timing, duplicate
+commands, a full wall without tunnelling, stun, retirement and pending snapshot
+state. These do not prove original animation, aim locking, air/ledge behavior,
+all collision shapes, immunity, cross-hero counters or native prediction.
+Full McCree/static/PvE and original-client acceptance remain open.
+
+The final broad selection passes1098 Python tests;13 causal server snapshot
+checks and3 frontend key tests also pass. The schema is unchanged by the final
+buffer timestamp fix. Actual five-body mover/graph fixtures confirm incoming
+Trooper20, Enforcer2, Sniper100, Assassin25 and Heavy5 during/after an evasive
+Roll, then70 primary damage to each after stopping/recovering. Sniper projectile
+observer transport is an explicit bot_stream=None adapter. The original-client
+was not run. Existing Assassin12 and Deadeye15 actual-resource scenarios also
+pass after the shared input fix.
+
+Throttle follow-up:
+01F0 node16 publishes multiply-by-zero properties17/18/19 while Roll owns its
+movement scope. Those records already existed but the mover did not apply them,
+so a normal command could rotate the15m/s dash by90 degrees in ten frames.
+Mover now splits positive forward, backward magnitude and unsigned lateral,
+applies those properties in active modifier order, restores lateral sign and
+clamps the two float axes before acceleration. Raw command bytes remain in
+the existing movement record. Scope exit restores ordinary steering.
+
+Captured104319 C33960..C33A8D explicitly selects17/18/19 with the above split,
+sign and clamp sequence.120 original instruction-prefix comparisons pass with
+an explicit scalar-mod lookup stub (add/multiply/replace); this does not compare
+the entire native physics or modifier service. Ten Roll and47 mover tests are
+included in1147 passing related Python checks. No state layout changed; the
+previous13 causal snapshot checks remain the schema evidence. Actual five-NPC
+Roll/incoming/primary-recovery cases pass again.
+
+Still open, newly isolated:
+An input diagnostic can start Deadeye during Roll and retire its movement scope;
+airborne Roll is accepted by the current server, with about5.813m travel before
+resting on flat ground. These are observations, not native acceptance.
+Held-fire refill follow-up:
+The earlier failure was reproduced with input alone: after starting at5 rounds,
+first primary fire on Roll exit sampled5 before the authored53=6 write, then its
+volley exit saved4 over that refill. Queue outgoing Ability scope cleanup before
+releasing its arbitration link. The next weapon now samples6 and leaves5 after
+one shot. No special external ammo-write behavior is added to WeaponVolley.
+The cross-object cleanup/priority ordering is a declared server reconstruction;
+the static native stop/delta-guard instructions do not establish it completely.
+
+Empty-magazine Roll exposed a second shared lifetime bug. State.end canceled
+pending CHANGED/CHECK events but retained flags_changed/flags_check. Re-entering
+the state could then suppress new notifications indefinitely. A reload Boolean
+Switch stayed true after ammo6 and51=false, so firing never recovered. Clear
+those canceled-event markers on end and exclude ending states from new variable
+notifications. A small resource-only fixture verifies canceled notification,
+re-entry and later condition changes, including writes during cleanup.
+
+Twelve Roll source tests now cover partial and genuinely input-emptied magazines
+while holding primary, and all six Fan rounds after refill. Fifteen actual NPC
+cases cover five bodies with partial-primary, empty-primary and held-secondary:
+first primary at Roll frame25 deals70 and leaves5; Fan empties six rounds by
+frame65. The original straight-ray result dealt300, limited by remaining target
+health. With actual Fan scatter, revalidation deals200 to Enforcer/Sniper/
+Assassin,200 lethal to Trooper, and300 to Heavy in these12m fixtures; six-round
+consumption is unchanged. The earlier straight-ray Trooper/Sniper deaths
+retain their bodies. These use the declared projectile observer adapter and
+are offline server evidence. The full native/cross-hero/client gate remains open.
+
+Final refill validation passes1151 related Python tests plus the server causal
+mutation scenario. The12 Roll tests include empty-magazine first-shot recovery
+within the same Roll exit window, without an enlarged timeout. Five default
+NPC attack/stop/lifetime cases and Assassin12/Enforcer4/Deadeye15 regressions
+also pass. The canceled-marker fix uses existing stored flags; no persistent
+VM layout or extra global arbitration phase is added. No original client run.
+
+Rialto NPC contact
+
+During Combat Roll, the authoritative mover sweeps against nearby living
+hostile manual NPC capsules through the existing character contact solver.
+Retained corpses stay outside this sweep. A contact that changes horizontal
+velocity starts the existing owner correction stream at the contact frame.
+The NPC proxy uses the standing dimensions from the body mover data. This is
+a sandbox reconstruction of contact with NPCs.
+
+At the original Rialto corridor coordinates, the 1.0 m combined radii had
+0.154 m of minimum centre separation before this change and 0.995 m after.
+The remaining few millimetres are within the existing solver's contact slop
+and quantisation. In 1280 by 720 windowed 104319, E124 showed the camera inside
+the Sniper with only the server sweep. With owner correction, the sampled
+post-Roll frame in 4F2D shows the Sniper in front of the camera. It still fires
+and completes its second retreat. The captures sample the endpoint. Continuous
+client prediction during Roll remains open. The 45 related Roll, NPC control
+and correction tests pass, including the corpse case.
+
+Windowed match 14FB captured 75 frames from 130 ms before to 1120 ms after
+the Shift input marker. The server stopped the Roll on command 9769 at
+568 ms. The first owner movement record went out at 699 ms for frame 9771.
+Frames at 604 and 617 ms show the camera inside the model. The camera also
+briefly passes to the far side before the correction becomes visible. See
+native-rialto-14FB-sniper-roll-frames.webp and the corresponding frame index.
+The current correction restores the endpoint after prediction has overshot.
+Client-side contact during the Roll remains an open acceptance item.
+
+Stationary-body control
+
+The 1280 by 720 windowed match 2BF9 started McCree at
+(-34.4004, 1.5996, -94.2998), facing the stationary manual Sniper at
+(-34.4, 1.6, -96.6). Without engaging it, 118 forward command frames took
+McCree to (-34.4004, 1.75, -105.3662), past the Sniper. The server trace
+came within 0.031 m of the Sniper centreline. The client reached the far
+side without any Roll command or owner correction in the trace window.
+This also reproduces missing contact during ordinary walking.
+
+All five Rialto NPC mover records and McCree's mover record have
+character_collision set to 1 in the prepared runtime. That value alone
+does not establish how the original client registers a replicated body as
+a peer collider. Bot creates send the body definition, transform, health
+and team. The remaining investigation is the native peer registration and
+filtering path for those replicated NPC bodies.
+
+Read-only client component check in 2BF9
+
+The verified local McCree and remote manual Sniper entities both have native
+mover component 31 with vtable RVA 260E7C8. The live standing dimensions
+match their resources (2.0 m and 1.75 m tall, both 0.5 m in radius). Both
+have +4C6, +4D0 and +14D8 set, decoded +14D9/+14DA set, group +234 zero
+and zero modifier rows at +508. Their team at +14C0 is 0 and 1 respectively.
+The C363F0 routine selects categories 0x08 and 0x10 from those values and
+derives 0x1499 as the mask before caller-side overrides. Each category is
+allowed by the other mover's derived mask. C3E4EF passes the resulting filter
+to DBAC20 with the object at mover +1538, which is present on both bodies.
+DBAC20 iterates the handle array at +28 with count at +34. DF75C0 resolves
+each handle and checks its slot index and generation before DF5530 applies
+the filter at slot +90. Both handles passed those checks in physics world
+84. The applied filters were (0x08, 0x1499, 0) for McCree and
+(0x10, 0x1498, 0) for the Sniper. Both masks allow the other category.
+DF55A0 resolves the slot +40 value into the world's contact-pair storage
+at +6B8. The values 8987 and -1 indicate contact-list state. Both slots have
+valid broadphase update indices at +9C (3 and 7), the values DF567D passes
+to the update queue. The X and Z of the live AABB at slot +0 and +10 match
+each body's location. McCree's feet are at Y 1.75 and his AABB spans 2.25
+to 3.75. The Sniper's feet are at Y 1.6 and its AABB spans -0.1504 to
+1.0996, below the floor. The remaining issue is to correct the remote
+proxy's vertical placement and verify contact in motion. The live checks
+used read-only access.
+
+Initial movement in the NPC create
+
+An isolated 1280 by 720 client run, match 94B2, added the current
+Movement record to the manual Sniper's create alongside its original
+transform, team and health. The stationary AABB was identical to the
+unmodified 2BF9 sample. With the diagnostic create, the authoritative
+retreat moved from Z -96.6 to -100.5996. The remote proxy still spanned
+Z -97.0996 to -96.0996 when read after that retreat. This experiment did
+not repair the height and was kept out of the production create path.
+The horizontal result is specific to this diagnostic run. Compare proxy
+updates under the stock create before inferring that the stock client has
+the same horizontal behaviour.
+
+Stock movement and other Talon bodies
+
+The stock create in 1280 by 720 windowed match 75A0 moved the Sniper proxy
+along with its 4 m retreat. The client's AABB centre Z changed from
+-96.5996 to -100.5996 while the Y bounds stayed at -0.1504 and 1.0996.
+The ground at both positions is Y 1.5996. The client keeps the same
+up vector (0, 1, 0) for McCree and the Sniper.
+
+Trooper, Enforcer and Assassin stock creates in the same corridor also
+put their AABB tops at Y 1.0996. Their bottoms were -0.1004, -0.3004
+and 0.0496, matching feet minus their live stance heights of 1.70,
+1.90 and 1.55 m. The runtime Assassin height differs from the prepared
+1.50 m record. Their client proxy filters and registered handles are
+intact. Heavy Assault was not sampled in this group. The JSON observations
+are stored beside the native verification captures for match 75A0.
+
+Local capsule geometry and world anchor
+
+The stock 1280 by 720 match 60E6 includes Heavy Assault. DF4759 loads a
+capsule's endpoints and radius from the array at physics world +658.
+The live Sniper endpoints are (0, 0.5, 0) and (0, 0.75, 0) with radius
+0.5. Heavy Assault uses the same radius and endpoints as McCree in this
+sample, (0, 0.5, 0) and (0, 1.0, 0), despite its larger extracted stance.
+Both capsules extend upward in local coordinates.
+
+DBABC0 selects E01360 for all three live proxy containers. Decoding the
+two packed position words using E01360 gives world anchor Y 2.09964
+for McCree, -0.15039 for Sniper and -0.70039 for Heavy Assault. All three
+parent rotations are identity. With the local endpoints and radius,
+these anchor values exactly explain the measured AABB heights. At ground
+Y 1.59961, the NPC anchors are lower by their original extracted stand
+heights of 1.75 and 2.30 m. The remaining discrepancy is the vertical
+translation passed to the proxy update, rather than its rotation or
+local shape. See native-rialto-60E6-capsule-parent-decoded.jsonl.
+
+Spring fields in the movement record
+
+BBF010 and BBF060 add the first decoded spring offset to the stance pogo
+height along the mover up vector. The live player offset is approximately
+zero. Manual Sniper and Heavy Assault decode the previously omitted spring
+steps as -2.25 and -2.80 m, exactly their spring range minima. Adding the
+0.5 m pogo reproduces the measured anchors. This accounts for the vertical
+offset without changing the body transform or map geometry.
+
+Manual NPC movement now sends both offsets using the existing mover's
+spring range and float32 rounding, with the navigator's speed when it has a
+mover. A stationary body encodes zero physical offset instead of wire step
+zero. The stock training-bot path retains its existing record. The five
+related suites ran 138 tests with 9 skips and no failures.
+
+The 1280 by 720 original-client run in match 34AC measured the Sniper's
+decoded spring at -0.000041 m. Its capsule now spans Y 2.09957 to 3.34957
+instead of -0.15039 to 1.09961 at the same location. A continuous
+72-frame capture covers -125 to +1103 ms around Combat Roll. In the
+contact sequence the view stays outside the body, including the time
+window that showed clipping in 14FB. The Sniper dealt two 100-point hits
+and completed both retreats. The capture and read-only sample are in
+native-rialto-34AC-sniper-spring-fixed-frames.webp and
+native-rialto-34AC-sniper-spring-fixed.jsonl.
+
+This acceptance covers the Sniper Roll fixture. Ordinary walking still
+needs a client/server collision comparison, and the other Talon bodies
+need the same client check.
+
+Walking with corrected NPC proxies
+
+The second 34AC check backed toward a stationary Sniper without Roll.
+The client's mover stopped approximately 0.995 m from the Sniper centre.
+The server continued and diverged from the client by 0.479 m.
+
+McCree's authoritative Rialto movement now uses the same hostile manual
+NPC sweep for ordinary movement and Roll. It samples the NPC's current
+mover stance and spring lift when available, or the resting standing
+geometry before navigation begins. Roll contacts still use the existing
+temporary reconciliation window.
+
+In windowed 1280 by 720 match E5E2, 95 forward command frames stopped
+McCree at the stationary Sniper. Client and server Z were -95.604492
+and -95.605469, with no owner corrections during the walk. The four
+related suites ran 94 tests with 9 skips and no failures.
+
+The same client run measured the other four Talon proxies after the spring
+change. Heavy Assault, Trooper and Enforcer have capsule bottoms at Y
+2.09957 to 2.09959. Assassin's is at Y 2.08806. All are above the Y 1.59961
+floor. The Assassin's live standing height and spring range differ from
+the prepared record, leaving 0.01155 m of residual spring offset. Heavy
+Assault's live capsule radius is 0.50 m in this sample, while its extracted
+mover record gives 0.70 m. Exact contact parity for these bodies and
+moving-target acceptance remain open.
+
+Native AI stance limits
+
+C3D752 checks the actor for component 86, then C3D77D checks the
+STUCharacterMoverComponent byte m_1FF06061. All five Talon body definitions
+have the byte set. C3D794 through C3D817 cap their already normalized
+standing and crouching radii at 0.50 m and heights at 2.00 m.
+
+The old server reproduced the Heavy Assault discrepancy in windowed
+match E5E2. After a walk into the standing Heavy, the original client
+stopped at Z -104.12598 and the server at -103.92676, about 0.199 m apart.
+McCree's server contact sweep now applies the native size limits to these
+five body definitions. Navigation and damage geometry keep their separate
+resource data. The spring range uses the normalized stance height before
+the AI cap, matching the live Assassin's lower bound of -2.05 m.
+In the corrected 1280 by 720 windowed match E351, 222 forward command
+frames stopped McCree at Z -98.304688 on both client and server without
+an owner correction. Heavy's native proxy centre was Z -99.299805, giving
+0.995117 m separation. The related suites passed 111 tests with 9 skips.
+E351 measured the corrected Assassin spring at +0.000014 m. Its proxy
+bottom is Y 2.250014 on the raised Y 1.75 floor.
+
+In a server replay with the original Rialto corridor collision, McCree
+walked across the path of a Trooper moving at 2.991 m/s. The active sweep
+held 0.99449 m minimum separation while both continued moving. The
+control with contact disabled reached 0.21047 m. The Trooper uses the
+normal NPC navigation mover with a fixture destination. All 15 Roll
+suite tests pass, including the flat-floor crossing regression.
+
+E351's Assassin approach produced a 25-point hit and sustained damage.
+Its continuous window capture returned no usable frames. Client
+prediction during moving contact remains open.
+
+Original-client moving Trooper contact
+
+The windowed 1280 by 720 F4DD and C0F7 fixtures use the same corridor and
+NPC navigation mover. A fixed destination makes the Trooper cross the
+player's route as McCree walks. The NPC moves at 1.22 m/s in the sampled
+contact interval. Read-only client samples track the player's feet and
+the Trooper's actual physics proxy. The fixture isolates moving contact
+from NPC attack and acquisition policy.
+
+F4DD recorded a 0.98134 m minimum client separation and 0.21894 m of
+endpoint disagreement after the cross, with no correction packets.
+McCree now starts the existing owner correction window when a moving
+hostile NPC is in contact with the authoritative mover. A stationary
+walking contact still does not trigger that window.
+
+C0F7 recorded 0.98633 m minimum client separation, 58 correction records,
+and identical client and server endpoints after the cross. The Roll,
+correction and NPC control suites pass all 49 checks. See the
+native-rialto-F4DD-moving-trooper-client.jsonl and
+native-rialto-C0F7-moving-trooper-client.jsonl captures.

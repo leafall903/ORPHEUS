@@ -84,7 +84,7 @@ def _contains(instance, items, value):
 
 
 def insert(instance, node, caller):
-    """1B6B720/+48 and1B6BA40/+78; no keyed row or linked-variable approximation."""
+    """1B6B720 dispatches iterator merge or insertion of one typed value."""
     _alive(instance, node)
     output, source = node.field('m_26E3B366'), node.field('m_value')
     if output is None or source is None:
@@ -122,7 +122,11 @@ def insert(instance, node, caller):
     var.base = tuple(items)
     inserting = 0 <= index < original_count
     unique = bool(node.field('m_8AD67B20'))
-    for item in _items(instance, node, source, target):
+    if node.cls == 'STU_CBE8BDAA':  # 1B6BCB0 reads the +28 value without iterating it.
+        values = (play.evaluate_value(instance, source, watcher=caller),)
+    else:
+        values = _items(instance, node, source, target)
+    for item in values:
         _alive(instance, node)
         if item is _SELF:
             break
