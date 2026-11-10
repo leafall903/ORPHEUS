@@ -223,11 +223,24 @@ Source paths for the remaining actions
   The extracted 01B graphs C43, CDE, D57, E8E, 1225, 1AB1 and
   1A52 contain this presenter class.
   05AD node 164 branches on parameter 0644 for 0170. A supplied
-  value reaches STU_631D36C3. The absent-value branch still
-  searches for a body and can send directed message 05AC.
-  The host currently handles 21608 without the marker field.
-  The server's marker acknowledgement handler and the full
-  mapping of 05FE and 0644 remain open.
+  value reaches STU_631D36C3 at node 165. The authored action
+  receives variable 16376 in m_4A5CA514 and has no outgoing link.
+  Registration 276770 pairs the class with STU descriptor
+  31BEBA0 and type key 2DF7B50. A scan of the mapped image finds
+  the key in its own record and the STU descriptor, without a
+  runtime constructor row. Adjacent descriptor 31BEC60 belongs
+  to 1E0773EB and its projection presenter is a separate class.
+  This image alone does not identify the server-side marker effect.
+  With a zero entity field, a 21608 test verifies the absent-marker
+  path sends 05AC to the aimed teammate with the sender as caller
+  and instigator. The host currently handles 21608 without the
+  marker field.
+  05FE is an optional animation category. Node 171 copies its input
+  variable 15231 to 15207 and clears 15231 with an empty
+  STUConfigVarAnimCategory. Nodes 116 and 132 pass 15207 to 0686.
+  Its node 25 initializes 0341 with that variable. Animation nodes
+  10 and 11 use it in m_22326315 and sync it under 3B67. The known
+  21608 payload has no field for this category.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's

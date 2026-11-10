@@ -118,8 +118,14 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertFalse(wheel.node_state(wheel.graph.node(115)).active)
 
     def test_confirmed_action_directs_callout_only_to_the_aimed_teammate(self):
-        for game_map, same_team in ((PRACTICE_RANGE, True), (PRACTICE_RANGE, False), (KANEZAKA_DM, True)):
-            with self.subTest(mode=game_map.mode_guid, same_team=same_team):
+        cases = (
+            (0x1E5, 0x12F4, PRACTICE_RANGE, True),
+            (0x170, 0x05AC, PRACTICE_RANGE, True),  # Acknowledge without a selected UI marker
+            (0x1E5, 0x12F4, PRACTICE_RANGE, False),
+            (0x1E5, 0x12F4, KANEZAKA_DM, True),
+        )
+        for action, target_message, game_map, same_team in cases:
+            with self.subTest(action=hex(action), mode=game_map.mode_guid, same_team=same_team):
                 directed = same_team and not game_map.free_for_all
                 run = Run(game_map, names=("Speaker", "Target", "Other"))
                 speaker, target, other = run.players
@@ -133,7 +139,7 @@ class CommunicationWheelTests(unittest.TestCase):
                 connection.player = speaker
                 speaker.client = connection
 
-                record = b"\x01\x08" + struct.pack("<QBI", 0x0A900000000001E5, True, 0)
+                record = b"\x01\x08" + struct.pack("<QBI", 0x0A90000000000000 | action, True, 0)
                 packet = BitWriter()
                 messages.write_channel(packet, [(0, record)])
                 packet.bit(0)
@@ -144,7 +150,7 @@ class CommunicationWheelTests(unittest.TestCase):
                     [(source, recipient, _, message, _)] = queued
                     self.assertIs(source, speaker.body_script)
                     self.assertIs(recipient, target)
-                    self.assertEqual(message, 0x02400000000012F4)
+                    self.assertEqual(message, 0x0240000000000000 | target_message)
                 else:
                     self.assertEqual(queued, [])
                     self.assertTrue(any(i.graph.index == 0x0686

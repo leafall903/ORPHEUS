@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the original Acknowledge action's 05AC fallback from a 21608
+  packet with no selected marker to the aimed teammate. Trace the
+  distinct marker action's STU registration and 05FE's animation
+  category use. All 15 wheel tests pass offline. The marker effect
+  and original-client acceptance remain open.
 - Route targeted communication through the authored 05AD relationship and
   pet-relation checks for current match player bodies. The 21608 receive
   test verifies that the aimed teammate receives the directed message and
