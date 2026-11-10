@@ -1878,6 +1878,9 @@ class SprayPlacement(State):
         return self.placement
 
 
+WHEEL_VOICE_PULSE = (0x0686, 72)
+
+
 @state_class("STU_B9898052")
 class ClientOnlyPulser(State):
     """Pulses its client-only subgraph (vtable 0x7FF78B549DE8): OnEnter and every begin while active
@@ -1905,8 +1908,10 @@ class ClientOnlyPulser(State):
     def pulse(self) -> None:
         self.pulses = (self.pulses + 1) & 0xFF
         frame_ms = self.instance.component.frame_ms
-        if (self.now // frame_ms > self.instance.start // frame_ms
-                or (self.instance.graph.index, self.node.pos) == (0x0686, 72)):
+        if (self.instance.graph.index, self.node.pos) == WHEEL_VOICE_PULSE:
+            self.pulsed_at = self.now
+            self.instance.component.world.replicate_wheel_event(self.instance, self.node)
+        elif self.now // frame_ms > self.instance.start // frame_ms:
             self.pulsed_at = self.now
 
     def payload(self) -> dict:
@@ -2271,7 +2276,7 @@ def wheel_presentation_action(instance: Instance, node, caller) -> bool:
                 (0x02CF, 3), (0x02CF, 8), (0x05AD, 14),
                 (0x0686, 14), (0x0686, 15), (0x0686, 40), (0x0686, 41),
             )):
-        instance.component.world.replicate_wheel_action(instance, node)
+        instance.component.world.replicate_wheel_event(instance, node)
     return no_op(instance, node, caller)
 
 

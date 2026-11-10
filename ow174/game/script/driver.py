@@ -520,7 +520,7 @@ class BodyWorld(runtime.World):
                 return True
         return NotImplemented
 
-    def replicate_wheel_action(self, instance: runtime.Instance, node: graph.Node) -> None:
+    def replicate_wheel_event(self, instance: runtime.Instance, node: graph.Node) -> None:
         if not self.communication_wheel or node.remote < 0 or not node.is_networked:
             return
         index = instance.graph.index
@@ -537,6 +537,8 @@ class BodyWorld(runtime.World):
             entity_scope = row.get("m_56341592") == expr.ENTITY
             slot = (component.vars if entity_scope else instance.vars).get(var)
             values.append(((0 if entity_scope else instance.id, var), (slot.value() if slot else None, ())))
+        if (index, node.pos) == nodes.WHEEL_VOICE_PULSE and selected is not None:
+            values.append(((instance.id, 29699), (selected.value(), ())))
         serial = self.wheel_callouts[-1].serial + 1 if self.wheel_callouts else 1
         self.wheel_callouts.append(WheelCallout(
             serial, instance.id, instance.start, node.pos, component.now, selected.value() if selected else None,
@@ -567,14 +569,35 @@ class Snapshot:
     def next_callout(self, baseline: int) -> WheelCallout | None:
         return next((event for event in self.callouts if event.serial > baseline), None)
 
-    def for_delta(self, baseline: int, keys: set) -> "Snapshot":
-        """Store the variables actually sent alongside the acknowledged action."""
-        serial = next((key[1] for key in keys if key[0] == "callout"), baseline)
-        if not self.callouts and self.callout == serial:
+    def is_voice_pulse(self, event: WheelCallout) -> bool:
+        index, _ = self.instances[event.instance]
+        return (index, event.node) == nodes.WHEEL_VOICE_PULSE
+
+    def for_delta(self, base: "Snapshot", keys: set) -> "Snapshot":
+        """Project the variables and voice counter carried by this stream's next event."""
+        serial = next((key[1] for key in keys if key[0] == "callout"), base.callout)
+        if not (self.callout or base.callout or self.callouts):
             return self
-        event = next((item for item in self.callouts if item.serial == serial), None)
-        values = self.vars | dict(event.values) if event is not None and serial > baseline else self.vars
-        return replace(self, callout=serial, callouts=(), vars=values)
+        if not self.callouts and self.callout == serial and serial > base.callout:
+            return self  # owner delta already projected the selected event
+        event = next((item for item in self.callouts if item.serial == serial and serial > base.callout), None)
+        values = self.vars | dict(event.values) if event is not None else self.vars
+        voice_owner = event.instance if event is not None and self.is_voice_pulse(event) else None
+        states = self.states.copy()
+        for instance, (index, _) in self.instances.items():
+            if index != nodes.WHEEL_VOICE_PULSE[0]:
+                continue
+            key = (instance, 13)  # 0686:72
+            previous = base.states.get(key)
+            if instance == voice_owner:
+                count = (dict(previous[2])["count"] + 1) & 0xFF if previous is not None else 1
+                states[key] = ("STU_B9898052", True, (("count", count), ("fresh", True)))
+            elif previous is not None:
+                active = key in self.states and self.states[key][1]
+                states[key] = (previous[0], active, previous[2])
+            else:
+                states.pop(key, None)
+        return replace(self, callout=serial, callouts=(), vars=values, states=states)
 
 
 def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_chunk: int):
@@ -585,6 +608,8 @@ def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_
     previous = (key[2] for key in touched if key[0] == "callout" and key[1] == callout.serial)
     stamp = min(previous, default=next_chunk)
     keys.add(("callout", callout.serial, stamp))
+    if snap.is_voice_pulse(callout):
+        return None
     return stamp, callout.instance, callout.node
 
 
@@ -830,7 +855,8 @@ class BodyScript(ReplicatedBody):
             instance = self.component.instances.get(event.instance)
             if instance is None or instance.stopped or instance.start != event.start:
                 continue
-            if self.component.now - event.time > WHEEL_CALLOUT_MS:
+            voice = (instance.graph.index, event.node) == nodes.WHEEL_VOICE_PULSE
+            if not voice and self.component.now - event.time > WHEEL_CALLOUT_MS:
                 continue
             if instance.graph.index == 0x0686:
                 # Re-entry reuses the instance. Pending actions carry their original sync values.
@@ -906,7 +932,7 @@ class BodyScript(ReplicatedBody):
 
         keys = set()
         callout = frame_callout(base, snap, touched, keys, self.stream.last + 1)
-        snap = snap.for_delta(base.callout, keys)
+        snap = snap.for_delta(base, keys)
         for item in snap.instances:
             if item not in base.instances:  # new (a repeated descriptor is taken as the same instance)
                 wire(item).descriptor = True
@@ -1181,9 +1207,8 @@ class BodyStream:
     def delta(self, frame: BitWriter, snapshot: Snapshot, keys: set, cmfd: int):
         self.last += 1
         self.cmfd = cmfd
-        baseline = self.base.callout if self.base is not None else 0
-        if snapshot.callout or baseline:
-            snapshot = snapshot.for_delta(baseline, keys)
+        if self.base is not None:
+            snapshot = snapshot.for_delta(self.base, keys)
         self.pending[self.last] = (snapshot, keys)
         self.latest_lost = None
         return self._update(frame, self.base_last + 1, resend=False)

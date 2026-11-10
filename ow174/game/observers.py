@@ -122,7 +122,7 @@ def delta(script, stream: BodyStream, snap: Snapshot):
     wires: dict[int, InstanceWire] = {}
     keys: set = set()
     callout = frame_callout(base, snap, touched, keys, stream.last + 1)
-    snap = snap.for_delta(base.callout, keys)
+    snap = snap.for_delta(base, keys)
 
     def wire(item: int) -> InstanceWire:
         if item not in wires:

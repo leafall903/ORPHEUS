@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Retry wheel voice pulses with their original slots and one counter
+  step per queued playback. Owner and observer acknowledgments
+  advance independently. All 99 focused tests pass. Delayed unlock-use
+  reports and client playback remain open.
 - Verify the original voice pulse counter and reproduce a slot
   substitution after a lost frame. All 11 native follow-count cases
   pass. Per-pulse slot delivery and client playback remain open.

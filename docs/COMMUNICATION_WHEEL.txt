@@ -676,13 +676,18 @@ Source paths for the remaining actions
   at least 128. Eleven original instruction cases verify duplicate,
   wrap, boundary and skipped-count behavior. The follow adapter
   records the slot supplied for the frame.
-  In an offline match, 016F first sends count 1 and choice 016F.
-  After a lost update and a valid 019D selection, both frame forms
-  send count 2 with only choice 019D. An established reader still
-  at count 0 follows the current slot twice. Preserving each pulse's
-  count and slot together until delivery remains open. Voice pulses
-  use state payloads. The short action queue cannot write those
-  payloads as action IDs.
+  The body now samples the voice choice when 0686:72 pulses and
+  keeps it in the same bounded queue as the short actions. The delta
+  projects that choice and one counter step from the receiving
+  stream's acknowledged state. It carries the existing state payload
+  without adding a short action. The queued pulse retains its playback
+  bit and remains eligible while the 0686 root is live and the event
+  is retained. Observer full frames use the current state as their
+  baseline. In the offline 016F to 019D sequence, the owner retries
+  count 1 with 016F while an observer that acknowledged it receives
+  count 2 with 019D. The owner receives 019D only after acknowledging
+  the retry. A delayed unlock-use report for a retried older slot
+  still has to pass the live equipped-effect check.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

@@ -1245,6 +1245,67 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
 
+    def test_voice_pulse_retries_with_its_slot_until_each_stream_acknowledges(self):
+        run = Run(names=("Speaker",))
+        player, = run.players
+        body = player.body_script
+        owner = decode.ClientBody.for_hero(SOLDIER)
+        [tree] = body.frames()
+        owner.apply(tree)
+        body.stream.arrived(tree.chunk_last)
+        body.command(body.frame + 1, 0)
+        [initial] = body.frames()
+        owner.apply(initial)
+        body.stream.arrived(initial.chunk_last)
+
+        watcher = decode.ClientBody.for_hero(SOLDIER)
+        stream = BodyStream(body.entity)
+        baseline = observers.snapshot(body)
+        tree = stream.full(observers.full_frame(body, baseline), baseline)
+        watcher.apply(tree)
+        stream.arrived(tree.chunk_last)
+
+        def select(action):
+            run.match.communication_action(player, {"+0x78": action, "+0x80": False})
+            run.match.deliver_body_messages()
+            body.command(body.frame + 1, 0)
+
+        def observer_update():
+            snap = observers.snapshot(body)
+            frame, keys = observers.delta(body, stream, snap)
+            return stream.delta(frame, snap, keys, 0)
+
+        def check(client, update, count, action):
+            frame = client.apply(update)
+            self.assertEqual(frame.actions, [])
+            self.assertEqual(frame.instances[voice.id].states[13], (True, {"fresh": True, "count": count}))
+            self.assertEqual(client.vars[voice.id, 29699], expr.Asset(action))
+
+        first, second = 0x0A9000000000016F, 0x0A9000000000019D
+        body.command(body.frame + 16, 0)
+        select(first)
+        [voice] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
+        [local] = body.frames()
+        observed = observer_update()
+        check(owner, local, 1, first)
+        check(watcher, observed, 1, first)
+        body.stream.lost(local.chunk_last)
+        stream.arrived(observed.chunk_last)
+
+        body.command(body.frame + 32, 0)
+        select(second)
+        [local] = body.frames()
+        observed = observer_update()
+        check(owner, local, 1, first)
+        check(watcher, observed, 2, second)
+        body.stream.arrived(local.chunk_last)
+        stream.arrived(observed.chunk_last)
+
+        body.command(body.frame + 1, 0)
+        [local] = body.frames()
+        check(owner, local, 2, second)
+        body.stream.arrived(local.chunk_last)
+
     def test_wheel_effect_actions_replicate_in_authored_order(self):
         for action, nodes in ((0x16C, (40,)), (0x16D, (6, 41))):
             with self.subTest(action=hex(action)):

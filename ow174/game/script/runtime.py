@@ -487,7 +487,7 @@ class World:
         """None: known absent compiled filter; bool: known predicate result."""
         return NotImplemented
 
-    def replicate_wheel_action(self, instance: "Instance", node: Node) -> None:
+    def replicate_wheel_event(self, instance: "Instance", node: Node) -> None:
         pass
 
     def message_state_context(self, entity: int, *, component: "Component | None" = None):
