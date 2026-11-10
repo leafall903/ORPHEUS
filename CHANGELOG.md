@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the original spray ray's candidate mask, exclusion list and
+  dispatch in 22 offline instruction cases. The wheel enter continuation
+  selects its plug from the hit bit even when the collector returns an
+  entity and shape. Dynamic attachment production and original-client
+  acceptance remain open.
 - Load the expanded static ray cache for spray placement and include its
   geometry in collision replay fingerprints. An offline Practice Range
   ray hits a surface that the movement cache omits. All 26 focused collision

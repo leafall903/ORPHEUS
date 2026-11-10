@@ -70,7 +70,17 @@ Source paths for the remaining actions
   Unresolved states stay out of those frames. Native execution
   verifies 2,051 DB1050 vectors and 540 D0FAA0 writes against all
   three frame contexts. Executing D0FCB0 with a query stub confirms
-  the 0x40 category, the eye ray endpoints and the returned hit bit.
+  the 0x40 shape category, the eye ray endpoints and the returned hit bit.
+  D0FCB0 also sends entity allow mask 0001000000000040 and an empty
+  deny mask. 1B60A50 requires a candidate's +270 flags to overlap the
+  allow mask, checks the deny mask and checks the entity pointer
+  against the exclusion list. The allow mask admits either 0x40 or
+  bit 48. 1B5FC20 can append the resolved source object to the list
+  when its flags match. The source call passes zero for child traversal.
+  Eight native filter cases cover both allow bits, deny precedence and
+  list membership. The request sets +18 to zero. The tail of 1B5D1D0
+  therefore skips the secondary 1B38630 collector. Six native dispatch
+  cases verify that branch and both hit sources with fixture traversal.
   The body host takes the current eye position and aim, and traces the
   authored 4.5 metres against loaded static collision. The match collision
   loader pins the category 0x40 portion of the map's expanded .rays.col
@@ -87,8 +97,12 @@ Source paths for the remaining actions
   At 98CE56 the native enter function supplies a stack hit buffer
   to D0FCB0. It then chooses the success or failure plug from the
   returned bit. The hit collector's 1B50CC7 arm copies hit vectors,
-  the entity pointer and shape data into the output buffer. This
-  enter path does not populate the state writer's attachment fields.
+  the entity pointer and shape data into the output buffer. Six native
+  executions of the 98CE56 continuation use a fixture ray result with
+  absent and present entity and shape pointers. In every case only
+  the hit bit determines the plug. This continuation does not copy
+  the pointers into the state writer's attachment fields. Attachment
+  production needs evidence from a separate path.
   On the receiving side, 98A070 looks up the attached network
   entity at +1F0. If it has not arrived yet, 98A4D5 requests a
   retry. 97FA45 seeds a 600-update pending counter, and 97F9F0

@@ -75,7 +75,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     replicates the placement in owner and observer frames. Expanded ray caches
     supply spray-only surfaces and mode props when prepared for the map.
     Declared attachment poses produce local point and normal data for both streams.
-    Live collision attachment discovery, native lifetime and client-side cosmetic access remain open.
+    Native ray dispatch and entity filtering are verified with fixtures.
+    Attachment production, decal lifetime and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     Live match poses now supply candidates to the two authored target states.
