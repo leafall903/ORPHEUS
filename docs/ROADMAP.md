@@ -80,7 +80,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     retires the gesture while the callout remains live. Natural completion
     uses the two body-model aliases, extracted for 32 base bodies and the
     D.Va mech. Three original-model offline fixtures exercise timer expiry.
-    Live model overrides and client playback remain open.
+    The greeting follow-up now reads Ashe's authored source body tag.
+    The 0B9C branch identifies B.O.B. as a receiver. Its target query and
+    recipient lifecycle, live model overrides and client playback remain open.
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
     The 21616 cosmetic-use report reaches the corresponding body instance.

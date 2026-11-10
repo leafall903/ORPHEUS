@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the greeting follow-up gate from the selected source body. All 73
+  focused tests pass, including Ashe and Soldier: 76 across two modes. The
+  original 0B9C receiver is traced to B.O.B. Its target query, actor lifecycle
+  and client acceptance remain open.
 - Resolve Hello gesture timing from the current body's base model. The
   optional runtime table covers 33 bodies and both animation aliases.
   Eleven native probes and three offline Match runs verify model durations

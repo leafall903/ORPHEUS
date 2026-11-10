@@ -126,6 +126,8 @@ WHEEL_ACTION_CATEGORIES = {
 # Static ray categories from the first request word, packed from m_category.
 WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
 WHEEL_HEALING_TAG = 0x0D60000000000308
+WHEEL_GREETING_TAG = 0x0D60000000000661
+ASHE_BODY = 0x040000000000251C
 # Player body definitions (.003) with the authored 0308.06C target tag in 104319.
 WHEEL_HEALING_BODIES = frozenset({
     0x04000000000000E4,  # Mercy
@@ -275,11 +277,14 @@ class BodyWorld(runtime.World):
                 and instance.graph.index in (0x05AD, 0x02CF, 0x0686)):
             return self.wheel_action_has_category(cfg, instance)
         if self.communication_wheel and instance is not None:
-            if (cls == "STU_25ECB55F" and instance.graph.index in (0x05AD, 0x0686)
-                    and expr.guid_of(cfg.get("m_88B0050A")) == WHEEL_HEALING_TAG
-                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
-                hero = heroes().get(self.hero)
-                return hero is not None and hero.body in WHEEL_HEALING_BODIES
+            if cls == "STU_25ECB55F":
+                tag = expr.guid_of(cfg.get("m_88B0050A"))
+                if (tag == WHEEL_HEALING_TAG and instance.graph.index in (0x05AD, 0x0686)
+                        and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                    return self.body_definition in WHEEL_HEALING_BODIES
+                if (tag == WHEEL_GREETING_TAG and instance.graph.index == 0x0341
+                        and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                    return self.body_definition == ASHE_BODY
             if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
                 return self.wheel_slot(cfg, instance, WHEEL_EMOTE_ACTIONS)
             if cls == "STU_250DEABD" and instance.graph.index in (0x05AD, 0x023A):

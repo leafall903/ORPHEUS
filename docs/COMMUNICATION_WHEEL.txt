@@ -659,6 +659,21 @@ Source paths for the remaining actions
   at the first completed animation: Soldier: 76 1000/1000 ms,
   Echo 1567/1233 ms and Brigitte 1433/1433 ms. The callout remains live.
   Live model overrides and original-client playback remain open.
+  0341:14 starts a separate half-second follow-up wait. Its authored
+  expression admits a non-AI source in modes 0018 and 005A, or a source
+  carrying tag 0661. An audit of the 32 default .003 bodies finds that
+  tag only on Ashe 251C. The VM now supplies that membership from the
+  selected body. Three offline selections distinguish Practice Range
+  Soldier: 76, Deathmatch Soldier: 76 and Deathmatch Ashe.
+  0341:16 uses a 30 metre radius, 110 degree aperture and filter masks
+  0042 and 0010. Its output feeds node 17, which sends 0B9C to the
+  first acquired entity. The extracted graph bundle has one 0B9C game
+  message entry, 1537:108. Ashe's 1536:11 creates body 25C3 and
+  1536:3 starts 1537 on it. Node 109 requires the caller to match
+  the body associated with the recipient's related entity, then node
+  112 gates the reply animation at node 111. Sigma's 1BBB:56 uses the
+  same numeric index in the separate VoiceStimulus resource type.
+  The 0341 target query and the B.O.B. receiver lifecycle remain open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's

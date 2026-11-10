@@ -1116,6 +1116,26 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
 
+    def test_greeting_followup_uses_the_authored_source_body_tag_outside_practice(self):
+        for game_map, hero_name, follows_up in (
+            (PRACTICE_RANGE, "Soldier: 76", True),
+            (KANEZAKA_DM, "Soldier: 76", False),
+            (KANEZAKA_DM, "Ashe", True),
+        ):
+            with self.subTest(mode=game_map.mode_guid, hero=hero_name):
+                run = Run(game_map, names=("Speaker",))
+                player, = run.players
+                if hero_name != "Soldier: 76":
+                    hero = next(hero for hero in heroes().values() if hero.name == hero_name)
+                    run.match.switch_hero(player, hero)
+                run.match.communication_action(player, {"+0x78": 0x0A9000000000016B, "+0x80": True})
+                run.match.deliver_body_messages()
+                body = player.body_script
+                body.command(body.frame + 10, 0)
+                [gesture] = [i for i in body.component.instances.values() if i.graph.index == 0x0341]
+                followup = gesture.node_state(gesture.graph.node(15))
+                self.assertEqual(bool(followup and followup.active), follows_up)
+
     def test_greeting_finishes_at_the_first_authored_model_animation_end(self):
         run = Run(names=("Speaker",))
         player, = run.players
