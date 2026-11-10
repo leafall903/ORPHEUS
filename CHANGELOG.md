@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace marker presenters to their entity and mode resources and verify
+  the authored wheel auxiliary scope targets. The 36 focused offline
+  tests pass. The targeted marker effect and original-client scope
+  scheduling remain open.
 - Forward the selected marker from 21608 to the authored Acknowledge
   branch as an entity parameter. The zero-marker packet still sends
   05AC to the aimed teammate. All 74 focused offline tests and six

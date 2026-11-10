@@ -91,7 +91,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     The server accepts the original wheel's 21608 action GUID and flag and
     delivers them to the sender's 02A3 graph entry. Acknowledge also
     preserves the selected marker as parameter 0644. An offline packet
-    reaches the targeted node with a fixture handler.
+    reaches the targeted node with a fixture handler. The marker
+    presenters are authored client-only on entity and mode graphs.
+    All three wheel auxiliary entries and their exit lists target
+    client-only states. Client scope scheduling remains open.
     The targeted marker effect, additional 02A3 parameters, equipped-item
     playback, recipient rules and original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.

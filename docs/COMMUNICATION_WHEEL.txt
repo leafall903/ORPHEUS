@@ -418,7 +418,14 @@ Source paths for the remaining actions
   vtable 2653D48. AD7A40 appends the presenter through 1B8E700.
   AD7B60 removes it through 60F010. Both resolve the same slot 18.
   The extracted 01B graphs C43, CDE, D57, E8E, 1225, 1AB1 and
-  1A52 contain this presenter class.
+  1A52 contain this presenter class. All eight presenter states
+  across the seven graphs are client-only. In the extracted resources,
+  C43, CDE, D57, E8E, 1225 and 1A52 are referenced by 20 entity
+  definitions. PvE difficulty resources 0155.054 and 019D.054
+  reference 1AB1. The seven graphs are outside the current body graph
+  bundle. Their authored .025 references have an empty intersection.
+  C08 is referenced by six graphs. The 1AB1 references are 0DFA,
+  0DFB, 11E3 and 1205.
   05AD node 164 branches on parameter 0644 for 0170. A supplied
   value reaches STU_631D36C3 at node 165. The authored action
   receives variable 16376 in m_4A5CA514 and has no outgoing link.
@@ -444,7 +451,12 @@ Source paths for the remaining actions
   owner and observer deltas as short frame actions. They use the graph's
   synchronized variables and leave text rendering and filtering to the
   native action handler. Recipient rules still need individual verification.
-  The wheel's BD02E168 auxiliary plug dispatch also remains open.
+  The wheel's BD02E168 states 40, 41 and 42 enter 05AD nodes 6, 24
+  and 89 through m_5B10D01F. All three entry nodes and all 21 state
+  indexes in the three exit lists are client-only. Owner-frame tests
+  already verify all three scope carriers are active. Client scope
+  callback scheduling remains open. See AUXILIARY_SUBGRAPHS.txt for
+  the native interface and its separate component registration.
 - The target frame reader reaches A0CCA0 from A0F1EB for remote
   messages. A0CCA0 reads a group-presence bit followed by RMFr
   (w_u32) and RMSz (w_var) for each group. It skips groups whose frame
