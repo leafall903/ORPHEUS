@@ -326,6 +326,10 @@ class Player:
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        elif (self.body_script is not None
+              and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
+            # The mover models static supports. Selector 1 preserves vertical velocity.
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
         if script is not None and not stunned:

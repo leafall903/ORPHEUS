@@ -74,8 +74,11 @@ A checked item records evidence for that specific scope. Its parent remains open
     and missing-track zero. The animation extractor now exports
     authored scalar tracks by blend tree, alias and category.
     The wheel binds the known empty and single-key tracks to
-    023A Anim slot 2. Missing tracks, phase-dependent tracks and
-    downstream movement modifier operations remain open.
+    023A Anim slot 2. For a float Anim output, authored node 78
+    clears horizontal velocity on the next static-support pose
+    and preserves the vertical component before integration.
+    Missing tracks, phase-dependent sampling, moving supports and
+    the general vector modifier backend remain open.
     An explicitly selected mech body with its prepared graphs uses its tagged
     emote. Automatic form transitions, runtime tag changes, live model remaps
     and original-client playback remain open.

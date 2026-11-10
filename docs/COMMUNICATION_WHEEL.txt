@@ -410,8 +410,29 @@ Source paths for the remaining actions
   exit. The authored exit then writes its zero vector.
   The available catalog covers 238 of 292 distinct equipped
   tree/alias pairs. All 389 covered category rows are empty or
-  single-key tracks. The remaining pairs, phase-dependent tracks
-  and the subsequent native movement modifier operations are open.
+  single-key tracks. The 54 unexported pairs reference trees
+  outside the scanned directory. Other local XML exports contain
+  candidate files for all of those trees. Their build and contents
+  still need verification. Phase-dependent sampling remains open.
+  Node 78 uses STU_09F9B1FE with selector 1. Native RTTI
+  2DEDB88 sends that row through D354C0 and D3C809 to C33FC0
+  with operation 2. Per-frame records apply on source frame +1.
+  C31BD0 matches selector 1, replaces the velocity relative to
+  its support and restores the previous vertical component before
+  adding the support velocity. C31CD8 handles selector 0 as a
+  separate world-velocity replacement. C3BA8A calls the modifier
+  reader before C3BAD8 enters ordinary movement integration.
+  Fifty-seven original-instruction cases verify the selectors,
+  operations, frame bounds and ordered rows using a captured
+  velocity-write sink. Twelve expression cases use the authored
+  78 arithmetic with supplied finite orientation vectors. Both
+  X and Z read zero from the Anim float, yielding a zero vector.
+  The server applies that selector 1 result to the static-support
+  mover on the following command while the authored 78 is active.
+  An offline wheel selection enters 78, clears horizontal motion
+  and resumes motion after the authored fire exit. Selector 0
+  node 110 does not activate from the Anim float. Moving supports,
+  general vector rows and arbitration remain open.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored

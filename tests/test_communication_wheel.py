@@ -876,6 +876,57 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertNotIn(0x069A, {i.graph.index for i in body.component.instances.values()})
                 self.assertNotIn(0x1040, {i.graph.index for i in body.component.instances.values()})
 
+    def test_authored_emote_replaces_horizontal_velocity_until_exit(self):
+        alias, blend = 0x0C80000000000477, 0x0040000000000649
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / "emote_scalar_tracks_174.json").write_text(json.dumps({
+                hex(blend): {hex(alias): {
+                    hex(EMOTE_ANY_CATEGORY): {"times": [0], "values": [0.03487373]},
+                    "0x0280000000000082": {"times": [], "values": []},
+                }},
+            }), encoding="utf-8")
+            (data / EMOTE_DURATION_DATA).write_text(json.dumps({
+                hex(blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 0.5}},
+            }), encoding="utf-8")
+            with patch("ow174.game.script.driver.DATA_DIR", data):
+                match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(
+                    flat_world(PRACTICE_RANGE.spawns[0].position[1]),
+                ), emote_aliases_of=lambda *_: (alias,), emote_blend_trees_of=lambda *_: (blend,))
+                player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+                in_world(match, player)
+                match.tick = 1000
+                match.switch_hero(player, player.hero)
+                body = player.body_script
+                player.take_commands([Command(body.frame + 1)])
+                runtime.send_message(body.component, 0x02400000000002A3,
+                                     {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity)
+                player.take_commands([Command(body.frame + 1)])
+                animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
+                loop = animation.node_state(animation.graph.node(18))
+                for _ in range(120):
+                    if loop.active:
+                        break
+                    player.take_commands([Command(body.frame + 1)])
+                self.assertTrue(loop.active)
+                while body.component.now < loop.start + 2400:
+                    player.take_commands([Command(body.frame + 1)])
+                self.assertTrue(animation.node_state(animation.graph.node(78)).active)
+                self.assertFalse(animation.node_state(animation.graph.node(110)).active)
+
+                x, _, z = player.mover.position
+                player.mover.velocity = (3.0, 0.0, 2.0)
+                player.take_commands([Command(body.frame + 1)])
+                self.assertEqual((player.mover.position[0], player.mover.position[2]), (x, z))
+                player.take_commands([Command(body.frame + 1, buttons=FIRE)])
+                self.assertFalse(loop.active)
+                self.assertFalse(body.world.wheel_replaces_horizontal_velocity(body.component))
+
+                player.mover.velocity = (3.0, 0.0, 2.0)
+                player.take_commands([Command(body.frame + 1)])
+                self.assertGreater(player.mover.position[0], x)
+                self.assertGreater(player.mover.position[2], z)
+
     def test_emote_cancel_detects_a_fall_without_buttons_or_axes(self):
         match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(
             flat_world(PRACTICE_RANGE.spawns[0].position[1]),

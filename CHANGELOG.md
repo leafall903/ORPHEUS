@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Apply the authored float emote horizontal-velocity replacement on static supports.
+  The wheel selection and fire exit pass an offline movement test.
+  69 native-instruction cases and 176 offline tests pass. Moving supports,
+  general vector modifiers and client acceptance remain open.
+
 - Bind known empty and single-key emote movement tracks to Anim slot 2.
   An authored graph test verifies category selection, the grounded
   guard, snapshot export and cleanup. All 102 focused tests pass.

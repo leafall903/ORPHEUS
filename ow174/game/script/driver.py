@@ -495,6 +495,21 @@ class BodyWorld(runtime.World):
         scalars = wheel_animation_scalars(DATA_DIR / EMOTE_SCALAR_DATA)
         return scalars.get(key, scalars.get((*key[:2], EMOTE_ANY_CATEGORY)))
 
+    def wheel_replaces_horizontal_velocity(self, component: runtime.Component) -> bool:
+        if not self.communication_wheel:
+            return False
+        for instance in component.instances.values():
+            if (instance.stopped or instance.graph.index != 0x023A or instance.parent is None
+                    or instance.parent.graph.index != 0x069A):
+                continue
+            # Native 023A:78 replaces relative X/Z velocity with
+            # x(681) * right + z(681) * forward. Both axes of a float are zero.
+            if any(state.active and state.node.pos == 78 for state in instance.states.values()):
+                value = instance.vars.get(681)
+                if value is not None and type(value.value()) is float:
+                    return True
+        return False
+
     def wheel_model_pose(self, component, transform):
         active = [
             state for instance in component.instances.values()
