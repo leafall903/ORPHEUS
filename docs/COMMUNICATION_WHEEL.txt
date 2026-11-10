@@ -118,9 +118,20 @@ Source paths for the remaining actions
   legacy body packet those two identities come from the same sender.
   Offline fixtures supply the selected target and verify every table
   row through the match delivery queue. The third player's graph does
-  not receive the message. The target search in nodes 113 and 115 uses
-  distinct collision query assets, 0111.097 and 0079.097. Their complete
-  target ranking remains open.
+  not receive the message. Nodes 113 and 115 use collision query
+  assets 0111.097 and 0079.097. The host now selects visible human
+  player bodies using the authored 40 metre radius, 15 degree
+  aperture and source offset. It writes an empty or single-entity
+  array to 375 before the existing transition.
+  Native C96E10 handles composite score STU_B61DA2A5. The
+  STU_2FD4C482 branch normalizes screen distance and multiplies
+  by weight 1. The STU_AD7331B0 branch at C9733E normalizes
+  world distance and multiplies by weight 0.01. The host uses
+  projected combat capsules to approximate the native projection
+  and the cached movement geometry for line of sight. It shares
+  that ray filter between the two asset variants. Native camera
+  bounds, collision flags and the subsequent recipient gates
+  in 119 and 120 remain open.
   For a new voice graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.

@@ -90,6 +90,33 @@ class CommunicationWheelTests(unittest.TestCase):
         run.step({})
         self.assertIs(wheel.vars[9253].value(), False)
 
+    def test_wheel_tracks_visible_players_before_the_authored_recipient_filter(self):
+        run = Run(names=("Speaker", "Aligned", "Nearer"))
+        speaker, aligned, nearer = run.players
+        match = run.match
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        aligned.mover.position = (0.0, 0.0, 15.0)
+        nearer.mover.position = (0.8, 0.0, 8.0)
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+
+        def select():
+            script.command(script.frame + 150, 0)
+            match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+            match.deliver_body_messages()
+            return wheel.vars[375].value()
+
+        self.assertEqual(select(), (expr.Entity(aligned.body),))
+
+        wall = ((-0.4, 0, 5, 0.4, 0, 5, -0.4, 4, 5),
+                (0.4, 0, 5, 0.4, 4, 5, -0.4, 4, 5))
+        match.collision_world = World(wall)
+        self.assertEqual(select(), (expr.Entity(nearer.body),))
+        nearer.mover.position = (0.0, 0.0, 41.0)
+        self.assertEqual(select(), ())
+        self.assertFalse(wheel.node_state(wheel.graph.node(115)).active)
+
     def test_selection_message_takes_the_authored_category_branches(self):
         run_node = runtime.Instance.run_node
         visited = set()

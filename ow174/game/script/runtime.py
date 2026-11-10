@@ -389,6 +389,9 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def tracked_targets(self, state: "State"):
+        return NotImplemented
+
     def resolve_spray(self, length: float) -> dict | None:
         return None
 

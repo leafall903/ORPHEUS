@@ -1814,9 +1814,14 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Bake the current candidates before an authored transition reads them."""
 
     family = "targets"
+
+    def on_enter(self) -> None:
+        targets = self.instance.component.world.tracked_targets(self)
+        if targets is not NotImplemented:
+            self.instance.write(lvalue(self.node.field("m_8A2905A0")), tuple(Entity(entity) for entity in targets))
 
     def payload(self) -> dict:
         return {"targets": ()}

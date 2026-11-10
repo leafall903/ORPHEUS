@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Feed visible match players into the authored 05AD target states.
+  Candidate selection follows the authored range, aperture and
+  screen and world distance weights. The server uses its combat
+  capsules and static collision cache. All 92 focused offline tests
+  pass, including target alignment, occlusion and range. Native
+  recipient gates and original-client acceptance remain open.
 - Identify the 0170 Acknowledge target as a registered UI marker's
   script owner. Seven offline native cases cover selection, radius,
   ties and invalid candidates. Marker acknowledgement handling and

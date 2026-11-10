@@ -182,6 +182,16 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def tracked_targets(self, state: runtime.State):
+        if (not self.communication_wheel or self.match is None
+                or state.instance.graph.index != 0x05AD or state.node.pos not in (113, 115)):
+            return NotImplemented
+        offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+        radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
+        aperture = expr.to_float(state.evaluate(state.node.field("m_A30B383E"), watch=False))
+        target = self.match.combat.communication_target(self.body, offset, radius, aperture)
+        return (target,) if target is not None else ()
+
     def resolve_spray(self, length: float) -> dict | None:
         if self.communication_wheel and self.match is not None:
             return self.match.resolve_body_spray(self.body, length)

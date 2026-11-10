@@ -50,7 +50,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, observers, pools, projectiles, stats, voicelines, world
+from ow174.game import bots, contacts, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, World
 from ow174.game.commands import Command
@@ -598,6 +598,51 @@ class Combat:
                 found = Vitals(target.entity, *pools.body_pools(target.owner.hero.guid))
             self.vitals[target.entity] = found
         return found
+
+    def communication_target(self, entity: int, offset, radius: float, aperture: float) -> int | None:
+        collision = self.match.collision_world
+        source = self.match._message_player(entity)
+        if collision is None or source is None or not isinstance(offset, expr.Vec3):
+            return None
+        if not (math.isfinite(radius) and radius > 0 and 0 < aperture < 180):
+            return None
+
+        mover = source.mover
+        origin = tuple(axis + delta for axis, delta in zip(mover.position, offset, strict=True))
+        x, y, z = mover.position
+        eye = (x, y + eye_height(source.hero.body, mover.crouched), z)
+        forward = aim(mover.yaw, mover.pitch)
+        limit = math.cos(math.radians(aperture * 0.5))
+        start, end = _along(origin, forward, -radius), _along(origin, forward, radius)
+        screen_end = _along(eye, forward, radius)
+        best = None
+        best_score = math.inf
+        for target in self._targets():
+            if target.entity == entity or isinstance(target.owner, bots.Bot) or self.is_dead(target.owner):
+                continue
+            a, b = target.segment()
+            if segment_distance(origin, a, b) > radius + target.radius:
+                continue
+            point, axis = contacts.closest_segments(a, b, start, end)
+            gap = math.dist(point, axis)
+            if gap > target.radius:
+                point = _along(point, _sub(axis, point), target.radius / gap)
+            delta = _sub(point, origin)
+            depth = _dot(delta, forward)
+            if depth < limit * math.hypot(*delta):
+                continue
+            if not capsule_visible(collision, eye, a, b, target.radius):
+                continue
+            # Use the projected combat capsule with the authored screen
+            # and world distance weights.
+            near, sight = contacts.closest_segments(a, b, eye, screen_end)
+            screen_gap = max(0.0, math.dist(near, sight) - target.radius)
+            screen_depth = max(EPSILON, _dot(_sub(near, eye), forward))
+            center = tuple((lower + upper) * 0.5 for lower, upper in zip(a, b, strict=True))
+            score = min(1.0, screen_gap / screen_depth) + 0.01 * min(1.0, math.dist(origin, center) / radius)
+            if score < best_score:
+                best, best_score = target.entity, score
+        return best
 
     def _enemies(self, shooter) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all

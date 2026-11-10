@@ -65,6 +65,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     native lifetime and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
+    Live match poses now supply candidates to the two authored target states.
+    Recipient eligibility gates and exact native target geometry remain open.
     The recipient graph sends the actions in order with each action's source.
     The server accepts the original wheel's 21608 action GUID and flag and
     delivers them to the sender's 02A3 graph entry. Offline execution
