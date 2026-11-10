@@ -63,8 +63,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     eight tagged equipped mappings across the three wheel categories.
     The offline Heroic path finishes naturally, and Take a Knee reaches
     the authored exit and cleans up on primary fire. D.Va's pilot applies
-    the tagged unlock fallback. Remaining interrupt inputs, active mech
-    tag selection, skin remaps and original-client playback remain open.
+    the tagged unlock fallback. The pilot uses its body tree to finish
+    the fallback animation. Remaining interrupt inputs, active mech
+    tag selection, live model remaps and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.

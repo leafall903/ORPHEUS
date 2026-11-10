@@ -499,38 +499,44 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertNotIn(current[index].id, body.component.instances)
             self.assertNotIn(current[index].id, client.graphs)
 
-    def test_equipped_heroic_finishes_at_its_direct_model_duration(self):
-        alias, blend = 0x0C8000000000045C, 0x00400000000006AD
-        with TemporaryDirectory() as directory:
-            data = Path(directory)
-            (data / EMOTE_DURATION_DATA).write_text(json.dumps({
-                hex(blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 5.0000005}},
-            }), encoding="utf-8")
-            with patch("ow174.game.script.driver.DATA_DIR", data):
-                body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True,
-                                  emote_aliases=(alias,), emote_blend_trees=(blend,))
-                runtime.send_message(
-                    body.component, 0x02400000000002A3,
-                    {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
-                )
-                body.command(1001, 0, grounded=True)
-                animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
-                state = animation.node_state(animation.graph.node(0))
-                for frame in range(1002, 1120):
-                    if state.active:
-                        break
-                    body.command(frame, 0, grounded=True)
-                self.assertTrue(state.active)
-                self.assertEqual([event.time - state.start for event in animation.queue if event.state is state],
-                                 [5000, 5000])
-                self.assertEqual(body.world.animation_duration(animation, animation.graph.node(19)),
-                                 expr.f32(5.0000005))
-                end_frame = (state.start + 5000) // body.frame_ms
-                body.command(end_frame - 1, 0, grounded=True)
-                self.assertTrue(state.active)
-                body.command(end_frame, 0, grounded=True)
-                self.assertTrue(animation.stopped)
-                self.assertFalse({0x069A, 0x1040} & {i.graph.index for i in body.component.instances.values()})
+    def test_heroic_finishes_with_equipped_or_pilot_body_tree(self):
+        alias = 0x0C8000000000045C
+        for hero, blend, model_blend in (
+            (SOLDIER, 0x00400000000006AD, 0x00400000000006AD),
+            (0x02E000000000007A, 0, 0x004000000000048A),
+        ):
+            with self.subTest(hero=hero):
+                with TemporaryDirectory() as directory:
+                    data = Path(directory)
+                    (data / EMOTE_DURATION_DATA).write_text(json.dumps({
+                        hex(model_blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 5.0000005}},
+                    }), encoding="utf-8")
+                    with patch("ow174.game.script.driver.DATA_DIR", data):
+                        body = BodyScript(hero, 0xA0000101, 1000, communication_wheel=True,
+                                          emote_aliases=(alias,), emote_blend_trees=(blend,))
+                        runtime.send_message(
+                            body.component, 0x02400000000002A3,
+                            {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
+                        )
+                        body.command(1001, 0, grounded=True)
+                        animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
+                        state = animation.node_state(animation.graph.node(0))
+                        for frame in range(1002, 1120):
+                            if state.active:
+                                break
+                            body.command(frame, 0, grounded=True)
+                        self.assertTrue(state.active)
+                        self.assertEqual(animation.vars[8908].value(), expr.Asset(blend))
+                        self.assertEqual([event.time - state.start for event in animation.queue if event.state is state],
+                                         [5000, 5000])
+                        self.assertEqual(body.world.animation_duration(animation, animation.graph.node(19)),
+                                         expr.f32(5.0000005))
+                        end_frame = (state.start + 5000) // body.frame_ms
+                        body.command(end_frame - 1, 0, grounded=True)
+                        self.assertTrue(state.active)
+                        body.command(end_frame, 0, grounded=True)
+                        self.assertTrue(animation.stopped)
+                        self.assertFalse({0x069A, 0x1040} & {i.graph.index for i in body.component.instances.values()})
 
     def test_tagged_dva_unlock_uses_body_tags_and_pilot_fallback(self):
         dva, mech, pilot = 0x02E000000000007A, 0x0400000000000407, 0x040000000000040A

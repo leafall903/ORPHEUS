@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Finish D.Va's pilot fallback emote using its authored base tree.
+  Four native model-record cases and 85 focused offline tests pass.
+  Live mech selection and original-client acceptance remain open.
 - Feed 101 original model holder records through the native actor
   category writer. The seven models contribute mask bit 0100.
   Live bone transforms and original-client acceptance remain open.

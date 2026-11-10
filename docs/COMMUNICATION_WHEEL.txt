@@ -176,8 +176,13 @@ Source paths for the remaining actions
   045C alias and a zero blend set for tagged unlocks. A fixture
   selecting 0407 verifies the authored 0476 alias and 0690 set for
   0A5:0BFC. The offline pilot selection reaches 023A with the
-  fallback values. The native active relation, tag lifetime and
-  skin remaps still need to be bound.
+  fallback values. For timing, the pilot's 040A model component
+  supplies 048A.021 when the equipped blend is zero. Its 045C
+  alias selects 365F.006 at 5.0000005 s. Four offline native cases
+  select the same record with different categories. The wheel
+  retains the zero equipped blend on the graph and schedules the
+  finish using the body tree. The active relation, tag lifetime
+  and live model remap lookup still need bindings.
   STU_DF7C7C63 evaluates at CE18E0 and reads the accepted unlock's
   blend tree set at +108. Six offline executions of the native tail
   cover no tag requirement, missing component, matching and mismatching
@@ -268,8 +273,9 @@ Source paths for the remaining actions
   primary record 4035 at 5067 ms. The local data covers all 284 untagged
   and eight tagged equipped mappings for categories 0000, 006E and 0082.
   Active model remaps and live mech selection remain open.
-  An audit of the 8819 extracted 0A6 themes found no override keyed
-  by 045C.014 in those themes.
+  An audit of the 8819 extracted 0A6 themes found no runtime
+  override keyed by any of the five equipped .014 aliases or
+  292 equipped .021 trees.
   For the loop exit, 023A:18 checks 023A:27. That condition requires
   the 488 cancel latch and the 1322 ChaseVar reaching zero. The latch
   comes from 023A:38's movement and logical-button transitions.

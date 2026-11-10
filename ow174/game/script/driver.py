@@ -387,10 +387,16 @@ class BodyWorld(runtime.World):
             return None
         if category is not None and not isinstance(category, Asset):
             return None
+        blend_guid = blend.guid
+        if not blend_guid:
+            hero = heroes().get(self.hero)
+            if hero is not None and hero.body == 0x040000000000040A:
+                # The pilot's model component supplies its base tree when the equipped tree is empty.
+                blend_guid = 0x004000000000048A
         durations = wheel_emote_durations(DATA_DIR / EMOTE_DURATION_DATA)
         return durations.get(
-            (blend.guid, alias.guid, category.guid if category is not None else 0),
-            durations.get((blend.guid, alias.guid, EMOTE_ANY_CATEGORY)),
+            (blend_guid, alias.guid, category.guid if category is not None else 0),
+            durations.get((blend_guid, alias.guid, EMOTE_ANY_CATEGORY)),
         )
 
     def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):
