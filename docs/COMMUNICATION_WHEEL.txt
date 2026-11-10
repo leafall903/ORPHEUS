@@ -1042,8 +1042,20 @@ Source paths for the remaining actions
   C0BBB0 enables it for an inclusive input interval of
   [0.00011920929, 6.28306627] radians and clears it otherwise.
   C121B7 copies the primary block to the secondary block.
-  The authored config mapping and active turn-filter inputs
-  for a greeting frame still require tracing.
+  BBB590 calls that slot with the embedded updater object as
+  its second argument. C11E40 loads the first seven floats of
+  inline TurnParameters (m_D5AF8608), converting the first
+  four from degrees to radians. The enabled gate uses the
+  first field, m_946D26E1. The initializer orders the two
+  limit angles and the two coefficients, caps the second
+  angle relative to the first and preserves the default 0.1
+  scalar if the seventh field is zero. All 21 explicit inline
+  configs among the exported .021 sets enable the filter.
+  Native initialization probes check their enabled flags and
+  seven output floats. Soldier: 76 supplies 180 degrees for
+  the gate. The remaining twelve tree sets omit the inline
+  config. Their native defaults and the active turn-filter
+  inputs for greeting frames still require tracing.
   The builtin resolver C0CD30 reads 1FE as a float word at
   context +B0, or animation component +810 for BB8970. IDs 14,
   81 and B6 miss that resolver. Twelve original-instruction cases
