@@ -8,6 +8,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Identify the authored third-person parameter updater for all 33 exported greeting bodies.
+
 - Trace scoped greeting parameter fields, clamp and misses in 20 offline native cases.
   Actual provider inputs and pose composition remain open.
 

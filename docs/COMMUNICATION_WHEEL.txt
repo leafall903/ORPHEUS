@@ -1000,6 +1000,14 @@ Source paths for the remaining actions
   selects four implementations, using constructors 662000,
   6622A0, C15720 and 664240. Ten native cases check all four
   constructors, allocation failures and missing or unknown input.
+  Both initialization paths cast to STUAnimBlendTreeSet (FC47A2ED)
+  before reading +1A0, the embedded field m_animParamUpdater
+  (2B2C5C7F). The four factory type checks match registrations
+  533CAE07, 9260236F, 3CD83F9A and 7E3B5755 in branch order.
+  All 33 exported greeting bodies reference .021 tree sets with
+  STUAnimParamUpdater_Biped3P (9260236F). Soldier: 76 body 03FC
+  references set 02BE. This class selects 6622A0, whose vtable
+  at 26126C0 binds +58 to C131C0 and +68 to 662470.
   For virtual slot +58, the first two implementations reach
   C131C0, the third returns false, and the fourth uses C15BA0.
   C131C0 selects provider +10 or +240 for zero or nonzero scope.

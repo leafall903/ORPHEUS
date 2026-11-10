@@ -171,7 +171,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     resolver precedence and model-to-query handoff. Twenty-three more
     verify factory selection, initialization and builtin reads. Twenty
     more verify scoped provider field selection, clamping and misses.
-    The actual provider inputs and pose composition remain open.
+    All 33 exported greeting bodies select the Biped3P updater in their
+    model tree sets. Its parameter writers and pose composition remain open.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.
