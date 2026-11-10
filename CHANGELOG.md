@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the different dynamic collision rules and receiver results
+  for wheel profiles 0079 and 0111. All 128 native rule and 24
+  receiver cases pass. Live dynamic geometry and original-client
+  acceptance remain open.
 - Preserve ray hit ownership during callout target visibility checks.
   Six native cases and 85 focused offline tests pass. Live dynamic
   ray production and original-client acceptance remain open.
