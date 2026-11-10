@@ -51,36 +51,91 @@ def record_duration(xml, game_data, leaf):
     return seconds if math.isfinite(seconds) and seconds > 0 else None
 
 
-def category_durations(xml, item):
-    root = xml.field(item, "m_gameData")
-    data = embedded_data(xml, first_animation_node(xml, root))
-    node = first_animation_node(xml, data)
-    if node is None or node.tag != "STU_623B2B19" or node.get("m_E6058AAD") != "1":
-        return {}
-    keys = xml.field(node, "m_9F7CA0BB")
+def duration_tree(xml, data, node, keys, depth=0):
+    # C085B0 suppresses auxiliary nodes. F4CBC0 limits nested alias references.
+    if depth >= 48 or node is None:
+        return None
+    if node.tag == "STU_3C8FB392":
+        return record_duration(xml, data, node)
+    if node.tag == "STU_331B7B06":
+        nested = embedded_data(xml, node)
+        return duration_tree(xml, nested, first_animation_node(xml, nested), keys, depth + 1)
+    if node.tag != "STU_623B2B19" or node.get("m_E6058AAD") != "1":
+        return None
+
+    selectors = xml.field(node, "m_9F7CA0BB")
     indexes = xml.field(node, "m_540E2FC8")
     nodes = xml.field(data, "m_nodes")
-    if (keys is None or indexes is None or len(keys) != len(indexes) or not len(keys)
+    if (selectors is None or indexes is None or not len(selectors) or len(selectors) != len(indexes)
             or xml.field(node, "m_4D532CFC") is not None or xml.field(node, "m_53D9C839") is not None):
-        return {}
-    keys = [int(key.text) for key in keys]
-    if keys[-1] != 0 or any(not 0x80000000 < key <= 0xFFFFFFFF for key in keys[:-1]):
-        return {}
+        return None
+    selectors = [int(key.text) for key in selectors]
+    if selectors[-1] != 0 or any(not 0 < key <= 0xFFFFFFFF or not key & 0x7FFFFFFF for key in selectors[:-1]):
+        return None
+    indexes = [int(child.text) for child in indexes]
+    if any(not 0 < index < len(nodes) for index in indexes):
+        return None
+    keys.update(selectors[:-1])
+    return tuple((key, duration_tree(xml, data, xml.resolve(nodes[index]), keys, depth + 1))
+                 for key, index in zip(selectors, indexes))
 
+
+def selected_duration(tree, category, parents):
+    while isinstance(tree, tuple):
+        choice = tree[-1][1]
+        for key, branch in tree[:-1]:
+            index = key & 0x7FFFFFFF
+            if category == (CATEGORY_TYPE | index) or (not key & 0x80000000 and index in parents):
+                choice = branch
+                break
+        tree = choice
+    return tree
+
+
+def load_category_parents(source):
+    parents = {}
+    if source is not None:
+        for path in sorted(source.glob("*.015.xml")):
+            xml = StuXml(path, None)
+            if xml.root.tag != "STUAnimCategory":
+                raise ValueError(f"{path.name}: expected an animation category")
+            rows = xml.field(xml.root, "m_0E5A577A")
+            category = int(guid_text(path.stem), 16)
+            parents[category] = frozenset(int(row.text) for row in rows) if rows is not None else frozenset()
+        if not parents:
+            raise ValueError(f"No animation categories in {source}")
+    return parents
+
+
+def animation_durations(xml, item, category_parents):
+    keys = set()
+    data = xml.field(item, "m_gameData")
+    tree = duration_tree(xml, data, first_animation_node(xml, data), keys)
+    if tree is None:
+        return {}
+    if not isinstance(tree, tuple):
+        return {f"0x{EMOTE_ANY_CATEGORY:016X}": tree}
+
+    # Strict selectors can use their zero-category result for every unlisted key.
+    # Inheriting selectors need the actual category's compiled parent list.
+    candidates = {0: frozenset()}
+    strict = all(key & 0x80000000 for key in keys)
+    if strict:
+        candidates.update((CATEGORY_TYPE | (key & 0x7FFFFFFF), frozenset()) for key in sorted(keys))
+    else:
+        candidates.update(category_parents)
     result = {}
-    for key, child in zip(keys, indexes):
-        index = int(child.text)
-        if not 0 < index < len(nodes):
-            continue
-        game_data = embedded_data(xml, xml.resolve(nodes[index]))
-        seconds = record_duration(xml, game_data, first_animation_node(xml, game_data))
+    for category, parents in candidates.items():
+        seconds = selected_duration(tree, category, parents)
         if seconds is not None:
-            category = CATEGORY_TYPE | (key & 0x7FFFFFFF) if key else 0
-            result.setdefault(f"0x{category:016X}", seconds)
+            result[f"0x{category:016X}"] = seconds
+    if strict and len(result) == len(candidates):
+        result[f"0x{EMOTE_ANY_CATEGORY:016X}"] = result["0x0000000000000000"]
     return result
 
 
-def extract(source):
+def extract(source, category_source=None):
+    category_parents = load_category_parents(category_source)
     tables = {}
     for path in sorted(source.glob("*.021.xml")):
         xml = StuXml(path, None)
@@ -95,14 +150,7 @@ def extract(source):
             key = int(alias.text)
             if key >> 48 != 0x0C80 or key & 0xFFFFFFFF == 0:
                 continue
-            item = xml.resolve(item)
-            data = xml.field(item, "m_gameData")
-            direct = record_duration(xml, data, first_animation_node(xml, data))
-            # C085B0's duration query disables auxiliary nodes in F520A0.
-            if direct is None:
-                categories = category_durations(xml, item)
-            else:
-                categories = {f"0x{EMOTE_ANY_CATEGORY:016X}": direct}
+            categories = animation_durations(xml, xml.resolve(item), category_parents)
             if categories:
                 durations[f"0x{key:016X}"] = categories
         if durations:
@@ -114,8 +162,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="directory containing *.021.xml")
     parser.add_argument("output", type=Path, help=f"runtime data/{EMOTE_DURATION_DATA}")
+    parser.add_argument("--categories", type=Path, help="directory containing *.015.xml")
     args = parser.parse_args()
-    rows = extract(args.source)
+    rows = extract(args.source, args.categories)
     if not rows:
         raise SystemExit("No supported animation data found")
     args.output.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")

@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve nested model animation durations using the authored category order
+  and parent categories. The local timing table covers all 284 untagged and
+  eight tagged equipped mappings in the three wheel categories. All 97
+  focused offline tests and nine native nested model-query cases pass.
+  Active model remaps and original-client playback remain open.
 - Read primary animation records from direct model graphs. The runtime
   table now covers 264 of 284 untagged equipped mappings and all eight
   tagged mappings. An offline wheel selection confirms Soldier: 76's

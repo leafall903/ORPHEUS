@@ -203,9 +203,10 @@ Source paths for the remaining actions
   3D06.006 at 0.36666667 s. Zero and an unlisted category both select
   3D05.006 at 8.933333 s. The probe fixtures the model selection,
   skips IK output and leaves unrelated model parameters at zero.
-  tools/extract_emote_durations.py exports supported category-switch
-  shapes from .021 XML to emote_durations_174.json. The optional runtime
-  file is keyed by the selected blend tree, alias and category. The
+  tools/extract_emote_durations.py exports supported primary animation
+  records from .021 XML to emote_durations_174.json. Pass --categories
+  with the directory of extracted .015 XML to resolve category parents.
+  The optional runtime file is keyed by blend tree, alias and category. The
   offline 02A3 wheel path exercises the equipped 06B2.021 intro to
   loop transition. For a direct STU_3C8FB392 leaf, F4CCA0 emits
   the same primary record for any category. F4EA30 can select that leaf
@@ -218,10 +219,17 @@ Source paths for the remaining actions
   and an unlisted category. Each returns 3A7D.006 at 5.0000005 s.
   The extracted table uses the reserved all-ones category key for
   direct records. The offline wheel reaches the Heroic terminal action
-  at 5000 ms. The local data covers 264 of 284 untagged equipped
-  mappings and all eight tagged mappings. Other game-data graph shapes
-  and active model remaps remain open. An audit of the 8819 extracted
-  0A6 themes found no override keyed by 045C.014 in those themes.
+  at 5000 ms. F4CBC0 enters inline STU_331B7B06 data. F51450 selects the
+  first matching STU_623B2B19 branch and uses the final child as fallback.
+  Selector bit 31 requires an exact category. Otherwise 1789CE0 also
+  searches the loaded .015 category's m_0E5A577A parent list. Nine native
+  instruction cases exercise both nested switches in 06D3.021 alias 049C.
+  Category 01FC matches parent 011A in the outer switch and selects
+  primary record 4035 at 5067 ms. The local data covers all 284 untagged
+  and eight tagged equipped mappings for categories 0000, 006E and 0082.
+  Active model remaps and live mech selection remain open.
+  An audit of the 8819 extracted 0A6 themes found no override keyed
+  by 045C.014 in those themes.
   For the loop exit, 023A:18 checks 023A:27. That condition requires
   the 488 cancel latch and the 1322 ChaseVar reaching zero. The latch
   comes from 023A:38's movement and logical-button transitions.
