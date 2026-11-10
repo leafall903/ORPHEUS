@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Drive wheel sight anchors from the active primary emote clip and its
+  state clock. Six offline selections cover the original Lucio intro,
+  loop and exit clips. The post-emote combat query uses body-height rays.
+  All 91 focused tests pass. Other layers, blending and client
+  acceptance remain open.
 - Export primary .006 selections from the original emote blend trees.
   Verify 3009 clip entries across 393 tree sets and compare the full
   duration tables against the previous extractor. All 91 focused tests

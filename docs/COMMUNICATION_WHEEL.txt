@@ -502,8 +502,15 @@ Source paths for the remaining actions
   tracks with both index widths. Ten 104319 clips match 24255 decoded
   OWLib keys to within 5e-7 per component. Offline Lúcio selections with
   three supplied times from 3D05.006 cast to three corresponding anchor
-  positions. Match clock, animation layer selection and blending still
-  need bindings. Native interpolation equivalence remains unverified.
+  positions. The match samples the sole active 023A primary Anim at
+  elapsed state time, wrapping node 18 at clip duration. Current root
+  translation and yaw place the result. Optional runtime data needs
+  emote_clips_174.json, wheel_pose_174/models/<12-digit body index>.00C
+  and wheel_pose_174/clips/<12-digit clip index>.006, with uppercase
+  hex filenames. Six offline selections exercise 3D04, 3D05 and 3D06
+  on an equipped Lucio emote. The post-emote combat query returns to
+  body-height rays. Locomotion, greeting poses, blending, native
+  interpolation and model replacement remain open.
   D607F0 reports occlusion for a hit owned by a different entity
   or by the world. A miss or a hit owned by the candidate is clear.
   Six native cases verify this decision with fixture scene returns.

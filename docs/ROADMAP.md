@@ -131,7 +131,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     with sampled local transforms are available. A decoded absolute clip
     now supplies local samples to offline wheel rays. The extractor
     exports deterministic clip GUIDs for the authored category branches.
-    Match animation timing, layer selection and blending remain open.
+    Match targeting now samples an active 023A primary clip using its
+    state time when external pose assets are present. Other animation
+    layers, blending and model replacement remain open.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.

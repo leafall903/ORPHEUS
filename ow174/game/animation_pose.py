@@ -1,11 +1,13 @@
 """Decode and sample the sparse local bone tracks in 104319 .006 clips."""
 
+import json
 import math
 import struct
 from bisect import bisect_right
 from dataclasses import dataclass
+from functools import lru_cache
 
-from ow174.game.props import BoneTransform
+from ow174.game.props import BoneTransform, ModelPose, model_hardpoints, model_reference_bones
 
 
 _TRACK_HEADER = struct.Struct("<4H6i")
@@ -135,3 +137,52 @@ class AnimationClip:
                 position.sample(frame, base.translation),
             )
         return sampled
+
+
+@lru_cache(maxsize=4)
+def wheel_primary_clips(path):
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    return {
+        (int(blend, 16), int(alias, 16), int(category, 16)): int(clip, 16)
+        for blend, aliases in rows.items()
+        for alias, categories in aliases.items()
+        for category, clip in categories.items()
+        if isinstance(clip, str) and int(clip, 16) >> 48 == 0x0A00
+    }
+
+
+@lru_cache(maxsize=64)
+def _wheel_clip(path):
+    try:
+        return AnimationClip.read(path.read_bytes())
+    except FileNotFoundError:
+        return None
+
+
+@lru_cache(maxsize=64)
+def _wheel_model(path):
+    try:
+        data = path.read_bytes()
+    except FileNotFoundError:
+        return None
+    return model_hardpoints(data), model_reference_bones(data)
+
+
+def wheel_clip_pose(directory, body: int, clip: int, seconds: float,
+                    looping: bool, transform: tuple[float, ...]) -> ModelPose | None:
+    model = _wheel_model(directory / "models" / f"{body & 0xFFFFFFFFFFFF:012X}.00C")
+    if model is None:
+        return None
+    animation = _wheel_clip(directory / "clips" / f"{clip & 0xFFFFFFFFFFFF:012X}.006")
+    if animation is None:
+        return None
+    hardpoints, reference = model
+    if looping and animation.duration > 0:
+        seconds %= animation.duration
+    sampled = animation.sample_absolute(seconds, reference)
+    if not sampled:
+        return None
+    return ModelPose.from_local_bones(hardpoints, reference, transform, sampled)

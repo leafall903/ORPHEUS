@@ -27,7 +27,7 @@ from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import animation_pose, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER, heroes
@@ -419,7 +419,7 @@ class BodyWorld(runtime.World):
             # The bundle already holds the resource, so submission can flush synchronously.
             play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
 
-    def animation_duration(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+    def _wheel_animation_key(self, instance: runtime.Instance, node: graph.Node) -> tuple | None:
         parent = instance.parent
         if not self.communication_wheel or parent is None:
             return None
@@ -429,25 +429,53 @@ class BodyWorld(runtime.World):
         alias = instance.evaluate(node.field("m_11E0A658"))
         if not expr.truthy(alias):
             # A zero alias skips the native model query.
-            return 0.0
+            return (0, 0, 0)
         category = instance.evaluate(node.field("m_22326315"))
         if not isinstance(alias, Asset) or (category is not None and not isinstance(category, Asset)):
             return None
         if context == (0x0341, 0x0686):
-            resource, filename = self.body_definition, GREETING_DURATION_DATA
+            resource = self.body_definition
         else:
             blend = instance.find_var(INSTANCE, 8908)
             blend = blend.value() if blend is not None else None
             if not isinstance(blend, Asset):
                 return None
-            resource, filename = blend.guid, EMOTE_DURATION_DATA
+            resource = blend.guid
             if not resource and self.body_definition == 0x040000000000040A:
                 # The pilot's model component supplies its base tree when the equipped tree is empty.
                 resource = 0x004000000000048A
+        return resource, alias.guid, category.guid if category is not None else 0
+
+    def animation_duration(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+        key = self._wheel_animation_key(instance, node)
+        if key is None or not key[1]:
+            return None if key is None else 0.0
+        filename = GREETING_DURATION_DATA if instance.graph.index == 0x0341 else EMOTE_DURATION_DATA
         durations = wheel_animation_durations(DATA_DIR / filename)
-        return durations.get(
-            (resource, alias.guid, category.guid if category is not None else 0),
-            durations.get((resource, alias.guid, EMOTE_ANY_CATEGORY)),
+        return durations.get(key, durations.get((*key[:2], EMOTE_ANY_CATEGORY)))
+
+    def wheel_model_pose(self, component, transform):
+        active = [
+            state for instance in component.instances.values()
+            if instance.graph.index == 0x023A and not instance.stopped
+            for state in instance.states.values()
+            if state.active and state.node.pos in (0, 18, 19, 52)
+        ]
+        if len(active) != 1:
+            return None
+        state = active[0]
+        if state.node.field("m_speedScalar") is not None:
+            return None
+        key = self._wheel_animation_key(state.instance, state.node)
+        if key is None or not key[1]:
+            return None
+        clips = animation_pose.wheel_primary_clips(DATA_DIR / "emote_clips_174.json")
+        clip = clips.get(key, clips.get((*key[:2], EMOTE_ANY_CATEGORY)))
+        if clip is None:
+            return None
+        seconds = max(0, state.now - state.start) / 1000
+        return animation_pose.wheel_clip_pose(
+            DATA_DIR / "wheel_pose_174", self.body_definition, clip, seconds, state.node.pos == 18, transform,
         )
 
     def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):

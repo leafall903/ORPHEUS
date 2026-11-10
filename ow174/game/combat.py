@@ -426,7 +426,7 @@ class Combat:
 
     def __init__(self, match) -> None:
         self.match = match
-        self.model_pose_for: Callable[[int], ModelPose | None] | None = None
+        self.model_pose_for: Callable[[int], ModelPose | None] = self._wheel_model_pose
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
@@ -645,6 +645,17 @@ class Combat:
             self.vitals[target.entity] = found
         return found
 
+    def _wheel_model_pose(self, entity: int) -> ModelPose | None:
+        player = self.match._message_player(entity)
+        script = player.body_script if player is not None else None
+        if script is None or script.retired or script.component.fault is not None:
+            return None
+        mover = player.mover
+        right = aim(mover.yaw + 16384, 0)
+        forward = aim(mover.yaw, 0)
+        transform = (*right, 0.0, 0.0, 1.0, 0.0, 0.0, *forward, 0.0, *mover.position, 1.0)
+        return script.world.wheel_model_pose(script.component, transform)
+
     def communication_target(
         self, entity: int, offset, radius: float, aperture: float, category: int,
     ) -> int | None:
@@ -683,7 +694,7 @@ class Combat:
             depth = _dot(delta, forward)
             if depth < limit * math.hypot(*delta):
                 continue
-            pose = self.model_pose_for(target.entity) if self.model_pose_for is not None else None
+            pose = self.model_pose_for(target.entity)
             if not _communication_visible(rays, origin, target, category, pose):
                 continue
             screen = _communication_screen_score(target, eye, forward, right, up)
