@@ -76,7 +76,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
     The 21616 cosmetic-use report reaches the corresponding body instance.
-    The native unlock-use action remains open.
+    Native PC factory and dispatch probes verify the inherited Action
+    path. The server-side unlock-use effect remains open.
     The spray graph resolves eligible surfaces in loaded static collision and
     replicates the placement in owner and observer frames. Expanded ray caches
     supply spray-only surfaces and mode props when prepared for the map.
@@ -93,7 +94,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     ordinary callout for enemies and free-for-all.
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
     The selected marker reaches the authored terminal action. Its client
-    type methods are identified, and the action's effect remains open.
+    type methods and inherited Action path are verified. The server-side
+    marker effect remains open.
     Upright player targets use the native screen rectangle score with
     server stance dimensions and command aim. Equal screen scores use
     candidate root distance. The search origin rotates the authored

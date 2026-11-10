@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the captured PC factory and inherited dispatch for cosmetic use
+  and Acknowledge markers. Twelve native cases and two offline routing
+  tests pass. The server-side effects and original-client acceptance remain open.
 - Verify airborne emote cancellation on an idle command. Nineteen native
   expression cases and 87 focused offline tests pass. The animation-driven
   movement modifiers and original-client acceptance remain open.

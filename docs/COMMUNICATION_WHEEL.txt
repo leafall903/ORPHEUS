@@ -38,9 +38,19 @@ Source paths for the remaining actions
   resource. For spray it also requires an active placement. It queues
   the typed parameter on that instance's normal event queue. The tests
   exercise the receive channel and both authored entry states.
-  STU_94771561 is described at 31B3F20. The mapped image has no
-  constructor row for key 2DF3C18. The server-side unlock-use effect
-  remains open.
+  STU_94771561 is described at 31B3F20. Its three authored occurrences
+  are 023A:108 (emote, category 2), 02CF:39 (spray, category 4) and
+  0686:70 (voice, category 5). The emote graph invokes it directly;
+  the other two call it through the server-only report entry. The PC
+  registry's 1735 rows have no dedicated constructor for key 2DF3C18.
+  Native factory 1B902B0 walks to Action key 2DD5430 and constructs
+  vtable 261BD78 via 1B72650. Six executions of the inherited handler
+  1B6EBA0 invoke the component notification once with the node index,
+  then process the empty out plug. Invalid fixture addresses in the
+  subclass fields confirm the inherited handler does not read them.
+  PC VM table 262C010 routes that notification via 97A170 to the
+  action-record queue at A0A0D0. The probe fixtures the notification;
+  the server-side unlock-use effect remains open.
 - The wheel's STU_4460419A queries use .096 action metadata extracted
   from the 104319 CASC. Category 7428.01C covers 16B–172, 1E5–1F4, 1F7
   and 1F9. Category 741E covers 172 and 19F–1A2. Category 7420 covers
@@ -560,8 +570,11 @@ Source paths for the remaining actions
   2757830, 2757838 and 2757840. Their functions return the key
   (15EF1A0), walk its STU inheritance chain (15F1EC0) and compare
   the exact type (15F0BE0). Nine offline native cases confirm these
-  roles. No runtime constructor row for the action has been located.
-  The neighboring key 2DF7B40 does have one for the marker presenter,
+  roles. The captured PC registry has no dedicated constructor for
+  the action. Two native executions of the same Action parent fallback
+  notify the component with node 165's raw index and process the empty
+  out plug without reading the marker parameter. The neighboring key
+  2DF7B40 has a dedicated registration for the marker presenter,
   with constructor ADE350. Adjacent descriptor 31BEC60 belongs
   to 1E0773EB and its projection presenter is a separate class.
   The host forwards a nonzero 21608 entity field for action 0170
