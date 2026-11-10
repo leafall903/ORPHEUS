@@ -1180,7 +1180,10 @@ class Match:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
-            script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+            script.command(
+                command.frame, command.buttons, command.action, command.forward, command.right,
+                grounded=not player.mover.airborne,
+            )
         except Exception as error:
             bodytrace.failed(script, error)
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)

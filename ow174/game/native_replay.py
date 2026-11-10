@@ -198,14 +198,17 @@ def make_header(
 
 def make_command_event(
     script: BodyScript, command: Command, *, seq: int, server_tick: int, before_hash: str,
-    command_epoch: int, body_epoch: int,
+    command_epoch: int, body_epoch: int, grounded: bool | None = None,
 ) -> dict:
-    return {
+    event = {
         "kind": "command", "seq": seq, "server_tick": server_tick,
         "command_epoch": command_epoch, "body_epoch": body_epoch,
         "command": {name: getattr(command, name) for name in COMMAND_FIELDS},
         "before_hash": before_hash, "after_hash": snapshot_hash(script), "shots": shot_summary(script),
     }
+    if grounded is not None:
+        event["grounded"] = grounded
+    return event
 
 
 def make_end_event(
@@ -349,6 +352,8 @@ def replay_document(document: dict) -> dict:
             fields |= {"command", "before_hash", "after_hash", "shots"} if kind == "command" else {
                 "final_hash", "reason",
             }
+            if kind == "command" and type(event.get("grounded")) is bool:
+                fields.add("grounded")
             if set(event) != fields:
                 fail("invalid_event_fields", offset=offset)
                 break
@@ -386,7 +391,10 @@ def replay_document(document: dict) -> dict:
                 fail("epoch_boundary", seq=seq, reason="Native body timers/CmFD need a fresh lifecycle")
                 break
             try:
-                script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+                script.command(
+                    command.frame, command.buttons, command.action, command.forward, command.right,
+                    grounded=event.get("grounded"),
+                )
                 after, shots = snapshot_hash(script), shot_summary(script)
             except (ValueError, RuntimeError) as error:
                 fail("runtime_fault", seq=seq, error=str(error))

@@ -58,9 +58,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     equipped unlocks. The 023A owner frame carries the selected blend tree.
     Emote cleanup releases the stack on a supplied finish or priority loss.
     The emote VM follows authored loop and empty-alias timing and reads
-    prepared model durations for supported category switches. Other model
-    duration graphs, loop exit inputs, tagged D.Va emotes and original-client
-    playback remain open.
+    prepared model durations for supported category switches. The offline
+    Take a Knee path reaches the authored exit and cleans up on primary fire.
+    Other model duration graphs, remaining interrupt inputs, tagged D.Va
+    emotes and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.

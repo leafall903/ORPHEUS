@@ -10,7 +10,7 @@ The existing seven-field FlatMover v1 schema and result remain independent and u
 Recording API (all helpers read stored data and never consume shots or draw random numbers)
 ow174.game.native_replay.make_header(script, *, quanta_us, command_epoch, body_epoch, server_tick)
 snapshot_hash(script)
-make_command_event(script, command, *, seq, server_tick, before_hash, command_epoch, body_epoch)
+make_command_event(script, command, *, seq, server_tick, before_hash, command_epoch, body_epoch, grounded=None)
 make_end_event(script, *, seq, server_tick, command_epoch, body_epoch, reason='retired')
 
 Create a header immediately after constructing each new BodyScript. Observe before_hash immediately
@@ -41,6 +41,7 @@ mid-body without a full checkpoint will therefore normally fail initialization v
 
 Command event
 kind=command, seq, server_tick, command_epoch, body_epoch, command, before_hash, after_hash, shots.
+The optional grounded Boolean records the mover sample supplied to wheel-emote body commands.
 command has exactly eleven fields: frame, forward, right, yaw, pitch, buttons, action, extra, subframe,
 click_yaw, click_pitch. View delay/subframe/click aim are retained even though BodyScript itself does
 not use all of them: combat does, and discarding them would make later investigation impossible.

@@ -613,7 +613,10 @@ class BodyScript(ReplicatedBody):
 
     # --- running -----------------------------------------------------------------------------------
 
-    def command(self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0) -> None:
+    def command(
+        self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
+        *, grounded: bool | None = None,
+    ) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
 
@@ -633,6 +636,10 @@ class BodyScript(ReplicatedBody):
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
             self._run(missing, [])
         self.world.throttles = (forward, right)
+        if self.world.communication_wheel and grounded is not None:
+            # 01C7:7 projects the mover's in-air mask and current axes.
+            self.component.set(545, grounded)
+            self.component.set(2070, bool(forward or right))
         self._run(frame, button_edges(self.buttons, buttons, action))
         self.buttons = buttons
         self.frame = frame

@@ -1242,6 +1242,10 @@ class Instance:
             state.flags_changed = False
             if state.active:
                 state.dependency_changed()
+                # 023A's animation and cancel transitions watch the authored
+                # ChaseVar, cancel latch, and mover values they evaluate.
+                if self.graph.index == 0x023A and state.node.field("m_transitionPlug"):
+                    state.try_complete()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
         elif event.kind == ASSIGN:
@@ -1266,6 +1270,18 @@ class Instance:
             if state is not None:
                 state.button(button, pressed)
         component.button = NO_BUTTON
+        if pressed and self.graph.index == 0x023A:
+            # 023A's held-button transition conditions name the states to recheck.
+            for condition in self.graph.nodes:
+                if (condition is None or condition.cls != "STU_7DEB522D"
+                        or not condition.field("m_00994FF0")
+                        or expr.to_int(self.evaluate(condition.field("m_logicalButton"))) != button):
+                    continue
+                for index in condition.field("m_122DF0CA") or ():
+                    state = self.states.get(index)
+                    if state is not None and state.active and not state.flags_check:
+                        state.flags_check = True
+                        self.post(Event(component.now, 0, CHECK, state=state))
 
     def run_deferred(self) -> bool:
         """The deferred list (Defer), from the last entry down. Returns whether something ran."""

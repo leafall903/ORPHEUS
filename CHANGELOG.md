@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Feed the wheel emote graph its movement and logical-button cancel inputs.
+  Take a Knee remains in its loop while idle, takes the 367 ms exit
+  animation on primary fire, and releases the wheel stack through the
+  authored wait. Body traces record the optional grounded command input.
+  All 145 offline tests, seven native mover cases, and six native held
+  button cases pass. Other model graphs and original-client playback remain open.
 - Resolve animation duration for equipped emotes with a static category
   switch. The optional runtime table contains 78 blend tree sets from
   the local 104319 XML, with 73 matching equipped unlock mappings.

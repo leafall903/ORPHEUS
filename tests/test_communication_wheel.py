@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from test_game_combat import KANEZAKA_DM, Run
+from test_game_combat import KANEZAKA_DM, Run, in_world
 from test_game_entity_lifecycle import client as game_client
 
 from ow174.accounts.profile import Profile
@@ -18,6 +18,7 @@ from ow174.game import combat, messages, observers, statescript
 from ow174.game.bits import BitWriter
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import RayAttachment, RayHit, StaticCollisionProvider, World, flat_world
+from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.world import OP_CREATE, EntityUpdate
@@ -345,34 +346,69 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertNotIn(current[index].id, body.component.instances)
             self.assertNotIn(current[index].id, client.graphs)
 
-    def test_equipped_kneel_intro_uses_its_model_category_duration(self):
+    def test_equipped_kneel_timing_and_cancel_follow_body_commands(self):
         alias, blend = 0x0C80000000000476, 0x00400000000006B2
         with TemporaryDirectory() as directory:
             data = Path(directory)
             (data / "emote_durations_174.json").write_text(json.dumps({
-                hex(blend): {hex(alias): {"0x028000000000006E": 1.0666667, "0x0": 8.933333}},
+                hex(blend): {hex(alias): {
+                    "0x028000000000006E": 1.0666667,
+                    "0x0280000000000082": 0.36666667,
+                    "0x0": 8.933333,
+                }},
             }), encoding="utf-8")
             with patch("ow174.game.script.driver.DATA_DIR", data):
-                body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True,
-                                  emote_aliases=(alias,), emote_blend_trees=(blend,))
+                match = Match(
+                    PRACTICE_RANGE,
+                    collision_provider=StaticCollisionProvider(flat_world(PRACTICE_RANGE.spawns[0].position[1])),
+                    emote_aliases_of=lambda *_: (alias,), emote_blend_trees_of=lambda *_: (blend,),
+                )
+                player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+                in_world(match, player)
+                match.tick = 1000
+                match.switch_hero(player, player.hero)
+                body = player.body_script
+                player.take_commands([Command(body.frame + 1)])
                 runtime.send_message(
                     body.component, 0x02400000000002A3,
                     {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
                 )
-                body.command(1001, 0)
+                player.take_commands([Command(body.frame + 1)])
                 animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
                 intro = animation.node_state(animation.graph.node(19))
-                for frame in range(1002, 1120):
-                    body.command(frame, 0)
+                for frame in range(body.frame + 1, body.frame + 120):
+                    player.take_commands([Command(frame)])
                     if intro.active:
                         break
                 self.assertTrue(intro.active)
                 self.assertEqual([event.time - intro.start for event in animation.queue if event.state is intro],
                                  [1067, 1067])
-                while body.component.now < intro.start + 1067:
-                    body.command(body.frame + 1, 0)
+                # Stay idle until 023A:50 has chased the exit gate to zero.
+                while body.component.now < intro.start + 2400:
+                    player.take_commands([Command(body.frame + 1)])
                 self.assertFalse(intro.active)
-                self.assertTrue(animation.node_state(animation.graph.node(18)).active)
+                loop = animation.node_state(animation.graph.node(18))
+                self.assertTrue(loop.active)
+                self.assertTrue(body.component.entity_var(545).value())
+                self.assertFalse(body.component.entity_var(2070).value())
+                cancel = animation.node_state(animation.graph.node(38))
+                self.assertTrue(cancel.active)
+                self.assertFalse(expr.truthy(animation.find_var(expr.INSTANCE, 488).value()))
+
+                # Fire cancels via held button 20 while the mover is still grounded.
+                player.take_commands([Command(body.frame + 1, buttons=FIRE)])
+                self.assertTrue(animation.find_var(expr.INSTANCE, 488).value())
+                self.assertFalse(cancel.active)
+                self.assertFalse(loop.active)
+                exit_anim = animation.node_state(animation.graph.node(52))
+                self.assertTrue(exit_anim.active)
+                self.assertEqual([event.time - exit_anim.start for event in animation.queue
+                                  if event.state is exit_anim], [367, 367])
+                while body.component.now < exit_anim.start + 1000:
+                    player.take_commands([Command(body.frame + 1)])
+                self.assertTrue(animation.stopped)
+                self.assertNotIn(0x069A, {i.graph.index for i in body.component.instances.values()})
+                self.assertNotIn(0x1040, {i.graph.index for i in body.component.instances.values()})
 
     def test_emote_intro_with_no_alias_takes_its_authored_loop_transition(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)

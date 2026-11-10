@@ -197,8 +197,30 @@ Source paths for the remaining actions
   shapes from .021 XML to emote_durations_174.json. The optional runtime
   file is keyed by the selected blend tree, alias and category. The
   offline 02A3 wheel path exercises the equipped 06B2.021 intro to
-  loop transition. Other game-data graph shapes, runtime model remaps,
-  and the original transition input for the loop exit remain open.
+  loop transition. Other game-data graph shapes and runtime model remaps
+  remain open.
+  For the loop exit, 023A:18 checks 023A:27. That condition requires
+  the 488 cancel latch and the 1322 ChaseVar reaching zero. The latch
+  comes from 023A:38's movement and logical-button transitions.
+  The STU_7DEB522D type key 2DE6D00 registers constructor 1B762E0.
+  Vtable 27ACBF0 slot 40 calls 1B758C0. The m_00994FF0 field at
+  +B2 tests the held list through 1B8D940. The 023A conditions name
+  state index 11 (node 38) in m_122DF0CA. The host queues that
+  state's check for matching held-button presses and rechecks 023A
+  transitions when a watched value changes. Six native instruction cases
+  check the held condition with a fixture for the button-suppression service.
+  01C7:7 provides movement values. STU_96F1DBCF constructor D3A510
+  installs vtable 266ED08, whose tick reaches D3D420. D3D804
+  tests the mover flags with mask 80000C. D3D85D records whether
+  either axis byte at +20/+21 is nonzero. D3D9E8 and D3DA4C pass
+  these booleans through node fields +F8 and +118 to entity variables
+  545 and 2070. Seven native instruction cases cover the in-air
+  flags, both axes and an unrelated flag. The host uses the existing
+  mover's airborne flag and the command's axes for the wheel path.
+  An offline match starts the equipped Take a Knee emote, confirms
+  the loop persists while idle, and sends primary fire. The authored
+  023A:52 exit lasts 367 ms. The 023A:51 wait reaches the terminal
+  action at 1000 ms and retires 023A, 069A and 1040.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
   graph selects the fixed, configurable or voice branch. Initializer 62
