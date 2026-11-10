@@ -207,6 +207,25 @@ class CommunicationWheelTests(unittest.TestCase):
         run.match.deliver_body_messages()
         self.assertEqual(wheel.vars[375].value(), (expr.Entity(nearer.body),))
 
+    def test_wheel_uses_candidate_origin_for_world_distance(self):
+        run = Run(names=("Speaker", "Lower", "Higher"))
+        speaker, lower, higher = run.players
+        run.match.collision_world = World(())
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        # Both screen rectangles cover the reticle. The lower player's
+        # capsule center is closer, while the higher player's root is closer.
+        dimensions = combat.mover_data(lower.hero.body)
+        lower.mover.position = (0.0, 1.0 - dimensions.stand_height * 0.5, 8.0)
+        higher.mover.position = (0.0, 1.0, 8.01)
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+
+        script.command(script.frame + 150, 0)
+        run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+        run.match.deliver_body_messages()
+        self.assertEqual(wheel.vars[375].value(), (expr.Entity(higher.body),))
+
     def test_confirmed_action_directs_callout_only_to_the_aimed_teammate(self):
         cases = (
             (0x1E5, 0x12F4, PRACTICE_RANGE, True),

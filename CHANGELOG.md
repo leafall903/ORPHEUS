@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Use candidate root positions for the wheel's world-distance score.
+  The equal-screen-score selection regression and all 83 focused
+  offline tests pass. Original-client acceptance remains deferred.
 - Rank upright player targets by the native screen rectangle score.
   The corner selection regression and 82 focused offline tests pass.
   Animated anchors, special camera bases and original-client acceptance

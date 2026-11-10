@@ -342,9 +342,14 @@ Source paths for the remaining actions
   eye position, uses the screen rectangle score and applies the
   failed-projection penalty. An offline selection test covers a
   reticle inside the rectangle corner beyond the combat capsule.
-  The host still uses its mover dimensions, eye height and capsule
-  center for world distance. Animated anchors and special camera
-  bases remain open. Expanded static rays supply line of sight.
+  C9753A reads the candidate transform's translation, and C9763C
+  compares it to the source point passed through both ranking paths
+  from C9A430. For upright players the host scores the distance from
+  its search origin to the candidate mover root. A selection test
+  distinguishes root ordering when both screen rectangles contain
+  the reticle. The host uses mover dimensions and eye height.
+  Animated anchors, special camera bases and exact source transform
+  composition remain open. Expanded static rays supply line of sight.
   With no expanded cache, the ray uses the movement world's shapes.
   CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
   +28 and +35 through 17A8FC0 and writes the results into request

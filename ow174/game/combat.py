@@ -656,8 +656,8 @@ class Combat:
             if not capsule_visible(rays, eye, a, b, target.radius, category):
                 continue
             screen = _communication_screen_score(target, eye, forward, right, up)
-            center = tuple((lower + upper) * 0.5 for lower, upper in zip(a, b, strict=True))
-            score = screen + 0.01 * min(1.0, math.dist(origin, center) / radius)
+            # C9753A reads the candidate transform's translation.
+            score = screen + 0.01 * min(1.0, math.dist(origin, target.feet) / radius)
             if score < best_score:
                 best, best_score = target.entity, score
         return best

@@ -89,8 +89,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The selected marker reaches the authored terminal action. Its client
     type methods are identified, and the action's effect remains open.
     Upright player targets use the native screen rectangle score with
-    server stance dimensions and command aim. Animated anchors and
-    special camera inputs still require a server binding.
+    server stance dimensions and command aim. Equal screen scores use
+    candidate root distance. Animated anchors and special camera inputs
+    still require a server binding.
     Target visibility uses expanded static rays with the common 1FDF
     mask recovered from both .097 profiles. Need Healing uses the authored
     source body tag in its targeting and voice branches. Marker effects,
