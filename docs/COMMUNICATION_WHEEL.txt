@@ -354,7 +354,16 @@ Source paths for the remaining actions
   variable 545 are false. State 109 sets 30472 through node 111 only if
   abs(y(681)) exceeds 0.01 plus the native comparison tolerance. The
   Anim field EBEFB4A7 names 681. The field table gives offset +178, and
-  CBDAD1 links it as slot 2. CC0DB5 passes the cache to BB8970, and
+  CBDAD1 links it as slot 2. The original Anim vtable 2660420
+  dispatches startup to CBD510. That path calls CC19A0, which
+  evaluates the configs at node +F8 and +100 and stores their
+  GUIDs at descriptor +0 and +8. CC1DB0 uses this same pair
+  for duration lookup when the primary GUID is a .014 alias.
+  On a successful animation start, CC5BA5 and CC5BB3 copy
+  the descriptor keys to state +1E8 and +1F0. CC5DD1 calls
+  the update helper after the animation index is valid and
+  the update stamp changes. CC0DB5 passes the saved key pair
+  and cache to BB8970, and
   BB8E08 writes its sampled scalar at cache +8. CBD170 returns that slot
   as float tag 3. Native expression opcode 61 at 1B809B0 returns zero
   for a float, and reads the second component only for vector tag 6.
@@ -376,8 +385,9 @@ Source paths for the remaining actions
   Twenty native compiled-row cases exercise both array layouts
   through the cache write. Eleven additional cases cover sample
   time boundaries, interpolation and cursor rewind. These probes
-  supply fixture rows. The producer of the authored runtime track
-  for the selected wheel emote still needs to be resolved.
+  supply fixture rows. The selected wheel emote still needs a
+  verified mapping from the startup key pair and model context
+  to the compiled row that contains its authored scalar curve.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored

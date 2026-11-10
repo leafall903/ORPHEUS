@@ -8,6 +8,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace the original emote animation startup keys into the movement scalar sampler.
+
 - Verify the original emote scalar track builder, interpolation and
   missing-track fallback in 31 native cases. The authored track
   producer, runtime movement binding and client playback remain open.

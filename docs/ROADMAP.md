@@ -71,7 +71,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     cases verify the airborne gate and that Anim slot 2 is scalar. The
     remaining logical buttons and animation-driven movement modifiers remain open.
     Native probes verify the compiled scalar track layout, sampling
-    and missing-track zero. The authored runtime track producer is open.
+    and missing-track zero. The original Anim startup key pair now
+    traces into the sampler. Its mapping to the selected emote
+    model's compiled scalar row remains open.
     An explicitly selected mech body with its prepared graphs uses its tagged
     emote. Automatic form transitions, runtime tag changes, live model remaps
     and original-client playback remain open.
