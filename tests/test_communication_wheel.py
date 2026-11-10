@@ -575,9 +575,9 @@ class CommunicationWheelTests(unittest.TestCase):
         def wall(z):
             return (-3, 0, z, 3, 0, z, -3, 4, z), (3, 0, z, 3, 4, z, -3, 4, z)
 
-        pixel = 0x02500000000007F1
+        pixel, alternate = 0x02500000000007F1, 0x0250000000000004
         for distance, unlocks, yaw, expected in (
-            (3.0, (pixel,), 0, True),
+            (3.0, (pixel, alternate), 0, True),
             (4.51, (pixel,), 0, False),
             (3.0, (pixel,), 32768, False),
             (3.0, (), 0, False),
@@ -610,9 +610,14 @@ class CommunicationWheelTests(unittest.TestCase):
                 spray = next(i for i in body.component.instances.values() if i.graph.index == 0x02CF)
                 state = spray.state(1)
                 self.assertEqual(state.active, expected)
-                owner_frames = [owner.apply(update) for update in body.frames()]
-                remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
-                watched = decode.read_chunk(remote.getvalue(), remote.count).instances[spray.id]
+                owner_updates = body.frames()
+                owner_frames = [owner.apply(update) for update in owner_updates]
+                watcher = decode.ClientBody.for_hero(SOLDIER)
+                stream = BodyStream(body.entity)
+                baseline = observers.snapshot(body)
+                tree = stream.full(observers.full_frame(body, baseline), baseline)
+                watched = watcher.apply(tree).instances[spray.id]
+                stream.arrived(tree.chunk_last)
                 self.assertEqual(owner.states.get((spray.id, 1), False), expected)
                 self.assertEqual(watched.states.get(1, (False, {}))[0], expected)
                 if expected:
@@ -620,6 +625,7 @@ class CommunicationWheelTests(unittest.TestCase):
                         "direction": (0.0, 0.0, 1.0),
                         "point": (0.0, combat.eye_height(player.hero.body), distance),
                         "normal": (0.0, 0.0, -1.0),
+                        "unlock": pixel,
                     })
                     result = (True, spray_placement.wire_fields(state.payload()))
                     self.assertEqual(watched.states[1], result)
@@ -628,6 +634,26 @@ class CommunicationWheelTests(unittest.TestCase):
                     ])
                     self.assertTrue(spray.state(14).active)
                     self.assertEqual(spray.state(14).pulses, 1)
+                    for update in owner_updates:
+                        body.stream.arrived(update.chunk_last)
+                    # A new look at the identical point must make both clients read placement again.
+                    body.command(body.frame + 300, 0)
+                    runtime.send_message(
+                        body.component, 0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A900000000001A5), 0x3E1: True}, body.entity,
+                    )
+                    body.command(body.frame + 1, 0)
+                    self.assertEqual(state.payload()["unlock"], alternate)
+                    self.assertEqual(spray_placement.wire_fields(state.payload()), result[1])
+                    owner_frames = [owner.apply(update) for update in body.frames()]
+                    self.assertIn(result, [
+                        frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
+                    ])
+                    snap = observers.snapshot(body)
+                    delta, keys = observers.delta(body, stream, snap)
+                    watched = watcher.apply(stream.delta(delta, snap, keys, 0)).instances[spray.id]
+                    self.assertEqual(watched.states[1], result)
+                    self.assertEqual(spray.state(14).pulses, 2)
                     # A failed replacement cannot carry the new slot with the old geometry.
                     player.mover.yaw = 32768
                     body.command(body.frame + 300, 0)
@@ -638,7 +664,7 @@ class CommunicationWheelTests(unittest.TestCase):
                     body.command(body.frame + 1, 0)
                     self.assertFalse(state.active)
                     self.assertEqual(state.payload(), {})
-                    self.assertEqual(spray.state(14).pulses, 1)
+                    self.assertEqual(spray.state(14).pulses, 2)
                 else:
                     self.assertEqual(state.payload(), {})
                     self.assertFalse(spray.state(14).active)
@@ -688,7 +714,7 @@ class CommunicationWheelTests(unittest.TestCase):
                 payload = spray.state(1).payload()
                 self.assertEqual(payload, {
                     "direction": (0.0, 0.0, 1.0), "point": (2.0, 0.0, 0.0), "normal": (0.0, 0.0, 1.0),
-                    "entity": 0x8000022E, "extra": key,
+                    "entity": 0x8000022E, "extra": key, "unlock": 0x02500000000007F1,
                 })
                 wire = spray_placement.wire_fields(payload)
                 self.assertEqual(wire["entity"], 0x8000022E)

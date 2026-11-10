@@ -1867,7 +1867,8 @@ class SprayPlacement(State):
             self.instance.follow(self.node, "m_9254FB21", self)
             self.request(ABORT)
             return
-        self.placement = hit
+        # The client resolves the look when it reads the placement.
+        self.placement = dict(hit, unlock=unlock.guid)
         self.instance.follow(self.node, "m_A39D2005", self)
 
     def on_end(self, finished: bool) -> None:

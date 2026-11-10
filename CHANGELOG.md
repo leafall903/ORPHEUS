@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resend spray placement to the owner and observers when the equipped
+  spray changes at identical geometry. All 73 focused offline tests and
+  six native decal replacement cases pass. Independent expiry,
+  attachment production and original-client acceptance remain open.
 - Verify the original spray ray's candidate mask, exclusion list and
   dispatch in 22 offline instruction cases. The wheel enter continuation
   selects its plug from the hit bit even when the collector returns an

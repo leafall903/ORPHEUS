@@ -107,7 +107,18 @@ Source paths for the remaining actions
   entity at +1F0. If it has not arrived yet, 98A4D5 requests a
   retry. 97FA45 seeds a 600-update pending counter, and 97F9F0
   decrements it until application or expiry. That counter is
-  separate from the lifetime of the applied decal.
+  separate from the lifetime of the applied decal. Reader 97FA30
+  removes the applied decal through 98B540 before applying a valid
+  replacement. Lifecycle callback 97F9C0 and destructor 986850 also
+  remove an applied decal. 98B540 passes type 1 and the same key as
+  creator helper 989140. The key combines the body ID, the script's
+  compact identifier and the state index. Six native cases execute
+  the reader or lifecycle callback and the 5F3D00 removal lookup
+  with fixture services, verifying that other decal types and keys
+  survive. 98A070 resolves the look from the script when it reads the
+  placement. The body snapshot now includes the selected unlock in
+  its comparison so a new spray at the same point reaches both
+  streams. The geometry codec uses its original fields.
   For a nonzero attachment key at +1F4, 98A791 asks 1AFBE10 for
   an anchor transform. Otherwise it uses the entity transform.
   98AB92 applies the transform to the stored point and normal.
@@ -119,7 +130,7 @@ Source paths for the remaining actions
   A collision fixture sends both root and keyed attachments through
   the authored state in owner and observer frames.
   The expanded ray cache supplies world-space static hits.
-  Dynamic hit ownership and anchor production, decal lifetime,
+  Dynamic hit ownership, anchor production and independent decal expiry,
   full collision filtering and the server-side unlock-use effect remain open.
 - Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
