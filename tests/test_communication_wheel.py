@@ -166,17 +166,27 @@ class CommunicationWheelTests(unittest.TestCase):
         match.collision_world = World(())
         match.collision_world.ray_geometry = RayWorld(wall, masks=(0x01, 0x01))
         self.assertEqual(select(), (expr.Entity(nearer.body),))  # 0079 static category includes 0x01
-        native = script.world.native
-        with patch.object(script.world, "native", side_effect=lambda cfg, inst: (
-            True if cfg.get("$") == "STU_25ECB55F" else native(cfg, inst)
-        )):
-            self.assertEqual(select(0x16C), (expr.Entity(nearer.body),))  # 0111 uses the same static category
+        with patch.object(script.world, "tracked_targets", wraps=script.world.tracked_targets) as track:
+            self.assertEqual(select(0x16C), (expr.Entity(nearer.body),))
+            self.assertEqual(track.call_args.args[0].node.pos, 115)
         match.collision_world.ray_geometry = RayWorld(wall, masks=(0x20, 0x20))
         self.assertEqual(select(), (expr.Entity(aligned.body),))
         nearer.mover.position = (0.0, 0.0, 41.0)
         match.collision_world = World(wall)
         self.assertEqual(select(), ())
         self.assertFalse(wheel.node_state(wheel.graph.node(115)).active)
+
+        mercy = next(hero for hero in heroes().values() if hero.body == 0x04000000000000E4)
+        self.assertTrue(match.switch_hero(speaker, mercy))
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        nearer.mover.position = (0.8, 0.0, 8.0)
+        match.collision_world.ray_geometry = RayWorld(wall, masks=(0x01, 0x01))
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+        with patch.object(script.world, "tracked_targets", wraps=script.world.tracked_targets) as track:
+            self.assertEqual(select(0x16C), (expr.Entity(nearer.body),))
+            self.assertEqual(track.call_args.args[0].node.pos, 113)
 
     def test_confirmed_action_directs_callout_only_to_the_aimed_teammate(self):
         cases = (

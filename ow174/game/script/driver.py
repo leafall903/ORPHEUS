@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 from ow174.game import pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
-from ow174.game.content import SOLDIER
+from ow174.game.content import SOLDIER, heroes
 from ow174.game.script import expr, graph, nodes, runtime, spray_placement
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
@@ -125,6 +125,17 @@ WHEEL_ACTION_CATEGORIES = {
 }
 # Static ray categories from the first request word, packed from m_category.
 WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
+WHEEL_HEALING_TAG = 0x0D60000000000308
+# Player body definitions (.003) with the authored 0308.06C target tag in 104319.
+WHEEL_HEALING_BODIES = frozenset({
+    0x04000000000000E4,  # Mercy
+    0x0400000000000216,  # Zenyatta
+    0x04000000000003FC,  # Lucio
+    0x0400000000001424,  # Ana
+    0x0400000000001B1B,  # Brigitte
+    0x0400000000001C46,  # Moira
+    0x04000000000029A6,  # Baptiste
+})
 # 104319 44A7D0, 44A980 and 44A950 return the zero-based index in these tables.
 WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
 WHEEL_VOICE_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
@@ -256,6 +267,11 @@ class BodyWorld(runtime.World):
                 and instance.graph.index in (0x05AD, 0x02CF, 0x0686)):
             return self.wheel_action_has_category(cfg, instance)
         if self.communication_wheel and instance is not None:
+            if (cls == "STU_25ECB55F" and instance.graph.index in (0x05AD, 0x0686)
+                    and expr.guid_of(cfg.get("m_88B0050A")) == WHEEL_HEALING_TAG
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                hero = heroes().get(self.hero)
+                return hero is not None and hero.body in WHEEL_HEALING_BODIES
             if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
                 return self.wheel_slot(cfg, instance, WHEEL_EMOTE_ACTIONS)
             if cls == "STU_250DEABD" and instance.graph.index in (0x05AD, 0x023A):

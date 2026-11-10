@@ -333,9 +333,14 @@ Source paths for the remaining actions
   (1FDE, 1FDF) for 0111. E122A0 copies +0 into the static traversal
   input at +70. Both wheel profiles therefore use static mask 1FDF.
   The offline fixture checks included 0x01 and excluded 0x20 shapes.
-  It supplies the source tag predicate for action 016C to exercise
-  node 113. Native camera bounds, the source tag binding and
-  dynamic query filtering remain open.
+  Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
+  through the ordinary selection message. 05AD nodes 112 and 136 and
+  0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.
+  The 104319 .003 definitions give this tag to Mercy (00E4), Zenyatta
+  (0216), Lucio (03FC), Ana (1424), Brigitte (1B1B), Moira (1C46)
+  and Baptiste (29A6). The server resolves that membership from the
+  current hero's authored body ID. Runtime tag mutations, native camera
+  bounds and dynamic query filtering remain open.
   Node 119 requires relation bit 1 through the native BCAAE0
   filter. The match supplies same-team player bodies and the FFA
   hostility rule for this exact config. Node 120 short-circuits

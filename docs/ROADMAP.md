@@ -87,8 +87,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     ordinary callout for enemies and free-for-all.
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
     Target visibility uses expanded static rays with the common 1FDF
-    mask recovered from both .097 profiles. Marker effects, the source tag
-    binding, dynamic target geometry and deployable eligibility remain open.
+    mask recovered from both .097 profiles. Need Healing uses the authored
+    source body tag in its targeting and voice branches. Marker effects,
+    runtime tag mutations, dynamic target geometry and deployable eligibility
+    remain open.
     The recipient graph sends the actions in order with each action's source.
     Native fixtures verify the local entity check for directed chat and
     the source and relation branches for other callouts.

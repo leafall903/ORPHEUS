@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve the Need Healing source tag from the seven tagged 104319
+  player body definitions. The selection regression exercises the
+  distinct target branches with Soldier: 76 and Mercy. All 81 focused
+  offline tests pass. Runtime tag mutations and original-client
+  acceptance remain open.
 - Use expanded static geometry for callout target visibility with the
   static category packed by both authored ray profiles. Two native
   asset-to-request cases and 96 offline tests pass. The source tag
