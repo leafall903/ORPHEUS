@@ -993,8 +993,22 @@ Source paths for the remaining actions
   selects the requested one, defaulting to slot zero. Four
   row-builder cases, eight resolver precedence cases and ten
   model-to-query cases run the original instructions with
-  supplied providers and table rows. The actual provider values
-  for the greeting IDs and pose composition remain open.
+  supplied providers and table rows. The model initialization
+  paths at 5C4E66 and 5D39B3 call factory 6666D0 with the object
+  at model definition +1A0. They pass its result to the animation
+  component virtual slot +C8, which reaches BBB590. The factory
+  selects four implementations, using constructors 662000,
+  6622A0, C15720 and 664240. Ten native cases check all four
+  constructors, allocation failures and missing or unknown input.
+  For virtual slot +58, the first two implementations reach
+  C131C0, the third returns false, and the fourth uses C15BA0.
+  The builtin resolver C0CD30 reads 1FE as a float word at
+  context +B0, or animation component +810 for BB8970. IDs 14,
+  81 and B6 miss that resolver. Twelve original-instruction cases
+  verify those reads and misses. The original component initializer
+  clears its provider pointers and the 0x100-byte builtin context.
+  This establishes the initial 1FE value only. The actual greeting
+  provider inputs, any later 1FE writes and composition remain open.
   104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
   branches. The extractor accepts a blend duration if all eligible
   leaves agree. Eleven offline native runs check Soldier: 76, Echo
