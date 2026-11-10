@@ -77,8 +77,11 @@ A checked item records evidence for that specific scope. Its parent remains open
     023A Anim slot 2. For a float Anim output, authored node 78
     clears horizontal velocity on the next static-support pose
     and preserves the vertical component before integration.
-    Missing tracks, phase-dependent sampling, moving supports and
-    the general vector modifier backend remain open.
+    All 292 configured tree/alias pairs resolve against 164
+    manifest-verified categories and category zero. Their curves
+    have zero or one key. Phase-dependent tracks outside this
+    catalog, moving supports and the general vector modifier
+    backend remain open.
     An explicitly selected mech body with its prepared graphs uses its tagged
     emote. Automatic form transitions, runtime tag changes, live model remaps
     and original-client playback remain open.

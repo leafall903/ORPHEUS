@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify and install scalar tracks for all 292 configured emote pairs.
+  Fresh 104319 exports cover 164 categories and close 54 missing pairs.
+  All 48,180 runtime lookups and 176 offline regression tests pass.
+  Original-client acceptance remains open.
+
 - Apply the authored float emote horizontal-velocity replacement on static supports.
   The wheel selection and fire exit pass an offline movement test.
   69 native-instruction cases and 176 offline tests pass. Moving supports,

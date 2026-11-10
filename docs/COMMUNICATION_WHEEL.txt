@@ -408,12 +408,21 @@ Source paths for the remaining actions
   verifies that a nonzero scalar satisfies the grounded guard 77,
   preserves the active binding in a snapshot and unlinks it on
   exit. The authored exit then writes its zero vector.
-  The available catalog covers 238 of 292 distinct equipped
-  tree/alias pairs. All 389 covered category rows are empty or
-  single-key tracks. The 54 unexported pairs reference trees
-  outside the scanned directory. Other local XML exports contain
-  candidate files for all of those trees. Their build and contents
-  still need verification. Phase-dependent sampling remains open.
+  The runtime catalog now covers all 292 distinct configured
+  equipped tree/alias pairs. All 292 .021 trees and 164 .015
+  categories were freshly exported from the local 104319 CASC
+  and checked against manifest content keys and decoded sizes.
+  This adds 54 pairs and expands inherited categories for six
+  earlier pairs. Prior scalar rows and installed durations agree
+  with the fresh export for the compared categories. The server
+  loader resolves 48,180 lookups across those pairs and the
+  164 categories plus category zero. The 1,471 exported equipped
+  rows all have zero or one key. The newly covered 0CBE alias
+  0477 default returns -0.26176858. Runtime SHA-256 is
+  b1a7b44c7ac723cd4c73aeec3e5cf6eff3b980449ce5b02340b88d723d5f3a0f.
+  The local verification/wheel-emote-scalar-104319 directory
+  holds the asset inventory and coverage report. Phase-dependent
+  tracks outside this configured catalog remain unsupported.
   Node 78 uses STU_09F9B1FE with selector 1. Native RTTI
   2DEDB88 sends that row through D354C0 and D3C809 to C33FC0
   with operation 2. Per-frame records apply on source frame +1.
