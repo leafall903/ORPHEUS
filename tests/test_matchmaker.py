@@ -551,6 +551,21 @@ class GameFoundTests(unittest.TestCase):
         self.assertEqual(self.ids("P1"), [20404, 20402, 20600])
         self.assertEqual(self.later, [])
 
+    def test_tutorial_clock_retry_keeps_only_the_original_online_session(self):
+        for _ in range(3):
+            self.party()
+        with patch.object(self.matchmaker, "_tutorial", return_value=False) as start:
+            for session in self.sessions.values():
+                self.matchmaker.tutorial(session)
+            self.assertEqual(start.call_count, 3)
+        self.sessions[2] = SimpleNamespace(**vars(self.sessions[2]))
+        self.sessions[3].logged_in = False
+        with patch.object(self.matchmaker, "_tutorial", return_value=True) as start:
+            self.matchmaker.clock_ready()
+            self.matchmaker.clock_ready()
+            start.assert_called_once_with(self.sessions[1])
+        self.assertEqual(self.matchmaker._deferred_tutorial, {})
+
     def test_clock_drain_keeps_queue_tickets_until_a_new_match_is_reserved(self):
         create = self.server.game.create_match
         self.server.game.create_match = lambda *args: None

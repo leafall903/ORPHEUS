@@ -10,9 +10,9 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
-from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -22,11 +22,15 @@ TRANSPORT_FIELDS = frozenset(("stream", "create_arrived", "first_owner_frame", "
 _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
-    "_follow_depth", "_work_left",
+    "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
+    "state_registries", "parameter_scopes", "startup_entity_values",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
-    "deferred", "params", "stopped", "teardown", "initialized", "start",
+    "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "initialized_frame",
+    "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -42,37 +46,70 @@ _GRAPH = frozenset((
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
 ))
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
-_VAR = ("base", "key", "links", "watchers")
+_VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    nodes.RegisteredState: ((), ()),
+    nodes.SharedVariables: ((), ()),
+    nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
+                           "control_targets", "control_previous", "control_generation"), ()),
+    nodes.AnimationAlias: (("alias_handle",), ()),
+    nodes.ModelLook: (("scope_registry", "look", "look_target"), ()),
+    nodes.DataFlowMapping: (("mapping", "mapping_target", "mapping_self"), ()),
+    nodes.VoiceStimulus: (("voice_handle", "voice_attempts", "voice_duration", "voice_part",
+                           "voice_started_at", "voice_delay", "voice_cooldown", "voice_retry_at",
+                           "voice_submitted", "voice_failed"), ()),
+    nodes.NumericPropertyModifiers: (("per_frame",), ()),
+    nodes.ScopedSubgraph: (("scope_registry",), ()),
+    nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
+    nodes.DelayedBooleanSwitch: (("current",), ()),
+    nodes.MovementFlags: (("value", "last_frame"), ()),
+    nodes.EncounterTargetTag: ((), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
+    nodes.ActiveOutput: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
-    nodes.Anim: ((), ()),
+    nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
-    nodes.SubScript: (("child",), ()), nodes.GameMessageEntry: ((), ("received",)),
-    nodes.SendGameMessageState: ((), ()), nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.ForCodeSynced: ((), ()),
+    nodes.SubScript: (("child",), ()),
+    nodes.GameMessageEntry: (("message_context", "message_sender", "message_stacked", "message_key",
+                             "message_flags", "message_selected", "message_generation", "message_count",
+                             "message_sources", "message_cache", "message_refresh", "message_updating",
+                             "message_getting", "message_epoch", "message_last_epoch", "message_bindings",
+                             "message_observed"), ("received",)),
+    nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
+                                  "message_notified"), ()),
+    nodes.CosmeticEntity: ((), ("var",)),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed"), ()),
+    nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
+    nodes.SprayPlacement: (("placement",), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
+    WheelSprayEvent: ("serial", "instance", "start", "node", "time", "choice", "values", "placement"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
-    expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
-    runtime.Link: ("state", "slot", "priority", "above", "stack"),
+    expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
+    runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
-                    "message", "transient"),
+                    "message", "assignment", "transient"),
+    message_receive.Packet: ("message", "caller", "instigator", "params"),
+    message_receive.ParamScope: ("instance", "node", "packet"),
+    message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
 }
 
@@ -114,8 +151,10 @@ class _Export:
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
-        _containers(fields, ("instances", "vars", "disabled"), dict, "component")
-        _containers(fields, ("held", "destroyed", "shots"), list, "component")
+        _containers(fields, ("instances", "vars", "disabled", "state_registries"), dict, "component")
+        _containers(fields, ("held", "destroyed", "shots", "code_states", "code_pending", "code_observers"),
+                    list, "component")
+        _containers(fields, ("parameter_scopes", "startup_entity_values"), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
         self.instances = {}
@@ -154,7 +193,16 @@ class _Export:
             raise BodyVMSnapshotError("unknown instance class")
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
-        _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("queue", "ticking", "deferred", "params", "join_inputs"), list, "instance")
+        _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
+        source = fields["cached_source_entity"]
+        if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance source entity cache')
+        frame = fields['initialized_frame']
+        if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance initialization frame')
+        if any(type(fields[key]) is not bool for key in ('auto_retire', 'retirement_pending')):
+            raise BodyVMSnapshotError('invalid instance automatic lifetime flags')
         if fields["component"] is not self.component:
             raise BodyVMSnapshotError("foreign component instance reference")
         number = _integer(fields["id"], "instance")
@@ -182,7 +230,7 @@ class _Export:
         if (type(fields["node"]) is not graph.Node or not 0 <= index < len(owner.graph.states)
                 or owner.graph.states[index] is not fields["node"]):
             raise BodyVMSnapshotError("state node does not match its graph slot")
-        if kind is not runtime.STATE_CLASSES.get(fields["node"].cls, runtime.State):
+        if kind is not runtime.state_type(fields["node"].cls, owner.component.strict):
             raise BodyVMSnapshotError("state class does not match its registered node model")
         key = (owner.id, index)
         if key not in self.states:
@@ -349,9 +397,11 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match"))
+                fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
+                               "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
+                               "manual_target", "manual_nameplate"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
@@ -373,6 +423,11 @@ class _Export:
             _layout(obj, set())
             return {"class": _name(kind), "identity": self.identity(obj),
                     "fields_identity": self.identity(vars(obj)), "args": self.value(obj.args)}
+        if kind is runtime.UnsupportedScriptError:
+            fields = _layout(obj, {"diagnostic"})
+            return {"class": _name(kind), "identity": self.identity(obj),
+                    "fields_identity": self.identity(fields), "fields": self.value(fields),
+                    "args": self.value(obj.args)}
         if kind in _VALUE_LAYOUTS:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}

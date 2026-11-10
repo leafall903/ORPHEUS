@@ -1,0 +1,1100 @@
+Rialto PvE combat sandbox (104319) -- active, not accepted
+
+Required outcome: McCree fights Trooper, Enforcer, Sniper, Assassin and Heavy
+Assault, with working navigation, acquisition, attacks, special behavior,
+bidirectional damage, abilities, ultimate and original-client presentation.
+Dead NPCs remain as corpses until explicitly removed. Missing authoritative
+behavior may be reconstructed from the available assets; record its assumptions
+and differences rather than claiming a native implementation.
+McCree's current executed frontier and remaining skill requirements are recorded
+in docs/MCCREE_COMBAT.txt. Melee now rejects static-wall occlusion for enemy
+players and NPCs; that check alone does not establish complete skill behavior.
+Resource-backed Flashbang control is now implemented and tested offline, with
+input/movement suppression, channel interruption, expiry/recovery and lifetime
+cleanup. Native immunity/status presentation and full Deadeye remain open.
+
+Requested controls (command semantics and companion web frontend implemented):
+= opens the console spawn interface; 1..5 select the five enemies in the order
+above; - removes manually spawned NPCs and their corpses; 0 starts attacks by
+the living NPC under the crosshair; { stops attacks by all spawned enemies.
+For a local retail or host launch, pass --npc-hotkeys to enable direct keyboard
+delivery. Only the foreground client started by that launcher is eligible.
+With a keyboard layout that supports unmodified `[`, it is also a stop
+shortcut and can be used with the stock Shift ability binding.
+The window hotkeys for engagement, stop and removal work with the spawn menu closed.
+The menu and replies use private match chat. This bridge observes key presses
+without consuming them, so the client still receives its usual input.
+On the stock US layout use plain `[` when stopping NPCs without Combat
+Roll. Native session 61280 confirmed that either Shift key combined
+with `[` also stops NPC attacks and can trigger the bound ability.
+In native 1280 x 720 windowed match 8641, `0` after closing the spawn menu
+selected a Trooper, which dealt 20 damage on its first hit. Plain `[` stopped
+it, no damage followed for 5.1 seconds, and `-` removed it. The same match
+verified `.npc {` in match chat and physical `{` while the chat field held
+focus. Both stopped an attacking Trooper without starting Combat Roll.
+With chat closed, standalone Shift still moved McCree and showed the Roll
+cooldown. This fixture staged the Trooper's position after selection and
+added test health to McCree. Local evidence is native-rialto-8641-closed-menu-0
+and native-rialto-8641-console-brace.
+The server's real-map `--group-controls` fixture engaged two Troopers with
+separate crosshair selections and observed damage from both. One stop
+command prevented further damage for 100 frames. McCree then killed one
+Trooper with primary fire and its body remained for 300 frames. The
+survivor was behind the retained capsule on the aim ray. A primary shot
+still dealt 70 damage to the survivor and crosshair engagement selected
+it. One remove command removed both bodies.
+In native match 275E, Shift plus `[` reached the `{` command with a
+Sniper and Trooper present. After the Sniper's 100-damage hit (tick
+82198), the client reported `Stopped 2 NPCs` and McCree remained at
+125/225, with no subsequent damage in the combat trace. The two `0`
+replies in that run did not identify the selected actor and the trace
+only recorded damage from the Sniper. The real-map fixture above
+provides the separate proof that both attackers dealt damage before stop.
+The updated real-map `--corpse-graph` fixture kills each of the five
+NPCs using McCree primary fire and normal reload input as needed. After
+600 frames, it decodes the retained live baseline and terminal observer
+delta for each NPC, then removes the retained body with the console.
+The real-map `--sniper-projectile-stop` fixture waited until a Sniper
+projectile was in flight. Stop retired it before impact and McCree took
+no damage for 100 frames. A new engagement dealt 100 damage. Removing
+the Sniper during a subsequent shot also retired the projectile before
+impact. The same check now asserts that aim stack 1122/34 and
+its 1122/48 animation retire together. Before the change both
+remained active 100 frames after `{`, even with no server damage.
+The manual NPC path now ends the button's down branch and its
+separate aim stack through the authored child teardown. It also
+uses that path on target change or when primary input is released.
+The real-map Flashbang retreat/shot recovery check still passes.
+Native projectile presentation remains unverified.
+The windowed F961 retest let the Sniper land one 100-damage shot,
+then sent `{`. The original client acknowledged retirement of
+1122/34, /48 and /53 about 116 ms after the request. McCree held
+at 125 HP. The rifle-up pose and red visor streak also appear in
+the unengaged spawn frames in both F961 and the 4F7B baseline, so
+those visual features do not indicate a continued shot or aim scope.
+Local evidence is the F961 stop capture, its observer ACKs and
+sniper-stop-idle-comparison.png. The 88 focused source tests passed.
+The manual Sniper now also exits 1122/34, /48 and /53 before its first
+terminal body snapshot. The real-map `--sniper-kill-aim` fixture uses
+one HP and McCree primary input during active aim. It observes no new
+projectile or player damage and retains the corpse for 12 simulated
+seconds until explicit removal. In the 1280 x 720 original-client
+retest 4166, the diagnostic injects the lethal input after /48 has
+been acknowledged and before the rifle launches a projectile. The
+client acknowledges the three states off within 96 ms of the input.
+The corpse is visible at 12.02 seconds and clears when the console
+removes it. The ordinary projectile-stop probe still cancels the
+in-flight shot and deals 100 damage on reengagement.
+Stop and NPC Flashbang interruption discard pending down edges before
+releasing held inputs. Previously a down edge could still execute before
+its queued release, leaving the final held list empty but briefly
+starting the attack. The regression checks that neither a primary nor a
+special down edge reaches the VM after stop. Real-map checks also passed
+for an in-flight Sniper shot, a moving Heavy Assault charge, an active
+Assassin pin, and Flashbang interrupting a Trooper melee windup.
+The real-map `--mixed-flashbang` fixture puts all five enemy types in one
+blast. McCree casts at frame1031 and the Assassin pins him during flight.
+At frame1042 the same projectile deals25 damage to each enemy, registers
+five separate hit reactions, and releases the pin. The five enemies deal
+no damage during the 107-frame stun and each lands a fresh hit after
+expiry. The probe uses staged NPC positions, extra player health and
+simulated client transport. It does not verify simultaneous animation or
+audio playback on the original client.
+Native 104319 match 74D3 repeated the staged group in a1280 x720 window.
+Physical E hit all five for25 damage on tick9222, released the Assassin
+pin and started five reaction instances. The client acknowledged all five
+starts and retirements. Window frames show the five health bars, visible
+pose changes, Flashbang cooldown and return to normal view after the pin.
+All five enemies hit McCree after tick9329. The fixture added4000 test HP
+and armed the staged enemies when the live projectile began to advance.
+Local evidence is native-rialto-74D3-mixed-flashbang.json, with timed window
+frames and a 24-second process-only audio capture.
+Five exact ACB3 clips were found in the 74D3 mix. The near-impact waveform
+correlations for Trooper, Enforcer, Sniper, Assassin and Heavy Assault were
+0.237, 0.330, 0.652, 0.348 and 0.405. The respective post-removal maxima were
+0.142, 0.146, 0.113, 0.078 and 0.103. The matched clip starts span about30ms.
+Subtracting the other four aligned references leaves correlations of0.563,
+0.678, 0.868, 0.664 and0.742. The aligned references overlap by less than0.05,
+and the five-reference fit accounts for86.2 percent of the selected audio
+window's energy. The fit uses the same window as alignment and covers the
+enemy hurt voices. It does not identify every sound in the mix. Local
+evidence is native-rialto-74D3-mixed-flashbang-audio-five.json.
+The first post-cast window frame has a1.52s request-to-result interval.
+Later frames cover sampled poses around stun expiry and attack recovery.
+They do not resolve the continuous early animation blend.
+The later physical E group take in match74D3 captured192 lossless frames at
+15.5ms median spacing. The flash and pin transition obscure some models at
+the start of the reaction. Local evidence is
+native-rialto-74D3-mixed-flashbang-dense.png and its timing record.
+Five fixed-view follow-up takes in the same 1280 x720 window separate the
+enemy silhouettes. All five lost25 health and the client acknowledged the
+start and retirement of each 1.7s reaction. Each take contains190 to220
+lossless frames at14.4 to15.9ms median spacing. The visible sequence shows
+the idle stance, recoil, held pose and recovery for each enemy. The Sniper
+serves as an impact surface in the Assassin take and stays outside the
+Assassin close-up. The flash and the player's weapon still cover parts of
+some models for a few frames. These captures cover the visible animation
+and leave exact bone blending during occlusion open. Local evidence is
+native-rialto-74D3-solo-flashbang-review.png and its timing/ACK JSON.
+The real-map `--reacquire-after-death` fixture lets each NPC finish a
+McCree set to one health. The first player stays connected. All five
+NPCs reacquire and damage the second McCree without a new engage command,
+then stop for the next 100 frames after the stop command.
+An isolated 104319 session verified =, 1, 0, { and - from the game window.
+Trooper spawned visibly, attacked McCree from 225 down to 45 health and
+ceased dealing damage after {. Two Q presses executed Deadeye graph
+01EE/14 and killed that Trooper for 200 damage. The server still removed
+one retained actor on - 44 seconds later. The corpse's rendered pose was
+not clearly visible in the post-kill screenshot.
+A second 104319 session verified keys 2–5 and saw all four resulting models.
+Each accepted crosshair engagement, stop and removal. Enforcer dealt 4
+damage, Assassin dealt about 83.3 including its continuous pin damage,
+and Heavy Assault killed McCree from about 137.7 health. Heavy Assault
+took 25 from McCree's Flashbang. A later isolated 104319 run confirmed
+Sniper's laser rendering and two 100-damage hits, reducing McCree from
+225 to 25 health before stop. Combat Roll backward moved the client away from a
+blocked spawn position and showed cooldown. On the tested US layout,
+Left Shift plus bracket stops NPCs but also activates the client's bound
+Combat Roll, since the listener passes the keys through. The same side
+effect was observed with Right Shift. In native match 60CF, unmodified
+`[` stopped an engaged Trooper after three 20-damage hits. No further
+damage or Roll event appeared for 29 seconds. The Shift-plus-bracket
+control then registered both stop and Roll (01F0/11). Removal succeeded
+in the same match. Window capture timed out; this run used gameplay and
+lobby telemetry as evidence. A mouse click also produced an
+actual McCree primary volley (01D2/31) and consumed one round, but the
+view moved off target and the volley did not damage the Sniper.
+Later native primary hits, retained corpses and recovery after lethal Deadeye
+are recorded in docs/MCCREE_COMBAT.txt. Full special effects remain open.
+
+In match A87C on 104319, Deadeye again killed Trooper for 200. The
+Trooper's body remained partly visible on the floor and disappeared
+when - removed it 89 seconds after the kill. McCree's first-person
+Deadeye arm pose and disabled HUD icons remained stuck until the
+session ended. A subsequent Flashbang still fired through 01E9/7
+and began its cooldown. This verifies one corpse's visual retention
+and removal while exposing an owner-presentation recovery defect.
+The external Rialto runtime probe exercises the hotkey dispatcher with an
+actual loopback TCP connection and the Windows process ownership lookup.
+Each of the five bodies spawns, damages McCree after crosshair selection,
+stops damaging him for 100 frames after { with the menu closed, and is
+explicitly removed. The probe calls the dispatcher directly.
+
+The local research workspace has an isolated original-client probe:
+verification/retribution/serve_native_rialto_session.py --hotkeys-smoke.
+It starts the normal retail launcher with --npc-hotkeys, enters Rialto and
+selects McCree. The probe does not script NPC spawns or attacks. Verify each
+key in the focused 104319 window and compare the private chat replies and
+combat events under verification/retribution/native-rialto-session/hotkeys.
+The probe holds the shared client lease and rejects an existing Overwatch
+process before starting services. The normal launcher was verified through
+Rialto entry and Cassidy selection. A test tap with the polling watcher
+produced no command. The replacement Win32 listener installed, pumped its
+message queue and uninstalled in a separate smoke check before the above
+Trooper session.
+
+Consecutive spawns on the same heading search nearer supported positions
+when a living body or retained NPC corpse occupies the preferred spot.
+Manual spawning also checks the standing mover capsule against static
+collision at each candidate. A low obstacle can clear the player's eye
+ray while intersecting the spawned NPC. In that case the console tries
+a nearer point on the same heading. The low-cover regression, the
+Rialto heading sweep for both teams, the group-control fixture and the
+five-body 600-frame corpse fixture passed with this check enabled.
+For a client entering after an NPC has died, the server now sends that
+NPC's retained terminal script state after acknowledgement of the baseline,
+with the historical kill-feed pulse suppressed. A transport regression
+checks that order and the final state. The original-client late-join
+corpse pose still needs visual verification.
+The external --corpse-graph probe uses the real Rialto assets and injected
+lethal damage. All five NPCs keep their identity, position, zero health,
+dead movement bit and terminal script snapshot for 600 frames, and are
+removed only by -. Terminal snapshots settle by frame 180 in this probe.
+The recorded server snapshots do not establish the client's ragdoll pose.
+
+Sandbox acquisition policy: 0 arms only the visible enemy under the crosshair.
+An armed NPC keeps its living opponent through temporary occlusion so it can
+pursue. If the opponent dies, disconnects, loses its body or changes to the
+NPC's team, the NPC seeks the closest visible enemy player within 100 m.
+An armed NPC with no eligible opponent waits. { disarms it and clears its
+target. The initial engagement and replacement policy are server-authored.
+
+Trooper close attack:
+
+- Manual Trooper uses logical input 31 from graph 1422/8. The host selects
+  this attack in range, suppresses the primary weapon while the melee
+  ability runs and resolves the acquired player through TrackTargets 1422/5.
+  The authored sphere radius is 1 m with an offset of (0, 1.5, 1.5) m.
+  Target selection and visibility use the sandbox collision world.
+- Rialto server verification at 2.15 m hit McCree for 30 damage on frame
+  13 through ModifyHealth 1422/4. The graph entered cooldown. Stopping
+  during a second windup prevented damage for the next 100 frames. The
+  separate ranged fixture still recorded a 20-damage primary hit, McCree
+  damage and stun, a retained corpse and explicit removal.
+- In the live Rialto server fixture `--trooper-flash-interrupt`, McCree's
+  Flashbang hit four frames after the attack started. It dealt 25 damage
+  and ended the active melee scope. The Trooper dealt no damage for the
+  full 107-frame stun. A fresh melee dealt 30 damage 13 frames after the
+  last stunned frame.
+- The same fixture encodes and decodes the real observer statescript
+  deltas. Animation nodes 1422/36 and 1422/21 both turn on with counter 1.
+- In native match 275E, `=` then `1` spawned a Trooper at the normal
+  distance. McCree approached on foot and pressed `0`. The client
+  showed the Trooper lean in and sweep the rifle across its body as
+  McCree went from 50 to 20 HP (tick 38041). After stop, the Trooper
+  returned to its armed stance and McCree stayed at 20 HP. McCree's
+  native `V` quick melee then showed the first-person punch and the
+  Trooper's depleted red bar. The hit reduced it from 200 to 170 HP
+  (tick 38868). The client acknowledged the 0.48-second reaction scope
+  and its retirement. This take samples the swing and recovery, with
+  no separate isolation of the melee audio.
+
+Heavy Assault special diagnostic:
+
+- A real-map observer wire check decoded active animations 1408/73 and
+  1408/50, each with counter 1, during a charge that traveled 9.43 m and
+  hit McCree for 175. This covers transmitted animation state.
+- In 104319 match B847, the local `--heavy-charge-smoke` fixture set
+  Heavy Assault ten metres ahead along a level Rialto corridor. It
+  changes the starting positions for this check. The real client used
+  `=`, `5` and `0` and the ordinary server selected the NPC through the
+  crosshair. The client rendered the lowered charge pose and the red
+  shoulder light. The server traced charge impact 1408/102 for 175
+  (225 to 50 HP), followed 51 ticks later by melee 140E/5 for 80
+  (50 to 0 HP). The next client capture showed the NPC in contact
+  range, the red damage vignette and zero HP. Stop was delivered after
+  the two hits, and McCree subsequently respawned.
+- In the B847 Flashbang take, the original client rendered the blast,
+  the Heavy health bar and a 10-second cooldown. The hit dealt 25 and
+  McCree remained at 225 HP through the later stop. Match 275E measured
+  the moving phase at the hit (tick 10292), before the NPC update ran.
+  Heavy never dealt charge impact damage in that take. The client
+  acknowledged the 1.7-second reaction and its retirement. Damage from
+  the miniguns resumed at tick 10430, after the stun expired at 10399
+  and before the stop command. A separate throw that landed seven ticks
+  after charge impact did not undo the 175 damage.
+- The authored 1408 item 155 (state 81) activates stimulus 09F0 during
+  charge windup, but its state has no observer slot. The manual Rialto
+  body bridges that activation to the proven spatial voice notice 27500
+  for spawned viewers. The sandbox cycles the four original voice keys
+  by activation count. A real-map charge produced one request. In
+  match 275E the original client reported the sent AE7B line key in
+  its 39200 telemetry. A full scan of the paired WASAPI process takes
+  matched the first 0.7 s of the associated 4A682 media at 4.3738 s
+  in the treatment, with normalized correlation 0.9947 versus 0.1619
+  in the no-notice control. Adding the reference to the control gave
+  0.9997 at the injected offset. Five consecutive segments aligned at
+  their original pitch independently in the left and right channels.
+  The earlier wall-clock window missed the actual onset by 0.96 s.
+  The takes are heavy-charge-native-voice-52264.wav and
+  heavy-charge-native-baseline-81464.wav. This verifies the charge bark.
+
+- The manual charge requires a supported centerline and clear static
+  corridor at body height before windup. Side clearance stays with the
+  actual collision mover during the charge. The start check rejects a
+  wall or a gap even if the target's position is in the charge distance
+  band. This is a sandbox rule.
+- During charge movement, a one-step floor probe allows shallow drops
+  within 0.8 m and cancels the charge before unsupported ground. In
+  `--heavy-charge-floor-change`, the fixture relocates the target to
+  Rialto's lower floor during motion and checks cancellation on the
+  next frame without damage. Normal lower-platform pursuit is tested
+  separately.
+
+- The Rialto server fixture `--heavy-charge-flash` fires McCree's
+  Flashbang during an established charge. The hit deals 25 damage and
+  clears the moving state in the hit frame. Heavy Assault holds position
+  during the 107-frame stun, retains its target, and never damages McCree
+  during the interruption. The charge cooldown has 13.289 s remaining
+  on the last stunned frame.
+- The real-map `--heavy-charge-kill` fixture sets Heavy Assault to
+  one HP and kills it with McCree primary fire during a charge. Its
+  last live charge step is 0.24 m. The retained corpse stays at the
+  lethal position for 12 simulated seconds, with the firing flag
+  clear, zero incoming damage and removal only on the console key.
+  Original-client take CD20 used a scripted primary input during
+  15 m/s charge movement. The client acknowledged 1408/71 off
+  about 105 ms after the input, and McCree stayed at 225 HP.
+  The ragdoll and dropped guns move toward the camera and leave
+  the bottom of the 1280 x 720 view. The server retains the corpse,
+  and this angle does not show the final render.
+  A view 5.5 m farther back in match 90D8 shows the dropped guns
+  at 12.18 s and their removal, but the corpse itself is distant.
+  Match C419 uses the same server charge along a transverse floor
+  lane. A scripted teammate holds the charge target while McCree's
+  original 1280 x 720 window observes and the diagnostic issues
+  the lethal primary input. The corpse settles to the right and
+  remains rendered with detached equipment at 12.00 s. Both clear
+  on the explicit removal command, and McCree stays at 225 HP.
+- In the 1280x720 native-client take E7FB, the dashboard `0` route
+  selected the Heavy ten metres ahead. The fixture inserted one E
+  input when the server saw 1408/71 active. Flashbang hit 13 ticks
+  later and took the Heavy from 4000 to 3975 HP. The impact callback
+  saw 1408/71 active and registered a 107-tick stun. That callback
+  returns before the bot weapon update, so its immediate post-call
+  active flag does not measure the state at the end of the tick.
+  The client acknowledged 224E instance 13 with duration 1.7 s and
+  acknowledged its retirement. The window shows the charge pose,
+  throw, yellow stun effects, lowered weapons and E cooldown, then
+  the miniguns preparing again. McCree stays at 225 HP.
+- The same take exposed a stop presentation failure. The dashboard
+  `{` route returned one stopped NPC at about 2.17 s after impact.
+  Both miniguns show firing flashes in the captured window from
+  about 0.27 s to at least 1.16 s after the stop request, with no
+  incoming damage in the trace. Local evidence is
+  heavy-flash-charge-E7FB.{json,npy,png} and the stop-detail strip.
+- The release handler ends 114F/54, but the callback starts sibling
+  stack 114F/28. The stack owns the 114F/40 windup and 114F/47 volley.
+  Before the fix, a real-map probe still found the volley active 100
+  frames after stop. The manual Heavy host now drops pending begins
+  and aborts the callback and stack on interruption, using authored
+  child teardown. Other archetypes keep their existing release paths.
+  The real-map `--heavy-minigun-stop` probe deals 5 damage, stops for
+  100 frames with the stack and volley both retired, then starts a
+  fresh attack and deals 5 again. The 87 focused source tests passed.
+- In windowed 4F7B, stop during post-stun windup produced an ACK that
+  removed 114F/28 and /40. The lingering barrel glow fades by the
+  sampled frame at +645 ms. The large muzzle flashes in E7FB are absent
+  in the matched post-stop interval. Local evidence is the 4F7B stop
+  strip and heavy-minigun-stop-native-comparison.json.
+- A later 4F7B take stopped during active firing. The client ACKed
+  114F/47 active before stop and retired about 92 ms after the stop
+  request. Thirteen minigun hits took McCree from 225 to 160 HP.
+  The last sampled flash in the frame strip is at +53 ms. At +157 ms
+  and through the final sampled second the Heavy is visually idle,
+  with no further damage in the trace. Local evidence is
+  heavy-flash-charge-4F7B-firing-stop-detail.png and the corresponding
+  capture and native observer trace.
+- Body 1EBB loads 1408/82 (logical button 35) and 140E/9 (button 31).
+  A diagnostic button 35 edge advanced 1408, but did not move the NPC
+  or damage McCree in 181 frames. Its victim slot 536 stayed empty.
+- Button 31 started 140E/9 and set the authored one-second cooldown.
+  The graph leads from ChaseVar29 into TrackTargets6, with an authored
+  radius of 2.5 m, then ModifyHealth5 using instance amount 476 (80).
+  The original button-only diagnostic produced no damage. The sandbox
+  now starts this ability when its engaged player is within the authored
+  offset sphere and visible. The query supplies that player's capsule
+  and the impact consumes the resource amount once. The normal Rialto
+  server probe uses player movement and 0 without injecting a bot input.
+  At 2.15 m it lands for 80 after 19 frames. The authored cooldown expires
+  and a second windup is interrupted by { with no damage over 100 frames.
+  Target filtering and capsule geometry are reconstructed. The melee
+  impact also reads the graph's 20/8 knockback scalars as horizontal
+  and upward velocity on the surviving victim's collision mover. This
+  interpretation is reconstructed. The Rialto probe rises 1.64 m and
+  settles 11.65 m from the attacker. Original-client melee and knockback
+  presentation remain open.
+- The sandbox also starts the 1408 charge for an engaged, visible
+  same-floor target at 8–16 m. The host follows node 71's authored speed
+  multiplier (15) through the collision mover and supplies its contact
+  query and 175-damage node 102. Steering fallback, activation range,
+  contact geometry and the two-second cap are reconstructed. Stop,
+  blockage and a floor change interrupt charge movement. The real
+  Rialto probe verified 9.43 m of movement and a 175-damage hit, a
+  separate mid-charge stop with no damage or drift for 100 frames, and
+  the existing lower-platform descent after cancelling on floor change.
+  Node 123 supplies a 15-second cooldown through variable 472. A hit
+  uses the graph's existing cooldown write. Host cancellation now
+  uses the same resource value if that write was bypassed. Re-engaging
+  during cooldown does not start a new charge, and a mid-charge target
+  departure ends the old charge before the new player is engaged.
+  The probe also waited for cooldown expiry and observed a fresh charge
+  from the same NPC. In original-client match 9202 the Heavy dealt one
+  80-damage hit followed by a lethal hit against the remaining 145 HP.
+  The log from that run did not identify the lethal hit's graph node.
+  Later probe runs record the requested amount and the active special
+  impact node.
+  Other 1408 hit branches and original-client presentation remain open.
+
+Local in-game chat console:
+- With the NPC catalog configured, submit .npc in match chat to open the
+  console. Submit = to show the list, 1 through 5 to spawn, 0 to engage
+  the NPC under the crosshair, { to stop, - to remove, or Escape to close.
+  The .npc <key> form also works.
+- The lobby replies privately and routes the action through the same locked
+  game-server entry point as the web console. The menu state belongs to the
+  local lobby session. Original-client command delivery still needs a live
+  test. Direct single-key delivery is a separate acceptance item.
+
+Sniper repositioning frontier:
+
+- Rialto fixture `--sniper-flash-interrupt` starts an automatic retreat
+  through the crosshair command. Flashbang dealt 25 and interrupted the
+  retreat after 1.602 m. The Sniper held position and dealt no damage
+  during the 107-frame stun, kept its target and landed a 100-damage
+  shot 127 frames after the last stunned frame without another retreat.
+- Body graph 142C receives message 09F4 at node 64. MoveTo node 16
+  consumes instance variable 1220 as its destination and requests 20 m/s.
+  Node 39 (STU_2107AF60) references the destination and is still unmodelled.
+- In the Rialto probe, ordinary engagement for 100 frames produces no
+  MoveTo request. Supplying a destination and delivering 09F4 once also
+  produces no request across 180 frames. The host now consumes node 16's
+  fixed-target request through the collision mover and sends completion
+  or abort to the state. A forced node start moves the actor 2 m, finishes
+  on arrival, aborts at a verified blocking wall or on stop, and leaves
+  the killed actor in place. The destination and direct state start are
+  synthetic.
+- In Rialto, a manual Sniper engaged with a visible target on the same
+  floor can now start node 16 when the target closes within 3 m. The host
+  selects a supported 4 m retreat that preserves line of sight and applies
+  a 6 s cooldown after the move ends. The range, candidate selection and
+  cooldown are reconstructed. Normal player movement in the Rialto fixture
+  triggers a 4 m retreat and a second approach to 1.66 m during cooldown
+  leaves the activation count at one.
+- Native match 275E spawned the Sniper with the normal `=` and `3`
+  placement rule. A farther `0` engagement left it at its firing
+  position. McCree walked closer and pressed `0` again. With McCree
+  stationary after engagement, the client showed the Sniper backpedal
+  down the corridor with its rifle lowered, then shoulder the rifle
+  from farther away. The stop command left it at that position and
+  McCree stayed at 50 HP throughout the take. The client captures
+  sample the movement and final pose. The 4 m displacement and 6 s
+  cooldown are measured in the separate real-map server probe.
+  The original mission's destination selection remains unresolved.
+
+Local Rialto integration runtime
+
+- Use the prepared external Rialto runtime directory for ORPHEUS_RUNTIME_DIR
+  and its `data\pve_npcs_174.json` for ORPHEUS_NPC_CATALOG. The runtime's
+  default graph bundle includes the Rialto mission binding and Talon graphs.
+- The pack contains the 079F movement collision cache and the five Talon
+  mover records. The regular runtime preflight and asynchronous collision
+  loader accept the pack. Its provenance file records source paths and hashes.
+- `verification/retribution/probe_rialto_runtime_match.py` exercises the
+  authored map and mode, normal player spawn, and console command semantics
+  with an in-process transport fixture. Client keyboard and presentation
+  remain separate acceptance requirements.
+
+Companion web console:
+- The dashboard Server page links to /npc-console. Its dark page accepts the
+  requested keys while focused, supports mouse buttons, and ignores shortcuts
+  in account text input. Aim in the game first, then return to this page for0.
+  These are page-local shortcuts, not global or native in-game console hooks.
+- The loopback /api/npc_console API resolves the chosen saved account and executes
+  its command in that player's Match under GameServer.lock. Menus remain frontend
+  state. Mutations reject missing/offline players and a frozen game clock.
+- Before starting a dedicated test server, set ORPHEUS_NPC_CATALOG to the prepared
+  external pve_npcs_174.json. Set ORPHEUS_GRAPH_BUNDLE to the prepared extended
+  game_graphs_174.json.gz so body scripts and AI input definitions are available.
+  Other data still comes from the usual ORPHEUS_RUNTIME_DIR. No canonical data
+  files need replacement. Environment changes take effect in the new process.
+- HTTP tests exercise real GameServer/Match creation/removal, account isolation,
+  clock/catalog refusals, resource serving and fresh-process graph override.
+  Frontend request tests cover rapid = then digit, errors, no automatic retries
+  and later stop commands. A real HTTP fixture accepts all five command sequences
+  using actual body data; its game clock is stopped and it has no native client.
+- Browser preview could not initialize because the built-in browser timed out
+  waiting for Statsig configuration. Actual browser layout/keyboard acceptance
+  and native client integration remain pending. Normal services are not deployed.
+
+Manual engagement command layer:
+- npc_console.Console.press implements = menu, selection digits, - removal,
+  0 crosshair-selected engagement and { stop-all. A frontend must invoke it
+  under the game server lock; no native console hooks or global key capture
+  are installed. Digits are consumed only while its menu is open.
+- Spawns look for walkable floor 2 to 5 m ahead and reserve the NPC mover's
+  radius plus 5 cm before a wall hit on the aim ray. Selection
+  chooses the first living body on a100-metre ray, requiring a manual enemy and
+  clear static geometry. These distances and manual aim policy are reconstructed
+  sandbox choices, not native enemy navigation/acquisition evidence.
+- Each actual body supplies slot0's logical input. The controller tracks the
+  chosen player's current body, yaw/pitch and static visibility. Stop releases
+  queued and consumed inputs and retires owned projectiles without explosions.
+  Idle manual body VMs continue advancing with damaging shot reports suppressed,
+  so stopped timers cannot accumulate a damaging catch-up burst on restart.
+- Passive state includes target controller, last queued primary input and pitch.
+  The queued-input field fixes stop-before-first-VM-update input retention.
+- Pass136 related tests and13 server-snapshot tests, including9 console/control
+  tests. A separate actual five-body data probe observes primary damage for
+  Trooper and Heavy Assault, with no later damage after stop in its80-frame
+  window. The other three emit no shots in this probe and remain unresolved.
+  All five release input and explicitly remove. This is not full enemy combat.
+- A separately launched original104319 client with --tank_Console=1 showed no
+  console window; the grave key did not reveal one on the login screen. Relay
+  loading failed with Windows access denied and login timed out. Native console
+  availability after login and actual keyboard/client combat remain unaccepted.
+
+Implemented lifetime foundation:
+- Bot.retain_corpse defaults to false. The future manual NPC creator must enable
+  it explicitly. Existing training bots retain their normal respawn behavior.
+- A retained dead bot is not scheduled for respawn. Even a stale explicit
+  respawn callback cannot replace it. It stays in the entity/health catalog;
+  normal dead filtering excludes it from enemy acquisition.
+- Death event delivery remains unchanged. Ordinary updates still advance its
+  death script through the existing bounded terminal animation window. This
+  does not claim arbitrary long-running authored death effects or visual corpse
+  persistence: those need original-client checks for the actual enemy bodies.
+- Passive server state includes the policy, so it is not hidden causal state.
+
+Manual NPC lifecycle API:
+- npc.Definition requires full hero/body GUIDs, a name and explicit finite health,
+  armour and shields. npc.spawn runs on the match thread, allocates a never-reused
+  bot ID, opts into corpse retention, records its combat creation boundary, and
+  queues body creates for spawned viewers. Later viewers use the normal catalog.
+- npc.remove_spawned removes only manually created NPCs, including corpses.
+  It stops body scripts, retires projectiles without explosions, removes pending
+  attacks/respawns and combat state, and queues destroys. Existing map bots and
+  player bodies are not selected by this operation.
+- Five tests use the real Match combat and lifecycle with a training-body fixture.
+  They do not establish the five Talon definitions' wire/component compatibility.
+  The older extractor's pool labels differ from pools.py. The actual NPC body
+  graph routes instance variable221 through entity variable7787 to HealthPool
+  type2 (shields); catalog preparation follows the graph wiring, not that label.
+
+External enemy catalog:
+- tools/extract_pve_npcs.py reads selected hero/body XML and the directly wired
+  base HealthPool schema setters. It preserves pool kinds, literal defaults and
+  body overrides, source SHA256 and exact pool/setter/variable evidence.
+- Difficulty/conditional pool nodes are listed as unapplied. These are base
+  sandbox definitions, not mission-scaled enemy totals or complete health logic.
+  Output must remain outside the repository; npc.load_catalog validates selection
+  keys, full GUIDs and explicit pool values before constructing definitions.
+- All five local enemy definitions were prepared. An external extension of the
+  validated script bundle adds33 graphs with no new missing references. A fresh
+  in-memory Match loads all five body scripts; real McCree primary-fire commands
+  deal70 damage to each, body creates encode and explicit removals complete.
+  This probe uses a flat-collision fixture, adapter transport and permissive body
+  VMs. It does not prove enemy AI, complete skills/ultimate or original-client
+  presentation. Normal runtime inputs have not been replaced.
+
+Parallel hero work:
+Each hero lane must create its own goal for complete static acceptance of attacks,
+all skills, hit effects, cooldowns, ultimate and applicable player/NPC/cross-hero
+interactions. Completion requires executed behavior evidence for every item.
+Validated lane commits/patches are reviewed and integrated serially by the parent;
+static completion does not imply original-client combat acceptance.
+
+Authored NPC weapon components:
+- NPC bodies now mount the same authored weapon manager and slot scripts as
+  player bodies, retaining empty slot positions and allocating all roots before
+  running entries. This fixes the Sniper body's omitted manager0015 and weapon
+  slots1/2 (1122/1134); no attack damage or timing is substituted.
+- In the five-body external-data combat fixture, Sniper primary fire now reduces
+  McCree health225 to125. Trooper reduces225 to205 and Heavy Assault225 to220.
+  All three stop damaging after the stop command over80 further frames. Later
+  scoped manual bridges add Enforcer incoming damage and Assassin contact pin;
+  see docs/ENFORCER_MANUAL_CONTEXT.txt and docs/ASSASSIN_PIN_BRIDGE.txt.
+  Assassin contact is3m while console spawning is5m. Manual collision-aware
+  pursuit now approaches; use the additional actual NPC mover inputs in
+  docs/NPC_NAVIGATION.txt. Full AI/special behavior and native acceptance remain
+  open.
+- The fixture omits NPC observer projectile transport (bot_stream returns None).
+  It proves authoritative damage only, not projectile visuals, native-client
+  replication, autonomous navigation, specials or full mission behavior.
+- Difficulty-indexed config selection now uses the native scalar-index and
+  collecting-container interfaces (docs/CONFIG_ARRAY_SELECTION.txt). This fixes
+  a separate zero-damage cause in the Enforcer weapon. The subsequent manual
+  controller bridge has actual-input damage/stop/recovery evidence; the older
+  forced-controller experiments remain diagnostics, not full native acceptance.
+
+Still open: dedicated deployment/browser keyboard acceptance, actual enemy body replication,
+navigation and all five AI behaviors, McCree combat/skills/ultimate acceptance,
+corpse appearance and full original-client combat verification. The older
+complete-story restoration goal and its root-node blocker are separate scope;
+passing these lifetime tests does not establish a working mission or sandbox.
+Native Enforcer acceptance on Rialto 104319: key 2 spawned the actor, 0
+engaged it, and the volley reduced McCree from 225 to 175 HP. The unshifted
+[ stopped attacks and health stayed at 175. Deadeye killed the 350 HP actor.
+The corpse remained rendered for over ten seconds and disappeared on -.
+Deadeye's first-person arm pose and disabled icons persisted after the shot.
+
+Native Sniper checks on Rialto 104319: key 3 spawned the actor and 0
+engaged it. The shot dealt 100 damage and health stayed at 125 after [.
+Deadeye killed the 300 HP Sniper. The corpse rendered for over ten seconds
+and disappeared on -. Deadeye tint, pose and disabled icons persisted.
+In the later 0BAC retest, Deadeye killed a Sniper with 205 HP after a
+primary hit and a Flashbang. The ordinary view and ability icons returned,
+the corpse remained visible until removed with -, and another Flashbang
+hit a newly spawned Assassin in the same match.
+
+Native Heavy Assault acceptance on Rialto 104319: key 5 spawned it, 0 engaged
+it, and [ stopped fire at 180/225 player health. Three Deadeye shots killed
+the 4000 HP actor. The death model and detached guns remained visible for
+over ten seconds and disappeared on -. The two nonlethal shots recovered
+normal first-person presentation, while the lethal shot left it stuck.
+
+Mixed group stop regression
+
+The local probe_rialto_runtime_match.py --mixed-stop case uses the installed
+104319 Rialto collision and body graphs, with six McCree clients simulated by
+FakeClient. The players are staged in separate lanes with 2000 HP each.
+The console creates all five archetypes plus a second Trooper. McCree kills
+the second Trooper with Peacekeeper, and each living NPC is engaged with 0.
+At frame 126 the Assassin is pinning a player, a Sniper round is in flight,
+the Enforcer is winding up and the Heavy is firing. The Trooper lane has
+already taken 120 damage. A different player presses { once. It releases
+the pin and its stun, retires the weapon states and cancels the airborne
+round. All five lose their attack targets, and no player loses health over
+the next 300 frames. The corpse remains at its death position until -
+removes all six manual actors. This case verifies server state with the
+prepared assets and leaves mixed-group client presentation to native capture.
+
+The 104319 client in match 53B1 ran the Heavy and Enforcer together against
+one McCree in a 1280x720 window. The local dashboard used the same console
+command handlers. Both enemies traversed the staged 50-metre east route.
+The final Heavy and Enforcer hits were 33 ms and 21 ms before the stop
+request. After one {, the client acknowledged the Heavy minigun state
+exits at about 52 ms and neither enemy dealt damage for the next 2.3 s.
+The window capture still shows a tracer at +55 ms. The +177 ms frame and
+later samples show the two bodies without the preceding tracer or muzzle
+flash. See the local native-mixed-stop-53B1 capture and JSON for timestamps.
+
+The 53B1-sound repeat recorded the game's process tree at 44.1 kHz stereo.
+Relative to the capture helper's start message, quarter-second peak levels
+were -21.5 dBFS at stop, -34.0 dBFS at +0.5 s and -45.1 dBFS at +1 s.
+These are mixed game levels, so they do not identify individual emitters.
+The final Heavy damage event was its 80 HP melee hit (140E/5), 32 ms before
+stop. The native view intersects the Heavy's model while it settles close
+to the camera, and clears after explicit removal. The charge contact pose
+and collision at stop are still open. The 53B1-sound window sequence, WAV
+and JSON preserve that case.
+
+The local --heavy-charge-contact-stop replay uses the 53B1 east approach
+and a stationary McCree on the actual Rialto collision. The server trace
+found that the earlier 175 HP charge impact (1408/102) left the bodies
+0.967 m apart horizontally, below their combined 1.2 m mover radius.
+The charge mover now caps its advance at the selected target's capsule
+boundary. The existing charge graph can consume the same frame's swept
+contact if it still has capsule line of sight. This is a server collision
+reconstruction. The replay reaches 1.205 m, preserves the 175 HP charge
+and later 80 HP melee, and stops with no further movement or damage for
+100 frames.
+
+FDD8 replayed the patched server with the original client at 1280x720.
+In the single-Heavy run both damage events had 1.205 m horizontal
+separation at the server. The 80 HP hit preceded the stop request by
+31 ms. No further damage occurred during the 2.3 s stop observation.
+The sampled frames show the exterior of the model and both guns at close
+range, with much of the left side still occluded until removal. These
+samples do not measure clearance of every animated mesh from the camera.
+The local native-mixed-stop-FDD8-heavy-contact PNG, WAV and JSON record
+the run. The FDD8 two-enemy run put the Enforcer in front on approach and
+did not exercise either Heavy special before the capture timed out.
+
+The earlier server-only melee impulse did not move McCree's own view.
+The owner correction channel was limited to Soldier: 76. A surviving
+McCree now receives corrections from the first post-impact command
+through a two-second window after a nonzero Heavy impulse. The window
+uses the existing movement record and command ACK policy. It ends after
+the final record is sent and is cleared on body replacement.
+
+In match 1712, the original 104319 client at 1280x720 took the same
+175 HP charge and 80 HP melee at 1.205 m. After melee and {, the capture
+shows the view move away by the +254 ms sample and stay clear before
+explicit removal. A sent movement record showed 17.68 m/s horizontal
+velocity along Z and 7.16 m/s upward. The last correction showed zero
+velocity, about 9.16 m horizontal displacement from the impact point.
+No additional damage was observed during stop. The two-second scope is
+a sandbox policy. See the local native-mixed-stop-1712-heavy-owner-knockback
+capture and JSON for the frames and sampled movement records.
+
+The local --heavy-knockback-recovery regression uses the real Rialto
+runtime and FakeClient. It sends 124 owner correction records through
+the normal command frame selection, waits for the displaced McCree to
+land, and spawns a Trooper from that landing position. McCree then lands
+a 70 HP Peacekeeper hit, rolls 6.14 m and reloads to six, and lands a
+25 HP Flashbang with stun. The fixture presets ultimate charge. Deadeye
+removes the remaining 105 HP, retires its target effect, and leaves the
+corpse until -. The stopped Heavy stays idle throughout. The exact
+post-knockback combat sequence has server coverage.
+
+In native match 1712, after the Heavy knockback settled, the dashboard
+spawned a Trooper from McCree's landing position. Actual client input
+fired Peacekeeper and spent one round. The mouse input changed the
+view pitch and the shot hit the floor. Shift played Combat Roll and
+returned the ammo counter from five to six. E showed the Flashbang
+effect and cooldown, dealt 25 HP to the Trooper at tick 55806, and
+the client acknowledged the hit notice at tick 55809. Q showed the
+six-second Deadeye overlay and arm pose. The ability expired without
+a lock in that view and returned to the standard pose and ability icons.
+Native match 0A4F repeated the 175 HP charge and 80 HP melee, then
+spawned Troopers from McCree's landing position. A temporary secondary
+keyboard binding for primary fire kept the aim fixed. Two Peacekeeper
+hits dealt 70 HP each. A separate, full-health Trooper showed the red
+Deadeye skull and was killed by graph 01EE node 14 at tick 31267,
+reducing 200 HP to zero. The ordinary first-person pose and skill icons
+returned, and the corpse was still visible 27.7 s after the kill.
+The local dashboard removed it with the - command. The injected minus
+keystroke earlier in this run did not trigger removal, so this run
+does not establish physical hotkey delivery. The temporary binding was
+removed from the client settings. The two stored-journal tests that
+reported source fingerprint changes passed when rerun on a fixed
+source copy.
+
+The native key path and dashboard keep separate menu state. In 0A4F,
+the earlier minus key followed a dashboard spawn with the keyboard
+menu closed. Opening the keyboard menu with = displayed all five
+choices. Pressing 1 then showed the Trooper and the Spawned Trooper
+reply. Pressing - displayed Removed 1 NPCs and the model disappeared.
+These key events reached the local foreground hook and were logged by
+the lobby's private chat reply path.
+
+Native match 7F82 repeated the whole keyboard command sequence in the
+1280x720 window from the near western fixture. = opened the menu, 1
+spawned the Trooper, and 0 selected it in the crosshair. Six 20 HP
+hits reduced McCree from 225 to 105 HP. Shift+[ sent { and the lobby
+replied Stopped 1 NPCs. The Shift key also activated Combat Roll on the
+stock client. Health stayed at 105 in the sample 8.76 s after the stop.
+The - key then removed the stopped NPC. The unshifted [ alias remains
+available for stopping without the Shift input.
+
+Manual stop and removal now retire NPC projectile observer deliveries
+alongside the damage trajectories. This includes a projectile whose
+damage flight has already ended while its client launch is still
+waiting for acknowledgement. The packet-loss regression drops that
+launch, stops the NPC, and verifies that the volley is released and the
+remote entity is destroyed without a launch retry or impact effect.
+The installed Sniper volley creates projectile definition 0400000000001E80.
+The real-map regression cancels that volley during flight, checks 100
+frames without damage, verifies a 100 HP hit after reengagement, then
+cancels another volley with removal. The 67 focused tests passed.
+Native match 6302 repeated the shot at 1280x720 with the real projectile
+speed of 200 m/s. The control shot dealt 100 HP. The second take ran the
+same console stop handler after the client had acknowledged the create
+and launch. At that point the round had flown for 128 ms and was about
+15.1 m from the target capsule. The handler removed the damage flight
+and observer delivery and queued destruction of the projectile entity.
+No damage followed over the two-second observation. This is a timed
+diagnostic of the console handler, with a separate real-key check in 7F82.
+The 44.1 kHz game process recordings have the same -21.4 dBFS peak in
+the quarter-second window starting 0.25 s after the first server flight
+step. The recordings do not isolate individual emitters. The shooter
+was outside the view, so the sampled frames do not establish the exact
+visible tracer cutoff. The local native-sniper-projectile-6302 hit and
+cancel PNG, WAV and JSON files preserve both takes.
+
+Native match 3537 used the west-facing east corridor fixture. Collision
+sampling found 50 m of clear eye-height ray from (-25.271, 1.75, -101).
+The control shot dealt 100 HP. In the cancel take the 200 m/s projectile
+had flown 112 ms and was 20.3 m from the player capsule. Its create and
+launch were acknowledged before stop, and the client acknowledged the
+destroy about 20 ms after the handler ran. No damage was observed over
+the next two seconds. Both 44.1 kHz process recordings have a transient
+in the same quarter-second after launch. The samples do not attribute
+that sound to a specific emitter. The model and tracer were too small
+to resolve through the doorway in the sampled window frames, so the
+protocol timing does not determine their visual cutoff. The local
+native-sniper-projectile-3537-front hit and cancel files contain the
+window captures, process recordings and timed records.
+
+The closer exterior take F41B had a 35 m combat path, but the client
+looked south toward a pillar. In the south-aligned CC17 take, the rifle
+and red visor are visible in the window captures. The baseline still
+dealt 100 HP. In the cancellation take, the round had flown 80 ms and
+was 4.08 m from the victim capsule. The client had acknowledged creation
+and the launch was queued, with no launch ACK at the stop sample.
+The destroy was acknowledged about 10 ms after stop. No damage
+followed for two seconds. A red light remains on the model through
+the post-stop frames. The frames do not resolve a distinct in-flight
+tracer from that light. The CC17 south capture crops the central
+640x360 region from the 1280x720 game window.
+
+The manifest-verified 104319 resource trace distinguishes the flight
+effects from the rifle body. Weapon volley 1122/6 creates 1E80.003.
+Its projectile visual component refers to 21F9, 22C6, 22C1 and 22C0
+effects and contact set 00F7.049. Child entity 1E81.003 mounts 1F94.00D,
+which contains two ribbon renderers, particles and sound 477E.02C.
+22C6 also references that sound. The rifle has separate references,
+including 1122/50 to 1F96, /51 to 1F95, and the local-only /74 to 21E6,
+which contains light and sound components. These references identify
+what to track on the projectile and rifle. They do not identify the
+red pixels in CC17 or show which emitters the native client instantiates
+for a remote shot. The 13 raw resources and their content hashes are
+local under sniper-projectile-assets.
+
+A fresh 1280x720 windowed south take paired the 200 m/s shot with a
+read-only poll of the native effect handles. The 100 HP hit created a
+positioned track for sound 477E.02C near the rifle path. The first sample
+was 2.5 ms after the server damage event and the handle retired
+1.57 s after first observation. The stop take cancelled 4.23 m
+before the victim capsule. Create was acknowledged, launch had yet to
+queue and the client acknowledged destruction 53 ms after stop.
+There was no damage and the sampler saw no 477E track in that take.
+Other effect tracks were observed on both takes. The shared 477E sound
+key leaves attribution to 1F94 or 22C6 open, along with audible playback,
+direct tracer attribution and sampling a stop after a confirmed launch.
+The local native-sniper-projectile-effect-76592 files contain the paired
+captures, server timings and native handle log.
+
+The long 1280x720 windowed take observed 1F94 on both rounds. The native
+13-track sequence matches the authored order, including both ribbons,
+the particle and the 477E sound. Alternate asset 22C6 has one sound
+track. The control hit dealt 100 HP. On stop, the client had acknowledged
+launch and the round was 17.12 m from the victim capsule. No damage
+followed and destroy was acknowledged after 41 ms. The effect instance
+lasted 1.67 s on hit and 1.57 s on stop. It retired
+1.53 s after the destroy ACK. Per-track rendering, audible playback
+and the source of this lifetime remain open. Local evidence is under
+native-sniper-projectile-long-effect-43296.
+
+The 477E STU points to bank 1D641.043, ID 2370416490, and play event
+2288714851. The stop event field is zero. The bank contains a Play
+action 214779070 targeting layer object 816748177. Its three direct
+containers contain 66 sound entries. The 63 file-backed sources are
+all in the decoded STU media set. The other three use plug-in 00650002,
+Wwise Silence, with no media payload. They all occur in container
+325067874 and account for 205,000 of its 340,000 authored weight units.
+The other two containers have no silence entries. The layer has a
+200-cent pitch property and refers to attenuation object 058C2A32.
+Its first curve remains zero through distance 51.46, beyond the roughly
+43 m long-shot source distance. These fields do not determine runtime
+voice selection, occlusion, virtualization or output gain. A zero stop
+event field does not establish the native voice retirement time.
+The local source-analysis.json records the exact bank fields. Wwise
+field and plug-in names follow wwiser parser wdefs.py and wparser.py.
+
+A local waveform search used the decoded media, the four timed window
+recordings and an 0.85 to 1.15 playback-rate sweep. The top correlations
+were 0.375 and 0.342 for the long hit and stop, versus 0.292 and 0.293
+in their pre-shot controls. The short stop without a 477E instance
+still scored 0.321 versus 0.310 in its control. These scores do not
+establish that the 477E voice reached the output mix or how long it
+played. The local sniper-477E-audio directory holds the event, media
+inventory and match records.
+
+The grouped follow-up used six recordings, equal-length pre-launch
+controls, and independent 80 ms and 160 ms template widths. In the
+track-lifecycle hit and stop pair, source 97014.03F aligned at about
+45 and 52 ms after launch, with rate ratios 1.135 and 1.120. All four
+quarters of the aligned sample had the same negative polarity in both
+takes. Mean signed correlations were -0.168 and -0.157, against maximum
+pre-launch absolute means of 0.116 and 0.126 at the same rates. This is
+a candidate match from the recorded mix. The candidate was selected
+after comparing many sources, and other candidates also match control
+windows. A separately repeated or isolated playback is still needed
+to establish output and voice retirement. Local details are
+grouped-loopback-matches.json and candidate-97014-alignment.json.
+
+The oblique 1280x720 fixture fixed the Sniper at (-98, 3.15, -120),
+roughly 32 m from McCree and 20 degrees off the camera axis. The round
+retained its 200 m/s speed. The hit dealt 100 damage. The canceled
+round had a confirmed launch, was 9.01 m from the target capsule, and
+received a destroy ACK 41.6 ms after stop. It dealt no damage over
+the following two seconds. Dense crops contain 129 and 130 frames.
+The largest new red components around the shot were 8 and 5 pixels,
+both at the stationary rifle region. The crops do not resolve a separate
+ribbon. A held-out search for source 97014.03F after launch peaked at
+0.133 and 0.129, below the equal-length pre-launch maxima of 0.142 and
+0.141. It did not reproduce the prior candidate alignment. Local
+evidence is native-sniper-projectile-oblique-dense-86836-output-analysis.json
+and the matching hit and cancel records. A view across the projectile
+path and an isolated audio test remain open.
+
+A read-only transform trace in the same oblique fixture confirmed that
+the 1F94 effect and the 477E sound track share a moving root. In the
+normal hit take with stop delayed by 0.65 s, the first observed effect
+was 159 ms after server launch. Its last sampled position was only
+10.87 m from the muzzle, compared with the roughly 32 m damage flight.
+Immediate stop after hit was therefore not required for the early visual
+cutoff. The timed cancellation sample stopped updating at 7.43 m.
+The original 1E80 visual component leaves m_8390D843 at zero. The 072C
+and 1C86 rocket definitions set that latency-impact flag to one.
+Local evidence is native-sniper-projectile-natural-transform-86836-
+coordinates-analysis.json.
+
+The server now allows the native visual flight of a naturally ended
+1E80 round to drain for its measured flight time after launch ACK,
+within the existing delivery deadline. Stop, removal, loss of the source
+stream and expiry of the delivery deadline still retire it immediately.
+This changes observer delivery lifetime only. Native A/B validation
+in match CFDC used the same 1280x720 oblique fixture with the 200 m/s
+round. The server retired the hit delivery 10 ticks after launch ACK.
+The client root and sound transform moved through 35.36 m, compared
+with 10.87 m in the natural-end baseline. This reaches the target
+distance but overshoots the authoritative contact by about 4 m. The
+capture shows a distinct red ribbon in four sampled frames. No such
+ribbon was resolved in the baseline or the timed stop. Stop still
+retired the delivery immediately at the server, with a 52.8 ms destroy
+ACK and zero subsequent damage. The hit sound track's private handle
+was present for about 152 ms. The loopback template search did not
+identify a reproducible audible source. Endpoint alignment and audio
+output remain open. Local evidence is in the native-sniper-projectile-
+visual-drain-56056 capture and analysis files. All 40 projectile and
+33 combat tests passed, and Ruff passed on the projectile changes.
+
+A separate 1280x720 windowed diagnostic attached the authoritative
+contact position to the natural projectile destroy record. Both hit
+takes sent the same contact position. The sampled 1F94 roots held
+approximately 8.8 m short in one take and 3.9 m past contact in the
+other. Neither snapped to contact after the terminal record. The two
+stop takes sent no terminal pose. The diagnostic remains fixture-only.
+See native-sniper-projectile-terminal-low-load-36508-coordinates-analysis.json.
+
+In build 104319, the ch2 reader at RVA B3A490 dispatches projectile
+state through B24600 and D68980. B32960 compares the state impact
+count at +0x100 with the projectile's recorded count at +0xd28. If the
+received count is ahead, it builds a separate impact via B290E0 and
+B2EC50. A second diagnostic in windowed match 6418 sent count one
+and the contact position as a standalone ch2 update, six ticks before
+destroy. The flight root still stopped 3.92 to 3.95 m past contact
+across five hits. Two hits also produced a separate stationary 1F94
+root within 1.9 cm and 5.0 cm of contact. Neither secondary effect
+sample showed a live sound handle. The five timed stops sent no impact
+state and produced no separate contact effect. Keep this experimental
+record in the test fixture pending a repeatable contact and flight stop.
+Local evidence is in native-sniper-projectile-impact-state-low-load-80620
+and native-sniper-projectile-impact-state-repeat-80620.
+
+A third diagnostic used the ended projectile state in windowed match
+050C. The record sets state +4, inserts the extra flag before position,
+and omits the velocity field, as read by D68980. The client stores the
+ended flag at projectile +0xc80. Three hit takes with count one sent
+this state 13 to 52 ms before the last sampled flight-root position.
+All three ended 35.33 to 35.36 m from the muzzle, with no separate
+contact root sampled. The three timed stops sent no ended state and
+caused zero damage. The same shot ray hit Rialto's static surface at
+35.64 m, after its player-capsule contact at 31.41 m. Rays aimed
+through the sampled client endpoints hit the same x = -110 plane
+0.24 to 0.27 m beyond those endpoints. The repeated overshoot is
+consistent with native flight stopping at the surface behind the
+player. The wire flag alone has yet to show a stop at player contact.
+Local evidence is in native-sniper-projectile-ended-state-low-load-60752
+and native-sniper-projectile-ended-state-60752-world-ray.json.
+
+Review of D68980 found that the earlier diagnostic wrote three bits
+before XYZ. The reader consumes +4 and +1, then both +2 and +3 when
++4 marks the record ended. The client could read the ended flag in
+050C, but its coordinate fields were shifted. The fixture now emits
+all four bits. A local bit check verifies exact XYZ for both +2 values.
+B32B70 tests both +4 and +2 before its terminal-effect dispatch and
+sets a one-shot byte at projectile +0xd39. The new diagnostic option
+sets +2 while leaving +3 clear.
+
+In the 1280x720 windowed 93A8 take, a normal hit removed 100 HP.
+The observer queued the corrected ended record with the terminal-effect
+flag at the authoritative contact position, then retired the delivery
+six ticks later. The next round was canceled 5.81 m short of the
+player capsule after launch ACK. It received a destroy ACK after
+27.5 ms and caused zero damage. The client stayed connected. This
+take records the hit and cancel paths, with the final flight-root
+coordinates still to be measured. See the local
+native-sniper-projectile-terminal-four-flags-93A8 captures.
+
+In the 1280x720 76CC repeat, the read-only client sampler measured the
+31.406 m authoritative contact and a moving 1F94 root that reached
+35.359 m. Its nearest sampled point passed within 0.461 m of contact.
+The server queued the late terminal record 249.6 ms after the first
+flight step, and the first sampled wall endpoint was at 307.0 ms.
+The paired cancel had launch and destroy ACKs, zero damage and a
+9.621 m flight-root endpoint. Evidence uses the local
+native-sniper-projectile-terminal-four-flags-roots-fresh prefix.
+
+The early terminal diagnostic in DD81 kept the same four state bits,
+contact point and camera, and queued the record as soon as the hit and
+launch ACK were known. The server received terminal ACKs 192.7 and
+146.7 ms after the first flight step. The sampled roots ended at
+29.015 and 30.748 m, 2.391 and 0.659 m short of contact. Both hit
+takes dealt 100 damage and both in-flight cancels dealt zero damage.
+No separate contact root was sampled. Early delivery can shorten the
+visible flight. These two endpoints leave exact contact alignment
+open. Evidence uses the local native-sniper-projectile-early-terminal-
+roots and early-terminal-roots-repeat prefixes.
+
+Two more 1280x720 windowed pairs reproduced 100 damage on contact and
+zero damage on cancel, with destroy acknowledgement in both cancels.
+The B24600 reader stores ended at component +0xC80, copies decoded
+state through the +0x570 scratch slot, and saves the first ended
+state's tick at +0xC90. B32B70 records its terminal dispatch at +0xD39.
+An initial probe looked for component 91 and recovered only the effect
+tracks. B24600's BD5EF0 accessor selects component bit 50. The corrected
+probe identified vtable RVA 2610528 and the expected network entity
+A00C0004 in the same handle table. At tick 83346 it sampled ended=1,
+terminal dispatch=1, and position (-108.575462, 3.118491, -90.470337),
+within 0.000002 m of the server contact. The one 1F94 root held at
+(-108.775452, 3.088557, -89.911957), 0.594 m past contact along the ray.
+The cancel entity A00C0005 disappeared with no ended sample or damage.
+These samples put the remaining visual offset after state decoding.
+Local capture prefixes are early-terminal-component-rejoin,
+early-terminal-component-mask, and early-terminal-state50.
+
+B32B70 calls separate native paths for terminal effects and contact
+events. B290E0 builds a context position at B29286 by adding the
+projected displacement from the native virtual transform to the decoded
+state position. B2FDE0 uses that context and exits if the selected
+resource descriptor's +0x90 slot is empty. B2B690 selects a recorded
+contact from state +0x110 and component history +0x1030, or advances
+the +0xD30 event count through B30F00. The decoded coordinates and
++0xD39 dispatch byte alone do not identify the resulting effect.
+The windowed early-terminal-descriptor pair resolved both projectile
+instances through D6E2D0's context registry 0x22. They shared a
+descriptor with vtable RVA 2675170, variant -1, an empty +0x88 and a
+populated +0x90. The +0xC0 reference resolves to entity definition
+0400000000001E80. This is the outer descriptor passed to B2B690.
+B2FDE0 resolves its gated +0x90 separately through D6E0E0 and D6E140.
+The early-terminal-inner-fallback pair followed the loaded asset
+resolver, including its default table, to 1E80's asset vtable RVA
+2702368. D6E140 selected a different inner descriptor with +0x90 and
++0xC0 both zero in the hit and cancel takes. In this configuration
+B2FDE0 exits without constructing a terminal effect even when B32B70
+sets +0xD39. The outer +0x90 observed previously is a separate slot.
+The pair again dealt 100 damage on contact and zero on cancel. The
+contact-history path and exact flight ribbon endpoint remain open.
+
+The repeated long windowed pair sampled 211 hit and 193 stop states of
+1F94. The type 7 sound row's +28 byte changed from 1 to 0 and its first
+private qword became all ones 20 ms after server damage or 5 ms after
+destroy acknowledgement on stop. Both type 10 ribbon rows transitioned
+to 0 and cleared their private qwords, at 1.10 and 1.49 s after the
+destroy ACK. The hit case retained those rows for about 1.12 and 1.50 s
+after damage. This separates the sound row's cleanup from the ribbon
+state's lifetime in the persistent effect instance. Audible playback
+and rendered pixels remain open. Local trace files are under
+native-sniper-projectile-track-lifecycle-43296.
+
+The 1280x720 five-enemy windowed take confirmed the physical group
+stop and removal. All five dealt damage to McCree. The trace shows
+1,652.7 HP remaining and no additional damage in the 13.65 seconds
+from stop key completion to removal. Its 2,000 HP temporary pool
+is test-only. Native component 51 held 225/225 base and 1427.7/2000
+bonus, although the previous HUD showed 224/2225.
+
+The script HUD capacity now includes the same temporary health pool
+as the current value. The normal component-51 records are unchanged.
+The rebuilt native fixture showed 225/225 before engagement and
+2195/2225 after 30 damage from Heavy Assault. The server trace
+matches the displayed values. The display remained 2195/2225 after
+physical stop and removal. All 33 combat tests and six health tests
+passed. Local evidence is native-mixed-five-wave-hud-validation.json.
+
+Native 104319 match 0C74 used the normal spawn search in a 1280 x 720
+window. The Trooper spawned behind Heavy Assault. Both capsules
+intersected the same aim ray, at about 4.52 m and 2.80 m respectively.
+Physical 0 engaged Heavy Assault first. McCree killed the front actor
+with a physical Flashbang. The fixture had reduced Heavy Assault to
+one health. The next physical 0 selected the living Trooper while the
+retained Heavy Assault still intersected the same ray. The Trooper
+then damaged and killed McCree. Both enemies were removed with minus.
+Local evidence is native-rialto-0C74-corpse-selection-windowed.json.
+
+The normal-spawn probe used the installed 079F map and mode 0025
+with the original collision provider. Both team choices select the
+same default player spawn. Each of the five NPCs spawned about 5 m
+in front of that point, stayed idle for 30 frames, and damaged McCree
+after 0. The Assassin moved 2.12 m before contact. All ten simulated
+transport cases passed 90 damage-free frames after stop and explicit
+removal. The local harness and results are probe_rialto_normal_spawn.py
+and probe_rialto_normal_spawn.json.
+
+Native match E068 started at the normal spawn in a 1280 x 720 window
+with 225 HP and without the special position fixtures. The dashboard
+console exercised all five catalog choices, engagement, stop and
+removal. The server logged one damaging frame per attacker. Trooper
+dealt 30, Enforcer dealt 50 across 25 pellets in one frame, Sniper
+dealt 100, Assassin dealt 25, and Heavy Assault finished the 20 HP
+remaining with its 80-damage close attack. The Enforcer collector
+initially grouped queued pellet rows as post-stop; the complete trace
+places all pellets in the initial volley. The client showed 145/225
+after the first two encounters. All five nameplate snapshots were
+acknowledged. This run covers the normal opening and incoming combat;
+earlier physical hotkey tests cover keyboard input. Local evidence is
+native-rialto-E068-normal-spawn-windowed.json.
+
+The physical minus key now reaches the removal route after the spawn
+menu closes. Native match 6729 reproduced the old behavior with a live
+Trooper still visible after Escape and minus. In windowed match 6CC8,
+physical E killed a Heavy Assault that the fixture set to one HP. The
+original client acknowledged zero health and displayed the corpse.
+Escape closed the spawn menu. About 15 seconds after the kill, physical
+minus reported one removal and both the corpse and its detached gear
+disappeared. All four lobby chat tests and the Windows hook test passed.
+Local evidence is native-rialto-6CC8-closed-menu-corpse-removal.json.

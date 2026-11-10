@@ -1,0 +1,1282 @@
+McCree / Cassidy combat (104319): partial static evidence, goal active
+
+The target hero resource is0042, body02A3. Content labels it Cassidy; the user
+requested McCree. Complete static and original-client combat acceptance are open.
+
+Flashbang flight (worktree, resource/native arithmetic plus declared server policy):
+- Actual01E9 node7 uses037D projectile, speed30, range var7056=7, lifetime5,
+  and one unconditional E1A5B579 motion with599AB8D7=20. D88E2A-D88E9E
+  bakes this scalar; D71ACD-D71ADE updates Y velocity by subtracting gravity*dt.
+  The D0C4CF49 conditional branch is absent here and remains unsupported.
+- The launch's22CE7F30=0.05 adds to forward.Y before normalization, recovered
+  at D5ECB4-D5ECEA/5F3B30. Production helpers pass160 native velocity cases
+  (subtype lookup stub only) and160 original launch/normalize cases (no stubs).
+- The server now stores gravity, velocity and detonate_on_expiry on Rocket.
+  Those dataclass fields are included in stored server graphs; a focused
+  serialization check proves each changes the causal digest. Other projectile
+  types retain default linear motion and their existing expiry behavior.
+- For this scoped Flashbang, apply velocity before each16ms sweep and retain
+  the existing range/speed expiry clock (7/30 seconds). Accelerated flight
+  subdivides skipped host intervals to keep the same trajectory. Endpoint
+  target poses/effect timestamps remain the host's existing policy. Sweep
+  phase order, range-clock interpretation and expiry detonation are declared
+  reconstructions, not recovered full native collision/expiry semantics.
+- Expiry now invokes the configured radius3/25-damage blast and0.8-second
+  control instead of silently discarding the grenade. The existing impact
+  path uses the same blast implementation; wall occlusion and team filtering
+  apply to both. Five authored Talon bodies pass30 actual-input cases covering
+  contact, off-axis airburst, floor impact, wall, ally and outside-radius cases.
+  No damage/health/target-query injection is used.
+- Actual input also verifies the authored10-second cooldown (#472 -> #61):
+  an early short press expires without replay, held input restarts when ready,
+  and a short press within64ms of readiness is buffered. No cooldown/timer
+  injection is used. Full cast interruption, scaling and cross-hero acceptance
+  remain open.
+- Bounce/conditional motions, exact native contact shapes, defenses/immunity,
+  reflected/absorbed projectiles, cast/cooldown lifecycle and client projectile/
+  stun presentation still require complete acceptance. See status evidence below.
+
+Fan damage-ray integration (worktree, server reconstruction):
+- Combat._shoot now applies authored0..6degree scatter to the owner's01D2
+  node37 Fan shots. Primary, Deadeye and other heroes retain their paths.
+  Each round uses the original seed-table and circular-cone math, with a
+  declared server identity mapping: seed_base(body, instance.id, node.pos,
+  activation.counter). The native handle/word identities are not fully mapped.
+  Uniform radius is used, matching the inspected D74C0E/D79BB9 callers; their
+  binding to this exact Fan phase remains a reconstruction.
+- weapon_spread.py generates both tables from algorithms/seeds; no table
+  payload or client asset is stored in source. Its immutable memoized values
+  are pure functions, not an advancing RNG. Repeated events and a cold cache
+  produce the same vectors. Existing stored entity/instance/counter fields
+  determine the sequence; the activation argument wins over a later live
+  state's counter. No new causal state fields were introduced for these rays.
+- Production generators match32768 captured values. Production seed helpers
+  match128 base-word and128 seed-index native cases, plus128 uniform/128 float
+  sampler comparisons. Production vectors match140 original transform/rotation
+  cases at aspect1 (scalar libm stubs), maximum component error below7e-8.
+  Boundary cases include exact poles and cos(pi/2)'s tiny horizontal component.
+  The original squared-length threshold1.1754943508222875e-36 prevents the
+  previous1e-7 length cutoff from flipping near-pole horizontal directions.
+- Forty actual-input cases against all five authored Talon bodies cover240
+  rays:2/12/41/80m, walls, allies and both off-center directions. Ten off-axis
+  cases hit despite the command-center ray missing the target. Duplicate
+  commands do not add rounds; all clips consume six. Actual Fan deaths retain
+  corpses over100 further frames. The corpse checks cover these fixtures only.
+- A separate sustained-fire check spawns each NPC through the console keys,
+  kills it using only held Fan and authored automatic reload, retains the
+  corpse/position for300 frames, then removes it with minus. All five pass,
+  including Heavy4000 health in2114 simulation frames. No damage, health or
+  death-state injection is used. This is offline server/adapter evidence;
+  native corpse presentation and active-special counterplay remain open.
+- Revalidate15 Roll/held-fire cases,15 Deadeye cases and five NPC incoming/
+  stop/corpse/removal cases. At12m after Roll, scatter now deals200 to Enforcer,
+  Sniper and Assassin rather than guaranteeing300; six rounds still finish by
+  frame65. Trooper dies at200 and Heavy takes300 in the tested fixtures.
+- The70-case gun policy matrix now explicitly disables Fan scatter to isolate
+  critical/falloff rules. It is not an unmodified Fan aim/accuracy test. The
+  actual240-ray matrix is the evidence for real scattered damage.
+- Native seed parity, camera/muzzle quantization, recoil, animated hardpoints,
+  client tracers/impact presentation and complete cross-hero defense semantics
+  remain open. This does not complete the full hero static or client goal.
+  The server sequence is deterministic but is not proven to match predicted
+  client tracers; original-client hit/impact agreement still needs acceptance.
+- Final-source regression passes1170 Python tests, including9 new scatter
+  checks and one server causal mutation scenario. No new stored fields were
+  introduced in ray integration; the preceding13-test snapshot layout run is
+  retained separately. This is not a full hero or original-client pass.
+
+Fan normalized spread (worktree, not full secondary-fire acceptance):
+- PC104319 D80A50-D80A99 adds max(count,0)/ramp to the activation's
+  normalized spread and caps at1. A ramp below1e-7 returns1, including the
+  first shot. D5F979-D5F996 passes shots_at(elapsed)+1 as count. The239B571E
+  launch's AC20B1C1 is baked per activation. Only launches without optional
+  23C72C36 between-shot decay use this new model.
+- D5EAA0-D5EB61 converts lerp(min,max,normalized) from degrees to radians.
+  McCree01D2 node37 has ramp0, min var229=0, max var230=6. The previous
+  server implementation left normalized output231 at0 indefinitely.
+- WeaponVolley now models this normalized output and its final linked value;
+  other launch classes retain their existing behavior. The baked ramp is
+  included in causal VM/server snapshots.
+- External native probe passes120 original-instruction/model spread cases
+  and20 angle cases, with declared config/type-lookup stubs. Actual RMB input
+  against all five authored NPCs yields30 shots with normalized1 and0..6
+  degree inputs. No aim, target, damage or spread-value injection is used.
+- This normalized output was initially validated before damage-ray integration.
+  The current scoped ray integration and its remaining limits are listed above.
+  Historical straight-ray damage results do not establish native spread parity.
+- Further offline research recovers D5F8D0's table-index seed calculation
+  and184B1E0/184B1F0 sampling:128 seed,128 uniform and128 float-table native
+  comparisons pass without lookup stubs. Reconstructing both16,384-entry
+  tables from their generators reproduces all32,768 captured values exactly.
+  Uniform generation uses seed1 and reverse624-word buffer consumption;
+  the float generator's seed03AF714A is inferred by reversing the captured
+  terminal state, then verified against every generated float. No copied
+  table is added to the repository. A further140 cases now execute D80090 and
+  884090 with only scalar float32 libm stubs; seed/table/cross/rotation
+  instructions execute unchanged. Both sampling modes at aspect1 match the
+  reconstructed vector math within7e-8 maximum component error. Caller
+  argument identities and native mode selection remain open; current scoped
+  damage-ray integration uses the declared mapping above.
+- Final related regression:1173 Python tests pass, including13 server
+  snapshots and6 new spread-state checks. The captured Soldier76 crash-frame
+  regression is unchanged after excluding the unmodeled decay branch.
+
+Historical pre-scatter actual-input frontier (external graph bundle, flat collision, adapter
+transport and permissive body VM; target is Heavy Assault at8m unless stated):
+- Primary held131 frames deals350, leaving one round from six.
+- Before ray scatter, secondary held131 frames deals300 and finishes with six rounds after its
+  observed refill cycle. Full manual/automatic reload and cancel timing remain
+  to be checked independently.
+- Primary depletion followed by manual reload restores six rounds.
+- Primary depletion followed by Combat Roll restores six rounds. The probe's
+  position delta includes ordinary movement, so it does not prove roll motion.
+  The isolated motion diagnostic previously refilled5->6 with0m no-throttle
+  displacement. A scoped01F0 velocity bridge now produces about6.15m in the
+  same40-frame flat fixture while refilling; see MCCREE_ROLL.txt. Direction,
+  next-frame scheduling, static wall, interruption and cooldown are exercised
+  by actual commands. Full native phase ordering and cross-hero acceptance
+  remain open.
+- Quick melee at2m deals30 once. New source tests execute real McCree commands
+  against an enemy player and a training NPC, with visible, full-wall, allied
+  and out-of-range cases. An external actual-five-Talon probe separately passes
+  all ten visible/wall cases:30 damage visible, zero damage behind the wall.
+- Flashbang at3m deals25. The resource-backed server reconstruction now applies
+  timed control, interrupts an active Sprint channel, suppresses movement/input
+  and damage while controlled, and permits new input after expiry. Actual-five-
+  Talon probes observe primary release for all five and attack recovery for the
+  Trooper, Sniper and Heavy Assault. A declared manual Enforcer context now
+  also passes actual-input attack/recovery/stop/wall/corpse checks; see
+  docs/ENFORCER_MANUAL_CONTEXT.txt. A scoped manual Assassin contact pin also
+  has damage, interruption and control-release evidence; see
+  docs/ASSASSIN_PIN_BRIDGE.txt for the reconstructed clock/contact policy.
+  Gravity/bounce, native immunity rules,
+  barriers, complete cooldown lifecycle and presentation are not accepted.
+- Deadeye's premature exit was traced to the1113EBD5 input-join fallback.
+  The native join fix restores its authored six-second window and secondary
+  cancel. A scoped target/effect bridge now invokes the external01EE graph per
+  enemy and directs its volleys using target536. An actual-input offline matrix
+  passes15 scenarios, including enemy players, all five Talon definitions,
+  off-crosshair targets, team/cone/range exclusion, occlusion, charge pause,
+  target reentry, cancel/stun/death/replacement/removal and corpse retention.
+  Starting ultimate charge is explicitly filled; charge economy is not proven.
+  Native filters, immunity and complete presentation remain open. See
+  docs/DEADEYE_TARGET_BRIDGE.txt for reconstruction boundaries.
+
+Melee geometry policy:
+The existing authored melee reach/sphere and viewed target capsule are retained.
+A static ray from the attacker's eye to the nearest target capsule surface must
+be unobstructed before damage and hit notices. This is reconstructed server
+geometry, not recovered native melee hitbox/occlusion equivalence. Moving cover,
+barriers, reflect/absorb/invulnerability and all native-client visuals stay open.
+
+Flashbang status-resource research:
+The actual explosion ModifyHealth names effect resource053/0079. A read-only
+manifest-verified extraction resolves its graph0228, whose PlayScript overrides
+invoke common graph224E with duration0.8 (1.7 under the authored mode condition).
+The external research bundle adds0228;224E was already present. No normal runtime
+bundle or data file was replaced. No game assets or dumps belong in this repo.
+Directly injecting224E with the wrapper's evaluated schema/start parameters does
+not reach the stun control variables in the current permissive VM. Therefore
+neither the graph injection nor the duration discovery establishes native stun.
+
+Implemented control reconstruction:
+- HitDef preserves ModifyHealth.m_277A4ECA. The recognized053/0079 effect uses
+  the configured initial mode flag13408 to choose the resource's0.8/1.7 seconds.
+  The deadline is an exclusive world tick rounded up to the next16ms boundary.
+- Existing held input is released, buffered ability presses are cleared and
+  running abilities stop through their authored exit/cooldown paths. Controlled
+  player commands suppress buttons/actions/throttles and horizontal velocity;
+  look and gravity continue. No new hit/shot reports apply while controlled.
+- Manual NPC input is released; NPC shot reports remain consumed on the clock.
+  Route pause preserves the target, and skipped ticks cannot replay the paused
+  route interval. Physical projectiles already in flight remain in flight.
+- Repeat effects refresh the deadline. Expiry, body retirement/replacement,
+  death and manual NPC removal retire control. Retained corpses remain present.
+  Server snapshots include the control deadlines as causal state.
+- Splash also requires static visibility from impact to the target capsule.
+  This prevents the damage and control from reaching a target behind a full wall.
+  Impact-origin adjustment and capsule visibility remain reconstructed geometry.
+
+This is a server combat policy based on the effect resource, not execution of
+the complete224E graph or a recovered native status manager. Missing invocation
+metadata and native immunity/cleanse/stacking/unstoppable/barrier/reflect/absorb
+semantics and status/HUD/animation/audio replication remain open. No native
+client session has accepted the reconstruction. Dynamic mode-graph changes are
+not modeled beyond the configured initial mode flag used by this policy.
+
+Scoped animation observer diagnostic:
+- The five Talon blend-tree sets reference animation aliases 0064,
+  0065, 0066 and 0070 used in common stun graph 224E. References alone
+  do not prove playback. The full graph startup still requires more
+  native invocation semantics.
+- The external fixture mounts original 224E/node 38 (alias 0064,
+  remote index 8) and supplies the scoped stun deadline as duration.
+  It deliberately skips other start entries. All five bodies encode
+  the active state/counter in a 110-bit observer delta and encode
+  instance retirement at expiry. Existing five-body combat tests
+  separately still pass spawning, incoming damage, primary fire,
+  Flashbang interruption, stopping, corpse retention and removal.
+- The native harness option --flashbang-anim-probe injects the same
+  scoped presentation state after a real Flashbang hit and logs
+  observer acknowledgments for creation and retirement. This option
+  is diagnostic. No playback, idle blending or sound is accepted by
+  the offline check.
+- In the original 104319 client a real E input hit a Trooper at tick
+  2951. Health dropped from 200 to 175, and the observer acknowledged
+  both activation and retirement. Successive captures showed the
+  Trooper thrown backward and then falling feet-up. A later capture
+  showed it back in its armed idle stance. The isolated node visibly
+  plays a knockdown. These captures do not establish the appropriate
+  Flashbang reaction or continuous recovery blending. Target reaction
+  audio, ordinary gun-hit animation and hit UI sizing remain open.
+  See the tick 2951 sequence in rialto-native-hotkeys-combat.jsonl.
+- Graph 224E/node 0 uses alias 0070 and a directional category. Its
+  authored duration is parameter 215 minus 0.2 seconds. Its on-begin
+  path waits 0.1 seconds, runs criteria 0602 and starts voice stimulus
+  09F7.078 on self at node 11. Direct 104319 CASC lookup found three
+  distinct enUS media for 09F7 in each Talon voice set (Trooper 0188,
+  Enforcer 01A9, Sniper 01A6, Assassin 01A3, Heavy Assault 01A8).
+  The other graph stimulus, 0934.078 at node 117, has no media in
+  those five sets and targets a separate graph parameter.
+- The external --short-reaction-observer fixture confirms all five
+  bodies encode node 0 and its parameters in a 127-bit start delta.
+  The animation ends before the scoped stun deadline, leaving only
+  the passive voice state active. The fixture explicitly retires the
+  instance after this check. This identifies an authored audio path
+  and a runtime lifecycle gap. Neither voice node is in the authored
+  remote-state table. A scan of the loaded Rialto bundle found no other
+  VoiceStimulus node for 09F7, so the ordinary remote spawn-bark method
+  cannot directly turn on this stimulus for an NPC observer.
+- The native --flashbang-short-reaction-probe used fixed direction 0.
+  In session 26192 a real E hit at tick 3375 reduced Trooper health
+  from 200 to 175. The client acknowledged both the node 0 instance
+  and its retirement. The first image shows Trooper still standing,
+  turned with one hand raised, with seven of eight health segments
+  lit. The later image shows the armed idle stance. This verifies
+  the short reaction pose and eventual return to idle for Trooper.
+  It leaves frame-to-frame blending and client audio unverified.
+- Normal Flashbang impact now starts node 0 for manually spawned Rialto
+  Talon NPCs. It uses the authored four-way random category, and the
+  server keeps the reconstructed stun independent of the animation.
+  Repeated hits replace only the previous reaction; expiry, death and
+  explicit removal destroy it, including the passive voice state.
+  Other 224E start entries remain outside this reconstruction. The
+  five-body observer fixture checks start, retirement, replacement,
+  removal, and Trooper death with its corpse still present.
+- With only --flashbang-animation-trace enabled, native session 60984
+  used the normal combat path. At ticks 3004, 4414, 5327, 6798 and 7812,
+  Flashbang dealt 25 to Trooper, Enforcer, Sniper, Assassin and Heavy
+  Assault respectively. The client acknowledged each health change
+  and each reaction instance's start and retirement. The Trooper
+  screenshot also shows the reduced health bar and center hit marker.
+  This does not establish per-body visual blending, marker size or audio.
+- Native session 35936 captured only the Overwatch process tree with
+  the Microsoft WASAPI ApplicationLoopback sample, with its recording
+  time set to 24 seconds. Each Assassin and Sniper take contains a
+  70-damage primary hit and a 25-damage Flashbang with reaction start
+  and retirement acknowledged. A separate take contains a Flashbang
+  thrown without an NPC target. All three recordings contain audible
+  game transients and are local under verification/retribution/process-audio.
+- Compared the recordings against the three extracted 09F7.078 clips
+  for each target. Mono, 12 kHz, 180-4700 Hz normalized waveform search
+  peaks were 0.063 for Assassin against its own hit take and 0.090
+  for Sniper. In the no-target take the corresponding maxima were
+  0.059 and 0.079. In a synthetic additive control, each reference
+  was found at the inserted offset with correlation above 0.95.
+  These takes provide no identifiable playback of the extracted
+  09F7 clips. This comparison does not rule out an altered voice or
+  a separate impact sound. The audio route remains open.
+- Audited the 670 graphs in the prepared 104319 Rialto bundle for
+  STU_40E05F6B and remote STU_B9898052 pulse paths. All 656 voice
+  states lack an H=0 remote slot. The 93 remote pulse nodes include
+  three paths to voice nodes with nonliteral stimulus expressions.
+  0215/75 can read a synced stimulus (10122),
+  but its client branch 78 compares the local view with the graph
+  entity's primary possessor, and voice node 77 targets the mode
+  entity. 0EC2/300 targets self at 302, but branches 301 and 303
+  replace 10122 with fixed four-entry stimulus lists. Synced 7901
+  selects an index in those lists, neither of which contains 09F7.
+  The third path, 02CF/36, resolves its stimulus via an unlock
+  expression at node 48. It exposes no direct stimulus input.
+  These paths provide no direct way to send 09F7 to an unpossessed
+  Talon NPC observer.
+- The separate ClientInVoice protocol has a candidate path that does
+  not require a replicated statescript voice node. Dispatch 7D2400
+  maps 27500/27501 to B12CD0/B12D60. Both enqueue a 0x58-byte row at
+  service +138 when the world +2A9 gate is clear. Replay of both
+  handlers verifies wire +78/+7C/+80 become row +0/+4/+8, +88 becomes
+  row +10, and +90 becomes row +18. The allocator is adapted in the
+  replay. Consumer B14C80 resolves the asset in +10, looks up the
+  entity in +0 for its voice context, and passes +18 to DB5380 for
+  an exact lookup in the selected voice set's parallel key array.
+  A separate replay verifies the lookup with the three 06F keys
+  and rejects the 078 stimulus GUID as a line key.
+- Local CASC extraction for stimulus 09F7 yielded line keys ACB3,
+  ACB4 and ACB5 in each of the five Talon 05F sets. Each set maps
+  those keys to its own three media files. A passive read from
+  client PID 38064 verified that 09F7 and all five voice-set
+  descriptors are loaded and that all three keys occur in each
+  descriptor's actual line array. The observed first matching
+  rows are 58, 64, 54, 54 and 58 for Trooper, Enforcer, Sniper,
+  Assassin and Heavy Assault respectively. The loaded 09F7 descriptor
+  had mode 3 at +50, value 1 at +7B and value 0 at +84. The original
+  B14F39 gate replay admits both listener classes for that mode and
+  +7B value. The +84 check can still reject a restricted world.
+  The optional secondary entity is read from row +4 and the observer
+  classification uses row +8. The first controlled payload uses the
+  target at wire +78, attacker at +7C, unset observer override at +80,
+  09F7 at +88, ACB3 at +90 and zero for the remaining two fields.
+  The external --target-voice-notice-self-check round-trips this payload
+  through the 104319 JAM codec. The paired --target-voice-notice-probe
+  alternates control and treatment across nonlethal primary hits on
+  each target and traces queue and ACK separately. The local asset
+  evidence is talon-hit-voice-message-assets.json.
+- Native match 91E0 (client PID 28232) recorded two noncritical
+  70-damage Peacekeeper hits each on the Assassin and Sniper. The
+  isolated fixture used two server-injected primary inputs per target
+  with fixed aim, 105 world ticks apart. Both hits replicated the
+  normal reaction and health update. Only the second hit sent 27500,
+  acknowledged at ordinal 132 for Assassin and 343 for Sniper.
+  Process-only WASAPI capture matched the expected exact ACB3 media
+  at 0.8183 for Assassin and 0.9243 for Sniper in treatment windows.
+  Their controls scored 0.0690 and 0.1152. Synthetic insertions into
+  the same windows scored 0.8949 to 0.9955. The source IDs were
+  04A7B5.0B2 (Assassin) and 04A742.0B2 (Sniper). The recordings
+  voice-notice-assassin-28232.wav and voice-notice-sniper-28232.wav
+  are under local process-audio. This confirms target voice playback
+  for the tested 27500 payload and recipient. Production routing and
+  the other three bodies still need acceptance.
+- The normal combat path now queues that 27500 request when a living
+  manual Talon body in Rialto starts a damage or Flashbang reaction.
+  It uses the attacker as the verified recipient and fixed line key
+  ACB3. Each target voice set resolves that key to its own media. The
+  reconstructed policy currently uses one of the three authored lines
+  and sends one request per started reaction. The real-map probes
+  cover primary and Flashbang on all five, two voice requests for six
+  Fan hits, melee rescue, and nonlethal versus lethal Deadeye. All 569
+  game tests passed on the prepared runtime.
+- Native match 2BB6 (client PID 40752) used that production path and
+  alternated suppression of its first request with delivery of its
+  second request for each target. Server-injected primary inputs kept
+  the aim constant. The client acknowledged the notices for all five
+  targets, and its local lobby usage messages
+  reported ACB3 for each of the five voice sets. Process-only recording
+  comparison scored 0.7700/0.1060 (treatment/control) for Trooper,
+  0.8511/0.1474 for Enforcer, 0.9584/0.0907 for Sniper, and
+  0.9047/0.0950 for Assassin. Heavy Assault scored 0.0735/0.0787 and
+  0.0715/0.0695 in a second take, with both additive controls above
+  0.99. A 0.65 to 1.35 playback speed sweep did not recover a match in
+  the first Heavy Assault take. Its client usage record establishes
+  selection of 01A8/ACB3, and its audible output remains unverified.
+  In the same client, the selected 01A8.05F line row's enUS payload
+  resolves to 08D000000004A65C, the original reference used in the
+  comparison. Screening both Heavy captures against all 97 unique
+  media files in that voice set yielded maxima of 0.1366 and 0.1746.
+  No alternate line had a reliable waveform match. The local detail
+  is in talon-voice-passive-40752.json and heavy-voice-set-matches.json.
+  The local recordings are voice-production-40752-{a,b,c,heavy-repeat}.wav.
+  The authored Flashbang caller 0228/7 receives 000F.025 at entry 1
+  and starts 224E on self. Its overrides confirm the 0.8/1.7-second
+  mode durations and the 05D9 effect input. The message entry is
+  local to the VM. It does not supply an observer voice slot.
+- Read the effect from the installed 104319 CASC. 05D9.00D has an
+  ECSO sound reference to 07C9.02C, separate from voice stimulus
+  09F7. A scan of 19,790 .00D/.04A/.08E/.08F resources yielded 539
+  ECVS chunks and none referencing 09F7.078. Graph 0CC7/84 has a
+  remote effect slot (9) that reads synced instance parameter 2499,
+  a candidate to test 05D9 delivery. The scan establishes asset
+  references only. Playback of 07C9 or 09F7 has not been accepted.
+- Native client PID 78812 recorded two paired Trooper Flashbang
+  impacts, alternating normal behavior with the isolated 0CC7/84
+  effect probe. All four hits dealt 25 damage. Matched-filter
+  maxima against the six 07C9 source clips were 0.154/0.155 in
+  pair one and 0.168/0.143 in pair two (control/treatment), with a
+  0.972 additive positive control. These takes show no identifiable
+  07C9 playback attributable to the probe.
+- The native graph's own setup 224E/128 copies the 05D9 override into
+  variable 28380. Its chase state 46 begins effect node 125 (remote
+  slot 25), which targets self and reads hardpoints 00A4 and 000E
+  plus local offset (0, -0.4, 0). The isolated authored-effect probe
+  starts 125 on the existing Flashbang reaction with those inputs.
+  In client PID 39360, all four impacts again dealt 25 damage. The
+  client acknowledged effect activation and retirement in both
+  treatments (chunks 8/10 and 14/16). Against the six 07C9 clips,
+  correlation maxima were 0.160/0.146 and 0.162/0.149
+  (control/treatment). Wire acceptance did not yield an identifiable
+  playback in either take. The probe omits the authored parent
+  chase state and the preceding loadout and message actions, so
+  those results apply to isolated effect activation only.
+  The captures are under verification/retribution/process-audio
+  as flash-05d9-authored{,-repeat}-39360.wav.
+- Repeated the authored-effect comparison after correcting the JAM
+  game-frame bit boundary. In match 4D65, both Flashbang hits dealt 25
+  damage and the client acknowledged 224E/125 start and retirement in
+  the treatment. The first 0.7 seconds of the active parts of six 07C9
+  media templates yielded correlation maxima of 0.135/0.153 in the
+  control/treatment windows. Additive controls scored 0.909/0.926 at
+  their inserted offsets. The Flashbang takes differ in the preceding
+  primary hit and target health. Neither take provides an identifiable
+  07C9 waveform. The capture is flash-boundary-fixed-56296.wav.
+- The 104319 registry resolves the effect at 224E/125 to
+  STU_691BFA55. Its counter reader is RVA 984540, and its scope
+  enter callback is 9843E0. Executed 64 original-instruction
+  callback cases spanning active bit, current/last 2-bit counter,
+  and instance +318 bit 6. The callback invokes update 990310
+  when bit 6 is clear and the state is active or its counters
+  differ. It calls cleanup 98B1E0 when bit 6 is set or the state
+  is inactive. Update 990310 returns before resolving m_effect
+  if the instance's +1F8 pointer is null. These gates are separate
+  from transport delivery. The callback replay stubs the owner
+  service, registration lookup, update and cleanup calls.
+  Both Frida attaches failed, and the independent client exited during
+  a hardware-debugger attach attempt before it recorded any callback.
+  The subsequent read-only poll in match 5A6D, client PID 64896,
+  resolved C0001000 through its verified component 47 owner link.
+  During the tick 5234 Flashbang treatment, graph 224E instance 11
+  had a non-null +1F8 and contained all four synchronized inputs.
+  The native node 54 (authoring position 125) had one effect slot
+  at +218, nonzero effect handle B5A400 at +210[0], and resolved
+  effect index 05D9 at +258. The instance appeared during the hit
+  and retired after about 1.73 seconds. This verifies native effect
+  allocation for the isolated treatment. It leaves the ECSO child
+  and actual audio playback open. The bounded state record is
+  talon-effect-live-64896.jsonl in the local verification directory.
+- In match 0746, client PID 38064, a read-only lookup of the native
+  effect handle resolved a live local entity with effect component 9
+  and a template with 21 tracks. Track 10 has native type 7 (ECSO)
+  and resolves exactly to 07C9.02C. Its live row was initialized and
+  its 8-byte private slot remained all ones in 88 samples over about
+  1.7 seconds. The original type-7 start routine (RVA 1BA85F0) writes
+  a playback ID to the first dword of this slot when it reaches the
+  audio backend. No valid ID was observed. The runtime effect kept a
+  valid position near the Trooper and had its audio flag set. The
+  default resource registry contained a loaded 07C9 descriptor of the
+  same native type as 071D, 071E and 0FCB. Its policy was 1, the
+  observed scene suppression byte was 0, and its distance field was
+  -1, which bypasses the range test in 1BBF270. These checks rule out
+  absent compiled track, absent descriptor and the observed range
+  gate as explanations. They do not distinguish a skipped playback
+  dispatch from a backend rejection. The local captures are
+  talon-effect-template-38064.json and talon-effect-sound-slot-38064.jsonl.
+- The first sound-row sample was 0.004 seconds into the effect and
+  the last was 1.718 seconds in. Row +28 stayed 6 and the last start
+  index at +2E stayed FF. The compiled start time is zero. The
+  original scheduler sets the active bit before dispatch (1A98DA0)
+  and calls 1A99C30 when start returns zero. That cleanup clears the
+  active bit and can reset the start index to FF. The sampled row
+  therefore cannot exclude a failed start on the allocation frame.
+  The scene's +598 admission context was non-null. With row +20 bit
+  7 set, the start routine uses the localized track transform, not
+  the sampled effect origin. The next probe must inspect that
+  transform and the start result before cleanup.
+- The sound track's transform index is 1 and the captured layout's
+  transform table starts at effect state +2360. The selected position
+  is therefore at +23E0. It is outside the old capture. The read-only
+  probe now reads this position during a hit and checks the native
+  finite-coordinate gate (squared length below 1e10). A passive
+  service read from the same client confirmed backend callback RVAs
+  1BC3340 and 1BC33E0. The observed process and audio-service states
+  were 5 and 2, within both callbacks' initial admission checks.
+  Both callbacks reach 1BAEF90, which can reject a missing sound
+  key or descriptor. The loaded 07C9 descriptor passed the nonzero
+  setup +9C check in the passive read. These passive observations
+  leave the allocation-frame values and backend result unverified.
+- The local `probe_flashbang_ecso_start.py` replay uses the captured
+  05D9 template, effect header, and ECSO row from 0746. It executes
+  original 104319 start code at 1BA85F0, including the coordinate
+  check and scene admission. With supplied finite coordinates, a
+  loaded descriptor and an unsuppressed scene, it passes the exact
+  07C9 key to service slot +88 (RVA 1BC3340 in the live client). The
+  slot writes a supplied playback ID back to +2078. A backend return
+  of -1 leaves the same all-ones slot as failure before backend dispatch.
+  Separate cases reproduced early failure for nonfinite coordinates,
+  coordinates outside the native limit, missing scene context, scene
+  suppression, and unresolved descriptor. The replay substitutes
+  coordinates and stubs descriptor resolution and the backend return.
+  It does not establish which gate, if any, failed on the live start
+  frame or whether 07C9 played.
+- Native match BEAA used real E inputs for same-target Flashbang
+  pairs, adding 224E/125 only to the second hit of each pair. In the
+  first pair (ticks 9860 and 10536), both hits dealt 25 and the client
+  acknowledged the treatment effect's activation and retirement.
+  In 50 read-only samples from 24 ms to 1.724 s into the effect,
+  track 10 chose the localized position at +23E0, which was (0, 0, 0)
+  throughout. Its flags stayed 0x8428, the scene context was present,
+  suppression stayed zero, and the playback slot stayed all ones.
+  The original-code replay admits the zero vector through the initial
+  coordinate check. It remains open whether that vector was intentional
+  or whether another gate rejected the effect on the live start frame.
+  A third pair captured both hits in one 24-second client-only WASAPI
+  recording. Across both channels and all six 07C9 references, maximum
+  normalized correlations were 0.3244 (control) and 0.3758 (effect).
+  Inserting references into the same windows scored 0.7284 to 0.9560.
+  The comparison did not identify a distinct 07C9 waveform. Local
+  evidence is talon-effect-sound-pair-64792.jsonl and
+  process-audio/flash-05d9-pair-full-64792-match.json.
+- A further native BEAA pair on a newly spawned Trooper (ticks 34021
+  and 34729) recorded root and track transforms in the same effect.
+  In 22 samples (57 ms to 1.666 s), the effect root followed the NPC
+  near (-106.4, 3.2, -108.2). Transform slots 2, 3 and 5 followed it
+  with a 0.5 m vertical offset. The ECSO track alone selects slot 1,
+  which stayed (0, 0, 0), and the playback ID stayed all ones. The
+  resource registry confirmed 07C9 loaded with policy 1 and a -1
+  distance field in that process. The replay now executes native
+  position helper 1953420 and checks the selected vector both at
+  scene admission and at the service request's +B0 field. It uses
+  slot 1 when the localized flag is set and the root when clear.
+  The playback callback is stubbed in the replay. The live samples
+  do not establish whether the authored parent initializes slot 1
+  or whether the backend rejected the live request. The capture is
+  talon-effect-root-pair-64792.jsonl.
+- The extracted graph routes 128 through loadout action 150 and
+  message 1682 at 180, then enters chase state 46. Chase state 46
+  synchronizes duration variables 11310 and 1903 and begins 125 via
+  its subgraph. Node 125 alone consumes the effect, two hardpoints,
+  and offset in its four synchronized variables. None is assigned by
+  the chase state. The real-map `--flashbang-effect-parent` probe
+  compared direct start with parent start after normal Flashbang
+  inputs on all five Talon bodies. Both routes synchronized the same
+  four effect inputs. The parent route encoded both active states
+  and ending the parent encoded the child's end while the separate
+  sandbox stun was still active. The optional client harness
+  `--flashbang-parent-sound-probe` alternates these two routes and
+  records whether the parent was acknowledged with the effect.
+  It reconstructs the chase input from the reaction duration and
+  bypasses the earlier loadout and message actions. Live transform
+  initialization and audio under the parent route remain unverified.
+- Native match 1B3C compared direct 125 (tick 9960) and 46 -> 125
+  (tick 10623) on the same Trooper with real E inputs. Each hit dealt
+  25 damage. The client acknowledged both effects and the chase state
+  only on the second hit. The effect root was near the Trooper on
+  both routes. In 24 direct-start and 43 parent-start samples, ECSO
+  transform slot 1 stayed (0, 0, 0) and the playback ID stayed all
+  ones. These samples begin at effect ages 8 ms and 29 ms, respectively.
+  Starting through 46 was insufficient to populate the sound position
+  in the sampled interval. The upstream loadout and message actions
+  remain outside this comparison. The local capture is
+  talon-effect-parent-pair-58296.jsonl. The paired 24-second WASAPI
+  capture contained both impacts. Maximum normalized correlation
+  against all six 07C9 references was 0.3262 (direct) and 0.3231
+  (parent), with additive controls ranging from 0.6744 to 0.8399.
+  Neither route yielded a distinct waveform match in this take.
+  See process-audio/flash-05d9-parent-pair-58296-match.json.
+- In the 104319 registry, STU_545AB3B8 (224E/150) has no dedicated
+  constructor and inherits DD856C32. Its vtable +48 is base action
+  1B6EBA0 and +50 is D34A80, which returns true without reading the
+  loadout. Model that PC behavior as a pass-through. Among the 670
+  assembled graphs, the only 1682 receiver is server-only 1A5A/146.
+  Its path conditionally relays 168A. None of the five manual Talon
+  bodies had a receiving entry in the real-map probe. With a selected
+  request record seeded from the 0228 overrides, the probe executed
+  128 -> 150 -> 180 -> 46 -> 125 for all five bodies. Each sent 1682
+  to self with zero deliveries and produced the same four effect
+  inputs and active states as the chase-only route. This bounds the
+  preceding actions in the sandbox. It does not establish server
+  behavior outside the extracted bundle or recover 07C9 playback.
+- Manifest-verified 104319 asset 05D9.00D binds its only ECSO track
+  to hardpoint 00A4. The ECMP at +C00 names that hardpoint and the
+  ECSO at +C80 names 07C9.02C. ESHT at +3520 maps hardpoint 00A4
+  to slot 1, matching the compiled track and the zero-valued live
+  transform. The ECMP wrappers of the visual tracks use other
+  bindings. All five default Talon models contain 00A4 and 000E in
+  their embedded MSTU STUModel hardpoint table. In each model 00A4
+  points to bone ID 5 and 000E to bone ID 2. Both IDs are present
+  in each model's mskl skeleton. This excludes missing hardpoint
+  declarations or parent bones in these source models. The runtime
+  binding of 00A4 to the spawned effect still needs verification.
+  The local asset results are under flashbang-effect-assets.
+- The 104319 client rebuilds an effect's requested transform mask at
+  1AA46CD and ORs in each eligible track's mask at 1AA4952. Compiled
+  05D9 track 10 (07C9) has mask 0x02 and word index 0, so its request
+  is for transform slot 1. At 1AA4D1D the update loop calls 1AA4120
+  only for a set bit and passes a destination with stride 0x50.
+  In the captured instance the transform table starts at state+2360.
+  Slot 1 translation is therefore state+23E0, the same location
+  read by the localized ECSO start routine. The writer can read an
+  explicit resource-key attachment via 193DEF0 -> 1A9A130. The
+  captured state has no override table at +170, so that resolver's
+  alternative goes through 1AD5F00 and the effect's +D0/+160
+  context. The older capture ends before the compiled per-slot
+  descriptor table and omits the live request bitset at +2354.
+  It cannot distinguish a skipped slot update from the attachment
+  resolution and transform composition branches.
+- Native match 6DF0 repeated Flashbang on one Trooper through
+  46 -> 125 (tick 125452) and direct 125 (tick 129720). The client
+  acknowledged both effects, both 25-damage updates and the parent
+  state on the first hit. The read-only writer probe found slot 1's
+  compiled descriptor at template+30F0, with key 00A4 and flags
+  0x1000. In all seven parent samples (377 to 1817 ms) and all 69
+  direct samples (12 to 1669 ms), the writer's request word was
+  0x2C, its other mask word was zero and neither sampled track set
+  contained track 10. Only slots 2, 3 and 5 were requested. Slot 1
+  translation remained zero and the playback ID remained all ones.
+  This establishes that the observed update intervals skipped slot 1.
+  A transient request or a failed ECSO start before the first sample
+  remains possible. The local captures are
+  talon-effect-writer-6DF0-take2.jsonl and -take3.jsonl.
+  Separately, the native start dispatcher at 1A98F62 checks compiled
+  track flag 0x80, which is set for track 10, before calling 1AA3FF0.
+  That routine can select the same slot and call 193D590 before the
+  type-specific callback at 1A98FAE. With the captured track flags,
+  193D590 routes to 193DEF0 with the 00A4 key and the effect root as
+  fallback. The periodic masks alone cannot show whether this start
+  branch ran or what position the audio backend received that frame.
+- Match 0746's 88 samples all have effect state +4C/+4D equal to
+  4/4 and owner context +230 equal to 0x801300A0000004. Native
+  initialization at 1A9AEC5 and the update helper 1A9F830 derive
+  +4D as 1 if the owner's +230 has any 0x800400 bit, 2 if it has
+  any 0x1000800 bit, and 4 otherwise. Track 10 passes its +4C
+  range check (1 through 4), then its compiled +A7 mask of 1
+  rejects class 4 at 1AA092A, before the start callback can run.
+  The same class explains the active visual tracks with mask 6.
+  The local instruction replay reproduces class 4 and rejection
+  from the captured owner flags. A synthetic class-2 owner also
+  rejects. A synthetic class-1 owner passes, and the original
+  scheduler and registered ECSO thunk populate slot 1 before the
+  backend request. The replay covers attachment resolution and
+  root fallback, and ECSO cleanup preserves the written position
+  when the stubbed backend rejects the request. The replay stubs
+  attachment lookup, timing and audio backend calls. This explains
+  the missing 07C9 request for the observed owner class. Actual
+  class-1 playback and the owner flags' gameplay meaning have not
+  been verified. Observer reaction voice is the separate 27500 path.
+
+McCree target presentation:
+- Peacekeeper, Fan the Hammer, quick melee and a nonlethal Deadeye
+  start the shared 224E/0 standing reaction on a living manual Talon
+  NPC in Rialto. This is a reconstruction using original assets,
+  with a 0.28-second animation window chosen for ordinary hits. It does
+  not set a stun or replace an active Flashbang reaction. Lethal damage
+  retires the reaction and preserves the death graph.
+- The real-map `--primary-reaction` fixture fired Peacekeeper through
+  normal combat input at each of the five manual NPCs. Every 70-damage
+  hit activated 224E/0 without a stun. The observer delta first marked
+  the animation active, then marked it inactive after its 280 ms VM timer,
+  then removed the instance at the 0.48-second reaction deadline. Each
+  target survived at its original position. The separate inactive delta
+  gives the client an animation end before instance removal. Client
+  interpolation between the hit and idle poses still needs a timed take.
+- The original reconstruction restarted the short reaction on every
+  Fan hit, including hits just 128 ms apart. Keep the current short
+  animation active until its authored timer ends. In the real-map
+  Heavy Assault probe all six hits still dealt 50 damage each. They
+  each queued a 25001 hit notice and started two 280 ms reactions in
+  total. The observer baseline retired both instances after the burst.
+  The five-body observer probe confirmed Flashbang can immediately
+  replace a short reaction and ordinary hits preserve the active stun.
+  The nameplate probe also confirmed each body acquires the authored
+  enabled flag and its own name after damage. It did not measure the
+  rendered nameplate or hit marker.
+- Native replay verified the 25001 ordering check at 6C3025 and the
+  health-bar timeout at 6C88C1/6C8EAD. The client adds a positive clock
+  correction to the hit frame, drops any frame older than the last
+  ring entry and admits equal frames. At 16 ms quanta it expires the
+  entry at age 310 frames (4.96 s). The game-link regression reproduces
+  a frame-101 hit held for a target create ACK while a frame-105 hit
+  on another target is delivered. The delayed hit now uses frame 105
+  when promoted to the reliable queue, so the native ordering check
+  admits both notices. This preserves the targets, damage and flags.
+  Neither replay measures HUD geometry.
+- The 104319 25001 handler replay at 6C3071 covers all four flag
+  combinations at 25, 70 and 140 damage. Bit 0 selects CritCount
+  instead of HitCount, and bit 1 independently increments KillCount.
+  Every case dispatches event 7. The common hero HUD 05D0.05A imports
+  dictionary 00A3.05E, whose hit, crit and kill storyboards bind to
+  those counters. The ordinary hitImage grid (502) is 70 by 70 layout
+  units and animates at scale 1.2 on both axes. The critImage grid
+  (831) is 170 by 170 with both axes scaling from 1 to 1.3. The kill
+  image child (1184) is 80 by 80 and its storyboard scales from 1.5 to
+  1. The four individual pip transforms in each hit and crit grid also
+  bind DamageScalar. These layout values describe control boxes and
+  storyboard transforms. Measuring the visible pips and skull at the
+  actual viewport still requires a timed capture.
+- The real-map Deadeye probe saw the reaction in observer snapshots
+  for surviving Assassins and Heavy Assaults. Lethal shots on the
+  Trooper, Enforcer and Sniper left no live hit reaction. The Assassin
+  rescue probe checks the observer state for both a 30-damage quick
+  melee and the longer Flashbang reaction after a 25-damage hit.
+- The normal five-body Rialto regression exercises primary damage,
+  reaction activation, Fan kills, terminal state scripts, corpse
+  retention and removal. When a hit reaction ends on the death tick,
+  a new observer's stored live baseline resolves its graph definition
+  from that baseline. The initial implementation used only currently
+  live graph definitions and failed to encode some retained corpses.
+  The 104319 client acknowledged activation and retirement for all five
+  bodies after 70-damage primary shots. The Trooper showed a white hit
+  marker on one take and a reduced red health bar on a repeat (200 to
+  130), then returned to its armed stance. These samples do not resolve
+  the short reaction pose or its blend back to idle. Native pose, blending,
+  hit-marker sizing and audio still need acceptance.
+  In native match B726, the client generated its own fire input using a
+  temporary alternate Primary Fire key. No server fire injection was
+  enabled. A standing shot dealt 140 critical damage to each of the five
+  NPCs. A crouched Trooper hit dealt 70 noncritical damage. That frame
+  visibly shows the Trooper turning and raising a hand, its reduced
+  red health bar, and the white hit marker. The preceding Trooper fight
+  also showed the lethal red skull, the rendered ragdoll, and removal
+  by the minus hotkey. Neither the hit-marker size nor continuous
+  blending for every NPC was measured.
+  A 60 fps lossless center crop of 3840x2160 native match 6DF0
+  captured a Peacekeeper critical kill on the Trooper at tick 169298.
+  The 140-damage shot removed its remaining 125 HP. The client
+  acknowledged 25001 with both critical and lethal flags. In the
+  rendered crop, the centered red skull measured 252x244 pixels at
+  its largest sampled frame. It measured 220x212 at +50 ms,
+  186x179 at +150 ms and 166x161 at +250 ms, relative to that peak.
+  The measurement uses the largest connected red component after
+  horizontal mirror intersection to exclude the offset nameplate.
+  This documents the lethal animation at one viewport. The overlaid
+  critical pips require a separate nonlethal critical take, and the
+  measured pixels still need a matched native control for parity.
+  Local evidence is hud-flash-6DF0.mkv and
+  hud-critical-lethal-6DF0-metrics.json.
+  Windowed match 66FF adds three nonlethal, paired Peacekeeper takes
+  on fresh Enforcers. Each take uses the same client, camera and target
+  at a 1280x720 viewport. One diagnostic normal input aims at the torso
+  and a second aims high 105 ticks later. The hit notices carry 70/0
+  and 140/1 for damage/flags, and server health is 350 -> 280 -> 140.
+  The client draws the normal white pips and the critical red diagonals
+  while the target remains alive. The frames also show the health bar
+  losing its armor segment and the Enforcer ducking and raising its
+  helmet again in both cases.
+  Thresholded diagonal masks around the fixed crosshair give peak white
+  cores of 19x19, 21x21 and 21x21 pixels. All three red cores peak at
+  33x31 pixels. The white cores are sampled for 68-124 ms and the red
+  cores for 321-324 ms from first to last thresholded frame. These are
+  sampled spans with color-specific thresholds and exclude the ring and
+  faint edges. Max source gaps around the hit windows are 13-64 ms.
+  The same-viewport comparison distinguishes the two native HUD paths.
+  Absolute sizing parity against a stock encounter is still open.
+  Local evidence is primary-crit-pair-66FF-metrics.json, the three
+  lossless frame arrays and frame times, and the contact sheet.
+  A follow-up windowed take in 8BF3 offsets the Enforcer 0.80 m from
+  the normal spawn point so the reticle stays clear of its helmet.
+  The same pair again delivered 70 and 140 damage. Forward/backward
+  optical flow tracked the visible helmet from about 135 to 527 ms
+  after the hit notices. Every sampled pair had at least three
+  consistent helmet features: 58 ordinary pairs and 52 critical
+  pairs, with maximum source gaps of 12.5 and 21.6 ms. Integrated
+  median motion raised the helmet by about 62 and 55 viewport pixels.
+  The largest single upward steps were 7.0 and 7.1 pixels, surrounded
+  by smaller upward steps. The static trim control stayed within
+  1.6 pixels per pair. Enlarged frames show intermediate poses around
+  both peaks and through the later rise into the armed stance. This
+  verifies visible staged recovery in this Enforcer take. It does
+  not measure bone weights or generalize to the other four bodies.
+  Local evidence is enforcer-recovery-8BF3-offset-motion.json and
+  the offset contact sheet and peak-frame strip.
+  In the same windowed match, a Trooper received a 70-damage body
+  shot and a 140-damage critical shot. The second shot took the last
+  130 HP and sent hit flags 3. The body-shot frames show the Trooper
+  lower its shoulders and bring the gun back to its armed stance.
+  The lethal frames show the red skull and elimination text, then the
+  ragdoll on the floor. The skull's largest centered connected red
+  core was 84x82 pixels at about 81 ms after the hit notice. The
+  corpse remained visible in the sample at 11.6 seconds. The console
+  remove action named that exact body at 11.75 seconds, and the
+  sample at 12.12 seconds shows the same floor without the corpse.
+  The action used the dashboard's minus-key route. Local evidence is
+  rialto-recovery-8BF3-recovery-trooper-sheet.png and
+  rialto-recovery-8BF3-trooper-metrics.json.
+  The same session captured paired 70/140 hits on Sniper, Assassin
+  and Heavy Assault. Their health transitions were 300/230/90,
+  500/430/290 and 4000/3930/3790. All three remain on screen through
+  the recoil and the return to their armed stance. For Sniper, the
+  bright visor centroid is present in all 55 ordinary and 56 critical
+  samples from 115 to 515 ms. It rises 62 and 65 pixels from the
+  deepest pose, with maximum observed upward steps of 6.5 and 5.8
+  pixels. The capture gaps in that interval are at most 18.1 ms.
+  The Heavy's left-screen shoulder light is identifiable in all 35
+  ordinary and 36 critical samples from 150 to 525 ms, moving inward
+  and upward as the arms return to idle. The Heavy recording retains
+  the centered 10 m charge fixture and has gaps up to 49.8 ms. The
+  Assassin rotates both blades through distinct recovery poses, but
+  an 86.6 ms gap in its critical window prevents an equivalent
+  frame-to-frame bound. Local evidence is the three 8BF3 recovery
+  sheets and the Sniper visor and Heavy shoulder traces.
+  The windowed 7CCD corpse matrix adds Enforcer, Sniper, Assassin
+  and Heavy Assault. The fixture injected normal Peacekeeper input
+  into a connected McCree command stream, starting with a body shot
+  and aiming high thereafter. It did not edit health or set a death
+  flag. The four bodies started at 350, 300, 500 and 4000 HP and
+  reached zero on hits 3, 3, 5 and 30 respectively. The client
+  acknowledged each zero-health update and lethal hit notice.
+  Each window capture shows collapse, a settled corpse immediately
+  before removal at about 12 seconds, and the cleared floor after
+  `-` through the dashboard console route. Detached Enforcer and
+  Heavy weapons remained visible with their bodies and disappeared
+  on the same action. Together with the 8BF3 Trooper take, this
+  gives visible retention and explicit removal for all five bodies.
+  Local evidence is rialto-corpse-7CCD-{2,3,4,5}.{json,npy,png}.
+  In windowed match BBE8, the fixed-aim primary fixture fired one
+  Peacekeeper body shot at a fresh Trooper on tick 18075. The client
+  acknowledged its 200 to 130 HP update, hit notice with flags 0, and
+  reaction activation and retirement. The 1280x720 window recording
+  shows four white hit pips around the circular crosshair. Three
+  sampled frames at 3367, 3383 and 3400 ms have a symmetric bright
+  core of 18x20 pixels; the 3417 ms frame has a 16x18 pixel core.
+  The measure excludes the fixed crosshair, one-sided muzzle flash
+  and faint antialiased edges. The renderer recording has timestamp
+  gaps around the shot and the Trooper's model is first visible at
+  3817 ms, so it cannot measure the complete hit-marker envelope or
+  the hit-to-idle blend. The shot used a server-injected normal
+  input, and no matching native control was captured at this size.
+  Local evidence is hud-primary-BBE8-take2.mkv and
+  hud-primary-BBE8-metrics.json.
+  A separate 1280x720 BBE8 recording started C0001001 with the local
+  NPC console's 0 action and stopped the group 2.315 seconds later
+  with its { action. One Trooper entered the close-range attack and
+  the client showed incoming hit feedback. Five hits reduced McCree
+  from 225 to 95 HP at ticks 39709 through 39835. The console reported
+  one NPC stopped, the Trooper visibly returned to its armed stance,
+  and no subsequent damage was logged in that match during the take.
+  The 6.5 to 8.5 second post-stop interval has 109 sampled frames,
+  with the helmet visible in each and a maximum 34 ms gap. This
+  captures the armed idle interval after combat. It does not establish
+  the separate ordinary hit-to-idle animation blend. Evidence is
+  hud-trooper-attack-stop-BBE8.mkv and its local metrics JSON.
+  Windowed match 6E9B used the delayed primary fixture and window-only
+  graphics capture. The Trooper was visibly armed before the shot at
+  tick 12479. That noncritical 70-damage hit reduced it from 200 to
+  130 HP. Two frames at 3075 and 3108 ms after spawn show the four
+  hit pips with a 36x38 pixel symmetric bright core. This earlier
+  sample is larger than the BBE8 measurement. At 3391 ms the Trooper
+  visibly lowers its rifle and turns. It is back in the armed pose
+  at 3873 ms. In the latter frame the center scan line of the health
+  bar spans 69 pixels, with 44 pixels from the first to the last
+  bright fill pixel (about 64 percent versus 65 percent HP). Native
+  capture timestamps still have gaps up to 200 ms around the hit.
+  The three poses and the health bar are visible. Smooth interpolation
+  and matched native control for the HUD sizes remain unverified.
+  Local evidence is trooper-delayed-hit-6E9B-wgc.mkv, its timestamp
+  JSON and the companion marker measurements.
+  The same windowed 6E9B setup recorded delayed primary hits on
+  Enforcer, Sniper and Assassin. Each hit dealt 70 damage and the
+  client acknowledged the health change and reaction lifetime.
+  Enforcer (tick 32397, 350 to 280 HP) staggered with its shotgun
+  lowered and recovered its armed stance. Sniper (tick 33073,
+  300 to 230) reeled before raising its rifle again. Assassin
+  (tick 33578, 500 to 430) briefly rose from its crouch and crossed
+  its blades before returning to the crouched stance. The red
+  nameplate and segmented health bar drew for all three, as did
+  the white hit pips. The symmetric bright-core measurements were
+  18x20 pixels for Enforcer and 20x22 for Assassin at sampled
+  instants. Sniper's overlapping reticle and nameplate prevented
+  a reliable size measurement, though its four pips are visible in
+  the enlarged frames. These are measurements of sampled instants,
+  with no common marker-phase alignment. All video encoding ran
+  after capture. The native source still had maximum gaps of 163,
+  150 and 79 ms respectively around the reactions, so the recordings
+  establish the visible poses and leave the continuous blend open.
+  Local evidence is the three *-delayed-hit-6E9B-wgc.mkv files,
+  frame-time JSON files and the Sniper marker crop.
+  For the continuous blend follow-up, native state CA60E86E (the
+  class used by 224E/0) has client vtable 2623540. The start entry
+  90DD90 calls CBD510. For a positive value at state +2E0, the end
+  entry CBDD70 can resolve animation component 31 and call CC4A10
+  and CC4AE0. These helpers address request streams +6E0 (stride 0x38)
+  and +7D0 (stride 0x40).
+  The read-only probe verified component 31 and a populated animation
+  graph pointer on idle Assassin C0001004 in 6E9B. Both request streams
+  were empty in that idle sample. Eight native-instruction replay
+  cases for C356C0 and C35720 verify that the normal update path changes
+  only the newest matching row's +20 field, retains the row, and
+  notifies the animation component. A mismatched tag or key changes no
+  row. The replay stubs the notification target and supplies synthetic
+  rows. In the windowed 6E9B client, two new Assassins (C0001005 and
+  C0001006) each received a delayed McCree body shot. Read-only polls
+  saw 224E/0 activate, clear its active flag, and leave the graph
+  table. Both request streams were empty at every sample and state
+  +2E0 was zero in every sample of the node. In the second run, the
+  active state held handle 0 and the resource pair 0C80000000000070
+  and 028000000000011C at the offsets populated by CC5810. The first
+  inactive sample had handle -1 and the pair cleared. The first
+  sampled activation to the first sampled inactive state took 258 ms
+  and 296 ms, with maximum poll gaps of 94 ms and 63 ms respectively.
+  The sampled remote reaction uses a registered track and clears the
+  state's handle on retirement.
+  Local evidence is assassin-anim-owner-idle-6E9B.json,
+  talon-hit-animation-end-write-validation.json,
+  assassin-anim-live-6E9B.jsonl and assassin-anim-track-6E9B.jsonl.
+  The native registration path CC5810 -> CBF980 -> BB8960 -> BBAE50
+  uses entity component 39, selected by BCE970. BBAE50 and C18130
+  locate the 0x40-byte row by splitting the handle into a layer and
+  a row ID. The first bank's layer headers are at component +70 with
+  a 0xE0 stride. Native track retirement CC6BB0 -> CC1480 also uses
+  component 39.
+  The next windowed 6E9B run fired one 70-damage body shot at each
+  Talon archetype. All five used component 39 vtable 260FF18 and
+  handle 0 in the captured window. The row's +18 float advanced in
+  all five captures and +1C stayed at 1.0. The Assassin row advanced
+  through three samples after the script node cleared its handle;
+  its last sampled +18 value was 0.992 and the layer was empty about
+  21 ms after the first inactive sample. For Trooper, Enforcer, Sniper
+  and Heavy Assault the first inactive sample already had an empty
+  layer. Their maximum poll gaps were 79, 78, 79 and 94 ms, so they
+  cannot resolve an interval of that length. These samples establish
+  track progression and retirement. The renderer's effective pose
+  weights and continuity through the final blend still need direct
+  measurement. Local evidence is the five *-anim-layer-6E9B.jsonl
+  files and the matching server combat trace.
+  Native tick BBB6A0 advances each of the six layer headers through
+  C18640 before dispatching the tick at component 39 +748 through
+  vtable +10. C18640 scales elapsed time by the row's +14 float and
+  advances phase +18. It tests +1C as the terminal phase for clamp,
+  wrap or retirement according to the row flags. The live rows used
+  a rate of 3.5714288 and terminal phase 1.0, corresponding to a
+  nominal 0.28-second traversal from phase zero. The sampled +1C
+  value therefore measures the phase limit, not a pose blend weight.
+  Two new Assassins in the windowed client exposed driver vtable
+  26126C0, tick 6641A0 and resource callback C125F0. Tick 6641A0 calls
+  C137E0, which compares driver resource slots +210/+218. Both slots
+  held 02800000000001E3 before the second shot, during the active
+  reaction, and during track retirement. The reaction track held
+  028000000000011C in the same run, so polling those slots cannot
+  recover its contribution. Local evidence is
+  assassin-anim-evaluator-6E9B.jsonl and
+  assassin-anim-driver-slots-6E9B.jsonl.
+  The rendered model lookup on live Assassin C000100D returned model
+  component 4 vtable 260C1E8 and model resource vtable 27914C0. The
+  component update at 1AE6920 compares the word at the +110 object's
+  +E8 with the +6D0 object's +40 before one call to 1B2A6F0. A second
+  Assassin, C000100E, was polled before, during, and after a 70-damage
+  body shot. Across 200 polls the resource pointer stayed the same,
+  the +E8 word stayed zero, and the +40 word stayed 3F800000. The
+  +110 object's +40 child used by 1B27DB0 was absent in this client
+  route. Those fields did not expose the hit pose. The 128-byte
+  transform rows read by 193DEF0 are relative to the effect object
+  passed by 1AA4120, so that access alone does not establish the
+  rendered NPC skeleton address. Local evidence is
+  assassin-anim-model-update-6E9B.jsonl.
+  In match 2BB6, the fixed-aim body-shot diagnostic again showed the
+  Trooper's hit pose, red health bar and white hit marker at 200 to
+  130 HP, then its armed idle. Heavy Assault's first two diagnostic
+  shots in the same match each dealt 70 damage. Its hit marker drew
+  while the model and health bar were absent in the sampled frames.
+  The client acknowledged the health and reaction scopes. The model
+  later rendered during sustained fire and stayed visible at idle
+  after stop. Removing and spawning a new Heavy reproduced the
+  missing model, with the same camera and stationary player. One
+  quick attack/stop pair dealt 5 damage to McCree without making the
+  Heavy visible in the following sample. A second, longer burst made
+  it visible and it stayed visible after stop, at 165/225 player HP.
+  In match 3197, with automatic diagnostic fire disabled, both the
+  normal idle movement cadence and idle updates on every send frame
+  reproduced the missing model before engagement at the same spawn
+  point. The client acknowledged each nameplate baseline. Increasing
+  idle movement cadence alone did not restore the model.
+  A read-only comparison of C0001001 in that match found the same
+  native entity, visual component, model component and model instance
+  both before engagement and after it became visible and stopped.
+  The sampled model instance bytes were identical. In the sampled
+  visual component, the two counters at +20C/+214 advanced equally;
+  the value at +220 changed from 10000006 to 10000004. This is a
+  candidate flag, with no established direction of causation.
+  Match 9A22 isolated the 14EB/23 startup animation and initial aim
+  pitch. At the same spawn point, both controls and both aim-pitch
+  treatments were invisible. Both animation treatments rendered the
+  unengaged Heavy immediately. The sandbox now skips only the
+  14EB/4 startup link to animation 23 for manually spawned Rialto
+  Heavy Assaults. The other link to node 14 and the graph layout used
+  by observers are preserved. With the sandbox fix and the normal
+  graph assets in native match 0BAC, the first 70-damage body shot
+  showed Heavy's stagger, segmented red health bar and white hit
+  marker before any NPC engagement. The next shot also dealt 70 and
+  the Heavy recovered its standing pose. Both reaction scopes and
+  health updates were acknowledged. In the paired WASAPI take, the
+  suppressed first voice notice scored 0.0625 and the production
+  notice on the second shot scored 0.9142 against 01A8/ACB3 media.
+  The additive checks at the inserted offsets scored 0.9817 and
+  0.7876. This verifies playback when the startup animation is skipped.
+  The recording is heavy-spawn-fixed-56808.wav. The real-map corpse
+  probe still retained Heavy's terminal graph and body for 600 frames.
+  The windowed 6E9B retest used the Heavy charge fixture's 10 m
+  placement and 4000 HP, and the delayed primary input. The Heavy was
+  visible in idle before the shot at tick 24181. The client showed
+  the hit marker, its nameplate and health bar, and the stagger with
+  both guns lowered. It had visibly regained the armed stance by the
+  frame at 3414 ms after spawn. The server and client agreed on 70
+  damage and 3930 HP remaining. The process-only recording matched
+  the exact 01A8/ACB3 media at 0.9314 in the hit window and 0.0389
+  in the pre-hit window. The frame encoder dropped no queued frames,
+  but the native window source still had gaps up to 158 ms around
+  the hit. This independently confirms the audible reaction and its
+  visible poses, with the continuous blend still unverified.
+  Local evidence is heavy-delayed-hit-6E9B-wgc.mkv, its frame-time
+  sidecar, the process-only WAV, and heavy-delayed-hit-6E9B-validation.json.
+  In the earlier Trooper crash run Deadeye charged through gameplay, then a second Q
+  killed the 130 HP Trooper for 278.33 damage. The capture showed both
+  ability icons restored during the exit animation. The client
+  crashed before sustained recovery could be checked. The client's
+  own 52568 minidump captured a null read at RVA D697D0 in the
+  projectile-state decoder, not a socket-only disconnect. The failing
+  frame 6906 carried the deferred 25005 elimination notice, owner
+  chunk 1428 for A0000101, and movement for the Trooper corpse C0001005.
+  Neither server entity had a projectile record in that frame. The
+  native entity loop instead resolved nonexistent entity 800000F4
+  from bit 303, inside the owner chunk header, and entered the
+  projectile channel at bit 318. At the fault the cursor was bit 490
+  and the loop had 27 entities remaining; the server wrote two.
+  The captured owner chunk starts at bit 281, contains 703 payload
+  bits, and ends at 1029. Replaying the actual 104319 chunk reader
+  (RVA 996450) on those bytes from bit 281 independently reached 1029
+  and extracted all 703 bits. Replaying the original JAM field reader
+  (RVA 5670E0) with the 25005 descriptor ended at bit 217. The old
+  encoder started the world header at bit 224 because the notice's
+  final boolean occupied one bit of its storage byte. The game
+  channel now resumes at the exact bit, retaining byte alignment for
+  subsequent message headers and standalone lobby messages.
+  On native retest DF3F, Q and Q killed a 200 HP Trooper and the server
+  sent the deferred 25005. The client returned to its ordinary pose,
+  showed the ragdoll, reloaded to 6/6, performed Combat Roll, removed
+  the corpse by hotkey, spawned another Trooper, and hit it with
+  Flashbang for 25 damage with a visible reaction and 10-second HUD
+  cooldown. The client stayed in the match until closed normally.
+  This retest prefilled Deadeye charge to isolate the release path.
+  In match 0BAC, Deadeye charged through gameplay without prefilling.
+  Two native Q presses killed the 205 HP Sniper (1321.13 damage, tick
+  13202). The client showed the lethal skull, then returned to the
+  normal first-person view and ability icons. The ragdoll remained
+  visible until removed with the minus hotkey 11 seconds after the kill.
+  A later native Flashbang
+  in the same match damaged a newly spawned Assassin for 25 and displayed
+  the 10-second cooldown, confirming continued combat after the kill.
+  The fixed-aim primary diagnostic recorded two body hits each on the
+  Enforcer (350 to 280 to 210) and Assassin (500 to 430 to 360), and one
+  on the Sniper (300 to 230). Enforcer rendered a lowered shotgun and
+  then armed idle. Native Flashbang turned the Sniper and raised its
+  rifle (230 to 205), then it returned to idle. Flashbang turned the
+  Assassin with its blades crossed (360 to 335), then it returned to
+  its crouched stance. The client rendered segmented red health bars
+  for all three in the hit samples. These sampled poses establish
+  reaction and recovery endpoints. Continuous blending and rendered
+  hit-indicator dimensions still require frame measurements.
+  Alias 04BD in three AI graphs is separately triggered by
+  07A5.025 and has no verified ordinary Peacekeeper trigger.
+
+- Native Rialto match 275E showed separate Deadeye lock circles on a
+  Trooper and an Enforcer. The first use expired after six seconds and
+  restored the normal view, abilities and 6/6 ammo with both targets
+  alive. After ordinary gameplay charge, a second use fired on the
+  second Q press. The Trooper (170 HP) and Enforcer (350 HP) each took
+  911.93 damage on ticks 60769 and 60778. The client showed a lethal
+  skull and two ragdolls, spent two rounds and reloaded to 6/6 after
+  returning to the ordinary view. The Enforcer and its dropped shotgun
+  remained visible during the reload. The foreground HUD and weapon
+  partly obscured the Trooper. The minus hotkey removed both 16 seconds
+  after the kills.
+
+Current view and gun follow-up:
+McCree02A3 STUFirstPersonComponent explicitly supplies standing m_E29993A5=1.425
+and crouched m_816B830F=0.9975. Previously both combat ray origins and the target
+descriptor used generic1.55/1.15. Use the authored offsets for this body in both
+paths. Actual standing/crouching low-cover fixtures now block shots below their
+cover tops; original animated camera and muzzle/hardpoint equivalence are open.
+The local eye-resource report records the XML path/hash and checked fields.
+
+01D2 primary31 omits m_A872C70E, whereas secondary37 explicitly sets1. The old
+server fallback1 prevented primary critical damage. Declare a scoped2x implicit
+primary policy for the owner's McCree weapon31; keep explicit resource values
+and other weapons' defaults. This is a server reconstruction, not a recovered
+global native/server default. Capsule/eye-height critical zones remain proxies.
+
+Seventy actual-input/actual-five-mover damage-policy cases pass: primary body/head at near and
+far ranges,20..40m falloff down to0.3, explicit Fan noncritical first hits, full
+wall, ally and off-axis misses. Player/training-NPC unit cases also pass. The
+matrix now uses an explicit unscattered Fan-ray adapter; the current unmodified
+Fan scatter matrix is documented above. Recoil/native seed parity remain open.
+At this view/critical checkpoint,1154 related tests passed and no new persistent
+state was added; the later spread output's baked ramp is separately registered.
+Five incoming/stop/corpse/removal,15 held-fire Roll and15 Deadeye actual-resource
+cases also pass with the corrected view height/primary policy.
+
+Remaining complete static scope:
+Complete primary/secondary spread, recoil, range limits, native hitboxes/critical
+filters and recovery; reload/quick-melee cast/cancel/cooldown and cross-hero cases;
+Combat Roll native phase/resources/prediction; Flashbang flight/immunity/interrupt/
+cooldown; Deadeye target selection/charge/use/damage/release/cancel/end and native
+filters; all applicable enemy player, five-Talon and cross-hero cases. Native
+client/HUD/animation/audio acceptance remains open. No hero completion claimed.
+Native Rialto Trooper check: Deadeye dealt 432.33 damage to a 200 HP target.
+The original client still rendered the corpse after 11 seconds and removed
+it on the - hotkey. During this run the first-person Deadeye tint and
+disabled ability icons persisted after the shot, despite acknowledgement
+of the owner delta ending graph 022F nodes 24, 79, 80, 99 and 123. This
+client recovery failure was observed before the DF3F and 0BAC retests
+above. Those retests cover lethal Trooper and Sniper release paths.
+
+The 1280x720 offset window test moved Sniper and Enforcer 0.80 m
+laterally from the same camera reticle. Normal Peacekeeper damage
+and critical damage were 70 and 140. With muzzle flash excluded,
+the four white diagonals on both targets measured 20x20 pixels
+at the 145 to 190 ms samples. The red critical diagonals measured
+32x32 pixels on both targets at about 187 ms with the same red
+channel threshold. The apparent edge changes with time and
+threshold, so these values describe sampled frames. The permanent
+circular reticle is visible in the baseline frames. Local evidence
+is sniper-marker-offset-37796-closeups.png and
+sniper-marker-offset-37796-measurements.json.
+
+The same window, offset and shots then covered Trooper, Assassin and
+Heavy Assault. At roughly 145 to 190 ms, the normal white diagonals
+measured 20x20 pixels for Trooper and Assassin and 18x18 to 20x20 for
+Heavy depending on threshold. At about 190 ms the nonlethal critical
+red diagonals measured 32x32 to 34x34 for Assassin and Heavy. The
+Trooper's critical hit consumed its remaining 130 HP and displayed
+the red elimination skull. Its dimensions were outside the crop used
+for the hit diagonals. The standard-marker measurements are sampled
+sizes, with variation due to animation, background and threshold.
+Local evidence is remaining-marker-offset-37796-closeups.png and
+remaining-marker-offset-37796-measurements.json.
+
+A separate process-only recording accompanied each take. Comparison
+against the exact ACB3 references for the first ordinary hit scored
+trooper 0.858/0.228, assassin 0.855/0.093, heavy 0.958/0.146 (hit/control).
+The source scores and timestamps are in the local
+remaining-marker-offset-37796-hit-audio.json.
+
+A common 1280x720 marker measurement now covers all five 37796
+ordinary shots, four nonlethal critical shots and the Trooper's
+critical kill. It anchors each capture to its 25001 notice, subtracts
+a pre-shot crop, requires four-way symmetry for the four diagonals,
+and uses a centered connected red component for the skull. All
+five 70-damage shots give the same peak bright-core dimensions,
+18x20 pixels. The four 140-damage critical hits give 30x30 or
+32x30 pixels using the same strict color and contrast limits.
+These dimensions exclude the faint outer edges measured in the
+previous pass. The Trooper kill notice carried 130 actual damage
+and flags 3. Its skull peaked at 86x85 pixels about 105 ms after
+the notice, and was 54x52 pixels in the last selected sample.
+Visual inspection of the marked frames excludes the off-axis
+muzzle flash from these core measurements. The results establish
+consistent same-viewport presentation across the sandbox targets.
+A matched stock PvE encounter for absolute size parity remains
+open. Local evidence is talon-native-marker-envelope-37796.json
+and talon-native-marker-envelope-37796.png.
+
+The 1280x720 windowed Practice Range control (5D75) used the same
+104319 client and a local host with the standard Training Bot body
+0400000000001403. The fixture aimed real Peacekeeper input at the bot
+and set its health before the last two shots. The 25001 damage/flags
+pairs were 70/0, 140/1 and 130/3, matching the Rialto captures.
+Applying one bright-core mask to both sets reproduces 18x20 pixels
+for ordinary hits against the Training Bot and all five Talon bodies.
+The critical pip's red-chroma contour expanded to about 19 pixels per
+axis from the reticle in both sets. The 25%-contrast crossing varies
+with sampling time and scene color. The Training Bot skull (frame 158)
+and Trooper skull (frame 377) have the same measured top edge and all
+six right-edge samples. The Training Bot explosion overlaps the left
+and lower outline. The control uses a stock map and bot body with the
+local combat host. The original PvE encounter and the obscured skull
+outline remain outside this comparison. Local captures, packet trace,
+measurements and comparison image use the mccree-marker-practice-range-
+5d75 prefix in verification/retribution.
+
+The 37796 lossless frames also resolve visible late recovery on three
+more body types. A fixed crop follows the red helmet on Trooper and
+Heavy Assault and the red facial plate under the Assassin visor.
+Every frame in the selected intervals has a detectable feature. The
+Assassin ordinary and critical takes each give 18 samples from
+roughly 345 to 590 ms, with maximum native gaps of 17.1 and 15.2 ms.
+The facial plate rises about 20 pixels as the body returns toward its
+crouch. Its largest centroid steps are 2.5 and 4.7 pixels. Trooper
+has 31 ordinary samples from 160 to 589 ms, and Heavy Assault has
+20 ordinary and 23 critical samples through roughly 590 ms. Their
+maximum gaps are 15.5, 15.7 and 15.6 ms. The static bookcase reference
+stays within 2.3 pixels per pair in all five intervals. The Trooper
+largest centroid step is 13.0 pixels; nine consistent texture points
+give about 6.4 pixels of median motion in that pair. The Heavy
+critical peak has a 14.5-pixel centroid step, but only one consistent
+texture point, so its exact pose step remains unresolved. These
+measurements resolve the observed late recovery portions and do
+not cover the full early recoil or native bone blend weights.
+Local evidence is talon-recovery-37796-feature-traces.json, its
+annotated contact sheet and talon-recovery-37796-peak-pairs.png.
+
+Camera-compensated frame pairs in the same 37796 captures resolve
+idle motion before and after a normal hit on all five bodies. Four
+large steps occur on Trooper, Enforcer and Sniper. They move the
+body 5.6 to 17.7 pixels in the median tracked feature, with the
+static background below 0.01 pixels and no coincident damage.
+The source records are talon-idle-flow-37796.json,
+talon-idle-event-alignment-37796.json and talon-idle-jumps-37796.png.
+
+A windowed Enforcer control kept camera, spawn transform and the
+movement payload fixed and changed only its send cadence. The normal
+63-tick heartbeat gave four 12.4 to 19.6 pixel steps across 220 valid
+pairs, 23.4 to 49.7 ms after the corresponding movement sends.
+Sending every three ticks produced a maximum median step of 3.78
+pixels across 210 pairs. Suppressing repeats after the first two
+seconds reduced it to 0.84 pixels across 234 pairs, with visible
+idle motion retained. See talon-enforcer-idle-cadence-01a1b54a.json
+and its host trace in verification/retribution.
+
+Manual Rialto NPC movement now suppresses identical grounded idle
+poses separately for each viewer after a successful datagram send.
+Loss releases the pose so the next eligible send rebuilds it with
+a fresh frame. Active movement and entity retirement clear that
+viewer's cached pose. The encrypted packet test covers local send
+failure, loss, retry, ACK, an independent viewer and movement back
+to the same pose. The packet-budget, bot-notice and NPC-control
+suites passed 86 cases. Bot and entity-lifecycle suites brought the
+unique total to 135 passing cases.
+
+Native match E4BA captured all five bodies through the normal sender
+in a 1280x720 window, with one diagnostic 70-damage Peacekeeper hit
+per actor. The sender logged one idle movement record for each actor.
+In the selected idle windows before and after the hit, all 450 frame
+pairs had sufficient tracked points. The highest median body step
+was 0.99 pixels for Trooper and 0.45 for Enforcer. Sniper, Assassin
+and Heavy Assault peaked at 0.54, 0.68 and 0.42 pixels respectively.
+All five showed small idle motion on both sides of the hit. The
+background stayed below 0.01 pixels. These windows exclude the early
+hit-to-idle transition. The client take used one observer and a
+stationary target. See talon-idle-production-E4BA.json and its host
+trace in verification/retribution.
+
+Native match 3E3A isolates the visible reaction from first-person
+weapon recoil. A timed fixture used the real damage path to take 70
+HP from each stationary Talon body. It supplied 0.48 s to graph
+224E/0 in the current tree. Four scopes retired at the logged
+deadline and the Sniper scope retired one tick later. The 1280x720
+window shows all five health bars and multiple intermediate poses
+from the hit through recovery to idle. The static scene shifted
+less than 0.005 pixels in the usable feature pairs. The analysis
+tracked 220 of 230 pairs around the hit with the largest capture
+gap at 32.1 ms. Large changes are concentrated in the visible
+stagger and return. The sequence measures sampled motion and leaves
+bone blend weights and ten low-feature pairs unresolved. See the
+talon-fixed-hit-3E3A contact sheet, flow data and host trace in
+verification/retribution.
+
+A single 1280x720 Rialto client take received 45 HP of Heavy Assault
+damage and stopped the attacker at 2180/2225, including fixture
+health. On a new Trooper in the same match, the fixed-aim primary
+fixture removed 70 HP, physical E removed 25 HP, and physical Q/Q
+removed the remaining 105 HP with Deadeye. The window showed the
+Flashbang cooldown, elimination, and the corpse at least 23.6 s
+after damage. Physical Shift refilled the magazine from five to six
+and the physical minus key removed the corpse. The primary command
+is diagnostic input. The skills and console keys were driven through
+the client. A later coordinate-click take changed the camera pitch
+and missed. The only damage in that take was its distinct fixture
+shot at tick 28284. Local evidence is native-mccree-counter-chain-windowed.json.
+
+The 1280x720 windowed B0CF take used normal game input and unmodified
+health and ultimate charge. The physical = and 1 keys spawned one
+Trooper. The 0 key selected it and seven damage events reduced McCree
+from 225 to 35 HP. After [ stopped it, McCree stayed at 35 HP. The
+literal { entered while chat was open also returned one stopped NPC
+and left Combat Roll ready. Two physical Flashbangs dealt 25 damage
+each and three quick melees dealt 30 each. The naturally charged Q/Q
+release removed the remaining 60 HP. The original client showed the
+corpse and restored both ability icons. Shift refilled the gun from
+five to six rounds. The minus key removed the sole corpse 17 s after
+the kill in the server log.
+
+Separate coordinate-click takes 8231 and E172 consumed ammo and
+sent client primary commands with pitch 16202 (about 89 degrees
+down). The game view showed floor impacts. Fixed-aim command takes
+still provide the ordinary-hit evidence. The successful B0CF chain
+used keyboard inputs. See talon-physical-input-B0CF-host.jsonl and
+talon-physical-input-B0CF-client.log in verification/retribution.

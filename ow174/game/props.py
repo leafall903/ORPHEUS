@@ -49,6 +49,8 @@ player's own game install, like the collision chunk.
 import json
 import math
 import struct
+from collections.abc import Callable
+from dataclasses import dataclass
 from functools import cache
 
 from ow174.paths import DATA_DIR
@@ -390,6 +392,169 @@ def _moved(point, frame) -> tuple:
     return _f32(x + t[0]), _f32(y + t[1]), _f32(z + t[2])
 
 
+def model_hardpoints(data: bytes) -> dict[int, tuple[int, tuple]]:
+    """Read typed hardpoint keys, parent bone IDs and local offsets from a .00C model."""
+    payload = chunks(data).get("MSTU")
+    if payload is None or len(payload) < 16:
+        return {}
+    offset, size = struct.unpack_from("<qq", payload)
+    stu = Structured(payload[offset : offset + size])
+    points = {}
+    for item in stu.array(0, 0xC45F5F6F, 8):  # m_hardPoints
+        index, = struct.unpack_from("<i", item)
+        if not 0 <= index < len(stu.hashes) or stu.hashes[index] != 0xBE9DDFDF:
+            continue
+        fields = stu.fields[index]
+        key, parent = stu.raw(fields, NODE_ID), stu.raw(fields, PARENT)
+        if key is None or parent is None or len(key) != 8 or len(parent) != 8:
+            continue
+        guid, = struct.unpack("<Q", key)
+        bone, = struct.unpack("<Q", parent)
+        if guid >> 48 == 0x0DC0 and bone >> 48 == 0x0880:
+            points.setdefault(guid, (bone & 0xFFFFFFFF, _vector(stu.raw(fields, TRANSLATION))))
+    return points
+
+
+@dataclass(frozen=True)
+class BoneTransform:
+    rotation: tuple[float, float, float, float]
+    scale: tuple[float, float, float]
+    translation: tuple[float, float, float]
+
+    def matrix(self) -> tuple[float, ...]:
+        sx, sy, sz = self.scale
+        return (*_rotate32(self.rotation, (sx, 0.0, 0.0)), 0.0,
+                *_rotate32(self.rotation, (0.0, sy, 0.0)), 0.0,
+                *_rotate32(self.rotation, (0.0, 0.0, sz)), 0.0,
+                *self.translation, 1.0)
+
+
+def model_reference_bones(data: bytes) -> dict[int, tuple[int | None, BoneTransform]]:
+    """Read the mskl parent-relative reference transforms, with each parent first."""
+    skeleton = chunks(data).get("mskl")
+    if skeleton is None:
+        return {}
+    if len(skeleton) < 94:
+        raise PropError("truncated model skeleton header")
+    count, = struct.unpack_from("<H", skeleton, 92)
+    if not count:
+        return {}
+    hierarchy, = struct.unpack_from("<q", skeleton)
+    transforms, = struct.unpack_from("<q", skeleton, 32)
+    ids, = struct.unpack_from("<q", skeleton, 48)
+    if any(not 0 < offset <= len(skeleton) - count * stride
+           for offset, stride in ((hierarchy, 6), (transforms, 48), (ids, 4))):
+        raise PropError("truncated model skeleton table")
+    names = struct.unpack_from(f"<{count}I", skeleton, ids)
+    bones = {}
+    for index, bone in enumerate(names):
+        parent, = struct.unpack_from("<h", skeleton, hierarchy + 6 * index + 4)
+        if not -1 <= parent < index or bone in bones:
+            raise PropError("invalid model skeleton hierarchy")
+        row = struct.unpack_from("<12f", skeleton, transforms + 48 * index)
+        # The fourth scale and position lanes are padding.
+        transform = BoneTransform(row[:4], row[4:7], row[8:11])
+        values = (*transform.rotation, *transform.scale, *transform.translation)
+        if not all(math.isfinite(value) for value in values):
+            raise PropError("invalid model skeleton transform")
+        bones[bone] = (names[parent] if parent >= 0 else None, transform)
+    return bones
+
+
+@dataclass(frozen=True)
+class ModelPose:
+    """Hardpoints on one actor model with a lookup of current world-space parent matrices."""
+
+    hardpoints: dict[int, tuple[int, tuple]]
+    bone_matrix: Callable[[int], tuple[float, ...] | None]
+    actor_shapes: tuple[tuple[int, int, tuple], ...] = ()
+
+    @classmethod
+    def from_local_bones(
+        cls,
+        hardpoints: dict[int, tuple[int, tuple]],
+        reference: dict[int, tuple[int | None, BoneTransform]],
+        model_to_world: tuple[float, ...],
+        sampled: dict[int, BoneTransform],
+        actor_shapes: tuple[tuple[int, int, tuple], ...] = (),
+    ) -> "ModelPose":
+        """Compose one pose from sampled local transforms and reference values for untouched bones."""
+        if len(model_to_world) != 16:
+            raise ValueError("model-to-world matrix must have 16 values")
+        matrices = {}
+        for bone, (parent, transform) in reference.items():
+            local = sampled.get(bone, transform).matrix()
+            outer = model_to_world if parent is None else matrices[parent]
+            matrices[bone] = tuple(
+                sum(outer[4 * k + row] * local[4 * column + k] for k in range(4))
+                for column in range(4) for row in range(4)
+            )
+        return cls(hardpoints, matrices.get, actor_shapes)
+
+    def hardpoint_position(self, key: int) -> tuple[float, float, float] | None:
+        point = self.hardpoints.get(key)
+        if point is None:
+            return None
+        bone, (x, y, z) = point
+        matrix = self.bone_matrix(bone)
+        if matrix is None or len(matrix) != 16:
+            return None
+        # 1AE6120 applies the parent matrix to the local offset as a position.
+        position = tuple(matrix[i] * x + matrix[4 + i] * y + matrix[8 + i] * z + matrix[12 + i]
+                         for i in range(3))
+        return position if all(math.isfinite(axis) for axis in position) else None
+
+
+def _model_shape_descriptors(data: bytes):
+    payload = chunks(data).get("MSTU")
+    if payload is None or len(payload) < 16:
+        return
+    offset, size = struct.unpack_from("<qq", payload)
+    stu = Structured(payload[offset : offset + size])
+    for item in stu.array(0, SHAPES, 8):
+        wrapper = struct.unpack_from("<i", item)[0]
+        if not 0 <= wrapper < len(stu.hashes):
+            continue
+        shape = stu.ref(wrapper, SHAPE)
+        holder = stu.ref(wrapper, HOLDER)
+        if shape is not None and holder is not None:
+            node = stu.raw(stu.fields[wrapper], NODE)
+            node_id = struct.unpack_from("<I", node)[0] if node and len(node) >= 4 else None
+            yield stu, wrapper, shape, holder, node_id
+
+
+def _shape_geometry(stu: Structured, shape: int, holder: int, category: int) -> tuple | None:
+    mask = _mask(stu, holder)
+    kind, fields = stu.hashes[shape], stu.fields[shape]
+    if kind == MESH:
+        points = [_vector(raw) for raw in stu.array(shape, VERTICES, 16)]
+        raw = b"".join(stu.array(shape, TRIANGLES, 1))
+        records = []
+        for k in range(0, len(raw) - 31, 32):
+            a, b, c, w0, w1, w2, _material, surface, own, _ = struct.unpack_from("<3I3i4H", raw, k)
+            if own & category and max(a, b, c) < len(points):
+                wings = tuple(w if 0 <= w < len(points) else -1 for w in (w0, w1, w2))
+                records.append((a, b, c, *wings, own, surface))
+        if records:
+            return ("mesh", mask, points, records)
+    elif not mask & category:
+        return None
+    elif kind == CONVEX:  # faces as loops of half edges {s8 twin, u8 origin, u8 face, u8 next}
+        points = [_vector(raw) for raw in stu.array(shape, VERTICES, 12)]
+        planes = [struct.unpack_from("<4f", raw, 0) for raw in stu.array(shape, PLANES, 16)]
+        edges = b"".join(stu.array(shape, HALF_EDGES, 1))
+        half = [struct.unpack_from("<bBBB", edges, 4 * n) for n in range(len(edges) // 4)]
+        faces = list(b"".join(stu.array(shape, FACES, 1)))
+        if points and len(planes) == len(faces):
+            return ("hull", mask, _vector(stu.raw(fields, CENTROID)), points, planes, faces, half)
+    elif kind == CAPSULE:
+        a, b = _vector(stu.raw(fields, POINT_A)), _vector(stu.raw(fields, POINT_B))
+        return ("capsule", mask, a, b, _float(stu.raw(fields, RADIUS)))
+    elif kind == SPHERE:
+        return ("sphere", mask, _vector(stu.raw(fields, CENTRE)), _float(stu.raw(fields, RADIUS)))
+    return None
+
+
 def model_shapes(data: bytes, category: int = MOVER) -> list:
     """The physics shapes of a 00C model that stop the category, in model space, as the engine keeps them:
     ("mesh", mask, vertices, triangles (a, b, c, wing0, wing1, wing2, mask, surface: the 32 B records of
@@ -397,56 +562,39 @@ def model_shapes(data: bytes, category: int = MOVER) -> list:
     centroid, vertices, planes, faces, half edges), ("capsule", mask, a, b, radius), ("sphere", mask,
     centre, radius). A mesh's triangles carry their own masks; the other shapes the holder's. Only the
     static ones (static_part), each moved to its node's place in the model."""
-    payload = chunks(data).get("MSTU")
-    if payload is None or len(payload) < 16:
-        return []
-    offset, size = struct.unpack_from("<qq", payload, 0)
-    stu = Structured(payload[offset : offset + size])
-    table = nodes(stu)
     out = []
-    for item in stu.array(0, SHAPES, 8):
-        wrapper = struct.unpack_from("<i", item, 0)[0]
-        if not 0 <= wrapper < len(stu.hashes):
-            continue
-        shape = stu.ref(wrapper, SHAPE)
-        if shape is None:
-            continue
-        holder = stu.ref(wrapper, HOLDER)
+    table = None
+    for stu, wrapper, shape, holder, node in _model_shape_descriptors(data):
         if not static_part(stu, wrapper, holder):
             continue
-        node = stu.raw(stu.fields[wrapper], NODE)
-        frame = node_frame(table, struct.unpack_from("<I", node, 0)[0]) if node and len(node) >= 4 else None
-        before = len(out)
-        mask = _mask(stu, holder)
-        kind, fields = stu.hashes[shape], stu.fields[shape]
-        if kind == MESH:
-            points = [_vector(raw) for raw in stu.array(shape, VERTICES, 16)]
-            raw = b"".join(stu.array(shape, TRIANGLES, 1))
-            records = []
-            for k in range(0, len(raw) - 31, 32):
-                a, b, c, w0, w1, w2, _material, surface, own, _ = struct.unpack_from("<3I3i4H", raw, k)
-                if own & category and max(a, b, c) < len(points):
-                    wings = tuple(w if 0 <= w < len(points) else -1 for w in (w0, w1, w2))
-                    records.append((a, b, c, *wings, own, surface))
-            if records:
-                out.append(("mesh", mask, points, records))
-        elif not mask & category:
+        geometry = _shape_geometry(stu, shape, holder, category)
+        if geometry is None:
             continue
-        elif kind == CONVEX:  # faces as loops of half edges {s8 twin, u8 origin, u8 face, u8 next}
-            points = [_vector(raw) for raw in stu.array(shape, VERTICES, 12)]
-            planes = [struct.unpack_from("<4f", raw, 0) for raw in stu.array(shape, PLANES, 16)]
-            edges = b"".join(stu.array(shape, HALF_EDGES, 1))
-            half = [struct.unpack_from("<bBBB", edges, 4 * n) for n in range(len(edges) // 4)]
-            faces = list(b"".join(stu.array(shape, FACES, 1)))
-            if points and len(planes) == len(faces):
-                out.append(("hull", mask, _vector(stu.raw(fields, CENTROID)), points, planes, faces, half))
-        elif kind == CAPSULE:
-            a, b = _vector(stu.raw(fields, POINT_A)), _vector(stu.raw(fields, POINT_B))
-            out.append(("capsule", mask, a, b, _float(stu.raw(fields, RADIUS))))
-        elif kind == SPHERE:
-            out.append(("sphere", mask, _vector(stu.raw(fields, CENTRE)), _float(stu.raw(fields, RADIUS))))
-        if frame is not None and len(out) > before:
-            out[-1] = at_node(out[-1], frame)
+        if table is None:
+            table = nodes(stu)
+        frame = node_frame(table, node)
+        out.append(at_node(geometry, frame) if frame is not None else geometry)
+    return out
+
+
+def actor_model_shapes(data: bytes) -> list[tuple[int, int, tuple]]:
+    """Read animated actor shapes as (bone ID, actor category bit, bone-local geometry)."""
+    out = []
+    holder_class, selector_field, flag_default = BUILDERS[4]
+    for stu, wrapper, shape, holder, bone in _model_shape_descriptors(data):
+        if bone is None or _byte(stu, stu.fields[wrapper], MOTION, 0) != 4 or stu.hashes[holder] != holder_class:
+            continue
+        fields = stu.fields[holder]
+        selector = _byte(stu, fields, selector_field, 3)
+        if selector == 0:
+            continue
+        geometry = _shape_geometry(stu, shape, holder, 0xFFFF)
+        if geometry is None:
+            continue
+        category = 0x0100
+        if _byte(stu, fields, STATIC, flag_default):
+            category = 0x0001 if selector == 3 else 0x1000
+        out.append((bone, category, geometry))
     return out
 
 

@@ -1,0 +1,99 @@
+Native array insertion and clear actions — partial authored-runtime restoration
+Target: original build104319. Addresses below are module RVAs.
+
+The post-voice path in actual0F45 uses4C3509FB/node40 and41 to append values to
+instance variable1839, then begins voice State35. Its custom timer plug reaches
+1C2CC6D5/node42, which assigns a fresh empty array to that same variable.
+These actions have dedicated priority0 registrations, not a parent fallback.
+
+4C3509FB: unkeyed insertion/merge
+Constructors1B6E190/1B6E940 install table27ABFF8. Execute/+48 is1B6B720;
+its insertion consumer/+78 is1B6BA40. Output Dynamic config is at98, index90,
+keyA0, source valueA8 and unique byteB0. Missing output/source or a known
+non-Dynamic output skips modification and follows the common output path.
+Unknown output kinds remain strict. Identifier zero does not create storage.
+
+Index uses scalar config+20, with failed evaluation retaining-1. F65260 uses
+default-1 for unsupported values/empty arrays, null0 and float32 half-away
+rounding. Nonfinite or overflowing conversion yields INT_MIN. Negative indexes
+append. Values0..200 can reach insertion. The native helper reports a script
+diagnostic for indexes/counts >200; that diagnostic consumer remains an explicit
+strict boundary rather than an invented normal success/failure response.
+
+Original1BA56C0 resolves the writable Dynamic variable and usesF672D0 to convert
+every other type into a fresh empty type12 array. A scalar destination is not
+preserved as a singleton. With no index inside the original array, append rows.
+An index greater than the original length first grows the array to that index,
+using int-zero gaps. An index inside the original array inserts successive rows
+and advances the insertion point; it does not overwrite existing values.
+
+The source uses config iteration without a State watcher. Ordered config groups
+and nested arrays flatten into rows. A top-level null or failed provider yields
+no rows; null members already inside an array remain values. Later providers
+observe rows inserted by earlier providers before final notification. Dynamic
+self-reference exposes destination storage: encountering its first row at the
+destination start ends the entire loop, including later group providers.
+
+Any nonzero unique byte suppresses a value equal to an existing value, including
+earlier inserted rows or int-zero gaps. Equality uses the VM's typed comparison,
+not Python object equality. OriginalF638C0 executes in the native comparisons.
+Writable release/notification occurs once after iteration. The implementation
+uses the existing VM effective-value watcher mechanism. Linked-variable
+insertion/checkpoint behavior stays strict because in-place mutation of those
+native layers has not been restored.
+
+Type12 arrays also contain key metadata per row. The current VM tuple represents
+unkeyed values only. F663A0 rejects numeric/bool/array/map/null keys; such keyed
+requests skip without acquiring/coercing the destination or evaluating the value.
+A valid keyed row remains a strict storage boundary. It is not converted to the
+different type13 identifier Map or silently stripped of its key.
+
+1C2CC6D5: fresh typed empty-array assignment
+Constructors1B6E1C0/1B6E950 install27AC170, with execute/+48 at1B6C130.
+Its sole output Dynamic config is at90. F671D0/F681A0 create a new empty type12
+value.1BA5070/1BA64F0 assign that value through the normal typed writer, then
+the common output path follows. This is neither null nor an in-place erase.
+Missing/zero/known non-Dynamic output skips assignment; unknown output kinds
+remain strict. Instance/entity scope and ordinary link-write notifications use
+the existing runtime writer. The complete native checkpoint engine is unaccepted.
+
+Integration policy
+Both handlers serve strict authored components. Existing permissive player/body
+components retain their prior output-only fallback, as a dedicated regression
+checks. No new actor, engine service, transport or global phase is installed.
+Owner retirement during external evaluation cannot commit new rows or follow a
+success plug. Iterator depth, row traversal and equality consume the shared work
+budget. Native limit diagnostics, keyed storage and linked insertion remain open.
+
+Evidence and scope
+- Insertion:882 original-instruction cases, comprising880 value/control-flow
+  comparisons and2 explicit limit-consumer gates. Both constructors,1B6B720,
+  1B6BA40,1BA56C0,F672D0,F681A0,F65260,F638C0,F663A0,1B6E690 and9E9600 execute.
+  Config/type providers, iterator delivery, heap/vector storage, value copies/
+  destruction, writable release, limit policy, common output and security-cookie
+  checks are declared adapters. Complete iterator/checkpoint/diagnostic engines
+  are not established by these comparisons.
+- Clear:64 original-instruction comparisons cover value kinds, zero identifiers,
+  non-Dynamic outputs and both variable scopes. Both constructors,1B6C130,
+  F671D0/F681A0 and1BA5070/1BA64F0 execute. Final typed commit/notifications,
+  storage/ownership, Dynamic cast, common output and cookie checks are adapters.
+- Actual authored voice fixture:39 finishes,40/41 produce(Entity(BODY),) in1839,
+  then35 begins. Its immediate timer reaches42 and assigns().35 then finishes;
+  the context registry and queue are empty with no fault. Graph flags/plugs are
+  unchanged. The fixture retains explicit body/controller/source identities,
+  caller input17, uninitialized source variable42, resource provider and declared
+  voice backend/clock responses. This proves that isolated chain, not full body
+  startup, real audio, native global phases or the complete mission.
+- The separate full action fixture still reaches0EC6 parameter41 then stops at
+  controller-message target-component/node22 before voice polling. Real shared
+  Match still stops atD38/node106 and retires147 queues/bindings. These limits
+  cannot be replaced by accepting the isolated voice chain.
+
+No new original-client session or deployment occurred. Full story/cinematics,
+five enemy AI types, extraction/results, actual controller/body/actor lifetimes,
+engine services, replication/readiness and native phases remain open.
+
+Local evidence outside Git: verification/retribution/array-insert-native/actual/
+root-validation.json, array-clear-native-validation.json, array-actions-final-
+validation.json, array-actions-related/server-tests.log and array-actions-ruff.log.
+See CHANGELOG.md for the final regression totals.

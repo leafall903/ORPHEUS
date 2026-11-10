@@ -21,9 +21,9 @@ shows no weapon.
 import logging
 from functools import lru_cache
 
-from ow174.game.script import expr, graph
+from ow174.game.script import expr, graph, spray_placement
 from ow174.game.script.codecs import stec_classes
-from ow174.game.script.driver import BodyStream, Snapshot
+from ow174.game.script.driver import BodyStream, ReplicatedBody, Snapshot, frame_callout
 from ow174.game.statescript import (
     InstanceWire,
     StateWire,
@@ -35,10 +35,43 @@ from ow174.game.statescript import (
 log = logging.getLogger("ow174.game")
 
 
+class SceneBody(ReplicatedBody):
+    """Project a match-owned body without advancing its scene VM."""
+
+    def __init__(self, component):
+        self.component = component
+        self.server_only = self.initial_exclusions()
+        self.latest_live = snapshot(self)
+        self.terminal_snapshot = None
+
+    @property
+    def frame(self):
+        return self.component.frame
+
+    @property
+    def initial(self):
+        return full_frame(self, self.latest_live), self.latest_live
+
+    def refresh(self):
+        current = snapshot(self)
+        dead = self.component.owner_dead
+        first_death = dead and self.terminal_snapshot is None
+        previous = self.terminal_snapshot or self.latest_live
+        if not first_death and (current.instances, current.vars, current.states) == (
+            previous.instances, previous.vars, previous.states
+        ):
+            return None
+        if dead:
+            self.terminal_snapshot = current
+        else:
+            self.latest_live = current
+        return current, first_death
+
+
 def snapshot(script) -> Snapshot:
     """The body as other clients should have it: every instance, every value (no bindings) and the remote
     states that are on (or StEC states that ran)."""
-    snap = Snapshot(script.frame)
+    snap = script.callout_snapshot()
     for instance in script.replicated_instances():
         parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
         snap.instances[instance.id] = (instance.graph.index, parent)
@@ -51,6 +84,8 @@ def snapshot(script) -> Snapshot:
                 expr.warn_once(f"observe{cls}", "remote state class %s has no H=0 payload", cls)
                 continue
             payload = state.payload() if codec != "none" else {}
+            if codec in ("value_slot", "linked_target", spray_placement.CODEC) and not payload:
+                continue  # A permissive body can still hold the passive base State.
             snap.states[(instance.id, index)] = (cls, state.active, tuple(sorted(payload.items())))
     _add_vars(snap, 0, script.replicated_vars())
     return snap
@@ -85,7 +120,11 @@ def _graphs(script) -> dict:
 
 
 def full_frame(script, snap: Snapshot):
-    graphs = _graphs(script)
+    live_graphs = _graphs(script)
+    # A retained live baseline can include a reaction that ended on the
+    # death tick. Resolve those graph definitions from the saved snapshot.
+    graphs = {item: live_graphs.get(item) or graph.graph(index)
+              for item, (index, _) in snap.instances.items()}
     wires = {
         item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
     }
@@ -117,8 +156,19 @@ def delta(script, stream: BodyStream, snap: Snapshot):
     known = dict(base.instances)
     for pending, _ in stream.pending.values():
         known.update(pending.instances)
+    return _delta_from(graphs, base, snap, known, touched, next_chunk=stream.last + 1)
+
+
+def acknowledged_delta(script, base: Snapshot, snap: Snapshot, *, action=None):
+    """A reliable observer delta when the previous frame has been acknowledged."""
+    return _delta_from(_graphs(script), base, snap, base.instances, set(), action=action)[0]
+
+
+def _delta_from(graphs, base, snap, known, touched, *, next_chunk=None, action=None):
     wires: dict[int, InstanceWire] = {}
     keys: set = set()
+    callout = frame_callout(base, snap, touched, keys, next_chunk) if next_chunk is not None else action
+    snap = snap.for_delta(base, keys)
 
     def wire(item: int) -> InstanceWire:
         if item not in wires:
@@ -148,7 +198,7 @@ def delta(script, stream: BodyStream, snap: Snapshot):
             entity_vars[var] = now or (None, ())
         else:
             wire(owner).vars[var] = now or (None, ())
-    touched_states = {key[1:] for key in touched if key[0] == "state"}
+    touched_states = {key[1:] for key in touched | keys if key[0] == "state"}
     for key in set(snap.states) | set(base.states) | touched_states:
         owner, index = key
         if owner not in snap.instances:
@@ -166,20 +216,20 @@ def delta(script, stream: BodyStream, snap: Snapshot):
             state = StateWire(now[0], now[1], dict(now[2]))
         keys.add(("state", *key))
         wire(owner).states[index] = state
-    if not keys:
+    if not keys and callout is None:
         return None, keys
-    return remote_delta(list(wires.values()), entity_vars, graphs), keys
+    return remote_delta(list(wires.values()), entity_vars, graphs, callout=callout), keys
 
 
 LAZY_TICKS = 8  # a delta of values only (no state on or off) goes at most this often (the ultimate's meter)
 
 
-def _activity(snap: Snapshot) -> tuple:
+def _activity(snap: Snapshot, action: int = 0) -> tuple:
     """What must reach the other clients at once: the instances, the states that are on, the StEC states'
     payloads (their counters start them again)."""
     on = frozenset(key for key, (_, active, _) in snap.states.items() if active)
     stec = frozenset((key, value) for key, value in snap.states.items() if value[0] in stec_classes())
-    return frozenset(snap.instances), on, stec
+    return frozenset(snap.instances), on, stec, action
 
 
 class Watch:
@@ -276,7 +326,8 @@ class Observers:
             return
         if stream.base is None:
             return  # the full frame is still on its way
-        activity = _activity(snap)
+        callout = snap.next_callout(stream.base.callout)
+        activity = _activity(snap, callout.serial if callout is not None else 0)
         if activity == watch.sent and tick < watch.next_lazy:
             return
         frame, keys = delta(script, stream, snap)

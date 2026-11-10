@@ -1,0 +1,155 @@
+Manual Enforcer combat context: partial104319 server reconstruction
+
+The user-authorized manual sandbox declares a controller component set with4B
+present and5C absent for manual Enforcer01CE bodies. BotWorld stores that set
+explicitly. A separate scoped Assassin bridge is documented in
+docs/ASSASSIN_PIN_BRIDGE.txt; other NPCs and stock placements retain their
+existing controller services.
+This is a server policy; it does not allocate a native NPC controller entity,
+restore its wire components, or establish the complete possession relationship.
+
+Scoped queries:
+Only13EB owner queries on a declared Enforcer context are resolved.9B7648C3
+reads the authoritative aggregate input maintained by ReplicatedBody.set_health.
+NPC spawn synchronizes that input after health, armour and shields are created.
+Later combat changes already synchronize it; death sets it to zero. B96D3A98
+checks that the declared set contains4B and excludes5C. Foreign entities, other
+graphs/heroes, absent service and F7262B36 continue through the unknown service.
+The controller's foreign variables and full native entity selection remain open.
+
+Native evidence:
+Eight component sets match the actual CC9F61 predicate tail and182C470 bitset
+reader in offline Unicorn execution. DA6910 controller lookup and F66AF0 result
+collection are adapters. The original code and capture are unmodified. This
+establishes the tail's4B/5C test, not the native allocator or the choice of the
+sandbox's declared components. The probe is based on the bounded evidence from
+the Reinhardt hero lane; no full hero lane or incomplete lane commit was merged.
+
+Combat evidence:
+
+Graph 13EB/24 declares 25 projectiles and a ring pattern of 1/8/16
+pellets with normalized radii 0/0.5/1. The manual Enforcer now launches
+each pellet independently through the existing server projectile mover.
+The real-map `--enforcer-pellets` probe observes 25 directions at ring
+angles 0/2/4 degrees. Stop cancels all 25 in flight before any damage.
+After 100 damage-free frames, reengaging launches a fresh 25-pellet
+volley that deals 50 damage at the tested close range.
+Button release also aborts the sibling attack scope and windup at
+13EB/15 and /11. Previously the windup still reached /24 and could start
+the authored muzzle effect after the stop command, even though the
+sandbox suppressed damage. The real-map `--enforcer-stop-windup` probe
+now observes zero volleys and zero damage for 100 frames after stop,
+then 50 damage from a fresh engagement. In original-client match 7038
+at 1280 x 720, the client acknowledged retirement of the windup,
+animation and stack within 86 ms of the stop request. No volley began
+during the 1.25-second stopped interval, and reengagement fired again.
+A second capture in 7038 still shows the paired red muzzle flare
+about 0.95 seconds after stop, despite the observer retirement ACK
+at 142 ms. McCree stays at 175 HP during the stopped interval and
+drops to 125 HP after the new volley. Client-side muzzle effect
+cancellation remains open.
+In diagnostic match 9F3A the stopped flare persisted when observer
+projection omitted the chase (/11), the animation and stack (/9 and /0),
+or all three. Each omission was limited to the test server. The live
+control in each take still produced an authoritative volley and 50 damage.
+In match 9292, a separate test reset the cancelled chase's baked charge
+value (instance variable 1590) to zero. Four idle and stopped comparisons
+showed the glow only after engagement, even with that reset and no
+subsequent volley. This reset was removed from the implementation.
+In four longer stopped takes in 9292 the bright flare remained visible
+up to 0.83 to 1.19 seconds after stop, depending on the take. It returned
+to idle brightness for the rest of the 3.5-second observation. This
+separates the bounded client presentation from a persistent active weapon.
+Original-client match FEE9 isolates the presentation to the branch
+containing /27 and /52. Omitting data-flow mapping /47 leaves the flare
+visible. Omitting /27 and /52 removes both the cancelled flare and the
+one accompanying a live shot, so this omission is diagnostic only.
+The authored /52 auxiliary scope leads through /19 and /16 to /8.
+The target build's 2205.003, referenced by /16, contains two sound
+components on hardpoint 00A4. The 223F.003 resource at /8 contains
+three particle components, each authored with one second of playback.
+These resource timings are consistent with the captured flare tail.
+Match 7C51 isolates /52 alone. Omitting only /27 preserves both
+flares, while omitting only /52 removes both and leaves the live
+50-damage volley intact. Decoding the standard observer delta in
+`--enforcer-stop-windup` confirms that /0, /9, /11, /27, /47 and /52
+are all sent inactive immediately after stop. The open problem is
+retiring the local effect already launched by /52 while preserving
+the normal charge and live-shot presentation.
+Windowed match C601 separates the two child effects with a read-only
+poll of the original client. The probe sent `{` after both effects had
+allocated native component 9 objects. The client acknowledged /52
+inactive 67 ms after stop. At +79 ms the local /8 and /16 states had
+both cleared their handles, and the 2205 sound effect object had
+retired. The same detached 223F particle object was still present at
+that sample and was first observed gone at +1.114 s. No new particle
+handle, volley, or damage occurred during the stopped interval. A
+fresh `0` allocated new effect handles and fired 25 pellets for 50
+damage, taking McCree from 125 to 75 HP. Natural windup completion
+also detached 223F before its local object expired. These observations
+identify the tail as the lifetime of an existing client particle
+object, and do not establish audible playback or an early-cutoff wire
+operation. Local evidence: enforcer-windup-effects-34800.{json,jsonl}.
+Changing targets now releases the Enforcer's primary input and aborts
+the outgoing windup. Selecting the same target leaves that windup in
+progress. The real-map `--enforcer-retarget` and `--enforcer-reacquire`
+fixtures switch at 55.9 percent charge by crosshair selection and by
+target disconnect respectively. Both start a fresh charge at zero
+after 62 recovery updates. The first new volley deals 50 damage only
+to the replacement player. The previous cancellation path leaves the
+old windup active in the console fixture. These cases use simulated
+transport and cover server targeting and damage.
+
+Manual Enforcer death now uses the same cancellation before the first
+terminal body snapshot. The real-map `--enforcer-kill-windup` fixture
+presets one HP and kills through McCree's primary input during active
+windup. The attack states are absent at death, no volley or damage
+follows, and the dead body persists through 12 simulated seconds and
+is removed by the console.
+In original-client match 6548 at 1280 x 720, a diagnostic command
+injects the primary shot at 19 percent windup after the same one-HP
+preset. The client acknowledges retirement of /0, /9, /11, /27, /47
+and /52 about 111 ms after the lethal input. The corpse and shotgun
+remain visible at 12 seconds and clear on explicit removal. The
+short client particle tail is still visible during the death transition.
+Direct pellet hits use the 13EB/24 distance falloff fields over total
+flight distance, using the server's linear interpolation policy from
+8 m to 15 m and the 0.2 minimum thereafter.
+The real-map `--enforcer-falloff` probe fixes the firing position to
+isolate range while retaining normal weapon input and collision. At
+11.06 m, 13 of 25 pellets hit for 17.705 total, with individual hits
+from 1.317 to 1.389 damage.
+Ring orientation uses a deterministic server seed and authored spread.
+Native muzzle position, seed parity and visual matching remain open.
+Before the pellet change, an external actual-data probe used console=,2,0,{,- and the real13EB graph
+without native-query overrides in the probe. Four scenarios verify open combat,
+an actual static triangle wall, ally rejection, and McCree Flashbang control
+followed by attack recovery. Open300-frame input reduces McCree225 to221;
+the wall permits no damage while present and attacks resume after removal.
+Stopping suppresses all further damage over100 frames; reengagement works.
+Actual McCree primary input kills the Enforcer, its corpse remains through100
+additional frames, and explicit console removal retires it. Transport remains an
+adapter, the body VM is permissive, and no original client was run.
+
+Six source tests cover the component predicate, policy scope, health updates,
+foreign/unknown queries, causal snapshot input and Match preparation. A separate
+spawn regression checks initial aggregate health synchronization. BotWorld's
+declared context is included in VM and server causal snapshots.
+
+Still open:
+Native controller/namespace/component creation and complete predicate evaluation;
+NPC difficulty, native pellet spread, projectile and animation/muzzle equivalence,
+complete firing/reload/interrupt timing, autonomous acquisition/navigation and
+specials, client presentation and full cross-hero interactions. Assassin's
+primary20 graph has no damage outlet; pin1157 uses button36, DB742151 possessor
+context plus target variable1650, and StateModifyHealth15/25, which needs its own
+authoritative target, lifetime, damage and victim-control integration.
+
+A diagnostic that explicitly aliases the controller to the Assassin body,
+supplies1650 as the target and routes button36 reaches1157 target536 and then
+StateModifyHealth15; McCree remains225. This is context-injected diagnostics,
+not a production Assassin acceptance. The authored target is m_FA3ECC43=#536;
+node15 has m_95F1FB0B=1 and amount#11984, while node25 uses amount#13230.
+The later scoped health clock/target bridge is documented separately in
+docs/ASSASSIN_PIN_BRIDGE.txt; that reconstruction does not upgrade these earlier
+context-injected diagnostics into production acceptance.

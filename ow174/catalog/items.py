@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ow174.paths import DATA_DIR
+from ow174.paths import DATA_DIR, EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_TAGGED_DATA, VOICE_EFFECT_DATA
 
 UNLOCK_BASE = 0x0250000000000000
 SKIN_THEME_BASE = 0x0A50000000000000  # skin themes (0A6)
@@ -63,13 +63,39 @@ class ItemDB:
 
     def __init__(self, data_dir: Path = DATA_DIR) -> None:
         self.unlocks: dict[int, Unlock] = {}
+        self.emote_aliases = {
+            int(unlock, 16): int(alias, 16)
+            for unlock, alias in _read_json(data_dir / EMOTE_ALIAS_DATA).items()
+        }
+        self.emote_blend_trees = {
+            int(unlock, 16): int(blend, 16)
+            for unlock, blend in _read_json(data_dir / EMOTE_BLEND_TREE_DATA).items()
+        }
+        tagged = _read_json(data_dir / EMOTE_TAGGED_DATA)
+        self.tagged_emotes = {
+            int(unlock, 16): (int(row["alias"], 16), int(row["blend"], 16),
+                              frozenset(int(tag, 16) for tag in row["tags"]))
+            for unlock, row in tagged.get("unlocks", {}).items()
+        }
+        self.emote_body_tags = {
+            int(body, 16): None if tags is None else frozenset(int(tag, 16) for tag in tags)
+            for body, tags in tagged.get("bodies", {}).items()
+        }
+        self.voice_effects = {
+            int(unlock, 16): int(effect, 16)
+            for unlock, effect in _read_json(data_dir / VOICE_EFFECT_DATA).items()
+        }
         self.hero_names: dict[int, str] = {}
         self.hero_classes: dict[int, str] = {}  # "Tank", "Damage" or "Support"
+        self.npc_heroes: set[int] = set()
         for guid, hero in _read_json(data_dir / "extracted_heroes.json").items():
             if hero.get("Name"):
                 index = int(guid.partition(".")[0], 16)
-                self.hero_names[HERO_BASE | index] = hero["Name"]
-                self.hero_classes[HERO_BASE | index] = hero.get("Class", "")
+                hero_id = HERO_BASE | index
+                self.hero_names[hero_id] = hero["Name"]
+                self.hero_classes[hero_id] = hero.get("Class", "")
+                if hero.get("IsHero") is False:
+                    self.npc_heroes.add(hero_id)
         for hero, groups in _read_json(data_dir / "extracted_items.json").items():
             self._load_groups(groups, hero)
         self._load_groups(_read_json(data_dir / "extracted_general_unlocks.json"), None)

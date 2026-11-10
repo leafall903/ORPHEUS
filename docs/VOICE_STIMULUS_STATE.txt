@@ -1,0 +1,167 @@
+Shared VoiceStimulus callbacks — partial restoration for build 104319
+
+STU_40E05F6B has its own shared and client registrations. Priority1 constructs
+D48B30 through D4AE50/D4D370 and installs primary table26381E0. Priority2 uses
+A02C90 through A05640/A06760 and installs263A1A8. Both allocate208 bytes.
+The constructors initialize only the voice handle at1C0; other voice caches
+remain uninitialized until begin. Passive VM storage records all ten caches,
+including their initial None values, without invoking any service or callback.
+
+The shared callbacks are D43F70 begin/+B8, D44090 poll/+80, D446A0 timer/+90
+and9FC440 failure notification/+1A8. Ordinary tick/+70, finish/+A0, abort/+A8,
+end/+B0, cleanup/+C0 and dependency/+C8 are null. Client wrappers gate shared
+begin/poll/timer on State+C0 or the absence of Instance318 bit3. Its submission
+consumer9FDEB0 is not implemented by this change. The implemented contract is
+the shared callback core with explicitly supplied backend services.
+
+Actual0F45/node39 has remote index-1 but both client_only and server_only are
+false. That index does not establish a server-only node. Its stimulus is
+0EE000000000001F, targets come from GetOwner, delay is absent, cooldown is0,
+and duration/custom finish/failure outputs are empty. Its ordinary onEnd plug
+targets node40. No authored flags or plugs are changed by the verification.
+
+Services and lifecycle
+World.voice_context(entity) distinguishes unknown NotImplemented, known absent
+host None and an explicit voice_stimulus.Context for the actual live component.
+SceneWorld validates binding/identity and retires the context on unbind or fault;
+a stale component fault cannot clear a replacement's context. Missing services
+remain strict boundaries. Defaults do not install a manager or a mission driver.
+
+Context supplies a separate global double clock in seconds and manager lookup.
+Manager supplies descriptor loading, permission, submission, duration and part
+queries. Stimulus contains GUID, playable and mode metadata. Submission returns
+an explicitly obtained uint32 handle. Duration accepts(handle, GUID, mode), while
+part accepts(State, part number). Unknown consumers cannot fabricate failed
+resources, silent audio, zero duration or successful completion. None from load
+means a known missing descriptor. Lookup results are sampled for each callback.
+Owner/context validity is checked again after external callbacks.
+
+Begin resets handle/attempts/duration, sets part1 and reads the global clock
+before evaluating float32 delay/cooldown. It resets retry/submitted/failed and
+registers the State even when a known manager lookup returns None. An absent
+host returns before any cache reset or registration, matching the original.
+
+The poll phase is separate
+Native1B8C690 owns the +80 phase: it prepares instances, snapshots a VM registry,
+dispatches +80 and1B74F60 auxiliary work, then performs later instance dispatch.
+It is distinct from ordinary +70 ticking. Context.poll exposes only the shared
+voice callbacks in an explicitly selected owner phase. It does not call the
+complete driver, prepare namespaces or dispatch auxiliary/native instance phases.
+Registry mutation during this partial poll is strict until native snapshot
+mutation/reentrancy semantics are restored. Ordinary Component.tick never
+advances voice progress or the global voice clock.
+
+Poll behavior
+- Without a host or manager, return. Before submission, require elapsed >= delay.
+  Resolve the stimulus through scalar config +20, require its descriptor playable
+  byte78 and permission, then iterate targets. Native F64C20 conversion, uint32
+  validity filtering and first-occurrence deduplication preserve target order.
+  Empty targets still reach the explicitly supplied submission consumer.
+- A valid handle marks submitted. A failed request marks failed and preserves
+  any earlier failure. Failure queues ordinary FINISH only when elapsed is
+  strictly greater than delay+cooldown. It does not synthesize the failure plug.
+- With retry_at >0, wait for the global deadline. Query part+1 first. If the
+  result is zero or NaN, query the current part; a positive second result waits,
+  otherwise queue FINISH. A nonzero ordered first result increments the part
+  byte modulo256, sets retry_at from a fresh clock read and queues timer2 now.
+- Otherwise, a valid handle with a nonzero stimulus GUID queries duration.
+  Missing descriptors still query with mode=false; a zero GUID returns without
+  increasing attempts. Increment attempts modulo256; attempts >5 mark failed,
+  even if that result is positive. Positive duration converts duration and
+  cooldown independently to rounded native signed milliseconds. Overflow/NaN
+  conversion yields INT_MIN. Sum as int64 and multiply in float32 by0.001 for
+  the cached duration. Queue timer1 immediately, clear the handle and set the
+  next deadline using the unquantized duration, cooldown and fresh double clock.
+
+Timer1 writes cached duration to a supported dynamic output before following
+the custom +160/m_onFinishedPlug. Timer2 follows that same custom plug without
+a duration write. Other parameters do nothing. The native float setter ignores
+absent/zero dynamic identifiers; other unresolved output kinds remain strict.
+Explicit failure notification follows +168/m_F96FC964 without ending the State.
+Generic State completion follows only m_onEndPlug for this strict VoiceStimulus:
+the same-named custom voice plug must not run again at ordinary completion.
+Ending, destruction or failure detaches the State from its context registry.
+
+The permissive legacy spawn-bark policy remains passive on the server, including
+its existing timing and chosen stimulus. Its transport tests do not establish
+actual client audio or that the chosen stimulus is the retail spawn line.
+
+Evidence and limits
+973 original-instruction comparisons cover both constructors, begin/poll/timer/
+failure callbacks, floating-point boundaries, attempt/part byte wrap, missing
+services/resources, target conversion/deduplication, vector growth and clock
+changes during backend callbacks. Resource/config/iterator delivery, submission,
+status, queue/output/plug consumers, base vector initialization and security-cookie
+checks are declared adapters. Native target conversion and shared control flow
+execute unchanged. This is not a reproduction of the audio engine or full driver.
+
+Actual0F45/node48 now creates0EC6 through its installed queue, begins voice node39
+and executes array17->variable41 before the helper retains strict controller
+message-target-component/node22. No voice poll occurs before that failure, and
+both contexts/queues retire. In a separate explicit voice-service fixture, actual
+node39 submits1F to its owner, observes duration0.25, dispatches immediate timer1,
+queries parts2 then1 and finishes through its unchanged onEnd plug, retaining
+strict4C3509FB/node40. These are isolated action/state fixtures, not full startup.
+
+The real shared Match still prepares147 initial components/queues and stops at
+D38D0035/node106/frame0, retiring all bindings/queues. Full root/controller/body
+and dynamic actor execution, global phases, real voice services, replication/
+readiness, cinematics, five enemy AI types, extraction and results remain open.
+No new original-client session, audio acceptance or candidate deployment occurred.
+
+Local evidence outside Git: verification/retribution/voice-stimulus-native/actual/
+root/final-validation.json, voice-stimulus-related/server-tests.log and ruff.log.
+See CHANGELOG.md for automated regression totals and RETRIBUTION_RESTORATION.txt
+for the complete mission acceptance scope.
+
+Subsequent array-action progress, 2026-11-08
+Actual0F45/node40 and41 now append through native-backed unkeyed insertion.
+The isolated voice fixture reaches35, whose timer invokes the native-backed
+clear action42; variable1839 becomes a typed empty array. Both voice States
+finish with no remaining registrations, queued events or fault. Source variable42
+remains uninitialized in this explicit fixture; declared backend/clock responses
+do not establish real audio or full startup. The separate helper still stops
+at controller-message component/node22, and shared Match remainsD38/node106.
+See ARRAY_ACTIONS.txt for storage, notification and native-comparison limits.
+
+Junkenstein Reaper entrance
+
+The five opening cues in 0CE0 nodes 61 through 65 target the game mode
+entity and have no remote state slots. 0C8C installs voice set 013B on
+that entity. Read-only inspection of 104319 finds one unconditioned line
+for each of these five cues in 013B. The 48 kHz enUS Wwise sample counts
+supply the server's duration for each single-part line. The scoped
+backend requires the live mode voice set, then queues ClientInVoice
+27500 with the mode entity as speaker and each current defender as
+listener. Delivery waits for the Reaper body create acknowledgment.
+The encounter polls registered voice states before ordinary component
+updates. The test verifies the packet fields and removal at completion
+for 06B5, line 8CB1, with a rounded duration of 3.337 seconds.
+Original-client playback remains open.
+
+The natural Normal Endless spawn uses Reaper skin 1BEB and body 0022.
+Read-only 104319 inspection resolves 06BD through body voice set 0001.
+It selects line 8A2B, whose enUS media 2EC9E contains 172357 samples
+at 48 kHz. Node 77 starts on frame 4004. After the authored delay, the
+headless replay submits the cue on frame 4017 with a rounded 3.591-second
+duration. The notice uses Reaper's body for the speaker and anchor.
+The associated 06AC action routes to players and the source body's live
+possessing controller with the 0CDC receiver. On frame 4021 the natural
+replay reaches 0CE2 node 7, STU_9F3FE778, in the controller path.
+
+The native 9095A0 action dispatch uses D34A80, which succeeds without
+reading the trace configuration. Three offline callback cases execute
+the dispatch with synthetic observer, cast and output services. After
+modelling the base output, the natural replay reaches 0CE0 node 66 at
+frame 4209. Nodes 66 through 70 target the mode entity and link their
+end output to node 14. Voice set 013B has fifteen active single-clip
+lines for these five cues, all with weight 1 and no criteria. The
+host samples uniformly using a per-body voice RNG and derives the
+duration from the selected line's enUS media. The original RNG sequence
+has not been verified. In the isolated replay node 66 submits A45E
+at frame 270 with 6.729 seconds and retires at frame 691.
+The natural Normal Endless replay submits the 5.220-second 8CB3
+variant on frame 4209 and retires the cue on frame 4536. It reaches
+frame 5000 with Reaper alive and no scene fault. The replay does
+not connect player clients, so it does not exercise their combat
+or audio playback.

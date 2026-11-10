@@ -15,9 +15,9 @@ from ow174.game.bits import BitReader, BitWriter
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.combat import Combat, HitDef, Target, Vitals
 from ow174.game.commands import FIRE, SUBFRAME, Command, read_commands
-from ow174.game.content import PRACTICE_RANGE, SOLDIER, heroes
+from ow174.game.content import JUNKENSTEIN_MODES, PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.match import Match
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, nodes, runtime, scene
 from ow174.game.script.bot import BotScript
 from ow174.game.script.decode import read_chunk
 from ow174.game.script.driver import HUD_HEALTH, BodyStream
@@ -223,6 +223,37 @@ class DamageTests(unittest.TestCase):
         self.assertEqual(vitals.now[HEALTH_POOL], 200.0 - (95.0 - 47.5))
         self.assertEqual(vitals.heal(1000.0), 47.5 + 50.0 + 25.0)
 
+    def test_wave_health_is_included_in_body_script_hud_capacity(self):
+        vitals = Vitals(1, 225)
+        remove = vitals.add_wave_health(2000)
+        vitals.damage(572.3)
+        owner = Mock()
+        combat_system = Combat.__new__(Combat)
+        combat_system._sync_body_health(owner, vitals)
+        owner.body_script.set_health.assert_called_once_with(vitals.total, 2225)
+        remove()
+        combat_system._sync_body_health(owner, vitals)
+        owner.body_script.set_health.assert_called_with(225, 225)
+
+    def test_wave_health_uses_a_separate_pool_and_clears_its_wire_slot(self):
+        vitals = Vitals(1, 250)
+        vitals.damage(20)
+        remove = vitals.add_wave_health(750)
+        self.assertEqual((vitals.total, vitals.normal_health(True)), (980, 1000))
+        self.assertEqual(vitals.damage(40), 40)
+        self.assertEqual(vitals.now[HEALTH_POOL], 230)
+        self.assertEqual(vitals.heal(35), 35)
+        first, second = vitals.component(vitals.ids)[51][:2]
+        self.assertEqual(first, world.pool(1, HEALTH_POOL, 250, 250))
+        self.assertEqual(second, world.pool(2, HEALTH_POOL, 750, 725))
+        remove()
+        self.assertEqual(vitals.total, 250)
+        self.assertEqual(vitals.component(vitals.ids)[51][1], world.pool(0, HEALTH_POOL, 0, 0))
+        vitals.add_wave_health(1000)
+        remove()
+        self.assertEqual(vitals.total, 1250)
+        self.assertEqual(vitals.component(vitals.ids)[51][1], world.pool(3, HEALTH_POOL, 1000, 1000))
+
     def test_rewind_cannot_hit_a_body_before_its_replacement_tick(self):
         for view_delay_ms, damage in ((17, 0), (16, 20)):
             with self.subTest(view_delay_ms=view_delay_ms):
@@ -333,6 +364,56 @@ class DamageTests(unittest.TestCase):
 
 
 class ProjectileTimingTests(unittest.TestCase):
+    def test_junkenstein_junkrat_launches_the_authored_difficulty_scaled_grenade(self):
+        run, _, _ = self.match_with_projectile()
+        for player in run.players:
+            player.client = None
+        fight = run.match.combat
+        fight.rockets.clear()
+        shooter = Mock(spec=bots.Bot, hero=0x02E0000000000065, entity=123, team=1,
+                       position=(0, 0, 0), yaw=0, pitch=0)
+        world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[1])
+        world.bind(shooter.entity, definition=0x0400000000000380)
+        world.bind(124, definition=0x04000000000016FB, component92_present=True)
+        world.set_possessions(possessors=(124,), primary=((shooter.entity, 124),))
+        world.set_current_possession(124, shooter.entity)
+        world.set_linked_controller(shooter.entity, 124)
+        world.junkenstein_difficulty = expr.Asset(0x0D8000000000195F)
+        component = runtime.Component(shooter.entity, world=world)
+        world.bind_script_component(shooter.entity, component)
+        model = graph.graph(0x022B)
+        instance = component.create(model, init=False)
+        instance.write((runtime.INSTANCE, 6368), 25.0)
+        instance.write((runtime.INSTANCE, 7389), 12.25)
+        volley = instance.node_state(model.node(31))
+        with patch.object(fight, '_scene_component', return_value=component):
+            fight._shoot(shooter, None, volley, 0, 0, activation=(1, 0))
+        rocket, = fight.rockets
+        self.assertEqual(rocket.velocity, (0.0, 0.0, 25.0))
+        self.assertEqual(rocket.gravity, 12.25)
+        self.assertEqual((rocket.direct.amount, rocket.blast.amount), (20.0, 30.0))
+
+    def test_zombardier_volley_reads_gravity_without_flashbang_expiry(self):
+        run, _, _ = self.match_with_projectile()
+        fight = run.match.combat
+        fight.rockets.clear()
+        shooter = Mock(spec=bots.Bot, hero=0x02E0000000000177, team=2,
+                       position=(0, 0, 0), yaw=0, pitch=0)
+        component = runtime.Component(123)
+        shooter.body_script = Mock(component=component)
+        model = make_graph(0x0CA1, [node(14, "STUStatescriptStateWeaponVolley", state=0, fields={
+            "m_projectileSpeed": {"$": "STUConfigVarInt", "m_value": 30},
+            "m_projectileMotions": [{"$": "STU_E1A5B579", "m_D0C4CF49": None,
+                                     "m_599AB8D7": {"$": "STUConfigVarInt", "m_value": 20}}],
+            "m_D2D11CE9": {"m_modifyHealth": {"m_amount": {"$": "STUConfigVarInt", "m_value": 60}}},
+        })], states=(14,))
+        volley = component.create(model, init=False).state(0)
+        fight._shoot(shooter, None, volley, 0, 0, activation=(1, 0))
+        rocket, = fight.rockets
+        self.assertEqual(rocket.gravity, 20.0)
+        self.assertEqual(rocket.velocity, (0.0, 0.0, 30.0))
+        self.assertFalse(rocket.detonate_on_expiry)
+
     def match_with_projectile(self, lifetime=1.0):
         run = Run(KANEZAKA_DM, ("Shooter", "Target"))
         run.step({})
@@ -347,6 +428,23 @@ class ProjectileTimingTests(unittest.TestCase):
         )
         fight.rockets.append(rocket)
         return run, rocket, fight.vitals_of(victim)
+
+    def test_linear_pellet_falloff_includes_distance_travelled_before_the_hit_tick(self):
+        for previous_distance, expected in ((0, 19.0), (8, None), (15, 3.8)):
+            with self.subTest(previous_distance=previous_distance):
+                run, rocket, vitals = self.match_with_projectile()
+                rocket.direct = HitDef(19.0, falloff_start=8, falloff_end=15, falloff_floor=0.2)
+                rocket.scale_direct = True
+                rocket.flown = previous_distance / rocket.speed
+                rocket.last_tick = run.frame
+                frame = run.frame + 13
+                run.match.update(frame * combat.TICK, frame)
+                dealt = 200 - vitals.total
+                if expected is None:
+                    self.assertGreater(dealt, 3.8)
+                    self.assertLess(dealt, 19.0)
+                else:
+                    self.assertAlmostEqual(dealt, expected)
 
     def test_skipped_world_ticks_match_the_contiguous_static_hit(self):
         results = []
@@ -434,6 +532,30 @@ class ProjectileTimingTests(unittest.TestCase):
 
 
 class BotTests(unittest.TestCase):
+    @patch.object(graph, "entity_body", return_value=None)
+    def test_retained_corpse_survives_respawn_deadline_and_stale_respawn(self, _entity_body):
+        run = Run()
+        player = run.players[0]
+        fight = run.match.combat
+        target = next(target for target in fight._enemies(player) if isinstance(target.owner, bots.Bot))
+        bot = target.owner
+        bot.retain_corpse = True
+        fight._damage(player, target, bot.health + 100, False, None, run.frame)
+        self.assertTrue(bot.dead)
+        self.assertEqual(fight.vitals_of(target).total, 0)
+        self.assertFalse(any(who is bot for _, who in fight.respawns))
+        for _ in range(round(combat.BOT_RESPAWN / combat.TICK) + 10):
+            run.step({})
+        fight._respawn_bot(bot)  # an already queued or stale callback cannot replace this corpse
+        self.assertIn(bot, run.match.bots)
+        self.assertEqual(bot.movement(run.frame).flags, bots.DEAD)
+        self.assertFalse(any(target.owner is bot for target in fight._enemies(player)))
+        self.assertEqual(fight.vitals_of(target).total, 0)
+        script = bot.body_script = Mock()
+        script.advance_death.return_value = []
+        run.step({})
+        script.advance_death.assert_called_once_with(run.frame, int(combat.BOT_RESPAWN / combat.TICK))
+
     def test_bot_damage_and_death_use_the_attacker_entity(self):
         run = Run()
         (player,) = run.players

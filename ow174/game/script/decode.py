@@ -124,14 +124,26 @@ def read_value(reader: BitReader):
             while (byte := reader.bits(8)) != 0:
                 data.append(byte)
             return data.decode("utf-8")
-        if sub == 6:
+        if sub in (6, 7):
             size = w_u16(reader)
-            if reader.bit():
-                raise DecodeError("keyed array")
+            keyed = reader.bit()
             if size and reader.bit():
                 raise DecodeError("untagged array")
+            if keyed:
+                return _read_keyed_array(reader, size)
+            if sub == 7:
+                return expr.PairArray(tuple((read_value(reader), read_value(reader)) for _ in range(size)))
             return tuple(read_value(reader) for _ in range(size))
     raise DecodeError(f"value tag {tag}")
+
+
+def _read_keyed_array(reader: BitReader, size: int) -> expr.Map:
+    pairs = []
+    for index in range(size):
+        if index and not reader.bit():
+            raise DecodeError("absent pair in full keyed array")
+        pairs.append((reader.bits(16), read_value(reader)))
+    return expr.Map(tuple(pairs))
 
 
 @dataclass(frozen=True)
@@ -141,6 +153,8 @@ class DecodedBinding:
     slot: int
     priority: float
     above: bool
+    dynamic: bool = False
+    frame_cached: bool = False
 
 
 def read_bindings(reader: BitReader, own: int, graphs: dict[int, int], unresolved: str | None = None):
@@ -174,9 +188,9 @@ def read_bindings(reader: BitReader, own: int, graphs: dict[int, int], unresolve
             else:
                 priority = f32(reader)
             above = bool(reader.bit())
-        if reader.bit():
-            reader.bit()
-        found.append(DecodedBinding(instance, state, slot, priority, above))
+        dynamic = bool(reader.bit())
+        frame_cached = bool(reader.bit()) if dynamic else False
+        found.append(DecodedBinding(instance, state, slot, priority, above, dynamic, frame_cached))
     return tuple(found)
 
 
@@ -316,6 +330,7 @@ class Frame:
     cmfd: int = 0
     instances: dict[int, DecodedInstance] = field(default_factory=dict)
     entity_vars: dict = field(default_factory=dict)
+    actions: list[tuple[int | None, int, int]] = field(default_factory=list)  # stamp, instance, node position
 
     @property
     def full(self) -> bool:
@@ -530,9 +545,36 @@ def _read_chunk(data: bytes, bits: int, known, frame_ms: int, records) -> Frame:
             raise DecodeError(f"LBSS says the body ends at {lbss}, it ends at {reader.pos}")
         if reader.bit():
             raise DecodeError("more sub-frames")
-    if reader.bits(2):
-        raise DecodeError("frame events")
+    while reader.bit():
+        stamp = w_u32(reader)
+        size = w_var(reader)
+        end = reader.pos + size
+        _frame_actions(reader, frame, graphs, stamp)
+        if reader.pos != end + 1:
+            raise DecodeError("frame action group length")
+    _frame_actions(reader, frame, graphs, None)
     return frame
+
+
+def _frame_actions(reader: BitReader, frame: Frame, graphs: dict, stamp: int | None) -> None:
+    while reader.bit():
+        if reader.bit():
+            raise DecodeError("long frame action")
+        start = reader.pos
+        end = start + reader.bits(8)
+        if not reader.bit():
+            raise DecodeError("frame action without a target")
+        target = w_u16(reader)
+        if target not in graphs:
+            raise FrameRefused(f"frame action target {target} is unknown")
+        definition = graph_of(graphs[target])
+        if frame.owner:
+            node = definition.by_rid(reader.bits(definition.nodes_bits))
+        else:
+            node = definition.remote_node(reader.bits(definition.remote_bits))
+        if node is None or not node.is_action or reader.pos != end:
+            raise DecodeError("invalid short frame action")
+        frame.actions.append((stamp, target, node.pos))
 
 
 def initial_graphs(hero: int) -> list:

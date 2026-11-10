@@ -1,0 +1,1161 @@
+Communication wheel — target PC build 1.74.0.0.104319
+
+The common player body graph 004B starts the main communication graph 05AD
+from node 12 and the spray graph 02CF from node 11. Both paths depend on
+the untagged filter at node 20. Node 19 adds STU_E18C7DE7 for the main wheel.
+The legacy body world previously returned false for the filter. The player
+body host now supplies the two positive answers only in this graph and
+match context. The tagged 01CB filter stays on its previous path.
+Body trace headers preserve that startup policy for standalone replay.
+
+The static Practice Range test confirms the native parent links (004B raw
+states 7 and 6) and initial wheel state carriers after body-create and
+descriptor ACKs. The client-side decoder consumes the emitted owner frame.
+This verifies startup and wire layout. It leaves selection and playback open.
+
+Source paths for the remaining actions
+
+- 05AD node 87 watches logical button 38. Node 99 is the original presenter.
+  Node 3 receives 02A3 with parameter keys 08FC, 03E1, 05FE and 0644.
+  Node 240 builds the authored configurable-action map. Other branches
+  handle the fixed context calls and start 0686 or 069A. Graph 069A starts
+  the emote graph 023A, with the selected slot and animation category.
+- 02CF node 22 also receives 02A3 and selects the spray submenu actions.
+  Node 2's success plug reaches pulse 36. Client node 50 resolves the
+  equipped spray unlock. Node 40 reports it through 1313 before starting
+  stimulus node 48. The server-only 1313 entries in 02CF and 0686
+  begin a 0.5-second state that calls the unlock-use action on entry.
+  STU_79A131B4 registers at 2F64398. Its constructor 90BE40 installs
+  vtable 26220C8, whose handler 904C20 builds 21616. It writes the body,
+  message GUID and source instance outside the serialized parameters.
+  Five offline executions of 1BA7D30 use the original message initializer
+  and a single 053B Asset row. The 27-byte payload has the default header,
+  one compact key and type 4, the little-endian Asset GUID, and two
+  default entity values. 02CF reports the equipped 0A5 unlock. 0686
+  reports the .00D effect passed to node 55.
+  The match admits this layout for the sender's current body and
+  indicated live instance. A current spray report matches the
+  successful placement's unlock and active pulse. The owner send
+  history also records the unlock from each transmitted placement,
+  keyed by instance and start time. A report may match that history
+  for two seconds of body simulation time, including after a later
+  selection replaces or clears the placement. Offline tests verify
+  the slot and geometry in the first frame, route the delayed report
+  after a replacement and a subsequent miss, and reject an unsent
+  alternate and an expired record. The match queues the typed
+  parameter on the instance's normal event queue.
+  STU_94771561 is described at 31B3F20. Its three authored occurrences
+  are 023A:108 (emote, category 2), 02CF:39 (spray, category 4) and
+  0686:70 (voice, category 5). The emote graph invokes it directly;
+  the other two call it through the server-only report entry. The PC
+  registry's 1735 rows have no dedicated constructor for key 2DF3C18.
+  Native factory 1B902B0 walks to Action key 2DD5430 and constructs
+  vtable 261BD78 via 1B72650. Six executions of the inherited handler
+  1B6EBA0 invoke the component notification once with the node index,
+  then process the empty out plug. Invalid fixture addresses in the
+  subclass fields confirm the inherited handler does not read them.
+  PC VM table 262C010 routes that notification via 97A170 to the
+  prediction history at A0A0D0. It requires allocated history,
+  a prediction-enabled instance and no active rewind. The record
+  contains only the instance ID, raw node index and action kind.
+  A0F840 reads that record during rewind and calls the base Action's
+  empty +58 hook at 1CE5640. Sixteen native gate cases and four
+  rewind-hook calls cover the four wheel nodes that inherit Action.
+  All four nodes are absent from their remote-sync lists. The body VM
+  follows their output plugs without reading marker or unlock fields.
+  Separate server-only cosmetic accounting remains unverified.
+- The wheel's STU_4460419A queries use .096 action metadata extracted
+  from the 104319 CASC. Category 7428.01C covers 16B–172, 1E5–1F4, 1F7
+  and 1F9. Category 741E covers 172 and 19F–1A2. Category 7420 covers
+  173 and 1A3–1A6. These rows use type 0CD.114. Action 172 belongs to
+  both 7428 and 741E, and 05AD checks 741E first.
+- Direct offline 02A3 injection now reaches the correct branch in 05AD
+  for fixed and configurable calls and emotes, and in 02CF for sprays. The emote reaches node 107's equipped-animation query
+  STU_250DEABD. The slot queries use the original zero-based lookup
+  order. Client routines 44A7D0 and 44A950 search the emote and spray
+  tables at 25FB0E0 and 25FB120. Emote slots are 172, 1A1, 1A0 and 19F.
+  Spray slots are 173, 1A5, 1A4 and 1A3. Unmatched actions return -1.
+  A 1,544-case offline comparison against those client instructions
+  agrees with the slot resolver. An injected 1A4 reaches spray node 33
+  and sets slot 2. The STU_17B517B9 runtime constructor at 970420
+  installs vtable 2627548. Evaluator 92E7E0 reads the selected slot
+  via BCC960 at component +D0 and returns the 0A5 spray unlock. The
+  server snapshots the merged +0x58 loadout at body creation. Offline
+  action 1A5 resolves Soldier: 76's equipped Pixel spray at 02CF:2.
+  The priority-2 state vtable is 262CF20. Enter 97F950 reaches 98CAE0,
+  which uses authored +F0 and the user's pose to build a query at
+  D0FCB0. The result selects plug +100 or +F8. Reader 97FA30 uses
+  D0F760 to unpack the placement. Writer D0FAA0 uses DB1050 to
+  encode both directions as pairs of 16-bit angles. It copies the
+  point as three f32 words, with an optional entity and optional
+  attachment value, then the terminal flag. The owner and observer
+  writers now carry resolved geometry for authored 02CF state 1.
+  Unresolved states stay out of those frames. Native execution
+  verifies 2,051 DB1050 vectors and 540 D0FAA0 writes against all
+  three frame contexts. Executing D0FCB0 with a query stub confirms
+  the 0x40 shape category, the eye ray endpoints and the returned hit bit.
+  D0FCB0 also sends entity allow mask 0001000000000040 and an empty
+  deny mask. 1B60A50 requires a candidate's +270 flags to overlap the
+  allow mask, checks the deny mask and checks the entity pointer
+  against the exclusion list. The allow mask admits either 0x40 or
+  bit 48. 1B5FC20 can append the resolved source object to the list
+  when its flags match. The source call passes zero for child traversal.
+  Eight native filter cases cover both allow bits, deny precedence and
+  list membership. The request sets +18 to zero. The tail of 1B5D1D0
+  therefore skips the secondary 1B38630 collector. Six native dispatch
+  cases verify that branch and both hit sources with fixture traversal.
+  The body host takes the current eye position and aim, and traces the
+  authored 4.5 metres against loaded static collision. The match collision
+  loader pins the map's expanded .rays.col with the mode's placeable
+  identifiers. Spray placement queries category 0x40. The replay
+  collision fingerprint includes the pinned triangles and round props.
+  With an absent or unreadable sidecar, the ray uses the movement
+  world's retained surfaces.
+  Build a map's sidecar with tools/build_collision.py --ray-geometry.
+  The local 0688 Practice Range sidecar has 299968 spray triangles,
+  including 274205 without either mover category. An offline 4.5-metre
+  ray hits an exclusive triangle at 0.1 m where the mover cache misses.
+  02CF state 1 follows its success plug and pulses state 14 when an
+  equipped spray hits. The failure path clears placement on a miss
+  or empty slot. The owner and observer deltas retain the resolved
+  placement and authored slot 9259 with the corresponding feedback
+  event. A retry repeats the same action stamp and state counter.
+  Acknowledgment advances to the next placement or miss. A new
+  successful spray sends the placement again even when its geometry
+  and slot match. The bounded event queue keeps these results while
+  the instance is live. An observer full frame starts from the
+  current placement. Offline fixtures cover a changed slot and
+  point, a miss, and an identical repeat across loss. Both snapshot
+  encoders can record queued placements.
+  At 98CE56 the native enter function supplies a stack hit buffer
+  to D0FCB0. It then chooses the success or failure plug from the
+  returned bit. The hit collector's 1B50CC7 arm copies hit vectors,
+  the entity pointer and shape data into the output buffer. Six native
+  executions of the 98CE56 continuation use a fixture ray result with
+  absent and present entity and shape pointers. In every case only
+  the hit bit determines the plug. This continuation does not copy
+  the pointers into the state writer's attachment fields. Attachment
+  production needs evidence from a separate path.
+  On the receiving side, 98A070 looks up the attached network
+  entity at +1F0. If it has not arrived yet, 98A4D5 requests a
+  retry. 97FA45 seeds a 600-update pending counter, and 97F9F0
+  decrements it until application or expiry. That counter is
+  separate from the lifetime of the applied decal. Reader 97FA30
+  removes the applied decal through 98B540 before applying a valid
+  replacement. Lifecycle callback 97F9C0 and destructor 986850 also
+  remove an applied decal. 98B540 passes type 1 and the same key as
+  creator helper 989140. The key combines the body ID, the script's
+  compact identifier and the state index. Six native cases execute
+  the reader or lifecycle callback and the 5F3D00 removal lookup
+  with fixture services, verifying that other decal types and keys
+  survive. 98A070 resolves the look from the script when it reads the
+  placement. The body snapshot now includes the selected unlock in
+  its comparison so a new spray at the same point reaches both
+  streams. The geometry codec uses its original fields.
+  98AD65 assigns type 1 on creation. In the decal manager,
+  6E6CE0 skips rows with flag 0x10 or a nonzero type. 6E7281 skips
+  rows with a nonzero type or flag 0x04. Twenty-four native cases
+  with type 0, 1 and 2 rows and mixed flags verify that both sweeps
+  retain type 1. The direct removal callsites for type 1 pass a
+  placement key. The recovered wheel lifetime follows the state.
+  For a nonzero attachment key at +1F4, 98A791 asks 1AFBE10 for
+  an anchor transform. Otherwise it uses the entity transform.
+  98AB92 applies the transform to the stored point and normal.
+  The stored direction is consumed separately at 98AC85.
+  The match now converts a ray hit with a declared rigid attachment
+  pose into that local point and normal, retaining direction, entity
+  and key. Eight offline executions of 98AB92 recover the original
+  world point and normal for four rotations and two input pairs.
+  A collision fixture sends both root and keyed attachments through
+  the authored state in owner and observer frames.
+  The expanded ray cache supplies world-space static hits.
+  Dynamic hit ownership, anchor production, full collision filtering
+  and the server-side unlock-use effect remain open.
+- Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
+  STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
+  a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.
+  The category includes 19E, but the slot lookup returns -1 for that
+  action. The resolver agrees with the native instructions on 1,544
+  GUIDs. The enclosing STU_2977339D config at 0686:67 is installed
+  by 970450 with vtable 2629388. Its evaluator at 93D1F0 uses BCC980
+  and resolves its result through 955C00. The registration at
+  2B53F9 pairs descriptor 2E0F448 with 8A9D1F89 (STUUnlock_VoiceLine).
+  The result at unlock +120 is m_F57B051E, the .00D effect passed to
+  0686:55. The server snapshots voice effects from the merged +0x70
+  loadout. Generate data/voice_effects_174.json in the external
+  runtime with tools/extract_voice_effects.py and the same DataTool
+  0A5 XML directory. The 104319 extractor found 1,043 entries.
+  Offline action 19D resolves Soldier: 76's 1879.00D effect. The
+  two lookup tails pass 200 comparisons with declared native
+  component/unlock inputs. Client access to the equipped resources
+  remains open.
+- The body host dispatches self-targeted PlayScript actions 05AD:109
+  and 069A:9. The selected action enters 069A via parameter 08FC as a
+  one-item array. The slot reaches 023A through the subscript's variable
+  9254. The owner stream carries 069A, its 023A child and 1040.
+- In 104319, the STU_250DEABD evaluator at CD7490 calls BCC930 for
+  slots 0–3, resolves the equipped 0A5 unlock and checks STUUnlock_Emote.
+  CD7B08 reads m_emote at +F8. When the m_7E3ED979 tag count is zero,
+  CD7B12 jumps to the alias return at CD7D3C. There are 284 such unlocks.
+  Eight D.Va unlocks require target tag 0069. CD7490 and the separate
+  blend query follow the related entity from DA5E80 and check the native
+  component 76 tag list when it exists. On a mismatch, the alias query
+  selects 045C before the skin remap and the blend query returns zero.
+  The extracted 040A pilot lists tags 0121 and 015A. The 0407
+  mech also has 0069. The loadout resolver uses the body definition
+  selected by the match. The 104319
+  hero table currently selects 040A, so the pilot gets the base
+  045C alias and a zero blend set for tagged unlocks. A fixture
+  selecting 0407 verifies the authored 0476 alias and 0690 set for
+  0A5:0BFC. The offline pilot selection reaches 023A with the
+  fallback values. For timing, the pilot's 040A model component
+  supplies 048A.021 when the equipped blend is zero. Its 045C
+  alias selects 365F.006 at 5.0000005 s. Four offline native cases
+  select the same record with different categories. The wheel
+  retains the zero equipped blend on the graph and schedules the
+  finish using the body tree. When explicitly supplied with the
+  0407 body and its prepared graphs, the Match mounts its own roots
+  and resolves the tagged emote using the mech body. The 0276:14
+  condition reads the Match's body owner through F7262B36. This lets
+  the authored one-second startup stack release before selection.
+  An offline pilot-to-mech-to-pilot probe uses the original graph
+  inputs. 023A receives 0476/0690 in the mech, with 1800 ms intro
+  and 433 ms exit durations, and returns to 045C/zero on the pilot.
+  The mech bundle and a skill-driven form transition are separate
+  inputs. Runtime tag changes and live model remaps remain open.
+  STU_DF7C7C63 evaluates at CE18E0 and reads the accepted unlock's
+  blend tree set at +108. Six offline executions of the native tail
+  cover no tag requirement, missing component, matching and mismatching
+  tags, an empty component and a match in the second requested tag.
+  The probe supplies the unlock and tag storage and captures the value
+  passed to F67090. Node 66 in 023A stores the set in variable 8908.
+  State 65 synchronizes it under 22CC.
+  Use DataTool extract-stu-type on the 104319 installation with type 0A5
+  and --xml. Run tools/extract_emote_aliases.py with the extracted XML
+  directory and the external runtime's data/emote_aliases_174.json path.
+  It also writes emote_blend_trees_174.json and emote_tagged_174.json
+  beside the alias table. Supply both 040A.003 and 0407.003 XML
+  files to --body-definitions. The first two generated tables
+  retain the 284 untagged entries byte for byte. The tagged table
+  holds all eight equipped unlock records and both body tag lists.
+  The server snapshots both optional maps from each player's merged
+  +0x88 loadout when the body is created. The offline test selects
+  Soldier: 76's Take a Knee in slot 1 and reads 0476.014 and 06B2.021
+  in 023A. The decoded owner frame carries the blend tree set.
+  An active 069A stack state holds entity variable 33 at priority F2.
+  This blocks a new selection at 05AD node 108. The Heroic animation's
+  end plug reaches 023A node 9, and the alternate exit and early
+  rejection paths use the same STU_22926252 class. Its runtime row
+  3293EA8 installs vtable 27AC3C8. The mapped client handler D34A80
+  simply returns true. The server host models the terminal behavior
+  for these authored wheel paths by ending the parent SubScript.
+  The parent's end action 069A:8 uses STU_3D419B63 and category 5.
+  CB9C70 passes the target and category to the native service.
+  The authored 1040 resource has category 5 in m_7E0BC920, so the
+  wheel host retires that helper and follows the authored terminal
+  action on 069A. When a higher-priority state takes the stack,
+  069A takes its under branch through the same category cleanup.
+  The offline owner-frame test supplies a finish event and a competing
+  stack entry. Both retire the old descriptors, and a new selection
+  succeeds after the authored cooldown. The source of natural animation
+  completion, the complete interrupt inputs and original-client
+  playback remain open.
+  Native Anim descriptor builder CC19A0 takes m_86701C3E as the
+  duration. When it is below 0.00011920929 seconds, CC1DB0 tries
+  CBFE20 for a nonzero .014 alias and passes the .015 category.
+  A positive model result is multiplied by m_speedScalar, default 1.
+  CBFE20 takes the float at BB8970 output +8. In the duration-only
+  path, BB8970 reads the selected model record at +10 into that field.
+  CC1E70 skips scheduling for m_37EE887D, otherwise it rounds the
+  descriptor seconds to milliseconds and subtracts the elapsed time.
+  It queues timer 1 and, unless m_154DBA91 is set, state finish.
+  Twelve native instruction cases exercise the two timing branches with
+  fixture model and timer services. The host handles the loop flag,
+  elapsed time for authored durations, and the zero-alias case in
+  023A under 069A. An offline graph test exercises the 023A:19 finish
+  into 023A:18. Soldier: 76's 06AD and 06B2 tree sets reference clips
+  of different durations. The list of clip durations alone does not
+  resolve the record returned by the native query.
+  For category-switch graphs, F4FBE0 dispatches game-data nodes by
+  type. F4DDC0 selects the STU_623B2B19 child using F51450. The
+  1789CE0 callback treats the high bit in the table key as requiring
+  an exact category. A miss uses the final child. F4CCA0 emits the
+  STU_3C8FB392 primary record index from m_9D16E038. BB8970 copies
+  STUAnimGameData_AnimationData.m_D8514AD9 from that record.
+  A probe builds the selected 06B2.021 game-data graph from XML and
+  executes the category dispatch and record read. Its 006E.015 intro
+  selects 3D04.006 at 1.0666667 s. Its 0082.015 exit selects
+  3D06.006 at 0.36666667 s. Zero and an unlisted category both select
+  3D05.006 at 8.933333 s. The probe fixtures the model selection,
+  skips IK output and leaves unrelated model parameters at zero.
+  tools/extract_emote_durations.py exports supported primary animation
+  records from .021 XML to emote_durations_174.json. Pass --categories
+  with the directory of extracted .015 XML to resolve category parents.
+  The optional runtime file is keyed by blend tree, alias and category. The
+  --clips-output option exports the selected record's m_584DEF6E .006 GUID
+  with the same blend tree, alias and category keys. The original
+  06B2 alias 0476 exports 3D04, 3D05 and 3D06 for intro, default and
+  exit. Its auxiliary 1E38 clip stays outside the primary selection.
+  The 06AD alias 045C exports 3A7D for any category. A weighted
+  branch with different primary GUIDs has no fixed clip entry.
+  The offline 02A3 wheel path exercises the equipped 06B2.021 intro to
+  loop transition. For a direct STU_3C8FB392 leaf, F4CCA0 emits
+  the same primary record for any category. F4EA30 can select that leaf
+  by its fixed m_38CF6CD3 child index before emitting IK output. C085B0
+  sets the auxiliary limit guard to FFFF for duration lookup, so F520A0
+  does not append the leaf's auxiliary animation records.
+  Four native probes use the selected 045C alias data in 06AD.021,
+  fixture the model context and skip IK output. They execute the native
+  primary record selection and scan with categories 006E, 0082, zero
+  and an unlisted category. Each returns 3A7D.006 at 5.0000005 s.
+  The extracted table uses the reserved all-ones category key for
+  direct records. The offline wheel reaches the Heroic terminal action
+  at 5000 ms. F4CBC0 enters inline STU_331B7B06 data. F51450 selects the
+  first matching STU_623B2B19 branch and uses the final child as fallback.
+  Selector bit 31 requires an exact category. Otherwise 1789CE0 also
+  searches the loaded .015 category's m_0E5A577A parent list. Nine native
+  instruction cases exercise both nested switches in 06D3.021 alias 049C.
+  Category 01FC matches parent 011A in the outer switch and selects
+  primary record 4035 at 5067 ms. The local data covers all 284 untagged
+  and eight tagged equipped mappings for categories 0000, 006E and 0082.
+  Active model remaps and live mech selection remain open.
+  An audit of the 8819 extracted 0A6 themes found no runtime
+  override keyed by any of the five equipped .014 aliases or
+  292 equipped .021 trees.
+  For the loop exit, 023A:18 checks 023A:27. That condition requires
+  the 488 cancel latch and the 1322 ChaseVar reaching zero. The latch
+  comes from 023A:38's movement and logical-button transitions.
+  The STU_7DEB522D type key 2DE6D00 registers constructor 1B762E0.
+  Vtable 27ACBF0 slot 40 calls 1B758C0. The m_00994FF0 field at
+  +B2 tests the held list through 1B8D940. The 023A conditions name
+  state index 11 (node 38) in m_122DF0CA. The host queues that
+  state's check for matching held-button presses and rechecks 023A
+  transitions when a watched value changes. The native held condition first
+  calls 1B9C760, which finds registry key 2DF2EF8 and scans its active list
+  for the queried button at state offset +1E8. The key is registered for
+  STU_E4A30BCF at 2701C9. Six native cases use the actual registry lookup
+  and cover absent, empty, matching and unrelated registrations. The host
+  uses its existing DisableLogicalButton registrations for the same check.
+  01C7:7 provides movement values. STU_96F1DBCF constructor D3A510
+  installs vtable 266ED08, whose tick reaches D3D420. D3D804
+  tests the mover flags with mask 80000C. D3D85D records whether
+  either axis byte at +20/+21 is nonzero. D3D9E8 and D3DA4C pass
+  these booleans through node fields +F8 and +118 to entity variables
+  545 and 2070. Seven native instruction cases cover the in-air
+  flags, both axes and an unrelated flag. The host uses the existing
+  mover's airborne flag and the command's axes for the wheel path.
+  Commands without a mover sample still update 2070 from both axes and
+  preserve 545. This covers offline replays with no grounded field.
+  In the offline match, all nine held buttons emitted by D56AA0 that are
+  named in 023A:38 cancel the loop, as do the forward and right axes.
+  Reload and camera rotation leave it active. Logical buttons 7 through
+  10 are named in the graph but are absent from D56AA0's edge list.
+  The separate 023A:79 branch cancels when both 30472 and grounded
+  variable 545 are false. State 109 sets 30472 through node 111 only if
+  abs(y(681)) exceeds 0.01 plus the native comparison tolerance. The
+  Anim field EBEFB4A7 names 681. The field table gives offset +178, and
+  CBDAD1 links it as slot 2. The original Anim vtable 2660420
+  dispatches startup to CBD510. That path calls CC19A0, which
+  evaluates the configs at node +F8 and +100 and stores their
+  GUIDs at descriptor +0 and +8. CC1DB0 uses this same pair
+  for duration lookup when the primary GUID is a .014 alias.
+  On a successful animation start, CC5BA5 and CC5BB3 copy
+  the descriptor keys to state +1E8 and +1F0. CC5DD1 calls
+  the update helper after the animation index is valid and
+  the update stamp changes. CC0DB5 passes the saved key pair
+  and cache to BB8970, and
+  BB8E08 writes its sampled scalar at cache +8. CBD170 returns that slot
+  as float tag 3. Native expression opcode 61 at 1B809B0 returns zero
+  for a float, and reads the second component only for vector tag 6.
+  The native interpreter runs the authored nodes 77, 79 and 109 in 19
+  checks using supplied dynamic values, including the real slot 2 output.
+  A vector fixture can set the exemption, while the Anim slot's float
+  cannot. An idle command after the mover leaves the floor cancels the
+  ordinary Take a Knee loop without any held button or throttle. The
+  separate 023A:77 movement-modifier path reads the scalar from
+  Anim slot 2. BB8970 selects a 0x110-byte compiled row
+  from the runtime 013 query. BB7440 fills a five-track descriptor.
+  The scalar track at descriptor +48 reads the times and values
+  from row +10 and +20. The builder sets the last index to -1
+  when either pointer is absent or the value count is zero.
+  BB8730 then returns float zero for that track, the sole value
+  for one key, and interpolates between adjacent keys for multiple
+  keys. Its cursor resets when the sample time moves backward.
+  BB8E08 stores the result at cache +8 for Anim slot 2.
+  Twenty native compiled-row cases exercise both array layouts
+  through the cache write. Eleven additional cases cover sample
+  time boundaries, interpolation and cursor rewind. These probes
+  supply fixture rows. In the model query, F4CCA0 passes leaf
+  m_76E8D211 to F517F0. With a sample group, the output stores
+  that index plus one at +14. BB8970 uses it with the model
+  payload pointer at +8 to select a 0x110-byte row from model
+  +80. This is the
+  STU_B38E3226 array m_A867458D. In each STU_CE2BEF36 row,
+  m_3D2FFAAA holds the scalar time and value arrays m_4DC48800
+  and m_1EB5B02B. The primary duration index is separate.
+  The duration extractor accepts --scalar-output and resolves
+  these arrays by blend tree, alias and category. It emits empty
+  arrays for a known absent track and skips unresolved records.
+  Soldier: 76 tree 06B2 alias 0476 has no authored curve in its
+  selected branches. Alias 0477 has a nonzero one-key curve in
+  trees 0649 and 0729. In 0729 category 006E selects a zero key.
+  A run across 332 local tree sets leaves existing duration and
+  clip output byte-identical. One empty XML file was excluded.
+  The optional runtime data/emote_scalar_tracks_174.json now
+  supplies 023A Anim slot 2 when the selected track is empty or
+  has one key. A known empty track emits float zero. An unsupported
+  exact category masks the default. The original 023A graph test
+  verifies that a nonzero scalar satisfies the grounded guard 77,
+  preserves the active binding in a snapshot and unlinks it on
+  exit. The authored exit then writes its zero vector.
+  The runtime catalog now covers all 292 distinct configured
+  equipped tree/alias pairs. All 292 .021 trees and 164 .015
+  categories were freshly exported from the local 104319 CASC
+  and checked against manifest content keys and decoded sizes.
+  This adds 54 pairs and expands inherited categories for six
+  earlier pairs. Prior scalar rows and installed durations agree
+  with the fresh export for the compared categories. The server
+  loader resolves 48,180 lookups across those pairs and the
+  164 categories plus category zero. The 1,471 exported equipped
+  rows all have zero or one key. The newly covered 0CBE alias
+  0477 default returns -0.26176858. Runtime SHA-256 is
+  b1a7b44c7ac723cd4c73aeec3e5cf6eff3b980449ce5b02340b88d723d5f3a0f.
+  The local verification/wheel-emote-scalar-104319 directory
+  holds the asset inventory and coverage report. Phase-dependent
+  tracks outside this configured catalog remain unsupported.
+  Node 78 uses STU_09F9B1FE with selector 1. Native RTTI
+  2DEDB88 sends that row through D354C0 and D3C809 to C33FC0
+  with operation 2. Per-frame records apply on source frame +1.
+  C31BD0 matches selector 1, replaces the velocity relative to
+  its support and restores the previous vertical component before
+  adding the support velocity. C31CD8 handles selector 0 as a
+  separate world-velocity replacement. C3BA8A calls the modifier
+  reader before C3BAD8 enters ordinary movement integration.
+  Fifty-seven original-instruction cases verify the selectors,
+  operations, frame bounds and ordered rows using a captured
+  velocity-write sink. Twelve expression cases use the authored
+  78 arithmetic with supplied finite orientation vectors. Both
+  X and Z read zero from the Anim float, yielding a zero vector.
+  The server applies that selector 1 result to the static-support
+  mover on the following command while the authored 78 is active.
+  An offline wheel selection enters 78, clears horizontal motion
+  and resumes motion after the authored fire exit. Selector 0
+  node 110 does not activate from the Anim float. Moving supports,
+  general vector rows and arbitration remain open.
+  An offline match starts the equipped Take a Knee emote, confirms
+  the loop persists while idle and with primary fire blocked by 0015:58,
+  then releases fire, ends the block and presses fire again. The authored
+  023A:52 exit lasts 367 ms. The 023A:51 wait reaches the terminal
+  action at 1000 ms and retires 023A, 069A and 1040.
+- The same PlayScript path now starts the self-targeted 0686 graph from
+  05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
+  graph selects the fixed, configurable or voice branch. Initializer 62
+  builds typed action-to-value pairs. Each configurable callout value
+  is a keyed array containing a display-text asset and an identifier.
+  The owner stream carries the selected value using the full keyed
+  array form read at D57430. The typed pairs use the D57899 form.
+  Offline selections 16B, 1E5 and 19D verify the fixed texture,
+  configurable text and identifier, and voice pulse in owner and
+  observer frames. With 130 command frames between selections, the
+  body reuses the same 0686 instance for all three actions.
+  A separate offline comparison verifies all 20 authored text-map
+  rows through observer frames. Each of the four voice choices emits
+  a first-play pulse.
+  The 0686 Effect actions at positions 14, 15, 40 and 41 also have
+  authored action IDs in both frame forms. The body queues their IDs
+  in execution order with the localized callout actions. The frame
+  carries node identity and the original effect expression is intact.
+  Offline 21608 Need Healing reaches effect 40. Group Up sends
+  localized action 6 followed by effect 41. Both streams retry
+  effect 40 with its original stamp. Sixteen native A0CCA0 cases
+  verify both frame forms dispatch the four action IDs and suppress
+  already seen stamps. The native fixtures use a dispatch adapter.
+  The same transport covers the 05AD recipient effect at 14 and
+  02CF spray feedback at 3 and 8. The 02CF placement failure plug
+  sends 17E5. The success plug sends 17E4 with the placement pulse.
+  The offline spray fixture checks both owner outcomes and the
+  observer effect on replacement. Twelve further native reader
+  cases dispatch those three IDs or reject a duplicate stamp.
+  Ultimate Status (16E) uses entity 7730 and 6035. The ordinary
+  0B8B:49 and :38 stacks compute floored percentage and readiness
+  from charge 342 and cost 338. 0686 sends node 13 below 90 percent,
+  node 39 from 90 percent, or node 7 when ready. Offline selections
+  exercise 89, 90 and 100 percent on the same 0686 instance. Both
+  streams retry the first action with its captured 89 percent after
+  live charge reaches 95 percent. The later ready action survives
+  expiry of the instance's child voice stack.
+  The alternate 067F path is authored on 0169 in body 020F. Its raw
+  state 77 pushes entity 8323, and raw entry 74 reads optional parameter
+  039D as a listener entity before choosing a localized action.
+  05AD:135 sends the aimed entity in 039D. 0686:42 sends no parameters.
+  The 4AD8, 4ADA and 4ADB text resources report that Symmetra's legacy
+  teleporter is online and give the remaining charges. With the optional
+  020F body and its seven additional graphs supplied, an explicit Match
+  body selection mounts 0169. Its positions 82 and 86 send the authored
+  actions. A real-graph offline run starts the authored online stack,
+  supplies three charges and verifies the untargeted and aimed choices in
+  both streams. The aimed choice carries the listener entity. Prepare the
+  graph bundle using extract_game_graphs.py with --entity 020F, an external
+  --output and the hero catalog in ORPHEUS_RUNTIME_DIR. Run Python with
+  -X utf8 for the roster names. The normal catalog selects 26F0.
+  Junkenstein modes 0003 and 002A both start 0C8C. The 020F cases
+  in 0C95:14 and 0CE0:31 compare the possessed body and the current
+  body respectively. The second case starts voice stimulus 08E4.
+  The Symmetra boss spawn rows 0CB3:156 and 0CB3:177 start 0CBA
+  with hero 0016 and AI controller 1DD3. Hero 0016's gameplay entity
+  in the target catalog is 26F0. These switches establish legacy
+  dialogue cases for an existing 020F, with mode selection unverified.
+  D.Va 026A separately
+  supplies tag 050F through variable 10929 when its linked pilot branch
+  runs. The normal 040A fixture uses the ordinary percentage path.
+  Mode-driven 020F selection and teleporter creation, D.Va form
+  association and Echo Duplicate lifecycle remain open.
+  Node 58 uses STU_1ECB66A0. Native evaluator CDB390 calls 44A820
+  to look up the full action GUID in 01A5.054 and return the .004
+  texture. Offline native runs verify all 26 rows in both compiled
+  storage forms and ten miss or invalid-resource cases. The VM
+  writes the original texture to 3793. Offline 21608 selections for
+  01E5, Sorry and Countdown verify it in both replication streams.
+- The 05AD initializer at node 240 also builds a separate table of 20
+  directed game messages. Node 183 indexes the table with the selected
+  action and takes the first entity from target variable 375. The body
+  VM now evaluates that message expression and binds caller and
+  instigator outputs before running the recipient's entry. In the
+  legacy body packet those two identities come from the same sender.
+  Offline fixtures supply the selected target and verify every table
+  row through the match delivery queue. The third player's graph does
+  not receive the message. Nodes 113 and 115 use collision query
+  assets 0111.097 and 0079.097. The host now selects visible human
+  player bodies using the authored 40 metre radius, 15 degree
+  aperture and source offset. It writes an empty or single-entity
+  array to 375 before the existing transition.
+  Native C96E10 handles composite score STU_B61DA2A5. The
+  STU_2FD4C482 constructs its projection through 1A784E0 with two
+  pi/2 angles. The projection tail at 1A7807B applies the camera
+  transform, rejects depth below 1.1920929e-6, optionally divides by
+  clip W, and maps X and inverted Y into the viewport. On the mover
+  dimension path, C97EF3 reads radius via C43F40 and C97EFE reads
+  height via 79A3B0. Both getters use stance and body scale. C97F99
+  forms the lower point by subtracting the camera lateral vector
+  times radius from the target anchor. It forms the upper point by
+  adding the radius vector and the target up vector times height.
+  C98042 clamps the screen reference to the projected rectangle,
+  multiplies the resulting distance by sqrt(2), normalizes and
+  clamps it to [0, 1], and applies the weight. C98185 adds 100
+  on projection failure independently of the weight. Seven offline
+  native cases verify the score tail with fixture screen points.
+  Both nodes author [0, 1] and weight 1 for screen distance.
+  STU_AD7331B0 at C9733E normalizes world distance over [0, 40]
+  and multiplies by weight 0.01. The ranking branch writes unit
+  viewport bounds through 1A75B60. For upright human player bodies
+  the host projects the two stance corners with the command aim and
+  eye position, uses the screen rectangle score and applies the
+  failed-projection penalty. An offline selection test covers a
+  reticle inside the rectangle corner beyond the combat capsule.
+  C9753A reads the candidate transform's translation, and C9763C
+  compares it to the source point passed through both ranking paths
+  from C9A430. For upright players the host scores the distance from
+  its search origin to the candidate mover root. A selection test
+  distinguishes root ordering when both screen rectangles contain
+  the reticle. The host uses mover dimensions and eye height.
+  The wheel sets m_0297060F and omits the hardpoint selector.
+  C9A8DF gets signed pitch from C61F70. C9A92F rotates the
+  authored local offset about D9F3F0's first-person pivot before
+  the actor basis maps it into world space. Six native cases cover
+  signed pitch and fixture pivot values. The host composes that
+  offset using command aim and its current standing or crouched
+  eye height. Animated anchors, live pivot inputs and special
+  camera bases remain open. CAF254 defaults the sight origin to the
+  same C9A430 result when the source override field is empty, as in
+  wheel nodes 113 and 115. DB1AA0 supplies the target anchor and its
+  stance height at +14, using 79A3B0 in the mover branch. With no
+  animated hardpoint, CA38D9 tests 30 percent of that height above
+  the anchor. If blocked, CA4244 tests 60 percent. The authored
+  m_8D13DD07 is zero for both nodes, so CA4294 skips the lateral rays.
+  Seven native fixture cases cover the source fallback and both body
+  heights with clear, partial and fully blocked paths. The host uses
+  these two points from the server body root and stance height.
+  Expanded static rays supply line of sight. With no expanded cache,
+  the ray uses the movement world's shapes.
+  CA408C requests 0001.03C and casts to it first when available on the
+  ordinary model path. If the anchor is missing or blocked, CA41F6
+  tries the lower body point. If that is blocked, CA4227 resolves
+  01CD.03C, which replaces the 60 percent point when available.
+  Eight native cases verify this order with mocked world poses and
+  ray results, including early success at each point.
+  All 32 catalog player body definitions resolve to base .00C models
+  whose MSTU m_hardPoints lists include 0001.03C. None declares
+  01CD.03C in that list. The primary hardpoint's parent is 0005.012
+  for 30 models, 0004.012 for Bastion and 0001.012 for Wrecking Ball.
+  Each parent resolves to one index in the respective mskl bone list.
+  17ADD00 compiles the STU hardpoints into 48-byte rows. 17AD5E0
+  compares the full typed key at +20. 1AE6120 transforms the row's
+  local offset using the current parent matrix returned by 68DB90.
+  Native runs use the real 32 resource records with fixture allocation
+  and parent-index lookup. They verify 32 compiled rows, 64 missing-key
+  cases and 64 position results across two parent poses. The server
+  decodes the same typed keys, parent bone IDs and offsets, and applies
+  current parent matrices supplied for the target body. Offline wheel
+  messages verify primary, lower and secondary rays and the upper-body
+  fallback when the secondary matrix is missing. The match still needs
+  animation sampling and blending, special query paths and runtime model
+  replacement. The mskl reader recovers reference local rotation, scale,
+  translation and parent IDs. ModelPose composes those rows with a world
+  transform and supplied animation samples. A 32-model comparison
+  matches 9138 of 9140 stored matrix rows within 1e-4 per coordinate.
+  Two 25B9 rows differ by at most 0.000883. All 32 tests propagate a
+  sampled parent transform into the original primary sight anchor.
+  The .006 reader decodes sparse local scale, translation and rotation
+  tracks with both index widths. Ten 104319 clips match 24255 decoded
+  OWLib keys to within 5e-7 per component. Offline Lúcio selections with
+  three supplied times from 3D05.006 cast to three corresponding anchor
+  positions. The match samples the sole active 023A primary Anim at
+  elapsed state time, wrapping node 18 at clip duration. Current root
+  translation and yaw place the result. Optional runtime data needs
+  emote_clips_174.json, wheel_pose_174/models/<12-digit body index>.00C
+  and wheel_pose_174/clips/<12-digit clip index>.006, with uppercase
+  hex filenames. The local 104319 runtime contains the 1,471-row
+  equipped catalog, 416 .006 clips and all 32 base .00C models.
+  Each binary passed a fresh CASC manifest content-key and size
+  check and a server decoder check. The source inventory and
+  catalog digest are in local verification/wheel-pose-104319.
+  Runtime preparation copies the catalog and its canonical pose
+  files when present. A pack test verifies all 449 file hashes.
+  Six default-path selections exercise 3D04, 3D05 and 3D06
+  on an equipped Lucio emote without overriding the data path.
+  The seventh query returns to body-height rays after the emote.
+  Locomotion, greeting poses, blending, native interpolation,
+  non-base bodies and model replacement remain open.
+  D607F0 reports occlusion for a hit owned by a different entity
+  or by the world. A miss or a hit owned by the candidate is clear.
+  Six native cases verify this decision with fixture scene returns.
+  The wheel preserves hit ownership through RayHit.attachment.
+  Offline selection covers candidate, other-entity and world hits.
+  The wheel can merge posed actor intersections with static hits
+  when a dynamic admission service is supplied. Offline selections
+  exercise a blocking actor, a candidate hit in front of a wall and
+  the wall alone. The match supplies default admission for posed
+  catalog base players.
+  CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
+  +28 and +35 through 17A8FC0 and writes the results into request
+  +2 and +0 respectively. Native execution with the extracted
+  flag rows gives (1FDF, 1FDF) at (+2, +0) for 0079 and
+  (1FDE, 1FDF) for 0111. E122A0 copies +0 into the static traversal
+  input at +70. Both wheel profiles therefore use static mask 1FDF.
+  The offline fixture checks included 0x01 and excluded 0x20 shapes.
+  Dynamic filtering differs. BDF100 rejects candidate category bit
+  0x10 for 0079 and defers all remaining tested categories to the
+  receiver. 0111 has no authored rule rows. In 128 native rule cases
+  the category getter supplied the test flags and the models used
+  flags 0 or 0x80. BEEB69 selected results from six compiled .098
+  fixtures for both relation inputs. Receivers 0029, 002A, 00A5
+  and 00AD return (0, 0) for 0079 and (0, 7) for 0111. Ice-wall
+  receivers 00B2 and 00B3 return (13, 13) for both. The BEED10
+  callback's filtered branch rejects rule result 1, routes result 0
+  to C1CF60 and sends result 2 to BEE420. BEEE82 stores the flags
+  and returns whether they are nonzero. Thirty-six native cases
+  verify those branches with fixture relation and receiver returns.
+  The BEE5FF receiver fallback calls C1CF60 only for a nonzero
+  reference entity. When the receiver handle at actor +30 is absent
+  or invalid, BEEC27 returns flags 0D for an accepted relation or no
+  reference, and zero for a rejected relation. Sixteen native cases
+  cover these combinations with fixture relations and handles.
+  The wheel's CAF660 call passes TrackTargets context +1A0 in stack
+  slot +60. CA3570 copies it to ray request +40. Four native fixture
+  cases verify the field transport. The fifth D607F0 argument instead
+  comes from search context +290. The TrackTargets pointer slots
+  +188 through +1A8 match the ordered STU registry rows 3163AC8
+  through 3163BA8 after accounting for the registry's eight-byte
+  offset bias in this block. The reference at +1A0 corresponds to
+  m_9E1426F6. Original 05AD nodes 113 and 115 both leave it empty.
+  BEEE77 passes zero for the optional BEE420 profile gate. Native
+  execution from BEE5FF covers 36 combinations across both profiles,
+  six authored receivers and three reference cases. The fixture
+  supplies a valid generation-tagged handle, the 5ECEFF67 component
+  field and type/asset resolution. An empty reference selects the
+  accepted side without calling C1CF60. The two profile results
+  (0079, 0111) are (0, 7) for 0029, 002A, 00A5 and 00AD, and
+  (0D, 0D) for 00B2 and 00B3. The 003 definitions bind 002A to
+  011A and 01C3, 0029 to 0251, 00AD to 187E, 00B2 to 0932 and
+  00B3 to 090B. These flags precede the later shape traversal.
+  The early bypass, null-candidate and exclusion-list paths instead
+  return true with flags zero. Three native cases cover those paths.
+  BED095 and BED8D5 continue shape lookup when the callback
+  returns true, including the zero-flag bypasses. BED314 looks up
+  the entity again in the exclusion list and passes a membership
+  bit to BF1DD0. That function first requires a valid model.
+  With a resident shape, the membership bit or query flag 1 can
+  bypass the ordinary dynamic mask gate. In the tested fallback
+  arm it intersects request +2 with the actor shape's category at
+  +9AC. Native execution passes 144 cases with fixture model
+  validity, resident-shape presence and category data. Thus 0079's
+  1FDF includes category 1 in this arm, while 0111's 1FDE excludes
+  it. The writer at 1B21554 accumulates the actor's shape mask.
+  Twenty-four native cases verify that it preserves previous bits
+  and ORs 0100 when the shape selector is unset, 0001 for selector
+  kind 3, or 1000 for the remaining tested kinds. A scan of all
+  32 catalog player bodies finds no explicit m_AC53342B category
+  or .098 receiver. Soldier's body points to model 1137.00C and
+  leaves its model-component collision override empty. The raw
+  00C descriptors still carry dynamic STU_82C2BA2C holders.
+  m_8C9E3EE1 maps to the selector read at 1B2115C and
+  m_B4D8D9BB maps to the flag at 1B21529. The actual holder
+  fields from seven models give actor mask bit 0100 for 101
+  enabled descriptors, including 11 each for Soldier and Genji.
+  Three Heavy Assault descriptors have selector zero and are skipped.
+  The individual holder masks differ from the aggregate actor mask.
+  The actor shape decoder preserves each bone ID, local geometry,
+  holder mask and actor category contribution. All 32 base player
+  models supply matching mskl bone IDs for 504 enabled shapes.
+  These comprise 476 capsules, 18 hulls and 10 spheres. All enabled
+  rows contribute actor category 0100. The pose loader attaches this
+  geometry to the sampled matrices. Tests transform the ray into bone
+  space and check all 504 original shapes with a rotated, nonuniform
+  transform. Each case verifies an interior start, an exterior hit,
+  a reversed ray and a segment that ends before the hit. The match
+  now admits posed 0100 shapes from catalog base player bodies for
+  both wheel profiles. They use the missing-receiver fallback with
+  no relation reference, so same-team bodies can occlude the ray.
+  Forty-eight additional native cases exercise the 0100 category
+  in BF1DD0. The offline selection test exercises both profiles and the 21608
+  path. Other animation layers, replacement models and special
+  receiver/holder admission remain open. Ice-wall 0932 and cryo 090B
+  reference models 2A64 and 2AC9. They provide seven and one convex
+  hulls respectively. Native execution of 1B21529 with all eight
+  original holder inputs sets actor category 1000. Forty-eight
+  additional BF1DD0 cases verify the mask stage for category 1000,
+  which is included in both profiles. The barrier models 0A3C and
+  0D02 each use motion 1 holder 00066F4C at bone 1, a mesh and sphere
+  respectively. Model 0A3C has 98 vertices and 192 triangles.
+  Model 0D02 has a sphere centered at zero with radius 5. Both rows
+  carry m_1DE83A05=8000. Native 1B2D360 routes that bit through
+  17AD4B0, then dispatches m_D833F59A=0 through 17A8E80 and DE3300
+  for the mesh, and value 4 through the sphere builder at 1B2D3D5.
+  Four offline cases use the original model fields and fixture mask,
+  bone and mesh services. They verify both dispatches and preservation
+  of the sphere's center, radius and resolved mask at +32. The raw
+  holder decoder's 1FDF default alone does not resolve that selector.
+  The pose decoder currently handles motion 4. The separate hero
+  restoration tree has a Reinhardt barrier service and prepared mesh.
+  The main match has no equivalent barrier lifetime or collision
+  binding. Candidate-group filtering, selector resolution and live
+  deployable registration remain open.
+  Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
+  through the ordinary selection message. 05AD nodes 112 and 136 and
+  0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.
+  The 104319 .003 definitions give this tag to Mercy (00E4), Zenyatta
+  (0216), Lucio (03FC), Ana (1424), Brigitte (1B1B), Moira (1C46)
+  and Baptiste (29A6). The server resolves that membership from the
+  current hero's authored body ID. Runtime tag mutations, animated
+  camera inputs and dynamic query filtering remain open.
+  Node 119 requires relation bit 1 through the native BCAAE0
+  filter. The match supplies same-team player bodies and the FFA
+  hostility rule for this exact config. Node 120 short-circuits
+  when F76C486C has no related entity. CE2CF0 and D1BEE0 read the
+  related ID from native component 72 +D8. With a related entity
+  present, the expression compares it to the component 43 owner
+  read by F7262B36. The match supplies zero for current player
+  bodies because it has no pet-owner binding for them. The
+  extracted Echo body declares component 72. Native population
+  of its related ID and the deployable branch remain open.
+  An offline 21608 test verifies directed 12F4 and the caller
+  fields on the aimed teammate. A hostile target or a free-for-all
+  candidate falls back to the sender's 0686 callout.
+  Need Healing sends 05AA from Soldier and 0689 from Mercy. Both
+  aimed recipients bind the source as caller and instigator. The
+  Soldier case emits localized action 166. The Mercy case emits
+  localized action 94 followed by effect 14. The bystander receives
+  neither. Consecutive directed callouts keep their respective source
+  bindings and queue their feedback in action order.
+  For a new voice graph, the first pulse sets the playback bit required
+  by client reader 9FD760. It uses the body host's existing 500 ms
+  freshness window. The native server's freshness duration is unknown.
+  The 9FD8CB follow path compares the wire counter at +24C to the
+  consumed counter at +248. It calls 1B73FA0 once per forward step,
+  wraps at 256 and ignores a zero step or a forward distance of
+  at least 128. Eleven original instruction cases verify duplicate,
+  wrap, boundary and skipped-count behavior. The follow adapter
+  records the slot supplied for the frame.
+  The body now samples the voice choice when 0686:72 pulses and
+  keeps it in the same bounded queue as the short actions. The delta
+  projects that choice and one counter step from the receiving
+  stream's acknowledged state. It carries the existing state payload
+  without adding a short action. The queued pulse retains its playback
+  bit and remains eligible while the 0686 root is live and the event
+  is retained. Observer full frames use the current state as their
+  baseline. In the offline 016F to 019D sequence, the owner retries
+  count 1 with 016F while an observer that acknowledged it receives
+  count 2 with 019D. The owner receives 019D only after acknowledging
+  the retry. The 21616 use report can match an earlier retained
+  voice pulse on the same live instance. The report resolves that
+  pulse's slot against the body's equipped effects. The sender's
+  owner stream records transmission, preserves the marker on loss
+  and uses its ordered ACK position for acknowledged pulses.
+  Offline cases reject an unsent pulse and an unused effect, and
+  route the older effect through 0686:70 after send, loss or a
+  later selection's ACK. The message contains no per-pulse nonce.
+- On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
+  includes an entity, the parameter blob, the message GUID and an
+  instance index. The separate 21614 builder in 90988C carries its
+  message GUID in the blob. Both call 1BA7D30. The existing logs verify
+  21616 for hero selection. The radial selection's transport remains open.
+  The only direct authored send of 02A3 in the extracted graph set is
+  0028 raw node 69, which writes integer zero to 08FC to clear the selection.
+  In the raw 05AD asset, presenter 99's event 8D60 targets a plug owned by
+  STU_08A4993E (raw node 231). The generated type list used by DataTool
+  omits that class, so the XML exports the link with a null parent.
+  Raw STU instances 65–68 preserve the event, link, input and input owner.
+  The node is client-only. Its registered constructor ADDE50 installs
+  vtable 2652628. The handler at AD50A0 invokes 5EB6A0 on the local UI
+  service for text chat. 5E80C0 associates the service data source
+  0154.116 with screen 042B.05A. The screen is named Chat and binds
+  ChatInput, Channel and TextInput. Its watcher 5EC960 is installed
+  by 5E8148 and delegates to 5EC840. The 631B branch resets two
+  floating point values on the chat's 60D6 child rows. The prior
+  offline confirmation and UI property queue probes cover this
+  chat path.
+- The wheel presenter in 05AD node 99 instead loads screen 0313.05A
+  and data source 01B1.116. The screen is named Ping_Selection and
+  binds Menus and SelectedIndex to selector STU_839DA58A. It includes
+  the radial templates at 0180.05E. The data source exposes 8D60 as
+  a command, 64C0 as the 01B0.116 menu list and 240C as the selected
+  index. Graph node 103 computes variable 9191 from the selected
+  menu. Node 1's false transition reaches node 27, then node 26
+  for an index other than -1. Node 26 resolves the action through
+  STU_BA2607C0 with the menu, index and hero. Native evaluator 922AD0
+  uses menu IDs 0 (voice), 1 (main), 2 (emote) and 3 (spray).
+  Main defaults at 25FB0A0 are 172, 16B, 16C, 16D, 16E, 16F, 170
+  and 171. 612480 selects the last matching hero row for the slot,
+  then the last global row, then the default. The three cosmetic
+  menus use four-entry tables at 25FB100, 25FB0E0 and 25FB120.
+  Menu labels 19E, 1A2 and 1A6 have no corresponding playback slot.
+  Sixty offline native cases verify the four bounded tables and
+  custom-row precedence using fixture settings storage. Nodes 169
+  and 180 feed STU_26CC910A from a local message and logical button.
+- STU_26CC910A's runtime registry row 2F77170 matches the class's
+  type key 2DF72B0. Constructor ADDD60 installs vtable 2650078,
+  whose +50 handler ACDA00 calls the dispatch service from 611C10.
+  Its ACDF2C tail builds event 2603A40 through 4C4470. It evaluates
+  the action GUID, boolean and integer from config +90, +A0 and
+  +98 into event +78, +80 and +84, then calls service vtable +8.
+  Offline execution of the tail verifies two action GUIDs and
+  both flags, plus the path with no service. Config evaluation
+  and the service were fixtures. The 21614 and 21616 producers
+  also call 611C10.
+  The +10 getter of event vtable 2603A40 is 4C68C0. Offline execution
+  returns JAM descriptor 2CBB150, identifying ClientOutInstance
+  A7FBBD0C message 21608. Its fields match the prepared game schema
+  at +78 (u64 action), +80 (bool) and +84 (nested u32 entity ID).
+  The constructor uses entity zero by default. The authored 0170
+  selection supplies an STU_CC90A18D entity ID to the third field.
+  The server accepts recognized .096 wheel actions on the game
+  channel and queues 02A3 on the sender's current body. 08FC
+  receives the action asset and 03E1 receives the boolean. The
+  ordinary body message queue captures the body before delivery.
+  The byte-level test feeds protocol 1, offset 8 through the
+  receive loop and verifies the 05AD variables and 0686 callout.
+- The 0170.096 label resolves to ACKNOWLEDGE via 1BBE.07C.
+  STU_CC90A18D evaluator 943450 searches the local UI service's
+  slot 18 list. ADEAD0 reads data source 0062.116 or a derived
+  source. 68E9 supplies a world vector and 669D supplies the
+  projected two-dimensional position used by the search.
+  943450 computes the center from the viewport bounds, compares
+  squared screen distance against the squared input radius, and
+  retains the first marker at a tied distance. Failed projections
+  and the positive-infinity sentinel are skipped. ADE6F0 reads
+  the selected presenter's script owner through 1B71C20, D24C10
+  and D0D9B0. F66C80 stores the result as a type 10 entity before
+  the event writes the 21608 field. Six native setter cases preserve
+  all 32 bits from zero, a body ID and a marker ID.
+  Seven offline native cases exercise empty input, the strict
+  radius boundary, an in-range marker, ranking, ties and invalid
+  projections. The probe uses fixture UI property, viewport
+  and marker context services and executes the native identity
+  getter with encoded owner storage.
+  The list is maintained by STU_6E650898. Runtime row 2F77A98
+  points to constructor ADE350, which reaches AD8B00 and installs
+  vtable 2653D48. AD7A40 appends the presenter through 1B8E700.
+  AD7B60 removes it through 60F010. Both resolve the same slot 18.
+  The extracted 01B graphs C43, CDE, D57, E8E, 1225, 1AB1 and
+  1A52 contain this presenter class. All eight presenter states
+  across the seven graphs are client-only. In the extracted resources,
+  C43, CDE, D57, E8E, 1225 and 1A52 are referenced by 20 entity
+  definitions. PvE difficulty resources 0155.054 and 019D.054
+  reference 1AB1. The seven graphs are outside the current body graph
+  bundle. Their authored .025 references have an empty intersection.
+  C08 is referenced by six graphs. The 1AB1 references are 0DFA,
+  0DFB, 11E3 and 1205.
+  05AD node 164 branches on parameter 0644 for 0170. A supplied
+  value reaches STU_631D36C3 at node 165. The authored action
+  receives variable 16376 in m_4A5CA514 and has no outgoing link.
+  Registration 276770 pairs the class with STU descriptor
+  31BEBA0 and type key 2DF7B50. The registration name is Unknown.
+  Absolute pointers to the key occur in its own record and the STU
+  descriptor. The three RIP-relative references are in vtable slots
+  2757830, 2757838 and 2757840. Their functions return the key
+  (15EF1A0), walk its STU inheritance chain (15F1EC0) and compare
+  the exact type (15F0BE0). Nine offline native cases confirm these
+  roles. The captured PC registry has no dedicated constructor for
+  the action. Two native executions of the same Action parent fallback
+  notify the component with node 165's raw index and process the empty
+  out plug without reading the marker parameter. The neighboring key
+  2DF7B40 has a dedicated registration for the marker presenter,
+  with constructor ADE350. Adjacent descriptor 31BEC60 belongs
+  to 1E0773EB and its projection presenter is a separate class.
+  The host forwards a nonzero 21608 entity field for action 0170
+  as parameter 0644. A byte-level test reaches 05AD node 165 with
+  an Entity value and runs the inherited action. With a zero entity
+  field, the absent-marker path sends 05AC to the aimed teammate
+  with the sender as caller and instigator. Other wheel actions
+  ignore the field. The body VM now runs the inherited terminal Action
+  on the selected-marker branch. Any separate server-only marker
+  effect remains unverified.
+  05FE is an optional animation category. Node 171 copies its input
+  variable 15231 to 15207 and clears 15231 with an empty
+  STUConfigVarAnimCategory. Nodes 116 and 132 pass 15207 to 0686.
+  Its node 25 initializes the Hello gesture graph 0341 with that
+  variable. Animation nodes 10 and 11 use it in m_22326315 and
+  sync it under 3B67. A typed internal 02A3 selection carries the
+  category through both animation states to the owner and observer
+  frames. A subsequent ordinary wheel selection uses the default
+  category. The 21608 payload has no field for this category.
+  The 0686 root now retires through node 0 when its authored four-second
+  wait ends. A later selection allocates a fresh root. The 0341 stop
+  nodes 8 and 9 finish only their own SubScript. The primary-fire test
+  verifies that the gesture leaves the owner stream while 0686 stays live.
+  For natural completion, both 0341 animation states resolve duration
+  from the current body's base model tree. The optional
+  data/greeting_durations_174.json holds both aliases for the 32 base
+  bodies and the D.Va mech. Generate it with extract_emote_durations.py
+  using the .021 and .015 exports and pass the matching .003 XML
+  definitions to --body-definitions. The greeting table is written
+  beside the emote duration output and is included in the replay hash
+  and runtime preparation when present. Supply a separate output path
+  for the emote table when extracting from a greeting-only .021 set.
+  With --clips-output and --body-definitions together, the tool writes
+  greeting_clips_174.json beside the clip output. The 33 bodies yield
+  65 alias groups and 71 distinct primary clips. Brigitte 01EE keeps
+  its duration but has no fixed clip because its blend branches differ.
+  The two 0341 Anim states can run together. In Soldier, Lucio and
+  Genji, the 02DE clips have header word 0104 and delta tracks, while
+  01EE has word 0100 and absolute tracks. Both track the anchor chain.
+  Adding the 02DE translations to the first 01EE frame reproduces
+  sampled absolute translations within 0.001113 on the tested chain.
+  The layer request is STUPlayAnimSlot m_B2E34614. The native field
+  registrations at 1545EDE and FEA5DD use offsets 1BC on the Anim
+  node and 88 on the model alias settings. CC19A0 and CC5810 copy
+  the node value to request +2C. BBA570 keeps 0 through 5 and maps
+  other request values to 0. Its alias settings override that value
+  only for slots 1 through 5. Offline native execution checks eight
+  default inputs and 64 alias overrides. All 33 body trees author
+  slot 3 for 02DE and slot 5 for 01EE. Soldier, Lucio and Genji use
+  00A6.020 for the former and 03B1.020 for the latter. 03B1 starts
+  a blend node with a 014.013 data-flow input. The Brigitte 01EE
+  tree is 0054.020, with an 081.013 weight driver and additive
+  layer nodes. Model layer registration is resolved. Pose weights
+  and composition are still open.
+  The 104319 local manifest has 443 .020, 596 .021 and 10523 .006
+  entries, including the inspected greeting controls. It has zero
+  .013 entries. Opening the 14 inspected .013 references returns no
+  stream. The 014 XML dump is a null export. In 03B1, m_paramIds
+  contains 80000014 and 800001FE, matching the .013 references of
+  the two declared parameter inputs. Brigitte 0054 has 80000014,
+  80000081 and 800000B6. All five high-bit entries match a .013
+  reference in their respective trees. F4F980 copies the incoming
+  query context. It compares the requested scope key against up to
+  four entries at scope +198. A match substitutes that scope's
+  parameter pointer and count, while a miss keeps the inherited
+  values. The copied phase remains at query +50. F4FFD0 reads
+  selectors 1 through the remap count as one-based slots, using
+  the signed remap index to access eight-byte parameter rows.
+  Selector 0 and out-of-range positive lookups return float zero.
+  Selector FF reads the query phase. F51010 uses a literal when
+  the selector is zero, otherwise it applies scale and bias to
+  the lookup. It clamps to [-1, 1] when requested or wraps by 2
+  on that interval, then applies the configured signed square
+  or cube. Thirty-two original-instruction cases verify lookup
+  and driver arithmetic. Ten more verify both scope layouts
+  and all four overrides plus a miss. These use supplied rows.
+  C09490 and C09530 call C0B570 to build the model rows. It
+  reads the compiled parameter ID list at tree +60, clears bit
+  31 before lookup, and initializes each result to zero. A tagged
+  ID stores the low float word with the upper word cleared.
+  An untagged ID stores the whole eight-byte result. It hashes
+  the written rows in order with 32-bit FNV-1a. C0B740 first
+  tries the override table when its mode is nonzero, then a
+  virtual provider, then the builtin provider. It tries a
+  zero-mode override table last. The virtual call is +58 when
+  given a scope byte and +68 without one. BB8970 passes the
+  virtual provider from animation component +748. BBB590
+  installs that pointer from its third argument. C085B0 then
+  calls C09270 to hand the model rows to the query. This copies
+  the direct-model table or four matching scope tables and
+  selects the requested one, defaulting to slot zero. Four
+  row-builder cases, eight resolver precedence cases and ten
+  model-to-query cases run the original instructions with
+  supplied providers and table rows. The model initialization
+  paths at 5C4E66 and 5D39B3 call factory 6666D0 with the object
+  at model definition +1A0. They pass its result to the animation
+  component virtual slot +C8, which reaches BBB590. The factory
+  selects four implementations, using constructors 662000,
+  6622A0, C15720 and 664240. Ten native cases check all four
+  constructors, allocation failures and missing or unknown input.
+  Both initialization paths cast to STUAnimBlendTreeSet (FC47A2ED)
+  before reading +1A0, the embedded field m_animParamUpdater
+  (2B2C5C7F). The four factory type checks match registrations
+  533CAE07, 9260236F, 3CD83F9A and 7E3B5755 in branch order.
+  All 33 exported greeting bodies reference .021 tree sets with
+  STUAnimParamUpdater_Biped3P (9260236F). Soldier: 76 body 03FC
+  references set 02BE. This class selects 6622A0, whose vtable
+  at 26126C0 binds +58 to C131C0 and +68 to 662470.
+  For virtual slot +58, the first two implementations reach
+  C131C0, the third returns false, and the fourth uses C15BA0.
+  C131C0 selects provider +10 or +240 for zero or nonzero scope.
+  It reads the float words at selected base +1B0 for ID 14 and
+  +218 for B6. IDs 81 and 1FE reach C0C7A0 and return false.
+  C15BA0 selects provider +10 or +3C. It reads B6 at selected
+  base +20 and computes 14 from +24, multiplying by the binary
+  float constant -0.6366197467 before clamping to [-1, 1].
+  IDs 81 and 1FE miss that provider. Twenty original-instruction
+  cases with synthetic fields check both scopes, both clamp limits,
+  an in-range value and the output buffer on misses.
+  Biped3P calls C14650 with provider +10 at C1391F and +240
+  at C11CF3. In both cases its tail writes B6 by copying the
+  selected block's +10C float word to +218 at C14A9D. At
+  C14B64 it calls C61F70, which converts the signed word at
+  input +42 to radians using float 9.587380191e-5. The tail
+  multiplies that result by -0.6366197467, clamps to [-1, 1]
+  and writes +1B0 at C14B9A for ID 14. Twenty-eight offline
+  cases execute the native writer fragments and read their
+  results through C131C0 for both scopes and seven supplied
+  input pairs. The input +42 word is signed movement pitch,
+  also used by the spray and movement-config paths.
+  At C14A14, C14650 calls C0E6C0 with selected block +D0.
+  That routine writes the B6 source at filter +3C (block
+  +10C). Filter +41 gates the update. Its reset flag clears
+  +3C, its active branch takes 1762E90's filter result, and
+  its inactive branch scales the previous value by
+  max(0, 1 - dt - dt). Twelve native cases use both scopes
+  and exercise the disabled, reset and decay paths through
+  the filter, copy and query. Biped3P slot +8 calls C0BBB0
+  at C11EC0 to configure the primary filter at provider +E0.
+  C0BBB0 enables it for an inclusive input interval of
+  [0.00011920929, 6.28306627] radians and clears it otherwise.
+  C121B7 copies the primary block to the secondary block.
+  BBB590 calls that slot with the embedded updater object as
+  its second argument. C11E40 loads the first seven floats of
+  inline TurnParameters (m_D5AF8608), converting the first
+  four from degrees to radians. The enabled gate uses the
+  first field, m_946D26E1. The initializer orders the two
+  limit angles and the two coefficients, caps the second
+  angle relative to the first and preserves the default 0.1
+  scalar if the seventh field is zero. All 21 explicit inline
+  configs among the exported .021 sets enable the filter.
+  Native initialization probes check their enabled flags and
+  seven output floats. Soldier: 76 supplies 180 degrees for
+  the gate. The remaining twelve tree sets omit the inline
+  config. Their native defaults and the active turn-filter
+  inputs for greeting frames still require tracing.
+  The builtin resolver C0CD30 reads 1FE as a float word at
+  context +B0, or animation component +810 for BB8970. IDs 14,
+  81 and B6 miss that resolver. Twelve original-instruction cases
+  verify those reads and misses. The original component initializer
+  clears its provider pointers and the 0x100-byte builtin context.
+  This establishes the initial 1FE value only. The actual greeting
+  provider inputs, any later 1FE writes and composition remain open.
+  104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
+  branches. The extractor accepts a blend duration if all eligible
+  leaves agree. Eleven offline native runs check Soldier: 76, Echo
+  and Brigitte, including seven declared Brigitte blend values.
+  Offline Match runs check both state timers and the gesture's exit
+  at the first completed animation: Soldier: 76 1000/1000 ms,
+  Echo 1567/1233 ms and Brigitte 1433/1433 ms. The callout remains live.
+  Live model overrides and original-client playback remain open.
+  0341:14 starts a separate half-second follow-up wait. Its authored
+  expression admits a non-AI source in modes 0018 and 005A, or a source
+  carrying tag 0661. An audit of the 32 default .003 bodies finds that
+  tag only on Ashe 251C. The VM now supplies that membership from the
+  selected body. Three offline selections distinguish Practice Range
+  Soldier: 76, Deathmatch Soldier: 76 and Deathmatch Ashe.
+  0341:16 uses a 30 metre radius, 110 degree aperture and filter masks
+  0042 and 0010. Its output feeds node 17, which sends 0B9C to the
+  first acquired entity. The extracted graph bundle has one 0B9C game
+  message entry, 1537:108. Ashe's 1536:11 creates body 25C3 and
+  1536:3 starts 1537 on it. Node 109 requires the caller to match
+  the body associated with the recipient's related entity, then node
+  112 gates the reply animation at node 111. Sigma's 1BBB:56 uses the
+  same numeric index in the separate VoiceStimulus resource type.
+  The 0341 target query and the B.O.B. receiver lifecycle remain open.
+- Localized callout nodes use STU_7106C356. The handler at AD15D0
+  reaches the client chat path. The six authored 0686 actions now enter
+  owner and observer deltas as short frame actions. They use the graph's
+  synchronized variables and leave text rendering and filtering to the
+  native action handler. Of the 38 actions in 05AD, the five
+  networked directed nodes are 13, 53, 54, 78 and 166. Node 49 is
+  a client-only directed action. The other 32 and all six 0686 nodes
+  use the non-directed form. Each directed action supplies an entity
+  to m_63CB0D07 and sets m_D030750C.
+  AD1A19 selects the recipient policy. The directed path needs a
+  view context and compares the recipient pointer to 5831A0's
+  result. The non-directed path uses channel 6 if the source is
+  unresolved. Otherwise it needs a view context and a true C1C0E0
+  comparison against 582B10's result. Eligible entity-based output
+  uses channel 5 with either plain or formatted text. AD1ABF can
+  suppress that output after the speaker checks at B64880/B64980.
+  Thirteen native dispatch cases exercise these paths with fixture
+  context and chat services. Sixteen relation-tail cases execute
+  C1C2B5 and C1D7D1 with fixture classifiers, entity IDs and side
+  values. They verify the ordinary same-entity and same-side paths,
+  distinct sides and the -1 and 4 exception inputs. The complete
+  entity lookup and special classification remain open.
+  The wheel's BD02E168 states 40, 41 and 42 enter 05AD nodes 6, 24
+  and 89 through m_5B10D01F. All three entry nodes and all 21 state
+  indexes in the three exit lists are client-only. Owner-frame tests
+  already verify all three scope carriers are active. Client scope
+  callback scheduling remains open. See AUXILIARY_SUBGRAPHS.txt for
+  the native interface and its separate component registration.
+- The target frame reader reaches A0CCA0 from A0F1EB for remote
+  messages. A0CCA0 reads a group-presence bit followed by RMFr
+  (w_u32) and RMSz (w_var) for each group. It skips groups whose frame
+  has already been applied. After those groups, A0D031 also reads an
+  ungrouped entry list. Each entry starts with a presence bit, a long
+  flag and a length of 8 bits for short entries or 17 bits for long
+  entries. The length is relative to the start of the length field.
+  The body of the entry starts with a target-presence bit and TrID
+  (w_u16). H=0 reads a remote-sync index and resolves its raw node index
+  at A0CF10. The short branch dispatches through 1B73B90 and the long
+  branch uses the node's payload reader. The two empty lists account for
+  the current frame writer's two trailing zero bits.
+  An offline probe executed A0CCA0 on 253 generated H=0 frames.
+  The probe compared target IDs, the six 0686 callout node mappings,
+  cursor position, multiple entries and stale-group suppression.
+  RMSz includes the entries and excludes the group terminator.
+  A second 253-frame probe verified H=1 with the graph's raw node index.
+  The server uses each stream's first carrying chunk as the group stamp,
+  repeats that stamp until ACK, and keeps the action for up to two seconds
+  after execution. For 0686, re-arming the root wait keeps pending
+  actions on the same live instance. Each action carries its own
+  authored sync values. An offline loss case changes the selected
+  text before ACK, then verifies both streams retry the first action
+  with its original text and stamp before sending the second.
+  Six native frame-reader cases cover the first stamp, its retry
+  after receipt, and the next stamp in both formats. The
+  child voice-stack wait can expire while the root still accepts
+  selections. A fresh observer full frame establishes a baseline
+  without replaying a pending callout.
+- The same path now carries the 05AD recipient actions. It samples the
+  variables named by the action's sync declarations when the action
+  runs. Each stream sends its oldest pending action with those sampled
+  values and advances on ACK. An offline fixture delivers two actions
+  from different speakers in the same match batch and verifies the
+  speaker in both frame forms, including the first action's retry.
+  The original 104319 frame reader accepts 1,555 generated 05AD frames
+  per form. The server keeps up to 32 recent callouts per body and
+  expires 05AD actions after two seconds of body simulation time.
+  Those bounds are server delivery policy. Target acquisition and
+  original-client presentation still need verification.
+
+Remaining static work includes the original selection and targeting
+transport, callout delivery and recipient rules, the emote and cosmetic
+selection paths, and end-to-end offline fixtures for each action.
+Original-client acceptance is deferred.

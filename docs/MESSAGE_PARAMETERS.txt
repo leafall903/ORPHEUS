@@ -1,0 +1,99 @@
+Persistent message parameter scopes and caches (build104319)
+
+Scope
+This is the D9B0F0 sender-backed provider and D51FC0 receiver cache backend.
+The receiving State now mounts this backend through explicit engine contexts
+(MESSAGE_RECEIVER.txt). These parameter comparisons do not independently establish
+channel/binding/subgraph behavior or mission progression. The strict sender
+and standalone manager remain separate from ordinary EntryGameMessage packets.
+See MESSAGE_SENDER.txt, MESSAGE_MANAGER.txt and MESSAGE_RECEIVE.txt.
+
+VM provider ordering
+Native1B93200 searches the component/VM+4F8 provider stack in reverse order;
+instances of that VM share it. A null stack entry terminates the search. Each
+provider receives the current destination, including writes made by an earlier
+failed provider. The first successful result wins, including a successful null.
+An identifier0 requests GUID0; other low16 identifiers request type0A4|id.
+Instance.params remains an outer legacy provider layer. Native packet selection
+and legacy message delivery now enter Component.parameter_scope, with cleanup
+on normal return and faults. No provider is copied to another component.
+
+Sender-backed ParamScope
+Builtin9 reads the sending component's network entity (native object+B0).
+BuiltinA reads that instance's inherited source; builtinB resolves its current
+subject in the sender's namespace. Builtins precede authored parameter rows.
+Other requests scan for the first exact full key. A missing row succeeds with
+int0 and shadows outer providers. A matching row with no m_value pointer fails
+without changing the destination, so an outer provider may answer. Duplicate
+rows after that first match are ignored. A scalar failure that writes int0
+retains that destination even if no outer provider succeeds.
+
+The value config's scalar+20 interface runs in the sender instance and watches
+the receiving State. Successful nulls/arrays, failure status and failed writes
+remain distinct. Source and receiver must still belong to live component
+contexts on the same explicit manager Host; stale/replaced/retired contexts are
+rejected. Row scans and foreign-component evaluation share the receiver's work
+budget. A source evaluation fault also faults the receiving operation.
+
+Three receiver cache modes
+Cache rows retain ordered (key,value) pairs, one row per receiver parameter.
+Each receiver key searches the sender's first full-key match. Receiver key0
+is skipped rather than matched positionally. Null receiver rows remain present.
+
+Mode0 uses one selected sender and the +28 value interface. A non-stacked row
+starts as one null-value placeholder; a stacked row preserves its previous
+cache. An unmatched key leaves that row alone. A matched missing/failed config
+or successful null produces int0; an array remains one whole value.
+
+Mode1 appends generic iterator pairs from every selected sender in order.
+Config groups and nested tuple arrays flatten; scalar null or failure contributes
+no item. Null array members append the default (int0,int0) pair, resetting the
+key as well. Other iterator keys and values are preserved. Repeated senders and
+keys remain repeated. Existing supported native iterators expose unkeyed rows.
+
+Mode2 appends one +28 value per matched sender, without flattening arrays.
+A missing/failed value config contributes int0; a successful null remains null.
+Unmatched rows are empty in modes1/2. Both modes preserve source ordering.
+
+Native Map/type13 is a scalar to the generic iterator; it must not be treated as
+a keyed array. Native keyed type12 storage remains an unsupported VM service.
+The pair API preserves keys if a future supported iterator supplies them; the
+cache tests do not establish native keyed storage, linked mutation or array
+checkpoint acceptance. Native-query dependency marking has an explicit State
+hook for receiver epoch tracking; the receiving-State integration now implements
+its epoch policy separately.
+Passive export records the shared provider list and same-VM scope descriptors
+without invoking getters. Full shared-manager export/restore remains unsupported.
+
+Verification
+216 original D9B0F0 getter and720 original1B93200 provider-chain comparisons pass,
+including success/failure destinations, duplicate/full/zero keys, reverse order,
+null barriers and builtin owner/source/subject identities. Original CC6EF0 and
+F66E10 run too.624 original D51FC0 comparisons cover all three modes, stacked
+and non-stacked previous caches, sender absence, null rows, duplicates, groups,
+nested arrays and Map values. D9AA50 and generic matching/iteration/conversion
+bodies run unchanged. Source-instance/receiver-watcher arguments are checked.
+
+Adapters supply literal/type/value providers, source/subject descriptors,
+compiled parameter identifiers, outer providers, manager/channel and VM scope
+backing storage, allocation/variant helpers and security cookies. No game code
+is patched. This is not full filter, State lifecycle or native scheduler evidence.
+
+The native Entry regression now includes24 scope cases, including GUID0 versus
+typed0A4 zero, plus1350 binding,3024 selection,60 subject and2688 lifetime cases.
+Generic iterator consumers also re-pass4626 sender,3456 outgoing-action and1296
+controller-hero cases.26 new behavior tests cover ownership, shared budgets,
+watcher routing, global/nested scopes, cleanup, pair order and mode differences.
+Final regression counts, frozen hashes and publication status are recorded in
+CHANGELOG.md and verification/retribution/message-parameter-* locally. Extracted
+game data, native images, probes and logs stay outside Git.
+
+Mission boundary
+Ordinary controller still retains81A9AB10. Real Match prepares148 components and
+queues, then retains root100B D38D0035/node106 before controller execution and
+closes without readiness. Placed startup remains50/123 completed nonempty first
+frames and73 strict faults. The unknown06FF receiving path remains unsupported.
+No new original-client session or normal deployment is claimed. Full story,
+cinematics, five enemy AI types and extraction/results remain unaccepted.
+Next work is receiver registration/filter scopes, dependency epochs, live output
+getters and per-row bindings, context outputs, idle/receive subgraphs and codec.

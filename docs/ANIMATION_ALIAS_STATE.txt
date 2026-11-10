@@ -1,0 +1,175 @@
+Placed animation alias requests — scoped native implementation
+Target: original Overwatch1.74.0.0.104319; addresses below are module RVAs.
+
+Scope and identity, 2026-11-08
+STU_B1FA9C2A is an animation-alias request State, not a passive marker. Its own
+inplace factoryCBED60 callsCBC440 and installs vtable265FC58. Begin B8 isCBA6B0;
+cleanup C0 isCBA9F0. Config E8/m_11E0A658 supplies an alias and F0/m_9507488A
+supplies mode. The persistent State1C0 handle is zeroed by construction/begin.
+The class has no additional dependency-refresh implementation at C8.
+
+BD6B10 selects runtime component55 (bit0x37). Serialized component absence does
+not establish runtime absence. World.animation_aliases distinguishes an explicit
+known absence from an unknown service. Strict unknowns fault. A declared live
+Aliases backend belongs to one bound entity and cannot be replaced until that
+entity retires. Entity unbind or strict failure retires it and clears its rows
+without invoking engine callbacks. This is local failure containment, not a
+reconstructed native destruction/renderer policy.
+
+Begin and request ordering
+CBA6B0 clears State1C0 before component lookup. Known missing component55 returns
+before either config is read. With a component, evaluate F0 as bool/defaultfalse
+and store component74. Absent/failed evaluation preserves the default; successful
+null overwrites it through native conversion.
+
+False mode evaluates E8 as resource/defaultzero, pushes the alias, then stores
+the returned handle in State1C0 after callbacks. True mode notifies BD6C50 and
+calls virtual138/1B71120 with zero delay. Original1B71300 queues operation2 for
+this raw State at current time. It does not synchronously call cleanup. The
+production State uses its existing queued ABORT request, preserving this order.
+Complete native eligibility, authority and clock mapping remain owner services.
+
+Alias storage and cleanup
+Component18 points to ordered16-byte rows {uint32 handle, uint64 alias at+8};
+20/24 hold count/capacity,68 current alias,70 uint32 counter,74 mode. BD6A80
+increments the counter with wrapping and retains the sampled handle before
+allocation/notification. With storage, it appends that handle and alias. An
+allocation failure still consumes/returns the sampled handle and may notify.
+Notify occurs when the requested alias differs from component68. BD6C50 routes
+to an engine queue; it does not directly select the last row or set current68.
+
+BD6900 searches from the end for the caller's handle, removes the last matching
+row and compacts in order. A successful removal leaves the caller's handle
+unchanged. A miss clears it. Removing the last row notifies only when the new
+last alias (or zero for an empty list) differs from current68. A successful
+cleanup therefore need not clear State1C0 or issue a notification.
+
+Aliases requires declared writable capacity or an explicit reserve callback;
+unknown allocation/notification services fault. A reserve result of None means
+known allocation failure. Notify is explicit and never silently updates current.
+Counter/current/State-handle changes across callbacks preserve native sampling.
+Retirement/rebinding or row-list mutation during callbacks is gated until its
+native behavior is derived; no later write is made through a retired owner.
+The legacy permissive body policy remains passive for this class.
+
+Typed alias configs
+STUConfigVarAnimAlias has its own registration hash01676947/typeinfo2D79CE8,
+factory1B8A3A0/inplace1B8AF90 and evaluator vtable27ADFE8/+20=1B85C30. With no
+resource key it reads config28 and emits resource/tag4 through F67090, including
+GUIDzero. The production evaluator reads m_animAlias and retains this typed zero.
+A nonzero resource key still delegates availability to the supplied native
+context; strict base worlds do not infer availability. E8 conversion F65540
+accepts an Asset or recursively the first array value; other types retain the
+caller's zero default, and null converts to zero.
+
+Original-instruction comparison
+Unicorn executes captured104319 begin/cleanup, BD6A80/BD6900, scalar conversions
+and the real1B71120/1B71300 request instructions.966 State/registry comparisons
+pass:426 begin and540 cleanup. They cover missing components/configs, failed
+versus null values, bool/resource/array variants, counter wrap, preallocated
+storage, growth success/failure, sampled handles across callbacks, duplicate
+handles, reverse search/compaction and last/current notification gates.55 true
+mode cases execute the native request path. Ordered config reads, notification
+views, rows/counter/capacity/current/mode/handle and queued time/op/index agree.
+Sixteen separate unkeyed literal comparisons execute the original evaluator
+and setter without executed service adapters. Factory/vtable/field links are
+checked against original code and STU metadata.
+
+The966 cases explicitly adapt encrypted component55 lookup/availability, config
+providers, vector growth, owning-variant disposal, engine notification, State
+eligibility/event allocation, clock provision and event insertion. They do not
+accept a full animation engine, allocator, resource lifecycle or mission host.
+Full engine selection/BDDCD0 notification consumption and actual playback remain
+open. The State handle enters read-only VM observation; external SceneWorld
+services are outside that storage format. The concrete State matrix now has31.
+
+Actual placed script evidence
+The unchanged371-create candidate configures all146 selected components, with
+123 nonempty components,124 graphs and542 queued schema writes. Independent
+strict first frames still complete45 and fault78. Three stops are now unknown
+animation-alias components instead of unknown StateB1FA9C2A. The other stops are
+66 entity-control contexts, action0F647E55(1), State9D7BF987(5), DataFlowMapping(2)
+and State7D71FDF3(1). No component is declared absent just to bypass a stop.
+
+All three actual0D32 graphs complete frame0 with explicit component55,64 writable
+rows, currentzero and a notification recorder. Entities800001C6/def24BA and
+8000093E/def20D6 activate node16/raw State8/remote5 with alias0C80000000000015;
+entity80000AA6/def2446 activates node12/raw State5/remote4 with alias0C80000000000011.
+Each gets handle1 and one notification. These fixtures record requests only;
+they do not choose an alias or play an animation.
+
+Six offline remote codec round trips preserve every remote active State and
+configured variable in authored-on/diagnostic-off pairs. Payloads are408/407,
+390/389 and426/425 bits. Diagnostic State.end(False) removes the alias request;
+it is not authored mission progression. The alias codec is verified and empty;
+the one-bit reduction comes from omitting the A bit on the full-frame off path.
+No new original-client run accepts this State, its engine consumer or animation.
+
+Seventeen focused behavior tests,630 related regressions and15 server snapshot/
+research-injection checks pass, with Ruff/diff checks. Normal runtime map
+and graph hashes remain unchanged. Root100B's D38D0035/action106 boundary,
+production hosting/lifetimes, full story/cinematics, five enemy AI types and
+extraction/results remain open. The restoration checklist remains unchecked.
+
+Subsequent original-client request/selection acceptance, 2026-11-08
+A separately authorized build104319 client enters two consecutive Story/Normal
+Rialto matches as Reaper and returns to settled menus. The three actual0D32
+descriptors arrive after entity create ACKs. Initial off frames carry authored
+schema values without sending source001B. Read-only native captures verify all
+three builtin sources as tag10/self before on phases are released for that
+connection. The12/11/14 literal schema writes collapse to10 distinct transmitted
+variables per entity; source-independent schemas are audited before the explicit
+server source fixture is bound. On/off-after frames carry16 variables each.
+
+Server authored frame0 uses the declared alias service fixtures. Only the chosen
+alias State is transmitted; the other authored active States are outside this
+client acceptance. Off-after uses diagnostic end(False), not mission progression.
+First match sends off/on/off/on/off to each entity; the fresh second match sends
+off/on/off. All24 phase frames are ACKed and all6 streams retire on leave.
+Fifteen offline successive codec checks preserve the selected State and values.
+
+Eight accepted native captures cover24 subject samples,348 transmitted-variable
+value/tag comparisons and source checks. They verify original component47/owner,
+native graph0580000000000D32/ID1, raw State8/5 and State vtable265FC58. The initial
+raw slots are unallocated; on creates each State. Allocations remain stable across
+subsequent toggles. State40 bit0 changes on/off; State1C0 retains1 after the first
+cleanup, becomes2 on the second activation and retains2 after cleanup. Native
+component55/vtable2657CE8 stores the matching handle/alias row while on and an
+empty list while off. Counter70 advances1 then2, with mode74 false throughout.
+
+Current68 follows0->authored alias->0 across all9 subject on/off cycles, including
+three fresh entities/instances in match2 with counters reset to0. This accepts
+native request-list and current-alias selection behavior for these samples.
+Two additional early off captures show all States off and rows already removed,
+while current68 on two entities still contains the prior alias. Later reads
+verify all current fields zero. Preserve these early captures: transport ACK,
+State cleanup and engine selection do not establish the same completion point.
+No engine phase mapping or latency bound is inferred from these observations.
+
+Each native storage pointer is component+28, with raw capacity word80000004.
+This observation does not accept growth/allocation policy or interpret that word
+as a plain Python capacity. Inspector/reference checks handle lazy State slots,
+the native058 graph identity and Bool/tag1/Float/tag3. Earlier failed inspector
+expectations and the first reference remain outside Git; original native data
+are preserved. No client-memory writes are used for inspection.
+
+The client closes normally through Alt+F4 after menu return. Owned isolated
+servers stop and release their ports. Normal runtime inputs and production code
+are unchanged; no deployment. All34 focused alias/codec/statescript tests pass;
+the implementation's630 related and15 server checks still cover unchanged code.
+Visual animation playback, native true-mode request
+timing, full allocator/services, production host/lifetimes and complete mission,
+cinematics, enemy AI and results remain open. This evidence supersedes the earlier
+absence of client acceptance for the exact request/selection sample scope only.
+
+Local evidence outside Git
+verification/retribution/animation-alias-native-validation.json,
+animation-alias-actual-graph-validation.json,
+placed-component-animation-alias-validation.json,
+animation-alias-unit-tests.log, animation-alias-related-tests.log,
+animation-alias-server-tests.log and the B1FA9C2A/animation-alias disassemblies.
+Captured code, runtime inputs, raw assets and executable research probes stay
+outside the source repository.
+Subsequent client evidence: verification/animation-alias-session/preparation.json,
+frame-native-reference.json, native-source-verified-match1/2.json, client-match*.json,
+validated-match*.json, transport.jsonl, session.json and validation.json.

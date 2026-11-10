@@ -1,0 +1,74 @@
+Native variable-assignment value interfaces
+Target: original PC build104319. Partial story/controller restoration.
+
+The value interface matters
+SetVar (1B6D300) invokes the value config's +28 method at1B6D381, then
+performs its existing ordinary, indexed or keyed store. SetVars (1B6B560)
+also uses +28, once for each pair whose target pointer is present. Using
+the scalar +20 evaluator instead loses collected config-array values.
+
+Both actions now use the existing play.evaluate_value interface. For06610EBC,
+its +28 method1B779E0 collects all config-iterator values into a typed array.
+Empty groups assign an empty array. Nested groups and nested array values
+preserve iterator order; failed configs and scalar null yield no item, while
+null members inside existing arrays are retained. A direct dynamic array
+remains that array value rather than being flattened as a config group.
+Unimplemented iterator classes and world services retain strict diagnostics.
+This change does not add a generic iterator service or guess engine answers.
+
+SetVar skips assignment and value evaluation when either the target or value
+pointer is absent. SetVars differs: it skips a missing target, but a present
+target with a missing/failed value receives typed integer0. Successful null
+still overwrites the target with null. Pairs store immediately in authored
+order, so later values can read earlier writes. A strict failure preserves
+earlier stores and prevents later pairs and the action's output plug.
+
+Evidence
+The retained635-graph bundle contains108 direct06610EBC SetVar values, including
+30 in the static Rialto mode/controller closure. One hundred configurations
+can be replayed with existing literal/resource classes and explicitly supplied
+dynamic values; all30 Rialto examples are included. These inputs do not imply
+that their complete graphs initialize or that their live variables are known.
+
+216 original-instruction cases pass:212 value comparisons (100 real config
+inputs and six edge configurations, each through SetVar and SetVars), plus four
+SetVars missing-target/missing-value/ordered-pair/empty-list checks. Native
+assignment callers, the06610EBC collector and nested config traversal execute
+unchanged. Adapters provide literal/type values, heap/variant/array storage,
+pre-store and variable-store callbacks, output-plug callbacks and cookie checks.
+Thus this verifies assignment value selection and ordering, not an engine VM,
+allocator lifetime, full keyed storage or complete script execution.
+
+Thirteen behavior tests cover empty/nested arrays, typed failures, null handling,
+indexed/keyed stores, missing pointers, pair dependencies and strict faults.
+907 related and33 server journal/snapshot/injection checks pass, with Ruff/diff.
+No fresh original-client session or normal-service deployment is claimed.
+
+Controller research and remaining mission work
+81A9AB10 still has no established server boolean meaning. The actual PC graph
+loader1B936E0 first tries its own cached runtime lookup1B90550, then explicitly
+requests the base ConfigVar handler through1B904C0. It does not resolve this
+config by the State factory's recursive parent walk. A single-config reflection
+iterator and one-bucket base-handler storage reproduce the original loader,
+constructor, cache write and prepared guard. Twenty original +20/+28 cases leave
+the output unchanged and fail; two original BooleanSwitch begin cases select
+the false plugs even when their previous branch was true. Scope/watch/plug
+callbacks are explicit adapters. This proves the PC fallback, not a server
+constant. The635-graph corpus has17 references, including message/state writes.
+No default or trusted-native entry for this class is introduced.
+
+Explicit no-output/false/true controller input fixtures all reach common0C90
+and retain1AAB4B4F; true additionally starts the0692 message listener. The next
+query has a real priority2 runtime registration and distinct scalar/collecting
+iterator methods. Its controller lookup, native hero catalog and availability
+predicate need implementation; a scalar substitute would lose its +28 array.
+
+The ordinary strict controller still retains81A9AB10. The actual Match still
+retains shared-rootD38D0035/node106 before controller execution, with148 prepared
+components/queues and complete failure cleanup. The isolated placed catalog
+remains146 configured components,124 graphs,542 queued schema writes, and50/123
+nonempty components completing frame0 with73 strict faults. Full controller,
+actor/body lifetimes, native phases/services/replication, cinematics, five enemy
+AI types and complete mission/results remain unaccepted. Runtime inputs stay
+unchanged. Local evidence is outside Git under verification/retribution/
+assignment-arrays-* and bool-fallback-*. Game inputs and captures are not published.

@@ -19,16 +19,19 @@ A correction describes the change since the last chunk the client acknowledged, 
 chunks sent after it carried (the client may have applied them), so it needs no resend.
 """
 
+import json
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import animation_pose, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
-from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.content import SOLDIER, heroes
+from ow174.game.script import expr, graph, nodes, runtime, spray_placement
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -43,12 +46,55 @@ from ow174.game.statescript import (
     sendable,
 )
 from ow174.game.world import UNIT_ENTITY_SCALE
+from ow174.paths import (
+    DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_CLIP_DATA, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA,
+    GREETING_DURATION_DATA, WHEEL_POSE_DATA,
+)
 
 if TYPE_CHECKING:
     from ow174.game.match import Match
     from ow174.game.world import EntityUpdate
 
 log = logging.getLogger("ow174.script")
+
+
+@lru_cache(maxsize=2)
+def wheel_animation_durations(path):
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    return {
+        (int(blend, 16), int(alias, 16), int(category, 16)): f32(seconds)
+        for blend, aliases in rows.items()
+        for alias, categories in aliases.items()
+        for category, seconds in categories.items()
+        if type(seconds) in (float, int) and math.isfinite(seconds) and 0 < seconds <= 3600
+    }
+
+
+@lru_cache(maxsize=2)
+def wheel_animation_scalars(path):
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    result = {}
+    for blend, aliases in rows.items():
+        for alias, categories in aliases.items():
+            for category, track in categories.items():
+                key = int(blend, 16), int(alias, 16), int(category, 16)
+                # An unsupported exact category must shadow the generic default.
+                result[key] = None
+                if not isinstance(track, dict):
+                    continue
+                times, values = track.get("times"), track.get("values")
+                if times == values == []:
+                    result[key] = 0.0
+                elif (isinstance(times, list) and isinstance(values, list) and len(times) == len(values) == 1
+                      and all(type(x) in (float, int) and math.isfinite(x) for x in (times[0], values[0]))):
+                    result[key] = f32(values[0])
+    return result
 
 
 class CommandEpochError(ValueError):
@@ -90,11 +136,78 @@ TRUSTED_NATIVES = {
     "STU_4A101787",  # always false
     "STU_A77AC2AC",  # false
     "STU_A3DEF368",  # the mode entity and its configured initial values, when present in the bundle
-    "STU_DB742151",  # Sprint's #2333: IsEntityAIBot(the possessor) false for a player ...
-    "STU_295D117D",  # ... GetPrimaryPossessorEntity ...
-    "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
+    "STU_DB742151",  # Sprint's #2333: GetPrimaryPossessorEntity (CD1940, an EntityID config) ...
+    "STU_295D117D",  # ... the AI predicate applied to that possessor is false for a player ...
+    "STU_D3EB8D87",  # ... the selected controller's component 92 is absent for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
+# STU_C5243F93 action categories from the 104319 .096 records.
+WHEEL_ACTION_PREFIX = 0x0A90000000000000
+WHEEL_CATEGORY_TYPE = 0x0C880000000000CD
+WHEEL_ACTION_CATEGORIES = {
+    0x0D8000000000741E: frozenset((0x172, 0x19F, 0x1A0, 0x1A1, 0x1A2)),
+    0x0D8000000000741F: frozenset((0x16F, 0x19B, 0x19C, 0x19D, 0x19E)),
+    0x0D80000000007420: frozenset((0x173, 0x1A3, 0x1A4, 0x1A5, 0x1A6)),
+    0x0D80000000007428: frozenset((*range(0x16B, 0x173), *range(0x1E5, 0x1F5), 0x1F7, 0x1F9)),
+}
+# Action-to-texture rows from 104319 01A5.054 (44A820).
+WHEEL_CALLOUT_TEXTURES = {
+    0x16B: 0x0C00000000005A0B,
+    0x16C: 0x0C000000000039DD,
+    0x16D: 0x0C000000000039DA,
+    0x16E: 0x0C000000000039DB,
+    0x16F: 0x0C00000000007114,
+    0x170: 0x0C00000000005A0E,
+    0x171: 0x0C00000000005A0D,
+    0x172: 0x0C00000000005A0A,
+    0x1E5: 0x0C0000000002A9FB,
+    0x1E6: 0x0C0000000002AA02,
+    0x1E7: 0x0C0000000002AA01,
+    0x1E8: 0x0C0000000002A9F9,
+    0x1E9: 0x0C0000000002A9F4,
+    0x1EA: 0x0C0000000002A9F1,
+    0x1EB: 0x0C0000000002A9FD,
+    0x1EC: 0x0C0000000002A9EF,
+    0x1ED: 0x0C0000000002A9FC,
+    0x1EE: 0x0C0000000002A9F5,
+    0x1EF: 0x0C0000000002AA00,
+    0x1F0: 0x0C0000000002A9F2,
+    0x1F1: 0x0C0000000002A9FA,
+    0x1F2: 0x0C0000000002A9EC,
+    0x1F3: 0x0C0000000002A9ED,
+    0x1F4: 0x0C00000000005A0C,
+    0x1F7: 0x0C0000000002A9FE,
+    0x1F9: 0x0C00000000003A73,
+}
+# Static ray categories from the first request word, packed from m_category.
+WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
+WHEEL_HEALING_TAG = 0x0D60000000000308
+WHEEL_GREETING_TAG = 0x0D60000000000661
+ASHE_BODY = 0x040000000000251C
+LEGACY_SYMMETRA_BODY = 0x040000000000020F
+# Player body definitions (.003) with the authored 0308.06C target tag in 104319.
+WHEEL_HEALING_BODIES = frozenset({
+    0x04000000000000E4,  # Mercy
+    0x0400000000000216,  # Zenyatta
+    0x04000000000003FC,  # Lucio
+    0x0400000000001424,  # Ana
+    0x0400000000001B1B,  # Brigitte
+    0x0400000000001C46,  # Moira
+    0x04000000000029A6,  # Baptiste
+})
+# 104319 44A7D0, 44A980 and 44A950 return the zero-based index in these tables.
+WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
+WHEEL_VOICE_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
+WHEEL_SPRAY_ACTIONS = (0x173, 0x1A5, 0x1A4, 0x1A3)
+# The wheel's fixed, self-targeted PlayScript actions.
+WHEEL_PLAY_GRAPHS = {
+    (0x05AD, 109): 0x069A,
+    (0x05AD, 117): 0x0686,
+    (0x05AD, 131): 0x0686,
+    (0x069A, 9): 0x1040,
+}
+MAX_WHEEL_CALLOUTS = 32
+WHEEL_CALLOUT_MS = 2000
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -117,13 +230,47 @@ def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int
     return edges
 
 
+@dataclass(frozen=True)
+class WheelCallout:
+    serial: int
+    instance: int
+    start: int
+    node: int
+    time: int
+    choice: object
+    values: tuple
+
+
+@dataclass(frozen=True)
+class WheelSprayEvent(WheelCallout):
+    placement: tuple
+
+
+WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "emote_blend_trees": 0x0040, "spray_unlocks": 0x0250, "voice_effects": 0x0300}
+
+
+def valid_wheel_slots(slots: tuple[int, ...], guid_type: int) -> bool:
+    return isinstance(slots, tuple) and len(slots) <= 4 and all(
+        type(guid) is int and (guid == 0 or (guid >> 48 == guid_type and guid & 0xFFFFFFFFFFFF))
+        for guid in slots
+    )
+
+
 class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
 
-    def __init__(self, hero: int, mode: int, body: int) -> None:
+    def __init__(self, hero: int, mode: int, body: int, body_definition: int) -> None:
         super().__init__(hero, mode)
         self.body = body
+        self.body_definition = body_definition
+        self.communication_wheel = False
+        self.emote_aliases: tuple[int, ...] = ()
+        self.emote_blend_trees: tuple[int, ...] = ()
+        self.spray_unlocks: tuple[int, ...] = ()
+        self.voice_effects: tuple[int, ...] = ()
+        self.wheel_callouts: list[WheelCallout] = []
+        self.velocity_requests = []  # sampled one-frame changes for the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
@@ -134,8 +281,23 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def resolve_spray(self, length: float) -> dict | None:
+        if self.communication_wheel and self.match is not None:
+            return self.match.resolve_body_spray(self.body, length)
+        return None
+
     def native(self, cfg: dict, instance):
+        from ow174.game import mccree
+
+        result = mccree.native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
         cls = cfg.get("$")
+        if (cls == "STU_9B7648C3" and instance is not None and instance.graph.index == 0x1177
+                and instance.component.entity == self.body
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            health = instance.component.entity_var(OWNER_HEALTH, create=False)
+            return expr.to_float(health.value()) if health is not None else 0.0
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -156,10 +318,319 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if (cls == "STU_F7262B36" and self.match is not None and instance is not None
+                and instance.graph.index == 0x0276 and self.body_definition == 0x0400000000000407
+                and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
+            # The mech's authored startup lock waits for its component 43 owner.
+            owner = next((player for player in self.match.players
+                          if player.has_body and not player.gone and player.body == self.body), None)
+            return Entity(owner.entity if owner is not None else 0)
+        if self.communication_wheel and instance is not None and instance.graph.index == 0x004B:
+            # BodyScript is the match-owned human body. 004B's untagged filter
+            # and its player check gate the authored 05AD and 02CF wheels.
+            gate = instance.graph.node(20)
+            if cls == "STU_E18C7DE7" or (gate is not None and cfg == gate.field("m_condition")):
+                return True
+        if (cls == "STU_4460419A" and self.communication_wheel and instance is not None
+                and instance.graph.index in (0x05AD, 0x02CF, 0x0686)):
+            return self.wheel_action_has_category(cfg, instance)
+        if self.communication_wheel and instance is not None:
+            if cls == "STU_25ECB55F":
+                tag = expr.guid_of(cfg.get("m_88B0050A"))
+                if (tag == WHEEL_HEALING_TAG and instance.graph.index in (0x05AD, 0x0686)
+                        and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                    return self.body_definition in WHEEL_HEALING_BODIES
+                if (tag == WHEEL_GREETING_TAG and instance.graph.index == 0x0341
+                        and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                    return self.body_definition == ASHE_BODY
+            if cls == "STU_3E7F59D8" and instance.graph.index in (0x05AD, 0x069A):
+                return self.wheel_slot(cfg, instance, WHEEL_EMOTE_ACTIONS)
+            if cls == "STU_250DEABD" and instance.graph.index in (0x05AD, 0x023A):
+                # CD7490 reads the equipped slot from the target body.
+                target = cfg.get("m_target")
+                if (isinstance(target, dict) and target.get("$") == "STU_33980609"
+                        and instance.evaluate(target.get("m_entity")) == Entity(self.body)):
+                    return self.equipped_wheel_asset(self.emote_aliases, instance.evaluate(cfg.get("m_slot")))
+            if (cls == "STU_DF7C7C63" and instance.graph.index == 0x023A
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                return self.equipped_wheel_asset(self.emote_blend_trees, instance.evaluate(cfg.get("m_slot")))
+            if cls == "STU_1ECB66A0" and instance.graph.index == 0x0686:
+                action = instance.evaluate(cfg.get("m_548E5344"))
+                if isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX:
+                    return Asset(WHEEL_CALLOUT_TEXTURES.get(action.guid & 0xFFFFFFFF, 0))
+                return Asset(0)
+            if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
+                return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
+            if cls == "STU_2977339D" and instance.graph.index == 0x0686:
+                # 93D1F0 resolves the equipped voice unlock to its .00D effect.
+                target = cfg.get("m_target")
+                if (isinstance(target, dict) and target.get("$") == "STU_F7262B36"
+                        and instance.evaluate(target.get("m_801B298F")) == Entity(self.body)):
+                    return self.equipped_wheel_asset(self.voice_effects, instance.evaluate(cfg.get("m_slot")))
+            if (cls == "STU_17B517B9" and instance.graph.index == 0x02CF
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                # 92E7E0 returns the equipped spray unlock itself.
+                return self.equipped_wheel_asset(self.spray_unlocks, instance.evaluate(cfg.get("m_slot")))
+            if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
+                return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
+        if (self.communication_wheel and self.match is not None and instance is not None
+                and instance.graph.index == 0x05AD):
+            if cls == "STU_AC829876":
+                gate = instance.graph.node(119)
+                if gate is not None and cfg == gate.field("m_condition"):
+                    target = instance.evaluate(cfg.get("m_entity"))
+                    source = self.match._message_player(self.body)
+                    recipient = self.match._message_player(expr.to_entity(target))
+                    return (source is not None and recipient is not None
+                            and (source is recipient or (not self.match.game_map.free_for_all
+                                                         and source.team == recipient.team)))
+            if cls == "STU_F76C486C":
+                gate = instance.graph.node(120)
+                if gate is not None and cfg == gate.field("m_condition")["m_configVars"][0]:
+                    target = instance.evaluate(cfg.get("m_D63CBEC2"))
+                    if self.match._message_player(expr.to_entity(target)) is not None:
+                        # The match does not attach a pet owner to these player bodies.
+                        # Node 120 short-circuits before its component43 comparison.
+                        return Entity(0)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
+
+    @staticmethod
+    def equipped_wheel_asset(slots: tuple[int, ...], slot) -> Asset:
+        return Asset(slots[slot] if type(slot) is int and 0 <= slot < len(slots) else 0)
+
+    @staticmethod
+    def wheel_action_has_category(cfg: dict, instance) -> bool:
+        category = (cfg.get("m_D929182B") or {}).get("m_value") or {}
+        if expr.guid_of(category.get("m_type")) != WHEEL_CATEGORY_TYPE:
+            return False
+        actions = WHEEL_ACTION_CATEGORIES.get(expr.guid_of(category.get("m_id")))
+        if actions is None:
+            return False
+        action = instance.evaluate(cfg.get("m_548E5344"))
+        return (isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX
+                and (action.guid & 0xFFFFFFFF) in actions)
+
+    @staticmethod
+    def wheel_slot(cfg: dict, instance, actions: tuple[int, ...]) -> int:
+        action = instance.evaluate(cfg.get("m_548E5344"))
+        # 069A receives the selected action in a one-item PlayScript parameter array.
+        if isinstance(action, tuple) and len(action) == 1:
+            action = action[0]
+        if isinstance(action, Asset) and action.guid & ~0xFFFFFFFF == WHEEL_ACTION_PREFIX:
+            index = action.guid & 0xFFFFFFFF
+            if index in actions:
+                return actions.index(index)
+        return -1
+
+    def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
+        from ow174.game.script import play, play_queue
+
+        index = WHEEL_PLAY_GRAPHS.get((instance.graph.index, node.pos))
+        if not self.communication_wheel or index is None:
+            super().play_script(instance, node)
+            return
+        resource = play.resolve_resource(instance, node)
+        if resource is None or resource.guid != ((graph.GRAPH_TYPE << 48) | index):
+            return
+        definition = graph.graph(index)
+        if definition is None:
+            return
+        component = instance.component
+        request = play.resolve_request(
+            instance, node, resource,
+            context_provider=lambda: play.InvocationContext(self.body, self.body, instance.source_entity()),
+        )
+        if request is not None and request.targets == (self.body,):
+            # The bundle already holds the resource, so submission can flush synchronously.
+            play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
+
+    def _wheel_animation_key(self, instance: runtime.Instance, node: graph.Node) -> tuple | None:
+        parent = instance.parent
+        if not self.communication_wheel or parent is None:
+            return None
+        context = (instance.graph.index, parent.graph.index)
+        if context not in ((0x023A, 0x069A), (0x0341, 0x0686)):
+            return None
+        alias = instance.evaluate(node.field("m_11E0A658"))
+        if not expr.truthy(alias):
+            # A zero alias skips the native model query.
+            return (0, 0, 0)
+        category = instance.evaluate(node.field("m_22326315"))
+        if not isinstance(alias, Asset) or (category is not None and not isinstance(category, Asset)):
+            return None
+        if context == (0x0341, 0x0686):
+            resource = self.body_definition
+        else:
+            blend = instance.find_var(INSTANCE, 8908)
+            blend = blend.value() if blend is not None else None
+            if not isinstance(blend, Asset):
+                return None
+            resource = blend.guid
+            if not resource and self.body_definition == 0x040000000000040A:
+                # The pilot's model component supplies its base tree when the equipped tree is empty.
+                resource = 0x004000000000048A
+        return resource, alias.guid, category.guid if category is not None else 0
+
+    def animation_duration(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+        key = self._wheel_animation_key(instance, node)
+        if key is None or not key[1]:
+            return None if key is None else 0.0
+        filename = GREETING_DURATION_DATA if instance.graph.index == 0x0341 else EMOTE_DURATION_DATA
+        durations = wheel_animation_durations(DATA_DIR / filename)
+        return durations.get(key, durations.get((*key[:2], EMOTE_ANY_CATEGORY)))
+
+    def animation_scalar(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+        if instance.graph.index != 0x023A:
+            return None
+        key = self._wheel_animation_key(instance, node)
+        if key is None or not key[1]:
+            return None if key is None else 0.0
+        scalars = wheel_animation_scalars(DATA_DIR / EMOTE_SCALAR_DATA)
+        return scalars.get(key, scalars.get((*key[:2], EMOTE_ANY_CATEGORY)))
+
+    def wheel_replaces_horizontal_velocity(self, component: runtime.Component) -> bool:
+        if not self.communication_wheel:
+            return False
+        for instance in component.instances.values():
+            if (instance.stopped or instance.graph.index != 0x023A or instance.parent is None
+                    or instance.parent.graph.index != 0x069A):
+                continue
+            # Native 023A:78 replaces relative X/Z velocity with
+            # x(681) * right + z(681) * forward. Both axes of a float are zero.
+            if any(state.active and state.node.pos == 78 for state in instance.states.values()):
+                value = instance.vars.get(681)
+                if value is not None and type(value.value()) is float:
+                    return True
+        return False
+
+    def wheel_model_pose(self, component, transform):
+        active = [
+            state for instance in component.instances.values()
+            if instance.graph.index == 0x023A and not instance.stopped
+            for state in instance.states.values()
+            if state.active and state.node.pos in (0, 18, 19, 52)
+        ]
+        if len(active) != 1:
+            return None
+        state = active[0]
+        if state.node.field("m_speedScalar") is not None:
+            return None
+        key = self._wheel_animation_key(state.instance, state.node)
+        if key is None or not key[1]:
+            return None
+        clips = animation_pose.wheel_primary_clips(DATA_DIR / EMOTE_CLIP_DATA)
+        clip = clips.get(key, clips.get((*key[:2], EMOTE_ANY_CATEGORY)))
+        if clip is None:
+            return None
+        seconds = max(0, state.now - state.start) / 1000
+        return animation_pose.wheel_clip_pose(
+            DATA_DIR / WHEEL_POSE_DATA, self.body_definition, clip, seconds, state.node.pos == 18, transform,
+        )
+
+    def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):
+        if not self.communication_wheel:
+            return NotImplemented
+        component = instance.component
+        index = instance.graph.index
+        if index == 0x069A:
+            if node.cls == "STU_3D419B63" and node.pos in (7, 8):
+                # 1040 is the wheel helper in authored graph category 5.
+                if (expr.guid_of(node.field("m_category")) != 0x01E0000000000005
+                        or instance.evaluate(node.field("m_targets")) != Entity(self.body)):
+                    return NotImplemented
+                for helper in list(component.instances.values()):
+                    if helper.graph.index == 0x1040:
+                        component.destroy(helper)
+                return instance.follow(node, "m_outPlug", None)
+            if node.cls == "STU_22926252" and node.pos in (1, 5):
+                component.destroy(instance)
+                return True
+        if node.cls != "STU_22926252":
+            return NotImplemented
+        if index == 0x0686 and node.pos == 0:
+            # Retire the root after its authored wait so the next PlayScript can allocate it again.
+            component.destroy(instance)
+            return True
+        if index == 0x023A and node.pos in (9, 14, 57):
+            parent_graph = 0x069A
+        elif index == 0x0341 and node.pos in (8, 9):
+            parent_graph = 0x0686
+        else:
+            return NotImplemented
+        parent = instance.parent
+        if parent is not None and parent.graph.index == parent_graph:
+            state = parent.state(instance.parent_state)
+            if isinstance(state, nodes.SubScript) and state.active and state.child is instance:
+                # End the SubScript state so its authored onEnd path runs.
+                state.request_finish()
+                return True
+        return NotImplemented
+
+    def replicate_wheel_event(self, instance: runtime.Instance, node: graph.Node) -> None:
+        if not self.communication_wheel or node.remote < 0 or not node.is_networked:
+            return
+        index = instance.graph.index
+        if index not in (0x02CF, 0x05AD, 0x0686):
+            if self.body_definition != LEGACY_SYMMETRA_BODY or index != 0x0169 or node.pos not in (82, 86):
+                return
+        component = instance.component
+        selected = instance.vars.get(29699)
+        values = []
+        for row in node.field("m_BF5B22B7") or ():
+            var = expr.guid_of(row.get("m_0D09D2D9")) & 0xFFFF
+            if not var:
+                continue
+            entity_scope = row.get("m_56341592") == expr.ENTITY
+            slot = (component.vars if entity_scope else instance.vars).get(var)
+            values.append(((0 if entity_scope else instance.id, var), (slot.value() if slot else None, ())))
+        if (index, node.pos) == nodes.WHEEL_VOICE_PULSE and selected is not None:
+            values.append(((instance.id, 29699), (selected.value(), ())))
+        serial = self.wheel_callouts[-1].serial + 1 if self.wheel_callouts else 1
+        if index == 0x02CF and node.pos in (3, 8):
+            slot = instance.vars.get(9259)
+            values.append(((instance.id, 9259), (slot.value() if slot is not None else None, ())))
+            placement = tuple(sorted(instance.state(1).payload().items())) if node.pos == 8 else ()
+            event = WheelSprayEvent(serial, instance.id, instance.start, node.pos, component.now,
+                                   None, tuple(values), placement)
+        else:
+            event = WheelCallout(serial, instance.id, instance.start, node.pos, component.now,
+                                 selected.value() if selected else None, tuple(values))
+        self.wheel_callouts.append(event)
+        del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
+
+    def velocity_action(self, instance, node):
+        from ow174.game import mccree
+
+        return mccree.velocity_action(self, instance, node)
+
+    def tracked_targets(self, state):
+        if (self.communication_wheel and self.match is not None
+                and state.instance.graph.index == 0x05AD and state.node.pos in (113, 115)):
+            collision_filter = state.node.field("m_3D667CE3") or {}
+            profile = collision_filter.get("m_C1903771") or {}
+            profile_id = expr.guid_of(profile.get("m_C1903771"))
+            category = WHEEL_TARGET_CATEGORIES.get(profile_id)
+            if category is None:
+                return NotImplemented
+            offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+            radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
+            aperture = expr.to_float(state.evaluate(state.node.field("m_A30B383E"), watch=False))
+            target = self.match.combat.communication_target(
+                self.body, offset, radius, aperture, category, profile=profile_id,
+            )
+            return (target,) if target is not None else ()
+
+        from ow174.game import mccree
+
+        return mccree.targets(self, state)
+
+    def target_effects(self, state):
+        from ow174.game import mccree
+
+        return mccree.effects(self, state)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
@@ -178,6 +649,92 @@ class Snapshot:
     vars: dict = field(default_factory=dict)  # (instance or 0, var) -> (value, bindings)
     states: dict = field(default_factory=dict)  # (instance, state) -> (cls, on, payload)
     events: dict = field(default_factory=dict)  # instance -> ((time, state, finish, param), ...)
+    callout: int = 0  # newest event in a full projection, or last event carried by a delta
+    callouts: tuple[WheelCallout, ...] = ()
+
+    def next_callout(self, baseline: int) -> WheelCallout | None:
+        return next((event for event in self.callouts if event.serial > baseline), None)
+
+    def is_voice_pulse(self, event: WheelCallout) -> bool:
+        index, _ = self.instances[event.instance]
+        return (index, event.node) == nodes.WHEEL_VOICE_PULSE
+
+    def for_delta(self, base: "Snapshot", keys: set) -> "Snapshot":
+        """Project this stream's next event with its variables and state payloads."""
+        serial = next((key[1] for key in keys if key[0] == "callout"), base.callout)
+        if not (self.callout or base.callout or self.callouts):
+            return self
+        if not self.callouts and self.callout == serial and serial > base.callout:
+            return self  # owner delta already projected the selected event
+        event = next((item for item in self.callouts if item.serial == serial and serial > base.callout), None)
+        values = self.vars.copy()
+        if event is not None:
+            values.update(event.values)
+        voice_owner = event.instance if event is not None and self.is_voice_pulse(event) else None
+        states = self.states.copy()
+        pending_sprays = {item.instance for item in self.callouts
+                          if isinstance(item, WheelSprayEvent) and item.serial > base.callout}
+        for instance, (index, _) in self.instances.items():
+            if index == 0x02CF:
+                self._project_spray(instance, event, instance in pending_sprays, base, states, values)
+                continue
+            if index != nodes.WHEEL_VOICE_PULSE[0]:
+                continue
+            key = (instance, 13)  # 0686:72
+            previous = base.states.get(key)
+            if instance == voice_owner:
+                states[key] = self._next_pulse(previous)
+            elif previous is not None:
+                active = key in self.states and self.states[key][1]
+                states[key] = (previous[0], active, previous[2])
+            else:
+                states.pop(key, None)
+        return replace(self, callout=serial, callouts=(), vars=values, states=states)
+
+    @staticmethod
+    def _next_pulse(previous):
+        count = (dict(previous[2])["count"] + 1) & 0xFF if previous is not None else 1
+        return ("STU_B9898052", True, (("count", count), ("fresh", True)))
+
+    @staticmethod
+    def _project_spray(instance, event, pending, base, states, values) -> None:
+        placement_key, pulse_key, slot_key = (instance, 1), (instance, 14), (instance, 9259)
+        previous = base.states.get(pulse_key)
+        if isinstance(event, WheelSprayEvent) and event.instance == instance:
+            if event.placement:
+                states[placement_key] = (spray_placement.STATE_CLASS, True, event.placement)
+                states[pulse_key] = Snapshot._next_pulse(previous)
+                return
+            states.pop(placement_key, None)
+        elif pending:
+            # A different queued action precedes this placement on the stream.
+            if placement_key in base.states:
+                states[placement_key] = base.states[placement_key]
+            else:
+                states.pop(placement_key, None)
+            if slot_key in base.vars:
+                values[slot_key] = base.vars[slot_key]
+            else:
+                values.pop(slot_key, None)
+        if previous is not None:
+            states[pulse_key] = previous
+        else:
+            states.pop(pulse_key, None)
+
+
+def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_chunk: int):
+    """Choose the next action for this stream and retain its original stamp until ACK."""
+    callout = snap.next_callout(base.callout)
+    if callout is None:
+        return None
+    previous = (key[2] for key in touched if key[0] == "callout" and key[1] == callout.serial)
+    stamp = min(previous, default=next_chunk)
+    keys.add(("callout", callout.serial, stamp))
+    if snap.is_voice_pulse(callout):
+        return None
+    if isinstance(callout, WheelSprayEvent) and callout.placement:
+        keys.add(("state", callout.instance, 1))  # repeat even when the geometry and slot match
+    return stamp, callout.instance, callout.node
 
 
 @dataclass
@@ -190,6 +747,7 @@ class OwnerReport:
     volleys: dict[tuple[int, int], tuple[int, int]]  # (instance, state) -> (counter, start)
     introductions: frozenset[tuple[int, int]]
     received: bool | None = None
+    sprays: frozenset[tuple[int, int, int]] = frozenset()  # instance, start, unlock
 
 
 def _same_var(a, b) -> bool:
@@ -201,6 +759,9 @@ def _same_var(a, b) -> bool:
 class ReplicatedBody:
     component: runtime.Component
     server_only: set[int]
+
+    def callout_snapshot(self) -> Snapshot:
+        return Snapshot(self.frame)
 
     def set_health(self, health: float, most: float) -> None:
         """Update the shared health input. Player bodies also use the maximum for their HUD."""
@@ -222,12 +783,8 @@ class ReplicatedBody:
 
     def _report_shots(self) -> None:
         """Collect shots due in active volleys. Volleys that ended reported their own shots."""
-        self.component.ensure_valid()
+        nodes.report_active_volleys(self.component)
         shots = self.component.shots
-        for instance in self.component.instances.values():
-            for state in instance.states.values():
-                if isinstance(state, nodes.WeaponVolley) and state.active:
-                    state.report(self.component.now)
         if len(shots) > MAX_SHOTS:
             del shots[: len(shots) - MAX_SHOTS]
 
@@ -257,18 +814,38 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        communication_wheel: bool = False,
+        body_definition: int | None = None,
+        emote_aliases: tuple[int, ...] = (),
+        emote_blend_trees: tuple[int, ...] = (),
+        spray_unlocks: tuple[int, ...] = (),
+        voice_effects: tuple[int, ...] = (),
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
-        if record is None:
-            raise ValueError(f"no statescript data for the hero {hero:016X}")
+        records = graph.bodies()
+        if body_definition is None:
+            body_definition = next((key for key, item in records.items() if int(item["hero"], 16) == hero), None)
+        record = records.get(body_definition)
+        if record is None and (hero, body_definition) in (
+            (0x02E000000000007A, 0x0400000000000407),
+            (0x02E0000000000016, LEGACY_SYMMETRA_BODY),
+        ):
+            record = graph.entity_body(body_definition)
+        if record is None or (record.get("hero") is not None and int(record["hero"], 16) != hero):
+            raise ValueError(f"no statescript data for hero {hero:016X} and body {body_definition!r}")
         self.hero = hero
         self.entity = entity
         self.record = record
         self.frame_ms = max(1, quanta // 1000)
-        self.world = BodyWorld(hero, mode, entity)
+        self.world = BodyWorld(hero, mode, entity, body_definition)
         self.world.match = match
+        self.world.communication_wheel = communication_wheel or match is not None
+        for name, slots in (("emote_aliases", emote_aliases), ("emote_blend_trees", emote_blend_trees),
+                            ("spray_unlocks", spray_unlocks), ("voice_effects", voice_effects)):
+            if not valid_wheel_slots(slots, WHEEL_LOADOUT_TYPES[name]):
+                raise ValueError(f"{name} must contain up to four matching asset GUIDs or empty slots")
+            setattr(self.world, name, slots)
         self.component = runtime.Component(entity, self.frame_ms, self.world)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0
@@ -294,19 +871,9 @@ class BodyScript(ReplicatedBody):
         component = self.component
         component.frame = frame
         component.now = frame * self.frame_ms
-        weapons = self.record.get("weapons") or []
-        component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
-        component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
-        created = create_initial_graphs(component, self.record)
-        manager = graph.graph(self.record["manager"]) if self.record.get("manager") is not None else None
-        if manager is not None:
-            created.append(component.create(manager, init=False))
-        for slot, item in enumerate(weapons):
-            if item is not None and graph.graph(item) is not None:
-                created.append(component.create(graph.graph(item), values={(INSTANCE, 28): slot}, init=False))
-        for instance in created:
+        for instance in create_body_graphs(component, self.record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -328,7 +895,10 @@ class BodyScript(ReplicatedBody):
 
     # --- running -----------------------------------------------------------------------------------
 
-    def command(self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0) -> None:
+    def command(
+        self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
+        *, grounded: bool | None = None,
+    ) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
 
@@ -348,6 +918,11 @@ class BodyScript(ReplicatedBody):
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
             self._run(missing, [])
         self.world.throttles = (forward, right)
+        if self.world.communication_wheel:
+            # 01C7:7 reads the mover's flags and the command axes separately.
+            if grounded is not None:
+                self.component.set(545, grounded)
+            self.component.set(2070, bool(forward or right))
         self._run(frame, button_edges(self.buttons, buttons, action))
         self.buttons = buttons
         self.frame = frame
@@ -358,8 +933,16 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
+
+    def add_ult_charge(self, points: float) -> None:
+        if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost > 0 and charge < cost:
+            self.set_ult_charge(min(cost, charge + points))
 
     def _charge_ult(self) -> None:
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
@@ -375,7 +958,7 @@ class BodyScript(ReplicatedBody):
     def snapshot(self) -> Snapshot:
         """The body as the client should have it after the last frame run."""
         self.component.ensure_valid()
-        snap = Snapshot(self.frame)
+        snap = self.callout_snapshot()
         for instance in self.component.instances.values():
             parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
             snap.instances[instance.id] = (instance.graph.index, parent)
@@ -392,9 +975,31 @@ class BodyScript(ReplicatedBody):
             self._add_var(snap, 0, var_id, var)
         return snap
 
+    def callout_snapshot(self) -> Snapshot:
+        history = self.world.wheel_callouts
+        if self.retired or not history:
+            return Snapshot(self.frame)
+        pending = []
+        for event in history:
+            instance = self.component.instances.get(event.instance)
+            if instance is None or instance.stopped or instance.start != event.start:
+                continue
+            retained = (isinstance(event, WheelSprayEvent)
+                        or (instance.graph.index, event.node) == nodes.WHEEL_VOICE_PULSE)
+            if not retained and self.component.now - event.time > WHEEL_CALLOUT_MS:
+                continue
+            if instance.graph.index == 0x0686:
+                # Re-entry reuses the instance. Pending actions carry their original sync values.
+                root = instance.states.get(0)
+                if root is None or not root.active:
+                    continue
+            pending.append(event)
+        return Snapshot(self.frame, callout=history[-1].serial, callouts=tuple(pending))
+
     def _add_var(self, snap: Snapshot, owner: int, var_id: int, var: runtime.Var) -> None:
         bindings = tuple(
-            Binding(link.state.instance.id, link.state.index, link.slot, link.priority, link.above)
+            Binding(link.state.instance.id, link.state.index, link.slot, link.priority, link.above,
+                    link.dynamic, link.frame_cached)
             for link in var.links
             if link.stack and link.state.active and link.state.networked
         )
@@ -414,7 +1019,10 @@ class BodyScript(ReplicatedBody):
             # Uncertain: the client would re-check it every update with its own answer and flip it against
             # ours in every frame. Not sent, it stays off there (its live subgraph is sent).
             return
-        payload = state.payload() if family(cls) != "none" else {}
+        codec = family(cls)
+        payload = state.payload() if codec != "none" else {}
+        if codec in ("value_slot", "linked_target", spray_placement.CODEC) and not payload:
+            return
         snap.states[(owner, index)] = (cls, state.active, tuple(sorted(payload.items())))
 
     def tree_frame(self) -> tuple[BitWriter, Snapshot]:
@@ -453,6 +1061,8 @@ class BodyScript(ReplicatedBody):
             return wires[item]
 
         keys = set()
+        callout = frame_callout(base, snap, touched, keys, self.stream.last + 1)
+        snap = snap.for_delta(base, keys)
         for item in snap.instances:
             if item not in base.instances:  # new (a repeated descriptor is taken as the same instance)
                 wire(item).descriptor = True
@@ -475,7 +1085,7 @@ class BodyScript(ReplicatedBody):
                 entity_vars[var] = now or (None, ())
             else:
                 wire(owner).vars[var] = now or (None, ())
-        touched_states = {key[1:] for key in touched if key[0] == "state"}
+        touched_states = {key[1:] for key in touched | keys if key[0] == "state"}
         for key in set(snap.states) | set(base.states) | touched_states:
             owner, index = key
             if owner not in snap.instances:
@@ -504,7 +1114,8 @@ class BodyScript(ReplicatedBody):
                 self._volley_start(snap, owner, index, wire, entity_vars, keys)
         for item in snap.instances:
             wire(item).events = [EventWire(*event) for event in snap.events.get(item, ())]
-        frame = owner_delta(cmfd, correction, list(wires.values()), entity_vars, graphs, self.frame_ms)
+        frame = owner_delta(cmfd, correction, list(wires.values()), entity_vars, graphs, self.frame_ms,
+                            callout=callout)
         return frame, keys, snap
 
     def _volley_start(self, snap: Snapshot, owner: int, index: int, wire, entity_vars: dict, keys: set):
@@ -537,6 +1148,11 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        self.world.velocity_requests.clear()
+        for instance in list(self.component.instances.values()):
+            for state in list(instance.states.values()):
+                if isinstance(state, nodes.TargetEffects):
+                    state.clear_children()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False
@@ -599,14 +1215,42 @@ class BodyScript(ReplicatedBody):
             stream.initial_owner = update
         return [update]
 
+    def matches_sent_spray(self, instance: runtime.Instance, unlock: int) -> bool:
+        key = (instance.id, instance.start, unlock)
+        return any(
+            0 <= (self.frame - report.cmfd) * self.frame_ms <= WHEEL_CALLOUT_MS and key in report.sprays
+            for report in self.reports
+        )
+
+    def matches_sent_voice_effect(self, instance: runtime.Instance, effect: int) -> bool:
+        stream = self.stream
+        for event in self.world.wheel_callouts:
+            if (event.instance != instance.id or event.start != instance.start
+                    or (instance.graph.index, event.node) != nodes.WHEEL_VOICE_PULSE
+                    or not isinstance(event.choice, Asset)):
+                continue
+            action = event.choice.guid - WHEEL_ACTION_PREFIX
+            if action not in WHEEL_VOICE_ACTIONS:
+                continue
+            slot = WHEEL_VOICE_ACTIONS.index(action)
+            if (self.world.equipped_wheel_asset(self.world.voice_effects, slot).guid == effect
+                    and stream.sent_voice_pulse(event.serial)):
+                return True
+        return False
+
     def report_sent(self, last: int) -> None:
-        """Record the owner delta actually transmitted for projectile confirmation."""
+        """Record the owner delta actually transmitted."""
         stream = self.stream
         pending = stream.pending.get(last)
         if pending is None or last in stream.sent_reports:
             return
         snapshot, keys = pending
+        serial = next((key[1] for key in keys if key[0] == "callout"), None)
+        if serial is not None and any(event.serial == serial and snapshot.is_voice_pulse(event)
+                                      for event in self.world.wheel_callouts):
+            keys.add(("voice_sent", serial))
         volleys = {}
+        sprays = set()
         for key in keys:
             if key[0] != "state":
                 continue
@@ -615,9 +1259,15 @@ class BodyScript(ReplicatedBody):
             if state is not None and state[0] == VOLLEY:
                 values = dict(state[2])
                 volleys[state_key] = (values["counter"], values["start"])
+            elif state is not None and state[0] == spray_placement.STATE_CLASS and state[1]:
+                instance = self.component.instances.get(state_key[0])
+                unlock = dict(state[2]).get("unlock")
+                if instance is not None and instance.graph.index == 0x02CF and unlock:
+                    sprays.add((instance.id, instance.start, unlock))
         self.report_count += 1
         introductions = frozenset(key[1:] for key in keys if key[0] == _VOLLEY_INTRODUCTION)
-        report = OwnerReport(self.report_count, snapshot.k, last, volleys, introductions)
+        report = OwnerReport(self.report_count, snapshot.k, last, volleys, introductions,
+                             sprays=frozenset(sprays))
         stream.sent_reports[last] = report
         self.reports.append(report)
         del self.reports[:-MAX_REPORTS]
@@ -625,6 +1275,28 @@ class BodyScript(ReplicatedBody):
             # Before the first actual send, the queued initial can still coalesce.
             # After send, retain its original chunk and report through transport retries.
             stream.initial_owner.resend = True
+
+
+def create_body_graphs(
+    component: runtime.Component, record: dict, *, include_initial: bool = True,
+) -> list[runtime.Instance]:
+    """Allocate the weapon manager and slots, plus any initial graphs not already mounted."""
+    weapons = record.get("weapons") or []
+    component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+    component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
+    created = create_initial_graphs(component, record) if include_initial else []
+    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if component.strict and record.get("manager") is not None and manager is None:
+        raise ValueError("body weapon manager graph is unavailable")
+    if manager is not None:
+        created.append(component.create(manager, init=False))
+    for slot, item in enumerate(weapons):
+        weapon = graph.graph(item) if item is not None else None
+        if component.strict and item is not None and weapon is None:
+            raise ValueError(f"body weapon graph is unavailable for slot {slot}")
+        if weapon is not None:
+            created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
+    return created
 
 
 def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
@@ -702,7 +1374,7 @@ class BodyStream:
 
     def full(self, frame: BitWriter, snapshot: Snapshot):
         self.last += 1
-        self.pending[self.last] = (snapshot, set())
+        self.pending[self.last] = (replace(snapshot, callouts=()) if snapshot.callouts else snapshot, set())
         self.latest_lost = None
         self.full_update = self._update(frame, 0, resend=True)
         return self.full_update
@@ -710,6 +1382,8 @@ class BodyStream:
     def delta(self, frame: BitWriter, snapshot: Snapshot, keys: set, cmfd: int):
         self.last += 1
         self.cmfd = cmfd
+        if self.base is not None:
+            snapshot = snapshot.for_delta(self.base, keys)
         self.pending[self.last] = (snapshot, keys)
         self.latest_lost = None
         return self._update(frame, self.base_last + 1, resend=False)
@@ -727,11 +1401,30 @@ class BodyStream:
         if last == self.last:
             self.latest_lost = snapshot
 
+    def sent_voice_pulse(self, serial: int) -> bool:
+        # Acknowledgments advance in queue order. A retained voice pulse stays
+        # eligible until its instance ends, including across lost datagrams.
+        if self.base is not None and self.base.callout >= serial:
+            return True
+        key = ("voice_sent", serial)
+        return key in self.lost_keys or any(key in keys for _, keys in self.pending.values())
+
     def touched(self) -> set:
         found = set(self.lost_keys)
-        for _, keys in self.pending.values():
-            found |= keys
-        return {key for key in found if key[0] != _VOLLEY_INTRODUCTION}
+        base = self.base
+        for snapshot, keys in self.pending.values():
+            for key in keys - found:
+                if key[0] == _VOLLEY_INTRODUCTION:
+                    continue
+                if key[0] == "state" and base is not None:
+                    state = key[1:]
+                    if snapshot.states.get(state) == base.states.get(state):
+                        # This later packet only repeated a state the client has
+                        # now acknowledged. Keep the original key for future
+                        # baselines and possible loss, but don't propagate it.
+                        continue
+                found.add(key)
+        return found
 
     def kill_feed_snapshot(self, snap: Snapshot, *, allowed: bool) -> Snapshot:
         """Gate the first new death pulse and keep its wire value until acknowledged."""

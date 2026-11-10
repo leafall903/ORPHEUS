@@ -22,7 +22,13 @@ The file is gzip JSON:
   (graph index and schema overrides m_1EB5A024) and its weapon component's manager and weapon scripts.
 - "entities" (optional): additional body records with the same graph fields. An "ai_weapon_buttons" map
   can link decimal fire-control slots to logical buttons from the associated AI definition.
+- "junkenstein" (optional): encounter-specific entity records and their hero/body/controller pairings.
 - "mode_variables" (optional): per 0C5 mode GUID, its explicit mode entity values by 01C identifier index.
+- "mode_scripts" (optional): per 0C5 mode GUID, its primary/shared graphs, loading flag and team scripts.
+- "mission_scripts" (optional): per map and mode GUID, a configured mission graph with its mode graph,
+  source asset and schema overrides. These bindings come from external map/mission inputs.
+- "map_scripts" (optional): per map GUID, placed statescript component instances in entity order,
+  including graph order and schema overrides. This is not entity-definition defaults or transforms.
 - "missing": graph indexes referenced but not in the dump.
 
 Which states a frame carries (read in the client at 0x7FF78991BE30):
@@ -35,14 +41,17 @@ instance scope (0x7FF78991C270).
 
 import gzip
 import json
+import os
 import re
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from pathlib import Path
 
 from ow174.game.script.expr import Asset
 from ow174.paths import DATA_DIR
 
-GRAPHS_PATH = DATA_DIR / "game_graphs_174.json.gz"
+_graph_bundle = os.environ.get("ORPHEUS_GRAPH_BUNDLE")
+GRAPHS_PATH = Path(_graph_bundle).resolve() if _graph_bundle else DATA_DIR / "game_graphs_174.json.gz"
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -300,13 +309,57 @@ def graph_indexes() -> list[int]:
 
 def bodies() -> dict[int, dict]:
     """Hero body (003 GUID) -> {"hero", "name", "graphs": [{"graph", "m_1EB5A024", ...}], "manager",
-    "weapons"}."""
+    "weapons"}; new bundles also retain "script_component" (definition or known absence)."""
     return {int(key, 16): record for key, record in _data()["bodies"].items()}
 
 
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
+
+
+def junkenstein_enemy(hero: int) -> dict | None:
+    """Return the encounter's authored body and controller pair for a hero resource."""
+    return _data().get('junkenstein', {}).get('pairs', {}).get(f'0x{hero:016X}')
+
+
+def junkenstein_entity(definition: int) -> dict | None:
+    """Read one encounter-specific body or controller record."""
+    return _data().get('junkenstein', {}).get('entities', {}).get(f'0x{definition:016X}')
+
+
+def junkenstein_player_tags(body: int) -> list[int] | None:
+    """Return authored tags for the player body, or unknown for older bundles."""
+    return _data().get('junkenstein', {}).get('player_target_tags', {}).get(f'0x{body:016X}')
+
+
+def entity_script_component(definition: int, *, junkenstein: bool = False):
+    """Actual entity component dict, known absence None, or unknown old/missing data.
+
+    The encounter uses its own catalog so a boss can use different startup
+    data from the playable hero. A legacy flattened list cannot declare absence.
+    """
+    if (type(definition) is not int or not 0 < definition < 1 << 64
+            or definition >> 48 != 0x0400 or not definition & 0xFFFFFFFFFFFF):
+        raise ValueError('script component definition must be a nonzero .003 entity resource')
+    key = f'0x{definition:016X}'
+    data = _data()
+    sections = ((data.get('junkenstein', {}).get('entities', {}),) if junkenstein
+                else (data.get('bodies', {}), data.get('entities', {})))
+    if any(not isinstance(section, dict) for section in sections):
+        raise ValueError('invalid entity script component catalog')
+    records = [section[key] for section in sections if key in section]
+    if any(not isinstance(record, dict) for record in records):
+        raise ValueError('invalid entity script component record')
+    if not records or any('script_component' not in record for record in records):
+        return NotImplemented
+    component = records[0]['script_component']
+    if any(record['script_component'] != component for record in records[1:]):
+        raise ValueError('conflicting entity script component definitions')
+    if component is not None and (not isinstance(component, dict)
+                                  or component.get('$') != 'STUStatescriptComponent'):
+        raise ValueError('unsupported entity script component definition')
+    return component
 
 
 @cache
@@ -324,3 +377,17 @@ def mode_variables(mode: int) -> dict[int, bool | int | Asset] | None:
 def missing() -> list[int]:
     """Graphs a kept graph names that are not in the dump."""
     return list(_data()["missing"])
+
+
+def mode_scripts(mode: int) -> dict | None:
+    """The authored mode/team script associations, absent in older runtime bundles."""
+    return _data().get("mode_scripts", {}).get(f"0x{mode:016X}")
+
+
+def mission_script(mode: int, map_guid: int) -> dict | None:
+    """A map's configured mission script, keyed by both map and supported mode.
+
+    Local extractors retain the source mission asset and its mode graph alongside
+    the configured graph. Older bundles have no dynamic mission bindings.
+    """
+    return _data().get("mission_scripts", {}).get(f"0x{map_guid:016X}", {}).get(f"0x{mode:016X}")

@@ -1,0 +1,114 @@
+Native persistent sending message State
+Target: original PC build104319. Explicit EntityInstance services; paired receiver open.
+
+Runtime integration
+Strict STU_38EE1100 now registers itself in the persistent message manager instead
+of broadcasting an ordinary Entry packet. The State retains its authored params
+for later receiver evaluation. Registration does not read or snapshot them.
+Permissive legacy execution retains its previous transport model.
+
+An explicit message_state.Host shares one manager across component Contexts.
+Every operation uses the initiating component's budget and validates its current
+world binding. SceneWorld accepts declared Contexts and retires them on detach,
+replacement or failure. No global/TLS manager, native frame or role is inferred.
+Owners provide priority-resource resolution, the native frame, policy inputs,
+receiver dirty notifications and the separate once-only VM timer notification.
+Unknown services, policies, results or target types remain strict.
+
+D4C3E0 first removes every old key in its stored order. It evaluates the message
+through scalar success plus first-Asset conversion and uses the low uint32 key;
+zero skips priority, frame, role and target work. Priority is also a scalar Asset,
+resolved by173BA30 to a resource containing float+8 and ordering-byte+C. A known
+missing resource means0/false; an unknown lookup is not a missing resource.
+The native frame getter runs even when an existing frame/sequence is retained.
+Only a frame of-1 causes a fresh frame and unassigned sequence to be used.
+
+The two target policy classes derive from plain STUInstance, not ConfigVar.
+1D719351 uses its three authored bytes to select global channels.9B213168 collects
+its nested targets through the generic config iterator with this State as watcher.
+It preserves repeated valid entities, skips invalid/non-entity values and can
+register both primary and secondary channels. Native instance flag3, State+C0,
+mode and local/world identity results determine flags1/2/4/8/16/32. These inputs
+are explicit Policy fields; their engine meanings are not guessed from names.
+Only policy fields reached by the native branch must be known.
+
+Normal State begin resets frame/sequence to-1, then the base begin path invokes
+the registration update after class begin/enter hooks and before authored plugs.
+Reentry, watched changes and ticking refresh registration while retaining the
+assigned frame/sequence. The registered native tick list is distinct from an
+ordinary packet delivery. Complete prediction, rollback and native frame phases
+are not established by this integration with the existing VM scheduler.
+
+The post-registration1B72510 call forwards to EntityInstance table262E740+E0,
+which is the known null callback1CE5640. It does not evaluate transition plugs.
+The Python backend leaves transition handling to the common State lifecycle.
+An initial implementation mistook this for a transition check; final source
+removes that extra call and has a regression for duplicated transition actions.
+The final native probe executes the original forwarding helper and null callback.
+
+D4DB20 initializes the notification flag from the authored secondary-channel
+byte, global world-channel bytes or node policy enum. D4CDE0 accepts timer param1
+only, sets the flag before calling VM+110 and does not call it twice. Ending
+removes registrations and normal VM cleanup removes watchers/ticking. Destruction
+and poisoned/detached owners discard their own manager rows without authored
+callbacks. Other components sharing the manager retain their rows and services.
+Cleanup after detachment cannot borrow a replacement context or poison its VM.
+A terminal discard during a manager callback invalidates that operation.
+
+Reply payload
+D4D510 writes the low16 bits of sequence+204.185C120 emits a presence bit, then
+variable-width unsigned16 only when the low word is nonzero. The old encoder
+always omitted this reply. statescript.write_payload now preserves it. D4BAC0
+reads the same value, zero-extends it and stamps its supplied native frame.
+Cleanup retains the last sequence. Constructor-uninitialized native sequence data
+is not claimed by the before-begin Python placeholder. Incoming manager history,
+reconciliation and complete receiver payload behavior remain open.
+
+Verification
+4626 original D4C3E0 comparisons cover target policies, all boolean role inputs,
+secondary channels, scalar guards, priority resources, preserved/unassigned
+frames/sequences, duplicate targets, stored keys and exact native manager rows.
+D4F620, D4A4F0, D9A770, D9B440, generic config traversal and conversions execute
+unchanged. Adapters supply explicit State config/manager/frame/role inputs,
+literal configs, resource lookup, storage and security cookies. The EntityInstance
+post-update helper/null callback also execute unchanged; there is no transition
+callback adapter in the final probe.
+
+396 original initialization-flag cases and16 twice-invoked timer cases agree.
+768 original writer and768 reader cases cover low-word truncation, selector width
+boundaries and every starting bit offset0..63, including word rollover. The native
+bit writer, flush and reader run directly against supplied buffers. The incoming
+frame getter is the only reader service adapter. No game code is patched.
+The manager's17920 selection,17920 collection and3554 mutation comparisons also
+pass with its final discard/guard extension. Two new manager tests and22 sender
+tests cover ownership, shared budgets, cleanup, filters, timer gating, transition
+side effects and reply decoding. Final1035 related tests pass in25.509s and33
+server journal/snapshot/injection tests pass in244.383s (1068 total), with matching
+frozen source hashes and Ruff/diff checks. Intermediate runs before the null
+callback correction are archived and are not the final-source acceptance.
+
+Actual100B,0F44,0C90,0F45 and0F65 contain47 sending nodes. Isolated pre-init
+registration fixtures use three explicit role profiles, frame170 and known
+priority inputs.44 nodes complete all three profiles:132 rows,129 with nonempty
+keys,225 total registrations. The other three nodes retain strict queries:
+100B/node299 DB742151,100B/node301 B3E67A36 and0C90/node108 0AC15F78, in all profiles.
+The fixture's all-senders-passed result remains false. It executes no ordinary
+mode/controller initialization, entry/begin/transition plugs or receiving State.
+This does not demonstrate mission progression or derive actual server roles.
+
+Fresh ordinary/placed/real-Match probes retain the same frontiers: ordinary
+controller81A9AB10; root100B D38D0035/node106 before controller execution;148 prepared
+components, cleanup and no readiness;50/123 nonempty placed first frames complete.
+Three explicit controller profiles and all15 isolated actual100B Entry fixtures
+also retain their previous boundaries. No fresh original-client session or normal
+deployment is claimed. MESSAGE_PARAMETERS.txt and MESSAGE_RECEIVER.txt now
+record the parameter and receiving-State integration, including channel/epoch
+selection, row-ID links, context outputs, subgraphs and codec. Native engine
+roles/generation/filter policy, indexed/keyed storage and original-client receiver
+acceptance remain open, as do full story, cinematics, five enemy AI types and
+extraction/results. Passive shared-manager export/restore remains unsupported.
+
+Evidence: local verification/retribution/message-sender-native/flags/codec/authored/
+controller/full/root-bindings/ordinary/placed/match validation files and probes.
+Pre-instance-callback logs preserve the superseded intermediate test runs.
+Native images, extracted assets, captures and probes stay outside Git.

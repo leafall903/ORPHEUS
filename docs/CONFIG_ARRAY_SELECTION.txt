@@ -1,0 +1,33 @@
+Config array item selection (104319)
+
+STU_4BD39CFD evaluates an index through scalar +20 and its container through
+collecting +28. Native constructor1B7EFC0 installs vtable27AD858; its +20 method
+is1B79A60. Runtime Context delegates this config to play.array_item so config
+groups use their collecting interface and both operands retain variable watches.
+
+Observed behavior:
+- Missing/failed index evaluation selects zero. F65260 performs integer
+  conversion, including rounding a float index away from zero at a half.
+- The container must be an array value. A scalar at index0 does not match.
+- F64790 selects a present element, then F638A0 copies the complete value;
+  nested arrays and null elements retain their types.
+- Missing/failed/non-array containers and absent indices successfully write
+  null via F672D0. They do not preserve the caller's old destination.
+- Unknown child configs still fail strict execution. This implementation does
+  not supply missing world/entity services or invent a mission difficulty.
+
+Evidence and limits:
+An offline Unicorn probe executes the original selector, F65260 conversion and
+F64790 lookup from the existing authorized client-memory image. Fifteen cases
+match the Python runtime, including negative/past-end indices, a null element,
+a nested array, failed index/container, scalar container and float conversion.
+Config providers and value storage/copy/destruction use explicit adapters; this
+does not establish native engine allocation or original-client presentation.
+Five source tests additionally cover authored difficulty selection, collecting
+config groups, watcher-driven branch changes and strict unknown-child refusal.
+
+The Enforcer weapon uses this selector for difficulty-indexed damage. With an
+unverified controller predicate supplied only in an external experiment, its
+actual weapon graph now produces nonzero damage. Production NPC controller
+queries and the complete Enforcer/Assassin attacks remain open. No production
+query was forced true and no replacement weapon/damage table was installed.

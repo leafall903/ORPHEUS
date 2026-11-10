@@ -70,6 +70,7 @@ class Session:
         self.ident: Identity | None = None
         self.logged_in = False
         self.party_channel: dict | None = None  # the party chat channel the client has joined
+        self.npc_menu_open = False
         self.watched_groups: set[tuple] = set()  # party ids picked in the group finder (52204)
         self.crc_at: dict[int, int] = {}  # wire index -> protocol group CRC, from the announcement
         self.wire_of: dict[int, int] = {}  # protocol group CRC -> wire index

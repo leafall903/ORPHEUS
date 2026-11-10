@@ -31,6 +31,7 @@ import logging
 import math
 from collections import deque
 from copy import deepcopy
+from dataclasses import replace
 
 from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
 from ow174.game.collision import (
@@ -43,13 +44,23 @@ from ow174.game.collision import (
     default_collision_provider,
 )
 from ow174.game.commands import Command, CommandQueue
-from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
+from ow174.game.content import (
+    JUNKENSTEIN_MAP,
+    JUNKENSTEIN_MODES,
+    JUNKENSTEIN_THREE_THEY_WERE,
+    PRACTICE_RANGE,
+    SOLDIER,
+    GameMap,
+    Hero,
+    heroes,
+    spawn_point,
+)
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import WHEEL_ACTION_CATEGORIES, WHEEL_ACTION_PREFIX, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -213,6 +224,7 @@ class Player:
         self.spawn = spawn_point(match.game_map, team, number)  # (position, yaw in degrees)
         self.mover = self.new_mover()
         self.commands = CommandQueue()
+        self.impulse_correction: tuple[int, int] | None = None
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
         # Other players' bodies this player's client has: body -> False in the frame of its create.
@@ -297,7 +309,13 @@ class Player:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
-                if not dead and self.body_script is not None:
+                aim_lock = getattr(self.match.scene_host, 'player_aim_lock', None)
+                if not dead and aim_lock is not None and (locked := aim_lock(self)) is not None:
+                    yaw, pitch = locked
+                    command = replace(command, yaw=yaw, pitch=pitch, click_yaw=None, click_pitch=None)
+                hook_victim = getattr(self.match.scene_host, 'hook_victim', None)
+                hooked = hook_victim is not None and hook_victim(self) is not None
+                if not dead and (self.body_script is not None or hooked):
                     self.mover.step(
                         command, seconds, self.match.tick,
                         simulate_pose=self._step_body_pose,
@@ -321,9 +339,23 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
+        if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
+            return
+        stunned = self.match.combat.is_stunned(self, tick=tick)
+        if stunned:
+            command = replace(command, forward=0, right=0, buttons=0, action=0)
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        elif (self.body_script is not None
+              and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
+            # The mover models static supports. Selector 1 preserves vertical velocity.
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        from ow174.game import mccree
+
+        mccree.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
         requests = []
-        if script is not None:
+        if script is not None and not stunned:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -340,7 +372,7 @@ class Player:
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -358,6 +390,7 @@ class Player:
         """Set up the allocated body at the spawn point."""
         self.body = entity
         self.mover = self.new_mover()
+        self.impulse_correction = None
 
     def new_mover(self) -> Mover:
         """The body's mover at the spawn point, with the hero's values and the match's pinned collision.
@@ -380,6 +413,14 @@ def no_skin(account_lo: int, hero: int) -> tuple[int, bool]:
     return 0, False
 
 
+def no_emote_aliases(account_lo: int, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
+    return ()
+
+
+def no_wheel_cosmetics(account_lo: int, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    return (), ()
+
+
 def card_message(player: Player) -> dict:
     """20308 with the player's card. The client keeps the card unless it has one with a newer +0x30
     for the same id (0x7FF789529C90), such as a friend's from the lobby. No chat text."""
@@ -396,6 +437,10 @@ class Match:
         *,
         environment: ExecutionEnvironment | None = None,
         collision_provider: CollisionProvider | None = None,
+        scene_host_factory=None,
+        emote_aliases_of=no_emote_aliases,
+        emote_blend_trees_of=None,
+        wheel_cosmetics_of=no_wheel_cosmetics,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         self.id = (
@@ -407,8 +452,12 @@ class Match:
         # (account, hero GUID) -> (skin theme, golden weapon) the player has equipped, from the lobby.
         # The client's hero select equips a skin through the lobby (24500), even in a match.
         self.skin_of = skin_of
+        self.emote_aliases_of = emote_aliases_of
+        self.emote_blend_trees_of = emote_blend_trees_of
+        self.wheel_cosmetics_of = wheel_cosmetics_of
         self.controller = heroselect.controller_of(game_map.mode_guid)
         self.tick = 0  # the server's frame number, set every tick
+        self._npc_planning_turn = 0
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.assembled = False
         self.players: list[Player] = []
@@ -427,6 +476,10 @@ class Match:
         self.collision_state = LoadState("pending")
         self.collision_world: World | None = None
         self._collision_failed = False
+        self.scene_host_factory = scene_host_factory
+        self.scene_host = None
+        self.scene_host_started = False
+        self.scene_host_error = None
         self._refresh_collision()
 
     def _refresh_collision(self) -> bool:
@@ -464,11 +517,67 @@ class Match:
         tournament: bool,
         card: dict | None = None,
     ) -> Player:
-        hero = heroes().get(hero_guid) or heroes()[SOLDIER]
+        fixed = self.controller.hero if isinstance(self.controller, heroselect.FixedController) else None
+        hero = heroes().get(fixed or hero_guid) or heroes()[SOLDIER]
         quanta = TOURNAMENT_QUANTA if tournament else RETAIL_QUANTA
         player = Player(self, len(self.players), account_lo, name, hero, team, quanta, card)
         self.players.append(player)
         return player
+
+    def _advance_scene(self, now: float, tick: int) -> bool:
+        if self.scene_host_factory is None:
+            return True
+        if self.scene_host_error is not None:
+            return False
+        try:
+            if not self.scene_host_started:
+                self.scene_host_started = True
+                host = self.scene_host_factory(self)
+                if isinstance(host, scene_host.SceneHost):
+                    self.scene_host = host
+                if (self.scene_host is None or host.world.map_guid != self.game_map.map_guid
+                        or host.world.mode != self.game_map.mode_guid
+                        or host.frame_ms != RETAIL_QUANTA // 1000):
+                    raise ValueError('scene host does not belong to this map, mode or clock')
+                created = {entry.placement.flat for entry in host.world.entities.values()
+                           if entry.placement is not None
+                           and entry.id == (0x80000000 | entry.placement.flat)}
+                if created != set(self.game_map.placeables):
+                    raise ValueError('scene script world differs from actual match placeable creates')
+                if self.game_map.map_guid == JUNKENSTEIN_MAP and self.game_map.mode_guid in JUNKENSTEIN_MODES:
+                    # The ready switch waits for the admitted roster. Arcade can
+                    # start a local Junkenstein match with fewer than four players.
+                    host.world.team_member_count = lambda team: sum(
+                        player.team == team and not player.gone for player in self.players
+                    )
+                    host.world.configure_junkenstein_card(self.card)
+                    if self.card == JUNKENSTEIN_THREE_THEY_WERE:
+                        # The blue team's Damage Dealt rule (2539) in 011C.0C0.
+                        self.combat.defender_damage_scale = 1.2
+                    if host.world.session_entity_roster is None:
+                        host.world.session_entity_roster = lambda: (
+                            player.entity for player in self.players if not player.gone
+                        )
+                    if host.world.player_participant_roster is None:
+                        host.world.player_participant_roster = lambda: (
+                            (player.entity, PLAYER_FILTER | player.team_bit, 0)
+                            for player in self.players if not player.gone
+                        )
+            if self.scene_host is None or not self.scene_host.advance(tick):
+                raise ValueError(str(None if self.scene_host is None else self.scene_host.error))
+            return True
+        except Exception as error:
+            log.exception('[game] %s: scene script host failed', self.label())
+            self.scene_host_error = str(error)
+            for player in self.players:
+                if not player.gone:
+                    if player.client is not None:
+                        player.client.go_home(now)
+                    self.leave(player, 'scene script host failed')
+            if self.scene_host is not None:
+                self.scene_host.close()
+            self.ended = True
+            return False
 
     def label(self) -> str:
         return f"match {self.id[0] & 0xFFFF:04X}"
@@ -540,6 +649,8 @@ class Match:
         )
         updates.append(EntityUpdate(GAME_MODE_ENTITY, OP_CREATE, self._game_mode_create))
         updates.extend(self._bot_create_update(bot) for bot in self.bots)
+        if self.scene_host is not None:
+            updates.extend(self.scene_host.spawned_entity_updates())
         if self.bots:
             self.bots_shown[viewer.slot] = self.tick
         for other in self.players:
@@ -548,15 +659,28 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import heavy_assault, npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {"controller_components": components}
+            manual_rialto_spawn = (self.game_map.map_guid == 0x080000000000079F
+                                   and bot.spawner.get("manual_spawn") is True)
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                manual_nameplate=manual_rialto_spawn,
+                nameplate_name=bot.name if manual_rialto_spawn else None,
+                manual_rialto_spawn=manual_rialto_spawn,
+                **context,
             )
+            if (components is not None
+                    or (bot.hero in heavy_assault.MELEE and bot.spawner.get("manual_spawn") is True)):
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -566,18 +690,30 @@ class Match:
         vitals = self.combat.vitals.get(bot.entity)
         components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.ids)
         components[26] = [TEAM_BIT << bot.team]
-        return EntityUpdate(bot.entity, OP_CREATE, lambda origin: self._bot_create(origin, bot, components))
+        definition, position, rotation = bot.body, bot.position, _rotation(bot.yaw)
+        return EntityUpdate(
+            bot.entity, OP_CREATE,
+            lambda origin: self._bot_create(origin, definition, components, position, rotation),
+        )
 
     @staticmethod
-    def _bot_create(origin: int, bot: bots.Bot, components: dict) -> world.RecordWriter:
+    def _bot_create(origin: int, definition: int, components: dict, position, rotation) -> world.RecordWriter:
         """A training bot's body, as a player's body on another client: placed by its transform, moved
         by movement records from the next frame on. Without a player body's 123 (the hero): the bots'
         bodies have no such component, and the client fails the whole frame on one it cannot place
         (assert 0xD62712AE, "Failed to deserialize component update ... 143E ... /123"; 143E has 1, 3, 4,
         22, 24, 25, 26, 28, 31, 35, 39, 43, 47, 49, 51, 69, 76, 78, 83, 86, 90, 97, 115, 119, 122, 127)."""
         return world.create(
-            origin, bot.body, components, flags=BODY_FLAGS, position=bot.position, rotation=_rotation(bot.yaw)
+            origin, definition, components, flags=BODY_FLAGS, position=position, rotation=rotation,
         )
+
+    def publish_bot(self, bot: bots.Bot) -> None:
+        """Queue the new body's baseline for viewers already in the world."""
+        bot.records_from = self.tick + BOT_RECORD_DELAY
+        for viewer in self.players:
+            if viewer.client is not None and viewer.spawned:
+                viewer.client.queue_entities([self._bot_create_update(bot)])
+                self.bots_shown.setdefault(viewer.slot, self.tick)
 
     @staticmethod
     def _shown(player: Player) -> bool:
@@ -732,11 +868,18 @@ class Match:
         shown = self.bots_shown.get(viewer.slot)
         client = viewer.client
         if client is not None and shown is not None and self.tick - shown >= BOT_RECORD_DELAY:
-            updates += [
-                EntityUpdate(bot.entity, movement=bot.movement(self.tick))
-                for bot in self.bots
-                if client.bot_create_acked(bot.entity) and bot.record_due(self.tick, SEND_EVERY)
-            ]
+            for bot in self.bots:
+                if not client.bot_create_acked(bot.entity) or not bot.record_due(self.tick, SEND_EVERY):
+                    continue
+                movement = bot.movement(self.tick)
+                update = EntityUpdate(bot.entity, movement=movement)
+                if self.game_map.map_guid == 0x080000000000079F and bot.spawner.get("manual_spawn") is True:
+                    update.npc_idle = (
+                        not bot.firing and not bot.walking() and not movement.flags
+                        and movement.velocity == (0, 0, 0) and movement.throttles == (0, 0)
+                        and movement.input_frame is not None and movement.spring_speed == 0
+                    )
+                updates.append(update)
         own = correction.own_record(viewer, self.tick)
         if own is not None:
             updates.append(own)
@@ -849,6 +992,8 @@ class Match:
     def update(self, now: float, tick: int, *, frames: bool | None = None) -> None:
         """Run the spawn steps of players who loaded, keep their statescript acked, walk the training
         bots, and show new players and bodies to the others."""
+        if self.ended:
+            return
         if frames is None:
             frames = sends(tick)
         self.tick = tick
@@ -856,12 +1001,25 @@ class Match:
         if self.collision_state.status == "unavailable":
             self._collision_failure(now)
             return
+        if ready and not self._advance_scene(now, tick):
+            return
         if ready and self.bots:
+            from ow174.game import npc_navigation
+
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
+            manual = [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
+            budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
+            if budgets:
+                self._npc_planning_turn += 1  # server ticks can skip under load
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world)
+                if bot.spawner.get('manual_spawn') is True:
+                    npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
+                                        plan_budget=budgets.get(bot.entity, 0))
+                    continue
+                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                         paused_until=self.combat.stuns.get(bot.entity, 0))
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -892,6 +1050,7 @@ class Match:
 
     def _spawn_steps(self, player: Player, client, now: float) -> None:
         waited = now - player.loaded_at
+        scene_ready = self.scene_host is not None and self.scene_host.client_ready
         if player.steps_done == 0 and waited >= SEND_OWN_ENTITY:
             client.queue_ownership()
             player.steps_done = 1
@@ -904,17 +1063,27 @@ class Match:
             and client.ownership_delivered()
             and self.collision_world is not None
             and not self._pending_bot_scripts
+            and (self.scene_host_factory is None or scene_ready)
         ):
             client.queue_entities(self.spawn_updates(player))
             player.steps_done = 3
             player.spawned = True
             self.notices.entered_world(player)
             log.info("[game] %s: %s spawned", self.label(), player.describe())
-            if self.controller is heroselect.PVP and self.assemble_ends is None:
+            if not scene_ready and self.controller.graph == heroselect.PVP.graph and self.assemble_ends is None:
                 self.assemble_ends = now + ASSEMBLE_SECONDS
                 log.info("[game] %s: assemble your team, %d s", self.label(), ASSEMBLE_SECONDS)
         if player.steps_done == 3 and waited >= SEND_CONTROLLER:
+            if scene_ready and not player.mode_script.delivered:
+                return
+            if isinstance(self.controller, heroselect.FixedController) and not client.controller_ready:
+                return
             player.steps_done = 4
+            if isinstance(self.controller, heroselect.FixedController):
+                if not self.switch_hero(player, player.hero):
+                    player.steps_done = 3
+                    return
+                player.select_open = False
             self.send_controller(player)
             self.combat.spawned(player)
         elif player.steps_done == 4 and not player.script.data_last:
@@ -929,7 +1098,9 @@ class Match:
         """The seconds left, as the game mode entity's v1303. The client shows them rounded up."""
         player.next_countdown = now + COUNTDOWN_EVERY
         seconds = max(0.0, self.assemble_ends - now)
-        frame = combat.mode_frame({COUNTDOWN: float(seconds)})  # with the mode's UI graph (combat.py)
+        frame = combat.mode_frame(
+            {COUNTDOWN: float(seconds)}, self.game_map.mode_guid, self.game_map.map_guid,
+        )
         player.client.queue_mode_frame(frame)
 
     def _end_assemble(self, now: float) -> None:
@@ -964,7 +1135,8 @@ class Match:
         switch = self.notices.presence(player)  # the last hero switch for the chat line (notices.py)
         hero = player.controller_hero = player.hero.guid if player.has_body else None
         frame = heroselect.controller_frame(
-            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero
+            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero,
+            body=player.body if player.has_body else None,
         )
         update = player.script.full_frame(frame)
         # A switch notice is a separate event, even when the menu is already closed.
@@ -995,6 +1167,21 @@ class Match:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
         return None
+
+    def resolve_body_spray(self, entity: int, length: float) -> dict | None:
+        collision = self.collision_world
+        player = next((player for player in self.players if player.body == entity and player.has_body), None)
+        if collision is None or player is None or self.combat.is_dead(player):
+            return None
+        mover = player.mover
+        x, y, z = mover.position
+        origin = (x, y + combat.eye_height(player.hero.body, mover.crouched), z)
+        direction = combat.aim(mover.yaw, mover.pitch)
+        spray_geometry = collision.ray_geometry or collision
+        hit = spray_geometry.cast_ray(origin, direction, length, spray_placement.SURFACE_CATEGORY)
+        if hit is None:
+            return None
+        return spray_placement.from_hit(direction, hit)
 
     def _message_player(self, entity: int) -> Player | None:
         shown = (player for player in self.players if player.body == entity and self._shown(player))
@@ -1041,6 +1228,14 @@ class Match:
         if BODY_SCRIPT_HEROES is not None and player.hero.guid not in BODY_SCRIPT_HEROES:
             return
         try:
+            spray_unlocks, voice_effects = self.wheel_cosmetics_of(player.account_lo, player.hero.guid)
+            canonical = heroes().get(player.hero.guid)
+            emote_args = {}
+            if canonical is not None and player.hero.body != canonical.body:
+                emote_args["body_definition"] = player.hero.body
+            blends = () if self.emote_blend_trees_of is None else self.emote_blend_trees_of(
+                player.account_lo, player.hero.guid, **emote_args,
+            )
             script = BodyScript(
                 player.hero.guid,
                 player.body,
@@ -1049,6 +1244,11 @@ class Match:
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
                 match=self,
+                body_definition=player.hero.body,
+                emote_aliases=self.emote_aliases_of(player.account_lo, player.hero.guid, **emote_args),
+                emote_blend_trees=blends,
+                spray_unlocks=spray_unlocks,
+                voice_effects=voice_effects,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
@@ -1082,7 +1282,10 @@ class Match:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
-            script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+            script.command(
+                command.frame, command.buttons, command.action, command.forward, command.right,
+                grounded=not player.mover.airborne,
+            )
         except Exception as error:
             bodytrace.failed(script, error)
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)
@@ -1111,6 +1314,53 @@ class Match:
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)
             self.stop_body_script(player, failed=True)
 
+    def communication_action(self, player: Player, value: dict) -> None:
+        """Deliver a 21608 wheel action on the sender's current body."""
+        action = value["+0x78"]
+        if action & ~0xFFFFFFFF != WHEEL_ACTION_PREFIX:
+            return
+        if not any((action & 0xFFFFFFFF) in actions for actions in WHEEL_ACTION_CATEGORIES.values()):
+            return
+        params = {0x8FC: expr.Asset(action), 0x3E1: value["+0x80"]}
+        if action == (WHEEL_ACTION_PREFIX | 0x170):
+            marker = (value.get("+0x84") or {}).get("+0x0", 0)
+            if marker:
+                params[0x644] = expr.Entity(marker)
+        self.queue_body_message(player.body, 0x02400000000002A3, params, player.body)
+
+    def _wheel_use_report(self, player: Player, value: dict, parameters: bytes) -> None:
+        # 904C20 uses the default message header, then one 053B Asset row.
+        prefix = b"\x00\x00\x00\x00\x01\xC3\x3B\x05\x40\x0A\x04"
+        if len(parameters) != 27 or parameters[:11] != prefix or parameters[19:] != bytes(8):
+            return
+        script = player.body_script
+        if (script is None or script.retired or script.component.fault is not None
+                or not player.has_body or script.entity != player.body
+                or (value.get("+0x78") or {}).get("+0x0") != player.body):
+            return
+        instance = script.component.instances.get(value.get("+0xB0"))
+        if instance is None or instance.stopped:
+            return
+        reported = int.from_bytes(parameters[11:19], "little")
+        if not reported:
+            return
+        if instance.graph.index == 0x02CF:
+            placement = instance.state(1)
+            pulse = instance.state(14)
+            current = (placement is not None and placement.active and pulse is not None and pulse.active
+                       and placement.payload().get("unlock") == reported)
+            accepted = current or script.matches_sent_spray(instance, reported)
+        elif instance.graph.index == 0x0686:
+            pulse = instance.state(13)
+            query = instance.graph.node(67).field("m_value")
+            accepted = (pulse is not None and pulse.active
+                        and (instance.evaluate(query) == expr.Asset(reported)
+                             or script.matches_sent_voice_effect(instance, reported)))
+        else:
+            return
+        if accepted:
+            runtime.send_instance_message(instance, 0x0240000000001313, {0x53B: expr.Asset(reported)}, player.body)
+
     def game_message(self, player: Player, value: dict, now: float) -> None:
         """21616: a game message a statescript action sends to the server, such as a hero pick."""
         message = value.get("+0xA8", 0)
@@ -1123,6 +1373,11 @@ class Match:
             value.get("+0xB0"),
             parameters.hex(" "),
         )
+        if message == 0x0240000000001313:
+            self._wheel_use_report(player, value, parameters)
+            return
+        if isinstance(self.controller, heroselect.FixedController):
+            return  # Tutorial has no hero picker or reopen request.
         if message == heroselect.PICK_HERO:
             hero = heroes().get(heroselect.picked_hero(parameters) or 0)
             if hero is None:
@@ -1223,6 +1478,8 @@ class Match:
         if self.on_leave is not None:
             self.on_leave(player)
         if all(other.gone for other in self.players):
+            if self.scene_host is not None:
+                self.scene_host.close()
             self.ended = True
 
     @property
@@ -1248,7 +1505,7 @@ class Match:
         return taken
 
     def snapshot(self) -> dict:
-        return {
+        result = {
             "id": self.label(),
             "map": self.game_map.name,
             "started": self.started,
@@ -1263,6 +1520,12 @@ class Match:
                 for player in self.players
             ],
         }
+        if self.scene_host_factory is not None:
+            result['scene_script'] = {
+                'started': self.scene_host_started, 'error': self.scene_host_error,
+                'host': None if self.scene_host is None else self.scene_host.snapshot(),
+            }
+        return result
 
 
 def pong(ping: dict, received_ns: int, *, environment: ExecutionEnvironment | None = None) -> dict:

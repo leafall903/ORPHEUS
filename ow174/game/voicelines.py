@@ -1,4 +1,4 @@
-"""In-match hero voice lines: a spawn bark.
+"""In-match hero spawn barks and Talon hit voices.
 
 When a player spawns, the server makes the player's own body statescript enter one of the hero's
 voice-stimulus states, and the client plays the bark. No new wire message is needed: a voice stimulus
@@ -8,7 +8,8 @@ How a bark reaches the client:
 - A voice stimulus is a statescript state, STU_40E05F6B (the client's STUConfigVarVoiceStimulus,
   0x819B1577). Its m_stimulus holds a voice-stimulus GUID (0x0EE0...); when the client's copy of the body
   runs that state on, it plays the hero's line for that stimulus (the hero data picks the actual sound and
-  its variations). The server treats the state as a plain State (no server effect) and only needs it on.
+  its variations). This legacy spawn-bark policy uses a passive server state. Strict authored mission
+  scripts use the native shared VoiceStimulus callbacks with explicit voice services and a poll phase.
 - The server runs the body's statescript (ow174/game/script) and sends the owner an H=1 frame each tick
   with every state that is on and is neither client-only nor server-only (graph.py). So a *networked*
   voice stimulus that the server turns on is carried to the owner's client in the next frame, exactly like
@@ -28,8 +29,9 @@ What is verified (tests/test_game_voicelines.py, with the client model of tests/
   the ones that work.
 
 What is NOT verified: that the chosen stimulus is the line retail plays on spawn, and that the audio
-sounds right in the real client. We cannot run the game here. We pick the first networked stimulus the
-hero has unless `PREFERRED_STIMULUS` names one; fill that table in (a hero GUID -> a 0x0EE0 stimulus GUID)
+sounds right in the real client. This spawn-bark policy has no original-client acceptance. We pick the
+first networked stimulus the hero has unless `PREFERRED_STIMULUS` names one; fill that table in
+(a hero GUID -> a 0x0EE0 stimulus GUID)
 once you have heard the lines in the game and want a particular one.
 """
 
@@ -38,6 +40,12 @@ import logging
 log = logging.getLogger("ow174.game")
 
 VOICE_CLASS = "STU_40E05F6B"  # STUConfigVarVoiceStimulus holder; the state that plays a bark on the client
+TALON_HIT_NOTICE = 27500
+TALON_HIT_STIMULUS = 0x0EE00000000009F7
+TALON_HIT_LINE = 0x076000000000ACB3  # Each 104319 Talon voice set resolves this key to its own clip.
+TALON_HIT_HEROES = frozenset(0x02E0000000000000 | hero for hero in (0x01AC, 0x01CE, 0x01B8, 0x01BB, 0x01BA))
+HEAVY_CHARGE_STIMULUS = 0x0EE00000000009F0
+HEAVY_CHARGE_LINES = (0x076000000000AE7B, 0x076000000000AE7C, 0x076000000000AE7E, 0x076000000000AE87)
 
 # Turn the feature off here to stop all spawn barks.
 VOICE_LINES = True
@@ -48,6 +56,38 @@ BARK_SECONDS = 4.0
 # hero GUID (the 02E...) -> the voice-stimulus GUID (0x0EE0...) to play on spawn, overriding the default
 # "first networked stimulus" pick. Empty by default; add entries once you have picked lines in the game.
 PREFERRED_STIMULUS: dict[int, int] = {}
+
+
+def talon_hit(shooter, victim) -> None:
+    """Send the shooter a native spatial voice request once per Talon reaction."""
+    if victim.hero not in TALON_HIT_HEROES:
+        return
+    _talon_voice(shooter, victim, TALON_HIT_STIMULUS, TALON_HIT_LINE)
+
+
+def heavy_charge(viewer, source, activation: int) -> None:
+    """Cycle through the four authored 104319 Heavy Assault charge lines."""
+    line = HEAVY_CHARGE_LINES[(activation - 1) % len(HEAVY_CHARGE_LINES)]
+    _talon_voice(viewer, source, HEAVY_CHARGE_STIMULUS, line)
+
+
+def _talon_voice(viewer, source, stimulus: int, line: int) -> None:
+    queue_voice_notice(viewer, source.entity, stimulus, line, anchor=source.entity)
+
+
+def queue_voice_notice(viewer, source: int, stimulus: int, line: int, *, anchor: int | None) -> None:
+    client = getattr(viewer, "client", None)
+    if client is None:
+        return
+    client.queue_combat_notice(anchor, TALON_HIT_NOTICE, {
+        "+0x78": {"+0x0": source},
+        "+0x7C": {"+0x0": viewer.body},
+        "+0x80": {"+0x0": 0xFFFFFFFF},
+        "+0x88": stimulus,
+        "+0x90": line,
+        "+0x98": 0,
+        "+0xA0": 0,
+    })
 
 
 def _candidates(body_script) -> list[tuple[object, int, int | None]]:

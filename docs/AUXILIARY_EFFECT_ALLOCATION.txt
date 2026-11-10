@@ -1,0 +1,101 @@
+Auxiliary effect allocation — list ownership and initial authored writes
+Target: original Overwatch 1.74.0.0.104319. Addresses are module RVAs.
+
+effect_allocation.py models the list-entry portion of 9D1D50/6B8ED0/6B8E20.
+An Effect is a descriptor with explicit context, target, observer and parameter
+block. It is not the native 6B3E60 object, a camera, an engine shared pointer or
+a runnable VM state. Target routing, engine construction, consumer advancement,
+observer dispatch and final reclamation remain separate work. The subsequent
+explicit VM callback/route implementation is documented in AUXILIARY_EFFECT_STATE.txt.
+
+Native allocation and retirement
+- 9D1D50 allocates a size300 shared-owner wrapper and constructs the effect at
+  wrapper+10 through 6B3E60. Context, target entity index and observer are passed
+  to that constructor. The effect is retained in a 32-byte list entry before
+  the temporary shared reference is released.
+- Entry+10 is an unsigned 64-bit sort key. Its low32 is the incremented
+  uint32 list counter; 582E0D5F passes high32 zero. Entry+18 starts true.
+  6B8ED0/6B85C0 sort all entries by unsigned key, including retired entries.
+  Serial wrap can put a newly allocated zero key before older large keys.
+- EffectList.allocate retains the descriptor and records this key/live bit.
+  Context/target/observer are supplied inputs, not inferred from a SceneWorld
+  UUID binding or a possession relation. Parameter blocks are independent.
+- 6B8E20 finds the first entry whose effect pointer matches, clears its live
+  byte and returns true. A previously retired match also returns true. Absence
+  returns false. It does not erase, re-sort, clear the observer or release the
+  entry's shared reference. EffectList.retire preserves those distinctions.
+- Consumers must eventually handle retained inactive entries and observer
+  callbacks. The primitive intentionally performs no implicit reclamation or
+  dispatch. Equal sort keys after a complete counter cycle need a native tie
+  order; allocation rejects that unresolved case before mutation.
+
+Initial authored writes
+effect_parameters.initialize models 9D253B..9D2608 after native State+218 has
+already been bound to the effect. Its caller owns that binding and allocation.
+The writes precede the complete refresh documented in AUXILIARY_EFFECT_PARAMETERS:
+
+Effect offset  Authored offset / field        Conversion and failure default
+208            118 0C4BE468                   bool, false
+209            190 F4669F53                   bool, false
+20C            1A0 1A76C130                   f32, zero
+22C            F8  494A6B1F                   bool, false
+F4/F8/FC       100 6A79BD98                   f32, 2.0
+
+The subsequent refresh evaluates 6A79BD98 again and only replaces F4. Therefore
+a changing expression can leave F8/FC at its first value while F4 takes its
+second value. Ordinary refreshes do not overwrite initial-only fields. Scalar
+failure/null behavior, State watchers and shared work budgets are retained.
+
+Specialized scope host discovery
+The captured library/game component tables previously examined had nullsub
+registration slots. A different specialized component is now established by
+constructor9776F0: instruction977717 writes primary vtable262C010. Its scope
+slots are real implementations, not nullsubs:
+  +198 97ABE0 -> A097E0 registers State pointers in helper+ D8,
+  +1A0 97B160 -> A0A140 removes them after processing pending interface history,
+  +1A8 97AC00 -> A098A0 handles a different interface list, gated by component43.
+The helper lives at component+5C0. Cold registration appends, and removal swaps
+the last element into the removed slot. Existing scopes.Registry remains the
+explicit local dispatch primitive; it does not silently become this native host.
+
+The specialized table's +1D0 points to978550 ->1B8C820. Thus the earlier raw
+pointer262C1E0 was not a +48 slot. The tempting table base262C198 is rejected.
+Scope processing A0B460/A0B5F0/A0B760 consults pending interface history, flags
+and instance identity, with callbacks separate from ordinary State hooks. The
+full history/prediction/dispatch policy and authoritative host role remain open.
+An initialized flag, a generic component or a passive snapshot cannot supply it.
+
+Evidence and remaining mission gates
+- Ten new tests cover explicit descriptor identity, retained ownership/observer,
+  retired/absent identity lookups, uint32 wrap/order, serial ties, initial-only
+  fields, repeated config evaluation, defaults, strict errors and the VM gate.
+- Passed 513 related runtime/expression/VM/body/bot/entrance/replication/replay
+  checks and 15 server snapshot/research-injection checks, Ruff and diff checks.
+- Original9D1D50, reference assignment1904190, sort6B8ED0/6B85C0 and retire6B8E20
+  match 192 allocations and 76 retirement operations. The arena allocator and
+  6B3E60 constructor/header are explicit adapters; no renderer object is tested.
+- Original initialization tail plus refresh/native casts match 192 cases and
+  7,488 field/component comparisons. Engine/config/position/iterator inputs,
+  scratch disposal, copy and cookie checks are explicit adapters.
+- Original specialized constructor with base/helper constructor adapters, then
+  actual cold register/unregister instructions, pass 17 cases. This establishes
+  table identity and swap-removal order, not pending-history callbacks or timing.
+- Actual0EC6/node4 can populate an explicitly allocated isolated descriptor:
+  C4/C8/F4/F8/FC/2E4 =0/.75/5/5/5/0. Retiring its entry retains the descriptor
+  and observer. The route inputs were supplied, not resolved by the mission.
+  No authored VM State or engine object is created by this probe.
+- At this allocation milestone, helper entry stopped at582E0D5F/node4; full100B stopped at
+  D38D0035/node106. Full story, cinematics, control handoffs and enemy AI remain
+  unaccepted. No deployment or new original-client session.
+
+Local evidence outside Git under verification/retribution:
+effect-allocation-native-validation.json, effect-allocation-authored-validation.json,
+effect-allocation-helper-summary.txt, effect-allocation-root-summary.txt,
+helper-582E-list-insertion.txt, helper-582E-list-sort.txt,
+helper-582E-body-scope-host.txt, helper-582E-host-registration.txt,
+helper-582E-host-lifetime.txt and helper-582E-scope-forward.txt.
+
+Subsequent state milestone: 582E0D5F now registers a concrete VM State with
+explicit service/route gates, enter/refresh/lost callbacks and non-orientation
+retirement. Actual helper entry/time probes progress beyond node4. Native host
+timing and consumers remain open; see AUXILIARY_EFFECT_STATE.txt.

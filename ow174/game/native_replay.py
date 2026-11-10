@@ -13,8 +13,8 @@ from functools import cache
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, frame_distance
 from ow174.game.content import SOLDIER
 from ow174.game.script import graph, runtime
-from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, BodyScript
-from ow174.paths import DATA_DIR, ROOT
+from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, WHEEL_LOADOUT_TYPES, BodyScript, valid_wheel_slots
+from ow174.paths import DATA_DIR, EMOTE_DURATION_DATA, GREETING_DURATION_DATA, ROOT
 
 SCHEMA = "ow174.native-body-replay.v2"
 BUILD = "1.74.0.0.104319"
@@ -169,6 +169,10 @@ def model_hash() -> str:
     manifest = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in MODEL_FILES}
     manifest.update({f"data/{name}": hashlib.sha256((DATA_DIR / name).read_bytes()).hexdigest()
                      for name in MODEL_DATA})
+    for filename in (EMOTE_DURATION_DATA, GREETING_DURATION_DATA):
+        duration_data = DATA_DIR / filename
+        if duration_data.is_file():
+            manifest[f"data/{filename}"] = hashlib.sha256(duration_data.read_bytes()).hexdigest()
     return _digest(manifest)
 
 
@@ -181,26 +185,34 @@ def make_header(
     health = script.component.vars[OWNER_HEALTH].base
     maximum = script.component.vars[HUD_MAX_HEALTH].base
     body = next(key for key, item in graph.bodies().items() if item is script.record)
-    return {
+    header = {
         "schema": SCHEMA, "build": BUILD, "scope": "body-script-only", "model_hash": model_hash(),
         "hero": script.hero, "entity": script.entity, "body_definition": body,
         "start_frame": script.frame, "quanta_us": quanta_us, "mode": script.world.mode,
         "health": health, "maximum_health": maximum, "ult_seconds": script.ult_seconds,
         "seed": 1, "command_epoch": command_epoch, "body_epoch": body_epoch, "server_tick": server_tick,
         "gap_policy": "reject", "shot_policy": "drain_after_command", "initial_hash": snapshot_hash(script),
+        "communication_wheel": script.world.communication_wheel,
     }
+    for name in WHEEL_LOADOUT_TYPES:
+        if slots := getattr(script.world, name):
+            header[name] = list(slots)
+    return header
 
 
 def make_command_event(
     script: BodyScript, command: Command, *, seq: int, server_tick: int, before_hash: str,
-    command_epoch: int, body_epoch: int,
+    command_epoch: int, body_epoch: int, grounded: bool | None = None,
 ) -> dict:
-    return {
+    event = {
         "kind": "command", "seq": seq, "server_tick": server_tick,
         "command_epoch": command_epoch, "body_epoch": body_epoch,
         "command": {name: getattr(command, name) for name in COMMAND_FIELDS},
         "before_hash": before_hash, "after_hash": snapshot_hash(script), "shots": shot_summary(script),
     }
+    if grounded is not None:
+        event["grounded"] = grounded
+    return event
 
 
 def make_end_event(
@@ -273,8 +285,17 @@ def replay_document(document: dict) -> dict:
     header, events = document["header"], document["events"]
     if not isinstance(header, dict) or header.get("schema") != SCHEMA or header.get("build") != BUILD:
         raise ValueError("Native trace schema/build mismatch")
-    if set(header) != HEADER_FIELDS:
+    if set(header) - {"communication_wheel", *WHEEL_LOADOUT_TYPES} != HEADER_FIELDS:
         raise ValueError("Native v2 header fields do not match the fixed schema")
+    communication_wheel = header.get("communication_wheel", False)
+    if type(communication_wheel) is not bool:
+        raise ValueError("Invalid communication_wheel")
+    equipment = {}
+    for name, guid_type in WHEEL_LOADOUT_TYPES.items():
+        slots = header.get(name, [])
+        if not isinstance(slots, list) or not valid_wheel_slots(tuple(slots), guid_type):
+            raise ValueError(f"Invalid {name}")
+        equipment[name] = tuple(slots)
     if not isinstance(events, list):
         raise ValueError("Events must be a list")
     if header.get("scope") != "body-script-only" or header.get("gap_policy") != "reject":
@@ -313,7 +334,8 @@ def replay_document(document: dict) -> dict:
     else:
         script = BodyScript(header["hero"], header["entity"], header["start_frame"],
                             quanta=header["quanta_us"], mode=header["mode"],
-                            health=header["health"], ult_seconds=header["ult_seconds"])
+                            health=header["health"], ult_seconds=header["ult_seconds"],
+                            communication_wheel=communication_wheel, **equipment)
         if snapshot_hash(script) != header.get("initial_hash"):
             fail("initial_state_mismatch")
         previous_seq, previous_tick = 0, header["server_tick"]
@@ -334,6 +356,8 @@ def replay_document(document: dict) -> dict:
             fields |= {"command", "before_hash", "after_hash", "shots"} if kind == "command" else {
                 "final_hash", "reason",
             }
+            if kind == "command" and type(event.get("grounded")) is bool:
+                fields.add("grounded")
             if set(event) != fields:
                 fail("invalid_event_fields", offset=offset)
                 break
@@ -371,7 +395,10 @@ def replay_document(document: dict) -> dict:
                 fail("epoch_boundary", seq=seq, reason="Native body timers/CmFD need a fresh lifecycle")
                 break
             try:
-                script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+                script.command(
+                    command.frame, command.buttons, command.action, command.forward, command.right,
+                    grounded=event.get("grounded"),
+                )
                 after, shots = snapshot_hash(script), shot_summary(script)
             except (ValueError, RuntimeError) as error:
                 fail("runtime_fault", seq=seq, error=str(error))

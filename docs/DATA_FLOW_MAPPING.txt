@@ -1,0 +1,93 @@
+Placed DataFlowMapping State: native cache and answer-provider implementation
+Target: original Overwatch1.74.0.0.104319; addresses are module RVAs.
+
+Identity and callbacks, 2026-11-08
+23A661BD has its own priority2 registration. Factory9AAA80/inplace9ABC50 call
+9A8AE0; final primary vtable262F640 and separate +1C0 provider table262F7F8.
+Ordinary beginB8=9A6B60, cleanupC0=9A6B70 and dependencyC8=9A6DE0 are concrete;
+tick70 is null. This provider is not an auxiliary scope interface and is not
+added to ForwardHost's whitelist.
+
+The provider table's slots0/8/10 answer Entity/Asset/numeric-or-vector requests
+through9A6A80/9A69D0/9A6910. Slot18/2109A30 returns the cached mapping GUID;
+slot20 returns0, ending its mapping enumeration. Component47 register64DE60
+and unregister64E050 route these providers to the explicit manager at+1218.
+
+Cache and target policy
+State1C8 caches the mapping GUID, initially0;1D8 is the self-policy byte, initially
+false. The native constructor does not initialize the handle at1D0. The model
+uses None before the first refresh instead of claiming native zeroed storage.
+Authored E8/m_5A6D4FBD supplies the mapping and F0/m_answer supplies its answer.
+F8/m_entity is a separate target-policy descriptor.
+
+- Begin clears the mapping cache before calling shared refresh9AEB70.
+- Refresh evaluates E8 with a State watcher. F65540 accepts an Asset or the
+  recursive first array element, otherwise0. Changed GUIDs remove the old
+  provider first. Removal calls the explicit consumer, handles the special
+  low32 GUID6B decrement, then clears the cache. Nonzero new GUIDs commit the
+  cache before registration and the special increment. Zero is not registered.
+- Target policy is rebuilt after registration, including when the GUID did not
+  change. Thus registration consumers can observe the previous target policy.
+  Missing descriptor or02C0109E uses self=true/handle=null.469A9B36 selects
+  self=false/handle=null.328656A2 selects self=false and evaluates609E2FBF with
+  the State watcher.8F63C0/F65220 extracts a tag7 Handle or first array item;
+  Entity values do not become handles. Unknown descriptor classes remain strict.
+- Cleanup first tests actual component47 presence. Known absence skips removal
+  and retains the cached GUID. Presence removes a nonzero mapping and clears
+  it. There is no inferred scope-history or ticking policy for these hooks.
+
+Typed provider answers
+Instance1F8 namespace absence returns status4 without evaluating the answer or
+writing a destination. Known namespace returns status1. Answer evaluation has
+no State watcher. Entity/Asset use their native first-array casts with default0;
+float uses the native numeric cast with default0. Vector accepts a Vec3 or first
+array Vec3, otherwise zero. A direct Entity answer instead requests its position
+through the explicit instance/world service; failed position yields zero. An
+array containing an Entity does not take that direct-Entity position branch.
+
+Context and containment
+data_flow.Context declares owner, known component/namespace availability,
+mapping register/unregister, special-counter and entity-position services.
+Unknown required services fault; callbacks and evaluated configs are followed
+by owner/instance/context lifetime checks before later writes. SceneWorld binds
+contexts to existing entities, rejects replacement and retires them on unbind
+or strict failure. This local containment does not claim native engine rollback
+or consumer teardown. Complete manager selection and renderer consumption remain
+outside this module. Legacy permissive body behavior stays passive.
+
+A82CD4B2 DataFlow config has its own typeinfo2D79D08, factory1B8A580, table27AE1E0
+and evaluator1B85C30. Unkeyed refs produce typed Assets including zero. Nonzero
+resource keys still require the supplied native availability context.
+
+Evidence and actual mission limit
+2070 original callback cases match:648 each begin/refresh/cleanup, six component
+availability cleanup cases and30 each Entity/Asset/float/vector provider cases.
+Original casts, component pointer decoding and State branch/cache instructions
+execute. Explicit adapters supply config values/disposal, node/owner access,
+platform key material, register/unregister consumers, a known-absent special
+counter component and entity positions. Complete engine services are unaccepted.
+Twelve original literal comparisons pass. Nineteen behavior tests cover changes,
+provider types, watches and retirement. VM storage covers33 concrete State models.
+
+Both actual0E61 components (entities800005DC/800009F7, definitions24BF/23D8)
+now allocate the concrete State and reach a later strict0F647E55/node13 stop
+before activating it. Their authored first frames are not complete. Separate
+isolated-node fixtures use the unchanged authored node1/raw0/remote0 config:
+mapping048000000000061D, global target policy, float answer1.0, registration and
+diagnostic removal. Four on/off codec checks pass; these are isolated-node
+frames, not successful full-component or mission replication. No source override.
+
+The unchanged isolated scene remains146 configured components,124 graphs and
+542 queued writes.45/123 nonempty first frames complete;78 retain strict stops:
+66 entity-control contexts,3 alias components,1 model-look scope registration,
+3 action0F647E55 and5 State9D7BF987. The two former unknown DataFlow State stops
+now expose the action. Full100B remains strictD38D0035/node106. Normal inputs
+are unchanged. No new client acceptance or deployment. Production hosting,
+complete data-flow services, story/cinematics, enemy AI and results remain open.
+
+Local evidence outside Git
+verification/retribution/dataflow-native-validation.json,
+dataflow-actual-graph-validation.json, placed-component-dataflow-validation.json,
+dataflow-root-validation.json, dataflow-related/server-tests.log and native
+factory/vtable/function/slice records. Early probe/test failures remain retained.
+Native code, assets, runtime inputs, captures and research scripts stay outside Git.

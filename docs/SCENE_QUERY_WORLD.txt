@@ -1,0 +1,105 @@
+Map entity identity/query service — partial mission world
+Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
+
+Problem
+Retribution's dynamic AI helper requests include EntityReference UUIDs naming map
+waypoints. An empty World could not resolve these values. Neither an ENTITY
+record index nor a flat map index is the ID of a client-created waypoint.
+Missing references also have native failure semantics distinct from null.
+
+Native evidence
+- EntityReference's STU hash is E3206AE9, native registration 2F85E38, priority 1,
+  constructors D06A10/D0A680 and handler vtable 2661360. Evaluate is CCDFF0.
+  It obtains the world through instance virtual +30, calls world virtual +268
+  with the exact 16-byte UUID, then writes a typed Entity only on success.
+  Missing instance/world or a failed lookup returns false without writing.
+- The native map constructor reads a uint16 client_id at ENTITY body +104
+  (1B483B6). A nonzero value becomes 0xC0000000 | client_id (1B483C3).
+  A zero client_id takes another creation path; it is never converted to C0000000.
+- An authorized original-client session entered Rialto Story Normal as Reaper.
+  Bounded read-only UUID/object contexts independently verified 10 consecutive
+  waypoint UUID bindings against their original map client_id fields. In
+  particular 34e2fb29-1f43-4d48-8d6e-220870445e26 resolves to C00006F5, and
+  fb0dabae-c6b1-4f72-a956-06c1f8800a26 resolves to C00006F1. Those two references
+  are used by the actual 100B node 281 request. UUID inspection retained only
+  bounded matching process contexts. The existing local relay launch path was
+  reused. The client left and closed normally.
+- STU_357DABBB (TargetTag) uses the same native resource evaluator 1B85C30 as
+  the ordinary graph reference. With no resource key, an absent tag is Asset(0),
+  not null and not an unimplemented world query. Keyed tag resources remain open.
+
+Implemented API
+SceneWorld.from_map(data, entity_start=flat_base, kept_identifiers=ids,
+                    server_placeables=actual_create_indexes, hero=0, mode=0)
+
+The input is the external version-1 map-world export described in
+MAP_WORLD_INPUTS.txt. Its raw 20-byte placeable header supplies the UUID, and
+44-byte metadata preserves client_id at offset 36 (original body +104).
+The caller separately supplies the verified flat base: preceding light/area
+placeable counts. It must not substitute an ENTITY record index for that base.
+
+Mode-selected client-created placements use the proven C0000000 namespace.
+Other server placements are bound only for the flat indexes explicitly supplied
+by the owner of actual network creates, using Match.placeable_ids' 80000000
+namespace. Identifier zero is unfiltered; a nonzero first identifier must occur
+in kept_identifiers. Definition and instance component data remain separate.
+The input is detached before use; the service does not rewrite source data.
+Malformed identities, duplicate active IDs/UUIDs, missing definitions, nonfinite
+positions and inconsistent server-create lists are rejected.
+
+bind(entity_id, uuid, position, placement=None) records an already-created
+entity's query binding; unbind(entity_id) removes it after its owner retires the
+entity. Neither method allocates, creates or destroys engine/network entities.
+Zero UUID is not a lookup key. A missing explicit position remains unknown;
+strict InstanceContext.position stops rather than inventing an origin.
+Foreign script variables require an actual component service: a catalog binding
+alone cannot supply them. Strict callers stop on the unsupported service; local
+component variables and the existing game-mode defaults retain their providers.
+
+SceneWorld.native answers EntityReference from the current UUID bindings. A
+lookup miss returns expr.EVALUATION_FAILED, which expr.evaluate consumes by
+preserving the caller's destination. Successful null remains None. This provider
+marker never enters normal VM values: SetVar's failed value becomes int 0, a
+ForCode pull retains its existing value, a schema skips a failed default, and
+array collection skips the failed config. Inline override initialization retains
+its own native int-zero fallback. A watched reference remains polled as before,
+so a later binding/removal re-evaluates the condition.
+
+Authored verification
+Rialto's recovered flat base is 419. Of 2,464 placed input records, the current
+mode selects 2,066 client placements plus 237 explicit existing server creates:
+2,303 UUID/entity bindings. The 10 live identity observations agree exactly.
+
+All 23 original PlayScript resource configurations now resolve using this query
+world, including the previously stopped 100B nodes 281/285. Queued public schema
+initialization now succeeds for 121D (8 assignments), 1412 (8) and 119F (4).
+Absent individual EntityReferences are skipped; a collected group of failed
+references is an empty array; absent TargetTags remain typed Asset(0). These
+observations cover identity/value/queue initialization, not running AI helpers.
+
+Remaining boundary
+This service is not attached to Match. It does not activate native components,
+merge component defaults/overrides, move actors, spawn enemies, schedule mission
+components or implement transported state. Dynamic script routing/context,
+native component observers, asynchronous resources, deferred deletion and network
+flags remain open. SceneWorld is outside the body-VM storage whitelist; no new
+world snapshot/restoration support is implied.
+
+Full 100B startup still stops at D38D0035 node 106. Its absent client handler is
+not accepted as evidence that the server action has no effect. Full story,
+cinematics, hero restrictions and enemy AI remain unaccepted. The original-client
+session above verified native identity only; it did not run the candidate code.
+No candidate deployment is claimed.
+
+Subsequent primary-possessor query extension, 2026-11-08
+An explicit possession catalog now enables DB742151 queries with direct component
+44 lookup and reverse primary-possession relationships. The catalog is separate
+from these UUID bindings and does not activate components. An authorized original
+client confirmed the relation and its update on a Reaper-to-Genji switch. See
+ENTITY_POSSESSION_QUERIES.txt for semantics, lifecycle, evidence and open services.
+
+Local-only evidence
+verification/retribution/scene-validation.json, live-map-identity-validation.json,
+live-uuid-path-points-correct.json, live-uuid-node-sample.json, native-map-create.txt,
+functions-CCDFF0.txt (or the corresponding native function export), scene-tests.log
+and scene-server-tests.log. Game data, process contexts and logs remain outside Git.

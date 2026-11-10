@@ -10,7 +10,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.paths import LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA
+from ow174.paths import (
+    EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_CLIP_DATA, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA,
+    EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA,
+    VOICE_EFFECT_DATA, WHEEL_POSE_DATA,
+)
 
 
 def prepare(source: Path, destination: Path, maps: list[str], *, game_graphs: Path | None = None) -> None:
@@ -21,6 +25,17 @@ def prepare(source: Path, destination: Path, maps: list[str], *, game_graphs: Pa
         raise ValueError("Choose a new destination outside the source checkout")
 
     inputs = {f"data/{name}": source / "data" / name for name in LOBBY_RUNTIME_DATA + MATCH_RUNTIME_DATA}
+    for name in (EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_CLIP_DATA, EMOTE_DURATION_DATA,
+                 EMOTE_SCALAR_DATA, EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, VOICE_EFFECT_DATA):
+        metadata = source / "data" / name
+        if metadata.is_file():
+            inputs[f"data/{name}"] = metadata
+    if f"data/{EMOTE_CLIP_DATA}" in inputs:
+        for group, extension in (("models", "00C"), ("clips", "006")):
+            folder = source / "data" / WHEEL_POSE_DATA / group
+            for asset in folder.glob(f"*.{extension}"):
+                if asset.is_file() and re.fullmatch(rf"[0-9A-F]{{12}}[.]{extension}", asset.name):
+                    inputs[f"data/{WHEEL_POSE_DATA}/{group}/{asset.name}"] = asset
     if game_graphs is not None:
         inputs["data/game_graphs_174.json.gz"] = game_graphs
     inputs["bnet/descriptors.pb"] = source / "ow174" / "bnet" / "descriptors.pb"

@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ow174.game import collision, props
+from ow174.game.collision_fingerprint import world_fingerprint
 from ow174.paths import LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA
 from tools.prepare_server_runtime import prepare
 
@@ -17,7 +18,7 @@ OTHER_MAP = 0x0800000000000CD3
 MODE = 0x0230000000000014
 PLACEABLE = 0x0400000000000012
 IDENTIFIER = 0x0D80000000000007
-EXTRA = 0x80
+EXTRA = collision.SPRAY
 ORIGIN = (0.0, 0.0, 0.0)
 FORWARD = (0.0, 0.0, 1.0)
 
@@ -115,6 +116,39 @@ class RayCacheTests(unittest.TestCase):
         hit = mode.cast_ray(ORIGIN, FORWARD, 8, EXTRA)
         self.assertEqual((hit.distance, hit.mask, hit.surface), (1.0, EXTRA, 7))
         self.assertIsNone(core.cast_ray(ORIGIN, FORWARD, 2, EXTRA))
+
+    def test_match_loader_pins_mode_ray_geometry_and_fingerprints_it(self):
+        collision.build(MAP, self, "synthetic")
+        identifiers = props.mode_identifiers(MODE)
+        legacy = collision._read_cache(MAP, "synthetic", False, identifiers)
+        self.assertIsNone(legacy.ray_geometry)
+        self.assertIsNone(legacy.cast_ray(ORIGIN, FORWARD, 8, EXTRA))
+
+        expanded = collision.build(MAP, self, "synthetic", ray_geometry=True)
+        world = collision._read_cache(MAP, "synthetic", False, identifiers)
+        core = collision._read_cache(MAP, "synthetic", False, frozenset())
+        self.assertEqual(world.cast_ray(ORIGIN, FORWARD, 8), legacy.cast_ray(ORIGIN, FORWARD, 8))
+        self.assertIsNone(world.cast_ray(ORIGIN, FORWARD, 8, EXTRA))
+        before = world_fingerprint(world)
+        self.assertNotEqual(before, world_fingerprint(legacy))
+        self.assertNotEqual(before, world_fingerprint(core))
+        self.assertEqual(core.ray_geometry.cast_ray(ORIGIN, FORWARD, 8, EXTRA).distance, 3.0)
+        self.assertEqual(world.ray_geometry.cast_ray(ORIGIN, FORWARD, 8, EXTRA).distance, 1.0)
+        self.assertEqual(before, world_fingerprint(world))
+
+        original = expanded.read_bytes()
+        header_size = struct.unpack_from("<I", original, 12)[0]
+        header = json.loads(original[16:16 + header_size])
+        del header["meshes"]
+        malformed = json.dumps(header).encode()
+        missing_meshes = original[:12] + struct.pack("<I", len(malformed)) + malformed + original[16 + header_size:]
+        for data in (b"invalid sidecar", missing_meshes):
+            expanded.write_bytes(data)
+            with self.assertLogs("ow174.game", "WARNING"):
+                fallback = collision._read_cache(MAP, "synthetic", False, identifiers)
+            self.assertIsNone(fallback.ray_geometry)
+            self.assertEqual(world_fingerprint(fallback), world_fingerprint(legacy))
+        self.assertEqual(world_fingerprint(world), before)
 
     def test_explicit_loader_rejects_missing_legacy_wrong_map_and_wrong_content(self):
         legacy = collision.build(MAP, self, "synthetic")

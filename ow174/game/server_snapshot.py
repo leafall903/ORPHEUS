@@ -22,6 +22,7 @@ from ow174.game import (
     correction,
     heroselect,
     notices,
+    npc_navigation,
     observers,
     projectiles,
     replay_values,
@@ -68,8 +69,9 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
-    GameServer: _names("environment collision_provider_factory host port on_leave on_join on_clock_ready "
-                       "skin_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
+    GameServer: _names("environment collision_provider_factory scene_host_factory host port "
+                       "on_leave on_join on_clock_ready "
+                       "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
     Client: _names("server address conn cipher player window seq open closed heard next_reliable "
@@ -77,11 +79,12 @@ FIELDS = {
                    "unreliable entities in_flight _combat_notices _body_health _combat_notice_tail "
                    "_body_destroy_wait _player_body_reuse_after _bot_scripts expected_in parked_in "
                    "leaving_since _own_controller_acked _mode_create_acked _pending_mode_frame "
-                   "_display_notices _pending_possessions _confirmed_possessions"),
-    _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update"),
-    Match: _names("environment id game_map card skin_of tick controller assemble_ends assembled players "
+                   "_mode_fragments _display_notices _pending_possessions _confirmed_possessions"),
+    _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update historical_death"),
+    Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends assembled players "
                   "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
-                  "collision_provider collision_state collision_world _collision_failed"),
+                  "collision_provider collision_state collision_world _collision_failed "
+                  "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script body_script_failed seen shown script mode_script next_countdown "
@@ -91,9 +94,11 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "model_pose_for wheel_actor_admits "
+        "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids wave_health wave_health_id changed died_at death_tick killer"),
+    combat.WaveHealthPool: _names("capacity current"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,11 +116,11 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests communication_wheel wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -129,18 +134,26 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation"
     ),
+    npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
+    npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),
+    npc_navigation.LedgeDrop: _names("started released"),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
+    Player: _names("impulse_correction"),
+    npc_navigation.Navigator: _names("charge_contact"),
+}
 DATACLASSES = (
+    driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
-    statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map,
+    statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map, expr.PairArray,
 )
 
 
@@ -396,17 +409,25 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     """
     if type(server) is not GameServer or server.running:
         _fail("stored exporter requires a stopped controlled GameServer")
+    if server.scene_host_factory is not None:
+        _fail('shared scene script runtime storage is not implemented')
     archives = tuple(archives)
     matches = list(server.matches) + list(archives)
     for match in matches:
         if type(match) is not Match:
             _fail("unregistered archived match type")
-        if match.environment is not server.environment or match.skin_of is not server.skin_of:
+        if match.scene_host_factory is not None:
+            _fail('shared scene script runtime storage is not implemented')
+        if (match.environment is not server.environment or match.skin_of is not server.skin_of
+                or match.emote_aliases_of is not server.emote_aliases_of
+                or match.emote_blend_trees_of is not server.emote_blend_trees_of
+                or match.wheel_cosmetics_of is not server.wheel_cosmetics_of):
             _fail("match external boundaries differ from its controlled server")
         if collision_provider is None or match.collision_provider is not collision_provider:
             _fail("match has an unregistered external collision provider")
     boundaries = {
         "environment": server.environment, "socket": server.sock, "domain_lock": server.lock,
+        "emotes": server.emote_aliases_of, "emote_blend_trees": server.emote_blend_trees_of, "wheel_cosmetics": server.wheel_cosmetics_of,
         "skin": server.skin_of, "joined_callback": server.on_join, "left_callback": server.on_leave,
         "clock_ready_callback": server.on_clock_ready,
         "collision_factory": server.collision_provider_factory, "collision_provider": collision_provider,

@@ -1,0 +1,113 @@
+Native config evaluation — verified scoped paths
+Target: original Overwatch 1.74.0.0.104319. Addresses below are module RVAs.
+
+Junkenstein config trace:
+- 00CB/22 resolves 40AC5AE4 through evaluator table 26609F8. CC8200 calls
+  D1C220. The movement branch reads signed pitch at +42 through C61F70
+  and converts angle units to radians and then degrees at D1C972. The
+  host takes the same signed pitch from the live movement snapshot.
+- 00CB/31 and 00CB/32 use 383710EE for the POTG delta. Its descriptor
+  3028E20 resolves typeinfo 2D778F0 through 2D6CAB8 to base 2D6B1E0.
+  Neither derived type has a registration in the executable image.
+- Mercy body 0071/39 uses D3685C04. Record 2F884D8 selects constructor
+  D08D50 and evaluator vtable 2663230. The world +528 subsystem's +40
+  call supplies local input. CCA232 uses the same result's signed byte
+  axes at +0F and +10 with scale 1/127. CE5450 tests bit 15 of +14 and
+  writes false successfully when the local input record is absent.
+  The headless Junkenstein Witch has no local input record.
+- 0071/24, /35 and /94 use B3E67A36. Record 2F86DA0 selects CD3910.
+  CD3BFF applies the compiled filter and returns the first match. CD3FEA
+  writes the typed invalid entity when there is no match. The authored
+  masks require friendly relation and exclude self. The radius predicate
+  evaluates with the candidate Entity in temporary parameter 0008.
+
+The authored Retribution 100B node 322 assigns entity variable 6751 from an
+STU_7BD2CA19 with no resource key. This class has no additional fields beyond
+STUConfigVarResource. A null destination and an unsuccessful evaluator must be
+distinguished: different native callers retain different defaults.
+
+Evidence from the separately authorized original-client session, 2026-11-07:
+- Entered Retribution Story Normal, selected Reaper and entered the actual Rialto
+  world through the accepted entrance server. Returned through Leave Game to
+  the difficulty menu and closed normally. The server did not host the candidate
+  mission scripts, so this is config research, not full-mission acceptance.
+- A bounded read-only private-memory search found three raw instances with the
+  class vtable at 26E0D98. All three resource handles at +10 were invalid (-1).
+  One instance's cached evaluator pointer at +8 referenced an object whose
+  vtable is 26292E0. The two other instances had no cached evaluator yet.
+  This does not identify which of these instances belongs to the mission root.
+- The evaluator record at 3294B58 registers STUConfigVar's typeinfo 2D6B1E0,
+  constructors 1B7F3E0/1B7FC40 and size 8. Its vtable +20 is 123CC10, which
+  returns false without writing the output. Vtable +28 wrapper 93CA10 returns
+  the supplied destination only when +20 succeeds; otherwise it returns null.
+- SetVar 1B6D325..34D skips assignment when target or value config is absent.
+  Its destination starts as int 0 at 1B6D353..377. The +28 wrapper call at
+  1B6D381 resets a failed result to type 2 at 1B6D3A0..3A5, then stores it.
+- ForCode getter D4B2B4..2D3 directly invokes +20 and ignores its false return.
+  Consequently the existing destination survives this known no-output case.
+
+Implementation scope:
+- evaluate(..., initial=...) preserves that destination for STU_7BD2CA19 with
+  an absent resource key. Normal calls use a fresh null destination. Successful
+  null configs, such as an unset dynamic variable, still overwrite it with null.
+- SetVar supplies integer zero and skips assignment for absent target/value
+  pointers, while following its output plug in both paths. ForCode supplies the
+  current destination, retaining first-match and nonmatching-state clearing.
+- A nonempty resource key remains unsupported in strict execution. No generic
+  unknown-class fallback or new resource resolution service is introduced.
+- Other native evaluator failures and caller-specific policies remain outside
+  this observed case. This is not a claim of complete config evaluation.
+
+Local-only evidence is in verification/retribution/live-resource-search.json,
+live-resource-pointers.json, functions-1B6D300.txt and config-failure-validation.json.
+The search retained bounded match contexts, not a full private-memory dump.
+The isolated authored-node probe and strict root initialization probe do not
+instantiate the mission world, players, team components or queue overrides.
+
+Placed startup literal values, 2026-11-08
+Six additional config classes have verified scalar literal paths. Original
+registration typeinfo/factory links and their evaluator vtables identify:
+
+Class                         Native evaluator vtable   +20 evaluator  Field
+STUConfigVarVoiceStimulus      27AE480                    1B85C30        m_voiceStimulus
+STUConfigVarAnimation          27ADE28                    1B85C30        m_animation
+STUConfigVarHero               27AE608                    1B85C30        m_hero
+STU_43CF7A79                  27AE758                    1B85C30        m_entityDef
+STUConfigVarSkinTheme          27AEB48                    1B85C30        m_skinTheme
+STU_BD6CC023                  26636C8                    1B860F0        m_6CE7A900
+
+For an unkeyed resource config,1B85C30 reads the stored GUID at config+28 and
+calls F67090, producing native tag4 even for GUID zero. A nonnull resource-key
+pointer at+18 additionally calls availability service171B8D0; that service is
+not implemented by this change. The five new resource classes use their exact
+field when the exported key is null/zero. A nonzero key delegates to the supplied
+context and still faults with the strict base world. This adds no generic class
+fallback. Entity-definition and skin-theme values are resource references;
+evaluating them does not instantiate an entity, equip a skin or play media.
+
+For TeamIndex,1B860F0 reads the dword at config+10 and calls F66E10, producing
+native tag2. The implementation preserves the signed32 value, including -1;
+this literal is not a live team membership query.
+
+Original evaluators and scalar variant setters match production in3096 cases:
+774 actual/edge configurations with previous destination tags255/2/3/4. No
+executed service is stubbed in those unkeyed cases. Key availability and disposal
+of owning destination types are outside the comparison. Source types/exported
+field names alone are not used as evidence of evaluator behavior.
+
+Six behavior checks cover typed/empty resources, signed team values, nonzero-key
+delegation/failure, strict fault propagation and ordered pending startup writes.
+591 related and15 server snapshot/research-injection checks, Ruff/diff pass.
+The earlier two-sample original-client transport acceptance predates this code;
+no new client acceptance or deployment is claimed for the literal change.
+
+With unchanged isolated371-create inputs, all146 selected components now finish
+configuration:23 empty,123 nonempty,124 graphs,542 queued writes. Independent
+first-frame execution completes45/123 nonempty components and faults78. Root100B
+still stops at D38D0035/action106. Full story/cinematics/enemy AI remain open.
+See PLACED_SCRIPT_INITIALIZATION.txt for the remaining State/action diagnostics.
+
+Local-only records: startup-literal-inputs.json, startup-literals-native-validation.json,
+placed-component-literals-validation.json, startup-literals-related-tests.log,
+startup-literals-server-tests.log and startup-literals-root-audit.log under
+verification/retribution. Captured code, game inputs and reports remain outside Git.

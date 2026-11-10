@@ -1,0 +1,417 @@
+"""Match-owned strict scene components sharing actual entity bindings.
+
+The owner supplies created entities, component definitions and the frame epoch.
+This installs no guessed engine consumers or auxiliary scope/rewind phases.
+"""
+
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
+
+from ow174.game import observers
+from ow174.game.script import graph, play_queue, runtime, scene, scopes, startup
+
+
+@dataclass
+class Unit:
+    component: runtime.Component
+    startup: startup.ComponentStartup
+
+
+@dataclass(frozen=True)
+class SceneWeapon:
+    control: object
+    controller: scene.SceneEntity
+    collision: Callable
+    targets: Callable
+    launch: Callable
+
+
+@dataclass
+class SpawnSearchJob:
+    owner: runtime.Component
+    probes: Iterator
+    probe_cost: int
+    minimum: int
+    positions: list = field(default_factory=list)
+
+
+SPAWN_SEARCH_BUDGET = 320  # candidate cost in quarter-meter collision steps
+
+
+class SceneHost:
+    def __init__(self, world: scene.SceneWorld, *, frame_ms: int = 16, seed: int = 1,
+                 graph_loader=graph.graph):
+        if not isinstance(world, scene.SceneWorld):
+            raise ValueError('scene host needs its shared SceneWorld')
+        if type(frame_ms) is not int or frame_ms <= 0 or type(seed) is not int:
+            raise ValueError('invalid scene host clock or seed')
+        self.world, self.frame_ms, self.seed = world, frame_ms, seed
+        self.graph_loader = graph_loader
+        self.units: dict[int, Unit] = {}
+        self.weapons: dict[int, SceneWeapon] = {}
+        self.objective_approaches: dict[int, object] = {}
+        self.spawn_searches: dict[Callable, SpawnSearchJob] = {}
+        self.combatants: dict[int, tuple[object, Callable]] = {}
+        self.body_projections: dict[int, tuple[observers.SceneBody, Callable]] = {}
+        self.frame: int | None = None
+        self.prepared = False
+        self.closed = False
+        self.error: dict | None = None
+        self.play_requests_configured = False
+        self._play_acquire = None
+
+    def add(self, entity: int, definition: dict, placed: dict | None = None, *, values=None):
+        """Bind every component before evaluating any component's startup schema."""
+        if self.prepared or self.closed or self.error is not None or self.play_requests_configured:
+            raise ValueError('initial scene component catalog is already sealed')
+        return self._add(entity, definition, placed, values)
+
+    def _add(self, entity, definition, placed, values):
+        if entity in self.units:
+            raise ValueError('scene already has this component lifecycle')
+        component = runtime.Component(entity, self.frame_ms, self.world, self.seed ^ entity, strict=True)
+        for key, value in (values or {}).items():
+            component.set(key, value)
+        boot = startup.ComponentStartup(component, definition, placed, graph_loader=self.graph_loader)
+        self.world.bind_script_component(entity, component)
+        self.units[entity] = Unit(component, boot)
+        return component
+
+    def retire_entity(self, entity: int) -> None:
+        """Retire scripts and routing before the owner reuses a scene entity ID."""
+        unit = self.units.get(entity)
+        if unit is not None and self.world.script_components.get(entity) is not unit.component:
+            raise ValueError('scene retirement belongs to another lifecycle')
+        for body, weapon in tuple(self.weapons.items()):
+            if entity not in (body, weapon.controller.id):
+                continue
+            del self.weapons[body]
+            if body != entity:
+                component = self.units[body].component
+                if weapon.control.button in component.held:
+                    component.edges([(weapon.control.button, False)])
+            elif self.world.entities.get(weapon.controller.id) is weapon.controller:
+                self.world.set_ai_linked_target(weapon.controller.id, 0, None)
+        self.units.pop(entity, None)
+        try:
+            if unit is not None and unit.component.fault is None:
+                for instance in list(unit.component.instances.values()):
+                    unit.component.destroy(instance)
+        finally:
+            self._unbind_entity(entity)
+
+    def _unbind_entity(self, entity):
+        self.body_projections.pop(entity, None)
+        for complete, job in tuple(self.spawn_searches.items()):
+            if job.owner.entity == entity:
+                del self.spawn_searches[complete]
+        for controller, approach in tuple(self.objective_approaches.items()):
+            if entity in (controller, approach.actor.entity):
+                del self.objective_approaches[controller]
+        self.world.unbind(entity)
+        combatant = self.combatants.pop(entity, None)
+        if combatant is not None:
+            actor, retired = combatant
+            retired(actor)
+
+    def queue_spawn_search(self, owner, probes, probe_cost, minimum, complete):
+        """Defer collision probes to ordinary scene frames and return the state's cancel hook."""
+        unit = self.units.get(owner.entity)
+        if (self.closed or self.error is not None or unit is None or unit.component is not owner
+                or self.world.script_components.get(owner.entity) is not owner
+                or not 1 <= probe_cost <= SPAWN_SEARCH_BUDGET or complete in self.spawn_searches):
+            raise ValueError('invalid or stale scene spawn search')
+        self.spawn_searches[complete] = SpawnSearchJob(owner, probes, probe_cost, minimum)
+        return lambda: self.spawn_searches.pop(complete, None)
+
+    def _advance_spawn_searches(self):
+        budget = SPAWN_SEARCH_BUDGET
+        while self.spawn_searches:
+            complete = next(iter(self.spawn_searches))
+            job = self.spawn_searches[complete]
+            if job.probe_cost > budget:
+                break
+            del self.spawn_searches[complete]
+            if (job.owner.fault is not None
+                    or self.world.script_components.get(job.owner.entity) is not job.owner):
+                continue
+            budget -= job.probe_cost
+            try:
+                position = next(job.probes)
+            except StopIteration:
+                if len(job.positions) >= job.minimum:
+                    complete(tuple(job.positions))
+                continue
+            if position is not None:
+                job.positions.append(position)
+            self.spawn_searches[complete] = job
+
+    def bind_combatant(self, actor, retired) -> None:
+        """Associate a match actor and its retirement callback with one scene body."""
+        entity = actor.entity
+        unit = self.units.get(entity)
+        controller = self.world.linked_controllers.get(entity)
+        if (self.closed or self.error is not None or entity in self.combatants or unit is None
+                or self.world.script_components.get(entity) is not unit.component
+                or controller not in self.world.ai_behavior_requests
+                or self.world.current_possessions.get(controller) != entity or not callable(retired)):
+            raise ValueError('scene combatant must own an allocated enemy body and controller')
+        self.combatants[entity] = actor, retired
+
+    def combatant_component(self, actor):
+        registration = self.combatants.get(actor.entity)
+        if registration is not None and registration[0] is actor:
+            unit = self.units.get(actor.entity)
+            if unit is not None and self.world.script_components.get(actor.entity) is unit.component:
+                return unit.component
+        return None
+
+    def bind_body_projection(self, actor, publish):
+        component = self.combatant_component(actor)
+        if component is None or actor.entity in self.body_projections or not callable(publish):
+            raise ValueError('scene body projection requires its bound combatant')
+        self.body_projections[actor.entity] = observers.SceneBody(component), publish
+
+    def combatant_projection(self, actor):
+        projection = self.spawn_projection(actor.entity)
+        if projection is not None and projection.component is self.combatant_component(actor):
+            return projection
+        return None
+
+    def spawn_projection(self, entity):
+        registration = self.body_projections.get(entity)
+        if registration is not None and registration[0].component is self.world.script_components.get(entity):
+            return registration[0]
+        return None
+
+    def spawned_entity_updates(self):
+        """Additional live scene entities for a viewer entering the world."""
+        return ()
+
+    def bind_zombardier(self, control, *, collision, targets, launch) -> None:
+        """Mount the body input and authoritative volley sink on an allocated enemy pair."""
+        from ow174.game import junkenstein_ai
+
+        if self.closed or self.error is not None or type(control) is not junkenstein_ai.ZombardierControl:
+            raise ValueError('scene requires a live Zombardier weapon binding')
+        shooter = control.shooter
+        unit = self.units.get(shooter.entity)
+        controller = self.world.entities.get(control.controller)
+        if (unit is None or shooter.hero != junkenstein_ai.ZOMBARDIER
+                or unit.component is not control.component
+                or self.world.script_components.get(shooter.entity) is not unit.component
+                or controller is None or controller.id not in self.world.ai_behavior_requests
+                or self.world.linked_controllers.get(shooter.entity) != controller.id
+                or shooter.entity in self.weapons
+                or any(weapon.controller is controller for weapon in self.weapons.values())
+                or not all(callable(provider) for provider in (collision, targets, launch))):
+            raise ValueError('scene weapon must use the linked body and controller lifecycle')
+        self.weapons[shooter.entity] = SceneWeapon(control, controller, collision, targets, launch)
+
+    def add_spawned_entity_scripts(self, entity: int, *, values=None, junkenstein: bool = False):
+        """Attach an allocated scene entity before any follow-up PlayScript request."""
+        if not self.prepared or self.closed or self.error is not None or self.frame is None:
+            raise ValueError('spawned components need a running scene')
+        self.world._bound_entity(entity)
+        if entity in self.units or entity in self.world.script_components:
+            raise ValueError('scene already has this component lifecycle binding')
+        resource = self.world.entities[entity].definition
+        if resource is None:
+            raise ValueError('spawned entity has no definition')
+        definition = (graph.entity_script_component(resource, junkenstein=True) if junkenstein
+                      else graph.entity_script_component(resource))
+        if definition is NotImplemented:
+            raise ValueError('entity script component definition data is unavailable')
+        if definition is None:
+            if values:
+                raise ValueError('component absence cannot accept startup values')
+            self.world.bind_script_component(entity, None)
+            return None
+        return self._start_live_component(entity, definition, values)
+
+    def _start_live_component(self, entity, definition, values=None):
+        component = self._add(entity, definition, None, values)
+        component.frame = self.frame
+        component.now = self.frame * self.frame_ms
+        try:
+            self.units[entity].startup.start()
+            if self._play_acquire is not None:
+                self.world.set_play_queue(entity, play_queue.Queue(component, self._play_acquire))
+        except (runtime.UnsupportedScriptError, runtime.ScriptBudgetError, ValueError):
+            try:
+                if component.fault is None:
+                    for instance in reversed(tuple(component.instances.values())):
+                        component.destroy(instance)
+            finally:
+                self.world.unbind_script_component(entity, component)
+                del self.units[entity]
+            raise
+        return component
+
+    def before_units(self):
+        """Allow a specialized scene to reconcile its entities at the current frame."""
+
+    def add_entity_scripts(self, entity: int, definition: int, placed: dict | None = None, *, values=None):
+        """Use preserved .003 data for an already-created entity in the initial catalog.
+
+        The owner still supplies any actual instance additions and mode/team
+        root selection; no default graph or empty substitute is invented.
+        """
+        if self.prepared or self.closed or self.error is not None or self.play_requests_configured:
+            raise ValueError('initial scene component catalog is already sealed')
+        self.world._bound_entity(entity)
+        if entity in self.world.script_components:
+            raise ValueError('scene already has this component lifecycle binding')
+        component = graph.entity_script_component(definition)
+        if component is NotImplemented:
+            raise ValueError('entity script component definition data is unavailable')
+        if component is None:
+            if placed is not None or values:
+                raise ValueError('component absence cannot accept startup overrides or values')
+            self.world.bind_script_component(entity, None)
+            return None
+        return self.add(entity, component, placed, values=values)
+
+    @classmethod
+    def from_map(cls, data, *, entity_start, server_placeables, kept_identifiers=(), mode,
+                 mode_component=None, mode_values=None, frame_ms=16, seed=1, graph_loader=graph.graph,
+                 entity_creator=None, hero_creator=None):
+        world = scene.SceneWorld.from_map(data, entity_start=entity_start,
+            server_placeables=server_placeables, kept_identifiers=kept_identifiers, mode=mode,
+            entity_creator=entity_creator, hero_creator=hero_creator)
+        host = cls(world, frame_ms=frame_ms, seed=seed, graph_loader=graph_loader)
+        if mode_component is not None:
+            world.bind(runtime.GAME_MODE_ENTITY)
+            host.add(runtime.GAME_MODE_ENTITY, mode_component, values=mode_values)
+        for entity in tuple(world.entities.values()):
+            if entity.placement is None:
+                continue
+            placement = entity.placement
+            entries = world.definitions[placement.definition]['components']['entries']
+            definitions = [row['value'] for row in entries if row['value']['$'] == 'STUStatescriptComponent']
+            placed = [row['fields'] for row in placement.source['components']
+                      if row['class'] == 'STUStatescriptComponentInstanceData']
+            if len(definitions) > 1 or len(placed) > 1:
+                raise ValueError('scene has ambiguous script component ownership')
+            if definitions:
+                host.add(entity.id, definitions[0], placed[0] if placed else None)
+            else:
+                world.bind_script_component(entity.id, None)
+        return host
+
+    def advance(self, frame: int, *, allow_skipped_frames: bool = False) -> bool:
+        """Advance the supplied ordinary frame; never synthesize skipped frames."""
+        if self.closed or self.error is not None:
+            return False
+        if type(frame) is not int or not 0 <= frame < 0x80000000:
+            raise ValueError('scene frame must be a nonnegative signed32 frame')
+        if frame == self.frame:
+            return True
+        if (self.frame is not None
+                and (frame < self.frame or (not allow_skipped_frames and frame != self.frame + 1))):
+            raise ValueError('scene frame gap or rewind needs a new explicit lifecycle')
+        self.frame = frame
+        try:
+            for unit in self.units.values():
+                unit.component.frame = frame
+                unit.component.now = frame * self.frame_ms
+                scope = self.world.subgraph_scopes(unit.component.entity)
+                if type(scope) is scopes.ForwardHost:
+                    scope.set_frame(frame)
+            self._advance_spawn_searches()
+            if not self.prepared:
+                for unit in self.units.values():
+                    unit.startup.start()
+                self.prepared = True
+            self.before_units()
+            for unit in tuple(self.units.values()):
+                entity = unit.component.entity
+                if self.units.get(entity) is not unit:
+                    continue
+                scope = self.world.subgraph_scopes(entity)
+                if type(scope) is scopes.ForwardHost and scope.frame != frame:
+                    scope.set_frame(frame)
+                if (queue := self.world.play_queues.get(entity)) is not None:
+                    queue.flush()
+                if (approach := self.objective_approaches.get(entity)) is not None:
+                    approach.update(unit.component, frame, self.frame_ms / 1000)
+                weapon = self.weapons.get(entity)
+                buttons = ()
+                if weapon is not None:
+                    if (self.world.entities.get(weapon.controller.id) is not weapon.controller
+                            or self.world.linked_controllers.get(entity) != weapon.controller.id
+                            or self.world.script_components.get(entity) is not unit.component):
+                        raise ValueError('scene weapon binding is stale')
+                    shooter = weapon.control.shooter
+                    buttons = weapon.control.update(self.world, weapon.collision(), weapon.targets(shooter))
+                if type(scope) is scopes.ForwardHost:
+                    scope.run_frame(frame, buttons)
+                else:
+                    unit.component.run_frame(frame, buttons)
+                if (registration := self.body_projections.get(entity)) is not None:
+                    projection, publish = registration
+                    if (changed := projection.refresh()) is not None:
+                        publish(*changed)
+                if weapon is not None and self.weapons.get(entity) is weapon:
+                    shots = tuple(unit.component.shots)
+                    unit.component.shots.clear()
+                    for shot, ordinal, time, activation in shots:
+                        if shot.instance.graph.index == 0x0CA1 and shot.node.pos == 14:
+                            weapon.launch(shooter, shot, ordinal, time, activation, frame)
+            self.world.flush_corpse_retirements(self.retire_entity)
+        except (runtime.UnsupportedScriptError, runtime.ScriptBudgetError, ValueError) as error:
+            self.error = {'error': str(error), 'frame': frame}
+            if isinstance(error, runtime.UnsupportedScriptError):
+                self.error['diagnostic'] = error.diagnostic
+            return False
+        return True
+
+    def close(self) -> None:
+        """Stop scheduling, destroy live VMs, then retire this world's bindings."""
+        if self.closed:
+            return
+        self.closed = True
+        self.weapons.clear()
+        self.spawn_searches.clear()
+        for queue in tuple(self.world.play_queues.values()):
+            queue.retire()
+        for unit in reversed(tuple(self.units.values())):
+            component = unit.component
+            if component.fault is not None:
+                continue
+            try:
+                for instance in list(component.instances.values()):
+                    component.destroy(instance)
+            except (runtime.UnsupportedScriptError, runtime.ScriptBudgetError, ValueError) as error:
+                if self.error is None:
+                    self.error = {'error': str(error), 'phase': 'close'}
+        for entity in tuple(self.world.entities):
+            self._unbind_entity(entity)
+
+    def snapshot(self):
+        """Status only; not a restorable shared-world storage artifact."""
+        return {'frame': self.frame, 'prepared': self.prepared, 'closed': self.closed,
+                'client_ready': self.client_ready,
+                'error': self.error, 'components': len(self.units),
+                'instances': sum(len(unit.component.instances) for unit in self.units.values())}
+
+    def configure_play_requests(self, acquire) -> None:
+        """Install an explicit resource provider for this initial component catalog."""
+        if self.prepared or self.closed or self.error is not None or not callable(acquire):
+            raise ValueError('PlayScript resources must be configured before scene startup')
+        if self.play_requests_configured or any(entity in self.world.play_queues for entity in self.units):
+            raise ValueError('scene already has configured PlayScript queues')
+        if any(self.world.script_components.get(entity) is not unit.component
+               or unit.component.fault is not None
+               for entity, unit in self.units.items()):
+            raise ValueError('scene component lifecycle changed before PlayScript configuration')
+        for entity, unit in self.units.items():
+            self.world.set_play_queue(entity, play_queue.Queue(unit.component, acquire))
+        self._play_acquire = acquire
+        self.play_requests_configured = True
+
+    @property
+    def client_ready(self):
+        # Live scene replication/readiness has not been installed. A successful
+        # Python VM pass cannot authorize the prepared entrance readiness frame.
+        return False

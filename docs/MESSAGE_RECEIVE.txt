@@ -1,0 +1,127 @@
+Native game-message entry reception
+Target: original PC build104319. Partial shared mode/controller communication.
+
+Ordered packets and entry selection
+The explicit shared-scene transport now carries an immutable Packet with full
+message GUID, separate caller+98 and instigator+9C identities, and ordered
+full-key parameter pairs. Repeated keys and different identities survive delivery.
+The old dictionary transport remains available to its compatibility callers.
+
+Loaded entity-instance entry selection follows1B91D70 and90C030. It traverses
+the authored entry array in order, rather than treating every graph node as a
+receiver. Only GameMessageEntry entry nodes with entity context0 qualify. The
+server excludes client-only nodes. Message configs use the scalar success/value
+interface and first-Asset conversion; a zero result never matches an entry.
+Disabled entries are skipped before config evaluation.
+
+Native filter resolution and testing remain explicit engine services. Known
+missing compiled filters bypass the predicate. Caller0 also bypasses a known
+predicate, after resolution. Nonzero invalid identities do not gain that bypass.
+Unknown filter service/results remain strict. No filter policy is invented from
+names or a missing callback. PC prediction/client-only selection modes, pending
+graphs and complete native scheduling are outside this change's acceptance.
+
+Scoped message parameters
+Original1B932F0 exposes builtin9 as typed caller, builtinA as typed instigator
+and builtinB as that instigator's current controlled object, with the instigator
+itself as fallback. Builtins take precedence over supplied keys. Other lookups
+take the first matching full0A4 key, preserving repeated incoming rows for later
+binding. Unrelated resource types with the same low identifier do not alias it.
+
+The scope exists during message selection, filtering and entry binding, then is
+removed even on failure. Queued entry actions do not inherit that transient
+provider. Missing keys can fall through to an outer provider. Scope reads do
+not replace ordinary variables or seed the instance's inherited-source cache.
+
+Subject resolution follows D24750: one namespace entity lookup, then native
+component44/current-object+D8. A valid current object wins; missing entity,
+known component absence or invalid current value returns the supplied instigator.
+This does not use the reverse possessor catalog or register query dependencies.
+SceneWorld reuses explicit entity-query descriptors and checks owner/context
+lifetime after lookup. Unknown namespace/component data stays strict. A native
+null-namespace probe faults atD2476B; it does not establish a fallback identity.
+
+Bindings and FIFO events
+Original1B955F0 invokes1BA7B80 for each incoming row. Named keys find the first
+matching writable declaration; key0 matches by incoming position. Null rows or
+absent output pointers can be skipped while searching. Repeated incoming keys
+queue repeated assignments. Missing incoming parameters leave old values intact.
+A resolved parameter variable0 suppresses that write without trying a later
+duplicate declaration. Supported direct Dynamic and simple expression lvalues
+use the existing VM target resolver; more complex lvalues remain unsupported.
+
+Caller, instigator and subject bindings follow the parameter assignments in that
+order. These three fields are cast specifically to Dynamic, unlike parameter
+lvalue resolution. Known expression/constant outputs fail that cast and are
+skipped. Unknown binding types remain strict. Entity0 and other invalid values
+remain typed values when these bindings are present, including variable0.
+
+Assignments are queued at the receiver's clock before its ordinary Entry event;
+no inline writes or synthetic MESSAGE event are needed. One-shot flags disable
+the native entry-array index as soon as the entry is queued. A separate stored
+disabled_message_entries set preserves those indices without changing the older
+start-entry API. Passive VM export records the set, packets, scopes and pending
+events without resolving getters or executing callbacks. Shared-world restore
+and live network replication remain unsupported.
+
+The auto-retirement exemption for8A7E9DA8 now also recognizes its extracted name
+STUStatescriptEntryGameMessage. Previously only the hashed alias was exempt,
+so an idle transient instance could remain alive through an actual named entry.
+Original age, queued-event, initialization and active-State gates are retained.
+
+Ownership and integration
+Shared SceneWorld submits packets to actual bound script components. It checks
+the source instance and component before and after callbacks, refuses unknown or
+failed receivers and retains known entity/component absence as a declared drop.
+Selection, parameter-scope scans, matching, subject lookup and queueing share
+script work budgets.
+Detach/replacement/stop/failure cannot borrow a new component's service context.
+
+This backend handles declared EntryGameMessage entries. The independent receiving
+GameMessageEntry State and38EE1100 sending State, their registrations, replies,
+priorities and lifetimes are not restored here. Complete native engine consumers,
+server forwarding and filter rules are not established by the PC entry code.
+The persistent manager and strict sending State now have backends mounted through
+explicit Contexts. The receiving State now has a separate explicit-context
+backend; production mounting and full engine policies remain open. See
+MESSAGE_MANAGER.txt and MESSAGE_SENDER.txt. A separate sender-backed parameter
+scope and receiver cache backend is available; MESSAGE_RECEIVER.txt records
+its newly implemented State lifecycle and remaining acceptance limits.
+MESSAGE_PARAMETERS.txt records the shared-VM provider rules and
+new zero-ID Entry scope regression without widening Entry acceptance.
+
+Verification and current mission boundary
+1350 original entry binding/queue comparisons cover named/positional/repeated
+keys, null rows/outputs, scope, zero identifiers, typed invalid contexts, Dynamic
+casts, order and one-shot state.15 original scope cases cover builtin precedence,
+full-key identity and first-duplicate reads.3024 original ordinary loaded-entry
+selection cases cover context, disabled/non-entry/null nodes, scalar messages,
+known filter results and zero callers.60 original subject-getter cases cover
+entity/component presence and valid/invalid current objects, plus the separate
+null-namespace fault case.
+
+Adapters provide literal/type descriptors, compiled filter resolution/predicates,
+heap/variant/array and VM-scope storage, queue allocation/append, the subject
+virtual getter, identifier tags, security cookie and encrypted component44
+pointer resolution. Original matching, bindings, context descriptors, entry type
+policy, scope lookup and relevant selection/dispatch bodies execute unchanged.
+These comparisons do not execute a full filter engine or native event scheduler.
+Another2688 original lifetime comparisons pass with the actual extracted entry
+name; physical deletion and transport still use the earlier declared adapters.
+
+Twenty-five new behavior tests cover lifecycle faults, budgets, scope cleanup,
+passive export and receiver-clock integration.992 related and33 server journal,
+snapshot and injection tests pass (1025 total), with matching frozen source
+hashes and Ruff/diff checks. Actual100B's15 message entry nodes accept their
+declared typed-array/caller fixtures into ordered queues, including variables
+10110/10111/10112. This isolated pre-init check executes neither ordinary mode
+initialization nor entry output plugs, and does not establish mission progression.
+
+Three explicit controller profiles still retain the unknown06FF mode receiver.
+Ordinary controller still retains81A9AB10; real Match still prepares148 components
+and stops at rootD38D0035/node106 before controller execution, then cleans up
+without readiness. Placed startup remains50/123 nonempty first frames complete
+with73 strict faults. No fresh original-client run or normal deployment is
+claimed. Complete story, cinematics, five enemy AI types and extraction/results
+remain open. Local evidence uses verification/retribution/message-receive-*;
+game inputs, native images and probes stay outside Git.

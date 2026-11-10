@@ -523,6 +523,7 @@ class EntityUpdate:
         self.resend = True  # send it again when its datagram is lost
         self.correction = None  # optional correction.SendToken; committed only after a successful send
         self.controller_close = False  # a full controller frame that returns to the possessed body
+        self.npc_idle: bool | None = None  # tracked Rialto NPC movement, idle or active
 
 
 def _write_entity(out: BitWriter, item: EntityUpdate, tick: int | None = None) -> None:

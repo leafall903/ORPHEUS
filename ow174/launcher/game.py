@@ -126,6 +126,11 @@ def choose_locale(installed: set[str], system: str | None) -> str | None:
 
 def installed_locales(game: Path) -> set[str]:
     """Language codes in the tags of the game's .build.info (next to the _retail_ folder)."""
+    return set(LOCALE_TAG.findall(installed_tags(game)))
+
+
+def installed_tags(game: Path) -> str:
+    """Read install tags rather than inheriting another Battle.net installation's region."""
     for folder in (game.parent.parent, game.parent):
         info = folder / ".build.info"
         if not info.is_file():
@@ -137,8 +142,8 @@ def installed_locales(game: Path) -> set[str]:
         if "Tags" in header:
             row = lines[1].split("|")
             index = header.index("Tags")
-            return set(LOCALE_TAG.findall(row[index] if index < len(row) else ""))
-    return set()
+            return row[index] if index < len(row) else ""
+    return ""
 
 
 def system_locale() -> str | None:
@@ -184,7 +189,10 @@ def running_copies(game: Path) -> tuple[list[int], list[int]]:
     """PIDs of running Overwatch.exe as (this copy of the game, any other copy)."""
     ours, others = [], []
     for pid in inject.find_pids(GAME_EXE):
-        (ours if _same_file(inject.image_path(pid), game) else others).append(pid)
+        path = inject.image_path(pid)
+        if path is None and inject.process_exited(pid):
+            continue
+        (ours if _same_file(path, game) else others).append(pid)
     return ours, others
 
 
@@ -202,9 +210,16 @@ def _same_file(path: str | None, other: Path) -> bool:
 
 def start_game(game: Path, arguments: list[str], locale: str = "auto") -> subprocess.Popen:
     command = [str(game), *arguments]
+    # The global Battle.net registry can retain CN from Overwatch 2. A DevReg
+    # archive needs the RDEV manifests, even when its text language is Chinese.
+    # US selects that data lane; this does not change the Windows registry.
+    if re.search(r"\bDevReg\b", installed_tags(game)) and not any(
+        argument.lower().split("=", 1)[0] == "--tank_region" for argument in arguments
+    ):
+        command.append("--tank_Region=US")
     language = game_locale(game, locale)
     if language:
-        command.append(f"--tank_Locale={language}")
+        command.extend((f"--tank_Locale={language}", f"--tank_AudioLocale={language}"))
         log.info("Game language: %s", language)
     GAME_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with GAME_LOG_FILE.open("ab") as output:

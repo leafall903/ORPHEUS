@@ -100,6 +100,22 @@ class LinkEvidenceTests(unittest.TestCase):
 
 
 class EntityRootTests(unittest.TestCase):
+    def test_plug_walk_ignores_reference_cycles_and_keeps_alias_paths(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / "graph.xml"
+            path.write_text('''<Root xmlns:dragon="https://yretenai.com/dragonml/v1">
+              <Container dragon:id="1" dragon:name="a">
+                <dragon:ref dragon:id="1" dragon:name="self" />
+                <Plug dragon:name="input" m_links="{null}" m_parentNode="{null}" />
+              </Container>
+              <dragon:ref dragon:id="1" dragon:name="b" />
+            </Root>''', encoding="utf-8")
+            xml = extractor.StuXml(path, EnumTables(root))
+            xml.plugs_below = GraphXml.plugs_below.__get__(xml)
+            paths = [name for name, _ in GraphXml.plugs_in(xml, xml.root, "")]
+            self.assertEqual(paths, ["a.input", "b.input"])
+
     def test_optional_entity_roots_preserve_initial_order_and_follow_shared_graph_references(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -281,7 +297,12 @@ class AIWeaponButtonTests(unittest.TestCase):
             baseline = extractor.collect(self.root, self.enums, (0x1403,))
             opted_in = extractor.collect(self.root, self.enums, (0x1403,), ai_spawners=spawners)
         self.assertNotIn("ai_weapon_buttons", baseline["entities"][body])
+        self.assertNotIn("pet_component_absent", baseline["entities"][body])
+        self.assertIs(opted_in["entities"][body]["pet_component_absent"], True)
         self.assertEqual(opted_in["entities"][body]["ai_weapon_buttons"], {"0": 20, "2": 29})
+        self.assertEqual(opted_in["entities"][body]["ai_association"], 0x0400000000001404)
+        self.assertIn("0x0400000000001404", opted_in["entities"])
+        self.assertNotIn("0x0400000000001404", baseline["entities"])
         self.assertEqual(opted_in["bodies"], baseline["bodies"])
         self.assertNotIn("ai_weapon_buttons", opted_in["bodies"][body])
 
@@ -290,7 +311,22 @@ class AIWeaponButtonTests(unittest.TestCase):
         self.assertNotIn("ai_weapon_buttons", self.body_record())
         self.write_body()
         self.write_controls("")
-        self.assertNotIn("ai_weapon_buttons", self.body_record())
+        record = self.body_record()
+        self.assertNotIn("ai_weapon_buttons", record)
+        self.assertEqual(record["ai_association"], 0x0400000000001404)
+
+    def test_fire_control_identifiers_preserve_shared_weapon_slot(self):
+        self.write_controls("""
+          <STUAIWeaponFireControlInfo m_A60150E2="0" m_4F5E7D4C="xD128396E">
+            <dragon:ref dragon:name="m_F2810377" GUID="00000000023A.01C" />
+          </STUAIWeaponFireControlInfo>
+          <STUAIWeaponFireControlInfo m_A60150E2="0" m_4F5E7D4C="xB42D90B7">
+            <dragon:ref dragon:name="m_F2810377" GUID="000000000250.01C" />
+          </STUAIWeaponFireControlInfo>
+        """)
+        self.assertEqual(extractor.ai_weapon_identifiers(self.associated, self.enums), {
+            0: frozenset({0x0D8000000000023A, 0x0D80000000000250}),
+        })
 
     def test_ambiguous_slots_and_malformed_fields_are_rejected(self):
         primary = '<STUAIWeaponFireControlInfo m_A60150E2="0" m_4F5E7D4C="xD128396E" />'

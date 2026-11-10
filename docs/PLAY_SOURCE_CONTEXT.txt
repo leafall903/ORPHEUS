@@ -1,0 +1,82 @@
+PlayScript entity-instance source and request identity
+Target: original Overwatch 1.74.0.0.104319; 2026-11-08.
+
+The caller bound by a start entry differs from the new graph's instigator.
+Entity-instance requests can now obtain their real component identity and cached
+inherited source from a live SceneWorld binding. Submission and live transport
+remain strict services; obtaining a valid context does not execute the request.
+
+Native identity and source evidence
+The constructor chain is99AE60 -> D135D0 ->1B90800. The entity instance installs
+its own262E740 table. Its+60 and+70 slots both use23DC640, returning Instance+10,
+the actual component VM. The abstract/base tables do not establish this policy.
+906E33..49 and906FF0..700B use these getters and D0D880 to obtain caller and
+owner. D0D880 obtains VM+528's actual owner identifier through18262E0. SceneWorld
+uses its explicit component/entity binding for that identity, without allocating
+entities from references or granting context to unknown/unbound components.
+
+Instance+234 starts at the native invalid entity0.1B92E50 returns a valid cached
+identifier immediately. Otherwise1B92ED0 reads effective instance builtin001B,
+casts to Entity and stores that result. Invalid results are queried again on the
+next call. A valid cache is not invalidated by a generic variable write. The
+source setter1B94B10 writes typed Entity001B synchronously and commits+234 after
+the variable write. It temporarily forces the VM's write mode and restores it.
+The Python setter uses the runtime's synchronous write path and dependency rules.
+
+New-allocation97AA20 uses its supplied instigator. Exactly zero falls back to the
+actual VM owner at97AB4F..71; other low-index invalid identifiers do not take that
+fallback. The setter runs during allocation, before public schema evaluation.
+Start-entry B60ABDA4 instead binds the request's caller+98. The instigator+9C is
+not substituted for that caller. Skip/reuse policies do not reallocate or reset
+builtin001B; replacement creates a fresh source/cache lifecycle.
+
+Production boundary
+Instance.source_entity() implements the lazy source getter without a dependency
+watcher. set_source_entity(uint32) performs the synchronous typed write and cache
+commit. Component.play_loaded_graph adds optional instigator=uint32: new instances
+seed it before defaults/overrides, with zero's owner fallback. None preserves the
+previous core boundary, leaving allocation source unspecified. It does not infer
+an instigator from the start-entry caller. Existing start bindings remain queued.
+
+SceneWorld.play_script_context verifies the actual component and live instance
+identity, obtains caller/owner from that component and reads the inherited source.
+It verifies the lifecycle again after the effective-value read, which can invoke
+State output callbacks. Detached, replaced or stopped sources cannot request a
+context. This policy applies to declared entity script VMs, not abstract native
+instance classes. Base World still requires an explicit context service.
+
+VM storage observes cached_source_entity as a uint32 without reading the builtin,
+running a getter or changing a valid cache. Unknown layouts and malformed cache
+values remain errors. Stored body/server replay includes the field; shared-world
+storage remains unsupported as recorded in SCENE_SCRIPT_HOST.txt.
+
+Validation and exact limits
+Original instructions match294 source getter/setter comparisons, seven allocation
+source branch cases and seven component-owner identity cases. Both entity-instance
+getter slots are verified from the own table and run. Variable storage, protected
+owner lookup18262E0/D0D9B0 and the security cookie are explicit native adapters.
+These cases do not execute the complete native allocator or deferred loader.
+
+An actual0F45/node48 action fixture now derives context from its bound component,
+without replacing play_script_context with a fixture provider. It collects the
+authored0EC6 resource, parameter array(17,), policy3 and wire byte0. An explicit
+loaded-core handoff seeds target001B/cache with the instigator before the start
+entry assigns variable41. With declared body/controller possession, that helper
+then stops strictly at SendGameMessage/node22 because the actual controller's
+script component has not been installed. The complete authored action still
+stops at the unimplemented submission service, before its following success plug.
+Body/controller identities, allocation source, caller variable10334=17, isolated
+action invocation and manual handoff are explicit fixture inputs.
+
+The real in-memory shared Match probe still prepares147 initial components and
+stops at100B/D38D0035/node106/frame0, closing the host and retiring every binding.
+Full body/controller startup, automatic target/resource submission, deferred
+requests, allocation/transport flags, native scene phases, dynamic NPC ownership,
+cinematics, enemy AI and mission results remain open. No new original-client run
+or deployment is claimed; normal runtime inputs are unchanged.
+
+Local-only evidence under verification/retribution: play-source-native-validation.json,
+play-source-actual-validation.json, play-source-root-validation.json,
+play-source-related/server-tests.log and play-source-ruff.log. The first focused
+test log preserves the old unbound-context diagnostic expectation; the updated
+test checks the new lifecycle diagnostic. See CHANGELOG.md for final test totals.

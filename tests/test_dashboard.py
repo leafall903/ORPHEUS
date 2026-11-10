@@ -228,6 +228,16 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(self.lobby.selected.profile.events, ["goodbye"])
 
+    def test_pve_event_groups_can_be_enabled_together_and_persist(self):
+        events = ["goodbye", "archives", "halloween"]
+        status, _ = self.request("/api/update_profile", {"account": "Alpha", "events": [*events, "archives"]})
+        self.assertEqual(status, 200)
+        self.assertEqual(self.lobby.selected.profile.events, events)
+        self.assertEqual(load_or_create_profile(self.lobby.selected.path).events, events)
+        status, _ = self.request("/api/update_profile", {"account": "Alpha", "events": [*events, "typo"]})
+        self.assertEqual(status, 400)
+        self.assertEqual(self.lobby.selected.profile.events, events)
+
     def test_dates_outside_client_clock_range_cannot_poison_saved_profile(self):
         before = self.lobby.selected.path.read_bytes()
         for value in ("1900-01-01", "1999-12-31", "2000-01-01", "2000-01-02", "2106-02-07", "9999-12-31"):

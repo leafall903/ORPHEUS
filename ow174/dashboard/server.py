@@ -19,6 +19,8 @@ MAX_BODY_BYTES = 65536
 STATIC_FILES = {
     "/": ("index.html", "text/html"),
     "/index.html": ("index.html", "text/html"),
+    "/npc-console": ("npc-console.html", "text/html"),
+    "/assets/npc-console.mjs": ("npc-console.mjs", "text/javascript"),
     "/assets/dashboard.css": ("dashboard.css", "text/css"),
     "/assets/dashboard-api.mjs": ("dashboard-api.mjs", "text/javascript"),
     "/assets/dashboard.js": ("dashboard.js", "text/javascript"),
@@ -77,6 +79,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "Could not save changes: " + str(error)}, 500)
 
     def _run_action(self, path: str, data: dict) -> dict:
+        if path == "/api/npc_console":
+            return self.service.npc_console(data)
         if path == "/api/apply_to_all":
             return self.service.apply_to_all(data)
         if path == "/api/update_profile":

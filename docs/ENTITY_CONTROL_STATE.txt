@@ -1,0 +1,242 @@
+Placed entity control rules — scoped native implementation
+Target: original Overwatch1.74.0.0.104319; addresses are module RVAs.
+
+Actual selected scene
+Sixty-six current first-frame faults share graph120E/node9, raw State index2,
+remote index1, class33A46033. Original factory8F5AA0/inplace8F7990 install vtable
+26217E0. This class has real entity/model consumers; a passive State is insufficient.
+The selected node has true381879C1,7E42F868,D82DB14B configs and six absent configs.
+
+Subsequent original-client sample acceptance, 2026-11-08
+An authorized isolated build104319 client completes two consecutive Story/Normal
+Rialto matches as Reaper, followed by settled-menu returns and normal close.
+The exact placed entity800001AE receives actual120E/ID1 after its create ACK.
+Native builtin001B/tag10/self is explicitly bound from prior client observations.
+The server executes its authored frame0 with the declared engine service fixtures;
+only remote-synced raw State2 is transmitted. The concurrent BooleanSwitch raw
+State1 has remote index-1 and is not sent. This is still a fixture allocator and
+engine context, not a complete production Match host.
+
+First match: off/on/off/on/off, with acknowledged chunk last1..5. Second match:
+off/on/off, acknowledged1..3 on a fresh connection. Eight frames are acknowledged;
+both streams retire on leave. Off-after frames use diagnostic State.end(False),
+not authored mission progression. Native component47/VM ownership, graph/instance
+identity, source variable and post-entry Boolean variable agree in both matches.
+
+Original1B91460 stores States in instanceA0[raw index]; the actual raw2 allocation
+has vtable26217E0. State40 is4061 on and4060 off: native1B70813 tests bit0 and
+1B7068D clears bit0. The first inspector mistakenly decoded mask2. Its two false
+on annotations are corrected by the validator from retained flags/raw bytes;
+original captures are preserved. The corrected inspector independently agrees
+in the second match. Radius-1, three false caches and zero targets agree, while
+State218 and model24E bit0 repeatedly change0->1->0. Model230 changes exactly
+by masks200000000000 and8000 and returns to its original value after each abort.
+Observed State generations are2/3/5/6 in match1 and2/3 in match2. This confirms
+the sample's native State/model consumer transition, beyond a packet-only ACK.
+
+All66 selected120E placements use definition20D8, whose serialized components
+are86405E46 and StatescriptComponent, without an explicit STUModelComponent.
+Nevertheless the original client gives this sampled entity a present component1
+and nonnull model250 in both matches. Serialized class absence is insufficient
+to declare the runtime model absent. No complete model-allocation rule is inferred.
+
+Five offline successive codec round trips preserve the source and correct State
+set; payload sizes are94 initial-off,120 on and118 diagnostic-off bits (chunk
+sizes130/156/154). These include explicit native source binding and supersede
+the earlier73-bit fixture for this bounded acceptance. The aggregate verifies
+eight native samples, ACK ordering and fresh entity/instance identities. Normal
+runtime hashes and production code stay unchanged; candidate is not deployed.
+Local evidence: verification/entity-control-session/preparation.json,
+transport.jsonl, client-match1/2-*.json, session.json and validation.json.
+
+Acceptance is limited to this exact State and native model flags under supplied
+server services. Protected entity physics, renderer meaning, recursive children,
+full allocator/authority/clocks, automatic hosting and all-placement lifetimes
+remain open. Full story, cinematics, five enemy AI types and extraction/results
+remain unaccepted; the strict rootD38 diagnostic is unchanged.
+
+Cache and refresh order
+Native B8/8F7180 appends the State through1B72530, enables its update interface,
+then calls8F93C0. C0/8F7510 removes it through1B725C0 before the same refresh.
+Tick70/8F7530, dependency C8/8F7720 and reconciliation158/8F6D90 also refresh.
+Incoming reconciliation's base work remains outside this server implementation.
+The inherited150/1B72A80 link payload uses the ordered same-class State list.
+
+8F93C0 increments the generation byte, skipping255, then invokes C8D540. The
+cache evaluates069FD7A5 as float with default-1,72FD7742 as bool defaultfalse,
+and inverted381879C1/7E42F868 bool caches defaulttrue. C3E68133 is an ordered
+entity iterator: invalid IDs/nonentities are rejected and duplicates survive.
+The new native comparison covers an absent target iterator; nonempty production
+iteration reuses the existing config iterator and explicit entity conversion.
+If radius >=0 the refresh requests ticking. Unknown engine context still faults;
+an explicitly absent native context returns only after cache/tick preparation.
+
+Junkenstein Reaper, 0CE0 node 17
+
+The natural Normal Revenge and Endless runs reach this node at frames 9504
+and 3504. It is raw State 10, remote slot 5, and is eligible on both sides.
+Its only authored rule is 7E42F868=true. The native 8F93C0 instruction replay
+matches 256 combinations of registration, context, target script component,
+capability, permission, extra query, and model availability. With this as the
+sole registered rule and a present target script component, the protected
+consumer receives false regardless of capability and permission. The extra
+query is skipped during registration. After removal, the input depends on
+capability and permission, with the extra-query override when applicable.
+The authored node does not request distance ticking or change cached d.
+
+The protected consumer 6CA4B0 resolves component 1 with mask 2. It invokes
+5D8820 twice on false to set model +230 bits 200000000000 and 8000, or
+6C9750 twice on true to clear them. It does no model write when component 1
+is absent. An isolated replay of 64 combinations executed the original
+component-pointer decode and both bit setters on a supplied model, with
+the environment-key check adapted. The two cases are documented separately
+because the dispatch replay supplies the engine context and intercepts the
+protected call. The flag meanings in the server collision and targeting
+systems and live client behavior still need evidence. The headless match
+binds the actual Reaper script component and applies the two verified model
+bits. Its baseline uses the no-capability, no-extra-query branch and has no
+recursive model consumer. The isolated lifecycle test verifies clearing on
+removal. The natural Normal Endless replay sets the pair on frame 3504 and
+advances to the voice stimulus at node 61 on frame 3597.
+
+The native reader at 6A4829 uses model +230 bit 45 to bypass the rest
+of its entity update and return at 6A5EF5. The clear branch continues
+through another model lookup and transform evaluation. A 130-case replay
+of the instructions with single-bit and single-cleared-bit masks confirms
+this branch depends only on bit 45. This reader alone does not establish
+damage immunity or a physics filter.
+
+In diagnostic runs, supplying the Reaper body script component and recording
+the model request lets the authored encounter reach node 39 in both modes.
+The original runtime factory resolves F08E1453 through parent typeinfo
+2DD53F0 to base record 160, with constructor 1B702C0 and an empty reader.
+The strict runtime now executes that node's ordinary subgraph lifecycle.
+Nodes 29 (43994F1B) and 30 (93B8758C) below it use priority-2 records 1122
+and 1121. Their vtables 262D9B8 and 262C4D0 share registered-state begin,
+cleanup, and successor serialization with 9028E035. Each authored type
+keeps its own list. Nodes 40 and 42 also select base record 160. The
+isolated authored node 39 subtree now starts and retires all six states,
+including the existing five-row numeric modifier at node 41.
+
+After that subtree restoration, a Normal Endless encounter with the explicit
+diagnostic context advances to frame 3565, 63 frames after Reaper is spawned.
+Graph 14B1 then reaches the server-only ED45C5E8 query in its periodic
+00BD message path. The original XML, deployed graph, and candidate agree:
+node 12's message target uses 5A72EEF5=true, while the assignments at nodes
+37 and 53 use false. This class and its intermediate parent have no own PC
+factory. The PC selects ConfigVar record 155 through D05AEF31. Replaying
+the original +20, +28 and +30 calls shows failure with the destination
+untouched in 15 cases. This establishes the PC fallback only. The server
+must supply the correct recipient list for the authored query. The encounter
+host now supplies live team-zero player bodies for the all-false, zero-radius
+self selector used by nodes 37 and 53. The recipient policy comes from the
+authored 0CA5 team body receiver and the match roster. The PC fallback does
+not establish the original server's complete selection rules, and the
+true-flag 00B8 selector is still unimplemented.
+
+The Junkenstein player body graph 0CA5 receives 00BD at node 78. Node 80
+uses 021D01CD and the body positions to check whether the sender is in
+front of the receiver. The spawned player and enemy bindings now expose
+their current body rotation through the same yaw-to-quaternion conversion
+used for replicated creates. An isolated execution of the authored receiver
+predicate is true with the sender in front, false after turning away, and
+true after turning back. The recipient lookup leaves that facing test in the
+receiver.
+
+Player and encounter NPC bodies now use the same team lookup over bound
+match actors. It verifies the current body identity and excludes a departed
+player or retired enemy. In the Match fixture, 14B1 nodes 53 and 54 select the
+current player body and send 00BD. The actual 0CA5 node 78 binds the sender and
+the singleton team/body parameter arrays, checks facing, and node 77 reads the
+receiving body's own team. Switching heroes changes the selected body, and
+leaving the match removes it from the recipient list.
+
+Local probes: verification/retribution/probe_junkenstein_0ce0_dispatch.py
+and probe_junkenstein_control_consumer.py.
+
+Ordered native rule aggregation
+With a native context, refresh offers the State to route6, then obtains the native
+capability flag and, only when that flag is true, its permission result. Their
+conjunction seeds a; b starts as not-a, c as true, d/e as false. 8FED10 looks up
+the actual target's component47 type-list for33A46033. Known missing component47
+returns failure before consuming these outputs. Unresolved graph resources skip
+their State; graph availability is not inferred from a UUID.
+
+For each loaded State, the native helper resolves its model/distance predicate
+before reading3C443404 with defaulttrue. The first four combinations below run
+only if cached72FD7742 is false, the distance predicate is false and that gate
+is true. D82DB14B is evaluated regardless of these three gates.
+
+Output  Config     Operation                       Absent/failed default
+a       381879C1   a = a and not value             not a
+b       7E42F868   b = b and not value             not b
+c       DFD8E2EA   c = c and value                 not c
+e       6771D268   e = e or value                  e
+d       D82DB14B   d = d or value                  d
+
+8F60F0 retains the supplied default for absent configs or a failed evaluator;
+successful null/false overwrites it. Production uses the callee/watcher context
+for every read, preserving variable dependencies. Native list order and exact
+field read order match. Mutation of the type list during a callback is explicitly
+gated until native reentrancy behavior is implemented; it is not snapshot replay.
+
+Consumer dispatch
+After successful aggregation, c plus a clear native capability and a present
+extra entity service allow the C1C0E0 query. A true result sets b true. The
+protected6CA4B0 entity consumer is called with b. Its full physical engine effects
+are not implemented here. Native code reaches model flag masks200000000000/8000,
+but these numbers alone do not establish complete renderer/collision behavior.
+The native capability flag is retained across permission/rule callbacks, and the
+extra entity service is retained across rule callbacks. Production preserves both
+samples. Two original-instruction callback cases exposed and verified these
+read-time distinctions; rereading mutable context fields would change the result.
+
+Only a present model component with nonnull+250 updates the source State's218
+cached d value. CA8570 is called only on a change, with d and recursive flag e.
+Its native1B049E0 setter changes model24E bit0; recursive dispatch walks child290
+before sibling298. A missing+250 returns from that invocation. Engine queues,
+parent propagation and model ownership remain actual engine services, not flags
+stored in a Python dictionary and accepted as full game behavior.
+
+Implementation and ownership
+nodes.EntityControl implements strict begin/cleanup registration, cache refresh,
+dependency/tick updates and the inherited link payload. entity_control.Context
+requires explicit target component, capability/permission, distance, extra query and
+entity/model consumers. Each consumed boolean service must return a real bool.
+Known absent context/component and unknown service remain separate. Permissive
+legacy bodies keep their passive policy. SceneWorld binds contexts explicitly,
+retires dependent bindings with entities/failure, and rejects another world's
+component. Callback owner retirement faults before further consumer calls.
+Read-only VM observations include the seven persistent cached fields.
+
+Validation and limits
+Original instructions match production in4514 aggregation,448 scalar-cache and
+512 outer-dispatch cases, with eight further original recursive model cases.
+Adapters are explicit: context getters, encrypted component/model resolution,
+scalar config providers, transform/distance services, empty target iterator,
+security cookie, tick membership, route observer, capability/permission/extra-query
+services, protected entity consumer and engine notification queues.
+
+Twenty-two behavior checks cover the State lifecycle, watcher/tick updates,
+sampled inputs, unknown/absent services, callback/registry retirement, dependent
+context cleanup, legacy policy and read-only snapshots. All613 related and15
+server snapshot/research checks pass, with Ruff and diff checks. No new client
+acceptance is claimed for that implementation step. The subsequent original-client
+sample described above adds bounded native activation/consumer evidence.
+
+The actual120E definition/placement graph completes frame0 when supplied declared
+service fixtures: capabilityfalse, distancefalse, modelreadytrue, and recorded
+route/entity/model requests. It requests b=false and d=true/e=false. Its active
+raw State2 encodes with the existing link codec and independently decodes on from
+a73-bit remote full frame. This is a script/request/codec probe, not engine effects
+or new original-client acceptance. Without invented context declarations, the
+actual scene still has45 completed first frames and78 faults;66 now identify
+the exact missing entity control context instead of an unknown State class.
+
+Full engine consumers, Match hosting/lifetimes, clock/phase mapping, incoming
+reconciliation, rootD38D0035/action106, cinematics, enemy AI and results remain
+unaccepted. No normal runtime inputs or network formats are changed or deployed.
+Local-only evidence: verification/retribution/entity-control-native-validation.json,
+entity-control-actual-graph-validation.json, placed-component-entity-control-validation.json,
+the entity-control test logs, and the native function/slice records. Code captures,
+runtime inputs, probes and generated reports stay outside Git.

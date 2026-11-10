@@ -1,0 +1,87 @@
+Primary possessor entity queries — partial mission world
+Target: original Overwatch 1.74.0.0.104319; addresses below are module RVAs.
+
+Problem
+STU_DB742151 is an EntityID config, not an AI boolean predicate. Mission body
+helpers and dynamic script targets use it to find the primary possessor entity.
+Returning null or using the current script owner cannot establish that relation.
+
+Native evidence
+- CD1940 is the config's +20 evaluator. It evaluates m_entity through scalar +20,
+  converts through F64C20, looks up that entity, and calls DA7F10. A found result
+  is converted to its owning entity ID through 18262E0 and F66C80. An absent
+  entity/relation writes typed invalid Entity; missing instance/world is a
+  no-output failure. Runtime InstanceContext already has a world and instance.
+- DA7F10 first checks native component 44 (BD59A0: mask 100000000000, bit 44).
+  A present component is returned directly. Otherwise it uses the world service
+  selected by BDE230 (index 28 hex), looks up the input entity's ID in DA8560's
+  reverse registry, finds that entity, and checks component 44 there. Thus an
+  active possessor resolves to itself before the registry fallback.
+- CD1940's fallback also registers component 43 observation through BD4680 and
+  1B72C10; BD4680 selects bit 43. Native observation/callback delivery is outside
+  this static relation service. The current native-query watcher polls updates.
+- The original client's replicated component 44 has current/view/primary body
+  fields. A separately authorized read-only session independently decoded the
+  actual component table and its owning entity IDs, confirming component 44 on
+  controller A0000100 and component 43 on Reaper body A0000101.
+- In the same Rialto Story Normal session, the registry maps A0000101 to
+  A0000100. After a normal UI switch from Reaper to Genji, A0000101 is absent and
+  A0000102 maps to A0000100. Component 44 fields D0/D4/D8 change from A0000101 to
+  A0000102. Six direct/fallback query outcomes reconstructed from those records
+  agree with the implemented service. The native evaluator was not injected or
+  called by the memory reader; process access was query/read only.
+- The existing local relay launch path was reused. The client left the match
+  at 01:53:19 and closed normally at 01:53:29. This is native relationship/lifetime
+  evidence on the accepted entrance service, not acceptance of candidate code.
+
+Implemented API
+SceneWorld.set_possessions(possessors=component44_entity_ids,
+                           primary=possessable_to_primary_possessor_pairs)
+SceneWorld.set_possessor(entity_id, present_bool)
+SceneWorld.set_primary_possessor(entity_id, owner_id_or_None)
+SceneWorld.primary_possessor(entity_id)
+
+set_possessions explicitly installs a complete known relation catalog. UUID
+bindings alone leave availability unknown and strict queries unsupported. Every
+declared ID must already be bound; a primary owner must have declared component
+44. Input validation precedes replacing the catalog. Duplicate primary mappings
+and malformed updates are rejected. Owner/script/UUID equality never creates a
+possession relationship. This API does not create native components or bodies.
+
+Queries return the input entity when it has component 44, otherwise the declared
+primary possessor when that entity still exists and has component 44, otherwise
+invalid ID zero. Unknown catalog availability is represented separately from a
+known absent relation. Disabling a possessor component clears its owned relations.
+unbind removes both ends of relations; a reused ID needs fresh declarations.
+
+SceneWorld.native evaluates DB742151's m_entity with play.evaluate_scalar and
+returns a typed Entity, including Entity(0). A failed/missing input is converted
+to invalid Entity, not propagated as lookup failure or successful null. Scalar
+config arrays delegate only to the first config, including its failure. The
+existing collecting paths keep their different ordered iteration semantics.
+
+Authored verification and boundary
+- With the observed control/body relation explicitly supplied, actual 0F45 node
+  48 -> 0EC6 retains the queued parameter (17,), passes the DB742151 query and
+  stops next at unimplemented state STU_9028E035, node 0. This helper is not fully
+  executed. Its native invocation context is still provided explicitly.
+- Actual 121D node 5 -> 119F now resolves its DB742151 target to the supplied
+  controller. This is target construction evidence, not automatic submission.
+- Full 100B startup still stops at D38D0035. Match integration, component lifetime
+  scheduling, native observers, invocation context, resource readiness, transport,
+  cinematics and enemy AI remain open. SceneWorld stays outside the body-VM
+  storage whitelist. There are no new persistent Instance/Component fields.
+
+Subsequent registered-state extension
+Subsequent RegisteredState support permits constructing 0EC6 state 0 and queuing
+its begin; execution now stops at 316CFEF2/node2 before that begin is dispatched.
+See REGISTERED_STATES.txt for the exact queue and lifecycle boundary. This later
+change adds a Component registry field; it does not add SceneWorld storage support.
+
+Local-only evidence
+live-possession-before-switch.json, live-possession-after-switch.json,
+live-entity-id-candidates.json, possession-validation.json, possession-tests.log,
+possession-server-tests.log, entity-relation-component-selector.txt,
+entity-relation-secondary-selector.txt, entity-possession-lookup.txt,
+entity-relation-clean-spans.txt and component-key-context.txt are under external
+verification/retribution. Process contexts, game data and native exports stay off Git.

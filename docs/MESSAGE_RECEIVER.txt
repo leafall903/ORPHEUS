@@ -1,0 +1,142 @@
+Persistent receiving message State (build104319)
+
+Scope and mounting
+Strict STUStatescriptStateGameMessageEntry/9D6CF8AC now uses the persistent
+message manager and sender-backed parameter/cache backends. Legacy non-strict
+packet behavior is retained separately. Ordinary Entry packets cannot activate
+a strict persistent receiver. SceneWorld does not invent an engine manager,
+role, frame, filter or selection-generation policy.
+
+The explicit message_state.Context supplies receiver_policy, receiver_generation
+and, when a filter is authored, receiver_filter. Policy identifies mode, instance
+flags3/19/10, State+C0, local/world roles, authority and deferred begin. Missing or
+unknown services fail strictly. Generation models global3272B70; it is not
+silently replaced with sender history frames or a manager mutation count.
+Host notify may use message_receiver.notify to queue CHANGED at the receiving
+VM's clock, without inline authored graph execution.
+
+Registration and dependency epochs
+D4BD40 resets the sender identity, stacked bit, key, selection/count and guards.
+It initializes one null placeholder per parameter when allocating a fresh cache,
+and preserves an already allocated cache. Secondary mode is mode &&
+(State+C0 || !instanceFlag3). The role selects local4/8, worldA16, worldB32 or1/2.
+Deferred begin does not refresh or enter idle. Otherwise a forced update runs;
+if the sender remains invalid, authority/flag19/secondary permits idle entry.
+
+D514B0 advances a byte epoch modulo255. Native config dependencies mark F0 and
+copy the current epoch. Message evaluation, sender selection and parameter
+collection have separate checks. Message-stage use enables ticking and advances
+the epoch; selection-stage use also sets refresh280 and advances again. Cache
+use can enable ticking and the final stacked bit. A fixed scope boolean cannot
+replace this algorithm. Native poll callbacks mark the receiving State even
+when its config is evaluated in another source instance.
+
+A changed message key unregisters owner and global channels, then registers the
+new key on both. D51420 clears qword244, including flags248, only when an old
+nonzero key is removed through the manager. Consequently first registration
+retains begin flags; subsequent nonzero-key changes use flags0. This native
+behavior is preserved. Filter callbacks run with the global sender-backed
+ParamScope and retain exact manager selection/count/collection ordering.
+
+Tick D4CB70 forces a full update for a changed key, requests a non-forced update
+when280 is set, or only refreshes parameter caches otherwise. It then resets the
+selection generation. An already-set update guard returns without side effects.
+Generation-1 can retain the previous/null selection, as in the original code.
+
+Outputs and subgraphs
+Instigator/source FF703F20 and subject44D0D060 are compared and written before
+flag10 can skip the remaining application. Subject uses the sender's namespace.
+A non-forced update skips application when sender-owner and stacked identities
+are unchanged. Parameter values and receiver dependencies follow the three
+cache modes in MESSAGE_PARAMETERS.txt.
+
+Each stacked parameter owns its row-ID link. Duplicate output targets preserve
+multiple rows; refreshing an unchanged target preserves their order. Moving a
+row replaces only that row. A null/identifier0 target creates no link and retains
+an existing row. Baking writes its retained destination before removing that
+ID. Scalar assignments and unkeyed array checkpoints use current output targets.
+Native keyed type12 storage, linked array checkpoints and indexed expression
+paths remain strict gaps;
+Map/type13 is not used as a substitute. Simple Dynamic/variable expressions and
+known literal non-destinations are supported.
+
+D4B800 returns a cached array only for nonzero collection mode while registered
+for ticks. Otherwise D503A0 reselects one best source and evaluates its first
+matching value config through +28 in the source instance, with no watcher.
+Missing/failed outputs fall through to the lower binding or base; a successful
+null overrides it. The native guard and generation-reset branches are distinct
+for early selection failure, live value completion and cached array output.
+
+Variable resolution now retains a temporary lower value during recursion and
+clears its guard even on faults. This prevents a receiver filter from re-entering
+its own binding indefinitely. Receiver links retain the last notified value so
+a later refresh can notify consumers after a live getter already reads new data.
+Physical teardown/retirement releases rows without invoking live getters.
+
+Sender-owner changes write caller B60ABDA4 and switch idle/receive subgraphs only
+when authoritative, flag19, or mode && State+C0 permits it. This differs from
+begin/cleanup secondary mode. Valid-to-valid changes retrigger only with byte
+586B4905. Count82B03EC1 writes after application. EntityInstance virtualE0 is a
+verified null callback; no extra transition check is inserted.
+
+Cleanup always unregisters the two channels. Authority/flag19/secondary permits
+row removal, stacked clearing and exit of both subgraphs. Otherwise inactive
+links remain until physical destruction. Context retirement quietly discards
+rows and retains a retired-context identity, preventing a surviving State from
+borrowing a replacement context. Shared-manager restoration is not implemented.
+
+Wire and passive storage
+Owner payloads encode valid sender presence, one kind bit, var_b low29 identity
+and stacked; remote payloads carry stacked only. The reader's identity coercion
+is preserved. Receiver links also require native binding policy A=true/B=false:
+runtime links, driver snapshots, binding encoding and diagnostic decoding retain
+both policy fields. Older bindings default to their previous false-A encoding.
+Passive export records new State/link fields and temporary variable resolver
+storage without invoking getters. This is not shared-manager restore acceptance.
+
+Verification
+3268 production control-flow comparisons pass:2520 update,64 deferred begin,
+512 immediate begin,128 cleanup,36 tick-routing and8 reentry-guard cases.
+384 extra native cases with selected invalid scene-owner0 remain outside the
+bound-SceneWorld model. Manager, binding/write and subgraph service adapters
+record the same native call order; actual authored plugs are not run there.
+Begin comparisons use preallocated caches, not native initial allocation.
+
+1728 original output comparisons cover cached/live paths, selection caching,
+null/missing/failed configs, full keys, arrays/maps, null rows, guards and null
+watchers.1288 native binding operations compare paired State/variable rows,
+order, scopes, slot0, identifier0, target changes, refresh, removal and baking.
+360 original variable resolver cases compare null/failure/lower-value recursion;
+below-State resolver behavior is not newly accepted by these comparisons.
+4864 original writers and4864 readers cover H=0/1, all bit offsets0..63, sender
+kind/index boundaries and stacked.256 original binding-policy suffix cases
+verify both policy bits; the complete binding reader is not executed by that
+suffix probe. No game code is patched. Adapters supply declared descriptors,
+existing vector/variant storage, registry lookup, notification/checkpoint services
+and cookies; the scope of each adapter is recorded in local validation reports.
+
+Twenty-five new behavior tests cover real manager registration, queued events,
+context variables, source/filter dependencies, duplicate targets, lazy output,
+recursion, null/failure fallback, baking, skipped/deferred application, terminal
+cleanup, replacement refusal, budgets and driver/wire policy. Final regression
+results and frozen hashes are recorded in CHANGELOG.md and local verification.
+
+All535 extracted receiver nodes complete isolated pre-init registration/cleanup
+under three declared policies (1605 rows), with no persistent senders, ordinary
+initialization or authored plugs. That is an empty-source structural check, not
+proof of535 active mission paths or complete receiver transport.
+
+Mission boundary
+Ordinary controller81A9AB10 and real-Match root100B D38D0035/node106 remain strict.
+The real Match prepares148 components and queues but stops before controller
+execution, then cleans up without readiness. Placed startup remains50/123
+nonempty first frames complete, with73 strict faults. The full-controller fixture
+additionally needs explicit message services: its
+unprovisioned path now stops at0F44/node7; three declared role profiles still
+reach0C90/node41 and its unknown mode component with earlier hero/team inputs.
+The failed-helper path rejects delivery and retires queues/voice contexts.
+Native roles, generation, filters, ordinary mode mounting, full actor
+lifetimes/replication, cinematics,
+five enemy AI types and extraction/results remain open. No fresh original-client
+session or normal deployment is claimed for this change. Native images, game
+assets, captures, probes and logs stay outside Git.

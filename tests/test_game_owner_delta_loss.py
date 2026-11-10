@@ -196,6 +196,26 @@ class OwnerDeltaLossTests(unittest.TestCase):
         self.assertEqual(stream.base.k, 104)
         self.assertEqual(stream.touched(), set())
 
+    def test_acknowledged_state_off_is_not_carried_by_redundant_pending_corrections(self):
+        stream = BodyStream(0xA0000101)
+        state = (11, 10)
+        key = ("state", *state)
+        on = ("STUStatescriptStateAnim", True, (("counter", 1),))
+        full = stream.full(BitWriter(), Snapshot(100, states={state: on}))
+        stream.arrived(full.chunk_last)
+        off = stream.delta(BitWriter(), Snapshot(101), {key}, 101)
+        repeated = stream.delta(BitWriter(), Snapshot(102), {key}, 102)
+        self.assertEqual(stream.touched(), {key})
+
+        stream.arrived(off.chunk_last)
+        self.assertIn(repeated.chunk_last, stream.pending)
+        self.assertEqual(stream.touched(), set())
+
+        resumed = stream.delta(BitWriter(), Snapshot(103, states={state: on}), {key}, 103)
+        self.assertEqual(stream.touched(), {key})
+        stream.lost(resumed.chunk_last)
+        self.assertEqual(stream.touched(), {key})
+
 
 if __name__ == "__main__":
     unittest.main()

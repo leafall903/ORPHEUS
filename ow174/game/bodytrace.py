@@ -89,6 +89,7 @@ def command(player, script, value, before_hash):
         event = native_replay.make_command_event(
             script, value, seq=writer.seq + 1, server_tick=player.match.tick,
             before_hash=before_hash, command_epoch=player.commands.epoch, body_epoch=writer.body_epoch,
+            grounded=not player.mover.airborne if script.world.communication_wheel else None,
         )
         writer.write(event)
         writer.seq += 1

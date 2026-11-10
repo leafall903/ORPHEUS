@@ -1,0 +1,81 @@
+Entity existence and current-possession queries
+Target: original PC build 104319. Partial controller restoration.
+
+Implemented behavior
+E72F6348 (CE4A60) first obtains the native namespace. A missing namespace is
+a no-output failure. A known missing active environment produces Bool false
+without evaluating the entity config. With an environment it subscribes to its
+entity dependency, evaluates the selector through +20, converts only an Entity
+or recursively the first array member, and rejects zero/invalid identities.
+Other identities are resolved through the owner's complete native lookup.
+An existing object yields true; known absence yields false.
+
+0AC15F78 (CEDBD0) requires its separate instance context. It evaluates the same
+typed selector but passes every resulting uint32 identity to lookup, including
+zero and invalid identities. A missing object leaves the caller's destination
+unchanged. An existing object without component44 successfully writes Entity(0).
+An existing component44 is observed before its current possession is read.
+The result remains an Entity even when its stored identity is zero or invalid.
+This is the forward current-object relation, not an inversion of DB742151's
+reverse primary-possessor catalog.
+
+The environment dependency kind is 0 when the active environment exists and
+46 on the fallback environment. An explicitly absent dependency hub is allowed;
+unknown hubs or component observers remain strict. Selector variable watches
+are preserved. Existing native-query polling remains a compatibility mechanism;
+it does not replace the explicit subscription callbacks or prove native global
+phase order. Native service callbacks are rechecked for owner retirement.
+
+Host interface and lifetimes
+World.entity_query_context defaults to unknown. SceneWorld can bind a live
+entity_queries.Context to an already-created owner. Namespace availability,
+active environment availability, possession-context availability, entity lookup,
+dependency hubs and component observers are explicit inputs. The host must
+sample the correct native context for each use. No service is inferred from
+UUID bindings, script ownership, map presence or reverse possession relations.
+Lookup returns Target, None for known object absence, or remains unsupported.
+Target.possession distinguishes unknown component data, known absence and a
+Possession value. Mutable current values are read after observer registration.
+Detach, unbind and owning-component failure retire the context. A stale failed
+component cannot retire a replacement component's context.
+
+Native evidence
+Both queries have their own priority1 registrations in the captured original
+registry: E72F record2F88300, runtime table2663070; 0AC1 record2F89378, table2663D90.
+1680 original-instruction comparisons cover context/environment guards, watched
+and unobserved evaluation, missing dependency hubs, typed/failed/missing configs,
+array-first conversion, identity wrapping, object absence, component absence and
+current possession. Native conversion/output writers, dependency-kind routing,
+the D24F40 presence branches and the BD56F0 getter execute unchanged. Adapters
+supply context/lookup storage, encrypted component44 pointer resolution, config
+values, dependency observer appends and synthetic variant release. Captured code
+bounds and the actual BD56F0 callsite remain unchanged. Its accepted getter path
+returns component44+D8; 112 original calls reach this path.
+
+Previously collected read-only original-client records independently show D8
+changing from A0000101 to A0000102 across a hero switch. These are reused captures;
+this change does not include a fresh original-client session or full engine
+timing/authority acceptance. No client instruction or memory is modified.
+
+Actual controller and remaining frontier
+The unchanged external 000E definition plus explicit mode0025/team0 root0F44 now
+passes the former E72F6348 stop when supplied two known created controller/body
+identities, their declared current-object relation, and query contexts. It creates 0C90
+and1194 and retains world query81A9AB10 at frame0. Unknown identities remain strict.
+The context is retired on that fault. The failed bound receiver still rejects
+helper0EC6/node22/message061A, after parameter41 is set; queues and voice contexts
+retire. A failed receiver is neither absent nor a successful message consumer.
+
+The real Match still prepares148 components/queues and retains shared root
+D38D0035/node106 before controller execution, with cleanup and no readiness.
+Full controller/common/body/actor execution, engine services, global phases,
+cinematics, five enemy AI types, extraction/results and complete story acceptance
+remain open. Normal runtime inputs and normal-service deployment are unchanged.
+
+Validation
+Nineteen behavior tests cover failure/output distinctions, nested queries,
+variable/dependency watches, forward/reverse relation separation, callback
+retirement, binding validation and legacy compatibility. The related regression
+group and server journal/snapshot/injection group are recorded in the changelog.
+Local evidence stays outside Git under verification/retribution/entity-queries-*.
+Game data, probes and captures are not included in the publication tree.

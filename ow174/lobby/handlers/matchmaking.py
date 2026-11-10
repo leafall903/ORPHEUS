@@ -35,6 +35,7 @@ DECLINE = 44105  # Decline on that banner
 PASS_ROLE = 44106  # {role numbers}: the role to spend a priority pass on, sent after 44103
 CHANGE_ROLES = 44107  # Change Role on the role screen, once the member is ready
 PRACTICE_RANGE = (2, 4)  # a create-game request with kind 2 and flags 4
+TUTORIAL = (3, 4)  # observed from build 104319's Training > Tutorial button
 LOBBY_ANSWER = 52903  # {bool}: the client's answer to the 53000 of a popped queue (lobby/matchmaker.py)
 
 
@@ -257,6 +258,8 @@ def create_game(session: Session, value: dict) -> None:
     if (value.get("+0x78"), value.get("+0xA8")) == PRACTICE_RANGE:
         # The Practice Range request carries a creation kind, not a mode GUID.
         session.server.matchmaker.practice(session)
+    elif (value.get("+0x78"), value.get("+0xA8")) == TUTORIAL:
+        session.server.matchmaker.tutorial(session)
     else:
         session.log(f"[MM] Unknown create-game request: {to_jsonable(value)}")
 

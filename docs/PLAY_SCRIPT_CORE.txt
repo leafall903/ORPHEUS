@@ -1,0 +1,234 @@
+PlayScript requests and loaded-graph core — partial native service restoration
+Target: original Overwatch 1.74.0.0.104319; addresses are module RVAs.
+
+Problem
+PlayScript was registered as an unconditional no-op. The authored Retribution
+mode/controller/body reference closure contains 23 non-client-only uses. Silently
+following their success plugs cannot establish that helper scripts ran.
+
+Native evidence
+- The complete captured registration chain has 1,735 records. PlayScript's own
+  registration 2F647F0 has priority 2, constructors 90BC30/90C140 and native
+  handler vtable 26225F0. Execute is 906D50.
+- 906DC4..6E33 tries the graph-with-overrides config, then the fallback graph
+  config. 906E49..6F3E collects valid target entities in order. The request also
+  retains a source context, graph overrides, evaluated parameters and wire flags.
+- 64D2C0 skips an existing graph for policy 0; policy 3 retires matching graphs
+  before requesting a replacement. 64CD10 reuses the first matching instance
+  for policy 2. Policy 1 creates another instance. Resource availability and
+  deferred request processing are separate from these allocation decisions.
+- 1B920B0 selects STU_BB4AC733 entries, excluding disabled entries and entries
+  whose declared context kind differs. 1B95950 queues their parameter writes,
+  valid source binding and then the entry event. 1BA7B80 finds the first writable
+  named parameter row, or uses the request parameter's position for key zero.
+  Missing parameters leave variables unchanged. A zero output identifier is not
+  assigned. 1B954F0 marks a nonzero FDBDCB70 entry disabled for later starts.
+- BB4AC733 execute 1B6EC40 only follows its output. The bindings are queued by
+  the invocation path, not interpreted during plug traversal.
+
+Implemented boundary
+Component.play_loaded_graph(definition, source=entity_id, params=ordered_pairs,
+                            overrides=ordered_pairs, policy=0) -> Instance or None
+
+This is the allocation/start core for a graph already resolved by a world backend.
+The caller supplies the explicit start-context caller entity (+98), used by the
+entry's B60ABDA4 binding. This is distinct from context +9C, the instigator
+selected by m_6D7701B7. No instigator/source fallback is invented.
+It supports context kind zero, the four allocation policies, named/positional
+parameter bindings, queued source binding, one-shot start entries and ordinary
+initialization before the separately queued start bindings. Public schema and
+request override assignments precede ordinary initialization on a new instance.
+Dynamic instances
+are independent roots, rather than lifetime-bound SubScript children.
+
+Replacement uses the existing Component.destroy teardown. Native deferred
+deletion during an active callback, asynchronous resource requests, linked schemas,
+target component routing, source-context derivation, transported
+instance/flag behavior and client acceptance remain outside this core.
+
+Strict PlayScript actions call World.play_script(instance, node). A concrete
+world backend must perform a valid request before its output is followed.
+The base world selects its resource, collects targets, then requires explicit
+play_script_context and submit_script_request services for a nonempty request.
+A request with neither a usable primary nor fallback resource follows output
+without a world request, matching 906E15. An empty valid-target iterator likewise
+follows output before evaluating source/parameters, matching 906F1A..3E.
+Legacy permissive body behavior
+remains passive. No mission host is attached to Match by this change.
+
+Pending assignment events and disabled start-entry positions are included in the
+read-only VM storage boundary. Export never applies writes or invokes entries.
+
+Local authored probe
+0F45 node 48 references 0EC6. Its parameter 0A4000000000000A maps through the
+actual BB4AC733 entry at position 8 to instance variable 41. An explicit test
+value 17 reaches that variable; execution then stops at an unimplemented world
+query STU_DB742151. The unresolved action itself now fails with a native
+PlayScript request diagnostic. This does not establish mission startup, actual
+request resolution, cinematics, enemy behavior or original-client acceptance.
+
+Other current startup evidence
+The full 100B probe still stops at STU_D38D0035. Its typeinfo is 2DDB1F8 and its
+STU vtable is 2738A90 (2738A98 is the typeinfo getter slot, not the vtable base).
+The full registration chain contains no own handler for it; it resolves through
+the Action parent. Component notification/authority behavior still needs evidence,
+so this parent fallback is not accepted as the missing server implementation.
+
+Local-only native registry, disassembly and authored-probe records live under
+verification/retribution. Game data and module captures remain outside Git.
+
+Resource/schema extension, 2026-11-08
+- play.resolve_resource(instance, node) tries 69F4B52C then m_script. Empty inline
+  graph configs do not evaluate their overrides. Ordinary resources are evaluated
+  a second time if the first value was not a usable map; 8F6A90 accepts only .01B.
+  The map branch instead accepts any nonzero Asset (or first nested array item).
+  Resource readiness/loading is still a world responsibility.
+- Inline STU_9DB46B98 / STUStatescriptGraphWithOverrides is interpreted through
+  D058D0: insert the graph under identifier 4065, evaluate overrides in caller
+  order without a watcher, substitute int 0 for missing/failed override configs.
+  Successful null remains null. Zero map keys are invisible; duplicate low-32
+  keys replace in place. The local fresh-map builder uses 8 buckets, linear
+  probing and doubling/reinsertion in old physical bucket order. D055D0 consumes
+  that physical order and reconstructs identifier GUIDs, omitting graph key 4065.
+  This does not change legacy general VM Map construction/mutation. Duplicate
+  low-key storage in an existing legacy map and signed-negative map keys fail
+  explicitly; their native memory behavior is not invented.
+- BE90C0 evaluates a loaded graph's public defaults in the callee, then queues
+  evaluated request overrides, using the low 16 bits as instance variable IDs.
+  BE9AC0 skips missing or failed defaults, unlike D058D0's int-zero fallback.
+  All writes are queued: a later default still reads pre-assignment variables.
+  1B93D40 moves ordinary ENTRY events behind other events at the same time for
+  new instances; reused instances keep existing event order. Start parameter
+  writes and BB4AC733 entries are queued afterward. Skip policy evaluates none.
+- play.evaluate_value implements the collecting +28 path for STU_06610EBC
+  (1B779E0), used by overrides/defaults. 1B803D0/1B7F700 flatten nested config
+  groups and value arrays in order. Scalar null, absent and failed configs yield
+  no iterator item; null members of existing arrays remain. Work/depth bounds
+  poison the component on exhaustion. Resource selection's second evaluation
+  instead uses the first-config +20 behavior (1B77980/B8), including failure of
+  an absent first config. Other expression callers retain their strict failure
+  for this class; they do not receive a collecting result by accident.
+- STUStatescriptSchema and unlinked STU_77990ED7 defaults are supported. Linked
+  schemas, keyed ordinary graph resources and unknown world/default configs
+  remain explicit failures. No source/instigator context or wire flags are guessed.
+
+Authored extension probes
+21 of 23 original resource configurations resolve with an empty isolated world.
+100B nodes 281/285 stop at STUConfigVarEntityReference; no fake entity IDs are
+supplied. Actual 121D node 5 -> 119F receives four explicitly seeded caller
+variables in its evaluated override list. Default initialization of 121D/1412
+still stops at EntityReference, and 119F at STU_357DABBB. These are resource and
+queue probes, not target routing or a running mission. Full 100B startup remains
+at D38D0035; no candidate deployment or new original-client acceptance is claimed.
+
+Subsequent scene query service, 2026-11-08
+SceneWorld now resolves the authored waypoint UUIDs using native client_id
+identities, backed by original-client read-only observations. This supersedes
+the resource-only probe's 21/23 limitation above: all 23 configurations resolve,
+and queued defaults for 121D/1412/119F complete with typed empty TargetTags and
+proper missing-reference failures. This is not target routing or execution of
+the helper scripts. Full root remains at D38D0035. See SCENE_QUERY_WORLD.txt.
+
+Request construction extension, 2026-11-08
+- play.resolve_request(instance, node, resource, context_provider=callable)
+  constructs a Request or returns None for an empty valid-target iterator. It
+  preserves typed entity order and duplicates through the native +28 iterator;
+  integer/asset/null/invalid-entity values do not become targets. Native F64C20
+  confirms Entity conversion, with first-element recursion for an array value.
+- The provider returns InvocationContext(caller, owner, instigator), three
+  explicit uint32 native entity inputs. The implementation does not derive them
+  from the runtime owner. A missing m_6D7701B7 or no-output +20 failure retains
+  the inherited instigator. Successful values use Entity conversion. 1BA7E60
+  seeds +9C from caller +98; 1BA7E30 replaces it only with a valid candidate.
+  Thus a successful null/nonentity value falls back to caller, rather than
+  retaining a different inherited instigator. Config arrays use their first
+  config on this scalar path, including that first config's failure.
+- 907080..C6 skips absent parameter rows/identifier pointers, preserves row order
+  and duplicate keys, and calls 1BA7C60 for each retained row. That helper always
+  constructs an array and collects its iterator: one value becomes (value,),
+  and no values becomes (). A scalar null is omitted; null array members remain.
+  Context/source evaluation precedes parameter collection. Policy and the full
+  wire byte are retained in Request, without accepting transport semantics.
+- World.play_resolved_script now constructs this request before calling
+  submit_script_request. A nonempty request cannot follow its output when either
+  context or submission is unavailable. SceneWorld query bindings supply neither
+  service by themselves. No new persistent VM fields or storage types are added.
+- An authored 0F45 node 48 probe supplies caller variable 10334 = 17, constructs
+  parameter 0A4000000000000A as (17,), then explicitly passes that request to the
+  already-loaded 0EC6 core. Its actual start entry writes variable 41 = (17,)
+  before stopping at DB742151. This extends the earlier scalar-input core probe;
+  it does not establish automatic native context, component routing or AI.
+- The uninitialized-caller inventory has 5 constructed requests, 11 with empty
+  targets and 7 strict missing services. These counts do not describe live
+  mission state. Full 100B startup remains at D38D0035; no candidate deployment
+  or new client acceptance. Local evidence: request-validation.json,
+  request-tests.log, request-server-tests.log, playscript-owner-source.txt,
+  playscript-context-setters.txt, playscript-parameter-array-type.txt,
+  entity-value-conversion.txt and the original
+  functions-906D50.txt / playscript-context-native.txt exports outside Git.
+
+Subsequent possession query extension, 2026-11-08
+With a separately declared native possession catalog, 0F45 -> 0EC6 now passes
+DB742151 and stops at state 9028E035, node 0. The actual 121D node 5 -> 119F target
+also resolves to the supplied controller. Native context derivation, submission,
+full helper execution and the mission host remain open. Full 100B still stops at
+D38D0035. See ENTITY_POSSESSION_QUERIES.txt for the authorized original-client
+relationship/switch evidence and the explicit catalog boundary.
+
+Subsequent registered-state extension, 2026-11-08
+0EC6 state 0 now constructs and queues its begin. The next strict diagnostic is
+316CFEF2/node2, before that queued begin executes. The helper still has not run
+its full lifecycle. See REGISTERED_STATES.txt for type-list and wire-link support.
+
+Subsequent numeric modifier extension, 2026-11-08
+0EC6 state2 now constructs and queues its begin. Entry-driven execution next
+stops at BD02E168/node33 before states0/2 begin. A separate explicit activation
+of actual state2 verifies its five numeric rows; see NUMERIC_MODIFIERS.txt.
+
+Subsequent auxiliary-interface extension, 2026-11-08
+An explicitly declared registration context permits the actual helper to begin
+states0/2 and produce the numeric rows. Next is 582E0D5F/node4. Interface dispatch
+timing and complete helper execution remain open; see AUXILIARY_SUBGRAPHS.txt.
+
+Entity-instance request identity and allocation source, 2026-11-08
+The own262E740 table's+60/+70 getters share the actual component VM. A live
+SceneWorld binding now supplies caller/owner identity and the native lazy builtin
+001B source cache. An optional explicit instigator seeds new loaded-core instances
+before schema evaluation; skip/reuse retain their source. Start-entry caller
+binding remains separate. Native294 getter/setter, seven allocation-source and
+seven owner-identity cases pass with declared storage/owner adapters. An actual
+0F45/node48 fixture now constructs context without a replacement provider and
+hands its request explicitly to0EC6. Parameter41 is assigned, then the helper
+retains a strict node22 message-target-component diagnostic. Automatic submission,
+loader/transport semantics and full body/controller startup remain open. The full
+shared Match still stops atD38/node106. See PLAY_SOURCE_CONTEXT.txt for scope.
+
+Component request queue and transient graph lifetime, 2026-11-08
+SceneWorld now submits requests through explicitly configured component queues.
+The actual0F45/node48 action creates0EC6 automatically and queues its start inputs;
+the caller's following path now exposes strict40E05F6B/node39 before helper update.
+A separate isolated service submission reaches the helper's controller-message
+component stop/node22. Native277 submit/flush cases and2688 lifetime cases pass
+with documented adapters. The request byte's zero value enables automatic
+retirement via Instance318 bit11; it is not accepted as a network-only flag.
+Loader/allocator/physical deletion, callback self replacement, native phases and
+full mission remain open. See PLAY_SCRIPT_QUEUE.txt for provider and lifetime scope.
+
+Shared voice callbacks, 2026-11-08
+The strict source0F45 voice node39 now begins with an explicit Context; the
+actualnode48 path then executes the helper's array41 assignment and retains the
+controller-message component/node22 stop. A separate actual voice-state fixture
+with declared backend responses finishes through its unchanged onEnd plug and
+retains4C3509FB/node40. Native973 comparisons establish shared callbacks, not
+the client audio engine or complete global poll driver. Ordinary script ticks
+do not poll voice progress. Full startup and mission acceptance remain open.
+See VOICE_STIMULUS_STATE.txt for services, timing and fixture limits.
+
+Unkeyed array insertion and clear, 2026-11-08
+Native-backed4C3509FB and1C2CC6D5 actions now allow actual0F45's isolated
+voice39->40/41->voice35->42 chain to finish with variable1839 cleared and no
+fault or pending voice registration. It retains explicit services, clocks and
+uninitialized source42.880 insertion and64 clear comparisons pass, plus2
+explicit native-limit gates. Keyed rows, linked insertion/checkpoints and the
+limit diagnostic consumer remain strict. Full startup, the helper's controller
+message/node22 and shared rootD38/node106 remain open. See ARRAY_ACTIONS.txt.

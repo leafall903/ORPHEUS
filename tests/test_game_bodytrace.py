@@ -60,6 +60,7 @@ class BodyTraceTests(unittest.TestCase):
         self.assertEqual(events[-1]["final_hash"], events[-2]["after_hash"])
         self.assertEqual(events[0]["command"]["click_yaw"], -192)
         self.assertEqual(events[0]["command"]["extra"], 313)
+        self.assertIs(type(events[0]["grounded"]), bool)
         self.assertEqual(len(events[0]["command"]), 11)
         self.assertTrue(script.retired)
         self.assertFalse(any(event["kind"] == "fault" for event in events))

@@ -19,6 +19,7 @@ import logging
 import socket
 import sys
 import threading
+from functools import partial
 from pathlib import Path
 
 from ow174.accounts.profile import load_or_create_profile
@@ -28,11 +29,13 @@ from ow174.content.presence import PRO_ACCOUNT_BITS
 from ow174.dashboard.server import start_dashboard
 from ow174.jam.handshake import lobby_state_blob_key
 from ow174.launcher import LaunchError
+from ow174.launcher.connections import connection_owner
 from ow174.launcher.game import close_running_copy, find_game, start_game
 from ow174.launcher.relay import ensure_relay_dll
 from ow174.launcher.requirements import ensure_requirements
 from ow174.launcher.retail import DEFAULT_BNET_PORT, RetailGames
 from ow174.lobby.battle_tag_query import ask_battle_tag
+from ow174.lobby.handlers.chat import npc_hotkey
 from ow174.lobby.research import watch_inject_file
 from ow174.lobby.server import LobbyServer
 from ow174.lobby.settings import Settings
@@ -139,6 +142,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--data-dir", type=Path, help="keep profiles and logs in this folder instead (the tests use it)"
     )
+    parser.add_argument("--npc-hotkeys", action="store_true",
+                        help="enable the NPC sandbox console keys in the local retail game window")
     return parser.parse_args(argv)
 
 
@@ -245,6 +250,8 @@ def _paths(args: argparse.Namespace) -> Paths:
 
 
 def run(args: argparse.Namespace) -> None:
+    if args.npc_hotkeys and (args.mode not in ("retail", "host") or args.no_launch or not args.game_port):
+        raise LaunchError("--npc-hotkeys requires a local retail launch with the game server enabled.")
     if args.no_launch and args.mode in ("join", "join-tournament"):
         raise LaunchError("--no-launch runs host services and cannot be used with a join mode.")
     if args.no_launch and args.game_exe is not None:
@@ -296,7 +303,11 @@ def run(args: argparse.Namespace) -> None:
     ).start()
     if retail:
         if not args.no_launch:
-            server.games = RetailGames(game, relay, args.locale, args.timeout, bnet_port=args.bnet_port)
+            launch_options = {}
+            if args.npc_hotkeys:
+                launch_options["npc_hotkeys"] = partial(npc_hotkey, server, connection_owner=connection_owner)
+            server.games = RetailGames(game, relay, args.locale, args.timeout,
+                                       bnet_port=args.bnet_port, **launch_options)
         _start_bnet(server, args.bnet_port)
     _log_banner(server)
 

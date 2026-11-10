@@ -1,0 +1,48 @@
+Map world research inputs, version 1
+
+Run from the source checkout, with all game inputs and the output outside it:
+  python -B -m tools.extract_map_world --map 079F --entities <entities.xml>
+    --chunk <ENTITY chunk> --definitions <003 XML directory>
+    --owlib <OWLib checkout> --output <external map-world-inputs.json>
+
+The export retains the inputs required to interpret placed-world components.
+It does not instantiate or replicate entities, merge components, execute scripts,
+select encounters or implement native behavior. Unknown fields remain opaque.
+
+Correlation checks:
+- ENTITY header count and contiguous XML entity indexes agree.
+- Every placeable record is bounded; definition GUID, component count and all
+  transform numbers are checked. Position, scale and quaternion retain the exact
+  float32 input values. Placeable header bytes and remaining record metadata are
+  retained without assigning meaning to unknown fields.
+- Each component table entry resolves a bounded immutable STU V1 blob. DUTS is
+  V1's magic, followed by InstanceCount and {Offset, Flags} records. It is not a
+  version field or a V2 header. The first instance's type hash must match the XML
+  class's OWLib declaration, in the same component order.
+- Every referenced 003 definition must exist with a STUEntityDefinition root.
+  Its component-map keys must be valid and unique. Missing definitions, broken
+  references, cycles and inconsistent sources stop extraction.
+
+JSON fields:
+- version, map: format version and full map GUID.
+- sources: XML/chunk filenames and SHA-256 hashes.
+- entities: placed-index order; definition, two raw identifiers, position, scale,
+  rotation, placeable_header, record_metadata and ordered components.
+- components: class and generic parsed fields; source records the component type,
+  blob and first-instance offsets, STU format, instance count and type hash.
+- definitions: full definition GUID -> source filename/hash, root fields, and
+  component map. These defaults remain separate from instance data. In particular,
+  null placed values do not automatically replace definition defaults.
+- A DragonML map is {"$":"map", "key_type":..., "value_type":..., "entries":[
+  {"key":..., "value":...}, ...]}. Nested map keys, entry order and object aliases
+  survive parsing. Each independently printed instance component has its own
+  DragonML reference namespace. Other values follow extract_game_graphs' format.
+- entity_records_end and chunk_size bound the record area and full source.
+- executable is false; limitations state the remaining interpretation work.
+
+Local Rialto validation, 2026-11-07:
+2,464 placed entities, 2,750 matching XML/binary component types, 186 full entity
+definitions and 454 definition components. The earlier independent transform audit
+agrees on every placed definition, identifier, transform and instance field.
+This includes 145 statescript component instances; it is still not a mission host.
+Generated input and validation artifacts remain outside Git.

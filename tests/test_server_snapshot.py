@@ -63,13 +63,93 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertEqual(actual, instances)
         self.assertFalse(first["restorable"])
 
+    def test_wave_health_amount_and_retired_pool_id_are_stored(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        vitals = fight.vitals_of(next(target for target in fight._targets() if target.owner is player))
+        changed = vitals.changed.copy()
+        initial = snapshot_digest(self.capture(session))
+
+        remove = vitals.add_wave_health(60)
+        added = snapshot_digest(self.capture(session))
+        self.assertNotEqual(added, initial)
+        vitals.wave_health.current -= 20
+        self.assertNotEqual(snapshot_digest(self.capture(session)), added)
+
+        remove()
+        vitals.changed.clear()
+        vitals.changed.update(changed)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        vitals.wave_health_id = 0
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
     def test_hidden_vm_counter_transport_and_physics_changes_change_digest(self):
         session, _, players = self.scene()
         player, client = players[0], players[0].client
         initial = snapshot_digest(self.capture(session))
+        player.body_script.world.velocity_requests.append((player.match.tick + 1, 'delta', (0.0, 0.0, 15.0)))
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.body_script.world.velocity_requests.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
         client.expected_in += 1
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         client.expected_in -= 1
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns[player.body] = player.match.tick + 50
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns.pop(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins[0xC000100F] = player.body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        from ow174.game.bots import Bot
+        from ow174.game.mover import FELL, Mover, mover_data
+        from ow174.game.npc_navigation import LedgeDrop, Navigator, begin
+
+        bot = Bot(0xC000100F, {"hero": f"0x{player.hero.guid:016X}", "team": 1,
+                              "position": (0, 1, 5), "rotation": (0, 0, 0, 1), "graphs": [], "vars": {}},
+                  {"body": f"0x{player.hero.body:016X}", "health": 200, "name": "Navigation fixture"}, {})
+        player.match.bots.append(bot)
+        before_navigation = snapshot_digest(self.capture(session))
+        bot.navigation = Navigator(player.mover, path=((0.0, 1.0, 2.0),), target=player.body)
+        route_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(route_digest, before_navigation)
+        bot.navigation.path = ((0.0, 1.0, 3.0),)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), route_digest)
+        from ow174.game.combat import Target
+
+        target = Target(player.body, player.team, (0.0, 1.0, 20.0), 1.8, 0.5, 1.6, player)
+        bot.navigation.search = begin((0.0, 1.0, 5.0), target, 2.5)
+        search_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(search_digest, route_digest)
+        bot.navigation.search.visited.add((1, 0, 8))
+        self.assertNotEqual(snapshot_digest(self.capture(session)), search_digest)
+        bot.navigation.search.visited.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), search_digest)
+        bot.navigation.search.blocked_by_teammate = True
+        self.assertNotEqual(snapshot_digest(self.capture(session)), search_digest)
+        fall = Mover(bot.position, world=player.match.collision_world, data=mover_data(bot.body))
+        bot.navigation = Navigator(fall, path=(LedgeDrop(started=player.match.tick),))
+        approaching = snapshot_digest(self.capture(session))
+        bot.navigation.path = (LedgeDrop(started=player.match.tick, released=True),)
+        released = snapshot_digest(self.capture(session))
+        self.assertNotEqual(released, approaching)
+        fall.flags_word |= FELL
+        fall.air_ticks = 8
+        falling = snapshot_digest(self.capture(session))
+        self.assertNotEqual(falling, released)
+        fall.air_ticks = 9
+        self.assertNotEqual(snapshot_digest(self.capture(session)), falling)
+        fall.air_ticks = 8
+        self.assertEqual(snapshot_digest(self.capture(session)), falling)
+        bot.dead = True
+        self.assertNotEqual(snapshot_digest(self.capture(session)), falling)
+        bot.navigation = None
+        bot.dead = False
+        self.assertEqual(snapshot_digest(self.capture(session)), before_navigation)
+        player.match.bots.pop()
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))

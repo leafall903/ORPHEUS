@@ -1,0 +1,93 @@
+Controller hero-catalog iteration (1AAB4B4F)
+Target: original PC build104319. Partial controller restoration.
+
+Interfaces and order
+The config has an actual priority2 registration, record2F6B1E0, constructors
+96FCA0/974F60 and runtime table2628E88. Its scalar+20 wrapper1B781A0 returns
+the first accepted Asset. If there is no item it still writes integer0, while
+returning failure. This differs from a failure that leaves the old destination
+unchanged. Its value+28 wrapper1B78280 collects all items into a typed array,
+including an empty array when no item qualifies. Nested06610EBC config groups
+also traverse every item rather than reading only the scalar result.
+
+Start93A0E0 obtains the native VM/environment and registers dependency kinds3
+and37 before evaluating m_controller through+20. Entity conversion takes only
+an Entity or recursively the first array member and preserves the native uint32
+identity. Zero/invalid identities skip lookup. It constructs the native catalog
+even for a missing or invalid selected object. Next93A490 then produces no item
+when that object is absent. Otherwise it scans the catalog in its original order,
+skips zero entries and calls7F4750 for each candidate and selected object. Accepted
+values become Assets; duplicate catalog entries remain duplicate values.
+
+The native catalog is prepared by7F1190, which depends on loaded hero resources,
+availability and exclusion lists. The per-controller predicate depends on native
+engine rules and components, ending inDA0C70. These policies are not implemented
+by this change. Host callbacks must supply the actual filtered, ordered catalog,
+native entity lookup and known availability answers. Scene UUIDs, script ownership,
+the extracted hero dictionary or one selected hero do not establish those inputs.
+Unknown services/results stay strict. No empty-list or single-hero substitute is
+installed. Ordinary worlds retain their existing unsupported-query behavior.
+
+Ownership and dependencies
+SceneWorld binds a controller_heroes.Context to an already-created owner. Every
+evaluation also checks the current script component's identity. An old instance
+cannot borrow a replacement component's context; its failure cannot retire that
+replacement. Detach, unbind and owning-component failure retire the context.
+Callbacks are checked again before their results can be used. Candidate traversal
+shares the script work budget, including zero and rejected catalog rows.
+
+The API returns an owned iterator. Scalar evaluation closes it after the first
+item; collection and config traversal close it on completion or exception.
+Catalog data is a per-evaluation tuple snapshot. No native heap allocation or
+opaque cache is retained by the Python VM. Dependency callbacks preserve selector
+watches and the existing native-query poll marker. A known absent dependency hub
+may be supplied as None; unknown observers remain unsupported.
+
+An unavailable native environment is not treated as an empty successful list.
+With null scratch storage, the original start reaches next93A49E and dereferences
+that null after the fallback-kind46 subscription attempt. Two bounded emulator
+cases verify this path. The server reports an explicit unsupported environment
+instead of manufacturing a value from undefined native iterator storage.
+
+Verification
+1296 original-instruction comparisons cover scalar, value and nested-group
+interfaces; entity conversion and wrapping; missing objects; empty/zero/duplicate
+catalog entries; filtering, early stop, dependency kinds and cleanup. Original
+iterator start/next/end, wrappers and generic config traversal run unchanged.
+Native iterator/vector storage is released exactly once in every ordinary case.
+Adapters supply context/lookup, catalog construction, availability, dependency
+hub/observer storage, literal values and heap/variant/array storage. The catalog
+and availability bodies themselves are explicit adapters, not verified engine
+policy implementations.
+
+Twenty-one behavior tests include malformed/unknown services, variable watches,
+lazy filtering, snapshot order, assignment integration, budget limits, callback
+retirement and stale-component isolation.928 related and33 server journal,
+snapshot and injection tests pass, plus final unit/native rechecks and Ruff/diff.
+Final lint/docstring-only corrections preserve the executable AST; verification
+retains the earlier sources and hashes and rechecks final unit/native fixtures.
+There is no fresh original-client session or normal-service deployment.
+
+Actual graph scope and remaining work
+The retained635-graph bundle has six references. Actual0C90/node55's assignment
+receives all three supplied fixture assets. The config from node147/key21F2
+returns its first asset; the ForCode State lifecycle itself is not accepted by
+this config-only fixture. Empty inputs produce tuple() versus scalar integer0.
+Another reference belongs to an independent list State5E805B5A; implementing
+that State is outside this query change.
+
+Three explicit controller profiles (PC no-output, false and true for unresolved
+81A9AB10) all now retain the later65ABFCCC query in0C90. The true profile also
+starts the0692 listener. These profiles declare their catalog and availability
+inputs; they do not establish the missing server predicate or complete startup.
+The ordinary strict controller still retains81A9AB10. A failed bound receiver
+still rejects helper0EC6/node22/message061A and retires queues/voice contexts.
+The real Match still retains rootD38D0035/node106 before controller execution,
+with148 prepared components/queues, failure cleanup and no readiness. The isolated
+placed catalog remains50/123 nonempty first frames complete with73 strict faults.
+Full catalog/rules services, actor/body lifetimes, native phases and replication,
+cinematics, five enemy AI types and complete mission/results remain open.
+
+Local-only records are verification/retribution/controller-heroes-*; game inputs,
+native images, captures and probes remain outside Git. Normal runtime inputs and
+the unrelated working changes are preserved.

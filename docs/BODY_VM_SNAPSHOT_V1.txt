@@ -131,13 +131,31 @@ subclass or silently discard its extra storage.
 Component required fields:
 
   entity frame_ms world rng frame now instances vars held button disabled seq
-  next_id destroyed shots owner_dead fault
+  next_id destroyed shots owner_dead fault strict code_states code_pending code_observers
   _operation_depth _follow_depth _work_left
+
+The strict policy stops unsupported mission nodes, states and base-world native
+queries instead of applying the compatibility fallbacks. Its value is stored even
+when false. Terminal UnsupportedScriptError storage includes its diagnostic
+mapping and exception args; exporting it does not resume graph execution.
+
+code_states preserves native ForCode registration order and State references;
+code_pending preserves the two ordered identifier queues; code_observers stores
+ordered (callback/context token, optional identifier) pairs. Tokens name an
+explicit World backend and contain no native code pointers. Snapshotting these
+fields never resolves a code value or invokes an observer. ForCodeSynced adds no
+state-local storage. Its currently supported mission path requires both native
+transport-sync flags to be zero; other strict paths remain unsupported.
 
 Instance required fields:
 
   component id graph parent parent_state vars states queue ticking deferred params
-  stopped teardown initialized start
+  stopped teardown initialized start disabled_start_entries
+
+disabled_start_entries retains one-shot PlayScript start-entry suppression by
+node position. Pending native parameter/source writes are ASSIGN events; their
+assignment tuple contains scope, variable identifier and the evaluated value.
+Exporting either never invokes an entry, applies an assignment or starts a graph.
 
 State base required fields, inherited by every concrete State class:
 
@@ -146,7 +164,7 @@ State base required fields, inherited by every concrete State class:
 
 BodyWorld required fields, including those inherited from runtime.World:
 
-  hero mode body throttles
+  hero mode body throttles communication_wheel wheel_callouts emote_aliases spray_unlocks voice_effects
 
 The exact runtime.World representation, when accepted by export_component_vm, has
 hero and mode. A custom World subclass with additional behavior or hidden storage
@@ -175,7 +193,7 @@ present-with-None must remain distinct.
   WaitForServerFrames      none
   WaitFrames               target
   ChaseVar                 cur reached remaining last var interrupted
-  WeaponVolley             offset volleys per_shot ammo0 rate spread0 links reported
+  WeaponVolley             offset volleys per_shot ammo0 rate spread0 spread_ramp links reported
                            max_shots min_shots
   Anim                     none
   Ability                  flags presses cur cooldown_rate last var stack_var
@@ -183,6 +201,7 @@ present-with-None must remain distinct.
   Watch                    none
                            seen
   Switch                   case
+  ForCodeSynced            none
   SubScript                child
   GameMessageEntry         none
                            received
@@ -195,8 +214,8 @@ present-with-None must remain distinct.
   ClientOnlyPulser         pulses pulsed_at
   ActiveQuery              none
 
-There are 23 registered concrete State subclasses and the plain runtime.State
-fallback. Stack is registered for STUStatescriptStateStack and STU_A97E6999;
+The registered concrete State subclasses and the plain runtime.State fallback
+have explicit layouts above. Stack is registered for STUStatescriptStateStack and STU_A97E6999;
 Effect is registered for STU_691BFA55 and STU_7CA2FBAF. Other supported subclasses
 have one registration each. A node class without a model legitimately constructs
 the plain State under runtime.Instance.state; that fallback is not a custom Python
@@ -206,7 +225,7 @@ Other exact stored records:
 
   Var             key base links watchers
   Link            state slot priority above stack
-  Event           time seq kind state op param node button pressed message transient
+  Event           time seq kind state op param node button pressed message assignment transient
   EventSequence   _next_value
 
 All Event fields are retained, including transient events and ENTRY, MESSAGE or

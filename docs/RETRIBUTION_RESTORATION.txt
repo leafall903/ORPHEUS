@@ -1,0 +1,619 @@
+Retribution story restoration — active, not accepted
+Target: original build 1.74.0.0.104319, Rialto Archives map 079F, story mode 0025.
+
+The required outcome is the complete story mission: authored progression from
+start to extraction/results, its cinematics and control handoffs, and correct
+enemy behavior. The completed entrance milestone does not establish any of these.
+Normal difficulty is the first full-playthrough target; the other story difficulty
+cards need subsequent progression/combat regression checks before broader claims.
+
+Acceptance still required:
+- Run the authored mode, team/controller/body and placed-world scripts together.
+  Preserve their variable scopes, overrides, messages, trigger conditions, entity
+  lifetimes and terminal success/failure behavior. A forced phase advance or
+  timer-only encounter substitute does not establish mission correctness.
+- Restore story hero eligibility and mission start/restart/leave behavior.
+- Verify cinematic assets and every required authored trigger, actor binding,
+  camera/control transition and return to playable state, including the ending.
+- Restore enemy spawning, authored routes/navigation, target acquisition,
+  visibility/range gates, attacks, damage, death and removal, with enemy-specific
+  behavior for the mission's actual Trooper, Enforcer, Sniper, Assassin and Heavy
+  Assault encounters. Candidate asset names alone do not establish encounter use.
+- Verify complete original-client playthroughs with stage/event evidence and
+  visible AI/cinematic behavior; retain failures and unfinished paths explicitly.
+
+Initial dependency work, 2026-11-07 (9f03529):
+- The existing mode/controller/body asset-reference closure contains 98 graphs,
+  but no mission runtime is attached to Match. The entrance uses a prepared
+  readiness frame. Existing bot support is chiefly training-bot behavior.
+- The 079F instance dump contains 145 placed statescript entities. Their 13 graph
+  roots were absent from the accepted entrance runtime. Including their closure
+  adds 16 graphs, with no new missing graphs or reported XML ownership problems.
+- The extractor now accepts --map-entities HEX_MAP_INDEX=ENTITIES_XML and retains
+  component graph order and overrides. DragonML IDs are resolved independently
+  per component, because separately serialized components reuse those IDs.
+  Instance XML does not contain transforms or entity-definition defaults; both
+  remain required world inputs. Generated assets remain outside this repository.
+- Optional strict Component execution stops on unmodelled nodes/states, missing
+  plug/SubScript targets and unsupported base-world queries. It records the
+  graph/node/frame and invalidates queued work instead of accepting a compatibility
+  fallback as successful mission progress. This is diagnostic enforcement, not
+  proof that registered handlers or native-world services implement the mission.
+- The actual 100B startup probe stops at node 158, STU_CD46AF93 (ForCodeSynced),
+  frame zero. Its state-to-native-code binding still needs implementation.
+  A previously authorized client image exposes its specialized native methods;
+  their registration/removal/update roles are under investigation. The native
+  implementation must be read before assigning mission semantics to its values.
+- Snapshot observations retain the strict policy and terminal diagnostic without
+  invoking graph callbacks. Existing player/body execution remains permissive by
+  default; the candidate is isolated and has not replaced the accepted runtime.
+- The raw ENTITY chunk and XML agree on all 2,464 entity definitions, transforms
+  and component counts. All 186 referenced entity-definition XML inputs exist;
+  their initial script roots are covered by the candidate. Other native
+  components and encounter configurations still require interpretation.
+- Passed 158 focused extraction/runtime/expression/bot/snapshot/fault tests and
+  Ruff. These checks do not establish cinematic or enemy behavior.
+
+Native value binding work, 2026-11-07:
+- Strict ForCodeSynced execution now supports its verified zero-sync-flag path:
+  ordered live value lookup, swap removal and native notification timing. The
+  separate local probe of authored node 158/state 49 reads updated values and
+  stops exposing the binding when it ends. See FOR_CODE_BINDINGS.txt.
+- Nonzero sync flags stop explicitly. Legacy bodies keep their passive behavior.
+  No mission runtime or cinematic/enemy service is attached by this change.
+- Full 100B initialization now stops at STU_7BD2CA19, an unimplemented resource
+  configuration whose unique source candidate is node 322. This is a later
+  initialization diagnostic, not accepted mission startup.
+- Passed 126 focused runtime/bot/entrance/replication/snapshot tests and 30 server
+  snapshot/runtime checks. No new original-client mission acceptance is claimed.
+
+Local research records: verification/retribution/authored-script-audit.json,
+candidate-script-audit.json, candidate-manifest.json and for-code-synced-native.txt.
+Candidate preparation: verification/build_retribution_candidate.py.
+Current next step: interpret definition/encounter components, implement the first
+unsupported native script services and attach the real mission host. Cinematic
+and enemy-AI acceptance has not started.
+
+Empty config evaluation work, 2026-11-07:
+- An authorized original-client world session exposed an empty STU_7BD2CA19
+  instance linked to the base ConfigVar evaluator, which fails without writing.
+  SetVar uses integer zero for that failure; ForCode retains its destination.
+  See CONFIG_EVALUATION.txt for the native evidence and exact supported scope.
+- An isolated invocation of authored node 322 writes integer zero to variable
+  6751. The strict full-root probe now stops at node 106, STU_D38D0035, instead
+  of the empty resource config. Root initialization still has not passed.
+- Passed 149 related expression/runtime/bot/entrance/replication/snapshot tests.
+  The client research session returned to the menu and closed normally; the
+  candidate was not deployed and full story/cinematic/AI acceptance remains open.
+
+Full map component inputs, 2026-11-07:
+- tools/extract_map_world.py exports the raw transforms and ordered instance
+  fields together with complete definition component maps, retaining nested map
+  keys and independent component reference namespaces. Defaults and overrides
+  remain separate until their native merge rules are known.
+- All 2,750 component types match XML and binary roots across the 2,464 placed
+  entities. All 186 definitions export successfully, retaining 454 components.
+  All placed transforms and fields agree with the earlier independent audit.
+- Immutable DUTS component blobs use STU V1: their +4 field is InstanceCount,
+  not a version number. The new extractor validates the instance table and root
+  offsets; the older spawner extractor's format comment is corrected.
+- Passed 42 focused extraction checks and Ruff. These are data inputs only;
+  native mission services, world instantiation, cinematics and enemy AI remain
+  open. See MAP_WORLD_INPUTS.txt. No candidate deployment is claimed.
+
+Loaded script invocation core, 2026-11-08:
+- Full native registration traversal identifies PlayScript's dedicated handler.
+  The Retribution reference closure contains 23 non-client-only uses; the former
+  no-op behavior did not start their target graphs.
+- Add explicit loaded-graph allocation policies, queued native parameter/source
+  binding and BB4AC733 start entries. Retain one-shot entry suppression and
+  pending assignments in VM storage. Strict actions require a World backend;
+  legacy bodies retain passive behavior. See PLAY_SCRIPT_CORE.txt for scope.
+- The actual 0F45 node 48 -> 0EC6 entry 8 binding receives a supplied test value
+  in variable 41, then stops at STU_DB742151. Resource/target resolution, request
+  overrides, source derivation and native deferred deletion are still open.
+- Full 100B initialization still stops at D38D0035, with no own registration in
+  the captured chain. Its component/authority behavior remains unverified.
+  The correct STU vtable base is 2738A90, not its getter slot 2738A98.
+- No mission deployment, full startup or new original-client acceptance is
+  claimed. Cinematics, correct enemy AI and complete mission playthrough remain open.
+- Passed 162 related expression/runtime/bot/entrance/replication/VM checks and
+  15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
+
+Played resource/schema extension, 2026-11-08:
+- Strict World.play_script now selects primary/fallback resources before the
+  explicit world-routing boundary. Fresh inline identifier-map construction
+  preserves native low-key replacement, physical bucket iteration and growth.
+- Loaded invocation queues callee schema defaults, then evaluated caller
+  overrides before ordinary initialization and the separate start bindings.
+  Failed defaults are skipped; failed inline overrides use int 0. The native
+  collecting array-config path is implemented only for these value callers.
+  General first-item array evaluation remains unsupported in strict mode.
+- 21 of 23 actual resource configs resolve in isolation. The remaining 100B
+  nodes 281/285 need EntityReference. Actual 121D node 5 -> 119F maps four seeded
+  caller variables correctly. Target schemas still need world-dependent values;
+  this is not entity routing or a mission host. See PLAY_SCRIPT_CORE.txt.
+- Passed 208 related runtime/expression/VM/alias/bot/entrance/replication checks
+  and 15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
+  Full root startup still stops at D38D0035. Mission progression, cinematics and
+  enemy AI remain open; no deployment or new original-client acceptance claimed.
+
+Map entity query service, 2026-11-08:
+- SceneWorld binds mode-selected map UUIDs using native client_id identities;
+  explicit server-create indexes retain the existing Match namespace. Input
+  defaults and instance data remain separate. Missing references preserve the
+  evaluator destination; missing positions stop strict callers.
+- Native construction and a separately authorized original-client read-only
+  probe agree on 10 waypoint identities. The client entered Story Normal as
+  Reaper, then left and closed normally. This is identity evidence, not acceptance
+  of candidate mission code. See SCENE_QUERY_WORLD.txt for the exact boundary.
+- The current mode binds 2,303 entities: 2,066 client placements and 237 explicit
+  existing server creates. All 23 resource configs now resolve; queued schema
+  initialization succeeds for 121D, 1412 and 119F. Empty TargetTags stay Asset(0).
+- Passed 226 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, plus Ruff and Git diff checks.
+- SceneWorld is not attached to Match and does not activate components or route
+  requests. Full root still stops at D38D0035; story, cinematics and AI remain open.
+
+PlayScript request construction, 2026-11-08:
+- Construct native ordered targets, explicit caller/owner/instigator context,
+  scalar source fallback, ordered array parameters, allocation policy and wire
+  byte. Empty targets skip later services; real requests require context and
+  submission backends before following output. No owner/source fallback is guessed.
+- Actual 0F45 node 48 constructs the supplied value 17 as parameter array (17,).
+  An explicit handoff to the loaded 0EC6 core writes its variable 41 = (17,), then
+  stops at DB742151. This is request/value evidence, not native context derivation,
+  target component routing or a running AI helper. See PLAY_SCRIPT_CORE.txt.
+- Passed 237 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+- New D38D0035 references remain type/factory code, without server-effect evidence.
+  Full 100B startup still stops there. Match host, component lifecycle, cinematics
+  and enemy AI remain open; no deployment or new original-client acceptance.
+
+Primary possessor entity query, 2026-11-08:
+- Implement DB742151 for an explicitly known SceneWorld possession catalog:
+  direct component 44 resolves to self, otherwise the reverse registry names
+  an existing primary possessor. Missing results are typed Entity(0), not null.
+  Remove stale relations on component/entity retirement and keep unknown catalog
+  availability distinct. The UUID catalog does not imply component activation.
+- A separately authorized original client entered Rialto Story Normal as Reaper,
+  switched to Genji, then left and closed normally. Read-only component/registry
+  observations confirm the controller and old/new body mappings. This is native
+  relationship evidence on the accepted entrance service, not candidate acceptance.
+- Actual 0F45 -> 0EC6 now passes the query and stops at state 9028E035. Actual
+  121D node 5 -> 119F resolves its target controller. Context and handoff remain
+  explicit. Full 100B stays at D38D0035; mission, cinematics and AI remain open.
+  See ENTITY_POSSESSION_QUERIES.txt.
+- Passed 246 related runtime/expression/VM/bot/entrance/replication checks and
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Type-registered state lifecycle, 2026-11-08:
+- Implement 9028E035's authoritative type-list registration and cleanup across
+  graph instances. Native writer links name eligible successors, skipping
+  server-only states. Owner delta and remote full/delta writers retain those
+  links with the target graph's correct raw index namespace and width.
+- VM storage observes the new registry and concrete state class without running
+  payload callbacks. Unknown SceneWorld storage remains unsupported.
+- Actual 0F45 -> 0EC6 now creates state 0 and queues its begin; next is 316CFEF2
+  at node 2, before the queued state begins. This is creation/queue evidence,
+  not helper completion or demonstrated native gameplay. Context stays explicit.
+- Full 100B remains at D38D0035. Client prediction/link reconciliation, mission
+  host/routing, cinematics and enemy AI remain open. See REGISTERED_STATES.txt.
+- Passed 462 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Numeric property modifier service, 2026-11-08:
+- Implement numeric records, native insertion order and exclusive frame ranges,
+  with six f32 operations. Original x64 emulation agrees on 3,030 arithmetic and
+  4,900 insertion cases. This is instruction evidence, not gameplay acceptance.
+- 316CFEF2 supports numeric rows on an explicitly declared SceneWorld component
+  and source clock. Typed/filter rows remain strict errors. Existing body
+  prediction keeps its passive policy; gameplay consumers remain open.
+- Isolated actual 0EC6 state2 produces five rows and resolves fields17..21 to
+  zero, then retires them at the expected supplied frame. The complete helper
+  entry instead stops at BD02E168/node33 before queued states0/2 begin.
+- Full 100B stays at D38D0035. Clocks, collection, gameplay/physics, mission host,
+  cinematics and enemy AI remain open. See NUMERIC_MODIFIERS.txt.
+- Passed 476 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary subgraph interfaces, 2026-11-08:
+- Model BD02E168's separate enter/exit interface. Register on object creation
+  when an explicit host service is declared; release at object destruction.
+  Ordinary state hooks do not imply custom subgraph dispatch. Missing host
+  declarations stay strict errors; known no-service is separately represented.
+- Native callbacks agree with 256 isolated argument-preparation cases with
+  explicit library stubs. Thirteen checks cover the local lifetime/dispatch API.
+- Actual helper entry now begins registered state0 and numeric state2, producing
+  five numeric rows before stopping at 582E0D5F/node4. Three interface objects
+  remain inactive; these probes do not derive or invoke native host dispatch.
+- Full root remains at D38D0035. Mission, cinematics and AI remain unaccepted;
+  no new client/deployment. See AUXILIARY_SUBGRAPHS.txt for scope and evidence.
+- Passed 489 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary effect parameter core, 2026-11-08:
+- Implement 582E0D5F's existing-effect parameter updates separately from state
+  creation/routing and the native +88 phase. Preserve f32 defaults/casts, degree
+  conversion, MAXSS edges, direct-entity vector queries and ordered entity-list
+  replacement. Scalar and iterator reads retain the supplied State's watchers.
+- Original x64 parameter instructions and casts match 192 cases and 6,336 field
+  comparisons with explicit engine/config/iterator adapters. Another 144 native
+  callback-gate cases establish pointer, presence and active-bit conditions;
+  creation/release/refresh bodies are stubs in those gate-only cases.
+- Actual 0EC6/node4's isolated parameters resolve to 0/0.75/5/0. The state remains
+  unsupported: helper entry still stops at 582E0D5F/node4, full 100B still stops
+  at D38D0035/node106. This primitive does not replace either mission gate.
+- Creation/target/consumer services, native frame phase and reconciliation remain
+  open, along with mission host, cinematics and enemy AI. No deployment or new
+  client session. See AUXILIARY_EFFECT_PARAMETERS.txt for the mapping and limits.
+- Passed 503 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary effect allocation/initialization core, 2026-11-08:
+- Model 9D1D50's explicit context/target/observer descriptor, serial-sorted list
+  entries and 6B8E20 retirement. Retired entries/observer references remain held;
+  retirement does not imply deletion or consumer completion. Equal-key tie order
+  after a complete serial cycle remains an explicit unresolved case.
+- Add initial authored writes before parameter refresh. F8/FC retain the first
+  scalar evaluation while F4 can take its independently evaluated second value.
+- Original allocation/sort/reference/retire instructions match192/76 operations;
+  original initialization/refresh/casts match192 cases and7488 field comparisons.
+  Allocator/constructor and engine inputs remain explicit adapters.
+- Specialized ctor9776F0 proves component vtable262C010 has real scope registration
+  and removal slots. Seventeen cold original register/removal cases establish
+  append/swap removal. Native pending-history callback scheduling remains open.
+- Actual node4's isolated allocated descriptor has scalar values0/.75/5/5/5/0.
+  Its route was supplied; no authored VM State or engine object is constructed.
+  Helper entry remains582E0D5F/node4; full100B remainsD38D0035/node106.
+- Full mission/cinematics/enemy AI remain unaccepted. No deployment/new client.
+  See AUXILIARY_EFFECT_ALLOCATION.txt for ownership, adapters and pending work.
+- Passed 513 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Auxiliary effect State and explicit routes, 2026-11-08:
+- Register582E0D5F with separate enter/refresh/matching-observer/exit callbacks.
+  Explicit contexts/owners, component43 targets and instance flags select native
+  target/fallback routes. Unknown services remain strict, with no implicit
+  begin/end/tick dispatch. Orientation cleanup/engine consumers remain open.
+- Bound-before-initialization effects are contained on strict failure, object
+  destruction and entity retirement. Shared lists preserve unaffected sources;
+  reused IDs need fresh declarations. Passive body storage covers29 State types.
+- Original routing/callback instructions match416 cases, with156 allocations and
+  matching retirements, using explicit owner/entity/component/allocator adapters.
+- Actual0F45->0EC6 entry now passes; with a supplied clock mapping it reaches
+  frame500 without fault, drains its2250ms timer, and keeps states10/15/16 active.
+  No interface dispatch is injected into that path. Separate actual node4
+  enter/refresh/lost calls produce and retire the expected descriptor.
+- Full100B remainsD38D0035/node106. Native dispatch/history and +88/+120 phases,
+  gameplay consumers, Match host, all cinematics and enemy AI remain unaccepted.
+  No deployment/new client session. See AUXILIARY_EFFECT_STATE.txt for limits.
+- Passed 533 runtime/expression/VM/body/bot/entrance/replication/replay checks,
+  15 server snapshot/research-injection checks, Ruff and Git diff checks.
+
+Normal-forward auxiliary scope history, 2026-11-08:
+- Add explicit per-Component ForwardHost. Component+100/+118 history writes
+  precede active-bit changes; an owner-driven drain uses first-edge snapshot and
+  pending parity to enter/exit. Plain Registry and knownNone retain their policies.
+- Frame and phase boundaries remain supplied. Correct previous +220 inference:
+  A0A2E0 queries pending/returns Instance; A087E0 actually marks the helper dirty.
+- Original instructions match the production host in386 writer/wrapper/drain/
+  unregister/mutation cases, with documented service/callback adapters.
+- Actual0F45->0EC6 production host reachesframe500 without injected callbacks.
+  Frame0 creates one effect descriptor, frame46 retires it, frame140 exits scope14;
+  states10/15/16 remainactive. Teardown clears history/registrations without new effects.
+- Twenty-one behavior checks cover normal edges/parity, ordering, clocks, mutation,
+  retirement/failure/budgets. Passed554 related and15 server checks, Ruff and diff.
+- Full100B stillD38D0035/node106. Match host, native phase placement, rollback,
+  engine consumers, +88/+120 phases, orientation, all cinematics and enemy AI remain
+  unaccepted. No deployment/new client. See AUXILIARY_SCOPE_HISTORY.txt.
+
+Ordinary scope end-phase order, 2026-11-08:
+- Add ForwardHost.run_frame to place one scope drain after all VM due times and
+  before one deferred ForCode channel1 pass. Notifications' new edges remain
+  pending until the next auxiliary end phase; manual/legacy policies remain.
+- Original1B8C910 nests +48/+58 inside ordinary+50; D0D350 notifieschannel1 only
+  afterward. Thirty original cases establish the bounded ordering/clock writes;
+  six native two-frame cases match production deferred begin/end edge lifetimes.
+- Actual0F45->0EC6 starts through the new runner with supplied services/clocks;
+  frames0..500 pass, including effect creation/retirement. Three States remain
+  active. Native +88/+120, full clock mapping, engineconsumer and rootD38 remain.
+- Eleven new behavior checks,565 related checks,15 server checks, Ruff/diff pass.
+  No new client/deployment. Complete story/cinematics/enemy AI remain unaccepted.
+  See ORDINARY_SCOPE_PHASE.txt for the native adapters and ownership limits.
+
+Placed scene creation boundary, 2026-11-08:
+- Current237 required creates omit all123 nonempty placed script components
+  (124 definition graphs). The12 already-bound script components have no graphs.
+- OriginalBE8E10/BEA2D0 use definition graphs, matching first-instance overrides,
+  then additional graphs. Empty overrides preserve defaults;90 bounded original
+  executable cases pass. Full allocation/entry/schema behavior remains open.
+- Separate134-extra-create candidate (371 total) passed original-client world
+  entry and settled-menu return/normal close. Two sampled component47 identities
+  match actual created entities; both VM instance lists are empty. No placement
+  graph descriptors/frames were sent. Creation alone is insufficient.
+- Candidate remains isolated; normal runtime unchanged. Mission/cinematics/AI
+  and rootD38 remain unaccepted. See PLACED_SCRIPT_INITIALIZATION.txt.
+
+Explicit placed component startup, 2026-11-08:
+- Add owner-selected ComponentStartup for already-created entities/loaded graphs:
+  public/definition values, first-match instance overrides, then additional graphs.
+  Schema writes remain queued; normal initialization prepares all pending graphs
+  before due events at the first supplied update clock. Legacy init=False stays
+  inert. Nonempty component schemas, clientOnly and graph flags remain gated.
+- 108 native queue/evaluation comparisons and36 native preparation comparisons
+  pass with explicit allocator/resource/role/event-storage adapters. Complete
+  native allocation, source bindings, clock mapping and Match policy remain open.
+- Actual isolated371-create input:137/146 components configure, including114
+  nonempty/114 graphs/432 queued writes. Nine unknown configs stop startup.
+  Of114 configured nonempty components,43 complete one frame;71 stop on four
+  unknown State classes. This is independent strict probing, not a mission host.
+- Nineteen behavior checks plus a read-only pending-snapshot check;585 related
+  and15 server regressions, Ruff/diff pass. VM storage includes the pending flag;
+  network schema unchanged. No new client/replication acceptance or deployment.
+  RootD38, story/cinematics, five enemy AI types and results remain unaccepted.
+
+Actual placed graph baseline delivery, 2026-11-08:
+- In a subsequent authorized isolated client session, configure actual0F65 and
+  120E on the two previously sampled created entities. Send their real graph
+  descriptors and frozen authored initial values after create ACKs. Authored
+  server Entry/State callbacks remain unexecuted; all remote States are off.
+- Two consecutive Story/Normal matches enter first-person Rialto as Reaper and
+  return to settled menus. Both graph streams are acknowledged in each fresh
+  connection and retired on leave. Read-only native inspection in each match
+  confirms both exact graph/ID1 instances and all eight authored variable values
+  and type tags. Native builtin source001B also matches each owner, without
+  establishing the server allocator. See PLACED_SCRIPT_INITIALIZATION.txt.
+- Two offline codec round trips, two native capture comparisons and the
+  transport/lifetime aggregate pass. Client closes normally; isolated server
+  stops and releases ports. Normal inputs unchanged; candidate not deployed.
+- These are two frozen baseline samples. Production Match integration, authored
+  execution, live State replication and complete gameplay entity lifetimes remain
+  open. No full story/cinematic/enemy-AI/results acceptance; rootD38 stays strict.
+
+Placed schema literal completion, 2026-11-08:
+- Verify native resource/tag4 evaluators for VoiceStimulus, Animation, Hero,
+  entityDef and SkinTheme, and signed32/tag2 TeamIndex. Null/zero resource keys
+  use exact stored fields; nonzero keys still delegate availability to context.
+  Original evaluator/setter instructions match3096 scalar cases without service
+  stubs. See CONFIG_EVALUATION.txt for excluded availability/disposal behavior.
+- The same explicit isolated371-create inputs now configure146/146 components:
+  23 empty,123 nonempty,124 graphs,542 queued writes. The previous schema stops
+  are resolved. No Entry/State callback runs while these writes are configured.
+- Independent first frames complete45/123 nonempty components;78 still stop on
+  five State classes and one action. No cross-component mission host is present.
+- Six new behavior checks;591 related and15 server checks, Ruff/diff pass. Root
+  100B remains strictD38D0035/action106. Normal inputs unchanged; no new client
+  acceptance/deployment for this change. Story/cinematics/enemy AI/results open.
+
+Placed entity-control State, 2026-11-08:
+- Implement33A46033's strict type-list registration, scalar/target caches,
+  generation/tick/dependency refresh, guarded rule aggregation and consumer
+  dispatch. Explicit engine services distinguish known absence from unknown.
+  Permissive bodies keep their passive policy; cached fields enter VM storage.
+- Original instructions match4514 aggregation,448 cache and512 dispatch cases;
+  eight native recursive-model cases supplement the comparison. Actual120E/node9
+  completes frame0 with declared service fixtures and active raw State2 passes
+  a73-bit remote codec round trip. See ENTITY_CONTROL_STATE.txt for adapters.
+- The unmodified strict scene probe still has45 completed frames/78 faults:
+  66 now require a real entity-control context instead of an unknown State model.
+  Supplied service fixtures do not accept physical/render effects, client
+  activation or complete mission behavior. No new client/deployment. RootD38,
+  hosting/lifetimes, cinematics, enemy AI and results remain open.
+
+Active entity-control sample/native consumer acceptance, 2026-11-08:
+- A subsequent authorized original-client session sends actual120E raw State2
+  with explicit observed builtin source, after entity create ACK. Authored frame0
+  uses declared server engine services; off-after uses diagnostic end(False).
+  Two consecutive Story/Normal/Reaper matches cover off/on/off/on/off and fresh
+  off/on/off. All8 frames are ACKed and both streams retire on leave.
+- Read-only native captures verify the State vtable/index, actual State40 bit0,
+  scalar caches and empty targets. State218 and model24E bit0 toggle0->1->0;
+  model230's two changed masks restore after every abort. Runtime component1 and
+  model250 exist despite no explicit model component in the serialized definition.
+  A wrong first-inspector active mask is corrected from retained raw bytes and
+  native instructions; the second match uses the corrected inspector.
+- Five source-preserving codec round trips, eight native comparisons and the
+  ACK/lifetime aggregate pass. Client closes normally; isolated servers stop
+  and ports release. Normal runtime and production code unchanged; not deployed.
+  This accepts the exact sample's native State/model transition. Production host,
+  complete engine services/allocator/lifetimes, rootD38, full story/cinematics,
+  enemy AI and results remain open. See ENTITY_CONTROL_STATE.txt.
+
+Placed animation-alias requests, 2026-11-08:
+- Implement strictB1FA9C2A's explicit component55 list, sampled/wrapping handles,
+  allocation-failure path, reverse cleanup and notification gates. True mode
+  queues ABORT after notification; it does not immediately end the State.
+  Typed AnimAlias literals preserve resource/tag4 zero; keyed services stay
+  explicit.966 native State/registry and16 literal comparisons pass, including
+  the original request instructions with declared eligibility/event/clock adapters.
+- All three actual0D32 components complete frame0 with explicit known component,
+  writable storage and notification recorder; six remote on/diagnostic-off
+  codec round trips pass. Complete alias selection/playback remains unaccepted.
+  Unmodified independent scene totals remain45 complete/78 strict stops, with
+  three stops now requiring real animation-alias components. No absent-service
+  shortcut, new original-client acceptance, deployment or production hosting.
+- Seventeen behavior checks,630 related and15 server regressions pass. VM observation
+  adds the State handle. See ANIMATION_ALIAS_STATE.txt for adapters and evidence.
+  RootD38, full story/cinematics, five enemy AI types and results remain open.
+
+Original-client animation-alias samples, 2026-11-08:
+- A subsequent authorized session verifies all three actual0D32 alias States
+  in two Story/Normal/Reaper matches. Initial source is omitted, then observed
+  natively as tag10/self before releasing on phases.24 phase frames are ACKed
+  after create ACKs; all6 streams retire on leave. Only alias States are sent.
+- Eight accepted captures cover24 native subject samples and348 transmitted
+  variable values/tags. They verify lazy initial State allocation, persistent
+  handles across cleanup, ordered alias rows/counters and native current-alias
+  selection/restoration. Two early off captures retain pending engine selection;
+  later captures settle. Fresh entities/instances reset counters correctly.
+- Fifteen successive codec checks pass. Client closes normally; owned isolated
+  servers stop and release ports. No production code/input change or deployment.
+  Server services remain explicit fixtures. Visual animation, full allocator/
+  authority/clocks, production hosting/lifetimes, rootD38, story/cinematics,
+  enemy AI and results remain open. See ANIMATION_ALIAS_STATE.txt.
+
+Placed model-look callbacks, 2026-11-08:
+- Implement native7D71FDF3 scope enter/exit and tick with explicit target policy,
+  namespace/global lookup, capability and model apply/remove services. Preserve
+  target-before-consumer cache commits, failed applies and exit bit6 suppression.
+  Ordinary begin/cleanup/dependency hooks stay passive; no fabricated model writes.
+- Original callback instructions match4320 cases, with12 unkeyed ModelLook
+  literal comparisons. Nineteen behavior tests,649 related and15 server checks
+  pass, including passive VM storage for32 concrete State classes; Ruff/diff pass.
+- Actual144E/node26 completes frame0 and records authored look application/removal
+  using explicit ForwardHost/model services, without a source override.187/186-bit
+  on/diagnostic-off codec checks pass. The unchanged scene still completes45/123
+  nonempty first frames with78 stops; this sample now needs scope registration.
+- Root100B remains strictD38D0035/node106. The implementation probe has no client
+  acceptance or deployment. Subsequent exact-sample acceptance follows below;
+  production host/lifetimes, story/cinematics, enemy AI and results remain open.
+
+Original-client model-look sample, 2026-11-08:
+- Two isolated Story/Normal/Reaper matches send all authored144E remote States
+  without overriding source001B. Eight frames are ACKed after create ACKs; two
+  streams retire. Eight accepted captures verify28 transmitted variable values.
+- Native VM262C010 registers/dispatches raw11's2630808 interface. Three on/off
+  cycles verify look/target caches, model component4 override80D0/restoration7DF1
+  and the engine look stack. Fresh native identities reset state in match two.
+- Correct inspector identity association from network+B0 to native+AC. Preserve
+  17 earlier captures with already-settled native fields; no phase is resent.
+  Five codec checks and36 focused tests pass; prior649+15 cover unchanged code.
+- Client closes normally; owned servers stop. Exact scope/model transitions are
+  accepted with explicit server services and diagnostic off. Visible appearance,
+  complete services/clocks, production hosting/lifetimes and full mission remain
+  unaccepted. Normal inputs are preserved; no deployment. See MODEL_LOOK_STATE.txt.
+
+Placed DataFlowMapping callbacks, 2026-11-08:
+- Implement23A661BD ordinary begin/cleanup/dependency and its typed provider
+  interface, with explicit component47 registration/counter/position services.
+  Preserve mapping cache order, target Handle tags and missing-namespace status4.
+  A82CD4B2 unkeyed DataFlow literals retain typed Asset values including zero.
+- 2070 original callback comparisons and12 literal cases pass. Nineteen behavior
+  tests and passive VM storage for33 concrete State models cover the change.
+- Both actual0E61 components reach a later0F647E55/node13 strict stop before
+  activating the mapping. Independent authored-node fixtures verify061D global
+  mapping registration/removal, float answer1 and four codec round trips. Full
+  component first frames remain incomplete; no partial VM is accepted as a mission.
+- Scene still completes45/123 nonempty first frames with78 stops:66 control,
+  3 alias,1 model scope,3 action0F647E55 and5 State9D7BF987. Full100B still stops
+  atD38/node106. Complete data-flow services, production hosting, story/cinematics,
+  enemy AI and results remain open. No new client run or deployment; normal inputs
+  and unrelated working changes are preserved. See DATA_FLOW_MAPPING.txt.
+
+Initial shared scene host, 2026-11-08:
+- Add an explicit GameServer/Match factory for shared mode/placed components,
+  live foreign variable dependencies and queued authored messages. Unknown
+  transport or component data stops strict execution before its success plug.
+- Match verifies map/mode/clock and actual server creates after collision
+  readiness, then owns ordinary-frame scheduling and terminal failure cleanup.
+  Last-player leave and server stop retire the host. Status is observable;
+  shared VM storage is explicitly rejected pending a complete storage model.
+- A real in-memory GameServer probe binds/prepares147 components, including146
+  placements and100B, in the explicit371-create research catalog. It retains
+  D38D0035/node106/frame0 and closes the failed Match with all bindings retired.
+  Later components do not run after root failure. Static collision is an explicit
+  fixture; no client, socket, deployment or scene replication is claimed.
+- Prepared entrance readiness remains blocked even after a successful VM pass.
+  Normal catalog inputs are unchanged. Dynamic actors, native scene phases,
+  full services/replication, cinematics, enemy AI and mission results remain
+  unaccepted. See SCENE_SCRIPT_HOST.txt for the initial host's exact boundary.
+
+PlayScript source/context identity, 2026-11-08:
+- Verify the entity-instance own table and native source getter/setter. Live
+  SceneWorld components now derive caller/owner and cached inherited source;
+  detached/stopped sources fail lifecycle checks. No context provider is guessed
+  for unknown or abstract native instances.
+- New loaded-core allocations can seed an explicitly supplied instigator before
+  defaults. Start-entry caller binding stays separate; skip/reuse retain the old
+  source. Passive storage includes the source cache without evaluating it.
+- Native294 getter/setter, seven allocation-source and seven owner-identity cases
+  pass with declared adapters. Actual0F45/node48 constructs the authored0EC6
+  request through its live context; explicit core handoff sets001B and array41.
+  The helper stops at strict message-target component/node22. Automatic submission
+  still stops before success; the complete body/controller flow is unaccepted.
+- Full shared Match remainsD38/node106. Loader/transport, native phases, dynamic
+  actors, cinematics, enemy AI and results remain open. No new client run or
+  deployment; normal inputs are preserved. See PLAY_SOURCE_CONTEXT.txt.
+
+Component PlayScript queue and automatic lifetime, 2026-11-08:
+- Add explicit resource providers and real component queues, preserving native
+  submit policies, immediate/reverse flush, capacity boundary, reused identity,
+  pending resource/startup waits and queued schema/initialization/start bindings.
+- Verify277 original submit/flush and2688 automatic-lifetime cases with declared
+  adapters. Byte0 enables Instance318 bit11's transient lifetime checks. Record
+  initialization frame and pending bit22; events, entries and active States keep
+  required graphs alive. VM storage observes the new fields without executing.
+- Actual0F45/node48 now creates0EC6 through the installed queue. Its caller then
+  retains strict40E05F6B/node39 before helper parameter execution. A separate
+  isolated service submission assigns array41 and stops at controller-message
+  component/node22. Full body/controller/helper startup remains unaccepted.
+- Real Match configures/cleans147 initial queues and retainsD38/node106. Stale
+  source faults cannot clear replacement services. Native loader/allocator/
+  deletion/phases, full replication, actors, cinematics, enemy AI and results
+  remain open. No new client run/deployment. See PLAY_SCRIPT_QUEUE.txt.
+
+Shared VoiceStimulus callbacks, 2026-11-08:
+- Restore40E05F6B shared begin, separate +80 poll, timer and failure callbacks
+  behind explicit host/manager/clock services. Retain native delay, permission,
+  uint32 target deduplication, failure timeout, duration retries/rounding and
+  next/current-part queries. Custom voice outputs are distinct from ordinary
+  State completion. Record ten scalar caches across34 concrete VM State models.
+- Native973 original-instruction comparisons cover both constructors and shared
+  callbacks with declared service/storage/queue adapters. Constructor initializes
+  only the handle. Ordinary tick/+70 is null. Complete1B8C690 driver, registry
+  mutation/reentrancy and client submission/audio engine remain unaccepted.
+- Actual0F45/node39 has remote-1 and both client_only/server_only=false; it is
+  not classified server-only. The actualnode48 queue path now begins it and
+  executes0EC6 array41 before retaining controller-message component/node22.
+  A separate explicit voice-service fixture keeps original plugs, observes
+  duration0.25, queries parts2 then1, ends and retains4C3509FB/node40. These
+  isolated fixtures do not establish complete body/controller startup or audio.
+- Real shared Match still stops atD38/node106 and retires147 initial queues.
+  Full mission, native phases, real services, replication/readiness, cinematics,
+  five enemy AI types, extraction and results remain open. No new client run
+  or deployment. See VOICE_STIMULUS_STATE.txt for evidence and scope.
+
+Native array actions in the voice chain, 2026-11-08:
+- Restore strict4C3509FB unkeyed append/insert/unique handling, including scalar
+  destination coercion, int-zero gaps, native index conversion, ordered source
+  groups, self-reference termination and final writable-release notification.
+  Restore1C2CC6D5's fresh typed-empty-array assignment through the normal writer.
+  Permissive player/body policy retains its previous output-only fallback.
+- Native880 insertion comparisons and64 clear comparisons pass with declared
+  storage/iterator/notification adapters.2 further insertion cases confirm the
+  explicit overlimit diagnostic gate. Valid keyed rows and linked insertion/
+  checkpoints remain strict; these are partial array-family semantics.
+- Actual0F45's isolated voice39->array40/41->voice35->clear42 chain now completes
+  with array1839 empty and no remaining registered voice States, events or fault.
+  Original graph flags/plugs are unchanged. Source variable42 is uninitialized
+  and voice backend/clock responses remain declared inputs; full body startup,
+  native audio/phase execution and the complete mission are not established.
+- The separate helper still stops at controller-message component/node22 before
+  voice polling. Shared Match still retainsD38/node106 and retires147 queues.
+  Full actors, services/replication, cinematics, enemy AI, extraction/results and
+  original-client acceptance remain open. No new client run or deployment.
+  See ARRAY_ACTIONS.txt for evidence and remaining storage/consumer boundaries.
+
+Entity script component definitions and actual controller ownership, 2026-11-08:
+- Retain full script_component metadata in selected entity/hero records, including
+  empty defaults, schemas, flags and graph dependencies through shared DragonML
+  objects. Do not borrow a child entity's component. Runtime lookup distinguishes
+  unknown legacy/missing records, known absence and actual component definitions;
+  malformed, conflicting and unsupported definitions remain explicit errors.
+- SceneHost.add_entity_scripts owns an already-created entity's real component
+  in the initial catalog through existing ComponentStartup. Missing data cannot
+  create an empty substitute. Known absence cannot accept overrides/values.
+  Initial catalog sealing, identity checks and failure/close cleanup remain intact.
+- Actual000E has an existing empty script component; mode0025/team0 supplies
+  controller0F44/body0F45 separately. A dedicated external bundle changes only
+  000E component metadata. Isolated0F44 startup retains9D7BF987/node33. The
+  faulted but bound controller still rejects0EC6/node22's message061A after
+  parameter41. A16-graph literal scan does not establish all message consumers.
+- Real GameServer/Match prepares146 placements, mode100B and one actual controller,
+  plus148 queues. RootD38/node106 fails before controller execution; all queues/
+  bindings retire. Mode-root additions, creation/possession and scheduling remain
+  explicit owner inputs. Automatic native mode mounting, complete controller/body/
+  actor lifetimes, engine/phases/replication, cinematics, enemy AI and mission
+  results remain open. No new original-client run or deployment. See
+  ENTITY_SCRIPT_COMPONENTS.txt for evidence and the unbypassed startup faults.

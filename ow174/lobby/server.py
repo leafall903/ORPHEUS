@@ -229,6 +229,9 @@ class LobbyServer:
             self.settings.game_port,
             on_leave=self.game_left,
             skin_of=self.skin_of,
+            emote_aliases_of=self.emote_aliases_of,
+            emote_blend_trees_of=self.emote_blend_trees_of,
+            wheel_cosmetics_of=self.wheel_cosmetics_of,
             on_join=self.game_joined,
             on_clock_ready=self.game_clock_ready,
             collision_provider_factory=lambda: AsyncCollisionProvider(
@@ -249,9 +252,32 @@ class LobbyServer:
         weapon = self.items.unlocks.get(loadout.get("+0x50") or 0)
         return (skin.skin_theme if skin else 0), bool(weapon and weapon.name == GOLDEN_WEAPON)
 
+    def emote_aliases_of(self, account_lo: int, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
+        account = self.accounts.by_id(account_lo)
+        if account is None:
+            return ()
+        return self.content.collection.emote_aliases(account.profile, hero, body_definition=body_definition)
+
+    def emote_blend_trees_of(
+        self, account_lo: int, hero: int, *, body_definition: int | None = None,
+    ) -> tuple[int, ...]:
+        account = self.accounts.by_id(account_lo)
+        if account is None:
+            return ()
+        return self.content.collection.emote_blend_trees(account.profile, hero, body_definition=body_definition)
+
+    def wheel_cosmetics_of(self, account_lo: int, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        account = self.accounts.by_id(account_lo)
+        if account is None:
+            return (), ()
+        return self.content.collection.wheel_cosmetics(account.profile, hero)
+
     def game_joined(self, player) -> None:
         """A player's game connected to its match: its client gets the match lobby (handlers/leaving.py)."""
         with self.state_lock:
+            session = self.session_of(player.account_lo)
+            if session is not None:
+                session.npc_menu_open = False
             leaving.game_joined(self, player)
 
     def game_left(self, player) -> None:

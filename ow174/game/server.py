@@ -43,7 +43,17 @@ from ow174.game.link import (
     delivery,
     peek_connection,
 )
-from ow174.game.match import SEND_EVERY, Match, Player, no_skin, pong, sends
+from ow174.game.match import (
+    SEND_EVERY,
+    Match,
+    Player,
+    no_emote_aliases,
+    no_skin,
+    no_wheel_cosmetics,
+    pong,
+    sends,
+)
+from ow174.game.npc_navigation import RIALTO_MAP
 from ow174.game.projectiles import MAX_LEASE_FRAME, _ObservedProjectile
 from ow174.game.script.bot import practice_nameplate
 from ow174.game.script.driver import BodyStream, Snapshot, warm_up
@@ -60,6 +70,8 @@ SILENCE_SECONDS = 10.0  # the client sends at least every 250 ms; after this lon
 # reach the game server's address): the player leaves the match, and the lobby takes them back.
 HANDOFF_SECONDS = 60.0
 MAX_PAYLOAD = MAX_DATAGRAM - HEADER_SIZE
+# Leave space for the world/entity headers and the statescript fragment header.
+MODE_FRAME_PART_BITS = (MAX_PAYLOAD - 32) * 8
 MAX_ENTITY_RECORDS = 127
 MAX_PENDING_COMBAT_NOTICES = 256  # per body create, retain the newest notices during prolonged loss
 BOT_DESTROY_GRACE_TICKS = round(SILENCE_SECONDS / TICK_SECONDS)  # bound waits by the transport silence budget
@@ -67,6 +79,7 @@ PLAYER_BODY_REUSE_SECONDS = 30.0  # the client retains destroyed entity IDs
 PING = 21610
 MAP_LOADED = (21601, 21602)
 GAME_MESSAGE = 21616
+COMMUNICATION_ACTION = 21608
 LEAVE_GAME = 20304
 # A game sent to the menu (20304) closes its link within ~30 ms; one that does
 # not is dropped after this long, so that its match still ends.
@@ -153,6 +166,7 @@ class _BotScriptDelivery:
     death_frames: deque[Snapshot] | None = None  # None until this viewer is registered for death
     death_snapshot: Snapshot | None = None  # latest terminal state for a deferred feed pulse
     nameplate_update: world.EntityUpdate | None = None  # standalone presenter chunk awaiting ACK
+    historical_death: bool = False  # this viewer joined after the corpse was created
 
 
 class Client:
@@ -179,7 +193,9 @@ class Client:
         self._combat_notices: dict[int, deque[tuple[int, bytes]] | None] = {}
         self._body_health: dict[int, world.EntityUpdate] = {}  # latest snapshot awaiting delivery per body
         self._combat_notice_tail: dict[int, int] = {}  # last promoted reliable ordinal per body
+        self._last_hit_notice_frame: int
         self._bot_scripts: dict[int, _BotScriptDelivery] = {}
+        self._npc_idle: dict[int, world.EntityUpdate] = {}  # last sent idle pose, pending or ACKed
         self._body_destroy_wait: dict[int, tuple[world.EntityUpdate, int]] = {}
         self._player_body_reuse_after: dict[int, float | None] = {}  # None until destroy ACK
         self._pending_possessions: dict[int, tuple[int, world.EntityUpdate]] = {}
@@ -187,6 +203,7 @@ class Client:
         self._own_controller_acked = False
         self._mode_create_acked = False
         self._pending_mode_frame: BitWriter | None = None
+        self._mode_fragments: list[world.EntityUpdate] = []
         self._display_notices: deque[tuple[int | None, int, bytes]] = deque(maxlen=MAX_PENDING_COMBAT_NOTICES)
         self.expected_in = 0  # the client's next reliable message
         self.parked_in = {}
@@ -199,18 +216,19 @@ class Client:
         """20304 with 0 = leave for good (0x7FF7896E6830): the game goes back to the menu and closes its
         link. GameServer._tick drops it after LEAVE_GRACE_SECONDS if it does not."""
         if self.leaving_since is None:
+            self.unreliable.clear()
+            self.entities.clear()
+            self._pending_possessions.clear()
+            for _, records in self.in_flight.values():
+                records.clear()
             self._pending_mode_frame = None
+            self._mode_fragments.clear()
             self._display_notices.clear()
             self.queue_reliable(LEAVE_GAME, {"+0x78": 0, "+0x79": False})
             self.leaving_since = now
 
     def drain_clock(self, now: float) -> None:
         """Discard obsolete world data while preserving reliable ordinals and packet ACKs."""
-        self.unreliable.clear()
-        self.entities.clear()
-        self._pending_possessions.clear()
-        for _, records in self.in_flight.values():
-            records.clear()
         self.go_home(now)
 
     # --- queues --------------------------------------------------------------------------------
@@ -245,6 +263,11 @@ class Client:
         """Whether this connection acknowledged the current create for a combat body."""
         return entity in self._combat_notices and self._combat_notices[entity] is None
 
+    def queue_bot_destroy(self, entity: int) -> None:
+        """Retire a published combat body, including one with a pending create."""
+        if entity in self._combat_notices:
+            self.queue_entities([world.EntityUpdate(entity, world.OP_DESTROY)])
+
     def bot_stream(self, entity: int) -> BodyStream | None:
         """The current bot lifetime's registered stream, even before its baseline ACK."""
         script = self._bot_scripts.get(entity)
@@ -254,10 +277,36 @@ class Client:
         """Send the mode UI only once its entity exists on the client."""
         if self.leaving_since is not None:
             return
-        if self._mode_create_acked:
-            self.queue_entities([self.player.mode_script.full_frame(frame)])
-        else:
-            self._pending_mode_frame = frame  # countdown updates replace earlier waiting values
+        if not self._mode_create_acked or self._mode_fragments:
+            self._pending_mode_frame = frame  # newer values replace earlier waiting values
+            return
+        stream = self.player.mode_script
+        if frame.count <= MODE_FRAME_PART_BITS:
+            self.queue_entities([stream.full_frame(frame)])
+            return
+        self._queue_reliable_mode_frame(frame, full=True)
+
+    @property
+    def scene_mode_writable(self) -> bool:
+        return (self.leaving_since is None and not self.closed and self._mode_create_acked
+                and not self.player.mode_script.data_in_flight)
+
+    def queue_scene_mode_frame(self, frame: BitWriter, *, full: bool) -> None:
+        """Advance the scene stream from the last acknowledged snapshot."""
+        if not self.scene_mode_writable:
+            raise ValueError("scene mode frame requires an acknowledged entity and predecessor")
+        self._queue_reliable_mode_frame(frame, full=full)
+
+    def _queue_reliable_mode_frame(self, frame: BitWriter, *, full: bool) -> None:
+        updates = self.player.mode_script.reliable_frames(frame, MODE_FRAME_PART_BITS, full=full)
+        if len(updates) > 1:
+            self._mode_fragments.extend(updates)
+        self.queue_entities(updates)
+
+    def _flush_pending_mode_frame(self) -> None:
+        if self._pending_mode_frame is not None:
+            frame, self._pending_mode_frame = self._pending_mode_frame, None
+            self.queue_mode_frame(frame)
 
     def queue_combat_notice(self, entity: int | None, msg_id: int, value: dict) -> None:
         """Wait for any referenced body before considering delivery of the notice."""
@@ -283,6 +332,16 @@ class Client:
             if not identity_ready or not self.player.mode_script.delivered:
                 self._display_notices.append((entity, msg_id, payload))
                 return
+        if msg_id == combat.HIT:
+            # The native hit ring drops a frame older than its last entry.
+            # Body-create ACKs can release hit notices in a different order than the shots.
+            # 25001 ends with its little-endian uint32 frame.
+            frame = int.from_bytes(payload[-4:], "little")
+            previous = getattr(self, "_last_hit_notice_frame", 0)
+            if frame < previous:
+                frame = previous
+                payload = payload[:-4] + frame.to_bytes(4, "little")
+            self._last_hit_notice_frame = frame
         ordinal = self._queue_encoded_reliable(msg_id, payload)
         if entity is not None:
             self._combat_notice_tail[entity] = ordinal
@@ -410,15 +469,25 @@ class Client:
         self, script: _BotScriptDelivery, snapshot: Snapshot, *, known: Snapshot | None = None,
     ) -> bool:
         stream = script.stream
-        allowed = self.player.match.combat.kill_feed_allowed(self.player, stream.entity)
+        allowed = (not script.historical_death
+                   and self.player.match.combat.kill_feed_allowed(self.player, stream.entity))
         snapshot = stream.kill_feed_snapshot(snapshot, allowed=allowed)
         return self._queue_bot_snapshot(script, snapshot, known=known)
 
-    def _project_bot_snapshot(self, snapshot: Snapshot, *, known: Snapshot | None = None) -> Snapshot:
-        if self.player.match.game_map.mode_guid != PRACTICE_RANGE_MODE:
+    def _bot_nameplates_enabled(self) -> bool:
+        game_map = self.player.match.game_map
+        return game_map.mode_guid == PRACTICE_RANGE_MODE or game_map.map_guid == RIALTO_MAP
+
+    def _project_bot_snapshot(
+        self, snapshot: Snapshot, *, known: Snapshot | None = None, initial: bool = False,
+    ) -> Snapshot:
+        if not self._bot_nameplates_enabled():
             return snapshot
         mode_ready = self.player.mode_script.delivered
-        if mode_ready and known is None:
+        # Rialto creates these actors mid-match. Let the client acknowledge the
+        # initial body snapshot before it has to resolve the presenter's parent.
+        defer_initial = initial and self.player.match.game_map.map_guid == RIALTO_MAP
+        if mode_ready and known is None and not defer_initial:
             return snapshot
         child = practice_nameplate(snapshot)
         if child is None or (mode_ready and known is not None
@@ -435,7 +504,7 @@ class Client:
 
     def _flush_bot_nameplates(self) -> None:
         if (not self._bot_scripts or self.leaving_since is not None or not self.player.mode_script.delivered
-                or self.player.match.game_map.mode_guid != PRACTICE_RANGE_MODE):
+                or not self._bot_nameplates_enabled()):
             return
         for script in self._bot_scripts.values():
             stream = script.stream
@@ -575,6 +644,7 @@ class Client:
             self.queue_entities(ready)
 
     def _forget_body(self, entity: int) -> None:
+        self._npc_idle.pop(entity, None)
         self._combat_notices.pop(entity, None)
         self._discard_display_notices(entity)
         controller = entity & ~0xFF
@@ -594,6 +664,8 @@ class Client:
             )
 
     def queue_unreliable(self, msg_id: int, value: dict) -> None:
+        if self.leaving_since is not None:
+            return
         self.unreliable.append(messages.encode(msg_id, value))
 
     def cancel_entity_record(self, update: world.EntityUpdate) -> None:
@@ -618,6 +690,8 @@ class Client:
             self.queue_entities([update])
 
     def queue_entities(self, updates: list) -> None:
+        if self.leaving_since is not None:
+            return
         # A destroy retires all older records of this entity for this client, including
         # reliable creates/chunks awaiting ACK. A later reuse of the id is a new generation.
         lifecycles = getattr(self, "_entity_lifecycles", None)
@@ -648,6 +722,12 @@ class Client:
                     lifecycles[item.entity] = (generation, alive)
                     if item.entity == self.player.entity:
                         self._own_controller_acked = False
+                    elif item.entity == world.GAME_MODE_ENTITY:
+                        self._mode_create_acked = False
+                        self._mode_fragments.clear()
+                        self.player.mode_script.delivered = 0
+                        if not alive:
+                            self._pending_mode_frame = None
                     self._pending_possessions.pop(item.entity, None)
                     old = self._confirmed_possessions.pop(item.entity, None)
                     if old is not None:
@@ -693,20 +773,27 @@ class Client:
     def _track_body_create(self, entity: int) -> None:
         match = self.player.match
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
-        if bot is None:
+        host = match.scene_host
+        script = getattr(bot, "body_script", None)
+        if script is None and host is not None:
+            script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)
+        if bot is None and script is None:
             if not any(player.has_body and player.body == entity for player in match.players):
                 return
             self._player_body_reuse_after[entity] = None
             self._combat_notice_tail.pop(entity, None)
         self._combat_notices[entity] = deque(maxlen=MAX_PENDING_COMBAT_NOTICES)
-        script = getattr(bot, "body_script", None)
         if script is not None:
             stream = BodyStream(entity)
             initial = script.latest_live
-            snapshot = self._project_bot_snapshot(initial)
+            snapshot = self._project_bot_snapshot(initial, initial=True)
             frame = script.initial[0] if snapshot is initial else observers.full_frame(script, snapshot)
             stream.full(frame, snapshot)
-            self._bot_scripts[entity] = _BotScriptDelivery(stream, script)
+            delivery = self._bot_scripts[entity] = _BotScriptDelivery(stream, script)
+            if (bot is not None and bot.dead
+                    and (bot.retain_corpse or isinstance(script, observers.SceneBody))):
+                delivery.historical_death = True
+                self.queue_bot_death(entity, script.terminal_snapshot)
 
     # --- sending -------------------------------------------------------------------------------
 
@@ -768,6 +855,9 @@ class Client:
         return records
 
     def send_frame(self, tick: int, now: float, *, reliable_only: bool = False) -> None:
+        # Leave tears the client's world down. Keep the ordered reliable prefix and its
+        # retransmissions, but never attach world data to or after that transition.
+        reliable_only = reliable_only or self.leaving_since is not None
         queued = []
         own = None
         if reliable_only:
@@ -777,7 +867,8 @@ class Client:
             self._flush_bot_nameplates()
             unreliable = self.unreliable[: messages.MAX_PER_KIND]
             queued = self._ready_entity_records()
-            movements = self.player.match.remote_movements(self.player)
+            movements = [item for item in self.player.match.remote_movements(self.player)
+                         if not self._repeats_idle_pose(item)]
             if movements and movements[-1].correction is not None:
                 own = movements[-1]
             entities = (queued + movements)[:MAX_ENTITY_RECORDS]
@@ -838,11 +929,24 @@ class Client:
         self._frame_budget_warning = None
         del self.reliable[: len(reliable)]
         del self.unreliable[: len(unreliable)]
-        sent_records = [item for item in entities
-                        if item.op or item.chunk is not None or item.ch2 is not None]
+        sent_records = []
+        for item in entities:
+            if item.npc_idle:
+                self._npc_idle[item.entity] = item
+            elif item.npc_idle is False:
+                self._npc_idle.pop(item.entity, None)
+            if item.npc_idle or item.op or item.chunk is not None or item.ch2 is not None:
+                sent_records.append(item)
         self.entities = [item for item in self.entities if item not in entities]
         self.in_flight[sent_seq] = (reliable, sent_records)
         self.player.match.sent_updates(self.player, entities)
+
+    def _repeats_idle_pose(self, item: world.EntityUpdate) -> bool:
+        if not item.npc_idle:
+            return False
+        previous = self._npc_idle.get(item.entity)
+        # The 104319 client visibly resets the idle pose on a repeated movement record.
+        return previous is not None and vars(previous.movement) == vars(item.movement)
 
     def _frame_rejected(self, reason: str) -> None:
         # Do not repeatedly flood logs, consume queues or send an invalid oversized packet.
@@ -883,9 +987,7 @@ class Client:
                     if item.op == world.OP_CREATE:
                         if item.entity == world.GAME_MODE_ENTITY:
                             self._mode_create_acked = True
-                            if self._pending_mode_frame is not None:
-                                self.queue_mode_frame(self._pending_mode_frame)
-                                self._pending_mode_frame = None
+                            self._flush_pending_mode_frame()
                         else:
                             self._ack_entity_create(item.entity)
                     elif item.op == world.OP_DESTROY and item.entity in self._player_body_reuse_after:
@@ -902,6 +1004,11 @@ class Client:
                                 self._confirmed_possessions[item.entity] = pending[0]
                                 self._flush_combat_ui()
                     if item.stream is not None:
+                        mode_fragment = item in self._mode_fragments
+                        if mode_fragment:
+                            self._mode_fragments.remove(item)
+                            if self._mode_fragments:
+                                continue
                         first_mode = (
                             item.entity == world.GAME_MODE_ENTITY
                             and item.stream is self.player.mode_script
@@ -910,6 +1017,8 @@ class Client:
                         item.stream.arrived(item.chunk_last)
                         if first_mode and item.stream.delivered:
                             self._flush_combat_ui()
+                        if mode_fragment:
+                            self._flush_pending_mode_frame()
                         script = self._bot_scripts.get(item.entity)
                         if script is not None and item.stream is script.stream:
                             if item is script.nameplate_update:
@@ -919,6 +1028,10 @@ class Client:
                 lost_reliable += reliable
                 script = getattr(self.player, "body_script", None)
                 for item in records:
+                    if item.npc_idle:
+                        if self._npc_idle.get(item.entity) is item:
+                            del self._npc_idle[item.entity]
+                        continue  # Build a fresh movement record on the next eligible frame.
                     if not current(item):
                         continue
                     if item.resend:
@@ -1008,6 +1121,9 @@ class Client:
             return
         if msg_id in MAP_LOADED:
             self.player.match.map_loaded(self.player, now)
+        if msg_id == COMMUNICATION_ACTION:
+            self.player.match.communication_action(self.player, value)
+            return
         if msg_id == GAME_MESSAGE:
             self.player.match.game_message(self.player, value, now)
             return
@@ -1026,18 +1142,26 @@ class GameServer:
         *,
         environment: ExecutionEnvironment | None = None,
         collision_provider_factory=None,
+        scene_host_factory=None,
         on_clock_ready=None,
+        emote_aliases_of=no_emote_aliases,
+        emote_blend_trees_of=None,
+        wheel_cosmetics_of=no_wheel_cosmetics,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         # None preserves the default per-match asynchronous provider. Explicit factories support
         # controlled server replay and isolated scenes without patching global collision state.
         self.collision_provider_factory = collision_provider_factory
+        self.scene_host_factory = scene_host_factory
         self.host = host
         self.port = port
         self.on_leave = on_leave  # called with each player who leaves a match
         self.on_join = on_join  # called with each player whose game connected to its match
         self.on_clock_ready = on_clock_ready
         self.skin_of = skin_of  # (account, hero) -> the equipped (skin theme, golden weapon); no locks
+        self.emote_aliases_of = emote_aliases_of
+        self.emote_blend_trees_of = emote_blend_trees_of
+        self.wheel_cosmetics_of = wheel_cosmetics_of
         self.sock: socket.socket | None = None
         self.lock = threading.RLock()
         # connection id -> (the 20600 data, the waiting player, when to give up on them)
@@ -1068,6 +1192,11 @@ class GameServer:
 
     def stop(self) -> None:
         self.running = False
+        with self.lock:
+            for match in self.matches:
+                if match.scene_host is not None:
+                    match.scene_host.close()
+                    match.ended = True
 
     # --- matches -------------------------------------------------------------------------------
 
@@ -1078,15 +1207,24 @@ class GameServer:
         with self.lock:
             if self._clock_ticks_left is not None:
                 return None
+            scene_factory = self.scene_host_factory
+            if scene_factory is None:
+                from ow174.game.junkenstein_scene import runtime_factory
+
+                scene_factory = runtime_factory(game_map)
             match = Match(
                 game_map,
                 on_leave=self._left,
                 skin_of=self.skin_of,
+                emote_aliases_of=self.emote_aliases_of,
+                emote_blend_trees_of=self.emote_blend_trees_of,
+                wheel_cosmetics_of=self.wheel_cosmetics_of,
                 card=card,
                 environment=self.environment,
                 collision_provider=(
                     None if self.collision_provider_factory is None else self.collision_provider_factory()
                 ),
+                scene_host_factory=scene_factory,
             )
             handoffs = [self._add_player(match, entry) for entry in players]
             self.matches.append(match)
@@ -1171,6 +1309,26 @@ class GameServer:
                     if player.account_lo == account_lo and player.client is not None:
                         return match.switch_hero(player, hero)
         return False
+
+    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:
+        """Serialize debug-console actions with the ordinary game tick."""
+        from ow174.game.npc_console import Console
+
+        if not isinstance(key, str) or key not in ('=', '-', '0', '{', 'Escape', *'123456789'):
+            raise ValueError('Unknown NPC console key')
+        if type(menu_open) is not bool:
+            raise ValueError('Invalid NPC menu state')
+        with self.lock:
+            console = Console(catalog)
+            console.menu_open = menu_open
+            if key in ('=', 'Escape'):
+                return console.press(key, None, None)
+            if self._clock_ticks_left is not None:
+                raise ValueError('NPC mutations are unavailable while the game clock is frozen')
+            player = self.player_of(account_lo)
+            if player is None:
+                raise ValueError('The selected account has no active match')
+            return console.press(key, player.match, player)
 
     def skin_changed(self, account_lo: int, hero_guid: int) -> bool:
         """The lobby equipped an item of a hero (24500): a player in a match who plays that hero gets the
@@ -1469,6 +1627,7 @@ class GameServer:
         client._pending_possessions.clear()
         client._confirmed_possessions.clear()
         client._pending_mode_frame = None
+        client._mode_fragments.clear()
         client._display_notices.clear()
         if self.clients.get(client.conn) is client:
             del self.clients[client.conn]

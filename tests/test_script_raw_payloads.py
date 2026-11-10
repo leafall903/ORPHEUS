@@ -445,11 +445,11 @@ class RawPayloadValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(raw.PayloadError, "expected BitReader"):
             raw.decode_payload(b"\x00", OPAQUE, owner=True, full=False)
 
-    def test_raw_support_does_not_register_a_runtime_writer(self):
+    def test_raw_support_is_independent_of_runtime_writers(self):
         for cls in (TARGET, OPAQUE):
             self.assertTrue(codecs.codec(cls).verified)
-            self.assertEqual(statescript.family(cls), "unknown")
-            self.assertFalse(statescript.sendable(cls, True))
+        self.assertEqual(statescript.family(TARGET), "linked_target")
+        self.assertTrue(statescript.sendable(TARGET, True))
         for cls in ("STUStatescriptStateLogicalButton", "BAD", None, []):
             self.assert_rejected(cls, {})
         for owner, full in ((1, False), (True, 0), (None, False)):

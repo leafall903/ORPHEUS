@@ -46,7 +46,7 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.mover import GRAVITY_SCALE, IN_AIR, encode_spring, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -120,7 +120,12 @@ class Bot:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
+        self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
+        self.attack_target = None  # engaged sandbox NPC's current player controller
+        self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.navigation = None  # explicit manual pursuit state, allocated on first movement
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
         self.name = hero["name"]
@@ -153,16 +158,30 @@ class Bot:
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
 
-    def step(self, tick: int, seconds: float, collision=None) -> None:
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if not self.route or self.dead:
+        if self.dead:
+            return
+        if not self.route:
+            if tick < paused_until:
+                self._pause(tick)
+                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            self._tick(at, seconds, collision)
+            if at < paused_until:
+                self._pause(at)
+            else:
+                self._tick(at, seconds, collision)
+
+    def _pause(self, tick: int) -> None:
+        self.pace = 0.0
+        self.velocity = (0.0, 0.0, 0.0)
+        self.held = (0, 0)
+        self.moved_tick = tick
 
     def _tick(self, tick: int, dt: float, collision) -> None:
         before = (self.position, round(self.yaw))
@@ -276,11 +295,18 @@ class Bot:
         return self.target is not None
 
     def died(self, tick: int) -> None:
-        """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
+        """Stop combat and publish death, preserving an airborne retained corpse's fall."""
+        from ow174.game import npc_navigation
+
+        npc_navigation.stop(self, land=self.retain_corpse)
         self.dead = True
+        if self.spawner.get('manual_spawn') is True:
+            self.firing = False
+        self.attack_target = None
+        self.attack_input = False
         self.keys = False
         self.held = (0, 0)
-        self._stand()
+        self.target = None
         self.moved_tick = tick
 
     def record_due(self, tick: int, every: int = 1) -> bool:
@@ -312,16 +338,35 @@ class Bot:
             input_frame = None
         else:
             input_frame = self.input_tick
+        flags = DEAD if self.dead else 0
+        air_ticks = 0
+        manual = self.spawner.get('manual_spawn') is True
+        spring = (0, 0)
+        spring_speed = 0.0
+        if self.navigation is not None and (not self.dead or self.retain_corpse):
+            mover = self.navigation.mover
+            airborne = mover.flags & IN_AIR
+            flags |= airborne
+            air_ticks = mover.air_ticks if airborne else 0
+            if manual:
+                spring = mover.movement_spring()
+                spring_speed = mover.spring_speed
+        elif manual:
+            # Wire step zero decodes to the bottom of the spring range.
+            spring = encode_spring((0.0, 0.0), *mover_data(self.body).spring_range())
         return Movement(
             self.position,
             s16(round(self.yaw)),
-            0,
+            s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            flags,
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
+            air_ticks=air_ticks,
             gravity=GRAVITY_SCALE,
+            spring=spring,
+            spring_speed=spring_speed,
         )
 
 

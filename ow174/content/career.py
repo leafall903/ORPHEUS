@@ -111,7 +111,7 @@ class CareerMessages:
     def _profile_body(self, profile: Profile, identity: Identity) -> dict:
         return {
             "+0x0": self._collection.progression(profile)["+0x78"],
-            "+0x80": self._collection.hero_catalog(profile)["+0x80"],
+            "+0x80": self._collection.hero_catalog(profile, include_npcs=False)["+0x80"],
             "+0x98": {"+0x0": self._ranked.cards(profile)},  # the same card ratings as 36300
             "+0xB0": self.stats(profile),
             "+0xC8": self.stats(profile),

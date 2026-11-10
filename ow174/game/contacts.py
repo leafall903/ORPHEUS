@@ -1819,6 +1819,16 @@ class StaticShape:
         self.fat_high = v3(high[0] + m, high[1] + m, high[2] + m)
 
 
+class PeerShape(StaticShape):
+    """A character proxy sampled for a contact query, with its reciprocal category."""
+
+    __slots__ = ("peer_category",)
+
+    def __init__(self, geometry, category: int, frame=None, order: int = 0) -> None:
+        super().__init__(geometry, frame, order)
+        self.peer_category = category
+
+
 class StaticWorld:
     """The map's static shapes in proxy order, with a grid over their fat AABBs for the broadphase."""
 
@@ -2075,13 +2085,17 @@ class CharacterBody:
     proxy's fat AABB starts to meet a shape's (in proxy order, each put at the head of the list) and
     dropped by the move when they no longer meet."""
 
+    peer_mask = 0x18
+
     def __init__(self, radius: float, top: float, contacts=(), world: StaticWorld | None = None,
-                 category: int = 0x18) -> None:  # fmt: skip
+                 category: int = 0x18, *, peer_mask: int = 0x18) -> None:  # fmt: skip
         self.radius = f32(radius)
         self.top = f32(top)
         self.capsule = Capsule((0.0, self.radius, 0.0), (0.0, self.top, 0.0), self.radius)
         self.world = world
         self.category = category
+        if peer_mask != CharacterBody.peer_mask:
+            self.peer_mask = peer_mask
         self.position = (0.0, 0.0, 0.0)
         self.aabb = None
         self.fat = None
@@ -2133,10 +2147,25 @@ class CharacterBody:
         self.fat = (v3(low[0] - m, low[1] - m, low[2] - m), v3(high[0] + m, high[1] + m, high[2] + m))
         self.moved = True
 
+    def _allows_pair(self, shape) -> bool:
+        return bool(shape.mask & self.category) and (
+            not isinstance(shape, PeerShape) or bool(shape.peer_category & self.peer_mask)
+        )
+
+    def set_peer_mask(self, mask: int) -> None:
+        if mask != self.peer_mask:
+            if mask == CharacterBody.peer_mask:
+                del self.peer_mask
+            else:
+                self.peer_mask = mask
+            self.contacts[:] = [contact for contact in self.contacts if self._allows_pair(contact.shape)]
+            if self.fat is not None:
+                self.moved = True
+
     def update_pairs(self) -> None:
         """New contacts for the shapes the moved proxy now meets (0x7FF789CF5800), in proxy order, each at
         the head of the list. The pair filter (0x7FF789D07730) wants the body's category in the shape's
-        mask (and the shape's category in the body's mask, unverified: always so for map shapes)."""
+        mask. A peer shape must also match the body's peer mask."""
         if not self.moved:
             return
         self.moved = False
@@ -2145,7 +2174,7 @@ class CharacterBody:
         have = {id(contact.shape) for contact in self.contacts}
         category = self.category
         for shape in self.world.query(*self.fat):
-            if id(shape) not in have and shape.mask & category:
+            if id(shape) not in have and self._allows_pair(shape):
                 self.contacts.insert(0, make_contact(shape, category))
 
     def teleport(self, position) -> None:
@@ -2183,7 +2212,7 @@ class CharacterBody:
         low = v3(minps(p0[0], p1[0]) - reach, minps(p0[1], p1[1]) - reach, minps(p0[2], p1[2]) - reach)
         high = v3(maxps(p0[0], p1[0]) + reach, maxps(p0[1], p1[1]) + reach, maxps(p0[2], p1[2]) + reach)
         category = self.category
-        shapes = [shape for shape in self.world.query(low, high) if shape.mask & category]
+        shapes = [shape for shape in self.world.query(low, high) if self._allows_pair(shape)]
         return not any(_overlap(shape, p0, p1, reach, category) for shape in shapes)
 
     # ---- the move

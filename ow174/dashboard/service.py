@@ -183,16 +183,19 @@ def parse_player_name(value) -> str:
 
 
 def parse_events(value) -> list:
-    """The lobby event list: empty, or one event id. The page sends a list, a plain form a
-    comma-separated string."""
+    """Validate the lobby event list, including simultaneous PVE event groups.
+
+    The lobby and Arcade already support multiple events; restricting the API to one made
+    Archives missions/challenges and Junkenstein mutually exclusive.
+    """
     if isinstance(value, str):
         value = [part.strip().lower() for part in value.split(",") if part.strip()]
-    if not isinstance(value, list) or len(value) > 1:
+    if not isinstance(value, list):
         raise ApiError("Pick an event from the list.")
     for event_id in value:
         if not isinstance(event_id, str) or event_id not in EVENT_PRESETS:
             raise ApiError("Pick an event from the list.")
-    return list(value)
+    return list(dict.fromkeys(value))
 
 
 def is_owl_item(unlock) -> bool:
@@ -781,6 +784,21 @@ class DashboardService:
         if game is None:
             raise ApiError("The game server is off.", 409)
         return {"message": f"Sent {game.send_home()} game(s) back to the menu."}
+
+    def npc_console(self, data: dict) -> dict:
+        """Use only an explicitly configured external catalog and the chosen account's match."""
+        from ow174.game.npc_console import configured_catalog
+
+        game = self.lobby.game
+        if game is None:
+            raise ApiError('The game server is off.', 409)
+        try:
+            catalog = configured_catalog()
+        except ValueError as error:
+            raise ApiError(str(error), 409) from error
+        account = self.account(data.get('name'))
+        return game.npc_key(account.account_lo, data.get('key'), catalog,
+                            menu_open=data.get('menu_open', False))
 
     def reconnect(self) -> dict:
         self.lobby.reconnect_own_game()

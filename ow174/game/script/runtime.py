@@ -7,7 +7,8 @@ Read in the client (the addresses are in the docstrings below):
   step 0x7FF78AA9DE30). An update drains the instance's events up to now, ticks the ticking states and
   runs the deferred list, until the deferred list is empty (0x7FF78AAA27C0).
 - Events (dispatcher 0x7FF78AAA1690): 0 a state op (begin, finish, abort), 1 a timer, 2 a deferred
-  completion check, 3 an Entry, 8 a button edge, 9 "a watched variable changed". Inserted after every event
+  completion check, 3 an Entry, 4 a variable assignment, 8 a button edge, 9 "a watched variable changed".
+  Inserted after every event
   of the same time (FIFO), never in the past.
 - A plug walk (0x7FF78AA83FA0) follows the links in order. A state target only gets a begin (or abort)
   request: an event at now, so a state never begins inside a walk. Actions and conditions run at once.
@@ -37,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -49,6 +50,7 @@ ABORT_PLUG = "m_F198FD3A"
 SUBGRAPH_STATES = "m_FF3DAF1E"
 
 STATE_CLASSES: dict[str, type["State"]] = {}  # node class -> runtime state class (nodes.py fills it)
+STRICT_STATE_CLASSES: dict[str, type["State"]] = {}
 HANDLERS: dict[str, object] = {}  # action/condition handlers can defer with NotImplemented
 ENTRY_CLASSES = {"STUStatescriptEntry", "STU_571CC72E"}  # run at Init (EntryClientOnlySharedVars agrees too)
 MESSAGE_ENTRIES = {"STUStatescriptEntryGameMessage"}
@@ -56,6 +58,22 @@ MESSAGE_ENTRIES = {"STUStatescriptEntryGameMessage"}
 
 class ScriptBudgetError(RuntimeError):
     """The component could not complete its simulation within a work/recursion limit."""
+
+
+class UnsupportedScriptError(RuntimeError):
+    """An authored mission path needs semantics the server has not implemented."""
+
+    def __init__(self, instance: "Instance", feature: str, cls: str, node: Node | None = None) -> None:
+        component = instance.component
+        self.diagnostic = {
+            "entity": component.entity, "instance": instance.id, "graph": instance.graph.index,
+            "frame": component.frame, "time_ms": component.now,
+            "feature": feature, "class": cls, "node": node.pos if node is not None else None,
+        }
+        super().__init__(
+            f"graph {instance.graph.index:04X}, instance {instance.id}, node {self.diagnostic['node']}, "
+            f"frame {component.frame}: unsupported {feature} {cls}"
+        )
 
 
 class EventSequence:
@@ -84,13 +102,20 @@ class EventSequence:
         return f"EventSequence(next_value={self._next_value})"
 
 
-def state_class(*names: str):
+def state_class(*names: str, strict_only: bool = False):
     def register(cls):
+        registry = STRICT_STATE_CLASSES if strict_only else STATE_CLASSES
         for name in names:
-            STATE_CLASSES[name] = cls
+            registry[name] = cls
         return cls
 
     return register
+
+
+def state_type(name: str, strict: bool):
+    if strict and name in STRICT_STATE_CLASSES:
+        return STRICT_STATE_CLASSES[name]
+    return STATE_CLASSES.get(name, State)
 
 
 def handler(*names: str):
@@ -111,27 +136,40 @@ class Link:
     priority: float = 0.0
     above: bool = True  # among equal priorities a new entry goes above the others
     stack: bool = False  # a stack entry (Stack, an Ability's push): sent as a binding
+    dynamic: bool = False  # Native binding+29; serialize the extra policy bit.
+    frame_cached: bool = False  # Native binding+2A, encoded only with dynamic.
 
 
 class Var:
     """One variable: the stored (base) value, the links that override it, the states that watch it."""
 
-    __slots__ = ("base", "key", "links", "watchers")
+    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers")
 
     def __init__(self, key: tuple) -> None:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
-        self.watchers: dict[State, None] = {}
+        self.watchers: dict[State, bool | None] = {}
+        self.resolving = False
+        self.partial = None
 
     def value(self, below: "State | None" = None):
-        value = self.base
-        for link in self.links:
-            if link.state is below:
-                break
-            if link.state.active:
-                value = link.state.output(link.slot)
-        return value
+        # Native1BA70B0's in-resolution flag exposes the current lower value.
+        # This also prevents a selection filter from re-entering its own link.
+        if self.resolving:
+            return self.partial
+        self.resolving, self.partial = True, self.base
+        try:
+            for link in self.links:
+                if link.state is below:
+                    break
+                if link.state.active:
+                    supplied = link.state.output(link.slot)
+                    if supplied is not expr.EVALUATION_FAILED:
+                        self.partial = supplied
+            return self.partial
+        finally:
+            self.resolving, self.partial = False, None
 
     def stack_states(self) -> list["State"]:
         return [link.state for link in self.links]
@@ -150,6 +188,7 @@ class Event:
     pressed: bool = False
     message: tuple | None = None  # (message GUID, params, sender)
     transient: bool = False  # a re-check at now, never in an owner frame's event list
+    assignment: tuple | None = None  # (scope, variable identifier, evaluated value)
 
     def key(self):
         return self.time, self.seq
@@ -187,10 +226,32 @@ class InstanceContext(Context):
         return Entity(self.instance.component.entity)
 
     def param(self, var: int):
-        for provider in reversed(self.instance.params):
+        return self.parameter_result(var)[1]
+
+    def parameter_result(self, var: int, *, initial=None):
+        """1B93200: reverse VM providers, carrying the destination through failures."""
+        component = self.instance.component
+        providers = [(item, False) for item in self.instance.params]
+        providers.extend((item, True) for item in component.parameter_scopes)
+        value = initial
+        for provider, native_scope in reversed(providers):
+            component.consume_work('parameter scope lookup')
+            if provider is None and native_scope:
+                break  # A null native stack entry terminates the search.
+            lookup = getattr(provider, 'lookup_parameter', None)
+            if callable(lookup):
+                result = lookup(var, initial=value)
+                component.ensure_valid()
+                if (type(result) is not tuple or len(result) != 2
+                        or type(result[0]) is not bool):
+                    component.unsupported(self.instance, 'parameter scope result', type(provider).__name__)
+                success, value = result
+                if success:
+                    return True, value
+                continue
             if provider is not None and (var in provider or None in provider):
-                return provider.get(var, provider.get(None))
-        return None
+                return True, provider.get(var, provider.get(None))
+        return False, value
 
     def owner(self):
         return Entity(self.instance.component.entity)
@@ -199,16 +260,31 @@ class InstanceContext(Context):
         component = self.instance.component
         if entity == component.entity:
             return self._read(component.entity_var(var, create=self.watcher is not None))
-        return component.world.entity_var(entity, var)
+        slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
+        if slot is not NotImplemented:
+            return self._read(slot)
+        value = component.world.entity_var(entity, var)
+        if value is NotImplemented:
+            if component.strict:
+                component.unsupported(self.instance, "entity variable service", f"{entity:08X}:{var}")
+            return None
+        return value
 
     def position(self, entity: int):
-        return self.instance.component.world.position(entity)
+        component = self.instance.component
+        value = component.world.position(entity)
+        if value is None:
+            if component.strict:
+                component.unsupported(self.instance, "entity position", f"{entity:08X}")
+            return expr.Vec3(0.0, 0.0, 0.0)
+        return value
 
     def ruleset(self, key: int):
         found = self.var(ENTITY, key)
         if found is not None:
             return found
-        value = self.instance.component.world.ruleset(key)
+        component = self.instance.component
+        value = component.world.ruleset_for(component.entity, key)
         return 0 if value is None else value
 
     def would_stack_to_top(self, var, priority):
@@ -216,18 +292,53 @@ class InstanceContext(Context):
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            self.watcher.watch(target, structural=True)
         return would_stack_to_top(target, priority)
 
-    def native(self, cfg: dict):
-        """A config var the world answers: it is no variable, so a state that reads it re-checks every
-        update (the client's poll list, 0x7FF78AAA5C20)."""
+    def poll_native(self, cfg: dict):
+        """Keep native scalar and iterator dependencies on the existing poll list."""
         if self.watcher is not None:
             self.watcher.natives.add(cfg.get("$"))
+            self.watcher.native_dependency(cfg)
             if not self.watcher.polled:
                 self.watcher.polled = True
                 self.watcher.ticks()
-        return self.instance.component.world.native(cfg, self.instance)
+
+    def native(self, cfg: dict):
+        """A native config's scalar +20 interface and compatibility polling."""
+        cls = cfg.get("$")
+        if cls == "STU_A6B80C63":
+            from ow174.game.script import play
+
+            return play.fold_array(self.instance, cfg, watcher=self.watcher)
+        if cls in ("STU_7042F028", "STU_45B0D2B2"):
+            from ow174.game.script import play
+
+            if cls == play.AUTHORED_ARRAY:
+                return play.evaluate_scalar_result(self.instance, cfg, watcher=self.watcher)[0]
+            return play.authored_map(self.instance, cfg, watcher=self.watcher)
+        if cls in ("STU_4BD39CFD", "STU_17330930", "STU_0C37A184", "STU_BD2D717B"):
+            from ow174.game.script import play
+
+            if cls == "STU_4BD39CFD":
+                return play.array_item(self.instance, cfg, watcher=self.watcher)
+            if cls == play.MODE_SCORE_THRESHOLDS:
+                return play.evaluate_scalar_result(self.instance, cfg, watcher=self.watcher)[0]
+            if cls == play.SESSION_ENTITIES:
+                values = play.session_entities(self.instance, cfg, watcher=self.watcher)
+                return values[0] if values else expr.EVALUATION_FAILED
+            return play.minimum_value(self.instance, cfg, watcher=self.watcher)
+        self.poll_native(cfg)
+        from ow174.game.script import controller_heroes, entity_queries, entity_team
+
+        result = entity_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = controller_heroes.scalar(self, cfg)
+        if result is NotImplemented:
+            result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            return self.instance.component.world.native(cfg, self.instance)
+        return result
 
 
 def insert_link(var: Var, link: Link) -> None:
@@ -263,6 +374,7 @@ class RaycastRequest:
     length: float
     ignored_entities: tuple[int, ...]
     filter_config: dict | None
+    radius: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -281,15 +393,31 @@ class World:
     answers like an empty world."""
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
+    for_code_transport: bool | None = None  # Native script VM +8 role result, when known.
+    outline_context_available = NotImplemented
+    local_combat_context_available: bool | None = None
+    tips_context_available: bool | None = None
+    ux_presenter_available: bool | None = None
+    queue_mode_action = None
+    junkenstein_difficulty: expr.Asset | None = None
 
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
 
+    def raycast_provider(self, instance: "Instance", node: Node):
+        return self.raycast
+
+    def physics_explosion(self, state: "State"):
+        return NotImplemented
+
     def ruleset(self, key: int):
         from ow174.game.script import rulesets
 
         return rulesets.default(key, self.hero, self.mode)
+
+    def ruleset_for(self, entity: int, key: int):
+        return self.ruleset(key)
 
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
@@ -298,30 +426,342 @@ class World:
                 return variables.get(var)
         return None
 
+    def entity_component92_present(self, entity: int) -> bool | None:
+        """Return the known component presence for a bound scene entity."""
+        return None
+
+    def register_display_name_override(self, state, entity: int, name: int):
+        return NotImplemented
+
+    def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        """A declared live foreign variable slot, known absence, or unknown service."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def velocity_action(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def tracked_targets(self, state: "State"):
+        return NotImplemented
+
+    def static_target_tag(self, tag: int):
+        """A unique bound map target, or NotImplemented for unresolved lookup."""
+        return NotImplemented
+
+    def evaluate_static_target_tag(self, query, evaluate):
+        """The unfiltered tag-query shape shared by the state and entity config."""
+        primary = query("m_9C7BD8B8")
+        required = query("m_B486603E")
+        if (query("m_filter") is not None or query("m_8B2A4DF3") is not None
+                or (primary is None) == (required is None)):
+            return NotImplemented
+        tag = evaluate(primary if primary is not None else required)
+        if isinstance(tag, expr.Asset) and tag.guid >> 48 == 0x0D60:
+            return self.static_target_tag(tag.guid)
+        return NotImplemented
+
+    def query_participants(self, instance, filter_config, *, required_tag=None):
+        return NotImplemented
+
+    def routed_game_message_targets(self, instance, node, message):
+        return NotImplemented
+
+    def static_tag_targets(self, tag: int | None):
+        return NotImplemented
+
+    def targets_with_tag(self, instance, tag: int, *, excluded_tag: int | None = None):
+        return NotImplemented
+
+    def resolve_spray(self, length: float) -> dict | None:
+        return None
+
+    def target_effects(self, state: "State"):
+        return NotImplemented
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
+    def bind_combat_damage_filter(self, state: "State"):
+        return NotImplemented
+
+    def unbind_combat_damage_filter(self, state: "State") -> None:
+        pass
+
+    def emit_contact_effect(self, state: "State", entity: int, contact_set: int, targets: tuple):
+        return NotImplemented
+
+    def run_effect_entity_action(self, instance: "Instance", node):
+        return NotImplemented
+
+    def request_corpse_retirement(self, instance: "Instance", entity: int, *, phase_exit=False):
+        return NotImplemented
+
+    def objective_route_active(self, instance: "Instance"):
+        return NotImplemented
+
+    def movement_snapshot(self, instance: "Instance"):
+        return NotImplemented
+
+    def player_stats_available(self, instance: "Instance"):
+        return NotImplemented
+
+    def grant_target_tag(self, state: "State", tag: int):
+        return NotImplemented
+
+    def clear_target_tag(self, state: "State") -> None:
+        pass
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
-    def native(self, cfg: dict, instance: "Instance"):
+    def property_modifiers(self, entity: int):
+        """An explicitly known native component 31, None if absent, or unknown."""
+        return NotImplemented
+
+    def subgraph_scopes(self, entity: int):
+        """Known auxiliary-interface registration service, known no service, or unknown."""
+        return NotImplemented
+
+    def auxiliary_effect_context(self, entity: int):
+        """Known native context, known absent engine context, or unknown."""
+        return NotImplemented
+
+    def auxiliary_effect_target(self, entity: int):
+        """Known component43 descriptor, known component absence, or unknown."""
+        return NotImplemented
+
+    def entity_control_context(self, entity: int):
+        """Known native engine context/consumers, known absence, or unknown."""
+        return NotImplemented
+
+    def voice_stimulus_began(self, state: "State") -> None:
+        """Optional presentation hook for permissive combat worlds."""
+
+    def voice_category_service(self, instance):
+        """Return the host callback or declare a known absent voice service with None."""
+        return NotImplemented
+
+    def voice_context(self, entity: int):
+        """Explicit shared voice host/manager and separate +80 poll owner."""
+        return NotImplemented
+
+    def apply_voice_set(self, state, definition: int):
+        return NotImplemented
+
+    def clear_voice_set(self, state) -> None:
+        pass
+
+    def set_global_data_flow(self, state, resource: int, value: bool):
+        return NotImplemented
+
+    def clear_global_data_flow(self, state) -> None:
+        pass
+
+    def animation_aliases(self, entity: int):
+        """Known component55 alias list, known absence, or unknown."""
+        return NotImplemented
+
+    def model_look_context(self, entity: int):
+        """Explicit native namespace, target policy and model-look consumers."""
+        return NotImplemented
+
+    def data_flow_context(self, entity: int):
+        """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def entity_query_context(self, entity: int):
+        """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
+        """Ordered native hero catalog, controller lookup and availability services."""
+        return NotImplemented
+
+    def set_script_entity_team(self, instance, target, team):
+        return NotImplemented
+
+    def filter_array_candidate(self, state, candidate, config):
+        return NotImplemented
+
+    def notify_entity_filter_change(self, entity: int) -> None:
+        pass
+
+    def submit_spawn_search(self, state, request, complete):
+        return NotImplemented
+
+    def register_ai_control_record(self, state, target, record):
+        return NotImplemented
+
+    def register_ai_facing_record(self, state, target, record):
+        return NotImplemented
+
+    def set_ai_control_setting(self, state, value, flag):
+        return NotImplemented
+
+    def register_ai_weapon_record(self, state, target, record):
+        return NotImplemented
+
+    def register_ai_behavior_request(self, state, record):
+        return NotImplemented
+
+    def health_pool_capacity(self, entity, kind):
+        return NotImplemented
+
+    def add_wave_health(self, state, amount):
+        return NotImplemented
+
+    def suppress_same_team_contact(self, state, entity):
+        return NotImplemented
+
+    def session_script_entities(self, instance):
+        return NotImplemented
+
+    def mode_score_threshold_row(self):
+        return NotImplemented
+
+    def entity_team_context(self, entity: int, *, component: "Component | None" = None):
+        """Native context, two entity lookups and filter/environment dependencies."""
+        return NotImplemented
+
+    def script_failed(self, component: "Component") -> None:
+        """Discard external effects of a component that strict execution poisoned."""
+
+    def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
+        if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
+            instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
+
+    def send_script_message(self, instance: "Instance", node: Node, target: int,
+                            message: int, params: dict, sender: int) -> None:
+        """Strict authored messages require a declared cross-component transport."""
+        instance.component.unsupported(instance, 'game message transport', node.cls, node)
+
+    def game_message_owner(self, instance: "Instance", node: Node):
+        instance.component.unsupported(instance, 'game message owner', node.cls, node)
+
+    def game_message_source(self, instance: "Instance", node: Node):
+        instance.component.unsupported(instance, 'game message source', node.cls, node)
+
+    def validate_game_message_source(self, instance: "Instance", node: Node) -> None:
+        component = instance.component
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, 'game message source lifecycle', node.cls, node)
+
+    def submit_game_message(self, instance: "Instance", node: Node, request) -> None:
+        instance.component.unsupported(instance, 'game message submission', node.cls, node)
+
+    def game_message_filter(self, instance: "Instance", node: Node, config, caller: int):
+        """None: known absent compiled filter; bool: known predicate result."""
+        return NotImplemented
+
+    def replicate_wheel_event(self, instance: "Instance", node: Node) -> None:
+        pass
+
+    def message_state_context(self, entity: int, *, component: "Component | None" = None):
+        """Persistent State manager, explicit native frame/role/priority services."""
+        return NotImplemented
+
+    def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
+        instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def animation_duration(self, instance: "Instance", node: Node) -> float | None:
+        """Resolve the animation duration for the current model, if available."""
+        return None
+
+    def animation_scalar(self, instance: "Instance", node: Node) -> float | None:
+        """Resolve a phase-independent Anim scalar for the current model, if available."""
+        return None
+
+    def finish_wheel_emote(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def play_script(self, instance: "Instance", node: Node) -> None:
+        """Select a native PlayScript resource, then ask the world to route it."""
+        if not instance.component.strict:
+            return
+        from ow174.game.script.play import resolve_resource
+
+        resource = resolve_resource(instance, node)
+        if resource is not None:
+            self.play_resolved_script(instance, node, resource)
+
+    def create_script_entity(self, instance: "Instance", node: Node, definition: int, position: expr.Vec3):
+        instance.component.unsupported(instance, "entity creation service", node.cls, node)
+
+    def create_script_hero(
+        self, instance: "Instance", node: Node, hero: int, position: expr.Vec3, team: int, yaw: float,
+        flags: tuple, *, controller_definition: int | None = None, skin_theme: int | None = None,
+    ):
+        instance.component.unsupported(instance, "hero creation service", node.cls, node)
+
+    def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
+        """Construct the native request before asking the backend to submit it.
+
+        Empty target iterators follow output without asking for unavailable
+        context/transport services. A real request requires both services.
+        """
+        from ow174.game.script.play import resolve_request
+
+        request = resolve_request(
+            instance, node, resource, context_provider=lambda: self.play_script_context(instance, node),
+        )
+        if request is not None:
+            self.submit_script_request(instance, node, request)
+
+    def play_script_context(self, instance: "Instance", node: Node):
+        """Supply native caller, owner and inherited instigator without guessing."""
+        instance.component.unsupported(instance, "native PlayScript request context", node.cls, node)
+
+    def submit_script_request(self, instance: "Instance", node: Node, request) -> None:
+        """Resolve actual target components/resources, clock and transport policy.
+
+        Request construction alone cannot create instances or accept wire flags.
+        A concrete mission owner must implement this service.
+        """
+        instance.component.unsupported(instance, "native PlayScript request", node.cls, node)
+
+    def code_changed(self, component: "Component", token: int) -> None:
+        """Deliver an explicitly registered native-service notification."""
+        instance = next(iter(component.instances.values()), None)
+        if instance is not None:
+            component.unsupported(instance, "native code observer", str(token))
+        raise NotImplementedError(f"no native code observer backend for token {token}")
 
 
 class Component:
     """The statescript component of one entity: its clock, its instances (in creation order) and its
     entity-scope variables."""
 
-    def __init__(self, entity: int, frame_ms: int = 16, world: World | None = None, seed: int = 1) -> None:
+    def __init__(
+        self, entity: int, frame_ms: int = 16, world: World | None = None, seed: int = 1,
+        *, strict: bool = False,
+    ) -> None:
         self.entity = entity
+        # Mission reconstruction cannot advance through placeholder native nodes.
+        # Existing player/body prediction keeps its current compatibility policy.
+        self.strict = strict
+        self.code_states: list[State] = []
+        self.code_pending: list[list[int]] = [[], []]
+        # A token identifies one backend callback/context pair; None matches any identifier.
+        self.code_observers: list[tuple[int, int | None]] = []
+        # 1B8D5E0: per authored type, in native linked-state registration order.
+        self.state_registries: dict[str, list[State]] = {}
+        self.parameter_scopes: list = []  # Native VM+4F8 providers, shared by its instances.
         self.frame_ms = frame_ms
         self.world = world or World()
         self.rng = expr.random.Random(seed)
@@ -329,6 +769,7 @@ class Component:
         self.now = 0
         self.instances: dict[int, Instance] = {}
         self.vars: dict[int, Var] = {}
+        self.startup_entity_values: list[tuple[int, float]] = []
         self.held: list[int] = []  # logical buttons held down, in press order
         self.button = NO_BUTTON  # the button of the edge being handled
         self.disabled: dict[int, list[State]] = {}  # button -> active DisableLogicalButton states
@@ -338,7 +779,7 @@ class Component:
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
-        self.fault: ScriptBudgetError | None = None
+        self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
         self._follow_depth = 0
         self._work_left = MAX_SCRIPT_WORK
@@ -349,20 +790,46 @@ class Component:
 
     def budget_exceeded(self, message: str) -> None:
         """Fail the whole body, without running more graph callbacks or retaining shots."""
+        self._fail(ScriptBudgetError(
+            f"entity {self.entity:08X}, frame {self.frame}, time {self.now} ms: {message}"
+        ))
+
+    def unsupported(self, instance: "Instance", feature: str, cls: str, node: Node | None = None) -> None:
+        self._fail(UnsupportedScriptError(instance, feature, cls, node))
+
+    def _fail(self, error: ScriptBudgetError | UnsupportedScriptError) -> None:
         if self.fault is None:
-            self.fault = ScriptBudgetError(
-                f"entity {self.entity:08X}, frame {self.frame}, time {self.now} ms: {message}"
-            )
+            self.fault = error
+            self.world.script_failed(self)
             self.shots.clear()
             self.held.clear()
+            self.code_states.clear()
+            self.startup_entity_values.clear()
+            self.state_registries.clear()
+            for pending in self.code_pending:
+                pending.clear()
             for instance in self.instances.values():
                 instance.stopped = True
+                instance.initialization_pending = False
                 instance.queue.clear()
                 instance.deferred.clear()
                 instance.ticking.clear()
                 for state in instance.states.values():
+                    state.on_failed()
                     state.active = False
         raise self.fault
+
+    @contextmanager
+    def parameter_scope(self, provider):
+        self.ensure_valid()
+        self.parameter_scopes.append(provider)
+        try:
+            yield
+        finally:
+            if self.parameter_scopes and self.parameter_scopes[-1] is provider:
+                self.parameter_scopes.pop()
+            else:
+                self.budget_exceeded('parameter scope stack changed during callback')
 
     @contextmanager
     def operation(self):
@@ -398,9 +865,10 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        """Notify effective-value watchers and Stack expressions whose lower input may have changed."""
-        changed = not expr.same(before, var.value())
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, structural=False):
+        """Notify watchers and return the checked value without resolving a live getter twice."""
+        after = var.value()
+        changed = not expr.same(before, after)
         above_source = None
         if stack_source is not None:
             # A Stack value change can only affect the inputs of entries above it.
@@ -415,11 +883,12 @@ class Component:
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (structural and var.watchers[state]):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
+        return after
 
     def set(self, var: int, value) -> None:
         """Set an entity variable from outside the graphs (the server's own code)."""
@@ -428,6 +897,58 @@ class Component:
         before = target.value()
         target.base = value
         self.changed(target, before)
+
+    # --- values exposed to native code --------------------------------------------------------------
+
+    def code_value(self, identifier: int, initial=None) -> tuple[bool, object]:
+        """First registered matching state/row wins (104319 RVA D0D8B0, D4B230).
+
+        A null config or a known evaluator that fails without writing leaves the
+        destination unchanged; each nonmatching state clears it. The default
+        represents a fresh null destination. Read a found expression now, without
+        the ticking state's dependency watcher.
+        """
+        value = initial
+        with self.operation():
+            for state in self.code_states:
+                for row in state.node.field("m_values") or []:
+                    self.consume_work("native code value lookup")
+                    if expr.guid_of(row.get("m_identifier")) == identifier:
+                        config = row.get("m_value")
+                        if config is not None:
+                            value = state.instance.evaluate(config, initial=value)
+                        return True, value
+                value = None
+        return False, value
+
+    def unregister_code_state(self, state: "State") -> None:
+        """Native D0E920 removes by swapping in the last registered state."""
+        if state in self.code_states:
+            index = self.code_states.index(state)
+            last = self.code_states.pop()
+            if index < len(self.code_states):
+                self.code_states[index] = last
+
+    def notify_code(self, channel: int) -> None:
+        """D0D370: collect observer pairs once, clear pending IDs, then dispatch.
+
+        Tokens preserve callback/context identity without storing native pointers.
+        Changes queued by a callback survive for a subsequent notification pass.
+        """
+        with self.operation():
+            self._notify_code(channel)
+
+    def _notify_code(self, channel: int) -> None:
+        notifications = []
+        for identifier in self.code_pending[channel]:
+            for token, selected in self.code_observers:
+                self.consume_work("native code observer selection")
+                if selected in (None, identifier) and token not in notifications:
+                    notifications.append(token)
+        self.code_pending[channel].clear()
+        for token in notifications:
+            self.consume_work("native code notification")
+            self.world.code_changed(self, token)
 
     def entity_var(self, var: int, create: bool = True) -> Var | None:
         found = self.vars.get(var)
@@ -475,10 +996,62 @@ class Component:
             self.destroy(child)
         for state in list(instance.states.values()):
             state.end(False)
+        for state in list(instance.states.values()):
+            state.on_destroyed()
         instance.stopped = True
+        instance.initialization_pending = False
         instance.queue.clear()
+        instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
+
+    def play_loaded_graph(
+        self, definition: Graph, *, source: int, params=(), overrides=(), policy: int = 0,
+        instigator: int | None = None,
+    ) -> "Instance | None":
+        """Invoke an already-resolved graph on this component (64D2C0, 64CD10).
+
+        Policies: 0 skip an existing graph; 1 create; 2 reuse its first instance
+        or create; 3 retire all matching instances before creating. This core does
+        not resolve world targets, resources or wire flags. Evaluated overrides
+        follow public schema defaults, before the separately queued start inputs.
+        The native start context must supply source explicitly. This core uses
+        context kind zero; entries declaring another kind do not match it.
+        An explicitly supplied instigator seeds builtin001B on new allocation
+        before schema evaluation. Only zero falls back to this component's owner;
+        skipped/reused instances keep their allocation source. None leaves it unknown.
+        """
+        self.ensure_valid()
+        if type(policy) is not int or policy not in range(4):
+            raise ValueError("unknown PlayScript instance policy")
+        if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
+            raise ValueError("PlayScript source must be a 32-bit entity identifier")
+        if instigator is not None and (type(instigator) is not int or not 0 <= instigator <= 0xFFFFFFFF):
+            raise ValueError("PlayScript instigator must be a 32-bit entity identifier")
+        params = tuple(params)
+        overrides = tuple(overrides)
+        for name, pairs in (("parameter", params), ("override", overrides)):
+            if any(type(key) is not int or not 0 <= key <= 0xFFFFFFFFFFFFFFFF for key, _ in pairs):
+                raise ValueError(f"PlayScript {name} keys must be 64-bit identifiers")
+        with self.operation():
+            matches = []
+            for instance in self.instances.values():
+                self.consume_work("played graph lookup")
+                if instance.graph.index == definition.index:
+                    matches.append(instance)
+            if matches and policy == 0:
+                return None
+            if policy == 3:
+                for instance in matches:
+                    self.consume_work("replace played graph")
+                    self.destroy(instance)
+            reused = bool(matches and policy == 2)
+            instance = matches[0] if reused else self.create(definition)
+            if not reused and instigator is not None:
+                instance.set_source_entity(self.entity if instigator == 0 else instigator)
+            instance.play_schema(overrides, reorder_entries=not reused)
+            instance.start_entries(params, source)
+            return instance
 
     # --- time --------------------------------------------------------------------------------------
 
@@ -492,18 +1065,36 @@ class Component:
             for instance in list(self.instances.values()):
                 instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
 
-    def run_frame(self, frame: int, buttons: list[tuple[int, bool]] = ()) -> None:
-        """Command frame `frame`: its edges at 16F, then an update at every due event time in [16F, 16F+15]
-        and one at 16F+15."""
+    def discard_button_presses(self) -> None:
+        """Discard queued down edges before a host interrupts an NPC."""
+        for instance in self.instances.values():
+            instance.queue[:] = [event for event in instance.queue if event.kind != BUTTON or not event.pressed]
+
+    def run_frame(self, frame: int, buttons: list[tuple[int, bool]] = (), *, end_phase=None) -> None:
+        """Advance from the frame start or an already established cursor in that frame.
+
+        Apply edges at that cursor, update at each due event time and at the frame end.
+        An explicit ordinary end phase runs once after those
+        events and before deferred channel 1 (104319 1B8C910/D0D350)."""
+        if end_phase is not None and not callable(end_phase):
+            raise ValueError("ordinary end phase must be callable")
         with self.operation():
+            start = frame * self.frame_ms
+            end = start + self.frame_ms - 1
+            # Mid-frame creation has already queued schema writes at its allocation time.
+            # Keep entry initialization at or after those writes when the owner first advances it.
+            if self.frame != frame or not start <= self.now <= end:
+                self.now = start
             self.frame = frame
-            self.now = frame * self.frame_ms
-            end = self.now + self.frame_ms - 1
             self.edges(list(buttons))
+            self._initialize_pending()
             for _ in range(MAX_COMPONENT_UPDATES):
                 due = self.next_event_time()
                 self.now = end if due is None or due > end else max(due, self.now)
-                self.update()
+                if end_phase is None:
+                    self.update()
+                else:
+                    self._update_instances()
                 if self.now >= end:
                     due = self.next_event_time()
                     if due is None or due > end:
@@ -511,10 +1102,14 @@ class Component:
             else:
                 self.budget_exceeded(f"component frame update budget {MAX_COMPONENT_UPDATES} exhausted")
             self.now = end
+            if end_phase is not None:
+                end_phase()
+                self.notify_code(1)
 
     def run_now(self) -> None:
         """Update every instance at the current time until nothing more is due now (spawn)."""
         with self.operation():
+            self._initialize_pending()
             for _ in range(MAX_COMPONENT_UPDATES):
                 self.update()
                 due = self.next_event_time()
@@ -527,10 +1122,29 @@ class Component:
 
     def update(self) -> None:
         with self.operation():
-            self.consume_work("component update")
-            for instance in list(self.instances.values()):
-                if instance.id in self.instances:
-                    instance.update()
+            self._initialize_pending()
+            self._update_instances()
+            # The native component override D0D350 calls the ordinary update,
+            # then drains deferred channel 1 through D0D370.
+            self.notify_code(1)
+
+    def _initialize_pending(self) -> None:
+        # 1B8E970 prepares all instances before the ordinary due-event loop.
+        for instance in list(self.instances.values()):
+            if instance.initialization_pending and not instance.stopped:
+                self.consume_work("component pending initialization")
+                instance.init()
+        if self.startup_entity_values:
+            values, self.startup_entity_values = self.startup_entity_values, []
+            for key, value in values:
+                self.consume_work("component pending entity assignment")
+                self.set(key, value)
+
+    def _update_instances(self) -> None:
+        self.consume_work("component update")
+        for instance in list(self.instances.values()):
+            if instance.id in self.instances:
+                instance.update()
 
 
 class Instance:
@@ -551,7 +1165,16 @@ class Instance:
         self.stopped = False
         self.teardown = False
         self.initialized = False
+        self.initialization_pending = False
         self.start = 0
+        self.disabled_start_entries: set[int] = set()
+        self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
+        self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
+        self.initialized_frame = 0  # Native Instance+58.
+        self.retirement_pending = False  # Native Instance318 bit22.
+        self.join_inputs: list[tuple[int, int, str]] = []  # target, producer, output plug path
+        self.plug_source: tuple[int, str] | None = None  # current native input traversal
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -569,8 +1192,25 @@ class Instance:
     def context(self, watcher: "State | None" = None) -> InstanceContext:
         return InstanceContext(self, watcher)
 
-    def evaluate(self, cfg, watcher: "State | None" = None):
-        return expr.evaluate(cfg, self.context(watcher))
+    def evaluate(self, cfg, watcher: "State | None" = None, *, initial=None):
+        return expr.evaluate(cfg, self.context(watcher), initial=initial)
+
+    def source_entity(self) -> int:
+        """1B92E50/1B92ED0: retain a valid cache, otherwise cast builtin001B now."""
+        self.component.ensure_valid()
+        if not expr.valid_entity(self.cached_source_entity):
+            self.cached_source_entity = expr.to_entity(self.context().var(INSTANCE, 0x1B)) & 0xFFFFFFFF
+            self.component.ensure_valid()
+        return self.cached_source_entity
+
+    def set_source_entity(self, entity: int) -> None:
+        """1B94B10: write the typed builtin synchronously, then commit its cache."""
+        if type(entity) is not int or not 0 <= entity <= 0xFFFFFFFF:
+            raise ValueError('script source must be a 32-bit entity identifier')
+        with self.component.operation():
+            self.write((INSTANCE, 0x1B), Entity(entity))
+            self.component.ensure_valid()
+            self.cached_source_entity = entity
 
     def write(self, target: tuple[int, int] | None, value) -> None:
         """A plain assignment with the value's own type (0x7FF78AAB5650)."""
@@ -584,8 +1224,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, structural=False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, structural=structural)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -595,8 +1235,15 @@ class Instance:
         if found is None:
             node = self.graph.state(index)
             if node is None:
+                if self.component.strict:
+                    self.component.unsupported(self, "state reference", str(index))
                 return None
-            found = self.states[index] = STATE_CLASSES.get(node.cls, State)(self, node, index)
+            model = state_type(node.cls, self.component.strict)
+            if (self.component.strict and node.cls not in STATE_CLASSES
+                    and node.cls not in STRICT_STATE_CLASSES and node.cls != "STUStatescriptState"):
+                self.component.unsupported(self, "state", node.cls, node)
+            found = self.states[index] = model(self, node, index)
+            found.on_created()
         return found
 
     def node_state(self, node: Node) -> "State | None":
@@ -638,17 +1285,112 @@ class Instance:
 
     # --- running -----------------------------------------------------------------------------------
 
-    def init(self) -> None:
-        """Init (0x7FF78AAA3F00): every Entry that runs on the server is queued at the start time."""
+    def init(self, *, run_entries: bool = True) -> None:
+        """Init (0x7FF78AAA3F00): queue ordinary Entries for the root namespace."""
         self.initialized = True
+        self.initialization_pending = False
         self.start = self.component.now
+        self.initialized_frame = self.component.frame & 0xFFFFFFFF
+        if not run_entries:
+            return
         for node in self.graph.entries:
             if node is not None and not node.client_only and node.cls in ENTRY_CLASSES:
+                self.disabled_start_entries.add(node.pos)
                 self.post(Event(self.start, 0, ENTRY, node=node))
+
+    def play_schema(self, overrides: tuple, *, reorder_entries: bool) -> None:
+        """BE90C0: queue callee defaults, then the already-evaluated request values.
+
+        Default evaluation uses this instance without a watcher. Writes remain
+        queued, so later defaults read the pre-assignment variable values. A new
+        instance moves ordinary entries behind other events at the same time
+        (1B93D40); a reused instance keeps its existing event order.
+        """
+        from ow174.game.script.play import evaluate_value
+
+        with self.component.operation():
+            schema = self.graph.fields.get("m_publicSchema")
+            if schema is not None:
+                if (not isinstance(schema, dict)
+                        or schema.get("$") not in ("STUStatescriptSchema", "STU_77990ED7")
+                        or schema.get("m_89EAAC40") is not None):
+                    self.component.unsupported(self, "played graph schema", str(schema.get("$")
+                                               if isinstance(schema, dict) else type(schema)))
+                for row in schema.get("m_entries") or ():
+                    self.component.consume_work("played graph schema evaluation")
+                    if not isinstance(row, dict):
+                        self.component.unsupported(self, "played graph schema row", str(type(row)))
+                    config = row.get("m_value")
+                    if config is not None:
+                        failed = object()
+                        value = evaluate_value(self, config, initial=failed)
+                        # BE9AC0 skips a failed +28 evaluation. This differs
+                        # from D058D0's explicit int-zero override fallback.
+                        if value is failed:
+                            continue
+                        identifier = expr.guid_of(row.get("m_0D09D2D9")) & 0xFFFF
+                        self.post(Event(self.component.now, 0, ASSIGN,
+                                        assignment=(INSTANCE, identifier, value)))
+            for key, value in overrides:
+                self.component.consume_work("played graph override assignment")
+                self.post(Event(self.component.now, 0, ASSIGN, assignment=(INSTANCE, key & 0xFFFF, value)))
+            if reorder_entries and (schema is not None or overrides):
+                for event in self.queue:
+                    self.component.consume_work("played graph initialization order")
+                    if event.kind == ENTRY:
+                        event.seq = next(self.component.seq)
+                self.queue.sort(key=Event.key)
+
+    def start_entries(self, params: tuple, source: int) -> int:
+        """Queue native BB4AC733 start-entry bindings before each entry (1B95950).
+
+        Named parameters find the first matching writable row; key zero uses the
+        parameter's position. Missing parameters leave previous variables intact.
+        A nonzero FDBDCB70 disables that entry for later invocations.
+        """
+        count = 0
+        with self.component.operation():
+            if self.stopped:
+                return count
+            for node in self.graph.entries:
+                if (node is None or node.client_only or node.cls != "STU_BB4AC733"
+                        or node.pos in self.disabled_start_entries):
+                    continue
+                self.component.consume_work("script start entry")
+                if node.field("m_5AEA0A51"):
+                    continue
+                rows = node.field("m_params") or []
+                for position, (key, value) in enumerate(params):
+                    for row_position, row in enumerate(rows):
+                        self.component.consume_work("script start parameter binding")
+                        if row is None:
+                            continue
+                        match = (expr.guid_of(row.get("m_B5051BCE")) == key
+                                 if key else row_position == position)
+                        if not match or row.get("m_out_Var") is None:
+                            continue
+                        target = expr.dynamic(row["m_out_Var"])
+                        if target is None:
+                            self.component.unsupported(self, "script start parameter target", node.cls, node)
+                        if target[1]:
+                            self.post(Event(self.component.now, 0, ASSIGN, assignment=(*target, value)))
+                        break
+                source_config = node.field("m_B60ABDA4")
+                if source_config is not None and expr.valid_entity(source):
+                    target = expr.dynamic(source_config)
+                    if target is None:
+                        self.component.unsupported(self, "script start source target", node.cls, node)
+                    self.post(Event(self.component.now, 0, ASSIGN, assignment=(*target, Entity(source))))
+                if node.field("m_FDBDCB70"):
+                    self.disabled_start_entries.add(node.pos)
+                self.post(Event(self.component.now, 0, ENTRY, node=node))
+                count += 1
+        return count
 
     def update(self) -> None:
         """One update at the component's now (0x7FF78AAA27C0)."""
         with self.component.operation():
+            self.retirement_pending = False
             if self.stopped or not self.initialized:
                 return
             for _ in range(MAX_INSTANCE_UPDATES):
@@ -664,6 +1406,23 @@ class Instance:
                 self.component.budget_exceeded(
                     f"instance {self.id} update budget {MAX_INSTANCE_UPDATES} exhausted"
                 )
+            self.check_auto_retirement()
+
+    def check_auto_retirement(self) -> None:
+        """1B95440/1B935D0: no events, no enabled keepalive entries, then age/states."""
+        if not self.auto_retire or self.queue or self.stopped or not self.initialized:
+            return
+        for node in self.graph.entries:
+            self.component.consume_work('automatic script lifetime entry')
+            if (node is not None and node.pos not in self.disabled_start_entries
+                    and node.cls not in ('STU_BB4AC733', 'STU_8A7E9DA8', *MESSAGE_ENTRIES)):
+                return
+        if (self.initialized_frame+1) & 0xFFFFFFFF >= self.component.frame & 0xFFFFFFFF:
+            self.retirement_pending = True
+            return
+        if any(state.active for state in self.states.values()):
+            return
+        self.component.destroy(self)
 
     def drain(self) -> None:
         with self.component.operation():
@@ -678,6 +1437,27 @@ class Instance:
                 self.component.consume_work("event dispatch")
                 event = self.queue.pop(0)
                 self.dispatch(event)
+
+    def stop(self) -> None:
+        """1B95240: stop the instance, then notify its still-matching parent state."""
+        if self.stopped or self.teardown:
+            return
+        self.teardown = True
+        self.initialization_pending = False
+        for state in list(self.states.values()):
+            state.end(False)
+        for state in list(self.states.values()):
+            state.on_destroyed()
+        self.states.clear()
+        self.queue.clear()
+        self.join_inputs.clear()
+        self.deferred.clear()
+        self.stopped = True
+        self.teardown = False
+        if self.parent is not None:
+            state = self.parent.states.get(self.parent_state)
+            if state is not None and state.active and not state.ending:
+                state.child_stopped(self)
 
     def dispatch(self, event: Event) -> None:
         state = event.state
@@ -700,8 +1480,21 @@ class Instance:
             state.flags_changed = False
             if state.active:
                 state.dependency_changed()
+                # 023A's animation and cancel transitions watch the authored
+                # ChaseVar, cancel latch, and mover values they evaluate.
+                if self.graph.index == 0x023A and state.node.field("m_transitionPlug"):
+                    state.try_complete()
+                elif self.graph.index == 0x0C8C and state.node.pos in (33, 275):
+                    # The encounter subscript watches the final-wave flag and
+                    # the live defender condition through its transition plugs.
+                    state.try_complete()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
+        elif event.kind == ASSIGN:
+            scope, identifier, value = event.assignment
+            self.write((scope, identifier), value)
+        elif event.kind == STOP:
+            self.stop()
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -721,6 +1514,18 @@ class Instance:
             if state is not None:
                 state.button(button, pressed)
         component.button = NO_BUTTON
+        if pressed and self.graph.index == 0x023A:
+            # 023A's held-button transition conditions name the states to recheck.
+            for condition in self.graph.nodes:
+                if (condition is None or condition.cls != "STU_7DEB522D"
+                        or not condition.field("m_00994FF0")
+                        or expr.to_int(self.evaluate(condition.field("m_logicalButton"))) != button):
+                    continue
+                for index in condition.field("m_122DF0CA") or ():
+                    state = self.states.get(index)
+                    if state is not None and state.active and not state.flags_check:
+                        state.flags_check = True
+                        self.post(Event(component.now, 0, CHECK, state=state))
 
     def run_deferred(self) -> bool:
         """The deferred list (Defer), from the last entry down. Returns whether something ran."""
@@ -754,6 +1559,8 @@ class Instance:
                 break
             target = self.graph.node(position) if position is not None else None
             if target is None:
+                if self.component.strict:
+                    self.component.unsupported(self, "plug target", str(position), node)
                 taken = True
                 continue
             if not self.accepts(target):
@@ -763,8 +1570,50 @@ class Instance:
                 if state is not None:
                     taken = state.plug_enter(input_path) or taken
                 continue
-            taken = self.run_node(target, None if target.is_action else caller) or taken
+            previous = self.plug_source
+            self.plug_source = (node.pos, path)
+            try:
+                taken = self.run_node(target, None if target.is_action else caller) or taken
+            finally:
+                self.plug_source = previous
         return taken
+
+    def join(self, node: Node, caller: "State | None") -> bool:
+        """104319 1B6EED0/1B73BC0: join distinct input edges before following output."""
+        if self.plug_source is None:
+            self.component.unsupported(self, "join input origin", node.cls, node)
+        arrival = (node.pos, *self.plug_source)
+        if arrival in self.join_inputs:
+            return False
+        previous = sum(row[0] == node.pos for row in self.join_inputs)
+        self.join_inputs.append(arrival)
+        indexes = node.field("m_122DF0CA") or ()
+        if previous == 0:
+            for index in indexes:
+                self.component.consume_work("join completion check")
+                state = self.states.get(index)
+                if state is not None and state.active and state is not caller and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(self.component.now, 0, CHECK, state=state))
+            return False
+        if previous != expr.to_int(node.field("m_B24D1794")) - 1:
+            return False
+        # 1B700F0 removes this target's registrations by swapping with the tail.
+        index = 0
+        while index < len(self.join_inputs):
+            if self.join_inputs[index][0] == node.pos:
+                self.join_inputs[index] = self.join_inputs[-1]
+                self.join_inputs.pop()
+            else:
+                index += 1
+        if not self.follow(node, "m_outPlug", caller):
+            return False
+        for index in indexes:
+            self.component.consume_work("join state abort")
+            state = self.states.get(index)
+            if state is not None and state.active:
+                state.request(ABORT)
+        return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
         """The states a subgraph plug lists (m_FF3DAF1E)."""
@@ -773,6 +1622,9 @@ class Instance:
             return []
         found = []
         for index in plug.get(SUBGRAPH_STATES) or []:
+            target = self.graph.state(index) if index is not None else None
+            if target is not None and not self.accepts(target):
+                continue
             state = self.state(index) if index is not None else None
             if state is not None:
                 found.append(state)
@@ -802,6 +1654,8 @@ class Instance:
             if accepted is not NotImplemented:
                 return accepted
         if node.cls not in ENTRY_CLASSES and node.cls not in MESSAGE_ENTRIES:
+            if self.component.strict:
+                self.component.unsupported(self, "node", node.cls, node)
             expr.warn_once(node.cls, "node class %s has no model: it only follows m_outPlug", node.cls)
         self.follow(node, "m_outPlug", None)
         return True
@@ -813,8 +1667,7 @@ class Instance:
         node = event.node
         if node is None:
             return
-        self.params.append(params)
-        try:
+        with self.component.parameter_scope(params):
             if node.is_state:
                 state = self.node_state(node)
                 if state is not None and state.active:
@@ -827,9 +1680,13 @@ class Instance:
                         key = expr.guid_of(item.get("m_B5051BCE")) & 0xFFFF
                         if target is not None:
                             self.write(target, params.get(key))
+                # Legacy body messages have one source identity. The native
+                # entry binds caller and instigator before following its plug.
+                for field in ("m_B60ABDA4", "m_FF703F20"):
+                    target = expr.dynamic(node.field(field))
+                    if target is not None:
+                        self.write(target, Entity(sender))
                 self.follow(node, "m_outPlug", None)
-        finally:
-            self.params.pop()
 
 
 class State:
@@ -845,7 +1702,7 @@ class State:
         self.start = 0
         self.ended_at = 0
         self.ticked_at = None
-        self.watched: dict[Var, None] = {}
+        self.watched: dict[Var, bool | None] = {}
         self.flags_changed = False
         self.flags_check = False
         self.polled = False
@@ -889,6 +1746,7 @@ class State:
             self.reentry()
             return
         self.counter = (self.counter + 1) & 0xFFFF
+        self.on_beginning()
         indexes = self.node.fields.get("m_exclusiveStateIndices") or []
         exclusive = [self.instance.state(index) for index in indexes]
         for state in exclusive:
@@ -912,9 +1770,13 @@ class State:
         if not self.active or self.ending:
             return
         self.ending = True
+        self.on_ending()
         self.instance.cancel(self)
+        # The coalescing bits describe queued events, which cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        self.on_cleanup()
         self.unwatch()
         self.polled = False
         if self in self.instance.ticking:
@@ -924,6 +1786,9 @@ class State:
         self.ended_at = self.now
         if self.instance.teardown:
             return
+        self.follow_end_plugs(finished)
+
+    def follow_end_plugs(self, finished: bool) -> None:
         self.instance.follow(self.node, "m_onFinishedPlug" if finished else "m_onAbortPlug", self)
         self.instance.follow(self.node, "m_onEndPlug", self)
 
@@ -941,10 +1806,12 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, structural=False) -> None:
         if self.active and not self.ending:
-            var.watchers[self] = None
-            self.watched[var] = None
+            # Equal-valued link changes can still alter a priority predicate.
+            kind = True if structural or var.watchers.get(self) else None
+            var.watchers[self] = kind
+            self.watched[var] = kind
 
     def unwatch(self) -> None:
         for var in self.watched:
@@ -964,8 +1831,32 @@ class State:
 
     # --- class hooks -------------------------------------------------------------------------------
 
+    def on_created(self) -> None:
+        """1B91460: after insertion into the instance, before its first begin."""
+
+    def on_destroyed(self) -> None:
+        """Release object-lifetime services without following authored plugs."""
+
+    def child_stopped(self, child: Instance) -> None:
+        """Handle a child stop for a state that owns script instances."""
+
+    def on_failed(self) -> None:
+        """Abandon local external-effect bookkeeping without authored callbacks."""
+
+    def message_context_retired(self) -> None:
+        """Quietly release object-owned message bindings after context retirement."""
+
+    def on_effect_abandoned(self, effect) -> None:
+        """A world binding retired an effect without invoking native graph code."""
+
     def on_begin(self) -> None:
         """OnBegin (vt+0xB8): before the base plugs."""
+
+    def on_beginning(self) -> None:
+        """Component +100: after counter increment, before exclusives/active=true."""
+
+    def on_ending(self) -> None:
+        """Component +118: before child/end cleanup, while active and ending."""
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
@@ -975,6 +1866,9 @@ class State:
 
     def on_end(self, finished: bool) -> None:
         """OnFinish/OnAbort and OnEnd (vt+0xA0/0xA8, vt+0xB0)."""
+
+    def on_cleanup(self) -> None:
+        """1B71740 / vt+C0: after the class end hooks, before authored end plugs."""
 
     def timer(self, param: int) -> None:
         """A timer of an active state (vt+0x90)."""
@@ -989,6 +1883,9 @@ class State:
 
     def dependency_changed(self) -> None:
         """A watched variable changed (vt+0xC8)."""
+
+    def native_dependency(self, cfg) -> None:
+        """1B72AD0: a native evaluator marked this dependency epoch as used."""
 
     def button(self, button: int, pressed: bool) -> None:
         """A logical-button edge (vt+0x128), active or not."""
@@ -1016,7 +1913,7 @@ class State:
         var = self.instance.find_var(*target)
         before = var.value()
         insert_link(var, Link(self, slot, priority, above, stack))
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, structural=True)
         for state in var.stack_states():
             state.stack_changed(var)
         return var
@@ -1025,8 +1922,9 @@ class State:
         before = var.value()
         if bake:
             var.base = self.output(0)
+        previous = len(var.links)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, structural=len(var.links) != previous)
         for state in var.stack_states():
             state.stack_changed(var)
 

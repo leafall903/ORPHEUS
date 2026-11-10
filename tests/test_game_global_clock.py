@@ -255,6 +255,55 @@ class GlobalClockTests(unittest.TestCase):
         replay = replay_server_session(session.finish(), resolver=session.registry.resolve)
         self.assertTrue(replay["stored_state_verified"])
 
+    def test_normal_leave_stops_world_delivery_even_when_the_leave_packet_is_lost(self):
+        session, sent = self.session()
+        handoff, = session.create_match(ROOM, [OWNER])
+        peer, player, now = self.connect_soldier(session, sent, handoff, 100.1)
+        client = player.client
+        # Leave a body update and reliable message in flight, then queue another world update.
+        client.queue_reliable(20308, card_message(player))
+        stale = world.EntityUpdate(player.body, world.OP_UPDATE,
+                                   lambda origin: world.update(origin, {51: []}))
+        client.queue_entities([stale])
+        before = len(sent)
+        now = self.until(session, now, lambda: len(sent) > before)
+        peer.drain(lose=True)
+        client.queue_entities([world.EntityUpdate(player.body, world.OP_DESTROY)])
+        client.queue_unreliable(20308, card_message(player))
+        self.assertEqual(session.apply("send_home", {"account": OWNER[0]}), 1)
+        self.assertEqual(client.entities, [])
+        self.assertEqual(client.unreliable, [])
+        self.assertTrue(all(not records for _, records in client.in_flight.values()))
+
+        now = self.until(session, now, lambda: bool(self.leave_attempts(peer)))
+        first, = self.leave_attempts(peer)
+        self.assertEqual(first[3], [])
+        peer.drain(lose=True)
+        # A producer racing with exit cannot refill the world channel.
+        client.queue_entities([stale])
+        client.queue_unreliable(20308, card_message(player))
+        self.assertEqual((client.entities, client.unreliable), ([], []))
+        now = self.until(session, now, lambda: any(row[0] > first[0] for row in self.frames(peer)))
+        peer.drain()
+        peer.send(now=now)  # ACK a later datagram, forcing retransmission of the lost leave.
+        now = self.until(session, now, lambda: len(self.leave_attempts(peer)) == 2)
+        _, resent = self.leave_attempts(peer)
+        self.assertEqual([row for row in resent[2] if row[1] == LEAVE_GAME], first[2])
+        self.assertEqual([row[1] for row in resent[2]], [20308, LEAVE_GAME])
+        self.assertEqual(resent[3], [])
+        for data, _ in sent[before:]:
+            packet = peer.cipher.open(data)
+            if packet.kind == KIND_FRAME and packet.seq >= first[0]:
+                reader = BitReader(packet.payload)
+                reader.var_a()
+                _, unreliable = messages.read_channel(reader)
+                self.assertEqual(unreliable, [])
+                self.assertEqual(wire_frame(packet)[1], [])
+        peer.drain()
+        peer.send(flags=FIN, now=now)
+        self.assertIsNone(player.client)
+        self.assertEqual(session.server.clients, {})
+
     def test_ready_callback_reopens_admission_only_after_old_callbacks(self):
         session, _ = self.session()
         server = session.server

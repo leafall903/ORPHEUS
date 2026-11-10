@@ -228,9 +228,14 @@ class Schemas:
         return value
 
     def read(self, crc: int, msg_id: int, data: bytes, pos: int = 0) -> tuple[dict, int]:
-        """Decode the message whose fields start at `pos`: the value and where the message ends. The
-        game link packs messages back to back with no length."""
+        """Decode the message at `pos` and return the next byte position."""
         return _read_fields(self.fields(crc, msg_id), data, pos, _Bits())
+
+    def read_bit_end(self, crc: int, msg_id: int, data: bytes, pos: int = 0) -> tuple[dict, int]:
+        """Decode a byte-aligned message and return its exact ending bit position."""
+        bits = _Bits()
+        value, pos = _read_fields(self.fields(crc, msg_id), data, pos, bits)
+        return value, pos * 8 - (8 - bits.bit)
 
     def encode(self, crc: int, msg_id: int, value: dict) -> bytes:
         out = bytearray()

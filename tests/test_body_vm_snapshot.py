@@ -25,7 +25,16 @@ from ow174.game.script.driver import BodyScript
 
 STATE_MODELS = (
     ("STU_TestPlainState", runtime.State),
+    ("STU_9028E035", nodes.RegisteredState),
+    ("STU_9D7BF987", nodes.SharedVariables),
+    ("STU_33A46033", nodes.EntityControl),
+    ("STU_B1FA9C2A", nodes.AnimationAlias),
+    ("STU_40E05F6B", nodes.VoiceStimulus),
+    ("STU_316CFEF2", nodes.NumericPropertyModifiers),
+    ("STU_BD02E168", nodes.ScopedSubgraph),
+    ("STU_582E0D5F", nodes.AuxiliaryEffect),
     ("STUStatescriptStateBooleanSwitch", nodes.BooleanSwitch),
+    ("STU_B591EBFE", nodes.DelayedBooleanSwitch),
     ("STUStatescriptStateStack", nodes.Stack),
     ("STUStatescriptStateLogicalButton", nodes.LogicalButton),
     ("STU_E4A30BCF", nodes.DisableLogicalButton),
@@ -38,6 +47,7 @@ STATE_MODELS = (
     ("STUStatescriptStateAbility", nodes.Ability),
     ("STU_9C9A422A", nodes.Defer),
     ("STU_2F4E2E3F", nodes.Watch),
+    ("STU_CD46AF93", nodes.ForCodeSynced),
     ("STU_DEBD057B", nodes.Switch),
     ("STU_37D754C8", nodes.SubScript),
     ("STUStatescriptStateGameMessageEntry", nodes.GameMessageEntry),
@@ -45,25 +55,34 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STU_431F3FCC", nodes.TargetEffects),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
+    ("STU_7D71FDF3", nodes.ModelLook),
+    ("STUStatescriptStateDataFlowMapping", nodes.DataFlowMapping),
 )
 COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
-    "_follow_depth", "_work_left",
+    "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
+    "state_registries", "parameter_scopes", "startup_entity_values",
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
-    "deferred", "params", "stopped", "teardown", "initialized", "start",
+    "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "initialized_frame",
+    "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
     "watched", "flags_changed", "flags_check", "polled", "natives",
 }
 EVENT_FIELDS = {
-    "time", "seq", "kind", "state", "op", "param", "node", "button", "pressed", "message", "transient",
+    "time", "seq", "kind", "state", "op", "param", "node", "button", "pressed", "message",
+    "assignment", "transient",
 }
 TRANSPORT_FIELDS = {"stream", "create_arrived", "first_owner_frame", "reports", "report_count"}
 
@@ -113,6 +132,35 @@ def digest(component):
 
 
 class BodyVMSnapshotTests(unittest.TestCase):
+    def test_priority_dependency_kind_is_causal_snapshot_data(self):
+        component, instance = fixture()
+        state = instance.states[0]
+        state.active = True
+        variable = instance.find_var(expr.INSTANCE, 55)
+        state.watch(variable)
+        scalar = export_component_vm(component)
+        state.watch(variable, structural=True)
+        structural = export_component_vm(component)
+        self.assertNotEqual(snapshot_digest(scalar), snapshot_digest(structural))
+        self.assertEqual(elements(fields(raw(structural), ["var", 1, 55])["watchers"]),
+                         [[ref("state", 1, 0), True]])
+
+    def test_pending_initialization_exports_without_running_or_changing_queued_work(self):
+        component, instance = fixture()
+        instance.initialization_pending = True
+        instance.post(runtime.Event(0, 0, runtime.ASSIGN, assignment=(graph.INSTANCE, 7, 42)))
+        queued = list(instance.queue)
+        with mock.patch.object(runtime.Instance, "init", side_effect=AssertionError("init called")):
+            document = export_component_vm(component)
+        stored = fields(raw(document), ["instance", 1])
+        self.assertIs(stored["initialization_pending"], True)
+        self.assertIs(stored["initialized"], False)
+        self.assertEqual(instance.queue, queued)
+        self.assertEqual(instance.vars, {})
+        self.assertTrue(instance.initialization_pending)
+        instance.initialization_pending = False
+        self.assertNotEqual(snapshot_digest(document), digest(component))
+
     def test_all_allocated_states_and_component_storage_are_present_without_activation(self):
         component, instance = fixture(("STU_TestPlainState",) * 3, allocation=(2, 0, 1))
         data = raw(export_component_vm(component))
@@ -130,13 +178,22 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 24)
+        self.assertEqual(len(STATE_MODELS), 38)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
                 exported = record(data, ["state", 1, index])
                 self.assertEqual(exported["class"], f"{expected_type.__module__}.{expected_type.__name__}")
                 self.assertEqual(set(dict(exported["fields"])), set(vars(instance.states[index])))
+
+    def test_strict_movement_flags_export_before_activation(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(minimal_graph(("STU_96F1DBCF",)), init=False)
+        state = instance.state(0)
+        self.assertIsInstance(state, nodes.MovementFlags)
+        data = raw(export_component_vm(component))
+        exported = fields(data, ["state", 1, 0])
+        self.assertEqual((exported["value"], exported["last_frame"]), (0, None))
 
     def test_optional_lifecycle_storage_distinguishes_missing_from_present_none(self):
         models = (
@@ -194,18 +251,19 @@ class BodyVMSnapshotTests(unittest.TestCase):
 
     def test_complete_event_records_include_nonstate_and_transient_events_in_fifo_order(self):
         component, instance = fixture()
-        kinds = (runtime.MESSAGE, runtime.ENTRY, runtime.BUTTON, runtime.CHECK, runtime.CHANGED,
-                 runtime.TIMER, runtime.STATE_OP)
+        kinds = (runtime.MESSAGE, runtime.ENTRY, runtime.BUTTON, runtime.ASSIGN, runtime.CHECK,
+                 runtime.CHANGED, runtime.TIMER, runtime.STATE_OP)
         for number, kind in enumerate(kinds):
             instance.queue.append(runtime.Event(
                 30, number, kind, instance.states[0] if number > 2 else None, op=2, param=number + 9,
                 node=instance.graph.nodes[0], button=20, pressed=True,
                 message=(0x123, {None: b"\x00\xff"}, 7), transient=True,
+                assignment=(0, 41, expr.Entity(123)),
             ))
         data = raw(export_component_vm(component))
         events = [dict(item["fields"]) for item in elements(fields(data, ["instance", 1])["queue"])]
         self.assertEqual([event["kind"] for event in events], list(kinds))
-        self.assertEqual([event["seq"] for event in events], list(range(7)))
+        self.assertEqual([event["seq"] for event in events], list(range(len(kinds))))
         for index, event in enumerate(events):
             self.assertEqual(set(event), EVENT_FIELDS)
             self.assertEqual((event["time"], event["op"], event["param"]), (30, 2, index + 9))
@@ -213,6 +271,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
             self.assertEqual((event["button"], event["pressed"], event["transient"]), (20, True, True))
             self.assertEqual(event["state"], None if index < 3 else ref("state", 1, 0))
             self.assertEqual(elements(elements(event["message"])[1]), [[None, b"\x00\xff"]])
+            self.assertEqual(elements(event["assignment"])[:2], [0, 41])
 
     def test_observation_does_not_consume_sequence_rng_shots_or_execute_graph_methods(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
@@ -322,6 +381,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         component.entity_var(1).base = (
             -0.0, b"\x00\xff", [True, 1], expr.Map(((7, "first"), (7, "second"))),
             expr.Asset(1 << 63), expr.Entity(5), expr.Vec3(-0.0, 1.5, 2.0), expr.Handle(1, 1, 0, 9),
+            expr.PairArray(((expr.Asset(0x0A90000000000171), expr.Asset(0x02400000000005AD)),)),
         )
         instance.params = [{None: ("fallback",), 8: [False]}]
         data = raw(export_component_vm(component))
@@ -338,6 +398,10 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(dict(values[5]["fields"])["id"], 5)
         self.assertEqual(math.copysign(1, dict(values[6]["fields"])["x"]), -1)
         self.assertEqual(dict(values[7]["fields"]), {"kind": 1, "instance": 1, "state": 0, "extra": 9})
+        stored_pairs = elements(dict(values[8]["fields"])["items"])
+        key, message = elements(stored_pairs[0])
+        self.assertEqual(dict(key["fields"])["guid"], 0x0A90000000000171)
+        self.assertEqual(dict(message["fields"])["guid"], 0x02400000000005AD)
         parameters = elements(fields(data, ["instance", 1])["params"])[0]
         self.assertEqual(elements(parameters)[0], [None, {"kind": "tuple", "items": ["fallback"]}])
         self.assertEqual(elements(parameters)[1][0], 8)
@@ -380,6 +444,19 @@ class BodyVMSnapshotTests(unittest.TestCase):
             fault = dict(raw(export_component_vm(component))["component"])["fault"]
         self.assertTrue(fault["class"].endswith(".ScriptBudgetError"))
         self.assertEqual(fault["args"], {"kind": "tuple", "items": ["terminal probe"]})
+
+    def test_strict_policy_and_terminal_diagnostic_are_preserved_without_running(self):
+        component, instance = fixture()
+        ordinary = snapshot_digest(export_component_vm(component))
+        component.strict = True
+        self.assertNotEqual(snapshot_digest(export_component_vm(component)), ordinary)
+        component.fault = runtime.UnsupportedScriptError(instance, "node", "UnimplementedEncounter")
+        with mock.patch.object(runtime.Component, "ensure_valid", side_effect=AssertionError("called")):
+            exported = dict(raw(export_component_vm(component))["component"])
+        self.assertTrue(exported["strict"])
+        fault = exported["fault"]
+        self.assertTrue(fault["class"].endswith(".UnsupportedScriptError"))
+        self.assertIn("UnimplementedEncounter", str(fault["fields"]))
 
     def test_known_state_fields_and_types_cannot_be_transplanted_to_another_node_model(self):
         component, instance = fixture()
@@ -460,7 +537,9 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        self.assertEqual(set(dict(body["world"]["fields"])),
+                         {"hero", "mode", "body", "body_definition", "throttles", "velocity_requests", "communication_wheel",
+                          "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

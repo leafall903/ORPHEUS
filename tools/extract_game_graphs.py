@@ -10,7 +10,7 @@ graph reference (a GUID of type 01B anywhere in a kept graph).
 
 Additional entity definitions can be added to a separate bundle with repeated --entity options.
 Use --mode-xml <0C5 directory> with --output outside the repository to also export the mode entity's
-initial variables from the mode definitions.
+initial variables and include its mode, controller and body script roots.
 Use --ai-spawners <ai_spawners_174.json> with an external --output to include the graphs placed on maps
 and the AI weapon buttons on additional entity definitions.
 
@@ -33,12 +33,16 @@ import gzip
 import json
 import math
 import re
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from ow174.paths import DATA_DIR
+
 OUT = ROOT / "data" / "game_graphs_174.json.gz"
-HEROES = ROOT / "data" / "game_heroes_174.json"
+HEROES = DATA_DIR / "game_heroes_174.json"
 NS = "{https://yretenai.com/dragonml/v1}"
 ID = NS + "id"
 NAME = NS + "name"
@@ -148,9 +152,9 @@ def guid_index(text: str) -> int:
 class StuXml:
     """One DataTool XML file with its object references resolved."""
 
-    def __init__(self, path: Path, enums: EnumTables) -> None:
+    def __init__(self, path: Path, enums: EnumTables, *, root: ET.Element | None = None) -> None:
         self.enums = enums
-        self.root = ET.parse(path).getroot()
+        self.root = ET.parse(path).getroot() if root is None else root
         self.objects = {}
         for element in self.root.iter():
             key = element.get(ID)
@@ -257,16 +261,26 @@ class GraphXml(StuXml):
             yield from self.plugs_below(self.resolve(child), prefix + key)
 
     def plugs_below(self, element: ET.Element, path: str):
-        kind = tag(element)
-        if kind in ("null", "ref") or id(element) in self.nodes or id(element) in self.items:
-            return
-        if kind == "array":
-            for number, child in enumerate(element):
-                yield from self.plugs_below(self.resolve(child), f"{path}[{number}]")
-        elif self.is_plug(element):
-            yield path, element
-        else:
-            yield from self.plugs_in(element, path + ".")
+        # Walk each acyclic field path: non-node objects may alias themselves.
+        # Preserve alternative owners and array order without recursive descent.
+        pending = [(element, path, frozenset())]
+        while pending:
+            current, name, ancestors = pending.pop()
+            kind = tag(current)
+            if (kind in ("null", "ref") or id(current) in self.nodes or id(current) in self.items
+                    or id(current) in ancestors):
+                continue
+            if self.is_plug(current):
+                yield name, current
+                continue
+            parents = ancestors | {id(current)}
+            if kind == "array":
+                children = [(self.resolve(child), f"{name}[{number}]", parents)
+                            for number, child in enumerate(current)]
+            else:
+                children = [(self.resolve(child), name + "." + child.get(NAME), parents)
+                            for child in current if child.get(NAME) is not None]
+            pending.extend(reversed(children))
 
     def plug(self, element: ET.Element) -> dict:
         out = super().plug(element)
@@ -390,12 +404,73 @@ def graph_ref(xml: StuXml, element: ET.Element, name: str) -> int | None:
     return guid_index(ref.get("GUID")) if ref is not None else None
 
 
+def entity_script_component(xml: StuXml) -> tuple[dict | None, set[int]]:
+    """Retain the entity's actual component definition, including empty defaults.
+
+    A flattened graph list cannot distinguish missing component data, known
+    component absence and an existing empty component such as player000E.
+    Inspect this entity's map only; child entity definitions do not belong to it.
+    """
+    component_map = xml.field(xml.root, "m_componentMap")
+    candidates = []
+    for entry in component_map if component_map is not None else xml.root:
+        element = xml.field(entry, "dragon:value") if component_map is not None else entry
+        if element is None:
+            continue
+        cls, seen = tag(element), set()
+        while cls and cls not in seen and cls != "STUStatescriptComponent":
+            seen.add(cls)
+            cls = xml.enums.bases.get(cls)
+        if cls == "STUStatescriptComponent":
+            candidates.append(element)
+    if len(candidates) > 1:
+        raise ValueError("entity has ambiguous statescript component ownership")
+    if not candidates:
+        return None, set()
+    component = candidates[0]
+    record = xml.value(component)
+    references = set()
+
+    def collect(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+        elif isinstance(value, str) and re.fullmatch(r"0x0580[0-9A-Fa-f]{12}", value):
+            references.add(int(value, 16) & 0xFFFFFFFFFFFF)
+
+    # Resolve shared DragonML objects before collecting: a component can refer
+    # to a schema serialized elsewhere in the same entity's XML document.
+    collect(record)
+    return record, references
+
+
+def target_tags(xml: StuXml) -> list[int]:
+    components = [item for item in xml.root.iter()
+                  if tag(item) == "STUTargetTagComponent" and item.get(NAME) == "dragon:value"]
+    if len(components) > 1:
+        raise ValueError("duplicate target-tag component")
+    values = xml.field(components[0], "m_targetTags") if components else None
+    result = []
+    for row in values if values is not None else ():
+        reference = xml.resolve(row).get("GUID")
+        if reference == "000000000000.001":  # DragonML's representation of a null asset reference.
+            continue
+        if not reference or not reference.endswith(".06C") or not guid_index(reference):
+            raise ValueError("invalid target-tag resource")
+        result.append(full_guid(reference))
+    return result
+
+
 def body_record(
     path: Path, enums: EnumTables, hero: str | None, name: str, *, include_ai_weapons: bool = False,
 ) -> tuple[dict, set[int]]:
     """A body definition (003): its statescript component's initial graphs in order, with their schema
-    overrides, and its weapon component's scripts."""
+    overrides, its full script component definition, and its weapon scripts."""
     xml = StuXml(path, enums)
+    component, component_refs = entity_script_component(xml)
     graphs, weapons, manager = [], [], None
     for element in xml.root.iter():
         kind = tag(element)
@@ -409,15 +484,22 @@ def body_record(
             weapon_list = xml.field(element, "m_weapons")
             for weapon in weapon_list if weapon_list is not None else []:
                 weapons.append(graph_ref(xml, xml.resolve(weapon), "m_script"))
-    record = {"hero": hero, "name": name, "graphs": graphs, "manager": manager, "weapons": weapons}
-    if include_ai_weapons and (buttons := _ai_weapon_buttons(path, xml)):
-        record["ai_weapon_buttons"] = buttons
-    used = {entry["graph"] for entry in graphs} | {manager, *weapons}
+    record = {"hero": hero, "name": name, "graphs": graphs, "manager": manager, "weapons": weapons,
+              "script_component": component}
+    if include_ai_weapons:
+        record["target_tags"] = target_tags(xml)
+        record["pet_component_absent"] = not any(tag(item) == "STUPetComponent" for item in xml.root.iter())
+        associated = _ai_association(path, xml)
+        if associated is not None:
+            record["ai_association"] = full_guid(f"{associated:012X}.003")
+            if buttons := _ai_weapon_buttons(path.with_name(f"{associated:012X}.003.xml"), enums):
+                record["ai_weapon_buttons"] = buttons
+    used = {entry["graph"] for entry in graphs} | {manager, *weapons} | component_refs
     return record, {graph for graph in used if graph is not None}
 
 
-def _ai_weapon_buttons(path: Path, xml: StuXml) -> dict[str, int]:
-    """The logical button for each slot in the body's associated AI definition."""
+def _ai_association(path: Path, xml: StuXml) -> int | None:
+    """The separate .003 AI definition authored on a body."""
     association = "m_8B9A461F"
     try:
         ref = xml.field(xml.root, association)
@@ -429,26 +511,30 @@ def _ai_weapon_buttons(path: Path, xml: StuXml) -> dict[str, int]:
     ):
         raise ValueError(f"{path.name}: {association} must reference a .003 entity definition")
     if ref is None:
-        return {}
-    path = path.with_name(f"{guid_index(guid):012X}.003.xml")
+        return None
+    return guid_index(guid)
+
+
+def _ai_weapon_buttons(path: Path, enums: EnumTables) -> dict[str, int]:
+    """The logical button for each slot in an associated AI definition."""
     try:
-        return _ai_weapon_slots(StuXml(path, xml.enums))
+        return _ai_weapon_slots(StuXml(path, enums))
     except (ValueError, KeyError, ET.ParseError) as exc:
         raise ValueError(f"{path.name}: {exc}") from exc
 
 
-def _ai_weapon_slots(xml: StuXml) -> dict[str, int]:
+def _ai_weapon_rows(xml: StuXml):
     if tag(xml.root) != "STUEntityDefinition":
         raise ValueError("expected a STUEntityDefinition root for AI weapon controls")
     component_map = xml.field(xml.root, "m_componentMap")
     if component_map is None:
-        return {}
+        return
     if tag(component_map) != "map":
         raise ValueError("invalid AI entity component map")
     component_class = "STU_993B1B10"
     components = [entry for entry in component_map if tag(entry) == component_class]
     if not components:
-        return {}
+        return
     if len(components) != 1:
         raise ValueError("duplicate AI weapon control components")
     component = xml.field(components[0], "dragon:value")
@@ -459,7 +545,6 @@ def _ai_weapon_slots(xml: StuXml) -> dict[str, int]:
     if component.get(field) not in (None, "{null}") or (rows is not None and tag(rows) != "array"):
         raise ValueError(f"invalid AI weapon control {field} array")
 
-    buttons = {}
     for item in rows if rows is not None else ():
         row = xml.resolve(item)
         if tag(row) != "STUAIWeaponFireControlInfo":
@@ -467,6 +552,12 @@ def _ai_weapon_slots(xml: StuXml) -> dict[str, int]:
         slot = scalar(row.get("m_A60150E2"))
         if type(slot) is not int or not 0 <= slot <= 0xFFFFFFFF:
             raise ValueError("invalid AI weapon slot m_A60150E2")
+        yield slot, row
+
+
+def _ai_weapon_slots(xml: StuXml) -> dict[str, int]:
+    buttons = {}
+    for slot, row in _ai_weapon_rows(xml):
         if str(slot) in buttons:
             raise ValueError(f"duplicate AI weapon slot {slot}")
         button_field = "m_4F5E7D4C"
@@ -479,7 +570,34 @@ def _ai_weapon_slots(xml: StuXml) -> dict[str, int]:
     return buttons
 
 
-def _mode_identifier(xml: StuXml, element: ET.Element, field: str) -> str:
+def ai_weapon_identifiers(path: Path, enums: EnumTables) -> dict[int, frozenset[int]]:
+    """Read the authored fire-control identifiers for each weapon slot."""
+    try:
+        xml = StuXml(path, enums)
+        identifiers: dict[int, set[int]] = {}
+        field = "m_F2810377"
+        for slot, row in _ai_weapon_rows(xml):
+            if xml.field(row, field) is None and row.get(field) in (None, "{null}"):
+                continue
+            identifier = full_guid(_identifier_guid(xml, row, field))
+            if not identifier & 0xFFFFFFFFFFFF:
+                raise ValueError(f"invalid AI weapon control identifier for slot {slot}")
+            identifiers.setdefault(slot, set()).add(identifier)
+        return {slot: frozenset(values) for slot, values in identifiers.items()}
+    except (ValueError, KeyError, ET.ParseError) as exc:
+        raise ValueError(f"{path.name}: {exc}") from exc
+
+
+def ai_weapon_controls(path: Path, enums: EnumTables) -> list[dict]:
+    """Keep the ordered authored controls, including multiple actions in one slot."""
+    try:
+        xml = StuXml(path, enums)
+        return [xml.value(row) for _, row in _ai_weapon_rows(xml)]
+    except (ValueError, KeyError, ET.ParseError) as exc:
+        raise ValueError(f"{path.name}: {exc}") from exc
+
+
+def _identifier_guid(xml: StuXml, element: ET.Element, field: str) -> str:
     ref = xml.field(element, field)
     guid = ref.get("GUID", "") if ref is not None and tag(ref) == "ref" else ""
     if not re.fullmatch(r"[0-9A-Fa-f]{1,12}\.01C", guid):
@@ -491,7 +609,7 @@ def _mode_value(xml: StuXml, pair: ET.Element) -> bool | int | str:
     element = xml.field(pair, "m_value")
     kind = tag(element) if element is not None else "missing"
     if kind == "STU_22BF1D21":
-        return guid_text(_mode_identifier(xml, element, "m_value"))
+        return guid_text(_identifier_guid(xml, element, "m_value"))
     if kind in {"STU_43CA1D94", "STU_3ED2A372"}:
         value = scalar(element.get("m_value"))
         if type(value) is int:
@@ -515,7 +633,7 @@ def _mode_pairs(xml: StuXml) -> dict[str, bool | int | str]:
         pair = xml.resolve(item)
         if tag(pair) != "STUGameModeVarValuePair":
             raise ValueError(f"invalid {field} pair type {tag(pair)}")
-        key = guid_index(_mode_identifier(xml, pair, "m_3E783677"))
+        key = guid_index(_identifier_guid(xml, pair, "m_3E783677"))
         if not 0 < key <= 0xFFFF:
             raise ValueError(f"mode variable identifier {key:X} is outside the entity variable range")
         if str(key) in variables:
@@ -573,12 +691,115 @@ def ai_graph_roots(path: Path) -> set[int]:
     return roots
 
 
+def mode_graph_roots(folder: Path) -> set[int]:
+    """Include the mode, controller and body scripts referenced by the supplied 0C5 assets.
+
+    Mode variables alone are insufficient to restore scripted modes: the fixed hero/PvP roots
+    omit their initial graphs. Missing files remain in the bundle's explicit missing list.
+    """
+    roots = set()
+    for path in sorted(folder.iterdir()):
+        if not path.is_file() or not path.name.upper().endswith(".0C5.XML"):
+            continue
+        for element in ET.parse(path).getroot().iter():
+            reference = element.get("GUID", "").upper()
+            if reference.endswith(".01B"):
+                if not re.fullmatch(r"[0-9A-F]{1,12}\.01B", reference):
+                    raise ValueError(f"{path.name}: invalid mode graph reference {reference}")
+                index = guid_index(reference)
+                if not 0 < index <= 0xFFFF:
+                    raise ValueError(f"{path.name}: mode graph must have a nonzero 16-bit index")
+                roots.add(index)
+    return roots
+
+
+def _mode_script_ref(xml: StuXml, element: ET.Element, name: str, source: str) -> str | None:
+    ref = xml.field(element, name)
+    if ref is None:
+        return None
+    reference = ref.get("GUID", "").upper()
+    if not re.fullmatch(r"[0-9A-F]{1,12}\.01B", reference) or not 0 < guid_index(reference) <= 0xFFFF:
+        raise ValueError(f"{source}: {name} must reference a nonzero 16-bit .01B graph")
+    return guid_text(reference)
+
+
+def mode_scripts(folder: Path, enums: EnumTables) -> dict[str, dict]:
+    """Preserve which mode and team owns each script, rather than only exporting their union."""
+    modes = {}
+    for path in sorted(folder.iterdir()):
+        if not path.is_file() or not path.name.upper().endswith(".0C5.XML"):
+            continue
+        xml = StuXml(path, enums)
+
+        teams = {}
+        array = xml.field(xml.root, "m_teams")
+        for child in array if array is not None else ():
+            team = xml.resolve(child)
+            number = enums.number("TeamIndex", scalar(team.get("m_team")), "STUGameModeTeam.m_team")
+            if type(number) is not int or not 0 <= number <= 5 or str(number) in teams:
+                raise ValueError(f"{path.name}: invalid or duplicate mode team {number}")
+            teams[str(number)] = {
+                "controller": _mode_script_ref(xml, team, "m_controllerScript", path.name),
+                "body": _mode_script_ref(xml, team, "m_bodyScript", path.name),
+            }
+        flag = scalar(xml.root.get("m_0FC17230", "0"))
+        if type(flag) is not int or flag not in (0, 1):
+            raise ValueError(f"{path.name}: invalid scripted loading flag")
+        mode = guid_text(path.name[:-4].upper())
+        if mode in modes:
+            raise ValueError(f"{path.name}: duplicate mode asset {mode}")
+        modes[mode] = {
+            "graph": _mode_script_ref(xml, xml.root, "m_CF63B633", path.name),
+            "shared_graph": _mode_script_ref(xml, xml.root, "m_F88BA3B9", path.name),
+            "pve": xml.root.get("m_gameModeType") == "PVE", "scripted_loading": bool(flag), "teams": teams,
+        }
+    return modes
+
+
+def map_script_instances(path: Path, enums: EnumTables) -> tuple[list[dict], set[int]]:
+    """Retain placed graph order/overrides, resolving each component's DragonML IDs locally.
+
+    This XML contains component instance data, not transforms or entity-definition
+    defaults. It supplies script roots; it is not a complete spawnable world.
+    """
+    root = ET.parse(path).getroot()
+    if root.tag != "entities":
+        raise ValueError(f"{path}: expected an entities dump")
+    records, roots, seen = [], set(), set()
+    for entity in root:
+        index = int(entity.attrib["index"])
+        if index < 0 or index in seen:
+            raise ValueError(f"{path}: duplicate/invalid entity index {index}")
+        seen.add(index)
+        components = []
+        for component in entity:
+            if component.tag != "STUStatescriptComponentInstanceData":
+                continue
+            xml = StuXml(path, enums, root=component)
+            value = xml.value(component)
+            components.append(value)
+            for item in component.iter():
+                reference = item.get("GUID")
+                if reference and reference.endswith(".01B"):
+                    roots.add(guid_index(reference))
+        if components:
+            records.append({"entity_index": index, "definition": guid_text(entity.attrib["definition"]),
+                            "components": components})
+    return records, roots
+
+
 def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
-    *, ai_spawners: Path | None = None,
+    *, ai_spawners: Path | None = None, map_entities: dict[int, Path] | None = None,
 ) -> dict:
     variables = mode_variables(mode_xml, enums) if mode_xml is not None else None
+    mode_roots = mode_graph_roots(mode_xml) if mode_xml is not None else set()
     ai_roots = ai_graph_roots(ai_spawners) if ai_spawners is not None else set()
+    map_scripts, map_roots = {}, set()
+    for map_index, path in sorted((map_entities or {}).items()):
+        records, used = map_script_instances(path, enums)
+        map_scripts[f"0x{0x0800000000000000 | map_index:016X}"] = records
+        map_roots.update(used)
     heroes = json.loads(HEROES.read_text(encoding="utf-8"))
     bodies, reason, queue = {}, {}, []
     for hero, entry in heroes.items():
@@ -595,8 +816,20 @@ def collect(
         record, used = body_record(path, enums, None, name, include_ai_weapons=ai_spawners is not None)
         entities[f"0x{0x0400000000000000 | index:016X}"] = record
         queue.extend((graph, name) for graph in sorted(used))
+    associations = sorted({row["ai_association"] for row in entities.values() if "ai_association" in row})
+    for definition in associations:
+        key = f"0x{definition:016X}"
+        if key in entities:
+            continue
+        index = definition & 0xFFFFFFFFFFFF
+        name = f"AI entity {index:04X}"
+        record, used = body_record(xml_dir / "003" / f"{index:012X}.003.xml", enums, None, name)
+        entities[key] = record
+        queue.extend((graph, name) for graph in sorted(used))
     queue += list(ROOT_GRAPHS.items())
     queue.extend((index, "map AI spawners") for index in sorted(ai_roots))
+    queue.extend((index, "game mode scripts") for index in sorted(mode_roots))
+    queue.extend((index, "placed map scripts") for index in sorted(map_roots))
     graphs, missing = {}, set()
     while queue:
         index, why = queue.pop(0)
@@ -606,15 +839,19 @@ def collect(
         if not path.is_file():
             missing.add(index)
             continue
-        xml = GraphXml(path, enums)
-        graphs[index] = xml.record(index)
+        try:
+            xml = GraphXml(path, enums)
+            graphs[index] = xml.record(index)
+        except (ValueError, KeyError, RecursionError) as exc:
+            raise ValueError(f"graph {index:04X}: {exc}") from exc
         reason[index] = why
         for problem in sorted(set(xml.problems)):
             print(f"  {index:04X}: {xml.problems.count(problem)} x {problem}")
         queue += [(child, why) for child in sorted(xml.graph_refs())]
     data = {
         "version": 1,
-        "roots": {"bodies": sorted(bodies), "graphs": sorted(ROOT_GRAPHS.keys() | ai_roots)},
+        "roots": {"bodies": sorted(bodies),
+                  "graphs": sorted(ROOT_GRAPHS.keys() | ai_roots | mode_roots | map_roots)},
         "bodies": bodies,
         "missing": sorted(missing),
         "graphs": [graphs[index] for index in sorted(graphs)],
@@ -622,8 +859,11 @@ def collect(
     }
     if entities:
         data["entities"] = entities
+    if map_scripts:
+        data["map_scripts"] = map_scripts
     if variables is not None:
         data["mode_variables"] = variables
+        data["mode_scripts"] = mode_scripts(mode_xml, enums)
     return data
 
 
@@ -633,15 +873,25 @@ def entity_index(text: str) -> int:
     return int(text, 16)
 
 
+def map_source(text: str) -> tuple[int, Path]:
+    index, separator, path = text.partition("=")
+    if not separator or not path:
+        raise argparse.ArgumentTypeError("use HEX_MAP_INDEX=ENTITIES_XML, for example 079F=079F-entities.xml")
+    return entity_index(index), Path(path)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--xml", type=Path, required=True, help="DataTool XML dump")
     parser.add_argument("--owlib", type=Path, required=True, help="the OWLib checkout that made the dump")
     parser.add_argument("--entity", action="append", type=entity_index, default=[],
                         help="additional 003 asset index such as 1403, repeatable")
-    parser.add_argument("--mode-xml", type=Path, help="directory of .0C5 XML files to export mode variables")
+    parser.add_argument("--mode-xml", type=Path,
+                        help="directory of .0C5 XML files for mode variables and script roots")
     parser.add_argument("--ai-spawners", type=Path,
                         help="include local map spawner graph roots and AI weapon controls")
+    parser.add_argument("--map-entities", action="append", type=map_source, default=[],
+                        help="placed script roots/overrides as HEX_MAP_INDEX=ENTITIES_XML, repeatable")
     parser.add_argument("--output", type=Path, help="destination bundle")
     args = parser.parse_args()
     output = args.output or OUT
@@ -650,10 +900,16 @@ def main() -> None:
     for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners)):
         if source is not None and (args.output is None or output.resolve().is_relative_to(ROOT)):
             parser.error(f"{option} requires --output outside the repository")
+    if args.map_entities:
+        if args.output is None or output.resolve().is_relative_to(ROOT):
+            parser.error("--map-entities requires --output outside the repository")
+        if len(dict(args.map_entities)) != len(args.map_entities):
+            parser.error("--map-entities repeats a map index")
     enums = EnumTables(args.owlib / "TankLib" / "STU" / "Types")
     try:
         data = collect(
             args.xml, enums, tuple(args.entity), mode_xml=args.mode_xml, ai_spawners=args.ai_spawners,
+            map_entities=dict(args.map_entities),
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))

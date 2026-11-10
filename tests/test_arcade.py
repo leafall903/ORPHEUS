@@ -5,9 +5,17 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ow174.accounts.profile import Profile
+from ow174.accounts.profile import Profile, new_profile
 from ow174.catalog.templates import RetailTemplates
-from ow174.content.arcade import CARD_BASE, LUNAR_BRAWLS, WINTER_BRAWLS, Arcade
+from ow174.content.arcade import (
+    CARD_BASE,
+    CHALLENGE_MISSIONS,
+    JUNKENSTEIN,
+    LUNAR_BRAWLS,
+    MISSION_ARCHIVES,
+    WINTER_BRAWLS,
+    Arcade,
+)
 from ow174.content.ranked import COMPETITIVE_CTF, LUCIO_CUP, Ranked
 from ow174.jam.groups import ARCADE
 
@@ -50,6 +58,20 @@ class ArcadeTests(unittest.TestCase):
         cards = {c["+0x0"] for c in built[(ARCADE, 39802)]["+0x78"]["+0x0"]}
         self.assertEqual(windows, cards)
         self.assertTrue(all(card & CARD_BASE == CARD_BASE for card in cards))
+
+    def test_all_pve_events_offer_every_difficulty_and_challenge_together(self):
+        profile = Profile(events=["goodbye", "archives", "halloween"])
+        expected = set(MISSION_ARCHIVES) | set(CHALLENGE_MISSIONS) | set(JUNKENSTEIN)
+        self.assertEqual(len(expected), 47)
+        built = self.arcade.messages(profile, 0)
+        offered = {c["+0x0"] for c in built[(ARCADE, 39802)]["+0x78"]["+0x0"]}
+        windows = {w["+0x0"] for w in built[(ARCADE, 39810)]["+0x78"]}
+        self.assertTrue({CARD_BASE | c for c in expected} <= offered <= windows)
+
+
+    def test_new_local_profile_offers_all_junkenstein_cards(self):
+        cards = self.arcade.cards(new_profile(), 0)
+        self.assertEqual(cards[:len(JUNKENSTEIN)], list(JUNKENSTEIN))
 
 
 if __name__ == "__main__":

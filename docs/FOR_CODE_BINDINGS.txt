@@ -1,0 +1,50 @@
+Build-104319 native mission value bindings
+
+Scope: strict ForCodeSynced (STU_CD46AF93) execution with both m_598E32D5 and
+m_0582B0E4 zero. Nonzero transport-sync flags remain unsupported. Legacy body
+execution retains its previous passive behavior; this is not a complete mission
+host, a transport-sync implementation or original-client mission acceptance.
+
+The local authorized native image establishes:
+- D44CA0 / D0D250 appends the active state to the component registry.
+- D0D8B0 / D4B230 searches registered states and their value rows in order,
+  returns the first matching identifier, and evaluates its expression at read
+  time without the ticking state's dependency watcher. A matching null config
+  still reports success and leaves the destination unchanged; each nonmatching
+  state clears the destination. An empty registry leaves it unchanged as well.
+  The Python getter defaults to a fresh null destination and accepts an explicit
+  initial destination when the caller needs the native in-place behavior.
+- D0E920 removes a state by replacing its slot with the final registered state.
+  Therefore removal can change the winner of an otherwise overlapping binding.
+- DoBeginState calls the E0 update before its authored begin plugs, including the
+  already-active branch (1B70A6E / 1B708FA). The native end hook D44CD0 removes
+  the state before its final E0 update. Tick updates use the same binding path.
+- D44D00 evaluates the rows and queues their identifiers. Channel 0 drains
+  immediately; channel 1 drains after the ordinary component update, through
+  D0D350 / D0D370. The STU enum's default is channel 1.
+- D0D370 selects matching or wildcard observers, deduplicates callback/context
+  pairs, clears the queued identifiers, then invokes the selected callbacks.
+  Changes produced by a callback remain queued for a subsequent pass.
+
+The Python bridge stores ordered code_states, two code_pending lists and
+code_observers as (opaque backend token, optional identifier) pairs. One token
+identifies a native-service callback/context pair. A World backend handles the
+token; an explicitly subscribed missing backend terminates the component rather
+than dropping the notification. This does not implement the mission services
+that will consume these values.
+
+Read-only VM export retains the registry's State references and order, pending
+identifiers and observer tokens. It does not resolve expressions or invoke native
+observers. ForCodeSynced adds no state-local storage.
+
+Validation includes first-match selection, duplicate/null rows, live reads,
+swap removal, begin/reentry/end ordering, both notification channels, callback
+deduplication/reentry, missing backends, snapshot identity and fail-closed sync
+flags. A separate local probe uses the authored 100B node 158/state 49 binding
+from entity variable 11057 to identifier 2D19. It verifies only this isolated
+binding with explicit test values, not authored mission progression.
+
+Full 100B initialization remains incomplete. Its next strict diagnostic is the
+STU_7BD2CA19 resource configuration; the unique source candidate is node 322.
+The runtime does not infer an empty-resource value merely to advance that path.
+Mission world services, cinematics and enemy AI remain unaccepted.
