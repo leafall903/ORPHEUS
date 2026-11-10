@@ -614,10 +614,18 @@ Source paths for the remaining actions
   translation and yaw place the result. Optional runtime data needs
   emote_clips_174.json, wheel_pose_174/models/<12-digit body index>.00C
   and wheel_pose_174/clips/<12-digit clip index>.006, with uppercase
-  hex filenames. Six offline selections exercise 3D04, 3D05 and 3D06
-  on an equipped Lucio emote. The post-emote combat query returns to
-  body-height rays. Locomotion, greeting poses, blending, native
-  interpolation and model replacement remain open.
+  hex filenames. The local 104319 runtime contains the 1,471-row
+  equipped catalog, 416 .006 clips and all 32 base .00C models.
+  Each binary passed a fresh CASC manifest content-key and size
+  check and a server decoder check. The source inventory and
+  catalog digest are in local verification/wheel-pose-104319.
+  Runtime preparation copies the catalog and its canonical pose
+  files when present. A pack test verifies all 449 file hashes.
+  Six default-path selections exercise 3D04, 3D05 and 3D06
+  on an equipped Lucio emote without overriding the data path.
+  The seventh query returns to body-height rays after the emote.
+  Locomotion, greeting poses, blending, native interpolation,
+  non-base bodies and model replacement remain open.
   D607F0 reports occlusion for a hit owned by a different entity
   or by the world. A miss or a hit owned by the candidate is clear.
   Six native cases verify this decision with fixture scene returns.

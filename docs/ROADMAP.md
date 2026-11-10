@@ -157,8 +157,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     with sampled local transforms are available. A decoded absolute clip
     now supplies local samples to offline wheel rays. The extractor
     exports deterministic clip GUIDs for the authored category branches.
-    Match targeting now samples an active 023A primary clip using its
-    state time when external pose assets are present. Body-keyed greeting
+    The prepared local runtime includes 416 manifest-verified clips
+    and 32 base models. Default-path selections sample the active
+    023A primary clip at state time and restore the fallback on exit.
+    Runtime preparation carries all 449 indexed files. Body-keyed greeting
     clip selection is exported for 33 bodies. Native probes verify that
     model aliases send the two greeting tracks to slots 3 and 5. Their
     pose weights, other animation layers and model replacement remain open.

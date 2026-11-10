@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Install manifest-verified emote pose assets and carry them into prepared runtimes.
+  A 449-file package comparison, seven default-path target selections and
+  176 offline regression tests pass. Original-client acceptance remains open.
+
 - Verify and install scalar tracks for all 292 configured emote pairs.
   Fresh 104319 exports cover 164 categories and close 54 missing pairs.
   All 48,180 runtime lookups and 176 offline regression tests pass.

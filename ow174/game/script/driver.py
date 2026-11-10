@@ -46,7 +46,10 @@ from ow174.game.statescript import (
     sendable,
 )
 from ow174.game.world import UNIT_ENTITY_SCALE
-from ow174.paths import DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA, GREETING_DURATION_DATA
+from ow174.paths import (
+    DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_CLIP_DATA, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA,
+    GREETING_DURATION_DATA, WHEEL_POSE_DATA,
+)
 
 if TYPE_CHECKING:
     from ow174.game.match import Match
@@ -525,13 +528,13 @@ class BodyWorld(runtime.World):
         key = self._wheel_animation_key(state.instance, state.node)
         if key is None or not key[1]:
             return None
-        clips = animation_pose.wheel_primary_clips(DATA_DIR / "emote_clips_174.json")
+        clips = animation_pose.wheel_primary_clips(DATA_DIR / EMOTE_CLIP_DATA)
         clip = clips.get(key, clips.get((*key[:2], EMOTE_ANY_CATEGORY)))
         if clip is None:
             return None
         seconds = max(0, state.now - state.start) / 1000
         return animation_pose.wheel_clip_pose(
-            DATA_DIR / "wheel_pose_174", self.body_definition, clip, seconds, state.node.pos == 18, transform,
+            DATA_DIR / WHEEL_POSE_DATA, self.body_definition, clip, seconds, state.node.pos == 18, transform,
         )
 
     def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):
