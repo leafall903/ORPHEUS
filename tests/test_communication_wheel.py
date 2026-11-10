@@ -653,6 +653,34 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertNotIn(0x069A, {i.graph.index for i in body.component.instances.values()})
                 self.assertNotIn(0x1040, {i.graph.index for i in body.component.instances.values()})
 
+    def test_emote_cancel_detects_a_fall_without_buttons_or_axes(self):
+        match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(
+            flat_world(PRACTICE_RANGE.spawns[0].position[1]),
+        ))
+        player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+        in_world(match, player)
+        match.switch_hero(player, player.hero)
+        body = player.body_script
+        player.take_commands([Command(body.frame + 1)])
+        component = body.component
+        animation = component.create(graph.graph(0x023A), init=False)
+        animation.initialized = True
+        animation.write((expr.INSTANCE, 488), False)
+        cancel = animation.node_state(animation.graph.node(38))
+        cancel.begin()
+        self.assertTrue(component.entity_var(545).value())
+        self.assertTrue(cancel.active)
+
+        # Lift the feet clear of the floor while sending an idle command.
+        player.mover.position[1] += 2.0
+        player.take_commands([Command(body.frame + 1)])
+        self.assertTrue(player.mover.airborne)
+        self.assertFalse(component.entity_var(545).value())
+        self.assertFalse(component.entity_var(2070).value())
+        self.assertEqual(component.held, [])
+        self.assertTrue(animation.vars[488].value())
+        self.assertFalse(cancel.active)
+
     def test_emote_cancel_reads_axes_without_a_grounded_sample(self):
         for forward, right in ((127, 0), (0, -127)):
             with self.subTest(forward=forward, right=right):

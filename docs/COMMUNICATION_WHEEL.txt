@@ -304,12 +304,21 @@ Source paths for the remaining actions
   named in 023A:38 cancel the loop, as do the forward and right axes.
   Reload and camera rotation leave it active. Logical buttons 7 through
   10 are named in the graph but are absent from D56AA0's edge list.
-  The separate 023A:79 branch uses 30472 and 545. State 109 sets 30472
-  after checking the Y component of animation variable 681. The Anim
-  field EBEFB4A7 names 681. The field table gives offset +178, and CBDAD1
-  links that offset as slot 2. Three native CBD170 cases with a populated
-  cache returned float tag 3 from that slot. The cache producer and the
-  graph's vector consumption still need to be reconciled.
+  The separate 023A:79 branch cancels when both 30472 and grounded
+  variable 545 are false. State 109 sets 30472 through node 111 only if
+  abs(y(681)) exceeds 0.01 plus the native comparison tolerance. The
+  Anim field EBEFB4A7 names 681. The field table gives offset +178, and
+  CBDAD1 links it as slot 2. CC0DB5 passes the cache to BB8970, and
+  BB8E08 writes its sampled scalar at cache +8. CBD170 returns that slot
+  as float tag 3. Native expression opcode 61 at 1B809B0 returns zero
+  for a float, and reads the second component only for vector tag 6.
+  The native interpreter runs the authored nodes 77, 79 and 109 in 19
+  checks using supplied dynamic values, including the real slot 2 output.
+  A vector fixture can set the exemption, while the Anim slot's float
+  cannot. An idle command after the mover leaves the floor cancels the
+  ordinary Take a Knee loop without any held button or throttle. The
+  server still lacks the sampled scalar used by the separate 023A:77
+  movement-modifier path.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored

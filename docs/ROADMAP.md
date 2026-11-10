@@ -67,9 +67,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     the tagged unlock fallback. The pilot uses its body tree to finish
     the fallback animation. Nine command buttons and both movement axes
     cancel the offline loop. Replays use both axes even without a mover
-    sample. The remaining logical buttons, animation-dependent airborne
-    cancellation, active mech tag selection, live model remaps and
-    original-client playback remain open.
+    sample. An idle command cancels on leaving the floor. Native expression
+    cases verify the airborne gate and that Anim slot 2 is scalar. The
+    remaining logical buttons, animation-driven movement modifiers, active
+    mech tag selection, live model remaps and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.
