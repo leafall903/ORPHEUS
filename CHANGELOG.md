@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Bind emote loadouts to the selected body definition. An offline run with
+  the original 0407 graph inputs verifies mech startup and tagged emote
+  timing between two pilot selections. The base runtime still selects the
+  pilot. Automatic form transitions and original-client acceptance remain open.
 - Trace the primary sight anchor through 32 original player models.
   The 160 native compile, lookup and transform cases, eight ray-order
   cases and three offline targeting tests pass. Live bone poses and

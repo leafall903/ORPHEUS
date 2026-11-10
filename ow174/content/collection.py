@@ -225,13 +225,15 @@ class Collection:
                 slots[slot] = _parse_guids(value)
         return slots
 
-    def emote_aliases(self, profile: Profile, hero: int) -> tuple[int, ...]:
-        return self._equipped_emote_assets(profile, hero, blend=False)
+    def emote_aliases(self, profile: Profile, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
+        return self._equipped_emote_assets(profile, hero, body_definition, blend=False)
 
-    def emote_blend_trees(self, profile: Profile, hero: int) -> tuple[int, ...]:
-        return self._equipped_emote_assets(profile, hero, blend=True)
+    def emote_blend_trees(self, profile: Profile, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
+        return self._equipped_emote_assets(profile, hero, body_definition, blend=True)
 
-    def _equipped_emote_assets(self, profile: Profile, hero: int, *, blend: bool) -> tuple[int, ...]:
+    def _equipped_emote_assets(
+        self, profile: Profile, hero: int, body_definition: int | None, *, blend: bool,
+    ) -> tuple[int, ...]:
         equipped = self.loadout(profile, hero).get(LIST_SLOT_BY_TYPE["Emote"])
         if not isinstance(equipped, list):
             return ()
@@ -242,10 +244,11 @@ class Collection:
             if tagged is None:
                 resolved.append(assets.get(unlock, 0))
                 continue
-            # Match currently instantiates the hero's gameplay entity.
+            if body_definition is None:
+                body = heroes().get(hero)
+                body_definition = body.body if body is not None else 0
             # None denotes a verified body with no target-tag component.
-            body = heroes().get(hero)
-            tags = self.items.emote_body_tags.get(body.body if body is not None else 0, frozenset())
+            tags = self.items.emote_body_tags.get(body_definition, frozenset())
             alias, tree, required = tagged
             if tags is not None and required.isdisjoint(tags):
                 # CD7B18 uses the base Heroic alias before applying a skin remap.

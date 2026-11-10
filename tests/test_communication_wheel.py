@@ -586,14 +586,13 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(collection.emote_aliases(profile, dva), (fallback, 0))
         self.assertEqual(collection.emote_blend_trees(profile, dva), (0, 0))
         mech_hero = replace(heroes()[dva], body=mech)
-        with patch("ow174.content.collection.heroes", return_value={dva: mech_hero}):
-            self.assertEqual(collection.emote_aliases(profile, dva), (alias, 0))
-            self.assertEqual(collection.emote_blend_trees(profile, dva), (blend, 0))
+        self.assertEqual(collection.emote_aliases(profile, dva, body_definition=mech), (alias, 0))
+        self.assertEqual(collection.emote_blend_trees(profile, dva, body_definition=mech), (blend, 0))
 
         match = Match(
             PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
-            emote_aliases_of=lambda _, hero: collection.emote_aliases(profile, hero),
-            emote_blend_trees_of=lambda _, hero: collection.emote_blend_trees(profile, hero),
+            emote_aliases_of=lambda _, hero, **form: collection.emote_aliases(profile, hero, **form),
+            emote_blend_trees_of=lambda _, hero, **form: collection.emote_blend_trees(profile, hero, **form),
         )
         player = match.add_player(1, "D.Va", dva, 0, False)
         match.own_body_updates(player)
@@ -606,6 +605,26 @@ class CommunicationWheelTests(unittest.TestCase):
         animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
         self.assertEqual(animation.vars[2254].value(), expr.Asset(fallback))
         self.assertEqual(animation.vars[8908].value(), expr.Asset(0))
+
+        # The base runtime has no 0407 graph bundle. Use a form record with
+        # the common wheel roots to isolate Match's body and loadout selection.
+        form_record = dict(graph.bodies()[pilot], hero=None)
+        in_world(match, player)
+        with patch.object(graph, "entity_body", side_effect=lambda body: form_record if body == mech else None):
+            self.assertTrue(match.switch_hero(player, mech_hero))
+        mech_script = player.body_script
+        self.assertIs(mech_script.record, form_record)
+        self.assertEqual(mech_script.world.body_definition, mech)
+        match.communication_action(player, {"+0x78": 0x0A90000000000172, "+0x80": True})
+        match.deliver_body_messages()
+        mech_script.command(mech_script.frame + 1, 0, grounded=True)
+        animation = next(i for i in mech_script.component.instances.values() if i.graph.index == 0x023A)
+        self.assertEqual(animation.vars[2254].value(), expr.Asset(alias))
+        self.assertEqual(animation.vars[8908].value(), expr.Asset(blend))
+        self.assertTrue(match.switch_hero(player, heroes()[dva]))
+        self.assertTrue(mech_script.retired)
+        self.assertEqual(player.body_script.world.body_definition, pilot)
+        self.assertEqual(player.body_script.world.emote_aliases, (fallback, 0))
 
     def test_equipped_kneel_timing_and_cancel_follow_body_commands(self):
         alias, blend = 0x0C80000000000476, 0x00400000000006B2

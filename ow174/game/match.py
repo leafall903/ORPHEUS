@@ -385,7 +385,7 @@ def no_skin(account_lo: int, hero: int) -> tuple[int, bool]:
     return 0, False
 
 
-def no_emote_aliases(account_lo: int, hero: int) -> tuple[int, ...]:
+def no_emote_aliases(account_lo: int, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
     return ()
 
 
@@ -1133,8 +1133,12 @@ class Match:
             return
         try:
             spray_unlocks, voice_effects = self.wheel_cosmetics_of(player.account_lo, player.hero.guid)
+            canonical = heroes().get(player.hero.guid)
+            emote_args = {}
+            if canonical is not None and player.hero.body != canonical.body:
+                emote_args["body_definition"] = player.hero.body
             blends = () if self.emote_blend_trees_of is None else self.emote_blend_trees_of(
-                player.account_lo, player.hero.guid,
+                player.account_lo, player.hero.guid, **emote_args,
             )
             script = BodyScript(
                 player.hero.guid,
@@ -1144,7 +1148,8 @@ class Match:
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
                 match=self,
-                emote_aliases=self.emote_aliases_of(player.account_lo, player.hero.guid),
+                body_definition=player.hero.body,
+                emote_aliases=self.emote_aliases_of(player.account_lo, player.hero.guid, **emote_args),
                 emote_blend_trees=blends,
                 spray_unlocks=spray_unlocks,
                 voice_effects=voice_effects,

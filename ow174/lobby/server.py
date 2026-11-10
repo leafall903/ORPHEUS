@@ -252,17 +252,19 @@ class LobbyServer:
         weapon = self.items.unlocks.get(loadout.get("+0x50") or 0)
         return (skin.skin_theme if skin else 0), bool(weapon and weapon.name == GOLDEN_WEAPON)
 
-    def emote_aliases_of(self, account_lo: int, hero: int) -> tuple[int, ...]:
+    def emote_aliases_of(self, account_lo: int, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
         account = self.accounts.by_id(account_lo)
         if account is None:
             return ()
-        return self.content.collection.emote_aliases(account.profile, hero)
+        return self.content.collection.emote_aliases(account.profile, hero, body_definition=body_definition)
 
-    def emote_blend_trees_of(self, account_lo: int, hero: int) -> tuple[int, ...]:
+    def emote_blend_trees_of(
+        self, account_lo: int, hero: int, *, body_definition: int | None = None,
+    ) -> tuple[int, ...]:
         account = self.accounts.by_id(account_lo)
         if account is None:
             return ()
-        return self.content.collection.emote_blend_trees(account.profile, hero)
+        return self.content.collection.emote_blend_trees(account.profile, hero, body_definition=body_definition)
 
     def wheel_cosmetics_of(self, account_lo: int, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
         account = self.accounts.by_id(account_lo)

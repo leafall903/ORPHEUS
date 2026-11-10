@@ -196,9 +196,10 @@ class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
 
-    def __init__(self, hero: int, mode: int, body: int) -> None:
+    def __init__(self, hero: int, mode: int, body: int, body_definition: int) -> None:
         super().__init__(hero, mode)
         self.body = body
+        self.body_definition = body_definition
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
         self.emote_blend_trees: tuple[int, ...] = ()
@@ -257,6 +258,13 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if (cls == "STU_F7262B36" and self.match is not None and instance is not None
+                and instance.graph.index == 0x0276 and self.body_definition == 0x0400000000000407
+                and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
+            # The mech's authored startup lock waits for its component 43 owner.
+            owner = next((player for player in self.match.players
+                          if player.has_body and not player.gone and player.body == self.body), None)
+            return Entity(owner.entity if owner is not None else 0)
         if self.communication_wheel and instance is not None and instance.graph.index == 0x004B:
             # BodyScript is the match-owned human body. 004B's untagged filter
             # and its player check gate the authored 05AD and 02CF wheels.
@@ -388,11 +396,9 @@ class BodyWorld(runtime.World):
         if category is not None and not isinstance(category, Asset):
             return None
         blend_guid = blend.guid
-        if not blend_guid:
-            hero = heroes().get(self.hero)
-            if hero is not None and hero.body == 0x040000000000040A:
-                # The pilot's model component supplies its base tree when the equipped tree is empty.
-                blend_guid = 0x004000000000048A
+        if not blend_guid and self.body_definition == 0x040000000000040A:
+            # The pilot's model component supplies its base tree when the equipped tree is empty.
+            blend_guid = 0x004000000000048A
         durations = wheel_emote_durations(DATA_DIR / EMOTE_DURATION_DATA)
         return durations.get(
             (blend_guid, alias.guid, category.guid if category is not None else 0),
@@ -573,6 +579,7 @@ class BodyScript(ReplicatedBody):
         *,
         match: "Match | None" = None,
         communication_wheel: bool = False,
+        body_definition: int | None = None,
         emote_aliases: tuple[int, ...] = (),
         emote_blend_trees: tuple[int, ...] = (),
         spray_unlocks: tuple[int, ...] = (),
@@ -580,14 +587,19 @@ class BodyScript(ReplicatedBody):
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
-        if record is None:
-            raise ValueError(f"no statescript data for the hero {hero:016X}")
+        records = graph.bodies()
+        if body_definition is None:
+            body_definition = next((key for key, item in records.items() if int(item["hero"], 16) == hero), None)
+        record = records.get(body_definition)
+        if record is None and (hero, body_definition) == (0x02E000000000007A, 0x0400000000000407):
+            record = graph.entity_body(body_definition)
+        if record is None or (record.get("hero") is not None and int(record["hero"], 16) != hero):
+            raise ValueError(f"no statescript data for hero {hero:016X} and body {body_definition!r}")
         self.hero = hero
         self.entity = entity
         self.record = record
         self.frame_ms = max(1, quanta // 1000)
-        self.world = BodyWorld(hero, mode, entity)
+        self.world = BodyWorld(hero, mode, entity, body_definition)
         self.world.match = match
         self.world.communication_wheel = communication_wheel or match is not None
         for name, slots in (("emote_aliases", emote_aliases), ("emote_blend_trees", emote_blend_trees),

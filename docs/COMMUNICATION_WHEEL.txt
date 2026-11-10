@@ -180,8 +180,8 @@ Source paths for the remaining actions
   component 76 tag list when it exists. On a mismatch, the alias query
   selects 045C before the skin remap and the blend query returns zero.
   The extracted 040A pilot lists tags 0121 and 015A. The 0407
-  mech also has 0069. The loadout resolver checks the target-tag
-  component of the hero's configured gameplay body. The 104319
+  mech also has 0069. The loadout resolver uses the body definition
+  selected by the match. The 104319
   hero table currently selects 040A, so the pilot gets the base
   045C alias and a zero blend set for tagged unlocks. A fixture
   selecting 0407 verifies the authored 0476 alias and 0690 set for
@@ -191,8 +191,16 @@ Source paths for the remaining actions
   alias selects 365F.006 at 5.0000005 s. Four offline native cases
   select the same record with different categories. The wheel
   retains the zero equipped blend on the graph and schedules the
-  finish using the body tree. The active relation, tag lifetime
-  and live model remap lookup still need bindings.
+  finish using the body tree. When explicitly supplied with the
+  0407 body and its prepared graphs, the Match mounts its own roots
+  and resolves the tagged emote using the mech body. The 0276:14
+  condition reads the Match's body owner through F7262B36. This lets
+  the authored one-second startup stack release before selection.
+  An offline pilot-to-mech-to-pilot probe uses the original graph
+  inputs. 023A receives 0476/0690 in the mech, with 1800 ms intro
+  and 433 ms exit durations, and returns to 045C/zero on the pilot.
+  The mech bundle and a skill-driven form transition are separate
+  inputs. Runtime tag changes and live model remaps remain open.
   STU_DF7C7C63 evaluates at CE18E0 and reads the accepted unlock's
   blend tree set at +108. Six offline executions of the native tail
   cover no tag requirement, missing component, matching and mismatching

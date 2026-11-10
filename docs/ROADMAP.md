@@ -69,8 +69,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     cancel the offline loop. Replays use both axes even without a mover
     sample. An idle command cancels on leaving the floor. Native expression
     cases verify the airborne gate and that Anim slot 2 is scalar. The
-    remaining logical buttons, animation-driven movement modifiers, active
-    mech tag selection, live model remaps and original-client playback remain open.
+    remaining logical buttons and animation-driven movement modifiers remain open.
+    An explicitly selected mech body with its prepared graphs uses its tagged
+    emote. Automatic form transitions, runtime tag changes, live model remaps
+    and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.
