@@ -1183,22 +1183,32 @@ class MoveTo(State):
 
 @state_class("STUStatescriptStateAnim")
 class Anim(State):
-    """An animation (OnBegin 0x7FF78981DD90): with m_playOverDuration (m_86701C3E) set, a timer at start + d
-    follows m_A3B86BB0 (animation finished), and unless m_clientAnimRemovesSelf (m_154DBA91) the state
-    finishes at start + d. Without it the duration is the animation asset's: not known here."""
+    """Animation state timing (104319 CC19A0 / CC1E70).
+
+    Non-looping states use an authored or model-resolved duration. Timer 1
+    follows m_A3B86BB0, and m_154DBA91 suppresses automatic state finish.
+    """
 
     family = "anim"
 
     def on_enter(self) -> None:
+        if truthy(self.evaluate(_field(self, "m_37EE887D"), watch=False)):
+            return
         duration = _field(self, "m_86701C3E")
         if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
-            return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
-        self.timer_at(max(0, ms), 1)
-        removes_self = _field(self, "m_154DBA91")
-        if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
-            self.request_finish(max(0, ms))
+            parent = self.instance.parent
+            # The wheel passes a typed alias (or zero) into 023A. A zero alias
+            # skips CBFE20, so the native descriptor retains its zero duration.
+            if (self.instance.graph.index != 0x023A or parent is None or parent.graph.index != 0x069A
+                    or truthy(self.evaluate(_field(self, "m_11E0A658"), watch=False))):
+                expr.warn_once("anim", "model-resolved Anim durations are unavailable")
+                return
+            delay = 0
+        else:
+            delay = seconds_to_ms(self.evaluate(duration, watch=False)) - (self.now - self.start)
+        self.timer_at(delay, 1)
+        if not truthy(self.evaluate(_field(self, "m_154DBA91"), watch=False)):
+            self.request_finish(max(0, delay))
 
     def timer(self, param: int) -> None:
         if param == 1:

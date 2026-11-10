@@ -165,6 +165,23 @@ Source paths for the remaining actions
   succeeds after the authored cooldown. The source of natural animation
   completion, the complete interrupt inputs and original-client
   playback remain open.
+  Native Anim descriptor builder CC19A0 takes m_86701C3E as the
+  duration. When it is below 0.00011920929 seconds, CC1DB0 tries
+  CBFE20 for a nonzero .014 alias and passes the .015 category.
+  A positive model result is multiplied by m_speedScalar, default 1.
+  CBFE20 takes the float at BB8970 output +8. In the duration-only
+  path, BB8970 reads the selected model record at +10 into that field.
+  CC1E70 skips scheduling for m_37EE887D, otherwise it rounds the
+  descriptor seconds to milliseconds and subtracts the elapsed time.
+  It queues timer 1 and, unless m_154DBA91 is set, state finish.
+  Twelve native instruction cases exercise the two timing branches with
+  fixture model and timer services. The host handles the loop flag,
+  elapsed time for authored durations, and the zero-alias case in
+  023A under 069A. An offline graph test exercises the 023A:19 finish
+  into 023A:18. The production model and category lookup still needs
+  reconstruction. Soldier: 76's 06AD and 06B2 tree sets reference clips
+  of different durations. The list of clip durations alone does not
+  resolve the record returned by the native query.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
   graph selects the fixed, configurable or voice branch. Initializer 62

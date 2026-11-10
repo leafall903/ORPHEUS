@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Follow the animation state's loop flag and subtract elapsed time from
+  authored durations. The emote graph can finish a non-looping state with
+  an empty alias. Twelve native instruction cases cover duration selection
+  and scheduling with fixture services. All 89 focused offline tests pass.
+  Equipped model duration lookup and original-client playback remain open.
 - Release the emote's priority stack and helper when its authored
   graph reaches a terminal action. The owner frame retires the old
   descriptors and accepts a new selection after the existing cooldown.

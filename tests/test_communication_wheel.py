@@ -345,6 +345,27 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertNotIn(current[index].id, body.component.instances)
             self.assertNotIn(current[index].id, client.graphs)
 
+    def test_emote_intro_with_no_alias_takes_its_authored_loop_transition(self):
+        body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
+        component = body.component
+        parent = component.create(graph.graph(0x069A), init=False)
+        animation = component.create(graph.graph(0x023A), parent=parent, init=False)
+        animation.initialized = True
+        animation.write((expr.INSTANCE, 2254), expr.Asset(0))
+        intro = animation.node_state(animation.graph.node(19))
+        loop = animation.node_state(animation.graph.node(18))
+
+        # Supply a duration to isolate the authored loop flag from the
+        # missing-duration case. The intro still has no duration or alias.
+        duration = {"$": "STUConfigVarFloat", "m_value": 1.0}
+        with patch.dict(loop.node.fields, {"m_86701C3E": duration}), patch.object(loop, "timer_at") as timer:
+            intro.begin()
+            self.assertTrue(intro.active)
+            animation.update()
+            self.assertFalse(intro.active)
+            self.assertEqual(loop.counter, 1)
+            timer.assert_not_called()
+
     def test_voice_lookup_uses_the_authored_equipped_slot_config(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
         voice = body.component.create(graph.graph(0x0686), init=False)
