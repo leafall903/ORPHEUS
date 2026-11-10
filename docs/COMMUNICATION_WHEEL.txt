@@ -119,6 +119,12 @@ Source paths for the remaining actions
   placement. The body snapshot now includes the selected unlock in
   its comparison so a new spray at the same point reaches both
   streams. The geometry codec uses its original fields.
+  98AD65 assigns type 1 on creation. In the decal manager,
+  6E6CE0 skips rows with flag 0x10 or a nonzero type. 6E7281 skips
+  rows with a nonzero type or flag 0x04. Twenty-four native cases
+  with type 0, 1 and 2 rows and mixed flags verify that both sweeps
+  retain type 1. The direct removal callsites for type 1 pass a
+  placement key. The recovered wheel lifetime follows the state.
   For a nonzero attachment key at +1F4, 98A791 asks 1AFBE10 for
   an anchor transform. Otherwise it uses the entity transform.
   98AB92 applies the transform to the stored point and normal.
@@ -130,8 +136,8 @@ Source paths for the remaining actions
   A collision fixture sends both root and keyed attachments through
   the authored state in owner and observer frames.
   The expanded ray cache supplies world-space static hits.
-  Dynamic hit ownership, anchor production and independent decal expiry,
-  full collision filtering and the server-side unlock-use effect remain open.
+  Dynamic hit ownership, anchor production, full collision filtering
+  and the server-side unlock-use effect remain open.
 - Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
   a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.

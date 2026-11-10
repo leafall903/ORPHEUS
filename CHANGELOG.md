@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify that both general decal cleanup loops retain type 1 wheel
+  sprays. All 24 native instruction cases pass with mixed decal types
+  and flags. Replacement and state cleanup use the keyed removal path.
+  Original-client acceptance remains deferred.
 - Resend spray placement to the owner and observers when the equipped
   spray changes at identical geometry. All 73 focused offline tests and
   six native decal replacement cases pass. Independent expiry,

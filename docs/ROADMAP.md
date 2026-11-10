@@ -77,8 +77,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     Declared attachment poses produce local point and normal data for both streams.
     Native ray dispatch, entity filtering and decal replacement are
     verified with fixtures. A different equipped spray at identical
-    geometry sends a replacement in both streams. Attachment production,
-    any independent decal expiry and client-side cosmetic access remain open.
+    geometry sends a replacement in both streams. The general cleanup
+    sweeps retain wheel sprays, and keyed replacement and lifecycle cleanup
+    remove them. Attachment production and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     Live match poses now supply candidates to the two authored target states.
