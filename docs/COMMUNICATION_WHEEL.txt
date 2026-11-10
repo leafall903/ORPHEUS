@@ -739,7 +739,19 @@ Source paths for the remaining actions
   01EE has word 0100 and absolute tracks. Both track the anchor chain.
   Adding the 02DE translations to the first 01EE frame reproduces
   sampled absolute translations within 0.001113 on the tested chain.
-  The match still needs the original layer selection and blend rules.
+  The layer request is STUPlayAnimSlot m_B2E34614. The native field
+  registrations at 1545EDE and FEA5DD use offsets 1BC on the Anim
+  node and 88 on the model alias settings. CC19A0 and CC5810 copy
+  the node value to request +2C. BBA570 keeps 0 through 5 and maps
+  other request values to 0. Its alias settings override that value
+  only for slots 1 through 5. Offline native execution checks eight
+  default inputs and 64 alias overrides. All 33 body trees author
+  slot 3 for 02DE and slot 5 for 01EE. Soldier, Lucio and Genji use
+  00A6.020 for the former and 03B1.020 for the latter. 03B1 starts
+  a blend node with a 014.013 data-flow input. The Brigitte 01EE
+  tree is 0054.020, with an 081.013 weight driver and additive
+  layer nodes. Model layer registration is resolved. Pose weights
+  and composition are still open.
   104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
   branches. The extractor accepts a blend duration if all eligible
   leaves agree. Eleven offline native runs check Soldier: 76, Echo

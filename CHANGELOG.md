@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace both 0341 greeting tracks to their original animation slots.
+  Verify 72 native instruction cases and the alias rows for 33 bodies.
+  The two tracks register in slots 3 and 5. Pose weights and client
+  acceptance remain open.
 - Export body-keyed greeting clip selections for the two 0341 aliases.
   The 33 original body definitions yield 71 distinct clips. Compare
   seven original clips and preserve the existing greeting durations.
