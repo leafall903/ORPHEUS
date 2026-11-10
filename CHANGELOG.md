@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Export authored movement scalar tracks by blend tree, alias and category.
+  A 332-tree offline export preserves duration and clip files byte for byte.
+  All 101 focused tests pass. Runtime sampling and client acceptance remain open.
+
 - Trace the original emote animation startup keys into the movement scalar sampler.
 
 - Verify the original emote scalar track builder, interpolation and

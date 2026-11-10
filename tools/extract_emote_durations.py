@@ -1,9 +1,11 @@
-"""Extract deterministic animation durations and primary clip GUIDs from 104319 .021 XML."""
+"""Extract deterministic animation durations, primary clip GUIDs and movement scalar tracks from 104319 .021 XML."""
 
 import argparse
 import json
 import math
 import sys
+from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from extract_game_graphs import StuXml, guid_text
@@ -62,15 +64,55 @@ def primary_record(xml, game_data, leaf, clips):
     return f"0x{clip:016X}" if clip >> 48 == 0x0A00 and clip & 0xFFFFFFFFFFFF else None
 
 
-def primary_tree(xml, data, node, keys, clips, depth=0):
+@dataclass(frozen=True)
+class ScalarTrack:
+    times: tuple[float, ...] = ()
+    values: tuple[float, ...] = ()
+
+
+def scalar_track(xml, _game_data, leaf):
+    if leaf is None or leaf.tag != "STU_3C8FB392":
+        return None
+    # With a sample group, F517F0 writes this index plus one at result +14.
+    index = int(leaf.get("m_76E8D211", "-1"))
+    if index < 0 or leaf.get("m_3A9A1E85", "0") == "0":
+        return ScalarTrack()
+    model = xml.field(xml.root, "m_D1467FCA")
+    if model is None or model.tag != "STU_B38E3226":
+        return None
+    rows = xml.field(model, "m_A867458D")
+    if rows is None or index >= len(rows):
+        return None
+    row = xml.resolve(rows[index])
+    if row.tag != "STU_CE2BEF36":
+        return None
+    track = xml.field(row, "m_3D2FFAAA")
+    if track is None:
+        return ScalarTrack()
+    if track.tag != "STU_0AB74EE9":
+        return None
+    times = xml.field(track, "m_4DC48800")
+    values = xml.field(track, "m_1EB5B02B")
+    if times is None or values is None or not len(values):
+        return ScalarTrack()
+    if len(times) != len(values):
+        return None
+    times = tuple(float(xml.resolve(item).text) for item in times)
+    values = tuple(float(xml.resolve(item).text) for item in values)
+    if not all(map(math.isfinite, times + values)) or any(a > b for a, b in zip(times, times[1:])):
+        return None
+    return ScalarTrack(times, values)
+
+
+def primary_tree(xml, data, node, keys, read_record, depth=0):
     # C085B0 suppresses auxiliary nodes. F4CBC0 limits nested alias references.
     if depth >= 48 or node is None:
         return None
     if node.tag == "STU_3C8FB392":
-        return primary_record(xml, data, node, clips)
+        return read_record(xml, data, node)
     if node.tag == "STU_331B7B06":
         nested = embedded_data(xml, node)
-        return primary_tree(xml, nested, first_animation_node(xml, nested), keys, clips, depth + 1)
+        return primary_tree(xml, nested, first_animation_node(xml, nested), keys, read_record, depth + 1)
     if node.tag == "STU_4178508A" and node.get("m_5E009A60") == "1":
         # F4D310 picks adjacent branches. The result is deterministic only when all branches agree.
         indexes = xml.field(node, "m_540E2FC8")
@@ -85,7 +127,7 @@ def primary_tree(xml, data, node, keys, clips, depth=0):
         children = [int(item.text) for item in indexes]
         if any(not 0 < index < len(nodes) for index in children):
             return None
-        records = {primary_record(xml, data, xml.resolve(nodes[index]), clips) for index in children}
+        records = {read_record(xml, data, xml.resolve(nodes[index])) for index in children}
         return records.pop() if len(records) == 1 else None
     if node.tag != "STU_623B2B19" or node.get("m_E6058AAD") != "1":
         return None
@@ -103,7 +145,7 @@ def primary_tree(xml, data, node, keys, clips, depth=0):
     if any(not 0 < index < len(nodes) for index in indexes):
         return None
     keys.update(selectors[:-1])
-    return tuple((key, primary_tree(xml, data, xml.resolve(nodes[index]), keys, clips, depth + 1))
+    return tuple((key, primary_tree(xml, data, xml.resolve(nodes[index]), keys, read_record, depth + 1))
                  for key, index in zip(selectors, indexes))
 
 
@@ -134,10 +176,10 @@ def load_category_parents(source):
     return parents
 
 
-def animation_records(xml, item, category_parents, clips):
+def animation_records(xml, item, category_parents, read_record):
     keys = set()
     data = xml.field(item, "m_gameData")
-    tree = primary_tree(xml, data, first_animation_node(xml, data), keys, clips)
+    tree = primary_tree(xml, data, first_animation_node(xml, data), keys, read_record)
     if tree is None:
         return {}
     if not isinstance(tree, tuple):
@@ -162,6 +204,10 @@ def animation_records(xml, item, category_parents, clips):
 
 
 def extract(source, category_source=None, *, clips=False):
+    return extract_records(source, category_source, partial(primary_record, clips=clips))
+
+
+def extract_records(source, category_source, read_record):
     category_parents = load_category_parents(category_source)
     tables = {}
     for path in sorted(source.glob("*.021.xml")):
@@ -177,7 +223,7 @@ def extract(source, category_source=None, *, clips=False):
             key = int(alias.text)
             if key >> 48 != 0x0C80 or key & 0xFFFFFFFF == 0:
                 continue
-            categories = animation_records(xml, xml.resolve(item), category_parents, clips)
+            categories = animation_records(xml, xml.resolve(item), category_parents, read_record)
             if categories:
                 durations[f"0x{key:016X}"] = categories
         if durations:
@@ -207,19 +253,22 @@ def main():
     parser.add_argument("source", type=Path, help="directory containing *.021.xml")
     parser.add_argument("output", type=Path, help=f"runtime data/{EMOTE_DURATION_DATA}")
     parser.add_argument("--clips-output", type=Path, help="optional primary .006 selections")
+    parser.add_argument("--scalar-output", type=Path, help="optional movement scalar tracks")
     parser.add_argument("--categories", type=Path, help="directory containing *.015.xml")
     parser.add_argument("--body-definitions", nargs="+", type=Path, default=[],
                         help="entity definition .003 XML files for greeting gestures")
     args = parser.parse_args()
+    outputs = [args.output.resolve()]
+    if args.body_definitions:
+        outputs.append(args.output.with_name(GREETING_DURATION_DATA).resolve())
     if args.clips_output is not None:
-        outputs = [args.output.resolve()]
-        if args.body_definitions:
-            outputs.append(args.output.with_name(GREETING_DURATION_DATA).resolve())
         outputs.append(args.clips_output.resolve())
         if args.body_definitions:
             outputs.append(args.clips_output.with_name(GREETING_CLIP_DATA).resolve())
-        if len(set(outputs)) != len(outputs):
-            parser.error("--clips-output and greeting outputs require separate paths")
+    if args.scalar_output is not None:
+        outputs.append(args.scalar_output.resolve())
+    if len(set(outputs)) != len(outputs):
+        parser.error("animation outputs require separate paths")
     rows = extract(args.source, args.categories)
     if not rows:
         raise SystemExit("No supported animation data found")
@@ -235,6 +284,12 @@ def main():
             output = args.clips_output.with_name(GREETING_CLIP_DATA)
             output.write_text(json.dumps(greeting_clips, indent=2) + "\n", encoding="utf-8")
             print(f"Wrote greeting clip selections for {len(greeting_clips)} body definitions")
+    if args.scalar_output is not None:
+        tracks = extract_records(args.source, args.categories, scalar_track)
+        args.scalar_output.write_text(
+            json.dumps(tracks, indent=2, default=vars) + "\n", encoding="utf-8",
+        )
+        print(f"Wrote movement scalar tracks from {len(tracks)} blend tree sets")
     if greetings:
         output = args.output.with_name(GREETING_DURATION_DATA)
         output.write_text(json.dumps(greetings, indent=2) + "\n", encoding="utf-8")

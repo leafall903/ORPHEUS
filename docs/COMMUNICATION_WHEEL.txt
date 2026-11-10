@@ -385,9 +385,24 @@ Source paths for the remaining actions
   Twenty native compiled-row cases exercise both array layouts
   through the cache write. Eleven additional cases cover sample
   time boundaries, interpolation and cursor rewind. These probes
-  supply fixture rows. The selected wheel emote still needs a
-  verified mapping from the startup key pair and model context
-  to the compiled row that contains its authored scalar curve.
+  supply fixture rows. In the model query, F4CCA0 passes leaf
+  m_76E8D211 to F517F0. With a sample group, the output stores
+  that index plus one at +14. BB8970 uses it with the model
+  payload pointer at +8 to select a 0x110-byte row from model
+  +80. This is the
+  STU_B38E3226 array m_A867458D. In each STU_CE2BEF36 row,
+  m_3D2FFAAA holds the scalar time and value arrays m_4DC48800
+  and m_1EB5B02B. The primary duration index is separate.
+  The duration extractor accepts --scalar-output and resolves
+  these arrays by blend tree, alias and category. It emits empty
+  arrays for a known absent track and skips unresolved records.
+  Soldier: 76 tree 06B2 alias 0476 has no authored curve in its
+  selected branches. Alias 0477 has a nonzero one-key curve in
+  trees 0649 and 0729. In 0729 category 006E selects a zero key.
+  A run across 332 local tree sets leaves existing duration and
+  clip output byte-identical. One empty XML file was excluded.
+  The server still needs the native animation phase and the
+  connection from these extracted tracks to Anim output 681.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored
