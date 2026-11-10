@@ -520,7 +520,7 @@ class BodyWorld(runtime.World):
                 return True
         return NotImplemented
 
-    def localized_callout(self, instance: runtime.Instance, node: graph.Node) -> None:
+    def replicate_wheel_action(self, instance: runtime.Instance, node: graph.Node) -> None:
         if not self.communication_wheel or node.remote < 0 or not node.is_networked:
             return
         index = instance.graph.index

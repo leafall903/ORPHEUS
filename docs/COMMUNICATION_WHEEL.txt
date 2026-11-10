@@ -369,6 +369,15 @@ Source paths for the remaining actions
   A separate offline comparison verifies all 20 authored text-map
   rows through observer frames. Each of the four voice choices emits
   a first-play pulse.
+  The 0686 Effect actions at positions 14, 15, 40 and 41 also have
+  authored action IDs in both frame forms. The body queues their IDs
+  in execution order with the localized callout actions. The frame
+  carries node identity and the original effect expression is intact.
+  Offline 21608 Need Healing reaches effect 40. Group Up sends
+  localized action 6 followed by effect 41. Both streams retry
+  effect 40 with its original stamp. Sixteen native A0CCA0 cases
+  verify both frame forms dispatch the four action IDs and suppress
+  already seen stamps. The native fixtures use a dispatch adapter.
   Ultimate Status (16E) uses entity 7730 and 6035. The ordinary
   0B8B:49 and :38 stacks compute floored percentage and readiness
   from charge 342 and cost 338. 0686 sends node 13 below 90 percent,

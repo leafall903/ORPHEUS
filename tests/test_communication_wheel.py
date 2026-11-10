@@ -1231,6 +1231,66 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
 
+    def test_wheel_effect_actions_replicate_in_authored_order(self):
+        for action, nodes in ((0x16C, (40,)), (0x16D, (6, 41))):
+            with self.subTest(action=hex(action)):
+                run = Run(names=("Speaker",))
+                player, = run.players
+                body = player.body_script
+                connection = game_client()
+                connection.player = player
+                player.client = connection
+
+                owner = decode.ClientBody.for_hero(SOLDIER)
+                [tree] = body.frames()
+                owner.apply(tree)
+                body.stream.arrived(tree.chunk_last)
+                body.command(body.frame + 1, 0)
+                [initial] = body.frames()
+                owner.apply(initial)
+                body.stream.arrived(initial.chunk_last)
+
+                watcher = decode.ClientBody.for_hero(SOLDIER)
+                stream = BodyStream(body.entity)
+                baseline = observers.snapshot(body)
+                tree = stream.full(observers.full_frame(body, baseline), baseline)
+                watcher.apply(tree)
+                stream.arrived(tree.chunk_last)
+
+                record = b"\x01\x08" + struct.pack("<QBI", 0x0A90000000000000 | action, False, 0)
+                packet = BitWriter()
+                messages.write_channel(packet, [(0, record)])
+                packet.bit(0)
+                connection._payload_in(packet.getvalue(), 17.0)
+                run.match.deliver_body_messages()
+                body.command(body.frame + 16, 0)
+                [callout] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
+
+                def updates():
+                    [local] = body.frames()
+                    snapshot = observers.snapshot(body)
+                    frame, keys = observers.delta(body, stream, snapshot)
+                    return local, stream.delta(frame, snapshot, keys, 0)
+
+                for node in nodes:
+                    sent = updates()
+                    stamps = tuple(update.chunk_last for update in sent)
+                    for client, update, stamp in zip((owner, watcher), sent, stamps, strict=True):
+                        self.assertEqual(client.apply(update).actions, [(stamp, callout.id, node)])
+                    if node == 40:
+                        for update in sent:
+                            update.stream.lost(update.chunk_last)
+                        body.command(body.frame + 1, 0)
+                        sent = updates()
+                        for client, update, stamp in zip((owner, watcher), sent, stamps, strict=True):
+                            self.assertEqual(client.apply(update).actions, [(stamp, callout.id, node)])
+                    for update in sent:
+                        update.stream.arrived(update.chunk_last)
+                    body.command(body.frame + 1, 0)
+                snapshot = body.callout_snapshot()
+                self.assertIsNone(snapshot.next_callout(body.stream.base.callout))
+                self.assertIsNone(snapshot.next_callout(stream.base.callout))
+
     def test_configured_callout_textures_replicate_after_wire_selection(self):
         for action, texture in ((0x1E5, 0x2A9FB), (0x1F7, 0x2A9FE), (0x1F9, 0x3A73)):
             with self.subTest(action=hex(action)):

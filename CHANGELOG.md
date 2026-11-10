@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Replicate the four authored 0686 effect actions. Wire tests cover
+  Need Healing and Group Up, with ordered delivery in both streams
+  and stable effect timestamps on retry. All 93 focused tests and
+  16 native frame-reader cases pass. Client playback remains open.
 - Verify the original motion-1 geometry dispatch for Reinhardt's
   and Winston's barriers with four offline builder cases. Identify
   the separate lookup that resolves the authored mask selector.

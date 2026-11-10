@@ -100,7 +100,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     geometry sends a replacement in both streams. The general cleanup
     sweeps retain wheel sprays, and keyed replacement and lifecycle cleanup
     remove them. Attachment production and client-side cosmetic access remain open.
-    The 0686 localized actions travel in owner and observer deltas.
+    The 0686 localized and effect actions travel in owner and observer
+    deltas. Offline Need Healing and Group Up verify effect delivery
+    and its order relative to localized actions.
     Repeated ultimate status reports 89, 90 and 100 percent through the
     same instance after its voice stack expires. A lost packet retries
     the original percentage. The legacy Symmetra 0169 receiver replicates
