@@ -9,7 +9,7 @@ from pathlib import Path
 from extract_game_graphs import StuXml, guid_text
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ow174.paths import EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, GREETING_DURATION_DATA
+from ow174.paths import EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, GREETING_CLIP_DATA, GREETING_DURATION_DATA
 
 CATEGORY_TYPE = 0x0280000000000000
 GREETING_ALIASES = frozenset((0x0C800000000002DE, 0x0C800000000001EE))
@@ -185,7 +185,7 @@ def extract(source, category_source=None, *, clips=False):
     return tables
 
 
-def greeting_durations(tables, body_definitions):
+def greeting_records(tables, body_definitions, *, clips=False):
     bodies = {}
     for path in sorted(body_definitions):
         xml = StuXml(path, None)
@@ -194,10 +194,11 @@ def greeting_durations(tables, body_definitions):
         if len(refs) != 1 or not refs[0] or not refs[0].endswith(".021"):
             raise ValueError(f"{path.name}: expected one model blend tree set")
         aliases = tables.get(guid_text(refs[0]), {})
-        durations = {alias: rows for alias, rows in aliases.items() if int(alias, 16) in GREETING_ALIASES}
-        if len(durations) != len(GREETING_ALIASES):
+        records = {alias: rows for alias, rows in aliases.items() if int(alias, 16) in GREETING_ALIASES}
+        if not clips and len(records) != len(GREETING_ALIASES):
             raise ValueError(f"{path.name}: missing greeting durations for {refs[0]}")
-        bodies[guid_text(path.stem)] = durations
+        if records:
+            bodies[guid_text(path.stem)] = records
     return bodies
 
 
@@ -214,18 +215,26 @@ def main():
         outputs = [args.output.resolve()]
         if args.body_definitions:
             outputs.append(args.output.with_name(GREETING_DURATION_DATA).resolve())
-        if args.clips_output.resolve() in outputs:
-            parser.error("--clips-output requires a separate path")
+        outputs.append(args.clips_output.resolve())
+        if args.body_definitions:
+            outputs.append(args.clips_output.with_name(GREETING_CLIP_DATA).resolve())
+        if len(set(outputs)) != len(outputs):
+            parser.error("--clips-output and greeting outputs require separate paths")
     rows = extract(args.source, args.categories)
     if not rows:
         raise SystemExit("No supported animation data found")
-    greetings = greeting_durations(rows, args.body_definitions)
+    greetings = greeting_records(rows, args.body_definitions)
     args.output.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote model animation durations from {len(rows)} blend tree sets")
     if args.clips_output is not None:
         clips = extract(args.source, args.categories, clips=True)
         args.clips_output.write_text(json.dumps(clips, indent=2) + "\n", encoding="utf-8")
         print(f"Wrote primary clip selections from {len(clips)} blend tree sets")
+        greeting_clips = greeting_records(clips, args.body_definitions, clips=True)
+        if greeting_clips:
+            output = args.clips_output.with_name(GREETING_CLIP_DATA)
+            output.write_text(json.dumps(greeting_clips, indent=2) + "\n", encoding="utf-8")
+            print(f"Wrote greeting clip selections for {len(greeting_clips)} body definitions")
     if greetings:
         output = args.output.with_name(GREETING_DURATION_DATA)
         output.write_text(json.dumps(greetings, indent=2) + "\n", encoding="utf-8")

@@ -730,6 +730,16 @@ Source paths for the remaining actions
   beside the emote duration output and is included in the replay hash
   and runtime preparation when present. Supply a separate output path
   for the emote table when extracting from a greeting-only .021 set.
+  With --clips-output and --body-definitions together, the tool writes
+  greeting_clips_174.json beside the clip output. The 33 bodies yield
+  65 alias groups and 71 distinct primary clips. Brigitte 01EE keeps
+  its duration but has no fixed clip because its blend branches differ.
+  The two 0341 Anim states can run together. In Soldier, Lucio and
+  Genji, the 02DE clips have header word 0104 and delta tracks, while
+  01EE has word 0100 and absolute tracks. Both track the anchor chain.
+  Adding the 02DE translations to the first 01EE frame reproduces
+  sampled absolute translations within 0.001113 on the tested chain.
+  The match still needs the original layer selection and blend rules.
   104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
   branches. The extractor accepts a blend duration if all eligible
   leaves agree. Eleven offline native runs check Soldier: 76, Echo

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Export body-keyed greeting clip selections for the two 0341 aliases.
+  The 33 original body definitions yield 71 distinct clips. Compare
+  seven original clips and preserve the existing greeting durations.
+  Greeting pose layering and client acceptance remain open.
 - Drive wheel sight anchors from the active primary emote clip and its
   state clock. Six offline selections cover the original Lucio intro,
   loop and exit clips. The post-emote combat query uses body-height rays.
