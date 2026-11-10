@@ -230,6 +230,7 @@ class LobbyServer:
             on_leave=self.game_left,
             skin_of=self.skin_of,
             emote_aliases_of=self.emote_aliases_of,
+            emote_blend_trees_of=self.emote_blend_trees_of,
             wheel_cosmetics_of=self.wheel_cosmetics_of,
             on_join=self.game_joined,
             on_clock_ready=self.game_clock_ready,
@@ -256,6 +257,12 @@ class LobbyServer:
         if account is None:
             return ()
         return self.content.collection.emote_aliases(account.profile, hero)
+
+    def emote_blend_trees_of(self, account_lo: int, hero: int) -> tuple[int, ...]:
+        account = self.accounts.by_id(account_lo)
+        if account is None:
+            return ()
+        return self.content.collection.emote_blend_trees(account.profile, hero)
 
     def wheel_cosmetics_of(self, account_lo: int, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
         account = self.accounts.by_id(account_lo)

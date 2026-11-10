@@ -87,15 +87,30 @@ Source paths for the remaining actions
   slots 0–3, resolves the equipped 0A5 unlock and checks STUUnlock_Emote.
   CD7B08 reads m_emote at +F8. When the m_7E3ED979 tag count is zero,
   CD7B12 jumps to the alias return at CD7D3C. There are 284 such unlocks.
-  Eight D.Va unlocks require the separate tag and skin branch. Their
-  fallback selection and the 023A blend-tree query remain open.
+  Eight D.Va unlocks require target tag 0069. CD7490 and the separate
+  blend query follow the related entity from DA5E80 and check the native
+  component 76 tag list when it exists. On a mismatch, the alias query
+  selects 045C before the skin remap and the blend query returns zero.
+  The extracted 040A body lists tags 0121 and 015A, and the 0407
+  mech lists 0069. The active relation, tag lifetime and skin remap
+  still need to be bound for tagged unlocks.
+  STU_DF7C7C63 evaluates at CE18E0 and reads the accepted unlock's
+  blend tree set at +108. Six offline executions of the native tail
+  cover no tag requirement, missing component, matching and mismatching
+  tags, an empty component and a match in the second requested tag.
+  The probe supplies the unlock and tag storage and captures the value
+  passed to F67090. Node 66 in 023A stores the set in variable 8908.
+  State 65 synchronizes it under 22CC.
   Use DataTool extract-stu-type on the 104319 installation with type 0A5
   and --xml. Run tools/extract_emote_aliases.py with the extracted XML
   directory and the external runtime's data/emote_aliases_174.json path.
-  The server loads that optional map and snapshots each player's merged
+  It also writes emote_blend_trees_174.json beside the alias table.
+  The server snapshots both optional maps from each player's merged
   +0x88 loadout when the body is created. The offline test selects
-  Soldier: 76's Take a Knee in slot 1 and reads 0476.014 in 023A:102.
-  Repeat selection behavior remains open.
+  Soldier: 76's Take a Knee in slot 1 and reads 0476.014 and 06B2.021
+  in 023A. The decoded owner frame carries the blend tree set.
+  Repeat selection behavior and the native client's animation playback
+  remain open.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
   graph selects the fixed, configurable or voice branch. Initializer 62

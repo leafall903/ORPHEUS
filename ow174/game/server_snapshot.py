@@ -70,7 +70,7 @@ def _names(text):
 FIELDS = {
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
                        "on_leave on_join on_clock_ready "
-                       "skin_of emote_aliases_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
+                       "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
     Client: _names("server address conn cipher player window seq open closed heard next_reliable "
@@ -80,7 +80,7 @@ FIELDS = {
                    "leaving_since _own_controller_acked _mode_create_acked _pending_mode_frame "
                    "_display_notices _pending_possessions _confirmed_possessions"),
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update"),
-    Match: _names("environment id game_map card skin_of emote_aliases_of wheel_cosmetics_of tick controller assemble_ends assembled players "
+    Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends assembled players "
                   "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
@@ -113,7 +113,7 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match communication_wheel wheel_callouts emote_aliases spray_unlocks voice_effects"),
+    driver.BodyWorld: _names("hero mode body throttles match communication_wheel wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
@@ -410,13 +410,14 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
             _fail('shared scene script runtime storage is not implemented')
         if (match.environment is not server.environment or match.skin_of is not server.skin_of
                 or match.emote_aliases_of is not server.emote_aliases_of
+                or match.emote_blend_trees_of is not server.emote_blend_trees_of
                 or match.wheel_cosmetics_of is not server.wheel_cosmetics_of):
             _fail("match external boundaries differ from its controlled server")
         if collision_provider is None or match.collision_provider is not collision_provider:
             _fail("match has an unregistered external collision provider")
     boundaries = {
         "environment": server.environment, "socket": server.sock, "domain_lock": server.lock,
-        "emotes": server.emote_aliases_of, "wheel_cosmetics": server.wheel_cosmetics_of,
+        "emotes": server.emote_aliases_of, "emote_blend_trees": server.emote_blend_trees_of, "wheel_cosmetics": server.wheel_cosmetics_of,
         "skin": server.skin_of, "joined_callback": server.on_join, "left_callback": server.on_leave,
         "clock_ready_callback": server.on_clock_ready,
         "collision_factory": server.collision_provider_factory, "collision_provider": collision_provider,

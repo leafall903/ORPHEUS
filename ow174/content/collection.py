@@ -225,10 +225,16 @@ class Collection:
         return slots
 
     def emote_aliases(self, profile: Profile, hero: int) -> tuple[int, ...]:
+        return self._equipped_emote_assets(profile, hero, self.items.emote_aliases)
+
+    def emote_blend_trees(self, profile: Profile, hero: int) -> tuple[int, ...]:
+        return self._equipped_emote_assets(profile, hero, self.items.emote_blend_trees)
+
+    def _equipped_emote_assets(self, profile: Profile, hero: int, assets: dict[int, int]) -> tuple[int, ...]:
         equipped = self.loadout(profile, hero).get(LIST_SLOT_BY_TYPE["Emote"])
         if not isinstance(equipped, list):
             return ()
-        return tuple(self.items.emote_aliases.get(unlock, 0) for unlock in equipped[:4])
+        return tuple(assets.get(unlock, 0) for unlock in equipped[:4])
 
     def wheel_cosmetics(self, profile: Profile, hero: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
         loadout = self.loadout(profile, hero)

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve and replicate equipped blend tree sets for 284 untagged emotes.
+  The offline owner-frame test decodes Soldier: 76's Take a Knee as
+  06B2.021. All 55 focused tests and six native lookup-tail cases pass.
+  Tagged D.Va emotes and original-client animation playback remain open.
 - Verify the original Acknowledge action's 05AC fallback from a 21608
   packet with no selected marker to the aimed teammate. Trace the
   distinct marker action's STU registration and 05FE's animation

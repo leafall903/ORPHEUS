@@ -150,7 +150,7 @@ class WheelCallout:
     values: tuple
 
 
-WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "spray_unlocks": 0x0250, "voice_effects": 0x0300}
+WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "emote_blend_trees": 0x0040, "spray_unlocks": 0x0250, "voice_effects": 0x0300}
 
 
 def valid_wheel_slots(slots: tuple[int, ...], guid_type: int) -> bool:
@@ -169,6 +169,7 @@ class BodyWorld(runtime.World):
         self.body = body
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
+        self.emote_blend_trees: tuple[int, ...] = ()
         self.spray_unlocks: tuple[int, ...] = ()
         self.voice_effects: tuple[int, ...] = ()
         self.wheel_callouts: list[WheelCallout] = []
@@ -237,6 +238,9 @@ class BodyWorld(runtime.World):
                 if (isinstance(target, dict) and target.get("$") == "STU_33980609"
                         and instance.evaluate(target.get("m_entity")) == Entity(self.body)):
                     return self.equipped_wheel_asset(self.emote_aliases, instance.evaluate(cfg.get("m_slot")))
+            if (cls == "STU_DF7C7C63" and instance.graph.index == 0x023A
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                return self.equipped_wheel_asset(self.emote_blend_trees, instance.evaluate(cfg.get("m_slot")))
             if cls == "STU_955C40AE" and instance.graph.index == 0x0686:
                 return self.wheel_slot(cfg, instance, WHEEL_VOICE_ACTIONS)
             if cls == "STU_2977339D" and instance.graph.index == 0x0686:
@@ -472,6 +476,7 @@ class BodyScript(ReplicatedBody):
         match: "Match | None" = None,
         communication_wheel: bool = False,
         emote_aliases: tuple[int, ...] = (),
+        emote_blend_trees: tuple[int, ...] = (),
         spray_unlocks: tuple[int, ...] = (),
         voice_effects: tuple[int, ...] = (),
     ) -> None:
@@ -487,8 +492,8 @@ class BodyScript(ReplicatedBody):
         self.world = BodyWorld(hero, mode, entity)
         self.world.match = match
         self.world.communication_wheel = communication_wheel or match is not None
-        for name, slots in (("emote_aliases", emote_aliases), ("spray_unlocks", spray_unlocks),
-                            ("voice_effects", voice_effects)):
+        for name, slots in (("emote_aliases", emote_aliases), ("emote_blend_trees", emote_blend_trees),
+                            ("spray_unlocks", spray_unlocks), ("voice_effects", voice_effects)):
             if not valid_wheel_slots(slots, WHEEL_LOADOUT_TYPES[name]):
                 raise ValueError(f"{name} must contain up to four matching asset GUIDs or empty slots")
             setattr(self.world, name, slots)

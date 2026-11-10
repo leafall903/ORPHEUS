@@ -411,6 +411,7 @@ class Match:
         collision_provider: CollisionProvider | None = None,
         scene_host_factory=None,
         emote_aliases_of=no_emote_aliases,
+        emote_blend_trees_of=None,
         wheel_cosmetics_of=no_wheel_cosmetics,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
@@ -424,6 +425,7 @@ class Match:
         # The client's hero select equips a skin through the lobby (24500), even in a match.
         self.skin_of = skin_of
         self.emote_aliases_of = emote_aliases_of
+        self.emote_blend_trees_of = emote_blend_trees_of
         self.wheel_cosmetics_of = wheel_cosmetics_of
         self.controller = heroselect.controller_of(game_map.mode_guid)
         self.tick = 0  # the server's frame number, set every tick
@@ -1130,6 +1132,9 @@ class Match:
             return
         try:
             spray_unlocks, voice_effects = self.wheel_cosmetics_of(player.account_lo, player.hero.guid)
+            blends = () if self.emote_blend_trees_of is None else self.emote_blend_trees_of(
+                player.account_lo, player.hero.guid,
+            )
             script = BodyScript(
                 player.hero.guid,
                 player.body,
@@ -1139,6 +1144,7 @@ class Match:
                 health=HEALTH,
                 match=self,
                 emote_aliases=self.emote_aliases_of(player.account_lo, player.hero.guid),
+                emote_blend_trees=blends,
                 spray_unlocks=spray_unlocks,
                 voice_effects=voice_effects,
             )

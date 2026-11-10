@@ -22,7 +22,7 @@ from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
 from ow174.game.script.driver import BodyScript, BodyStream
-from ow174.paths import EMOTE_ALIAS_DATA, VOICE_EFFECT_DATA
+from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, VOICE_EFFECT_DATA
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -234,10 +234,14 @@ class CommunicationWheelTests(unittest.TestCase):
         # Soldier's Heroic and Take a Knee unlocks from 104319.
         heroic, kneel = "0x0250000000000904", "0x0250000000000BE2"
         default_alias, chosen_alias = 0x0C8000000000045C, 0x0C80000000000476
+        default_blend, chosen_blend = 0x00400000000006AD, 0x00400000000006B2
         with TemporaryDirectory() as directory:
             data = Path(directory)
             (data / EMOTE_ALIAS_DATA).write_text(
                 json.dumps({heroic: hex(default_alias), kneel: hex(chosen_alias)}), encoding="utf-8",
+            )
+            (data / EMOTE_BLEND_TREE_DATA).write_text(
+                json.dumps({heroic: hex(default_blend), kneel: hex(chosen_blend)}), encoding="utf-8",
             )
             items = ItemDB(data)
         collection = Collection(RetailTemplates(), items)
@@ -247,6 +251,7 @@ class CommunicationWheelTests(unittest.TestCase):
         match = Match(
             PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
             emote_aliases_of=lambda account, hero: collection.emote_aliases(profile, hero) if account == 1 else (),
+            emote_blend_trees_of=lambda account, hero: collection.emote_blend_trees(profile, hero) if account == 1 else (),
         )
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
         [create] = match.own_body_updates(player)
@@ -261,6 +266,7 @@ class CommunicationWheelTests(unittest.TestCase):
 
         replicate()
         self.assertEqual(body.world.emote_aliases, (default_alias, chosen_alias, 0))
+        self.assertEqual(body.world.emote_blend_trees, (default_blend, chosen_blend, 0))
         wheel = next(instance for instance in body.component.instances.values() if instance.graph.index == 0x05AD)
         query = wheel.graph.node(107).field("m_condition")["m_configVars"][0]
         for choice, expected in ((0x172, default_alias), (0x1A1, chosen_alias), (0x1A0, 0), (0x19F, 0), (0x1A2, 0)):
@@ -279,6 +285,8 @@ class CommunicationWheelTests(unittest.TestCase):
         emote, animation, helper = (instances[index] for index in (0x069A, 0x023A, 0x1040))
         self.assertIs(animation.parent, emote)
         self.assertEqual(animation.vars[2254].value(), expr.Asset(chosen_alias))
+        self.assertEqual(animation.vars[8908].value(), expr.Asset(chosen_blend))
+        self.assertEqual(client.vars[animation.id, 8908], expr.Asset(chosen_blend))
         self.assertEqual(client.graphs[emote.id], 0x069A)
         self.assertEqual(client.records[animation.id], (0x023A, (emote.id, animation.parent_state)))
         self.assertEqual(client.graphs[helper.id], 0x1040)

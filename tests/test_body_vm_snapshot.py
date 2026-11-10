@@ -508,7 +508,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
         self.assertEqual(set(dict(body["world"]["fields"])),
-                         {"hero", "mode", "body", "throttles", "communication_wheel", "wheel_callouts", "emote_aliases", "spray_unlocks", "voice_effects"})
+                         {"hero", "mode", "body", "throttles", "communication_wheel", "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

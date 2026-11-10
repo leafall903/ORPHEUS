@@ -54,8 +54,9 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **HUD, menus and visual feedback.** Verify health, ammo, overhead bars, reticles, hit markers, material-specific effects, elimination names, kill feed, on-fire meter, scoreboards and match screens.
   - [ ] Restore and verify the C-key communication wheel and its submenus. The
     authored 05AD and 02CF graphs now mount through the player body stream.
-    The emote graph chain reads untagged aliases from equipped unlocks.
-    Tagged D.Va emotes and blend-tree selection remain open.
+    The emote graph chain reads untagged aliases and blend tree sets from
+    equipped unlocks. The 023A owner frame carries the selected blend tree.
+    Tagged D.Va emotes and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.
