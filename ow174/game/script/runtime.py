@@ -501,6 +501,10 @@ class World:
         """Resolve the animation duration for the current model, if available."""
         return None
 
+    def animation_scalar(self, instance: "Instance", node: Node) -> float | None:
+        """Resolve a phase-independent Anim scalar for the current model, if available."""
+        return None
+
     def finish_wheel_emote(self, instance: "Instance", node: Node):
         return NotImplemented
 

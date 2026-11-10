@@ -46,7 +46,7 @@ from ow174.game.statescript import (
     sendable,
 )
 from ow174.game.world import UNIT_ENTITY_SCALE
-from ow174.paths import DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, GREETING_DURATION_DATA
+from ow174.paths import DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA, GREETING_DURATION_DATA
 
 if TYPE_CHECKING:
     from ow174.game.match import Match
@@ -68,6 +68,30 @@ def wheel_animation_durations(path):
         for category, seconds in categories.items()
         if type(seconds) in (float, int) and math.isfinite(seconds) and 0 < seconds <= 3600
     }
+
+
+@lru_cache(maxsize=2)
+def wheel_animation_scalars(path):
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    result = {}
+    for blend, aliases in rows.items():
+        for alias, categories in aliases.items():
+            for category, track in categories.items():
+                key = int(blend, 16), int(alias, 16), int(category, 16)
+                # An unsupported exact category must shadow the generic default.
+                result[key] = None
+                if not isinstance(track, dict):
+                    continue
+                times, values = track.get("times"), track.get("values")
+                if times == values == []:
+                    result[key] = 0.0
+                elif (isinstance(times, list) and isinstance(values, list) and len(times) == len(values) == 1
+                      and all(type(x) in (float, int) and math.isfinite(x) for x in (times[0], values[0]))):
+                    result[key] = f32(values[0])
+    return result
 
 
 class CommandEpochError(ValueError):
@@ -461,6 +485,15 @@ class BodyWorld(runtime.World):
         filename = GREETING_DURATION_DATA if instance.graph.index == 0x0341 else EMOTE_DURATION_DATA
         durations = wheel_animation_durations(DATA_DIR / filename)
         return durations.get(key, durations.get((*key[:2], EMOTE_ANY_CATEGORY)))
+
+    def animation_scalar(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+        if instance.graph.index != 0x023A:
+            return None
+        key = self._wheel_animation_key(instance, node)
+        if key is None or not key[1]:
+            return None if key is None else 0.0
+        scalars = wheel_animation_scalars(DATA_DIR / EMOTE_SCALAR_DATA)
+        return scalars.get(key, scalars.get((*key[:2], EMOTE_ANY_CATEGORY)))
 
     def wheel_model_pose(self, component, transform):
         active = [

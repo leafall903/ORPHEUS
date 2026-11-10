@@ -754,6 +754,51 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(player.body_script.world.body_definition, pilot)
         self.assertEqual(player.body_script.world.emote_aliases, (fallback, 0))
 
+    def test_emote_scalar_binds_authored_slot_and_is_removed_on_end(self):
+        alias, blend = 0x0C80000000000477, 0x0040000000000649
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / "emote_scalar_tracks_174.json").write_text(json.dumps({
+                hex(blend): {hex(alias): {
+                    hex(EMOTE_ANY_CATEGORY): {"times": [0], "values": [0.03487373]},
+                    "0x028000000000006E": {"times": [0, 1], "values": [0, 1]},
+                    "0x0280000000000082": {"times": [], "values": []},
+                }},
+            }), encoding="utf-8")
+            with patch("ow174.game.script.driver.DATA_DIR", data):
+                body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
+                component = body.component
+                body.command(body.frame + 1, 0, grounded=True)
+                parent = component.create(graph.graph(0x069A), init=False)
+                animation = component.create(graph.graph(0x023A), parent=parent, init=False)
+                animation.write((expr.INSTANCE, 2254), expr.Asset(alias))
+                animation.write((expr.INSTANCE, 8908), expr.Asset(blend))
+                animation.write((expr.INSTANCE, 681), False)
+                variable = animation.vars[681]
+
+                intro = animation.node_state(animation.graph.node(19))
+                intro.begin()
+                self.assertIs(variable.value(), False)
+                intro.end(False)
+
+                exit_anim = animation.node_state(animation.graph.node(52))
+                exit_anim.begin()
+                self.assertIs(type(variable.value()), float)
+                self.assertEqual(variable.value(), 0.0)
+                exit_anim.end(False)
+
+                loop = animation.node_state(animation.graph.node(18))
+                loop.begin()
+                self.assertEqual(variable.value(), expr.f32(0.03487373))
+                self.assertEqual([(link.state, link.slot) for link in variable.links], [(loop, 2)])
+                guard = animation.node_state(animation.graph.node(77))
+                self.assertTrue(guard.evaluate(guard.node.field("m_condition")))
+                export_body_vm(body)
+                loop.end(False)
+                self.assertEqual(variable.links, [])
+                # The authored onEnd plug writes its own zero vector after unlinking.
+                self.assertEqual(variable.value(), expr.Vec3(0.0, 0.0, 0.0))
+
     def test_equipped_kneel_timing_and_cancel_follow_body_commands(self):
         alias, blend = 0x0C80000000000476, 0x00400000000006B2
         with TemporaryDirectory() as directory:

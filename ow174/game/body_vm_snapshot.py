@@ -76,7 +76,7 @@ _STATE_LAYOUTS = {
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
-    nodes.Anim: ((), ()),
+    nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),

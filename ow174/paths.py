@@ -26,6 +26,7 @@ EMOTE_ALIAS_DATA = "emote_aliases_174.json"
 EMOTE_BLEND_TREE_DATA = "emote_blend_trees_174.json"
 EMOTE_TAGGED_DATA = "emote_tagged_174.json"
 EMOTE_DURATION_DATA = "emote_durations_174.json"
+EMOTE_SCALAR_DATA = "emote_scalar_tracks_174.json"
 GREETING_DURATION_DATA = "greeting_durations_174.json"
 GREETING_CLIP_DATA = "greeting_clips_174.json"
 EMOTE_ANY_CATEGORY = 0xFFFFFFFFFFFFFFFF  # reserved default lookup key

@@ -372,8 +372,8 @@ Source paths for the remaining actions
   A vector fixture can set the exemption, while the Anim slot's float
   cannot. An idle command after the mover leaves the floor cancels the
   ordinary Take a Knee loop without any held button or throttle. The
-  server still lacks the sampled scalar used by the separate 023A:77
-  movement-modifier path. BB8970 selects a 0x110-byte compiled row
+  separate 023A:77 movement-modifier path reads the scalar from
+  Anim slot 2. BB8970 selects a 0x110-byte compiled row
   from the runtime 013 query. BB7440 fills a five-track descriptor.
   The scalar track at descriptor +48 reads the times and values
   from row +10 and +20. The builder sets the last index to -1
@@ -401,8 +401,17 @@ Source paths for the remaining actions
   trees 0649 and 0729. In 0729 category 006E selects a zero key.
   A run across 332 local tree sets leaves existing duration and
   clip output byte-identical. One empty XML file was excluded.
-  The server still needs the native animation phase and the
-  connection from these extracted tracks to Anim output 681.
+  The optional runtime data/emote_scalar_tracks_174.json now
+  supplies 023A Anim slot 2 when the selected track is empty or
+  has one key. A known empty track emits float zero. An unsupported
+  exact category masks the default. The original 023A graph test
+  verifies that a nonzero scalar satisfies the grounded guard 77,
+  preserves the active binding in a snapshot and unlinks it on
+  exit. The authored exit then writes its zero vector.
+  The available catalog covers 238 of 292 distinct equipped
+  tree/alias pairs. All 389 covered category rows are empty or
+  single-key tracks. The remaining pairs, phase-dependent tracks
+  and the subsequent native movement modifier operations are open.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored

@@ -1190,6 +1190,24 @@ class Anim(State):
     """
 
     family = "anim"
+    scalar_value: float | None = None
+
+    def on_begin(self) -> None:
+        target = lvalue(_field(self, "m_EBEFB4A7"))
+        if target is not None:
+            scalar = self.instance.component.world.animation_scalar(self.instance, self.node)
+            if scalar is not None:
+                self.scalar_value = scalar
+                self.link(target, slot=2)
+
+    def output(self, slot: int):
+        return self.scalar_value if slot == 2 else super().output(slot)
+
+    def on_cleanup(self) -> None:
+        if self.scalar_value is not None:
+            target = lvalue(_field(self, "m_EBEFB4A7"))
+            self.unlink(self.instance.find_var(*target))
+            del self.scalar_value
 
     def on_enter(self) -> None:
         if truthy(self.evaluate(_field(self, "m_37EE887D"), watch=False)):

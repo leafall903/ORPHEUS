@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Bind known empty and single-key emote movement tracks to Anim slot 2.
+  An authored graph test verifies category selection, the grounded
+  guard, snapshot export and cleanup. All 102 focused tests pass.
+  Missing tracks, phase-dependent tracks and client acceptance remain open.
+
 - Export authored movement scalar tracks by blend tree, alias and category.
   A 332-tree offline export preserves duration and clip files byte for byte.
   All 101 focused tests pass. Runtime sampling and client acceptance remain open.
