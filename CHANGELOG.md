@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Route targeted communication through the authored 05AD relationship and
+  pet-relation checks for current match player bodies. The 21608 receive
+  test verifies that the aimed teammate receives the directed message and
+  that opposing players and free-for-all trigger the ordinary callout.
+  All 58 focused offline tests pass. Deployable targets, acknowledgement
+  markers and original-client acceptance remain open.
 - Feed visible match players into the authored 05AD target states.
   Candidate selection follows the authored range, aperture and
   screen and world distance weights. The server uses its combat

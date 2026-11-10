@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from test_game_combat import Run
+from test_game_combat import KANEZAKA_DM, Run
 from test_game_entity_lifecycle import client as game_client
 
 from ow174.accounts.profile import Profile
@@ -116,6 +116,46 @@ class CommunicationWheelTests(unittest.TestCase):
         nearer.mover.position = (0.0, 0.0, 41.0)
         self.assertEqual(select(), ())
         self.assertFalse(wheel.node_state(wheel.graph.node(115)).active)
+
+    def test_confirmed_action_directs_callout_only_to_the_aimed_teammate(self):
+        for game_map, same_team in ((PRACTICE_RANGE, True), (PRACTICE_RANGE, False), (KANEZAKA_DM, True)):
+            with self.subTest(mode=game_map.mode_guid, same_team=same_team):
+                directed = same_team and not game_map.free_for_all
+                run = Run(game_map, names=("Speaker", "Target", "Other"))
+                speaker, target, other = run.players
+                target.team = speaker.team if same_team else 1 - speaker.team
+                other.team = speaker.team
+                speaker.mover.position = (0.0, 0.0, 0.0)
+                speaker.mover.yaw = speaker.mover.pitch = 0
+                target.mover.position = (0.0, 0.0, 10.0)
+                other.mover.position = (10.0, 0.0, 0.0)
+                connection = game_client()
+                connection.player = speaker
+                speaker.client = connection
+
+                record = b"\x01\x08" + struct.pack("<QBI", 0x0A900000000001E5, True, 0)
+                packet = BitWriter()
+                messages.write_channel(packet, [(0, record)])
+                packet.bit(0)
+                connection._payload_in(packet.getvalue(), 17.0)
+                run.match.deliver_body_messages()
+                queued = run.match._body_messages
+                if directed:
+                    [(source, recipient, _, message, _)] = queued
+                    self.assertIs(source, speaker.body_script)
+                    self.assertIs(recipient, target)
+                    self.assertEqual(message, 0x02400000000012F4)
+                else:
+                    self.assertEqual(queued, [])
+                    self.assertTrue(any(i.graph.index == 0x0686
+                                        for i in speaker.body_script.component.instances.values()))
+                run.match.deliver_body_messages()
+                for player in (target, other):
+                    wheel = next(i for i in player.body_script.component.instances.values()
+                                 if i.graph.index == 0x05AD)
+                    caller = expr.Entity(speaker.body) if directed and player is target else None
+                    self.assertEqual(wheel.vars[40].value() if 40 in wheel.vars else None, caller)
+                    self.assertEqual(wheel.vars[41].value() if 41 in wheel.vars else None, caller)
 
     def test_selection_message_takes_the_authored_category_branches(self):
         run_node = runtime.Instance.run_node

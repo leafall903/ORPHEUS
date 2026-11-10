@@ -130,8 +130,20 @@ Source paths for the remaining actions
   projected combat capsules to approximate the native projection
   and the cached movement geometry for line of sight. It shares
   that ray filter between the two asset variants. Native camera
-  bounds, collision flags and the subsequent recipient gates
-  in 119 and 120 remain open.
+  bounds and collision flags remain open.
+  Node 119 requires relation bit 1 through the native BCAAE0
+  filter. The match supplies same-team player bodies and the FFA
+  hostility rule for this exact config. Node 120 short-circuits
+  when F76C486C has no related entity. CE2CF0 and D1BEE0 read the
+  related ID from native component 72 +D8. With a related entity
+  present, the expression compares it to the component 43 owner
+  read by F7262B36. The match supplies zero for current player
+  bodies because it has no pet-owner binding for them. The
+  extracted Echo body declares component 72. Native population
+  of its related ID and the deployable branch remain open.
+  An offline 21608 test verifies directed 12F4 and the caller
+  fields on the aimed teammate. A hostile target or a free-for-all
+  candidate falls back to the sender's 0686 callout.
   For a new voice graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.

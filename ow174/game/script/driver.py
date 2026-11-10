@@ -251,6 +251,25 @@ class BodyWorld(runtime.World):
                 return self.equipped_wheel_asset(self.spray_unlocks, instance.evaluate(cfg.get("m_slot")))
             if cls == "STU_2E708EC1" and instance.graph.index == 0x02CF:
                 return self.wheel_slot(cfg, instance, WHEEL_SPRAY_ACTIONS)
+        if (self.communication_wheel and self.match is not None and instance is not None
+                and instance.graph.index == 0x05AD):
+            if cls == "STU_AC829876":
+                gate = instance.graph.node(119)
+                if gate is not None and cfg == gate.field("m_condition"):
+                    target = instance.evaluate(cfg.get("m_entity"))
+                    source = self.match._message_player(self.body)
+                    recipient = self.match._message_player(expr.to_entity(target))
+                    return (source is not None and recipient is not None
+                            and (source is recipient or (not self.match.game_map.free_for_all
+                                                         and source.team == recipient.team)))
+            if cls == "STU_F76C486C":
+                gate = instance.graph.node(120)
+                if gate is not None and cfg == gate.field("m_condition")["m_configVars"][0]:
+                    target = instance.evaluate(cfg.get("m_D63CBEC2"))
+                    if self.match._message_player(expr.to_entity(target)) is not None:
+                        # The match does not attach a pet owner to these player bodies.
+                        # Node 120 short-circuits before its component43 comparison.
+                        return Entity(0)
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
