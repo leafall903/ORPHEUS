@@ -178,10 +178,27 @@ Source paths for the remaining actions
   fixture model and timer services. The host handles the loop flag,
   elapsed time for authored durations, and the zero-alias case in
   023A under 069A. An offline graph test exercises the 023A:19 finish
-  into 023A:18. The production model and category lookup still needs
-  reconstruction. Soldier: 76's 06AD and 06B2 tree sets reference clips
+  into 023A:18. Soldier: 76's 06AD and 06B2 tree sets reference clips
   of different durations. The list of clip durations alone does not
   resolve the record returned by the native query.
+  For category-switch graphs, F4FBE0 dispatches game-data nodes by
+  type. F4DDC0 selects the STU_623B2B19 child using F51450. The
+  1789CE0 callback treats the high bit in the table key as requiring
+  an exact category. A miss uses the final child. F4CCA0 emits the
+  STU_3C8FB392 primary record index from m_9D16E038. BB8970 copies
+  STUAnimGameData_AnimationData.m_D8514AD9 from that record.
+  A probe builds the selected 06B2.021 game-data graph from XML and
+  executes the category dispatch and record read. Its 006E.015 intro
+  selects 3D04.006 at 1.0666667 s. Its 0082.015 exit selects
+  3D06.006 at 0.36666667 s. Zero and an unlisted category both select
+  3D05.006 at 8.933333 s. The probe fixtures the model selection,
+  skips IK output and leaves unrelated model parameters at zero.
+  tools/extract_emote_durations.py exports supported category-switch
+  shapes from .021 XML to emote_durations_174.json. The optional runtime
+  file is keyed by the selected blend tree, alias and category. The
+  offline 02A3 wheel path exercises the equipped 06B2.021 intro to
+  loop transition. Other game-data graph shapes, runtime model remaps,
+  and the original transition input for the loop exit remain open.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
   graph selects the fixed, configurable or voice branch. Initializer 62

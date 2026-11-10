@@ -497,6 +497,10 @@ class World:
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
 
+    def animation_duration(self, instance: "Instance", node: Node) -> float | None:
+        """Resolve the animation duration for the current model, if available."""
+        return None
+
     def finish_wheel_emote(self, instance: "Instance", node: Node):
         return NotImplemented
 

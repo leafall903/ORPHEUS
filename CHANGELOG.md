@@ -8,6 +8,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve animation duration for equipped emotes with a static category
+  switch. The optional runtime table contains 78 blend tree sets from
+  the local 104319 XML, with 73 matching equipped unlock mappings.
+  The offline wheel test reaches the Take a Knee loop after its 1067 ms
+  intro. All 119 focused offline tests and four native model-query cases
+  pass. Other animation-data graphs, model remaps and original-client
+  playback remain open.
 - Follow the animation state's loop flag and subtract elapsed time from
   authored durations. The emote graph can finish a non-looping state with
   an empty alias. Twelve native instruction cases cover duration selection

@@ -57,8 +57,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     The emote graph chain reads untagged aliases and blend tree sets from
     equipped unlocks. The 023A owner frame carries the selected blend tree.
     Emote cleanup releases the stack on a supplied finish or priority loss.
-    The emote VM follows authored loop and empty-alias timing. The equipped
-    model duration lookup, tagged D.Va emotes and original-client playback remain open.
+    The emote VM follows authored loop and empty-alias timing and reads
+    prepared model durations for supported category switches. Other model
+    duration graphs, loop exit inputs, tagged D.Va emotes and original-client
+    playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.

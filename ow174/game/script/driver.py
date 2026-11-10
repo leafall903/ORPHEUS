@@ -19,9 +19,12 @@ A correction describes the change since the last chunk the client acknowledged, 
 chunks sent after it carried (the client may have applied them), so it needs no resend.
 """
 
+import json
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from ow174.game import pools
@@ -43,12 +46,28 @@ from ow174.game.statescript import (
     sendable,
 )
 from ow174.game.world import UNIT_ENTITY_SCALE
+from ow174.paths import DATA_DIR, EMOTE_DURATION_DATA
 
 if TYPE_CHECKING:
     from ow174.game.match import Match
     from ow174.game.world import EntityUpdate
 
 log = logging.getLogger("ow174.script")
+
+
+@lru_cache(maxsize=1)
+def wheel_emote_durations(path):
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    return {
+        (int(blend, 16), int(alias, 16), int(category, 16)): f32(seconds)
+        for blend, aliases in rows.items()
+        for alias, categories in aliases.items()
+        for category, seconds in categories.items()
+        if type(seconds) in (float, int) and math.isfinite(seconds) and 0 < seconds <= 3600
+    }
 
 
 class CommandEpochError(ValueError):
@@ -328,6 +347,26 @@ class BodyWorld(runtime.World):
         if request is not None and request.targets == (self.body,):
             # The bundle already holds the resource, so submission can flush synchronously.
             play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
+
+    def animation_duration(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+        parent = instance.parent
+        if (not self.communication_wheel or instance.graph.index != 0x023A
+                or parent is None or parent.graph.index != 0x069A):
+            return None
+        alias = instance.evaluate(node.field("m_11E0A658"))
+        if not expr.truthy(alias):
+            # A zero alias skips the native model query.
+            return 0.0
+        category = instance.evaluate(node.field("m_22326315"))
+        blend = instance.find_var(INSTANCE, 8908)
+        blend = blend.value() if blend is not None else None
+        if not isinstance(alias, Asset) or not isinstance(blend, Asset):
+            return None
+        if category is not None and not isinstance(category, Asset):
+            return None
+        return wheel_emote_durations(DATA_DIR / EMOTE_DURATION_DATA).get(
+            (blend.guid, alias.guid, category.guid if category is not None else 0),
+        )
 
     def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):
         if not self.communication_wheel:

@@ -1194,18 +1194,18 @@ class Anim(State):
     def on_enter(self) -> None:
         if truthy(self.evaluate(_field(self, "m_37EE887D"), watch=False)):
             return
-        duration = _field(self, "m_86701C3E")
-        if duration is None:
-            parent = self.instance.parent
-            # The wheel passes a typed alias (or zero) into 023A. A zero alias
-            # skips CBFE20, so the native descriptor retains its zero duration.
-            if (self.instance.graph.index != 0x023A or parent is None or parent.graph.index != 0x069A
-                    or truthy(self.evaluate(_field(self, "m_11E0A658"), watch=False))):
+        authored = _field(self, "m_86701C3E")
+        duration = to_float(self.evaluate(authored, watch=False))
+        if duration < 0.00011920928955078125:
+            resolved = self.instance.component.world.animation_duration(self.instance, self.node)
+            if resolved is not None:
+                speed = _field(self, "m_speedScalar")
+                scalar = 1.0 if speed is None else to_float(self.evaluate(speed, watch=False))
+                duration = f32(resolved * scalar)
+            elif authored is None:
                 expr.warn_once("anim", "model-resolved Anim durations are unavailable")
                 return
-            delay = 0
-        else:
-            delay = seconds_to_ms(self.evaluate(duration, watch=False)) - (self.now - self.start)
+        delay = seconds_to_ms(duration) - (self.now - self.start)
         self.timer_at(delay, 1)
         if not truthy(self.evaluate(_field(self, "m_154DBA91"), watch=False)):
             self.request_finish(max(0, delay))

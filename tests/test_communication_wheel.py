@@ -345,6 +345,35 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertNotIn(current[index].id, body.component.instances)
             self.assertNotIn(current[index].id, client.graphs)
 
+    def test_equipped_kneel_intro_uses_its_model_category_duration(self):
+        alias, blend = 0x0C80000000000476, 0x00400000000006B2
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / "emote_durations_174.json").write_text(json.dumps({
+                hex(blend): {hex(alias): {"0x028000000000006E": 1.0666667, "0x0": 8.933333}},
+            }), encoding="utf-8")
+            with patch("ow174.game.script.driver.DATA_DIR", data):
+                body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True,
+                                  emote_aliases=(alias,), emote_blend_trees=(blend,))
+                runtime.send_message(
+                    body.component, 0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
+                )
+                body.command(1001, 0)
+                animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
+                intro = animation.node_state(animation.graph.node(19))
+                for frame in range(1002, 1120):
+                    body.command(frame, 0)
+                    if intro.active:
+                        break
+                self.assertTrue(intro.active)
+                self.assertEqual([event.time - intro.start for event in animation.queue if event.state is intro],
+                                 [1067, 1067])
+                while body.component.now < intro.start + 1067:
+                    body.command(body.frame + 1, 0)
+                self.assertFalse(intro.active)
+                self.assertTrue(animation.node_state(animation.graph.node(18)).active)
+
     def test_emote_intro_with_no_alias_takes_its_authored_loop_transition(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
         component = body.component
