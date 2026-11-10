@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Decode 504 dynamic collision shapes from the 32 base player models
+  with their original bone IDs, holder masks and actor category bits.
+  All 45 focused tests pass. The static decoder matches its previous
+  output for 96 model and mask combinations. Live pose, ray admission
+  and client acceptance remain open.
 - Trace the legacy Symmetra body references to existing-body switches in
   both Junkenstein modes. The inspected spawn rows reference hero 0016
   and AI controller 1DD3. The target hero asset selects 26F0. Automatic

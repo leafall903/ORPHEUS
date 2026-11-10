@@ -390,6 +390,56 @@ def _moved(point, frame) -> tuple:
     return _f32(x + t[0]), _f32(y + t[1]), _f32(z + t[2])
 
 
+def _model_shape_descriptors(data: bytes):
+    payload = chunks(data).get("MSTU")
+    if payload is None or len(payload) < 16:
+        return
+    offset, size = struct.unpack_from("<qq", payload)
+    stu = Structured(payload[offset : offset + size])
+    for item in stu.array(0, SHAPES, 8):
+        wrapper = struct.unpack_from("<i", item)[0]
+        if not 0 <= wrapper < len(stu.hashes):
+            continue
+        shape = stu.ref(wrapper, SHAPE)
+        holder = stu.ref(wrapper, HOLDER)
+        if shape is not None and holder is not None:
+            node = stu.raw(stu.fields[wrapper], NODE)
+            node_id = struct.unpack_from("<I", node)[0] if node and len(node) >= 4 else None
+            yield stu, wrapper, shape, holder, node_id
+
+
+def _shape_geometry(stu: Structured, shape: int, holder: int, category: int) -> tuple | None:
+    mask = _mask(stu, holder)
+    kind, fields = stu.hashes[shape], stu.fields[shape]
+    if kind == MESH:
+        points = [_vector(raw) for raw in stu.array(shape, VERTICES, 16)]
+        raw = b"".join(stu.array(shape, TRIANGLES, 1))
+        records = []
+        for k in range(0, len(raw) - 31, 32):
+            a, b, c, w0, w1, w2, _material, surface, own, _ = struct.unpack_from("<3I3i4H", raw, k)
+            if own & category and max(a, b, c) < len(points):
+                wings = tuple(w if 0 <= w < len(points) else -1 for w in (w0, w1, w2))
+                records.append((a, b, c, *wings, own, surface))
+        if records:
+            return ("mesh", mask, points, records)
+    elif not mask & category:
+        return None
+    elif kind == CONVEX:  # faces as loops of half edges {s8 twin, u8 origin, u8 face, u8 next}
+        points = [_vector(raw) for raw in stu.array(shape, VERTICES, 12)]
+        planes = [struct.unpack_from("<4f", raw, 0) for raw in stu.array(shape, PLANES, 16)]
+        edges = b"".join(stu.array(shape, HALF_EDGES, 1))
+        half = [struct.unpack_from("<bBBB", edges, 4 * n) for n in range(len(edges) // 4)]
+        faces = list(b"".join(stu.array(shape, FACES, 1)))
+        if points and len(planes) == len(faces):
+            return ("hull", mask, _vector(stu.raw(fields, CENTROID)), points, planes, faces, half)
+    elif kind == CAPSULE:
+        a, b = _vector(stu.raw(fields, POINT_A)), _vector(stu.raw(fields, POINT_B))
+        return ("capsule", mask, a, b, _float(stu.raw(fields, RADIUS)))
+    elif kind == SPHERE:
+        return ("sphere", mask, _vector(stu.raw(fields, CENTRE)), _float(stu.raw(fields, RADIUS)))
+    return None
+
+
 def model_shapes(data: bytes, category: int = MOVER) -> list:
     """The physics shapes of a 00C model that stop the category, in model space, as the engine keeps them:
     ("mesh", mask, vertices, triangles (a, b, c, wing0, wing1, wing2, mask, surface: the 32 B records of
@@ -397,56 +447,39 @@ def model_shapes(data: bytes, category: int = MOVER) -> list:
     centroid, vertices, planes, faces, half edges), ("capsule", mask, a, b, radius), ("sphere", mask,
     centre, radius). A mesh's triangles carry their own masks; the other shapes the holder's. Only the
     static ones (static_part), each moved to its node's place in the model."""
-    payload = chunks(data).get("MSTU")
-    if payload is None or len(payload) < 16:
-        return []
-    offset, size = struct.unpack_from("<qq", payload, 0)
-    stu = Structured(payload[offset : offset + size])
-    table = nodes(stu)
     out = []
-    for item in stu.array(0, SHAPES, 8):
-        wrapper = struct.unpack_from("<i", item, 0)[0]
-        if not 0 <= wrapper < len(stu.hashes):
-            continue
-        shape = stu.ref(wrapper, SHAPE)
-        if shape is None:
-            continue
-        holder = stu.ref(wrapper, HOLDER)
+    table = None
+    for stu, wrapper, shape, holder, node in _model_shape_descriptors(data):
         if not static_part(stu, wrapper, holder):
             continue
-        node = stu.raw(stu.fields[wrapper], NODE)
-        frame = node_frame(table, struct.unpack_from("<I", node, 0)[0]) if node and len(node) >= 4 else None
-        before = len(out)
-        mask = _mask(stu, holder)
-        kind, fields = stu.hashes[shape], stu.fields[shape]
-        if kind == MESH:
-            points = [_vector(raw) for raw in stu.array(shape, VERTICES, 16)]
-            raw = b"".join(stu.array(shape, TRIANGLES, 1))
-            records = []
-            for k in range(0, len(raw) - 31, 32):
-                a, b, c, w0, w1, w2, _material, surface, own, _ = struct.unpack_from("<3I3i4H", raw, k)
-                if own & category and max(a, b, c) < len(points):
-                    wings = tuple(w if 0 <= w < len(points) else -1 for w in (w0, w1, w2))
-                    records.append((a, b, c, *wings, own, surface))
-            if records:
-                out.append(("mesh", mask, points, records))
-        elif not mask & category:
+        geometry = _shape_geometry(stu, shape, holder, category)
+        if geometry is None:
             continue
-        elif kind == CONVEX:  # faces as loops of half edges {s8 twin, u8 origin, u8 face, u8 next}
-            points = [_vector(raw) for raw in stu.array(shape, VERTICES, 12)]
-            planes = [struct.unpack_from("<4f", raw, 0) for raw in stu.array(shape, PLANES, 16)]
-            edges = b"".join(stu.array(shape, HALF_EDGES, 1))
-            half = [struct.unpack_from("<bBBB", edges, 4 * n) for n in range(len(edges) // 4)]
-            faces = list(b"".join(stu.array(shape, FACES, 1)))
-            if points and len(planes) == len(faces):
-                out.append(("hull", mask, _vector(stu.raw(fields, CENTROID)), points, planes, faces, half))
-        elif kind == CAPSULE:
-            a, b = _vector(stu.raw(fields, POINT_A)), _vector(stu.raw(fields, POINT_B))
-            out.append(("capsule", mask, a, b, _float(stu.raw(fields, RADIUS))))
-        elif kind == SPHERE:
-            out.append(("sphere", mask, _vector(stu.raw(fields, CENTRE)), _float(stu.raw(fields, RADIUS))))
-        if frame is not None and len(out) > before:
-            out[-1] = at_node(out[-1], frame)
+        if table is None:
+            table = nodes(stu)
+        frame = node_frame(table, node)
+        out.append(at_node(geometry, frame) if frame is not None else geometry)
+    return out
+
+
+def actor_model_shapes(data: bytes) -> list[tuple[int, int, tuple]]:
+    """Read animated actor shapes as (bone ID, actor category bit, bone-local geometry)."""
+    out = []
+    holder_class, selector_field, flag_default = BUILDERS[4]
+    for stu, wrapper, shape, holder, bone in _model_shape_descriptors(data):
+        if bone is None or _byte(stu, stu.fields[wrapper], MOTION, 0) != 4 or stu.hashes[holder] != holder_class:
+            continue
+        fields = stu.fields[holder]
+        selector = _byte(stu, fields, selector_field, 3)
+        if selector == 0:
+            continue
+        geometry = _shape_geometry(stu, shape, holder, 0xFFFF)
+        if geometry is None:
+            continue
+        category = 0x0100
+        if _byte(stu, fields, STATIC, flag_default):
+            category = 0x0001 if selector == 3 else 0x1000
+        out.append((bone, category, geometry))
     return out
 
 
