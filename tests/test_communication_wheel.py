@@ -625,7 +625,20 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertTrue(cancel.active)
                 self.assertFalse(expr.truthy(animation.find_var(expr.INSTANCE, 488).value()))
 
-                # Fire cancels via held button 20 while the mover is still grounded.
+                # 0015:58 is the authored disable state for primary fire.
+                blocker = body.component.create(graph.graph(0x0015), init=False)
+                blocker.initialized = True
+                disable_fire = blocker.node_state(blocker.graph.node(58))
+                disable_fire.begin()
+                player.take_commands([Command(body.frame + 1, buttons=FIRE)])
+                self.assertIn(20, body.component.held)
+                self.assertFalse(animation.find_var(expr.INSTANCE, 488).value())
+                self.assertTrue(cancel.active)
+                self.assertTrue(loop.active)
+                player.take_commands([Command(body.frame + 1)])
+                disable_fire.end(False)
+
+                # Enabled fire cancels via held button 20 while still grounded.
                 player.take_commands([Command(body.frame + 1, buttons=FIRE)])
                 self.assertTrue(animation.find_var(expr.INSTANCE, 488).value())
                 self.assertFalse(cancel.active)

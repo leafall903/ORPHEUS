@@ -284,8 +284,12 @@ Source paths for the remaining actions
   +B2 tests the held list through 1B8D940. The 023A conditions name
   state index 11 (node 38) in m_122DF0CA. The host queues that
   state's check for matching held-button presses and rechecks 023A
-  transitions when a watched value changes. Six native instruction cases
-  check the held condition with a fixture for the button-suppression service.
+  transitions when a watched value changes. The native held condition first
+  calls 1B9C760, which finds registry key 2DF2EF8 and scans its active list
+  for the queried button at state offset +1E8. The key is registered for
+  STU_E4A30BCF at 2701C9. Six native cases use the actual registry lookup
+  and cover absent, empty, matching and unrelated registrations. The host
+  uses its existing DisableLogicalButton registrations for the same check.
   01C7:7 provides movement values. STU_96F1DBCF constructor D3A510
   installs vtable 266ED08, whose tick reaches D3D420. D3D804
   tests the mover flags with mask 80000C. D3D85D records whether
@@ -295,7 +299,8 @@ Source paths for the remaining actions
   flags, both axes and an unrelated flag. The host uses the existing
   mover's airborne flag and the command's axes for the wheel path.
   An offline match starts the equipped Take a Knee emote, confirms
-  the loop persists while idle, and sends primary fire. The authored
+  the loop persists while idle and with primary fire blocked by 0015:58,
+  then releases fire, ends the block and presses fire again. The authored
   023A:52 exit lasts 367 ms. The 023A:51 wait reaches the terminal
   action at 1000 ms and retires 023A, 069A and 1040.
 - The same PlayScript path now starts the self-targeted 0686 graph from

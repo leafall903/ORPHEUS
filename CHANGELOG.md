@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Respect active logical-button blocks when checking emote cancellation.
+  Six native registry cases and 85 focused offline tests pass.
+  Complete interrupt-input coverage and original-client acceptance remain open.
 - Finish D.Va's pilot fallback emote using its authored base tree.
   Four native model-record cases and 85 focused offline tests pass.
   Live mech selection and original-client acceptance remain open.

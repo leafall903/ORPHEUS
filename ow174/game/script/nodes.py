@@ -2147,9 +2147,10 @@ def contains(instance: Instance, node, caller) -> bool:
 
 @handler("STU_7DEB522D")
 def button_held(instance: Instance, node, caller) -> bool:
-    """A logical-button condition: the button is held."""
+    """The held condition checks active button blocks first (104319 1B75954)."""
     button = to_int(instance.evaluate(node.fields.get("m_logicalButton")))
-    return branch(instance, node, caller, button in instance.component.held)
+    component = instance.component
+    return branch(instance, node, caller, button in component.held and not component.disabled.get(button))
 
 
 @handler("STU_4E2BCAAB")

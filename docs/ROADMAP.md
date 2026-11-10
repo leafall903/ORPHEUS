@@ -62,7 +62,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     inherited category matches. The local table covers all 284 untagged and
     eight tagged equipped mappings across the three wheel categories.
     The offline Heroic path finishes naturally, and Take a Knee reaches
-    the authored exit and cleans up on primary fire. D.Va's pilot applies
+    the authored exit and cleans up on enabled primary fire. The same
+    held input leaves the loop active while blocked. D.Va's pilot applies
     the tagged unlock fallback. The pilot uses its body tree to finish
     the fallback animation. Remaining interrupt inputs, active mech
     tag selection, live model remaps and original-client playback remain open.
