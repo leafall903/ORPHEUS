@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Feed 101 original model holder records through the native actor
+  category writer. The seven models contribute mask bit 0100.
+  Live bone transforms and original-client acceptance remain open.
 - Verify 24 native actor shape-category accumulation cases and
   inventory receiver declarations for all 32 catalog player bodies.
   Live model geometry and original-client acceptance remain open.

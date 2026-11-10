@@ -97,7 +97,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     mask recovered from both .097 profiles. A ray hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.
-    The actor category writer is verified with fixture shape inputs.
+    The actor category writer is verified with fixture shape inputs
+    and original holders from seven player and NPC models.
     Need Healing uses the authored source body tag in its targeting
     and voice branches. Marker effects,
     runtime tag mutations, dynamic target geometry and deployable eligibility

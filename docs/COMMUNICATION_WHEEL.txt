@@ -400,8 +400,16 @@ Source paths for the remaining actions
   kind 3, or 1000 for the remaining tested kinds. A scan of all
   32 catalog player bodies finds no explicit m_AC53342B category
   or .098 receiver. Soldier's body points to model 1137.00C and
-  leaves its model-component collision override empty. The model's
-  live shape categories and final hit collection still need bindings.
+  leaves its model-component collision override empty. The raw
+  00C descriptors still carry dynamic STU_82C2BA2C holders.
+  m_8C9E3EE1 maps to the selector read at 1B2115C and
+  m_B4D8D9BB maps to the flag at 1B21529. The actual holder
+  fields from seven models give actor mask bit 0100 for 101
+  enabled descriptors, including 11 each for Soldier and Genji.
+  Three Heavy Assault descriptors have selector zero and are skipped.
+  The individual holder masks differ from the aggregate actor mask.
+  The static map decoder omits these dynamic shapes. A live query
+  still needs the bone transforms and final per-shape admission.
   Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
   through the ordinary selection message. 05AD nodes 112 and 136 and
   0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.
