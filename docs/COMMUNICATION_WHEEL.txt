@@ -976,8 +976,25 @@ Source paths for the remaining actions
   or cube. Thirty-two original-instruction cases verify lookup
   and driver arithmetic. Ten more verify both scope layouts
   and all four overrides plus a miss. These use supplied rows.
-  The producer that fills the actual greeting scope rows and
-  the pose composition remain open.
+  C09490 and C09530 call C0B570 to build the model rows. It
+  reads the compiled parameter ID list at tree +60, clears bit
+  31 before lookup, and initializes each result to zero. A tagged
+  ID stores the low float word with the upper word cleared.
+  An untagged ID stores the whole eight-byte result. It hashes
+  the written rows in order with 32-bit FNV-1a. C0B740 first
+  tries the override table when its mode is nonzero, then a
+  virtual provider, then the builtin provider. It tries a
+  zero-mode override table last. The virtual call is +58 when
+  given a scope byte and +68 without one. BB8970 passes the
+  virtual provider from animation component +748. BBB590
+  installs that pointer from its third argument. C085B0 then
+  calls C09270 to hand the model rows to the query. This copies
+  the direct-model table or four matching scope tables and
+  selects the requested one, defaulting to slot zero. Four
+  row-builder cases, eight resolver precedence cases and ten
+  model-to-query cases run the original instructions with
+  supplied providers and table rows. The actual provider values
+  for the greeting IDs and pose composition remain open.
   104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
   branches. The extractor accepts a blend duration if all eligible
   leaves agree. Eleven offline native runs check Soldier: 76, Echo

@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace greeting model parameter row construction and query handoff in 22 native cases.
+  Actual provider values, pose composition and client acceptance remain open.
+
 - Verify greeting animation weight lookup and scope selection in 42 native cases.
   Authored parameter producers, pose composition and client acceptance remain open.
 
