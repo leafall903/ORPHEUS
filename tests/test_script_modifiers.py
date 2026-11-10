@@ -3,7 +3,7 @@
 import math
 import unittest
 
-from ow174.game.script import modifiers, runtime, scene
+from ow174.game.script import expr, modifiers, runtime, scene
 from tests.test_script_play_resource import EMPTY, array, integer
 from tests.test_script_runtime_budget import graph, node
 
@@ -115,6 +115,30 @@ class ModifierRecordTests(unittest.TestCase):
 
 
 class ModifierStateTests(unittest.TestCase):
+    def test_vector_replacement_preserves_numeric_rows_and_retires_at_its_clock(self):
+        vector = {'$': 'STU_09F9B1FE', 'm_CFEC5F76': 0,
+                  'm_9B7A63EA': {'$': 'STUConfigVarDynamic', 'm_identifier': 7, 'm_60DB8F99': 0}}
+        component, active, state, backend = setup([row(integer(0), field=26), vector])
+        active.write((0, 7), 7)
+        begin(component, state)
+        self.assertEqual(backend.resolve(26, 1, frame=21), (True, 0))
+        self.assertIsNone(backend.resolve_vector(0, frame=20))
+        self.assertEqual(backend.resolve_vector(0, frame=21), (0., 0., 0.))
+        backend.source_frame = 21
+        active.write((0, 7), ((expr.Vec3(2, 3, 4),), 9))
+        component.run_now()
+        self.assertEqual(backend.resolve_vector(0, frame=22), (2., 3., 4.))
+        self.assertIsNone(backend.resolve_vector(1, frame=22))
+        backend.source_frame = 22
+        state.end(False)
+        self.assertEqual(backend.resolve_vector(0, frame=22), (2., 3., 4.))
+        self.assertIsNone(backend.resolve_vector(0, frame=23))
+        self.assertEqual(backend.resolve(26, 1, frame=23), (False, 1))
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'later missing service', 'Unknown')
+        self.assertFalse(backend.records)
+        self.assertFalse(backend.vector_records)
+
     def test_declared_backend_registers_actual_numeric_rows_on_its_own_clock(self):
         component, _, state, backend = setup([row(integer(0), cls=MULTIPLY, priority=integer(99)),
                                              row(integer(0), field=17)])

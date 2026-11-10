@@ -118,6 +118,7 @@ class SceneWorld(runtime.World):
         self.play_queues: dict[int, play_queue.Queue] = {}
         self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
+        self._target_tag_candidates: dict[int, frozenset[int]] | None = None
         self.hero_contexts: dict[int, controller_heroes.Context] = {}
         self.team_contexts: dict[int, entity_team.Context] = {}
         self.message_contexts: dict[int, message_state.Context] = {}
@@ -145,6 +146,8 @@ class SceneWorld(runtime.World):
         self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
+        if self._target_tag_candidates is not None:
+            self._target_tag_candidates.pop(entity, None)
         self.modifier_components.pop(entity, None)
         self._retire_control_contexts(entity=entity)
         aliases = self.alias_components.pop(entity, None)
@@ -522,6 +525,22 @@ class SceneWorld(runtime.World):
     def model_look_context(self, entity: int):
         return self.look_contexts.get(entity, NotImplemented)
 
+    def set_target_tag_candidates(self, candidates) -> None:
+        """Declare the active query order and effective uint32 tags explicitly."""
+        ordered = {}
+        for entity, tags in candidates:
+            self._bound_entity(entity)
+            keys = frozenset(tags)
+            if entity in ordered or any(type(tag) is not int or not 0 < tag <= 0xFFFFFFFF for tag in keys):
+                raise ValueError("invalid target-tag candidate catalog")
+            ordered[entity] = keys
+        self._target_tag_candidates = ordered
+
+    def target_tag_candidates(self):
+        if self._target_tag_candidates is None:
+            return NotImplemented
+        return tuple(self._target_tag_candidates.items())
+
     def set_entity_query_context(self, entity: int, context: entity_queries.Context) -> None:
         self._bound_entity(entity)
         if type(context) is not entity_queries.Context or context.owner != entity or context.retired:
@@ -625,7 +644,7 @@ class SceneWorld(runtime.World):
             aliases.retire()
         backend = self.modifier_components.get(component.entity)
         if backend is not None:
-            backend.records.clear()
+            backend.clear()
         scope = self.scope_components.get(component.entity)
         if scope is not None:
             scope.clear()

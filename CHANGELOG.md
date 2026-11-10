@@ -4,7 +4,69 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-10
+
+#### Doomfist close Slam deferred velocity
+
+- Schedule the close-contact velocity delta for the next server tick. Store
+  the target body, tick and vector in the causal snapshot. Apply once on the
+  scheduled tick and discard expired or retired-body records. Original mover
+  reconciliation, collision and client acceptance remain open.
+
+#### Doomfist close Slam target scaling
+
+- Scale close-contact launch by the target's active authored literal mover
+  modifiers. Reuse the native numeric ordering and multiply/replace behavior.
+  Actual ground and aerial commands cover Reinhardt's 0.7 multiplier and
+  its removal on body replacement. The server still applies the velocity
+  at contact. Native scheduling, collision and client acceptance remain open.
+
+#### Assassin target-tag query
+
+- The strict VM runs `STU_42578342` against a declared, ordered scene candidate
+  catalog and publishes the typed result before following its output. Native
+  offline request, filter and result replays cover both Assassin resource
+  nodes. Scene membership, native ordering and later graph consumers remain
+  explicit boundaries. Original-client acceptance remains open.
+
+#### Assassin mixed movement modifiers
+
+- Publish and retire `STU_09F9B1FE` vector replacements alongside scalar rows
+  in the strict component-31 service. A direct replay of the four authored
+  `13C3` nodes compares the zero vector and knockback scale with the 104319
+  offline native probe. Live NPC movement, collision, and original-client
+  acceptance remain open.
+
+#### Doomfist Meteor Strike visibility
+
+- Check the authored low ray and two body-height fallback rays at impact.
+  A real-input regression covers damage over a 0.7 m wall. The landing and
+  body anchors use reconstructed server positions and static collision.
+  Native map collision, socket poses, and original-client acceptance remain open.
+
+#### Doomfist Meteor Strike range and falloff
+
+- Measure distance to the target capsule surface from the authored local
+  offset at the reconstructed landing anchor. Use that distance for both
+  the radius gate and the authored damage expression. Cover edge hits and
+  misses with normal input against a player and all five NPC definitions.
+- Publish target IDs before applying damage and retain prior targets in their
+  existing order. The authored damage expression reads the independently
+  deduplicated float array, including null when an index exceeds its length.
+  Native world enumeration, mover snapshots and impact poses remain open.
+
 ### 2026-11-09
+
+#### Manual Assassin pin against Doomfist (partial)
+
+- Run actual1157 against Doomfist through a scoped data-only possessor context,
+  elapsed health adapter and source-owned control lifetime. Stop, faction/LOS
+  loss, ally rescue, death, replacement and removal release the pin. Capture
+  target bindings and the damage clock in VM/server snapshots.
+- Manual3m contact, mode1 damage/second, input suppression and fresh-engagement
+  release-animation interruption are explicit reconstruction rules. Native
+  controller/health/animation/AI parity and full static acceptance remain open;
+  see docs/DOOMFIST_ASSASSIN_CONTEXT.txt for evidence boundaries.
 
 #### Native state-input joins and Deadeye timing
 
@@ -29,6 +91,332 @@ This log records tested changes and their acceptance status. Entries are grouped
   an external bundle. Normal runtime data/services and original working changes
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
+
+#### Doomfist manual Enforcer incoming combat and scope exits
+
+- Declare a data-only4B-present/5C-absent context for manually spawned Enforcer
+  bodies. Resolve only permissive13EB owner B96D3A98; preserve strict/foreign
+  refusal and existing aggregate-health service. Other NPCs remain unchanged.
+  Store the declaration in VM/server snapshots. Eight original predicate-tail
+  comparisons pass with lookup/output adapters; native allocation stays open.
+- Seven actual methods cover2-point incoming attacks, stop/reengagement,
+  wall/team rejection with positive controls, Punch suppression/recovery,
+  Meteor protection/recovery, Hand Cannon corpse/removal and natural incoming
+  death/10s respawn with fresh250 health/4 ammo. The long death test uses20191
+  ordinary input frames and drains delivered test transcripts, not game state.
+- Three actual full/empty held-primary scope methods and two opposing02A3
+  stance/cover methods pass. The six resource contexts do not reproduce the
+  reported refill-overwrite issue, so no generic Ability.stop order is changed.
+  Existing first-person inputs already provide1.425/.9975 for opposing02A3.
+- See docs/DOOMFIST_ENFORCER_CONTEXT.txt. Native controller/weapon/AI fidelity,
+  Assassin and the full original static/client matrix remain open; no commit,
+  parent write, merge or publication is performed.
+- Pass217 hero/1117 shared checks,13 focused checks and stored-journal replay.
+  Two opposing-eye methods and the long incoming-death method run separately
+  after their test-only additions on identical production code. Counts overlap;
+  the lane runner can reproduce the recorded method sets. No skipped tests.
+
+#### Doomfist direction-input movement modifiers
+
+- Apply existing movement properties17/18/19 before normal acceleration:
+  positive forward, backward magnitude and absolute lateral input, followed
+  by lateral sign restoration and axis clamps. Review the shared parent
+  candidate against captured104319 C33960..C33A8D.120 comparisons/7728 native
+  instructions match the private mover;360 scalar lookup adapters are separate.
+- Reproduce real Uppercut input leakage before the fix. Six actual-command
+  methods now cover both forward signs, ground/aerial Slam with retained
+  impulse motion, Punch's forced-forward scope, Meteor intro versus aim,
+  invalid aerial targeting, and enemy Flashbang cancellation/recovery.
+  Raw throttle bytes/history stay intact; modifiers retain their next-pose
+  start/end boundaries. No state field or runtime input table is added.
+- Six real scope traces reach18 of21 direction records across the four skill
+  graphs. The remaining Slam53 branch is resource-only evidence and stays open;
+  do not start it or assign its entity flag merely to make coverage pass.
+  Native scalar lookup/order, complete physics/ability fidelity, Meteor camera
+  flight and the full original static/client objective remain open.
+- Independently reproduce a remaining cleanup-notification path after the
+  broader runs: an ending watcher can enqueue itself again during cleanup.
+  Guard it in Component.changed, consistently with State.watch. Two minimal
+  notification-lifetime regressions distinguish the existing cancel-marker
+  fix from this cleanup-write case. Parent Ability.stop arbitration/resource
+  release ordering still needs separate actual Doomfist evidence.
+- Pass208 hero/1111 shared checks before the final ending-state guard, then
+  882 script/lifecycle/actual-Doom checks and a stored-journal replay afterward.
+  Focused67 and initial11 checks overlap these runs.120 original-prefix cases
+  also pass. No skips; no original-client acceptance, commit or publication.
+
+#### Doomfist Hand Cannon and opt-in Reinhardt barrier candidate
+
+- Review the shared lane0007 geometry/resource candidate and independently
+  prepare the descriptor from manifest-verified104319 models. The dynamic
+  shield has98 vertices/192 triangles; explicit dynamic extraction leaves the
+  default static movement world unchanged. No model is stored in source.
+- With an explicit external descriptor, reconstruct the raised aim/bind pose
+  and1600HP,200/s,2s lowered delay,5s broken gate. Only actual Hand Cannon
+  pellets use this interception path. Keep Pet output38 unset: this host does
+  not restore native Pet actors, animated attachment or receiver filtering.
+- Eight actual-command methods cover frontal66 shield loss, graph health
+  mirroring, lowered/rear body exposure, team passage, allies behind the mesh,
+  nearer static walls, body retirement, natural depletion and broken recovery.
+  Fresh input works after the broken deadline; an old short press expires.
+  Release regeneration and full recovery use ordinary command time and ammo.
+- Reproduce and fix two shared dependency faults: cancel clears coalescing
+  flags for removed callbacks; computed Ability cooldown expiry notifies its
+  dependent ready gate, with millisecond-edge rescheduling. Two isolated
+  red/green graphs and the actual broken-shield recovery verify both fixes.
+  Stored snapshots retain the complete geometry and mutable barrier deadlines.
+- Pass201 hero checks,1111 expanded shared checks, a separate five-NPC method
+  and one stored-journal replay on the final production source. Focused10 checks
+  overlap the broad runs. No skips; earlier startup/assertion and shared runtime
+  failures are preserved with their causes. Ruff and patch checks pass.
+- This is partial Hand Cannon/barrier coverage. Other Doom attacks, native
+  Pet/health identity/filter/pose semantics, other shields and the full original
+  static/client goal remain open. No hero commit, shared write or publication.
+
+#### Authored per-body first-person height inputs
+
+- Retain direct FirstPerson standing/crouched fields alongside body mover
+  metadata. Combat now uses these inputs for player shot/melee origins, target
+  eye/history values and the declared defense-box proxy; NPCs use direct values
+  when available. These two metadata fields do not change the movement solver.
+  Older packs retain the explicitly declared compatible pose fallback.
+- Prepare one owned43-row metadata table from immutable inputs:33 direct body
+  FirstPerson components, including all32 playable heroes;10 bodies lack a direct
+  component and retain fallback, including the five Talon NPCs. Other static
+  runtime inputs are read-only hardlinks and collision is a read-only reference
+  to the original cache; no shared runtime or archive was copied or modified.
+- Actual commands verify standing/crouched eyes, target history and six heroes'
+  pose transitions; Doomfist's11 projectile origins use1.5m or1.2m, and real
+  crouching changes clearance over the same cover. All32 hero offsets match
+  source XML. Parser/legacy/invalid-input checks and causal snapshot changes
+  pass; a stored creation/spawn/VM recording replays successfully.
+- Pass192 hero and294 shared checks before the final unknown-body lookup
+  guard. The guard keeps partial packs from borrowing Soldier's FirstPerson
+  fields;169 relevant checks and one stored-journal replay pass afterward.
+  Counts overlap. No skipped tests; initial assertion failures remain recorded.
+- FirstPerson offsets remain a declared static pose adapter. Animated camera,
+  muzzle/hardpoint transforms, body scaling, native hurtboxes, NPC muzzle data
+  and the critical-1 sentinel's downstream interpretation remain open. No full
+  spatial/native/hero/client acceptance or publication is claimed.
+
+#### Doomfist five-NPC rejection and natural recovery checks
+
+- Add seven actual-input methods across all five authored NPC mover bodies:
+  Hand Cannon ally/miss/wall rejection with ammo cost, duplicate command rejection,
+  quick-melee ally/range/wall rejection with natural-cooldown positive controls,
+  and Uppercut range/off-axis/wall misses, cooldown rejection/expiry/fresh hits.
+  Fifty fixture cases execute65 real casts, including15 successful positive
+  controls. New checks do not seed health, resources, cooldowns or running flags.
+- Preserve initial failed timing assertions: the melee animation can end while
+  cooldown remains; Uppercut starts cooldown after its authored recovery. Tests
+  now wait for actual completion and remaining cooldown, rather than assuming
+  those two events coincide. No production behavior changed in this checkpoint.
+  Seven focused methods pass24.738s;85 expanded NPC/combat/resource methods
+  pass214.427s with authored NPC movers and no skips.
+- Resource review identifies a separate fidelity gap:32 body XMLs contain
+  explicit standing/crouched first-person heights. Doomfist is1.5/1.2, Genji
+  1.2/0.84 and Sigma2.1/1.75; the combat host still uses a global1.55 standing
+  proxy. Keep native geometry/critical acceptance open pending per-body restoration.
+- Actual400-frame Reinhardt secondary input reaches0095 Pet state17 but produces
+  no entity output38 or shield health586. Front Hand Cannon still damages his
+  body500->467. This is a missing Pet-service reproduction, not barrier success.
+  Null-critical sentinel interpretation, typed damage-descriptor flow, active
+  barriers, native poses, Enforcer/Assassin attacks and full acceptance stay open.
+
+#### Doomfist versus reconstructed Kinetic Grasp and authored NPC movers
+
+- Add a Hand-Cannon-only Sigma1D02 absorption host using the authored boxes,
+  explicit eye/aim coordinates and interpreted180-degree gate. The actual graph
+  accumulates the supplied per-pellet damage and owns2s ChaseVar duration,
+  normal-finish conversion, interrupted exit and12s cooldown. A scoped1D03 host
+  evaluates the actual0.6 conversion/cap400 parameters and supplies aggregate
+  temporary shields with authored3s delay/5-per-second decay. Native tagged pool
+  construction, ruleset scaling,0145 filters and interception metadata remain open.
+- Real commands cover eleven-pellet66 absorption/39.6 shields,726 absorbed from
+  eleven actual enemy volleys capped at400 shields, rear/wall/team rejection,
+  normal duration/cooldown rejection/fresh reuse, late in-flight arrival, body
+  replacement, shield consumption/decay and Punch interruption discarding pending
+  conversion. Quick melee, Uppercut, ground/aerial Slam and Meteor still hit.
+  Actual Accretion input cancels Grasp without early conversion. A three-player
+  chain reflects the volley through Genji, then an original-shooter-team Sigma
+  absorbs it before Doomfist and receives conversion instead of damage credit.
+  Queue pool grants until a valid posed combat command, discard them on terminal
+  VM failure/unposed consumption, and capture the queue in causal snapshots.
+  Pass178 full hero methods455.806s and263 shared methods313.829s on the final
+  source with authored NPC movers and original read-only map caches; no skips.
+  Nineteen absorption methods comprise16 actual-command cases and3 mechanical
+  VM/host checks. An earlier172-method run retained the Assassin far-wall
+  fixture failure; an earlier standalone-runtime shared run skipped9 absent
+  real-map caches. Final results cover their corrected input/collision paths.
+- Correct the evidence boundary for old five-NPC tests: the original38-row
+  mover table omitted all five and silently used Soldier defaults. Revalidate
+  against the parent's independent43-row prepared runtime, with hashes/XML
+  sources checked and all original38 entries unchanged. Explicit tests require
+  each body's own height/radius/speed and launched Mover data; a natural grazing
+  volley distinguishes Heavy's0.7m radius from the other four0.5m bodies.
+  This remains static fixture collision: native animated hurtboxes/muzzles,
+  full NPC AI and real-map collision/navigation/client acceptance remain open.
+- Authored Assassin friction exposed a stale wall-contact assumption: it can
+  stop before the old far wall. The old0.12m proximity probe also awarded150
+  bonus damage across a4cm gap. Require the existing engine contact skin plus
+  one mover grid step instead. Verify100 damage when stopping short and full
+  near-wall damage for all five bodies. Native knockback/contact policy remains
+  unaccepted; this repairs the explicitly reconstructed collision host.
+- Execute five original Deflect descriptor corner-normalization cases offline
+  (289 instructions). Vector-config evaluation is an adapter; this proves XYZ
+  sorting and descriptor insertion only. It does not verify native interception,
+  absorption response, animated transforms or visual ownership. Full hero goal
+  remains open. Original runtime/shared main were not modified; no client use.
+- Independently replay four original null-critical initialization cases found
+  in the read-only Tracer lane evidence. Each stores-1 at the native damage
+  descriptor's64 field, without engine adapters. Downstream hit-region/sentinel
+  interpretation is still open; no guessed Hand Cannon multiplier is installed.
+
+#### Doomfist versus reconstructed Genji Deflect
+
+- Add a Hand-Cannon-only reflection host for actual Genji03A3 commands.
+  Sweep the authored boxes in an explicit eye/aim frame and apply its90-degree
+  facing gate. Transfer projectile owner/team/direction while retaining flight
+  age, remaining lifetime and original hit definition. Bound same-frame repeated
+  interceptions; charge separation to available time, including exact endpoints.
+- Actual commands cover eleven returning pellets/66 damage, rear hits, static
+  walls, reflected team filtering, Genji damage/kill notices and actual Uppercut
+  shield absorption. Two actual Genjis repeatedly reflect without duplicating
+  pellets or extending lifetime. Verify resource2s duration/8s cooldown rejection
+  and fresh reentry. The authored melee tag/forward gate blocks frontal quick
+  melee; rear melee and Punch/Uppercut/ground+aerial Slam/Meteor still hit. Punch
+  contact stops Deflect through its real graph, without blanket ultimate cancel.
+- Pass154 hero and263 shared regressions before the final endpoint correction,
+  then80 focused Deflect/projectile/combat methods on the final source. All15
+  Deflect methods pass:13 actual-command combat, one basis-mathematics check
+  and one endpoint invariant. Preserve the initial
+  Slam fixture miss, corrected basis signs, startup path typo and reproduced
+  unpaid0.0001m endpoint defect in separate logs. These are not native fidelity
+  acceptance: animated transforms,0145 projectile filtering, projected aiming,
+  output/loadout metadata, flight-reset policy and visual ownership remain open.
+  Other projectile types, barriers/absorption and complete static/client acceptance
+  remain open. No original-client checks were run.
+
+#### Doomfist versus reconstructed Wraith defense
+
+- Add a narrow Reaper0020 host for actual Wraith input: supply the missing
+  54FEB21C entry finish using its authored zero delay, then keep resource-owned
+  3s phase, cancellation, recovery and8s cooldown. Reuse active state0 and scoped
+  entity530; no extra mutable defense cache or direct ability/resource writes.
+- During that phase reconstruct intangible/no-damage behavior for target search,
+  direct damage and hit effects. Actual Doomfist primary, melee, Punch, Uppercut,
+  ground/aerial Slam and Meteor cannot damage, displace or generate passive
+  shields. Released pellets use protection at collision; a250m pellet arriving
+  after expiry still damages. Actual Flashbang cannot stun/cancel the phase.
+- Verify normal expiry and subsequent66 damage, primary/Shift cancellation
+  without weapon emission/ammo cost, rejected cooldown pulse then fresh reentry,
+  and body replacement. Ten focused defense methods pass across three logs.
+  Pass138 full hero and263 shared movement/combat/NPC/storage regressions;
+  three later boundary methods pass separately on the same production source.
+  Initial seven-case log retains one incorrect test counter assertion: Ability
+  state lifetime counter stays fixed; the actual phase counter tracks reentry.
+- Seven original C880C0/1B712E0 timer callbacks execute offline: only timer1
+  requests Finish(delay0). The request service is an adapter. Engine entry
+  scheduling and native9028/530 consumers are not proved; this is an explicit
+  host defense policy, not the native status manager or full Reaper acceptance.
+  Cleanse/stacking, barriers/reflect/absorb, other invulnerability types, native
+  hero fidelity and complete static/original-client acceptance remain open.
+
+#### Doomfist actual Flashbang interruption and death lifecycle
+
+- Add seven real-command interaction methods: Flashbang interrupts Punch charge
+  and an already-moving dash, ground Slam before landing and committed aerial
+  Slam; Uppercut interruption preserves collision gravity. Rejected input
+  cannot restart Punch after cooldown, while a fresh press works after expiry.
+- Actual rifle fire kills a charging Doomfist; normal command ticks retain the
+  old body until the mode's10s deadline and create a fresh250-health Doomfist
+  with4 ammunition. Its new primary shot deals66. Already released pellets
+  survive owner death and finish a trade; each player gets one death and kill.
+  No damage, health, clock, cooldown, resource or running-state fixture writes.
+- Pass94 combined Flashbang/Punch/Slam/Uppercut/primary/Meteor-protection tests
+  in74.508s, plus the later trade method2.345s. Initial grenade-miss fixtures and
+  incorrect native-MoveTo test API assumptions are retained in separate logs;
+  corrected tests check actual grenade impacts and the declared aerial host.
+- These verify existing host policies; no production behavior changes. Native
+  spatial/status fidelity, sleep/freeze/hack, active barriers/reflect/absorb,
+  actual Enforcer/Assassin attacks and complete hero/client acceptance remain open.
+
+#### Doomfist owner-health query and NPC pool initialization
+
+- Checkpoint11 adds actual Zarya200-shield absorption and spill into health:
+  four natural volleys produce44 hit notices and264 damage. All-five real NPC
+  health-query tests now check shield and health pools separately. Natural
+  eleven-pellet volleys exercise15/22.5/30/35m falloff and expiry before510m,
+  without removing pellets or changing flight/range/resource state. Pass27
+  combined Hand Cannon/resource/health/NPC methods16.137s. Scatter counts remain
+  evidence of the declared host pattern, not native equivalence.
+- Refine the Enforcer frontier:13EB's condition can use F7262B36's owning-entity
+  variables7681/9134 as an alternative to B96 eligibility. NativeD15520 queries
+  component43 andBD42D0 decodes an identity from+E0/+D8. Five original decoder
+  cases preserve uint32 identities with synthetic component memory and no
+  engine-service adapters. Real NPC ownership/variable bindings remain unknown;
+  no artificial controller or forced eligibility is added.
+
+- Bridge9B7648C3 owner queries to existing actual aggregate health for permissive
+  player/NPC bodies. OriginalCEB6C0/D177C0/BCC870 reads component51's float;
+  host pool aggregation and dependency polling remain explicit reconstructions.
+  Foreign entities remain unsupported and strict missions reject this bridge.
+- A five-body real-pellet test exposed missing initial shields in Enforcer and
+  Assassin script health. Create all combat pools before the first body graph
+  frame and initialize the script from their total. Values now agree before
+  and after actual damage. The original failing log is retained.
+- Pass5 actual damage/passive/decay/death/strict query methods. Pass120 hero
+  and163 relevant shared tests before the final spawn-order correction; then
+  pass30 NPC/body and34 complete five-NPC/control tests on the final source.
+  Eight original scalar-handler cases pass offline with explicitly adapted
+  engine health/context/variant services; native pool aggregation is not proved.
+- Enforcer now advances beyond its health gate but stops at native controller
+  eligibility. B96D3A98 tests controller component75 presence and92 absence;
+  controller ownership/lookup remains missing. No forced eligibility is added.
+  Assassin incoming attacks, native headshots/ultimate charge and complete
+  hero/cross-hero/client acceptance remain open. No hero commit or merge.
+
+#### Doomfist Meteor Strike partial static reconstruction
+
+- Verify on all five authored NPC bodies that primary pressed during the intro
+  neither confirms Meteor nor fires Hand Cannon, even when held into selection.
+  A fresh press during selection commits one impact. Three focused Meteor tests
+  passed. Original-client acceptance and native early-confirm handling remain open.
+
+- Checkpoint09 reuses native input-join foundation2ca9178 in the private clone;
+  retain both changelog entries and all lane VM fields. All110 existing Doomfist
+  player/five-NPC methods pass on this foundation (363.756s). Five new Hand
+  Cannon actual-input methods pass (9.781s): magazine4, authored3Hz, empty
+  rejection/replenished held fire, sequential0.65s refill after recovery,
+  cap4, expired empty pulse, manual reload refusal and duplicate/old commands.
+  No resource/rate/cooldown writes drive these tests. Headshot defaults and
+  scatter fidelity remain open; unknown fields are not assigned guessed meanings.
+- The expanded shared regression passes260 tests608.723s, including complete
+  server snapshot/journal creation, two-player damage/death/respawn/hero switch
+  and stored-state replay checks. Enforcer/Assassin produce neither volley
+  reports nor damage over220 frames at1.5/3/10m; their native query/controller
+  gates remain open. Preserve these negative probes without forced eligibility.
+
+- Preserve C51's charge gate1680, selection/windup/descent, impact transition,
+  half-second cost/stop branch and below-cost rejection. Actual neutral commands
+  fill the existing provisional60-second charge policy; no test sets charge,
+  cooldown or running flags. Damage/healing charge generation remains missing.
+- Reconstruct floor selection, confirmation edge, untargetability until impact,
+  collision-backed cursor movement and frozen landing. Evaluate the authored
+  damage expression:300 within2m,107.5 at5m,15 at8m; reject allies and static
+  cover. Confirmed hits grant75 temporary shields, capped150. All five actual
+  NPCs take damage; lethal bodies remain. Rifle, Flashbang and three actual NPC
+  weapons cannot damage during selection and resume after landing.
+- Reuse reviewed64bf71c Flashbang foundation in the private lane, preserving
+  stun/motion cleanup, corpse physics, NPC route clocks and snapshot fields.
+  Pass76 foundation,235 shared and45 hero/incoming regression tests. Twelve
+  distinct Meteor player/five-NPC methods pass across two logs; the first log
+  retains one wall-fixture failure, corrected by placing capsules clear of the
+  wall and rerunning that method. Snapshot target/confirmation causality passes.
+- Native75m lift/flying camera, query proxies, frame predicate, protection
+  timing, native distance/impulse policy and ultimate generation remain open.
+  Spatial services are declared host reconstructions. Strict mission adapters,
+  complete hero static acceptance and original-client acceptance remain open.
 
 #### Resource-backed Flashbang control reconstruction
 
@@ -179,6 +567,103 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Doomfist Hand Cannon damage lane (partial)
+
+- Reuse reviewed public foundations through7cd1ed7 in the isolated lane: manual
+  NPC input, authored weapon managers/sparse slots, native array selection and
+  quick-melee static visibility. Preserve parent commits and snapshot all new
+  manual-target plus lane control/motion fields. Keep the hero changes uncommitted.
+- Add an explicitly reconstructed aerial Slam target service: authored15m range,
+  downward view ray, walkable floor/head clearance, original held/validity gates,
+  authored25-speed MoveTo through real collision, frozen destination, invalid
+  target cancel, airborne death/obstruction/cooldown checks and all five actual
+  NPC damage/pull/ally/lethal retained-corpse cases. Native curved/entity targets
+  and query/reticle fidelity remain open.
+- Test actual Trooper20/Sniper100/Heavy5 incoming damage and stop behavior against
+  Doomfist, including absorption by shields generated through actual Slam input.
+  Correct new NPC emission suppression during Punch control, then prove no new
+  damage during control and resumed damage after expiry for those three types.
+  Enforcer/Assassin production attacks remain open; observer projectile transport
+  is omitted in this authoritative-damage fixture.
+- Pass137 integrated hero/foundation tests and226 shared movement/combat/VM/
+  physics/strict/storage checks, then100 weapon/control/combat/projectile tests
+  after the final emission guard. A further Doomfist melee wall/open test passes.
+  Complete hero static acceptance, Meteor, cross-hero defenses and client checks
+  remain open. No shared-tree edit, hero commit, merge or push is performed.
+- Correct indexed Switch cases using target-build1B9B3C0: a missing case
+  value selects its index in mode1, otherwise integer0, with64-case limit.
+  This lets Slam0B27 enter its authored phases. Add four strict-runtime phase
+  selection/cleanup/default tests. Native multi-match mode remains separate.
+- Reconstruct Slam's ground-hop branch: real ground observations, authored19
+  speed with declared forward/up direction, collision landing, authored chase
+  damage/cap and recovery/cooldown, reconstructed forward wave and pull/lift.
+  Positive host impulses detach from their initial floor before a large landing
+  limit can reattach them. The release guard is included in stored physics.
+- Pass83 focused hero/Switch/real-NPC tests, including all five actual NPC
+  ground-Slam damage/pull/lift/landing and seven-NPC passive cap150. Aerial
+  reticle/MoveTo, close contact, native wave/ground filters, active NPC attacks,
+  Meteor and full static/original-client acceptance remain open.
+- Pass226 shared mover/combat/VM/physics/strict checks and two further NPC
+  Slam lethal/corpse/ally tests. Pending wave/charge and launch-release state
+  affect stored hashes. Runtime remains read-only and client acceptance open.
+- Add a declared reconstructed Rocket Punch host using authored0D06/0D07
+  charge, speed, contact/wall damage and knockback values. Preserve body-graph
+  input, cancel, automatic release, recovery and cooldown. Reuse collision
+  movement; test one hit/bonus, LOS/team, death/duplicate rejection and actual
+  Soldier attack suppression/recovery. Contact grants30 passive shields once.
+- Pass68 focused Doomfist/player/actual-NPC tests. All five actual NPC types
+  take minimum/maximum contact damage, wall damage and forced motion, leave
+  control and retain corpses. Native filters, area collateral, cross-hero
+  immunity, NPC active attacks, Slam/Meteor and complete acceptance remain open.
+- Add an explicitly reconstructed Uppercut launch through real player/NPC
+  collision movers. Cover displacement, landing, ceilings, missed/allied targets,
+  duplicate input, five actual NPC bodies and falling retained corpses. Native
+  three-stage owner velocity and victim air-control/interrupt remain open.
+- Fix shared Ability retry buffering to retain the original key timestamp.
+  Expired released input no longer casts after cooldown; valid early input still
+  does. Strengthen the damage/cooldown test with activation-counter assertions.
+  Preserve strict mission failures for reconstructed health/velocity adapters.
+- Pass61 input/NPC/ability tests, two ceiling/storage checks,216 related movement/
+  combat/snapshot regressions and62 focused strict/body/ability/Uppercut checks.
+  No client, deployment, complete hero acceptance, commit or merge is claimed.
+- Add resource-derived Best Defense shields after confirmed Uppercut hits:
+  30 per enemy, cap150, delay1s, decay3/s. Reconstruct tagged pools as a separate
+  aggregate slot; incoming damage consumes it before base pools, healing cannot
+  refill it, and depletion sends an explicit zero-ID slot. Preserve decay clocks
+  in passive server snapshots. Native per-pool/bar semantics remain open.
+- Pass144 selected combat/projectile/runtime/health/VM and stored-server tests,
+  plus six actual-NPC tests including seven concurrent Uppercut targets and the
+  shield cap. Other ability triggers, Uppercut lift/control and complete hero
+  acceptance remain open; no original-client acceptance is claimed.
+- Restore Uppercut's authored sphere selection and activation-time 50-damage
+  report through the combat host. Static LOS and authoritative aim basis are
+  reconstructed; original getter disassembly identifies transform basis+20.
+  Unposed commands and terminal VM faults discard pending health effects.
+  Extend stored VM snapshots for target bindings and pending health reports.
+- Pass 23 focused Doomfist tests including Uppercut miss/range/LOS, armour,
+  ally filtering, cooldown rejection/reuse and held-button suppression.
+  Lift, air control, passive shields and full static hero acceptance stay open.
+- Pass 149 combat/projectile/runtime/ability and stored-snapshot regression
+  tests. Fast-forward the private source to the reviewed NPC foundations
+  c2d3ae1/a15d554; preserve their authored history and shared read-only inputs.
+  All five real NPC bodies take Hand Cannon66, Uppercut50 and melee30; allied
+  Uppercut is filtered and wounded deaths retain corpses. Five tests cover25
+  named-body scenarios; all14 NPC/catalog tests pass. Active enemy AI and
+  bidirectional/full-skill acceptance remain open.
+- Emit the eleven authored Hand Cannon pellets with a Doomfist-only
+  reconstruction of its concentric spread table. Resolve each pellet through
+  normal collision, armour, damage notices and death attribution. Native ring
+  phase and jitter remain unverified; Hand Cannon headshots remain open.
+- Apply configured falloff over total projectile flight distance and explicit
+  critical multipliers at direct projectile impact, shared across heroes.
+- Pass 90 combat, projectile and body-runtime tests, including 12 new Doomfist
+  command/damage checks. Ruff and diff checks pass. No original-client session,
+  deployment, five-enemy AI acceptance or publication is claimed.
+- Full hero combat remains open: targeting, all skills, passive shields,
+  defenses/control interactions and presentation. See docs/DOOMFIST_COMBAT.txt.
+  The workspace publication helper is absent; this lane supplies a local patch
+  only and does not merge the root tree or push.
 
 #### Optional persistent NPC corpses
 

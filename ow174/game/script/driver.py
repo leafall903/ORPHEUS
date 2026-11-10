@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import pools, sombra_hack
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -96,8 +96,8 @@ TRUSTED_NATIVES = {
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# it starts), and its cost #338e comes from the Entries. The neutral server fill reaches the cost
+# in ULT_SECONDS (0 disables neutral fill). Combat adds Doomfist's reconstructed damage credit separately.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -117,6 +117,23 @@ def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int
     return edges
 
 
+def owner_health_query(cfg: dict, instance):
+    """Bridge9B7648C3's component51 float to the host's aggregate owner health.
+
+    CEB6C0 -> D177C0 -> BCC870 selects51 and reads its vtable40 float.
+    Native pool aggregation/watch services are not restored. Restrict this
+    reconstruction to the current body; strict missions and foreign entities
+    still require the native service rather than a fabricated lookup result.
+    """
+    if cfg.get('$') != 'STU_9B7648C3' or instance is None or instance.component.strict:
+        return NotImplemented
+    target = instance.evaluate(cfg.get('m_entity'))
+    if target != Entity(instance.component.entity):
+        return NotImplemented
+    health = instance.component.entity_var(OWNER_HEALTH, create=False)
+    return expr.to_float(health.value()) if health is not None else 0.0
+
+
 class BodyWorld(runtime.World):
     """What the body's graphs ask outside the body. Config vars the server cannot compute answer what the
     owning client sees in a normal game; the others are null (logged once)."""
@@ -126,6 +143,7 @@ class BodyWorld(runtime.World):
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
+        self.cryo_until_tick = 0
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -135,7 +153,28 @@ class BodyWorld(runtime.World):
         return super().position(entity)
 
     def native(self, cfg: dict, instance):
+        if self.match is not None:
+            result = sombra_hack.predicate(self.match.combat, instance, cfg)
+            if result is not NotImplemented:
+                return result
+        health = owner_health_query(cfg, instance)
+        if health is not NotImplemented:
+            return health
         cls = cfg.get("$")
+        if cls == "STU_021D01CD" and self.match is not None:
+            # Original evaluator CCDD80 copies basis+20 from D1B5E0's entity
+            # transform. Reconstruct the body basis from its authoritative aim;
+            # animated body/view differences remain original-client work.
+            target = instance.evaluate(cfg.get("m_entity"))
+            if isinstance(target, Entity):
+                from ow174.game.combat import aim
+
+                for player in self.match.players:
+                    if player.has_body and player.body == target.id:
+                        return Vec3(*aim(player.mover.yaw, player.mover.pitch))
+                for bot in self.match.bots:
+                    if bot.entity == target.id:
+                        return Vec3(*aim(round(bot.yaw), 0))
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -160,6 +199,29 @@ class BodyWorld(runtime.World):
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
+
+    def track_combat_targets(self, state):
+        if self.match is not None:
+            targets = sombra_hack.query(self.match.combat, state)
+            if targets is not NotImplemented:
+                return tuple(target.id for target in targets)
+            return self.match.combat.script_targets(self.body, state)
+        return None
+
+    def report_health_effect(self, state):
+        if self.match is not None:
+            self.match.combat.script_health_effect(self.body, state)
+
+    def report_velocity_action(self, instance, node):
+        if self.match is not None:
+            self.match.combat.script_velocity_action(self.body, instance, node)
+
+    def report_defense_script(self, instance, node):
+        if self.match is not None:
+            from ow174.game import defenses
+
+            sombra_hack.invoke(self.match.combat, instance, node)
+            defenses.play_shield_script(self.match.combat, self.body, instance, node)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
@@ -348,7 +410,7 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Publish the server's ultimate charge (#342e) to the body graph."""
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:

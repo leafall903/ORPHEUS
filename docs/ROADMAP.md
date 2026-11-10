@@ -2,6 +2,11 @@
 
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
+Private Doomfist checkpoint21 adds partial actual Assassin pin/incoming/lifecycle
+evidence under a declared manual adapter; see DOOMFIST_ASSASSIN_CONTEXT.txt.
+Its native controller/health/animation/AI semantics and all remaining original
+static cases remain open. This does not close M5 or original-client acceptance.
+
 | Milestone | Exit criteria | Current evidence |
 | --- | --- | --- |
 | M0 · Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |
@@ -13,6 +18,90 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 | M6 · Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
 
 ## Project-wide checklist
+
+- [ ] Verify Doomfist 012F against enemy players and all five manual PvE NPCs.
+  Hand Cannon has headless eleven-pellet damage, armour, falloff, death and
+  filtering checks; actual-input tests cover4-round magazine,3Hz, empty rejection,
+  sequential refill/cap, expired pulse, reload refusal and duplicate/old frames.
+  Scatter is reconstructed and native headshots remain open. Uppercut damage/targeting/cooldown
+  has direct input tests. Reconstructed player/NPC launch now uses real collision
+  and passes landing/ceiling/corpse checks; native velocity stages, air control
+  and interruption remain open. Shared early-input expiry is corrected.
+  Rocket Punch has reconstructed collision movement, charge-scaled contact/wall
+  damage, brief control and cooldown tests for players and all five actual NPCs.
+  Native filters, secondary area effects and cross-hero immunity remain open.
+  Seismic Slam's ground and aerial branches have collision landing, authored
+  damage charge, reconstructed wave/pull and cooldown tests for players and all
+  five actual NPC types. Aerial static targets use a declared downward ray,
+  walkable floor and head-clearance policy. Native curved query/entity attachment,
+  initial close contact and ground-transition/wave filters remain open.
+  Fix indexed Switch phase cases. Actual Trooper/Sniper/Heavy weapons damage
+  Doomfist and consume Slam-generated shields; Enforcer/Assassin attacks remain open.
+  Owner-health queries use a declared aggregate-health bridge with strict/foreign
+  refusal. Initial Enforcer/Assassin script health now includes authored shields;
+  five real-body damage checks agree with combat pools. Native controller
+  ownership/eligibility still blocks their complete incoming attack acceptance.
+  Hand Cannon has actual Zarya shield-pool absorption/spill and Enforcer/Assassin
+  pool checks, plus natural full-volley falloff and500m expiry tests. These do
+  not establish active barrier/bubble interaction or native scatter/headshots.
+  Actual enemy Flashbang interrupts charge/dash/ground/aerial Slam and Uppercut
+  with tested cooldown/input/gravity recovery. Actual rifle kills during charge,
+  normal-deadline respawn and released-pellet trades have direct command evidence.
+  Other control types and full active-barrier fidelity remain open.
+  A declared manual Enforcer context now enables actual13EB incoming attacks
+  with stop/team/LOS and Punch/Meteor recovery cases, plus bidirectional death
+  and natural player respawn. Native controller/weapon fidelity and NPC AI remain
+  open; Assassin incoming is still required. See DOOMFIST_ENFORCER_CONTEXT.txt.
+  Existing direction modifiers17/18/19 now affect acceleration inputs while
+  preserving raw command/history bytes. Captured prefix comparisons and real
+  Uppercut/Punch/Slam/Meteor input/cancel/end cases verify scoped restrictions
+  and restoration. Six observed scopes reach18/21 direct records; alternative
+  Slam53, native scalar lookup/order and full mover fidelity remain open.
+  An opt-in actual-mesh Reinhardt host now intercepts Hand Cannon only, with
+  authored resource policy and reconstructed aim/bind/capsule-clearance pose.
+  Actual commands cover team/LOS/exposure, protected allies, depletion, natural
+  regeneration, broken cooldown rejection/expiry/fresh use and body retirement.
+  Pet output remains unset; native actors, animated attachment, health/filter
+  services, other Doom attacks and other shield types remain open.
+  An explicit Genji Deflect host reflects Hand Cannon through authored boxes
+  using an eye/aim proxy. Real commands verify66 returned damage, team/kill
+  attribution, actual temporary-shield absorption, walls, repeated reflections,
+  lifetime and authored duration/cooldown. Frontal quick melee is blocked;
+  Punch/Uppercut/ground+aerial Slam/Meteor bypass, and Punch stops Deflect.
+  Native transforms/projectile filters/aim projection/metadata/presentation and
+  general reflection remain open; no full Genji or native defense claim.
+  A scoped Sigma Kinetic Grasp host absorbs Hand Cannon, evaluates actual
+  normal-finish0.6 conversion/cap400, and supplies3s-delayed5/s-decaying aggregate
+  shields. Real volleys test cap, consumption, expiry, team/LOS and interruption;
+  other Doom attacks bypass. Native pool identity/rulesets,0145 filters, general
+  absorption, animated transforms and presentation remain open.
+  Historical NPC tests used fallback Soldier mover data. New explicit five-body
+  dimension/speed/launch and natural-graze tests use the independently prepared
+  43-row NPC mover input, with source/hash verification. Full combat revalidation
+  results are in the lane record; static fixtures do not prove real-map navigation.
+  Seven further five-NPC methods verify actual primary ally/miss/wall/duplicate
+  rejection and melee/Uppercut range/LOS/natural-recovery positive controls.
+  Direct FirstPerson standing/crouched offsets now feed combat pose queries when
+  present in prepared metadata, including all32 playable heroes. The extraction
+  and snapshot paths retain both values; older packs and absent components use
+  an explicit fallback. Native animated camera/muzzle/hardpoint transforms,
+  scale/view interpolation, hurtboxes and NPC muzzle positions remain open.
+  Actual Reinhardt barrier graph reaches its Pet state but has no entity/health
+  output and does not stop front fire. Pet creation/binding/collision remains open.
+  An explicit Reaper Wraith host uses the resource's3s phase and8s cooldown;
+  all Doomfist attack types reject that phase and grant no passive, with real
+  expiry/cancel/reentry/in-flight tests. Native status consumers, entry scheduling,
+  cleanses/stacking and other invulnerability remain open.
+  Passive shields after Uppercut have resource-based gain/cap/decay/absorption
+  tests through a reconstructed aggregate pool; Punch and ground Slam contact
+  also grant30. Meteor's authored1680 gate/cost/end and damage expression have
+  real-input evidence, with reconstructed floor selection and protection.
+  Confirmed hits grant75, capped150; all five NPCs take hits and three actual
+  NPC weapons resume after landing. Native flight/query/protection timing,
+  damage/healing ultimate generation, pool lifecycle and bar appearance remain open.
+  Other skills, headshots, cross-hero defenses/control and original-client
+  acceptance remain open.
+  See [Doomfist combat lane](DOOMFIST_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

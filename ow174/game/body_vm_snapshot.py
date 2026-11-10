@@ -23,7 +23,8 @@ _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes",
+    "state_registries", "parameter_scopes", "health_reports", "motion_reports", "pool_reports",
+    "input_suppressed",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -89,7 +90,9 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "target_link"), ()),
+    nodes.RayCast: (("hit", "hit_link"), ()),
+    nodes.ModifyHealth: (("last_applied", "contact_applied"), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -145,7 +148,8 @@ class _Export:
         _containers(fields, ("instances", "vars", "disabled", "state_registries"), dict, "component")
         _containers(fields, ("held", "destroyed", "shots", "code_states", "code_pending", "code_observers"),
                     list, "component")
-        _containers(fields, ("parameter_scopes",), list, "component")
+        _containers(fields, ("parameter_scopes", "health_reports", "motion_reports", "pool_reports"),
+                    list, "component")
         _integer(fields["entity"], "component")
         self.component = component
         self.instances = {}
@@ -388,9 +392,10 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match"))
+                fields.update(("body", "throttles", "match", "cryo_until_tick"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "match", "manual_target"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}

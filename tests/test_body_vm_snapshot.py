@@ -54,6 +54,7 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
@@ -64,7 +65,8 @@ COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes",
+    "state_registries", "parameter_scopes", "health_reports", "motion_reports", "pool_reports",
+    "input_suppressed",
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -162,7 +164,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 36)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -507,12 +509,15 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        self.assertEqual(set(dict(body["world"]["fields"])),
+                         {"hero", "mode", "body", "throttles", "cryo_until_tick"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):
             ignored_transport = export_body_vm(script)
         self.assertEqual(snapshot_digest(baseline), snapshot_digest(ignored_transport))
+        script.world.cryo_until_tick = 250
+        self.assertNotEqual(snapshot_digest(baseline), snapshot_digest(export_body_vm(script)))
         script.unknown_execution_state = 1
         with self.assertRaises(BodyVMSnapshotError):
             export_body_vm(script)

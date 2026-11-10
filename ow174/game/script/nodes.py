@@ -248,10 +248,10 @@ class AuxiliaryEffect(ScopedSubgraph):
 
 @state_class("STU_316CFEF2")
 class NumericPropertyModifiers(State):
-    """D39590/D399C0/D3C1E0: numeric rows on an explicit component-31 backend.
+    """D39590/D399C0/D3C1E0: property rows on an explicit component-31 backend.
 
     The backend clock is native component +528/vt48's frame, not an assumed
-    alias of Component.frame. Typed-value and filter rows remain strict errors.
+    alias of Component.frame. Unsupported typed-value and filter rows fail strictly.
     Legacy body prediction keeps its previous passive behavior.
     """
 
@@ -275,9 +275,11 @@ class NumericPropertyModifiers(State):
         for row in rows:
             if row is None:
                 continue
-            if (not isinstance(row, dict) or row.get("$") not in _NUMERIC_ROWS
-                    or type(row.get("m_A9561CA0", 0)) is not int
-                    or not 0 <= row.get("m_A9561CA0", 0) <= 0xFFFFFFFF):
+            cls = row.get("$") if isinstance(row, dict) else None
+            field_name = "m_CFEC5F76" if cls == "STU_09F9B1FE" else "m_A9561CA0"
+            field = row.get(field_name, 0) if isinstance(row, dict) else None
+            if (not isinstance(cls, str) or cls not in _NUMERIC_ROWS and cls != "STU_09F9B1FE"
+                    or type(field) is not int or not 0 <= field <= 0xFFFFFFFF):
                 self.instance.component.unsupported(
                     self.instance, "numeric property modifier row", str(row.get("$")
                     if isinstance(row, dict) else type(row)), self.node,
@@ -288,6 +290,14 @@ class NumericPropertyModifiers(State):
         failed = object()
         value = play.evaluate_scalar(self.instance, cfg, initial=failed, watcher=self)
         return default if value is failed else f32(expr.to_float(value, default))
+
+    def replacement_vector(self, cfg):
+        value = play.evaluate_scalar(self.instance, cfg, initial=None, watcher=self)
+        # F65E70 accepts Vec3 and recursively selects the first array member.
+        while isinstance(value, tuple) and value:
+            self.instance.component.consume_work("vector modifier array member")
+            value = value[0]
+        return (value.x, value.y, value.z) if isinstance(value, expr.Vec3) else (0.0, 0.0, 0.0)
 
     def on_begin(self):
         if not self.instance.component.strict:
@@ -311,15 +321,22 @@ class NumericPropertyModifiers(State):
             self.instance.component.consume_work("numeric property modifier")
             if row is None:
                 continue
-            operation, default = _NUMERIC_ROWS[row["$"]]
-            priority = self.number(row.get("m_priority"), 0.0)
-            upper = self.number(row.get("m_8213EB22"), f32(3.4028234663852886e38)) if operation == 5 else 0.0
-            value = self.number(row.get("m_8AD739CE" if operation == 5 else "m_9B7A63EA"), default)
             key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
-            backend.upsert(modifiers.Record(1, key, (frame + 1) & 0xFFFFFFFF,
-                row.get("m_A9561CA0", 0), operation, value, priority, upper))
+            start = (frame + 1) & 0xFFFFFFFF
+            if row["$"] == "STU_09F9B1FE":
+                value = self.replacement_vector(row.get("m_9B7A63EA"))
+                priority = self.number(row.get("m_priority"), 0.0)
+                backend.upsert_vector(modifiers.VectorReplacement(
+                    1, key, start, row.get("m_CFEC5F76", 0), value, priority))
+            else:
+                operation, default = _NUMERIC_ROWS[row["$"]]
+                priority = self.number(row.get("m_priority"), 0.0)
+                upper = self.number(row.get("m_8213EB22"), f32(3.4028234663852886e38)) if operation == 5 else 0.0
+                value = self.number(row.get("m_8AD739CE" if operation == 5 else "m_9B7A63EA"), default)
+                backend.upsert(modifiers.Record(1, key, start, row.get("m_A9561CA0", 0),
+                                                operation, value, priority, upper))
             if self.per_frame:
-                backend.retire(1, key, (frame + 2) & 0xFFFFFFFF)
+                self.retire_row(backend, row, key, (frame + 2) & 0xFFFFFFFF)
         if self.per_frame:
             self.ticks()
 
@@ -328,6 +345,13 @@ class NumericPropertyModifiers(State):
 
     def tick(self):
         self.publish()
+
+    @staticmethod
+    def retire_row(backend, row, key, end):
+        if row["$"] == "STU_09F9B1FE":
+            backend.retire_vector(1, key, end)
+        else:
+            backend.retire(1, key, end)
 
     def on_cleanup(self):
         if not self.instance.component.strict:
@@ -341,7 +365,7 @@ class NumericPropertyModifiers(State):
         for index, row in enumerate(rows):
             if row is not None:
                 key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
-                backend.retire(1, key, (frame + 1) & 0xFFFFFFFF)
+                self.retire_row(backend, row, key, (frame + 1) & 0xFFFFFFFF)
 
 
 @state_class("STU_9028E035")
@@ -1304,14 +1328,17 @@ class Ability(State):
                 self.timer_at(0, 1, transient=True)
 
     def take_press(self, button: int) -> bool:
+        return self._take_press_record(button) is not None
+
+    def _take_press_record(self, button: int) -> tuple | None:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
 
     # starting and stopping
 
@@ -1319,6 +1346,14 @@ class Ability(State):
         self.activate()
 
     def timer(self, param: int) -> None:
+        if param == 2:
+            # A linked computed cooldown reaches zero without a variable write.
+            # Its ready gates still need dependency notification at the edge.
+            if self.remaining() > 0.0:
+                self.timer_at(1, 2)  # milliseconds may round just before zero
+                return
+            if self.var is not None:
+                self.instance.changed(self.var, self.cur)
         if param in (1, 2):
             self.activate()
 
@@ -1359,8 +1394,10 @@ class Ability(State):
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
         pressed = False
+        press = None
         if start:
-            pressed = self.take_press(start)
+            press = self._take_press_record(start)
+            pressed = press is not None
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1377,7 +1414,7 @@ class Ability(State):
         )
         if not ready:
             if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+                self.presses.insert(0, press)  # preserve the original early-input expiry
             return False
         if start:
             self.flags |= self.HELD
@@ -1567,8 +1604,16 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
-        for number, case in enumerate(_field(self, "m_05706D1C") or []):
-            if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
+        indexed = _field(self, "m_F0F0720B") == 1
+        # Native 1B9B3C0: a null case config is an integer, its index for
+        # mode1 and zero otherwise. It is not a null-valued case. At most64
+        # cases fit the native selection bit mask.
+        for number, case in enumerate((_field(self, "m_05706D1C") or [])[:64]):
+            if not isinstance(case, dict):
+                continue
+            cfg = case.get("m_value")
+            expected = self.evaluate(cfg, watch=False) if cfg is not None else number if indexed else 0
+            if equal(value, expected):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
 
@@ -1813,12 +1858,111 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """A target search supplied by the combat host for explicitly supported graphs."""
 
     family = "targets"
 
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.targets = ()
+        self.target_link = None
+
+    def on_begin(self) -> None:
+        self.targets = ()
+        self.target_link = None
+        provider = getattr(self.instance.component.world, "track_combat_targets", None)
+        targets = provider(self) if provider is not None else None
+        if targets is not None:
+            self.targets = tuple(targets)
+        output = lvalue(_field(self, "m_8A2905A0"))
+        if output is not None and targets is not None:
+            self.target_link = self.link(output)
+
+    def output(self, slot: int):
+        return tuple(Entity(entity) for entity in self.targets)
+
+    def on_end(self, finished: bool) -> None:
+        if self.target_link is not None:
+            self.unlink(self.target_link)
+            self.target_link = None
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((entity, 0) for entity in getattr(self, "targets", ()))}
+
+
+@state_class("STUStatescriptStateRayCast")
+class RayCast(State):
+    """Expose the hit result for rays supported by the combat host."""
+
+    strict_supported = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.hit = False
+        self.hit_link = None
+
+    def sample(self):
+        provider = getattr(self.instance.component.world, 'combat_ray_hit', None)
+        return provider(self) if provider is not None else None
+
+    def on_begin(self):
+        hit = self.sample()
+        target = lvalue(_field(self, 'm_out_HitSomething'))
+        if hit is not None and target is not None:
+            self.hit = hit
+            self.hit_link = self.link(target)
+            self.ticks()
+
+    def tick(self):
+        hit = self.sample()
+        if hit is not None and hit != self.hit and self.hit_link is not None:
+            var = self.hit_link
+            before = var.value()
+            self.hit = hit
+            self.instance.changed(var, before)
+
+    def output(self, slot):
+        return self.hit
+
+    def on_end(self, finished):
+        if self.hit_link is not None:
+            self.unlink(self.hit_link)
+            self.hit_link = None
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Report posed player effects; optionally run the scoped NPC health clock."""
+
+    strict_supported = False  # reconstructed body adapter is not a native mission health service
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+        self.contact_applied = False
+
+    def on_begin(self) -> None:
+        provider = getattr(self.instance.component.world, "report_health_effect", None)
+        if provider is not None:
+            provider(self)
+
+    def on_enter(self):
+        self.last_applied = self.now
+        self.contact_applied = False
+        provider = getattr(self.instance.component.world, 'modify_health', None)
+        if provider is not None and provider(self, 0) is not NotImplemented:
+            self.ticks()
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        provider = getattr(self.instance.component.world, 'end_health', None)
+        if provider is not None:
+            provider(self)
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1880,6 +2024,16 @@ class ActiveQuery(State):
 
 
 # --- actions and conditions ------------------------------------------------------------------------
+
+
+@handler("STU_FF3471E9")
+def velocity_action(instance: Instance, node, caller: State | None) -> bool | NotImplementedType:
+    if instance.component.strict:
+        return NotImplemented  # preserve strict failure before authored success plugs
+    provider = getattr(instance.component.world, "report_velocity_action", None)
+    if provider is not None:
+        provider(instance, node)
+    return instance.follow(node, "m_outPlug", caller)
 
 
 _RAYCAST_OUTPUTS = ("m_out_HitSomething", "m_out_HitEntity", "m_out_HitPointWS", "m_out_HitNormal")
@@ -2034,6 +2188,45 @@ def clear_array(instance: Instance, node, caller) -> bool | NotImplementedType:
         return NotImplemented
     array_actions.clear(instance, node)
     instance.follow(node, 'm_outPlug', caller)
+    return True
+
+
+@handler("STU_42578342")
+def find_tagged_entities(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """CB8EC0: publish the ordered matches of a declared world tag query."""
+    component = instance.component
+    if not component.strict:
+        return NotImplemented
+    output = node.field('m_4AEEE6A1')
+    target = expr.dynamic(output)
+    if target is None and output is not None and (
+            not isinstance(output, dict) or output.get('$') not in expr.CONSTANTS):
+        component.unsupported(instance, 'target-tag query destination', node.cls, node)
+    if target is not None and target[1]:
+        configs = [node.field(name) for name in ('m_9C7BD8B8', 'm_B486603E', 'm_8B2A4DF3')]
+        if not any(cfg is not None for cfg in configs) or node.field('m_F8274C10') is not None:
+            component.unsupported(instance, 'target-tag query configuration', node.cls, node)
+        candidates = component.world.target_tag_candidates()
+        if candidates is NotImplemented:
+            component.unsupported(instance, 'target-tag candidate catalog', node.cls, node)
+        var = instance.find_var(*target)
+        if var.links:
+            component.unsupported(instance, 'target-tag linked destination', node.cls, node)
+        before = var.value()
+        var.base = ()  # CB8FAC clears before evaluating the three input groups.
+        any_tags, required, excluded = (
+            {value.guid & 0xFFFFFFFF for value in play._iter_values(instance, cfg)
+             if isinstance(value, expr.Asset) and value.guid}
+            for cfg in configs
+        )
+        matches = []
+        for entity, tags in candidates:
+            component.consume_work('target-tag candidate filter')
+            if (not any_tags or not any_tags.isdisjoint(tags)) and required <= tags and excluded.isdisjoint(tags):
+                matches.append(expr.Entity(entity))
+        var.base = tuple(matches)
+        instance.changed(var, before)
+    instance.follow(node, 'm_outPlug', None)
     return True
 
 
@@ -2192,6 +2385,8 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.report_defense_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
 

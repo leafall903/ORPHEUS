@@ -2,6 +2,8 @@
 """
 Write data/game_movers_174.json: each hero body's character mover values (STUCharacterMoverComponent,
 type 0x6EFDBD73), which the server's mover (ow174/game/mover.py) runs the hero with.
+Also retain direct STUFirstPersonComponent standing/crouched heights for the
+combat pose proxy. These adjacent metadata fields do not change the mover solver.
 
 Reads DataTool's STU dumps of the bodies (type 003, `extract-stu-type <out> 003 --xml`) for the bodies in
 data/game_heroes_174.json and the training bots' bodies in data/ai_spawners_174.json.
@@ -15,6 +17,7 @@ speed at +0x49C (jump 0x7FF789B48880), the gravity scale at +0x4A0 (0x7FF789AD03
 """
 
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -23,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 COMPONENT = re.compile(r"<STUCharacterMoverComponent dragon:id=\"\d+\" dragon:name=\"dragon:value\"([^>]*)/>")
 ATTRIBUTE = re.compile(r'm_([0-9A-F]{8})="([^"]*)"')
+FIRST_PERSON = re.compile(r'<STUFirstPersonComponent\b([^>]*)>')
 
 # Field hash -> name, in the component's order (STU offset 0x18 = mover +0x430 ... 0xB1 = +0x4C9).
 FIELDS = {
@@ -70,6 +74,24 @@ DEFAULTS = {
 }
 
 
+def first_person_of(text: str) -> dict:
+    """Direct FirstPerson component only; do not fabricate inherited/NPC views."""
+    candidates = [dict(ATTRIBUTE.findall(match)) for match in FIRST_PERSON.findall(text)]
+    candidates = [row for row in candidates if 'E29993A5' in row or '816B830F' in row]
+    if not candidates:
+        return {}
+    if len(candidates) != 1:
+        raise ValueError('ambiguous FirstPerson components')
+    fields = candidates[0]
+    values = {
+        'eye_height': float(fields.get('E29993A5', '1.55').replace(',', '.')),
+        'crouch_eye_height': float(fields.get('816B830F', '1.15').replace(',', '.')),
+    }
+    if not all(math.isfinite(value) and value > 0 for value in values.values()):
+        raise ValueError('invalid FirstPerson height')
+    return values
+
+
 def mover_of(text: str) -> dict | None:
     match = COMPONENT.search(text)
     if match is None:
@@ -83,6 +105,7 @@ def mover_of(text: str) -> dict | None:
     missing = [name for name in FIELDS.values() if name not in values]
     if missing:
         raise ValueError(f"missing {missing}")
+    values.update(first_person_of(text))
     return values
 
 

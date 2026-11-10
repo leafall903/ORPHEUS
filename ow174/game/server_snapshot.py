@@ -17,10 +17,14 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barriers,
     bots,
     combat,
     correction,
+    doomfist,
     heroselect,
+    mei_frost,
+    meteor,
     notices,
     observers,
     projectiles,
@@ -91,11 +95,18 @@ FIELDS = {
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
+    mei_frost.Frost: _names("sources until yaw pitch"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns ana_sleeps frost punches slams meteors hand_cannon_barriers pins"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    barriers.HandCannonBarriers: _names("combat geometry states"),
+    doomfist.Punches: _names("combat dashes impacts controls"),
+    doomfist.Slams: _names("combat casts impulses"),
+    meteor.Meteors: _names("combat casts"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer temporary_shields "
+                          "temporary_cap temporary_decay_at temporary_decay_rate temporary_updated_at "
+                          "temporary_pool_id temporary_pool_used"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -113,11 +124,11 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles match cryo_until_tick"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,13 +142,15 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_special "
+        "pitch motion controlled cancelled_charge"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    doomfist.Dash, doomfist.Impact, doomfist.Slam, meteor.Cast, barriers.Geometry, barriers.Barrier,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

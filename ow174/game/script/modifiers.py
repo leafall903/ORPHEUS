@@ -77,14 +77,35 @@ class Record:
             object.__setattr__(self, name, _number(getattr(self, name)))
 
 
-def _less(a: Record, b: Record) -> bool:
+@dataclass(frozen=True)
+class VectorReplacement:
+    """A C33FC0 operation-2 row, stored separately from scalar modifiers."""
+
+    kind: int
+    key: int
+    start: int
+    field: int
+    value: tuple[float, float, float]
+    priority: float = 0.0
+    end: int = UINT32_MAX
+
+    def __post_init__(self):
+        for name in ("kind", "start", "field", "end"):
+            _uint(getattr(self, name), 32, name)
+        _uint(self.key, 64, "key")
+        x, y, z = self.value
+        object.__setattr__(self, "value", (_number(x), _number(y), _number(z)))
+        object.__setattr__(self, "priority", _number(self.priority))
+
+
+def _less(a: Record | VectorReplacement, b: Record | VectorReplacement) -> bool:
     difference = abs(f32(a.priority - b.priority))
     if difference > PRIORITY_EPSILON:
         return a.priority < b.priority
     return (a.start, a.key) < (b.start, b.key)
 
 
-def insertion_index(records: list[Record], record: Record) -> int:
+def insertion_index(records, record: Record | VectorReplacement) -> int:
     """The native search, including its nontransitive epsilon comparison."""
     if not records:
         return 0
@@ -112,6 +133,7 @@ class NumericModifiers:
             raise ValueError("modifier readiness must be bool")
         self.ready = ready
         self.records: list[Record] = []
+        self.vector_records: list[VectorReplacement] = []
 
     @property
     def source_frame(self) -> int:
@@ -121,35 +143,50 @@ class NumericModifiers:
     def source_frame(self, value: int) -> None:
         self._source_frame = _uint(value, 32, "source frame")
 
-    def _find(self, kind, key):
+    @staticmethod
+    def _find(records, kind, key):
         _uint(kind, 32, "kind")
         _uint(key, 64, "key")
-        return next((index for index in reversed(range(len(self.records)))
-                     if (self.records[index].kind, self.records[index].key) == (kind, key)), None)
+        return next((index for index in reversed(range(len(records)))
+                     if (records[index].kind, records[index].key) == (kind, key)), None)
 
     def upsert(self, record: Record) -> None:
         if type(record) is not Record:
             raise ValueError("expected a numeric modifier record")
+        self._upsert(self.records, record)
+
+    def upsert_vector(self, record: VectorReplacement) -> None:
+        if type(record) is not VectorReplacement:
+            raise ValueError("expected a vector replacement record")
+        self._upsert(self.vector_records, record)
+
+    def _upsert(self, records, record) -> None:
         if not self.ready:
             return
         record = replace(record, end=UINT32_MAX)
-        index = self._find(record.kind, record.key)
+        index = self._find(records, record.kind, record.key)
         if index is not None:
-            if self.records[index].start == record.start:
+            if records[index].start == record.start:
                 # Native updates in place, even when priority changes.
-                self.records[index] = record
+                records[index] = record
                 return
-            self.records.pop(index)
-        self.records.insert(insertion_index(self.records, record), record)
+            records.pop(index)
+        records.insert(insertion_index(records, record), record)
 
     def retire(self, kind: int, key: int, end: int) -> None:
+        self._retire(self.records, kind, key, end)
+
+    def retire_vector(self, kind: int, key: int, end: int) -> None:
+        self._retire(self.vector_records, kind, key, end)
+
+    def _retire(self, records, kind: int, key: int, end: int) -> None:
         end = _uint(end, 32, "end")
-        index = self._find(kind, key)
+        index = self._find(records, kind, key)
         if self.ready and index is not None:
-            self.records[index] = replace(self.records[index], end=end)
+            records[index] = replace(records[index], end=end)
 
     def erase(self, kind: int, key: int) -> None:
-        index = self._find(kind, key)
+        index = self._find(self.records, kind, key)
         if self.ready and index is not None:
             self.records.pop(index)
 
@@ -162,6 +199,17 @@ class NumericModifiers:
                 value = apply(record.operation, value, record.value, record.upper)
                 found = True
         return found, value
+
+    def resolve_vector(self, field: int, *, frame: int) -> tuple[float, float, float] | None:
+        """Last active replacement in native array order, or no replacement."""
+        _uint(field, 32, "field")
+        _uint(frame, 32, "read frame")
+        return next((record.value for record in reversed(self.vector_records)
+                     if record.field == field and record.start <= frame < record.end), None)
+
+    def clear(self) -> None:
+        self.records.clear()
+        self.vector_records.clear()
 
 
 def state_key(instance: int, state: int, counter: int, row: int, offset: int = 0) -> int:

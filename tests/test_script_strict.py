@@ -15,6 +15,25 @@ def mission(*items, strict=True):
 
 
 class StrictMissionTests(unittest.TestCase):
+    def test_reconstructed_velocity_action_does_not_manufacture_native_success(self):
+        component, instance = mission(
+            node(1, "STU_FF3471E9", m_outPlug=plug((2, "m_inPlug"))), setter(2, 99),
+        )
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.run_frame(0)
+        self.assertNotIn(7, instance.vars)
+        self.assertFalse(component.motion_reports)
+
+    def test_reconstructed_modify_health_keeps_strict_native_state_gap(self):
+        component, instance = mission(
+            node(1, "STUStatescriptStateModifyHealth", state=0,
+                 m_onBeginPlug=plug((2, "m_inPlug"))), setter(2, 99),
+        )
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.run_frame(0)
+        self.assertNotIn(7, instance.vars)
+        self.assertFalse(component.health_reports)
+
     def test_unknown_action_does_not_follow_its_success_plug(self):
         component, instance = mission(
             node(1, "UnimplementedEncounter", m_outPlug=plug((2, "m_inPlug"))), setter(2, 99),

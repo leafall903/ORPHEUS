@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -122,7 +123,9 @@ class Bot:
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
-        self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.attack_input = False  # last queued attack input, including edges not consumed by the VM yet
+        self.attack_special = None
+        self.cancelled_charge = None
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
@@ -156,13 +159,30 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.motion: Mover | None = None  # reconstructed external launch through real static collision
+        self.controlled = False
 
-    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
-        """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if self.dead:
+    def launch(self, velocity, tick: int, collision, *, add_vertical: bool = False) -> None:
+        if self.dead or collision is None:
             return
-        if not self.route:
-            if tick < paused_until:
+        if self.motion is None:
+            self.motion = Mover(self.position, round(self.yaw), collision, mover_data(self.body))
+        self.motion.launch(velocity, add_vertical=add_vertical)
+        self.velocity = self.motion.velocity
+        self.last_tick = tick
+        self.keys = False
+        self.held = (0, 0)
+        self.target = None
+        self.pace = 0.0
+        self.moved_tick = tick
+
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0, drive=None) -> None:
+        """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
+        if self.motion is None and drive is not None and collision is not None:
+            self.motion = Mover(self.position, round(self.yaw), collision, mover_data(self.body))
+            self.last_tick = tick - 1
+        if self.motion is None and (not self.route or self.dead or self.controlled):
+            if not self.dead and (tick < paused_until or self.controlled):
                 self._pause(tick)
                 self.last_tick = tick
             return
@@ -171,9 +191,24 @@ class Bot:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            if at < paused_until:
+            if self.motion is not None:
+                move_to = None
+                if drive is not None and at == tick:
+                    speed = math.hypot(*drive)
+                    if speed > EPSILON:
+                        move_to = (tuple(p + v for p, v in zip(self.position, drive, strict=True)), speed)
+                self.motion.step_pose(Command(at, yaw=s16(round(self.yaw))), seconds, at, move_to=move_to)
+                self.position = tuple(self.motion.position)
+                self.velocity = self.motion.velocity
+                self.moved_tick = at
+                if (drive is None and not self.motion.mods and not self.motion.airborne
+                        and math.hypot(self.motion.velocity[0], self.motion.velocity[2]) < EPSILON):
+                    self.motion = None
+                    self.velocity = (0.0, 0.0, 0.0)
+                    self.wait = WALK_GAP
+            elif at < paused_until or self.controlled:
                 self._pause(at)
-            else:
+            elif self.route and not self.dead:
                 self._tick(at, seconds, collision)
 
     def _pause(self, tick: int) -> None:
@@ -298,6 +333,8 @@ class Bot:
         self.dead = True
         self.attack_target = None
         self.attack_input = False
+        self.attack_special = None
+        self.cancelled_charge = None
         self.keys = False
         self.held = (0, 0)
         self._stand()
@@ -342,6 +379,7 @@ class Bot:
             input_frame=input_frame,
             input_throttles=self.last_held,
             gravity=GRAVITY_SCALE,
+            air_ticks=self.motion.air_ticks if self.motion is not None else 0,
         )
 
 
