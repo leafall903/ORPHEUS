@@ -96,8 +96,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     Target visibility uses expanded static rays with the common 1FDF
     mask recovered from both .097 profiles. A ray hit owned by the
     candidate stays visible. Offline native probes distinguish the
-    profiles' dynamic rules and receiver overrides. Need Healing uses the authored
-    source body tag in its targeting and voice branches. Marker effects,
+    profiles' dynamic rules, receiver overrides and callback outcomes.
+    Need Healing uses the authored source body tag in its targeting
+    and voice branches. Marker effects,
     runtime tag mutations, dynamic target geometry and deployable eligibility
     remain open.
     The recipient graph sends the actions in order with each action's source.

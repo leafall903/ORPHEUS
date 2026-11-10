@@ -377,8 +377,15 @@ Source paths for the remaining actions
   flags 0 or 0x80. BEEB69 selected results from six compiled .098
   fixtures for both relation inputs. Receivers 0029, 002A, 00A5
   and 00AD return (0, 0) for 0079 and (0, 7) for 0111. Ice-wall
-  receivers 00B2 and 00B3 return (13, 13) for both. A live ray
-  producer still needs to supply receiver and shape data.
+  receivers 00B2 and 00B3 return (13, 13) for both. The BEED10
+  callback's filtered branch rejects rule result 1, routes result 0
+  to C1CF60 and sends result 2 to BEE420. BEEE82 stores the flags
+  and returns whether they are nonzero. Thirty-six native cases
+  verify those branches with fixture relation and receiver returns.
+  The early bypass, null-candidate and exclusion-list paths instead
+  return true with flags zero. Three native cases cover those paths.
+  A live ray producer still needs to supply receiver and shape data
+  and reproduce the collector's handling of the bypass results.
   Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
   through the ordinary selection message. 05AD nodes 112 and 136 and
   0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.

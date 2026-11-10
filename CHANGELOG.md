@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify 39 native cases for the wheel ray's dynamic filter callback.
+  The filtered branch distinguishes rule rejection, relationship
+  lookup and receiver lookup. Early bypasses return success with
+  zero flags. Live dynamic geometry and original-client acceptance
+  remain open.
 - Verify the different dynamic collision rules and receiver results
   for wheel profiles 0079 and 0111. All 128 native rule and 24
   receiver cases pass. Live dynamic geometry and original-client
