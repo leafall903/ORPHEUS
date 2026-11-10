@@ -14,7 +14,7 @@ from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, frame_distance
 from ow174.game.content import SOLDIER
 from ow174.game.script import graph, runtime
 from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, WHEEL_LOADOUT_TYPES, BodyScript, valid_wheel_slots
-from ow174.paths import DATA_DIR, ROOT
+from ow174.paths import DATA_DIR, EMOTE_DURATION_DATA, ROOT
 
 SCHEMA = "ow174.native-body-replay.v2"
 BUILD = "1.74.0.0.104319"
@@ -169,6 +169,9 @@ def model_hash() -> str:
     manifest = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in MODEL_FILES}
     manifest.update({f"data/{name}": hashlib.sha256((DATA_DIR / name).read_bytes()).hexdigest()
                      for name in MODEL_DATA})
+    duration_data = DATA_DIR / EMOTE_DURATION_DATA
+    if duration_data.is_file():
+        manifest[f"data/{EMOTE_DURATION_DATA}"] = hashlib.sha256(duration_data.read_bytes()).hexdigest()
     return _digest(manifest)
 
 

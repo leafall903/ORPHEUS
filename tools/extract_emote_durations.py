@@ -1,4 +1,4 @@
-"""Extract deterministic category-switch animation durations from 104319 .021 XML."""
+"""Extract deterministic animation durations from 104319 .021 XML."""
 
 import argparse
 import json
@@ -9,7 +9,7 @@ from pathlib import Path
 from extract_game_graphs import StuXml, guid_text
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ow174.paths import EMOTE_DURATION_DATA
+from ow174.paths import EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA
 
 CATEGORY_TYPE = 0x0280000000000000
 
@@ -36,6 +36,21 @@ def embedded_data(xml, node):
     return None
 
 
+def record_duration(xml, game_data, leaf):
+    if leaf is None or leaf.tag != "STU_3C8FB392":
+        return None
+    # F4CCA0 emits the primary index; BB8970 reads this record's duration.
+    index = int(leaf.get("m_9D16E038", "-1"))
+    records = xml.field(game_data, "m_animDatas")
+    if records is None or not 0 <= index < len(records):
+        return None
+    row = xml.resolve(records[index])
+    if row.tag != "STUAnimGameData_AnimationData":
+        return None
+    seconds = float(row.get("m_D8514AD9", "0"))
+    return seconds if math.isfinite(seconds) and seconds > 0 else None
+
+
 def category_durations(xml, item):
     root = xml.field(item, "m_gameData")
     data = embedded_data(xml, first_animation_node(xml, root))
@@ -58,18 +73,9 @@ def category_durations(xml, item):
         if not 0 < index < len(nodes):
             continue
         game_data = embedded_data(xml, xml.resolve(nodes[index]))
-        leaf = first_animation_node(xml, game_data)
-        if leaf is None or leaf.tag != "STU_3C8FB392":
-            continue
-        # BB8970 consumes the leaf's primary, zero-based record index.
-        index = int(leaf.get("m_9D16E038", "-1"))
-        records = xml.field(game_data, "m_animDatas")
-        if records is None or not 0 <= index < len(records):
-            continue
-        row = xml.resolve(records[index])
-        seconds = float(row.get("m_D8514AD9", "0"))
-        category = CATEGORY_TYPE | (key & 0x7FFFFFFF) if key else 0
-        if row.tag == "STUAnimGameData_AnimationData" and math.isfinite(seconds) and seconds > 0:
+        seconds = record_duration(xml, game_data, first_animation_node(xml, game_data))
+        if seconds is not None:
+            category = CATEGORY_TYPE | (key & 0x7FFFFFFF) if key else 0
             result.setdefault(f"0x{category:016X}", seconds)
     return result
 
@@ -89,7 +95,14 @@ def extract(source):
             key = int(alias.text)
             if key >> 48 != 0x0C80 or key & 0xFFFFFFFF == 0:
                 continue
-            categories = category_durations(xml, xml.resolve(item))
+            item = xml.resolve(item)
+            data = xml.field(item, "m_gameData")
+            direct = record_duration(xml, data, first_animation_node(xml, data))
+            # C085B0's duration query disables auxiliary nodes in F520A0.
+            if direct is None:
+                categories = category_durations(xml, item)
+            else:
+                categories = {f"0x{EMOTE_ANY_CATEGORY:016X}": direct}
             if categories:
                 durations[f"0x{key:016X}"] = categories
         if durations:
@@ -104,7 +117,7 @@ def main():
     args = parser.parse_args()
     rows = extract(args.source)
     if not rows:
-        raise SystemExit("No supported category-switch animation data found")
+        raise SystemExit("No supported animation data found")
     args.output.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote model animation durations from {len(rows)} blend tree sets")
 

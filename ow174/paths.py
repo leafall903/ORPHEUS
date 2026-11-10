@@ -26,6 +26,7 @@ EMOTE_ALIAS_DATA = "emote_aliases_174.json"
 EMOTE_BLEND_TREE_DATA = "emote_blend_trees_174.json"
 EMOTE_TAGGED_DATA = "emote_tagged_174.json"
 EMOTE_DURATION_DATA = "emote_durations_174.json"
+EMOTE_ANY_CATEGORY = 0xFFFFFFFFFFFFFFFF  # reserved category-independent key
 VOICE_EFFECT_DATA = "voice_effects_174.json"
 
 LOBBY_RUNTIME_DATA = (

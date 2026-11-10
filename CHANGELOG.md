@@ -8,6 +8,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Read primary animation records from direct model graphs. The runtime
+  table now covers 264 of 284 untagged equipped mappings and all eight
+  tagged mappings. An offline wheel selection confirms Soldier: 76's
+  Heroic emote naturally finishes at 5000 ms. All 97 focused offline
+  tests and four native model-query cases pass. The body replay
+  fingerprint includes the timing table.
+  Other graph shapes and original-client playback remain open.
 - Resolve the eight tagged D.Va emote unlocks against the known body
   definition. The pilot falls back to the base Heroic alias and no
   equipped blend set. The mech definition accepts the authored assets.

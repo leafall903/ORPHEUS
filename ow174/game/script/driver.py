@@ -46,7 +46,7 @@ from ow174.game.statescript import (
     sendable,
 )
 from ow174.game.world import UNIT_ENTITY_SCALE
-from ow174.paths import DATA_DIR, EMOTE_DURATION_DATA
+from ow174.paths import DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA
 
 if TYPE_CHECKING:
     from ow174.game.match import Match
@@ -364,8 +364,10 @@ class BodyWorld(runtime.World):
             return None
         if category is not None and not isinstance(category, Asset):
             return None
-        return wheel_emote_durations(DATA_DIR / EMOTE_DURATION_DATA).get(
+        durations = wheel_emote_durations(DATA_DIR / EMOTE_DURATION_DATA)
+        return durations.get(
             (blend.guid, alias.guid, category.guid if category is not None else 0),
+            durations.get((blend.guid, alias.guid, EMOTE_ANY_CATEGORY)),
         )
 
     def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):

@@ -58,8 +58,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     equipped unlocks. The 023A owner frame carries the selected blend tree.
     Emote cleanup releases the stack on a supplied finish or priority loss.
     The emote VM follows authored loop and empty-alias timing and reads
-    prepared model durations for supported category switches. The offline
-    Take a Knee path reaches the authored exit and cleans up on primary fire.
+    prepared model durations for direct records and supported category
+    switches. The offline Heroic path finishes naturally, and Take a Knee
+    reaches the authored exit and cleans up on primary fire.
     D.Va's pilot applies the tagged unlock fallback. Other model duration
     graphs, remaining interrupt inputs, active mech tag selection, skin remaps
     and original-client playback remain open.

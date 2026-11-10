@@ -32,7 +32,7 @@ schema=ow174.native-body-replay.v2, build=1.74.0.0.104319, scope=body-script-onl
 entity, body_definition, start_frame, quanta_us, mode, health, maximum_health, ult_seconds, seed=1,
 command_epoch, body_epoch, server_tick, gap_policy=reject, shot_policy=drain_after_command, initial_hash.
 model_hash combines SHA256 of script/command/codec/pool implementations and relevant graph, body,
-stats and codec data. Restart the process after changing code/data before recording. Only seed 1 is
+stats, codec data and the optional emote duration table. Restart the process after changing code/data before recording. Only seed 1 is
 supported: that is the current BodyScript constructor's native Component/default expression seed;
 reseeding after initialization would invent a different initialization. Other heroes/seeds are rejected.
 This constructor baseline requires initial health == maximum_health; unequal declarations are rejected.

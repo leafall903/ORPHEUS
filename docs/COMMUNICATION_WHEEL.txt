@@ -207,8 +207,21 @@ Source paths for the remaining actions
   shapes from .021 XML to emote_durations_174.json. The optional runtime
   file is keyed by the selected blend tree, alias and category. The
   offline 02A3 wheel path exercises the equipped 06B2.021 intro to
-  loop transition. Other game-data graph shapes and runtime model remaps
-  remain open.
+  loop transition. For a direct STU_3C8FB392 leaf, F4CCA0 emits
+  the same primary record for any category. F4EA30 can select that leaf
+  by its fixed m_38CF6CD3 child index before emitting IK output. C085B0
+  sets the auxiliary limit guard to FFFF for duration lookup, so F520A0
+  does not append the leaf's auxiliary animation records.
+  Four native probes use the selected 045C alias data in 06AD.021,
+  fixture the model context and skip IK output. They execute the native
+  primary record selection and scan with categories 006E, 0082, zero
+  and an unlisted category. Each returns 3A7D.006 at 5.0000005 s.
+  The extracted table uses the reserved all-ones category key for
+  direct records. The offline wheel reaches the Heroic terminal action
+  at 5000 ms. The local data covers 264 of 284 untagged equipped
+  mappings and all eight tagged mappings. Other game-data graph shapes
+  and active model remaps remain open. An audit of the 8819 extracted
+  0A6 themes found no override keyed by 045C.014 in those themes.
   For the loop exit, 023A:18 checks 023A:27. That condition requires
   the 488 cancel latch and the 1322 ChaseVar reaching zero. The latch
   comes from 023A:38's movement and logical-button transitions.
