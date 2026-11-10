@@ -34,10 +34,16 @@ Source paths for the remaining actions
   default entity values. 02CF reports the equipped 0A5 unlock. 0686
   reports the .00D effect passed to node 55.
   The match admits this layout for the sender's current body and
-  indicated instance, with an active pulse and the expected equipped
-  resource. For spray it also requires an active placement. It queues
-  the typed parameter on that instance's normal event queue. The tests
-  exercise the receive channel and both authored entry states.
+  indicated live instance. A current spray report matches the
+  successful placement's unlock and active pulse. The owner send
+  history also records the unlock from each transmitted placement,
+  keyed by instance and start time. A report may match that history
+  for two seconds of body simulation time, including after a later
+  selection replaces or clears the placement. Offline tests verify
+  the slot and geometry in the first frame, route the delayed report
+  after a replacement and a subsequent miss, and reject an unsent
+  alternate and an expired record. The match queues the typed
+  parameter on the instance's normal event queue.
   STU_94771561 is described at 31B3F20. Its three authored occurrences
   are 023A:108 (emote, category 2), 02CF:39 (spray, category 4) and
   0686:70 (voice, category 5). The emote graph invokes it directly;

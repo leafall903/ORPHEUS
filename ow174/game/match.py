@@ -1245,22 +1245,24 @@ class Match:
         instance = script.component.instances.get(value.get("+0xB0"))
         if instance is None or instance.stopped:
             return
+        reported = int.from_bytes(parameters[11:19], "little")
+        if not reported:
+            return
         if instance.graph.index == 0x02CF:
             placement = instance.state(1)
-            if placement is None or not placement.active:
-                return
-            query = instance.graph.node(2).field("m_E441DC25")
             pulse = instance.state(14)
+            current = (placement is not None and placement.active and pulse is not None and pulse.active
+                       and placement.payload().get("unlock") == reported)
+            accepted = current or script.matches_sent_spray(instance, reported)
         elif instance.graph.index == 0x0686:
-            query = instance.graph.node(67).field("m_value")
             pulse = instance.state(13)
+            query = instance.graph.node(67).field("m_value")
+            accepted = (pulse is not None and pulse.active
+                        and (instance.evaluate(query) == expr.Asset(reported)
+                             or script.matches_sent_voice_effect(instance, reported)))
         else:
             return
-        if pulse is None or not pulse.active:
-            return
-        reported = int.from_bytes(parameters[11:19], "little")
-        if reported and (instance.evaluate(query) == expr.Asset(reported)
-                         or (instance.graph.index == 0x0686 and script.matches_sent_voice_effect(instance, reported))):
+        if accepted:
             runtime.send_instance_message(instance, 0x0240000000001313, {0x53B: expr.Asset(reported)}, player.body)
 
     def game_message(self, player: Player, value: dict, now: float) -> None:

@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Accept delayed spray use reports against successful placements
+  sent to the owner within two seconds of body simulation time.
+  Offline checks cover replacement, a later failed placement, an
+  unsent alternate and expiry. All 108 focused tests pass. Client
+  playback remains open.
 - Accept delayed voice use reports for retained pulses sent to the
   owner. Verify a queued-only pulse is rejected and a sent pulse
   remains valid through loss and later ACKs. Register the wheel

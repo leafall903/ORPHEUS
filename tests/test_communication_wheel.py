@@ -1199,6 +1199,67 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertTrue(spray.node_state(spray.graph.node(38)).active)
         self.assertTrue(voice.node_state(voice.graph.node(71)).active)
 
+    def test_delayed_spray_use_report_matches_a_recently_sent_placement(self):
+        run = Run(names=("Speaker",))
+        player, = run.players
+        script = player.body_script
+        first, second = 0x02500000000007F1, 0x0250000000000004
+        script.world.spray_unlocks = (first, second)
+        player.mover.position = (0.0, 0.0, 0.0)
+        player.mover.yaw = player.mover.pitch = 0
+        run.match.collision_world = World(((-3, 0, 3, 3, 0, 3, -3, 4, 3),), masks=(0x40,))
+        owner = decode.ClientBody.for_hero(SOLDIER)
+        [tree] = script.frames()
+        owner.apply(tree)
+        script.stream.arrived(tree.chunk_last)
+
+        def select(action):
+            run.match.communication_action(player, {"+0x78": 0x0A90000000000000 | action, "+0x80": True})
+            run.match.deliver_body_messages()
+            script.command(script.frame + 1, 0)
+
+        def report(unlock, accepted):
+            payload = bytes.fromhex("00 00 00 00 01 C3 3B 05 40 0A 04") + struct.pack("<QII", unlock, 0, 0)
+            with patch.object(runtime, "send_instance_message", wraps=runtime.send_instance_message) as send:
+                run.match.game_message(player, {
+                    "+0x78": {"+0x0": player.body}, "+0x80": payload,
+                    "+0xA8": 0x0240000000001313, "+0xB0": spray.id,
+                }, 17.0)
+            if accepted:
+                send.assert_called_once_with(spray, 0x0240000000001313, {0x53B: expr.Asset(unlock)}, player.body)
+            else:
+                send.assert_not_called()
+
+        select(0x173)
+        [spray] = [i for i in script.component.instances.values() if i.graph.index == 0x02CF]
+        self.assertEqual(spray.state(1).payload()["unlock"], first)
+        script.command(script.frame + 16, 0)
+        [sent] = script.frames()
+        frame = owner.apply(sent)
+        self.assertEqual(owner.vars[spray.id, 9259], 0)
+        self.assertTrue(frame.instances[spray.id].states[1][0])
+        run.match.sent_updates(player, (sent,))
+        script.stream.arrived(sent.chunk_last)
+
+        script.command(script.frame + 48, 0)
+        select(0x1A5)
+        self.assertEqual(spray.state(1).payload()["unlock"], second)
+        [unsent] = script.frames()
+        script.stream.lost(unsent.chunk_last)
+        report(first, True)
+
+        player.mover.yaw = 32768
+        script.command(script.frame + 64, 0)
+        select(0x1A5)
+        self.assertFalse(spray.state(1).active)
+        report(second, False)
+        report(first, True)
+        script.command(script.frame + 1, 0)
+        self.assertEqual(spray.vars[8022].value(), expr.Asset(first))
+
+        script.command(script.frame + 130, 0)
+        report(first, False)
+
     def test_callout_and_voice_selections_replicate_the_shared_graph(self):
         cases = (
             (0x16B, 3793, expr.Asset(0x0C00000000005A0B), 27),

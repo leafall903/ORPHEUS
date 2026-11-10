@@ -623,6 +623,7 @@ class OwnerReport:
     volleys: dict[tuple[int, int], tuple[int, int]]  # (instance, state) -> (counter, start)
     introductions: frozenset[tuple[int, int]]
     received: bool | None = None
+    sprays: frozenset[tuple[int, int, int]] = frozenset()  # instance, start, unlock
 
 
 def _same_var(a, b) -> bool:
@@ -1080,6 +1081,13 @@ class BodyScript(ReplicatedBody):
             stream.initial_owner = update
         return [update]
 
+    def matches_sent_spray(self, instance: runtime.Instance, unlock: int) -> bool:
+        key = (instance.id, instance.start, unlock)
+        return any(
+            0 <= (self.frame - report.cmfd) * self.frame_ms <= WHEEL_CALLOUT_MS and key in report.sprays
+            for report in self.reports
+        )
+
     def matches_sent_voice_effect(self, instance: runtime.Instance, effect: int) -> bool:
         stream = self.stream
         for event in self.world.wheel_callouts:
@@ -1108,6 +1116,7 @@ class BodyScript(ReplicatedBody):
                                       for event in self.world.wheel_callouts):
             keys.add(("voice_sent", serial))
         volleys = {}
+        sprays = set()
         for key in keys:
             if key[0] != "state":
                 continue
@@ -1116,9 +1125,15 @@ class BodyScript(ReplicatedBody):
             if state is not None and state[0] == VOLLEY:
                 values = dict(state[2])
                 volleys[state_key] = (values["counter"], values["start"])
+            elif state is not None and state[0] == spray_placement.STATE_CLASS and state[1]:
+                instance = self.component.instances.get(state_key[0])
+                unlock = dict(state[2]).get("unlock")
+                if instance is not None and instance.graph.index == 0x02CF and unlock:
+                    sprays.add((instance.id, instance.start, unlock))
         self.report_count += 1
         introductions = frozenset(key[1:] for key in keys if key[0] == _VOLLEY_INTRODUCTION)
-        report = OwnerReport(self.report_count, snapshot.k, last, volleys, introductions)
+        report = OwnerReport(self.report_count, snapshot.k, last, volleys, introductions,
+                             sprays=frozenset(sprays))
         stream.sent_reports[last] = report
         self.reports.append(report)
         del self.reports[:-MAX_REPORTS]

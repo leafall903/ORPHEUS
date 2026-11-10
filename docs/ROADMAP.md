@@ -92,6 +92,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     of each pending voice pulse until ACK. Delayed voice use
     reports can also match a retained pulse sent to the owner.
     The 21616 cosmetic-use report reaches the corresponding body instance.
+    Delayed spray use can match a recently transmitted placement
+    after a replacement or miss.
     The body VM runs the inherited PC Action for unlock use. Native
     probes verify its prediction record and empty rewind hook.
     Separate server-only accounting remains unverified.
