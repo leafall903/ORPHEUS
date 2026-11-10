@@ -1259,7 +1259,8 @@ class Match:
         if pulse is None or not pulse.active:
             return
         reported = int.from_bytes(parameters[11:19], "little")
-        if reported and instance.evaluate(query) == expr.Asset(reported):
+        if reported and (instance.evaluate(query) == expr.Asset(reported)
+                         or (instance.graph.index == 0x0686 and script.matches_sent_voice_effect(instance, reported))):
             runtime.send_instance_message(instance, 0x0240000000001313, {0x53B: expr.Asset(reported)}, player.body)
 
     def game_message(self, player: Player, value: dict, now: float) -> None:

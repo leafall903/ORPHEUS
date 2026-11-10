@@ -89,8 +89,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     The voice graph resolves the equipped .00D playback effect.
     Native probes verify the playback counter window and wrap.
     Owner and observer frames now retain the slot and counter step
-    of each pending voice pulse until ACK. Delayed use reports
-    still depend on the live selection.
+    of each pending voice pulse until ACK. Delayed voice use
+    reports can also match a retained pulse sent to the owner.
     The 21616 cosmetic-use report reaches the corresponding body instance.
     The body VM runs the inherited PC Action for unlock use. Native
     probes verify its prediction record and empty rewind hook.
@@ -164,7 +164,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     cryo models. The Reinhardt and Winston models use a separate
     native geometry builder and resolve their mask selector at load.
     Deployable shape registration, selector resolution, candidate-group
-    filtering and general pose coverage remain open.
+    filtering and general pose coverage remain open. Stored server
+    snapshots include the wheel pose and shape admission callbacks.
     Need Healing uses the authored source body tag in its targeting
     and voice branches. Marker effects,
     runtime tag mutations, dynamic target geometry and deployable eligibility

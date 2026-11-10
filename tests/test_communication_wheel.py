@@ -1249,6 +1249,8 @@ class CommunicationWheelTests(unittest.TestCase):
         run = Run(names=("Speaker",))
         player, = run.players
         body = player.body_script
+        older_effect, newer_effect, unused_effect = (0x0300000000001879, 0x03000000000018C4, 0x03000000000018C5)
+        body.world.voice_effects = (older_effect, newer_effect, unused_effect)
         owner = decode.ClientBody.for_hero(SOLDIER)
         [tree] = body.frames()
         owner.apply(tree)
@@ -1281,30 +1283,56 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(frame.instances[voice.id].states[13], (True, {"fresh": True, "count": count}))
             self.assertEqual(client.vars[voice.id, 29699], expr.Asset(action))
 
+        def report(effect, accepted):
+            payload = bytes.fromhex("00 00 00 00 01 C3 3B 05 40 0A 04") + struct.pack("<QII", effect, 0, 0)
+            with patch.object(runtime, "send_instance_message", wraps=runtime.send_instance_message) as send:
+                run.match.game_message(player, {
+                    "+0x78": {"+0x0": player.body}, "+0x80": payload,
+                    "+0xA8": 0x0240000000001313, "+0xB0": voice.id,
+                }, 17.0)
+            if accepted:
+                send.assert_called_once_with(voice, 0x0240000000001313, {0x53B: expr.Asset(effect)}, player.body)
+            else:
+                send.assert_not_called()
+
         first, second = 0x0A9000000000016F, 0x0A9000000000019D
         body.command(body.frame + 16, 0)
         select(first)
         [voice] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
         [local] = body.frames()
         observed = observer_update()
-        check(owner, local, 1, first)
         check(watcher, observed, 1, first)
-        body.stream.lost(local.chunk_last)
+        body.stream.lost(local.chunk_last)  # the queued owner frame was never transmitted
         stream.arrived(observed.chunk_last)
 
         body.command(body.frame + 32, 0)
         select(second)
         [local] = body.frames()
         observed = observer_update()
+        report(older_effect, False)
+        run.match.sent_updates(player, (local,))
         check(owner, local, 1, first)
         check(watcher, observed, 2, second)
-        body.stream.arrived(local.chunk_last)
+        report(older_effect, True)
+        body.stream.lost(local.chunk_last)
+        report(older_effect, True)
         stream.arrived(observed.chunk_last)
 
         body.command(body.frame + 1, 0)
         [local] = body.frames()
+        run.match.sent_updates(player, (local,))
+        check(owner, local, 1, first)
+        body.stream.arrived(local.chunk_last)
+
+        body.command(body.frame + 1, 0)
+        [local] = body.frames()
+        run.match.sent_updates(player, (local,))
         check(owner, local, 2, second)
         body.stream.arrived(local.chunk_last)
+        report(older_effect, True)
+        report(unused_effect, False)
+        body.command(body.frame + 1, 0)
+        self.assertEqual(voice.vars[8022].value(), expr.Asset(older_effect))
 
     def test_wheel_effect_actions_replicate_in_authored_order(self):
         for action, nodes in ((0x16C, (40,)), (0x16D, (6, 41))):

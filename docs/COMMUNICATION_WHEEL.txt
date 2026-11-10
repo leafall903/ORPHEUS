@@ -686,8 +686,14 @@ Source paths for the remaining actions
   baseline. In the offline 016F to 019D sequence, the owner retries
   count 1 with 016F while an observer that acknowledged it receives
   count 2 with 019D. The owner receives 019D only after acknowledging
-  the retry. A delayed unlock-use report for a retried older slot
-  still has to pass the live equipped-effect check.
+  the retry. The 21616 use report can match an earlier retained
+  voice pulse on the same live instance. The report resolves that
+  pulse's slot against the body's equipped effects. The sender's
+  owner stream records transmission, preserves the marker on loss
+  and uses its ordered ACK position for acknowledged pulses.
+  Offline cases reject an unsent pulse and an unused effect, and
+  route the older effect through 0686:70 after send, loss or a
+  later selection's ACK. The message contains no per-pulse nonce.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

@@ -1080,13 +1080,33 @@ class BodyScript(ReplicatedBody):
             stream.initial_owner = update
         return [update]
 
+    def matches_sent_voice_effect(self, instance: runtime.Instance, effect: int) -> bool:
+        stream = self.stream
+        for event in self.world.wheel_callouts:
+            if (event.instance != instance.id or event.start != instance.start
+                    or (instance.graph.index, event.node) != nodes.WHEEL_VOICE_PULSE
+                    or not isinstance(event.choice, Asset)):
+                continue
+            action = event.choice.guid - WHEEL_ACTION_PREFIX
+            if action not in WHEEL_VOICE_ACTIONS:
+                continue
+            slot = WHEEL_VOICE_ACTIONS.index(action)
+            if (self.world.equipped_wheel_asset(self.world.voice_effects, slot).guid == effect
+                    and stream.sent_voice_pulse(event.serial)):
+                return True
+        return False
+
     def report_sent(self, last: int) -> None:
-        """Record the owner delta actually transmitted for projectile confirmation."""
+        """Record the owner delta actually transmitted."""
         stream = self.stream
         pending = stream.pending.get(last)
         if pending is None or last in stream.sent_reports:
             return
         snapshot, keys = pending
+        serial = next((key[1] for key in keys if key[0] == "callout"), None)
+        if serial is not None and any(event.serial == serial and snapshot.is_voice_pulse(event)
+                                      for event in self.world.wheel_callouts):
+            keys.add(("voice_sent", serial))
         volleys = {}
         for key in keys:
             if key[0] != "state":
@@ -1225,6 +1245,14 @@ class BodyStream:
                 self.lost_keys[key] = max(last, self.lost_keys.get(key, 0))
         if last == self.last:
             self.latest_lost = snapshot
+
+    def sent_voice_pulse(self, serial: int) -> bool:
+        # Acknowledgments advance in queue order. A retained voice pulse stays
+        # eligible until its instance ends, including across lost datagrams.
+        if self.base is not None and self.base.callout >= serial:
+            return True
+        key = ("voice_sent", serial)
+        return key in self.lost_keys or any(key in keys for _, keys in self.pending.values())
 
     def touched(self) -> set:
         found = set(self.lost_keys)

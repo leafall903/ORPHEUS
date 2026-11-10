@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Accept delayed voice use reports for retained pulses sent to the
+  owner. Verify a queued-only pulse is rejected and a sent pulse
+  remains valid through loss and later ACKs. Register the wheel
+  pose and shape admission callbacks with the stored server snapshot.
+  All 99 focused and 13 stored server tests pass. Client playback and
+  separate server-side accounting remain open.
 - Retry wheel voice pulses with their original slots and one counter
   step per queued playback. Owner and observer acknowledgments
   advance independently. All 99 focused tests pass. Delayed unlock-use
