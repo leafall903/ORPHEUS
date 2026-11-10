@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Decode and sample sparse .006 bone tracks for wheel sight anchors.
+  Compare 24255 decoded keys across 10 original clips and verify three
+  ray positions with a supplied Lúcio pose. All 91 focused tests pass.
+  Match animation timing, blending and client acceptance remain open.
 - Compose wheel anchor poses from the original skeleton hierarchy and
   sampled local transforms. Verify all 32 base skeletons and 9140 matrix
   rows. Two rows differ by at most 0.000883. All 91 focused tests pass.

@@ -492,6 +492,12 @@ Source paths for the remaining actions
   matches 9138 of 9140 stored matrix rows within 1e-4 per coordinate.
   Two 25B9 rows differ by at most 0.000883. All 32 tests propagate a
   sampled parent transform into the original primary sight anchor.
+  The .006 reader decodes sparse local scale, translation and rotation
+  tracks with both index widths. Ten 104319 clips match 24255 decoded
+  OWLib keys to within 5e-7 per component. Offline Lúcio selections with
+  three supplied times from 3D05.006 cast to three corresponding anchor
+  positions. Match clock, animation layer selection and blending still
+  need bindings. Native interpolation equivalence remains unverified.
   D607F0 reports occlusion for a hit owned by a different entity
   or by the world. A miss or a hit owned by the candidate is clear.
   Six native cases verify this decision with fixture scene returns.

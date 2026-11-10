@@ -128,8 +128,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     verify anchor compilation, parent-matrix transforms and ray order.
     The wheel uses authored anchor order when the combat scene supplies
     current parent matrices. Reference skeleton decoding and composition
-    with sampled local transforms are available. Match animation sampling
-    and blending remain open.
+    with sampled local transforms are available. A decoded absolute clip
+    now supplies local samples to offline wheel rays. Match animation
+    timing, layer selection and blending remain open.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.
