@@ -385,6 +385,13 @@ Source paths for the remaining actions
   graph bundle using extract_game_graphs.py with --entity 020F, an external
   --output and the hero catalog in ORPHEUS_RUNTIME_DIR. Run Python with
   -X utf8 for the roster names. The normal catalog selects 26F0.
+  Junkenstein modes 0003 and 002A both start 0C8C. The 020F cases
+  in 0C95:14 and 0CE0:31 compare the possessed body and the current
+  body respectively. The second case starts voice stimulus 08E4.
+  The Symmetra boss spawn rows 0CB3:156 and 0CB3:177 start 0CBA
+  with hero 0016 and AI controller 1DD3. Hero 0016's gameplay entity
+  in the target catalog is 26F0. These switches establish legacy
+  dialogue cases for an existing 020F, with mode selection unverified.
   D.Va 026A separately
   supplies tag 050F through variable 10929 when its linked pilot branch
   runs. The normal 040A fixture uses the ordinary percentage path.

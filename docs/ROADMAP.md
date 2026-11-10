@@ -105,8 +105,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     same instance after its voice stack expires. A lost packet retries
     the original percentage. The legacy Symmetra 0169 receiver replicates
     its teleporter status when 020F is explicitly selected and supplied with
-    its graphs and online state. Mode-driven selection, teleporter creation
-    and other form-specific ultimate associations remain open.
+    its graphs and online state. Junkenstein checks 020F in legacy dialogue
+    branches. Its inspected boss spawn rows use hero 0016, whose catalog
+    body is 26F0. The original 020F creation path, teleporter creation and
+    other form-specific ultimate associations remain open.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     Live match poses now supply candidates to the two authored target states.
     Authored eligibility gates route actions to the aimed teammate and use the

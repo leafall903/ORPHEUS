@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace the legacy Symmetra body references to existing-body switches in
+  both Junkenstein modes. The inspected spawn rows reference hero 0016
+  and AI controller 1DD3. The target hero asset selects 26F0. Automatic
+  selection of 020F and client acceptance remain open.
 - Replicate the original legacy Symmetra teleporter status for an explicitly
   mounted 020F body. Offline original-graph fixtures verify both receiver
   actions with a declared online teleporter and charge count. All 102 focused
