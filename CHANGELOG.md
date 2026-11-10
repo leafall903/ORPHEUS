@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Accept 104319 ClientOutInstance 21608 selections through the game
+  channel. The server delivers the action and flag to the sender's
+  current body as 02A3. All 85 focused offline tests pass, including
+  the 21608 byte-level receive test. The 21608 target entity,
+  additional 02A3 parameters and original-client acceptance remain open.
 - Identify the wheel's authored selector and native action event.
   Three offline cases verify the action GUID, flag and integer passed
   to the dispatch service. The previous property queue trace belongs

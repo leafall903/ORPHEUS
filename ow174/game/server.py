@@ -67,6 +67,7 @@ PLAYER_BODY_REUSE_SECONDS = 30.0  # the client retains destroyed entity IDs
 PING = 21610
 MAP_LOADED = (21601, 21602)
 GAME_MESSAGE = 21616
+COMMUNICATION_ACTION = 21608
 LEAVE_GAME = 20304
 # A game sent to the menu (20304) closes its link within ~30 ms; one that does
 # not is dropped after this long, so that its match still ends.
@@ -1015,6 +1016,9 @@ class Client:
             return
         if msg_id in MAP_LOADED:
             self.player.match.map_loaded(self.player, now)
+        if msg_id == COMMUNICATION_ACTION:
+            self.player.match.communication_action(self.player, value)
+            return
         if msg_id == GAME_MESSAGE:
             self.player.match.game_message(self.player, value, now)
             return

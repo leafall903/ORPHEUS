@@ -50,7 +50,7 @@ from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statesc
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import WHEEL_ACTION_CATEGORIES, WHEEL_ACTION_PREFIX, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -1202,6 +1202,17 @@ class Match:
         except Exception:
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)
             self.stop_body_script(player, failed=True)
+
+    def communication_action(self, player: Player, value: dict) -> None:
+        """Deliver a 21608 wheel action on the sender's current body."""
+        action = value["+0x78"]
+        if action & ~0xFFFFFFFF != WHEEL_ACTION_PREFIX:
+            return
+        if not any((action & 0xFFFFFFFF) in actions for actions in WHEEL_ACTION_CATEGORIES.values()):
+            return
+        # The native entity field needs the separate targeted-action path.
+        params = {0x8FC: expr.Asset(action), 0x3E1: value["+0x80"]}
+        self.queue_body_message(player.body, 0x02400000000002A3, params, player.body)
 
     def game_message(self, player: Player, value: dict, now: float) -> None:
         """21616: a game message a statescript action sends to the server, such as a hero pick."""

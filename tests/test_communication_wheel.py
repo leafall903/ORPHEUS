@@ -1,18 +1,21 @@
 """The native wheel graphs enter the ordinary player body stream."""
 
 import json
+import struct
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from test_game_combat import Run
+from test_game_entity_lifecycle import client as game_client
 
 from ow174.accounts.profile import Profile
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates
 from ow174.content.collection import Collection
-from ow174.game import combat, observers, statescript
+from ow174.game import combat, messages, observers, statescript
+from ow174.game.bits import BitWriter
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import StaticCollisionProvider, World, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
@@ -48,6 +51,44 @@ class CommunicationWheelTests(unittest.TestCase):
         for state in (25, 26, 40, 41, 42):
             self.assertTrue(client.states[communication, state])
         self.assertTrue(client.states[instances[0x02CF], 20])
+
+    def test_client_out_instance_action_reaches_the_current_body(self):
+        def receive(connection, sequence, action, confirmed):
+            # Protocol 1, message offset 8, then u64, bool and nested u32.
+            record = b"\x01\x08" + struct.pack("<QBI", action, confirmed, 0)
+            self.assertEqual(messages.encode(21608, {
+                "+0x78": action, "+0x80": confirmed, "+0x84": {"+0x0": 0},
+            }), record)
+            packet = BitWriter()
+            messages.write_channel(packet, [(sequence, record)])
+            packet.bit(0)
+            connection._payload_in(packet.getvalue(), 17.0)
+
+        run = Run(names=("Source", "Observer"))
+        player, observer = run.players
+        connection = game_client()
+        connection.player = player
+        player.client = connection
+        source = player.body_script
+        wheel = next(i for i in source.component.instances.values() if i.graph.index == 0x05AD)
+        selected = 0x0A9000000000016B
+        for sequence, action in enumerate((0x0A9000010000016B, 0x0A90000000000001)):
+            receive(connection, sequence, action, True)
+        self.assertEqual(run.match._body_messages, [])
+
+        receive(connection, 2, selected, True)
+        receive(connection, 2, selected, True)
+        self.assertEqual(len(run.match._body_messages), 1)
+        run.step({})
+        self.assertEqual(wheel.vars[29699].value(), expr.Asset(selected))
+        self.assertIs(wheel.vars[9253].value(), True)
+        [callout] = [i for i in source.component.instances.values() if i.graph.index == 0x0686]
+        self.assertEqual(callout.vars[3793].value(), expr.Asset(0x0C00000000005A0B))
+        self.assertFalse(any(i.graph.index == 0x0686 for i in observer.body_script.component.instances.values()))
+
+        receive(connection, 3, selected, False)
+        run.step({})
+        self.assertIs(wheel.vars[9253].value(), False)
 
     def test_selection_message_takes_the_authored_category_branches(self):
         run_node = runtime.Instance.run_node

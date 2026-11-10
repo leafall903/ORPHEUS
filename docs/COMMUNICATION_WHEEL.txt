@@ -128,7 +128,7 @@ Source paths for the remaining actions
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its
   message GUID in the blob. Both call 1BA7D30. The existing logs verify
-  21616 for hero selection. The radial selection's transport remains open.
+  21616 for hero selection.
   The only direct authored send of 02A3 in the extracted graph set is
   0028 raw node 69, which writes integer zero to 08FC to clear the selection.
   In the raw 05AD asset, presenter 99's event 8D60 targets a plug owned by
@@ -164,8 +164,21 @@ Source paths for the remaining actions
   Offline execution of the tail verifies two action GUIDs and
   both flags, plus the path with no service. Config evaluation
   and the service were fixtures. The 21614 and 21616 producers
-  also call 611C10. The action event's consumer and its conversion
-  to 02A3 or a wire record remain open.
+  also call 611C10.
+  The +10 getter of event vtable 2603A40 is 4C68C0. Offline execution
+  returns JAM descriptor 2CBB150, identifying ClientOutInstance
+  A7FBBD0C message 21608. Its fields match the prepared game schema
+  at +78 (u64 action), +80 (bool) and +84 (nested u32 entity ID).
+  The constructor uses entity zero by default. The authored 0170
+  selection supplies an STU_CC90A18D entity ID to the third field.
+  The server accepts recognized .096 wheel actions on the game
+  channel and queues 02A3 on the sender's current body. 08FC
+  receives the action asset and 03E1 receives the boolean. The
+  ordinary body message queue captures the body before delivery.
+  The byte-level test feeds protocol 1, offset 8 through the
+  receive loop and verifies the 05AD variables and 0686 callout.
+  The client-provided entity is currently unused. Native mapping
+  of 05FE and 0644 and targeted-action behavior remain open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's
