@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify 24 native actor shape-category accumulation cases and
+  inventory receiver declarations for all 32 catalog player bodies.
+  Live model geometry and original-client acceptance remain open.
 - Verify 144 native cases for the dynamic shape mask and exclusion
   bypass used by wheel queries. Live shape production, final hit
   collection and original-client acceptance remain open.

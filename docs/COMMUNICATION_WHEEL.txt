@@ -394,8 +394,14 @@ Source paths for the remaining actions
   +9AC. Native execution passes 144 cases with fixture model
   validity, resident-shape presence and category data. Thus 0079's
   1FDF includes category 1 in this arm, while 0111's 1FDE excludes
-  it. A live ray producer still needs to supply the authored shape
-  data and reproduce the final hit collection.
+  it. The writer at 1B21554 accumulates the actor's shape mask.
+  Twenty-four native cases verify that it preserves previous bits
+  and ORs 0100 when the shape selector is unset, 0001 for selector
+  kind 3, or 1000 for the remaining tested kinds. A scan of all
+  32 catalog player bodies finds no explicit m_AC53342B category
+  or .098 receiver. Soldier's body points to model 1137.00C and
+  leaves its model-component collision override empty. The model's
+  live shape categories and final hit collection still need bindings.
   Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
   through the ordinary selection message. 05AD nodes 112 and 136 and
   0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.
