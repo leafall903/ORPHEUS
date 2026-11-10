@@ -378,6 +378,12 @@ Source paths for the remaining actions
   effect 40 with its original stamp. Sixteen native A0CCA0 cases
   verify both frame forms dispatch the four action IDs and suppress
   already seen stamps. The native fixtures use a dispatch adapter.
+  The same transport covers the 05AD recipient effect at 14 and
+  02CF spray feedback at 3 and 8. The 02CF placement failure plug
+  sends 17E5. The success plug sends 17E4 with the placement pulse.
+  The offline spray fixture checks both owner outcomes and the
+  observer effect on replacement. Twelve further native reader
+  cases dispatch those three IDs or reject a duplicate stamp.
   Ultimate Status (16E) uses entity 7730 and 6035. The ordinary
   0B8B:49 and :38 stacks compute floored percentage and readiness
   from charge 342 and cost 338. 0686 sends node 13 below 90 percent,
@@ -655,6 +661,12 @@ Source paths for the remaining actions
   An offline 21608 test verifies directed 12F4 and the caller
   fields on the aimed teammate. A hostile target or a free-for-all
   candidate falls back to the sender's 0686 callout.
+  Need Healing sends 05AA from Soldier and 0689 from Mercy. Both
+  aimed recipients bind the source as caller and instigator. The
+  Soldier case emits localized action 166. The Mercy case emits
+  localized action 94 followed by effect 14. The bystander receives
+  neither. Consecutive directed callouts keep their respective source
+  bindings and queue their feedback in action order.
   For a new voice graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.

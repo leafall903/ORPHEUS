@@ -2267,7 +2267,10 @@ def wheel_base_action(instance: Instance, node, caller) -> bool:
 @handler("STU_7106C356", "STUStatescriptActionEffect")
 def wheel_presentation_action(instance: Instance, node, caller) -> bool:
     if (node.cls == "STU_7106C356"
-            or (instance.graph.index == 0x0686 and node.pos in (14, 15, 40, 41))):
+            or (instance.graph.index, node.pos) in (
+                (0x02CF, 3), (0x02CF, 8), (0x05AD, 14),
+                (0x0686, 14), (0x0686, 15), (0x0686, 40), (0x0686, 41),
+            )):
         instance.component.world.replicate_wheel_action(instance, node)
     return no_op(instance, node, caller)
 

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Replicate directed-callout and spray feedback actions. Verify
+  Soldier and Mercy's directed healing messages, consecutive speaker
+  identity and spray success and failure. All 93 focused tests and
+  12 native frame-reader cases pass. Client playback remains open.
 - Replicate the four authored 0686 effect actions. Wire tests cover
   Need Healing and Group Up, with ordered delivery in both streams
   and stable effect timestamps on retry. All 93 focused tests and

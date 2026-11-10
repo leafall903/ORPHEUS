@@ -426,6 +426,8 @@ class CommunicationWheelTests(unittest.TestCase):
         cases = (
             (0x1E5, 0x12F4, PRACTICE_RANGE, True),
             (0x170, 0x05AC, PRACTICE_RANGE, True),  # Acknowledge without a selected UI marker
+            (0x16C, 0x05AA, PRACTICE_RANGE, True),  # Need Healing from Soldier
+            (0x16C, 0x0689, PRACTICE_RANGE, True),  # Need Healing from Mercy
             (0x1E5, 0x12F4, PRACTICE_RANGE, False),
             (0x1E5, 0x12F4, KANEZAKA_DM, True),
         )
@@ -434,6 +436,9 @@ class CommunicationWheelTests(unittest.TestCase):
                 directed = same_team and not game_map.free_for_all
                 run = Run(game_map, names=("Speaker", "Target", "Other"))
                 speaker, target, other = run.players
+                if target_message == 0x0689:
+                    mercy = next(hero for hero in heroes().values() if hero.name == "Mercy")
+                    run.match.switch_hero(speaker, mercy)
                 target.team = speaker.team if same_team else 1 - speaker.team
                 other.team = speaker.team
                 speaker.mover.position = (0.0, 0.0, 0.0)
@@ -467,6 +472,10 @@ class CommunicationWheelTests(unittest.TestCase):
                     caller = expr.Entity(speaker.body) if directed and player is target else None
                     self.assertEqual(wheel.vars[40].value() if 40 in wheel.vars else None, caller)
                     self.assertEqual(wheel.vars[41].value() if 41 in wheel.vars else None, caller)
+                if action == 0x16C:
+                    nodes = (94, 14) if target_message == 0x0689 else (166,)
+                    self.assertEqual(tuple(event.node for event in target.body_script.world.wheel_callouts), nodes)
+                    self.assertEqual(other.body_script.world.wheel_callouts, [])
 
     def test_selection_message_takes_the_authored_category_branches(self):
         run_node = runtime.Instance.run_node
@@ -1001,6 +1010,10 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertEqual(state.active, expected)
                 owner_updates = body.frames()
                 owner_frames = [owner.apply(update) for update in owner_updates]
+                self.assertEqual(
+                    [action[1:] for frame in owner_frames for action in frame.actions],
+                    [(spray.id, 8 if expected else 3)],
+                )
                 watcher = decode.ClientBody.for_hero(SOLDIER)
                 stream = BodyStream(body.entity)
                 baseline = observers.snapshot(body)
@@ -1040,8 +1053,9 @@ class CommunicationWheelTests(unittest.TestCase):
                     ])
                     snap = observers.snapshot(body)
                     delta, keys = observers.delta(body, stream, snap)
-                    watched = watcher.apply(stream.delta(delta, snap, keys, 0)).instances[spray.id]
-                    self.assertEqual(watched.states[1], result)
+                    observed = watcher.apply(stream.delta(delta, snap, keys, 0))
+                    self.assertEqual(observed.instances[spray.id].states[1], result)
+                    self.assertEqual([action[1:] for action in observed.actions], [(spray.id, 8)])
                     self.assertEqual(spray.state(14).pulses, 2)
                     # A failed replacement cannot carry the new slot with the old geometry.
                     player.mover.yaw = 32768
@@ -1637,7 +1651,8 @@ class CommunicationWheelTests(unittest.TestCase):
         def check(updates, speaker, node, stamps):
             for client, update, stamp in zip((owner, watcher), updates, stamps, strict=True):
                 self.assertEqual(client.apply(update).actions, [(stamp, main.id, node)])
-                self.assertEqual(client.vars[main.id, 40], expr.Entity(speaker.body))
+                if speaker is not None:
+                    self.assertEqual(client.vars[main.id, 40], expr.Entity(speaker.body))
 
         first_updates = transmit()
         stamps = tuple(update.chunk_last for update in first_updates)
@@ -1651,6 +1666,9 @@ class CommunicationWheelTests(unittest.TestCase):
         for update in retry:
             update.stream.arrived(update.chunk_last)
 
-        run.match.tick += 1
-        second_updates = transmit()
-        check(second_updates, second, 195, tuple(update.chunk_last for update in second_updates))
+        for speaker, node in ((None, 14), (second, 195), (None, 14)):
+            run.match.tick += 1
+            updates = transmit()
+            check(updates, speaker, node, tuple(update.chunk_last for update in updates))
+            for update in updates:
+                update.stream.arrived(update.chunk_last)

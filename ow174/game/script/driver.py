@@ -524,7 +524,7 @@ class BodyWorld(runtime.World):
         if not self.communication_wheel or node.remote < 0 or not node.is_networked:
             return
         index = instance.graph.index
-        if index not in (0x05AD, 0x0686):
+        if index not in (0x02CF, 0x05AD, 0x0686):
             if self.body_definition != LEGACY_SYMMETRA_BODY or index != 0x0169 or node.pos not in (82, 86):
                 return
         component = instance.component
