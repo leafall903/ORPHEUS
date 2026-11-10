@@ -961,9 +961,23 @@ Source paths for the remaining actions
   contains 80000014 and 800001FE, matching the .013 references of
   the two declared parameter inputs. Brigitte 0054 has 80000014,
   80000081 and 800000B6. All five high-bit entries match a .013
-  reference in their respective trees. The remaining work is to
-  trace the provider values in the evaluator. A missing local file
-  supplies no evidence for a constant weight.
+  reference in their respective trees. F4F980 copies the incoming
+  query context. It compares the requested scope key against up to
+  four entries at scope +198. A match substitutes that scope's
+  parameter pointer and count, while a miss keeps the inherited
+  values. The copied phase remains at query +50. F4FFD0 reads
+  selectors 1 through the remap count as one-based slots, using
+  the signed remap index to access eight-byte parameter rows.
+  Selector 0 and out-of-range positive lookups return float zero.
+  Selector FF reads the query phase. F51010 uses a literal when
+  the selector is zero, otherwise it applies scale and bias to
+  the lookup. It clamps to [-1, 1] when requested or wraps by 2
+  on that interval, then applies the configured signed square
+  or cube. Thirty-two original-instruction cases verify lookup
+  and driver arithmetic. Ten more verify both scope layouts
+  and all four overrides plus a miss. These use supplied rows.
+  The producer that fills the actual greeting scope rows and
+  the pose composition remain open.
   104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
   branches. The extractor accepts a blend duration if all eligible
   leaves agree. Eleven offline native runs check Soldier: 76, Echo

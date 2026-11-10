@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify greeting animation weight lookup and scope selection in 42 native cases.
+  Authored parameter producers, pose composition and client acceptance remain open.
+
 - Install manifest-verified emote pose assets and carry them into prepared runtimes.
   A 449-file package comparison, seven default-path target selections and
   176 offline regression tests pass. Original-client acceptance remains open.

@@ -166,6 +166,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     pose weights, other animation layers and model replacement remain open.
     The two inspected blend trees declare high-bit data-flow parameter
     IDs. The local 104319 manifest has no .013 files for those IDs.
+    Forty-two native cases verify scoped parameter selection, remapping
+    and driver arithmetic. The actual greeting parameter producer
+    and pose composition remain open.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.
