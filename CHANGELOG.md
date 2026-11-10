@@ -8,10 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
-- Trace the 104319 wheel confirmation through the native UI property
-  queue. Two offline probes cover six confirmation gate cases and
-  three property change cases. The transport that carries the selected
-  action to the server and original-client acceptance remain open.
+- Identify the wheel's authored selector and native action event.
+  Three offline cases verify the action GUID, flag and integer passed
+  to the dispatch service. The previous property queue trace belongs
+  to the text chat callback. The event's conversion to a server
+  message and original-client acceptance remain open.
 - Place equipped sprays on eligible static map surfaces within the
   authored 4.5 metre range. Hits enter owner and observer frames.
   Empty slots and misses take the graph's failure path. Dynamic

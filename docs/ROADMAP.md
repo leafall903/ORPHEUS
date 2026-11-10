@@ -66,10 +66,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     The recipient graph sends the actions in order with each action's source.
-    Offline execution reaches the original client's wheel confirmation
-    properties and change queue. The queue consumer, selection and targeting
-    transport, equipped-item playback, recipient rules and original-client
-    acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
+    The original wheel's selector leads to a native action event verified
+    with an offline dispatch fixture. The event consumer, selection and
+    targeting transport, equipped-item playback, recipient rules and
+    original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.
 - [ ] **Stability and delivery.** Verify tick and packet budgets, long-running matches, recovery, reproducible deployment, and final acceptance with the original client.
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.

@@ -137,24 +137,35 @@ Source paths for the remaining actions
   Raw STU instances 65–68 preserve the event, link, input and input owner.
   The node is client-only. Its registered constructor ADDE50 installs
   vtable 2652628. The handler at AD50A0 invokes 5EB6A0 on the local UI
-  service. Constructor 5E6640 installs vtable 2610B08. Its +18 slot
-  calls 5E92D0, which checks the active option kind through E19580
-  and applies an extra count check for kind 4. Accepted confirmation
-  sets boolean 631B, clears 585E and calls 5EB650 to clear 6755 and
-  reset the service's +94 field.
-  The 1DCCCD0 property setter jumps to 1DCB4E0. A changed boolean
-  appends an 88-byte event at 1DCD480 and can flush via 1C628B0.
-  1DCE410 also notifies the source's registered callbacks with the
-  property ID and change kind 1. An unchanged boolean skips both.
-  Offline execution of the original callback verifies kinds 1, 2
-  and 4 and three closed gates with stubbed service dependencies.
-  With a fixture property store, the native setter writes and queues
-  all three changes and calls the registered watcher. Repeating the
-  same values or disabling the wheel queues nothing. The queue flush
-  and registered watcher were fixtures. 1C628B0 copies the pending
-  records with 1DCBE10 and passes the resulting event to 1C648A0.
-  Its consumer and the mapping from a selected item to 02A3 remain
-  open.
+  service for text chat. 5E80C0 associates the service data source
+  0154.116 with screen 042B.05A. The screen is named Chat and binds
+  ChatInput, Channel and TextInput. Its watcher 5EC960 is installed
+  by 5E8148 and delegates to 5EC840. The 631B branch resets two
+  floating point values on the chat's 60D6 child rows. The prior
+  offline confirmation and UI property queue probes cover this
+  chat path.
+- The wheel presenter in 05AD node 99 instead loads screen 0313.05A
+  and data source 01B1.116. The screen is named Ping_Selection and
+  binds Menus and SelectedIndex to selector STU_839DA58A. It includes
+  the radial templates at 0180.05E. The data source exposes 8D60 as
+  a command, 64C0 as the 01B0.116 menu list and 240C as the selected
+  index. Graph node 103 computes variable 9191 from the selected
+  menu. Node 1's false transition reaches node 27, then node 26
+  for an index other than -1. Node 26 resolves the action through
+  STU_BA2607C0 with the menu, index and hero. Nodes 169 and 180
+  feed the same STU_26CC910A action from a local message and a
+  logical button, respectively.
+- STU_26CC910A's runtime registry row 2F77170 matches the class's
+  type key 2DF72B0. Constructor ADDD60 installs vtable 2650078,
+  whose +50 handler ACDA00 calls the dispatch service from 611C10.
+  Its ACDF2C tail builds event 2603A40 through 4C4470. It evaluates
+  the action GUID, boolean and integer from config +90, +A0 and
+  +98 into event +78, +80 and +84, then calls service vtable +8.
+  Offline execution of the tail verifies two action GUIDs and
+  both flags, plus the path with no service. Config evaluation
+  and the service were fixtures. The 21614 and 21616 producers
+  also call 611C10. The action event's consumer and its conversion
+  to 02A3 or a wire record remain open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's
