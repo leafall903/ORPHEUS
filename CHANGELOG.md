@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the original emote scalar track builder, interpolation and
+  missing-track fallback in 31 native cases. The authored track
+  producer, runtime movement binding and client playback remain open.
 - Keep the spray slot, placement, use pulse and feedback together
   until acknowledgment. Cover replacement, a miss and a repeat
   at identical geometry in both frame forms. All 101 focused

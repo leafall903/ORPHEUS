@@ -364,7 +364,20 @@ Source paths for the remaining actions
   cannot. An idle command after the mover leaves the floor cancels the
   ordinary Take a Knee loop without any held button or throttle. The
   server still lacks the sampled scalar used by the separate 023A:77
-  movement-modifier path.
+  movement-modifier path. BB8970 selects a 0x110-byte compiled row
+  from the runtime 013 query. BB7440 fills a five-track descriptor.
+  The scalar track at descriptor +48 reads the times and values
+  from row +10 and +20. The builder sets the last index to -1
+  when either pointer is absent or the value count is zero.
+  BB8730 then returns float zero for that track, the sole value
+  for one key, and interpolates between adjacent keys for multiple
+  keys. Its cursor resets when the sample time moves backward.
+  BB8E08 stores the result at cache +8 for Anim slot 2.
+  Twenty native compiled-row cases exercise both array layouts
+  through the cache write. Eleven additional cases cover sample
+  time boundaries, interpolation and cursor rewind. These probes
+  supply fixture rows. The producer of the authored runtime track
+  for the selected wheel emote still needs to be resolved.
   An offline match starts the equipped Take a Knee emote, confirms
   the loop persists while idle and with primary fire blocked by 0015:58,
   then releases fire, ends the block and presses fire again. The authored
