@@ -1,4 +1,4 @@
-"""Extract deterministic animation durations from 104319 .021 XML."""
+"""Extract deterministic animation durations and primary clip GUIDs from 104319 .021 XML."""
 
 import argparse
 import json
@@ -41,7 +41,7 @@ def embedded_data(xml, node):
     return None
 
 
-def record_duration(xml, game_data, leaf):
+def primary_record(xml, game_data, leaf, clips):
     if leaf is None or leaf.tag != "STU_3C8FB392":
         return None
     # F4CCA0 emits the primary index; BB8970 reads this record's duration.
@@ -53,21 +53,26 @@ def record_duration(xml, game_data, leaf):
     if row.tag != "STUAnimGameData_AnimationData":
         return None
     seconds = float(row.get("m_D8514AD9", "0"))
-    return seconds if math.isfinite(seconds) and seconds > 0 else None
+    if not math.isfinite(seconds) or seconds <= 0:
+        return None
+    if not clips:
+        return seconds
+    # The selected record holds the primary clip even when the graph lists auxiliary clips.
+    clip = int(row.get("m_584DEF6E", "0"))
+    return f"0x{clip:016X}" if clip >> 48 == 0x0A00 and clip & 0xFFFFFFFFFFFF else None
 
 
-def duration_tree(xml, data, node, keys, depth=0):
+def primary_tree(xml, data, node, keys, clips, depth=0):
     # C085B0 suppresses auxiliary nodes. F4CBC0 limits nested alias references.
     if depth >= 48 or node is None:
         return None
     if node.tag == "STU_3C8FB392":
-        return record_duration(xml, data, node)
+        return primary_record(xml, data, node, clips)
     if node.tag == "STU_331B7B06":
         nested = embedded_data(xml, node)
-        return duration_tree(xml, nested, first_animation_node(xml, nested), keys, depth + 1)
+        return primary_tree(xml, nested, first_animation_node(xml, nested), keys, clips, depth + 1)
     if node.tag == "STU_4178508A" and node.get("m_5E009A60") == "1":
-        # F4D310 picks adjacent branches by the blend driver. Their duration
-        # is independent of the driver only when every branch has the same value.
+        # F4D310 picks adjacent branches. The result is deterministic only when all branches agree.
         indexes = xml.field(node, "m_540E2FC8")
         thresholds = xml.field(node, "m_0EC67F50")
         nodes = xml.field(data, "m_nodes")
@@ -80,8 +85,8 @@ def duration_tree(xml, data, node, keys, depth=0):
         children = [int(item.text) for item in indexes]
         if any(not 0 < index < len(nodes) for index in children):
             return None
-        durations = {record_duration(xml, data, xml.resolve(nodes[index])) for index in children}
-        return durations.pop() if len(durations) == 1 else None
+        records = {primary_record(xml, data, xml.resolve(nodes[index]), clips) for index in children}
+        return records.pop() if len(records) == 1 else None
     if node.tag != "STU_623B2B19" or node.get("m_E6058AAD") != "1":
         return None
 
@@ -98,11 +103,11 @@ def duration_tree(xml, data, node, keys, depth=0):
     if any(not 0 < index < len(nodes) for index in indexes):
         return None
     keys.update(selectors[:-1])
-    return tuple((key, duration_tree(xml, data, xml.resolve(nodes[index]), keys, depth + 1))
+    return tuple((key, primary_tree(xml, data, xml.resolve(nodes[index]), keys, clips, depth + 1))
                  for key, index in zip(selectors, indexes))
 
 
-def selected_duration(tree, category, parents):
+def select_primary(tree, category, parents):
     while isinstance(tree, tuple):
         choice = tree[-1][1]
         for key, branch in tree[:-1]:
@@ -129,10 +134,10 @@ def load_category_parents(source):
     return parents
 
 
-def animation_durations(xml, item, category_parents):
+def animation_records(xml, item, category_parents, clips):
     keys = set()
     data = xml.field(item, "m_gameData")
-    tree = duration_tree(xml, data, first_animation_node(xml, data), keys)
+    tree = primary_tree(xml, data, first_animation_node(xml, data), keys, clips)
     if tree is None:
         return {}
     if not isinstance(tree, tuple):
@@ -148,15 +153,15 @@ def animation_durations(xml, item, category_parents):
         candidates.update(category_parents)
     result = {}
     for category, parents in candidates.items():
-        seconds = selected_duration(tree, category, parents)
-        if seconds is not None:
-            result[f"0x{category:016X}"] = seconds
+        record = select_primary(tree, category, parents)
+        if record is not None:
+            result[f"0x{category:016X}"] = record
     if strict and len(result) == len(candidates):
         result[f"0x{EMOTE_ANY_CATEGORY:016X}"] = result["0x0000000000000000"]
     return result
 
 
-def extract(source, category_source=None):
+def extract(source, category_source=None, *, clips=False):
     category_parents = load_category_parents(category_source)
     tables = {}
     for path in sorted(source.glob("*.021.xml")):
@@ -172,7 +177,7 @@ def extract(source, category_source=None):
             key = int(alias.text)
             if key >> 48 != 0x0C80 or key & 0xFFFFFFFF == 0:
                 continue
-            categories = animation_durations(xml, xml.resolve(item), category_parents)
+            categories = animation_records(xml, xml.resolve(item), category_parents, clips)
             if categories:
                 durations[f"0x{key:016X}"] = categories
         if durations:
@@ -200,16 +205,27 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="directory containing *.021.xml")
     parser.add_argument("output", type=Path, help=f"runtime data/{EMOTE_DURATION_DATA}")
+    parser.add_argument("--clips-output", type=Path, help="optional primary .006 selections")
     parser.add_argument("--categories", type=Path, help="directory containing *.015.xml")
     parser.add_argument("--body-definitions", nargs="+", type=Path, default=[],
                         help="entity definition .003 XML files for greeting gestures")
     args = parser.parse_args()
+    if args.clips_output is not None:
+        outputs = [args.output.resolve()]
+        if args.body_definitions:
+            outputs.append(args.output.with_name(GREETING_DURATION_DATA).resolve())
+        if args.clips_output.resolve() in outputs:
+            parser.error("--clips-output requires a separate path")
     rows = extract(args.source, args.categories)
     if not rows:
         raise SystemExit("No supported animation data found")
     greetings = greeting_durations(rows, args.body_definitions)
     args.output.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote model animation durations from {len(rows)} blend tree sets")
+    if args.clips_output is not None:
+        clips = extract(args.source, args.categories, clips=True)
+        args.clips_output.write_text(json.dumps(clips, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote primary clip selections from {len(clips)} blend tree sets")
     if greetings:
         output = args.output.with_name(GREETING_DURATION_DATA)
         output.write_text(json.dumps(greetings, indent=2) + "\n", encoding="utf-8")

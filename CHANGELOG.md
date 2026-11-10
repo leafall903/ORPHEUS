@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Export primary .006 selections from the original emote blend trees.
+  Verify 3009 clip entries across 393 tree sets and compare the full
+  duration tables against the previous extractor. All 91 focused tests
+  pass. Match playback binding and client acceptance remain open.
 - Decode and sample sparse .006 bone tracks for wheel sight anchors.
   Compare 24255 decoded keys across 10 original clips and verify three
   ray positions with a supplied Lúcio pose. All 91 focused tests pass.

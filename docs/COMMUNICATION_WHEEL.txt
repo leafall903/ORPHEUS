@@ -277,7 +277,13 @@ Source paths for the remaining actions
   records from .021 XML to emote_durations_174.json. Pass --categories
   with the directory of extracted .015 XML to resolve category parents.
   The optional runtime file is keyed by blend tree, alias and category. The
-  offline 02A3 wheel path exercises the equipped 06B2.021 intro to
+  --clips-output option exports the selected record's m_584DEF6E .006 GUID
+  with the same blend tree, alias and category keys. The original
+  06B2 alias 0476 exports 3D04, 3D05 and 3D06 for intro, default and
+  exit. Its auxiliary 1E38 clip stays outside the primary selection.
+  The 06AD alias 045C exports 3A7D for any category. A weighted
+  branch with different primary GUIDs has no fixed clip entry.
+  The offline 02A3 wheel path exercises the equipped 06B2.021 intro to
   loop transition. For a direct STU_3C8FB392 leaf, F4CCA0 emits
   the same primary record for any category. F4EA30 can select that leaf
   by its fixed m_38CF6CD3 child index before emitting IK output. C085B0
