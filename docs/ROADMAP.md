@@ -14,6 +14,10 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Integrate and reverify the individual hero lanes. The
+  [combined server acceptance matrix](HERO_SERVER_ACCEPTANCE.md) separates
+  verified partial handoffs, remaining implementation and original-client acceptance.
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,

@@ -6,6 +6,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Combined hero server
 
+- Integrate the Ana Biotic Rifle, Mei icicle and Winston Tesla Cannon partial handoffs.
+  The focused suite passed all 63 tests. The extended suite passed 193 of 196,
+  with three missing Junkenstein graph errors also reproduced in the foundation.
+  Server-only retail startup passed on isolated ports using external Rialto data.
+  [The acceptance matrix](docs/HERO_SERVER_ACCEPTANCE.md) covers all 32 lanes.
+  Original-client acceptance for the combined candidate remains open.
+
 - Checkpoint the Rialto PvE and McCree server foundation for isolated integration.
   The combined worktree passed 96 targeted NPC, hotkey, McCree and PvE entrance tests.
   Previous original-client results apply to the foundation build. Combined original-client acceptance remains open.

@@ -351,7 +351,7 @@ class Vitals:
                     total = expr.f32(total + expr.f32(bonus.capacity if maximum else bonus.current))
         return total
 
-    def damage(self, amount: float) -> float:
+    def damage(self, amount: float, *, armour_scalar: float | None = None) -> float:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
         left = max(0.0, amount)
@@ -360,7 +360,8 @@ class Vitals:
             if left <= 0.0:
                 break
             if kind == ARMOUR_POOL and self.now[kind] > 0.0:
-                left = max(left - ARMOUR_BLOCK, left / 2)
+                left = (max(left - ARMOUR_BLOCK, left / 2) if armour_scalar is None
+                        else left * armour_scalar)
             if kind == HEALTH_POOL and (bonus := self.wave_health) is not None:
                 take = min(left, bonus.current)
                 if take > 0:
@@ -419,6 +420,8 @@ class HitDef:
     rings: tuple = ()  # (radius, scalar) of an explosion
     effect: int | None = None  # ModifyHealth's authored hit-effect resource
     tags: tuple[int, ...] = ()
+    ally_heal: float = 0.0
+    projectile_headshot: bool = False
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -485,16 +488,21 @@ def hit_def(state, cfg) -> HitDef | None:
             scalar = ring.get("m_B399CACB")
             scalar = state.evaluate(scalar, watch=False) if scalar is not None else 0.0
             rings.append((_number(radius, 0.0), _number(scalar, 0.0)))
+    graph_index, node_index = state.instance.graph.index, state.index
+    icicle = graph_index == 0x05E6 and node_index == 16
     return HitDef(
         amount=amount,
         loadout=loadout.guid if isinstance(loadout, expr.Asset) else None,
         falloff_start=value("m_EAD7F104"),
         falloff_end=value("m_157E5BC5"),
         falloff_floor=value("m_72A81154"),
-        critical=value("m_A872C70E", mccree.critical_default(state)),
+        critical=value("m_A872C70E", 2.0 if icicle else mccree.critical_default(state)),
         rings=tuple(sorted(rings)),
         effect=effect.guid if isinstance(effect, expr.Asset) else None,
         tags=tags,
+        # Reconstructed for the two authored Biotic Rifle volleys.
+        ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
+        projectile_headshot=icicle,
     )
 
 
@@ -570,6 +578,7 @@ class Combat:
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
+        self.tesla_frames: dict[int, int] = {}
         self.stuns: dict[int, int] = {}  # body identity -> exclusive world-tick deadline
         self.npc_hit_reactions: dict[int, tuple[int, runtime.Instance]] = {}
         self.pins: dict[int, int] = {}  # manual Assassin source body -> controlled victim body
@@ -601,6 +610,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.tesla_frames.pop(player.body, None)
         self.stuns.pop(player.body, None)
         self.clear_pins(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
@@ -736,6 +746,60 @@ class Combat:
             self._melee(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
+        if command is not None:
+            try:
+                self._tesla(player, command, script)
+            except Exception:
+                log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
+
+    def _tesla(self, player, command, script) -> None:
+        """Reconstruct 00FE's continuous ModifyHealth using the actual active states.
+
+        DATA: st10 searches eight metres, angle var243=40; st13 amount=60.
+        Inference: angle is a cone half-angle and amount is damage per second.
+        Native target payloads, barriers and status filters are still unaccepted.
+        """
+        if player.hero.guid != 0x02E0000000000009 or command is None:
+            return
+        if command.frame <= self.tesla_frames.get(player.body, -1):
+            return
+        self.tesla_frames[player.body] = command.frame
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x00FE:
+                continue
+            search, damage = instance.states.get(10), instance.states.get(13)
+            if search is None or damage is None or not (search.active and damage.active):
+                continue
+            reach = _number(search.evaluate(search.node.field("m_radius"), watch=False), 0.0)
+            angle = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
+            definition = hit_def(damage, {"m_modifyHealth": damage.node.field("m_modifyHealth")})
+            if definition is None or definition.amount <= 0 or reach <= 0 or not 0 < angle < 90:
+                continue
+            origin, direction = self._eye(player), aim(*command.aim())
+            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            for target in self._enemies(player):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                # Aim at the closest capsule-axis point in height. Capsule radius
+                # gives targets at the cone boundary their physical width.
+                point = (a[0], max(a[1], min(b[1], origin[1])), a[2])
+                offset = _sub(point, origin)
+                distance = math.sqrt(_dot(offset, offset))
+                if distance - shown.radius > reach:
+                    continue
+                forward = _dot(offset, direction)
+                lateral = math.sqrt(max(0.0, distance * distance - forward * forward))
+                if forward < 0 or lateral > forward * math.tan(math.radians(angle)) + shown.radius:
+                    continue
+                if distance > EPSILON:
+                    ray = tuple(value / distance for value in offset)
+                    wall = ray_world(self._collision(), origin, ray, distance)
+                    if wall is not None and wall < max(0.0, distance - shown.radius):
+                        continue
+                self._damage(player, target, definition.amount * player.quanta / 1e6,
+                             False, definition.loadout, command.frame, armour_scalar=0.8)
 
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
@@ -963,6 +1027,21 @@ class Combat:
                 continue
             found.append(target)
         return found
+
+    def _ally(self, shooter, target: Target) -> bool:
+        return not self.match.game_map.free_for_all and target.team == shooter.team
+
+    def _shot_targets(self, shooter, direct: HitDef | None) -> list[Target]:
+        targets = self._enemies(shooter)
+        if direct is None or direct.ally_heal <= 0.0 or self.match.game_map.free_for_all:
+            return targets
+        for target in self._targets():
+            if target.entity == _source_entity(shooter) or not self._ally(shooter, target):
+                continue
+            vitals = self.vitals_of(target)
+            if not vitals.dead and vitals.total < sum(vitals.most.values()) - EPSILON:
+                targets.append(target)
+        return targets
 
     def seen(self, target: Target, view_tick: float) -> Target | None:
         """Interpolate retained poses or use the nearest sample for a body that already existed."""
@@ -1198,7 +1277,7 @@ class Combat:
                         velocity=(tuple(expr.f32(value * speed) for value in launch)
                                   if gravity is not None else None),
                         detonate_on_expiry=flashbang_gravity is not None,
-                        scale_direct=len(directions) > 1,
+                        scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split,
                     )
                     for pellet, launch in enumerate(directions)
@@ -1218,7 +1297,7 @@ class Combat:
 
             seed = weapon_spread.seed_base(shooter.entity, state.instance.id, node.pos, activation[0])
             directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
-        targets = tuple((target, shown) for target in self._enemies(shooter)
+        targets = tuple((target, shown) for target in self._shot_targets(shooter, direct)
                         if (shown := self.seen(target, view_tick)) is not None)
         for pellet in directions:
             self._hitscan(shooter, state, origin, pellet, reach, targets, direct, shot_frame,
@@ -1242,6 +1321,9 @@ class Combat:
             self._damage_barrier(shooter, shield[1], direct.amount * direct.scale(distance), direct.tags)
             return
         t, target, shown = best
+        if direct.ally_heal and self._ally(shooter, target):
+            self._heal(shooter, target, direct.ally_heal)
+            return
         hit_y = origin[1] + direction[1] * t
         critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
@@ -1315,7 +1397,7 @@ class Combat:
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
         best = None
-        for target in self._enemies(rocket.shooter):
+        for target in self._shot_targets(rocket.shooter, rocket.direct):
             a, b = target.segment()
             t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
             if t is not None and t <= step and (best is None or t < best[0]):
@@ -1349,14 +1431,20 @@ class Combat:
             self._explode(rocket, point, wall=True, impact_barrier=shield[1])
             return
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
-            amount = rocket.direct.amount
-            if rocket.scale_direct:
-                amount *= rocket.direct.scale(rocket.flown * rocket.speed)
-            self._damage(
-                rocket.shooter, struck, amount, False, rocket.direct.loadout, self.tick,
-                world_tick=self.tick, hit_tags=rocket.direct.tags,
-            )
-            self._hit_effect(struck, rocket.direct.effect, shooter=rocket.shooter)
+            direct = rocket.direct
+            if direct.ally_heal and self._ally(rocket.shooter, struck):
+                self._heal(rocket.shooter, struck, direct.ally_heal)
+            else:
+                critical = (direct.projectile_headshot and direct.critical > 1.0
+                            and point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW)
+                amount = direct.amount * (direct.critical if critical else 1.0)
+                if rocket.scale_direct:
+                    amount *= direct.scale(rocket.flown * rocket.speed)
+                self._damage(
+                    rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
+                    world_tick=self.tick, hit_tags=direct.tags,
+                )
+                self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
         self._explode(rocket, point, wall=wall is not None)
 
     def _explode(self, rocket: Rocket, point: tuple, *, wall: bool = False, impact_barrier=None) -> None:
@@ -1407,11 +1495,18 @@ class Combat:
             a, b = target.segment()
             if segment_distance(centre, a, b) - target.radius > radius:
                 continue
-            given = vitals.heal(amount)
-            if given <= 0.0:
-                continue
-            healer.stats.add(stats.HEALING, given)
+            self._heal(healer, target, amount)
+
+    def _heal(self, healer, target: Target, amount: float) -> float:
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            return 0.0
+        given = vitals.heal(amount)
+        if given > 0.0:
+            if not isinstance(healer, bots.Bot):
+                healer.stats.add(stats.HEALING, given)
             self._sync_body_health(target.owner, vitals)
+        return given
 
     @staticmethod
     def _write_scene_health(component, vitals: Vitals) -> None:
@@ -1453,6 +1548,7 @@ class Combat:
         *, world_tick: int | None = None, award_ult: bool = True, deadeye: bool = False,
         hit_reaction: bool = False,
         hit_tags: tuple[int, ...] = (),
+        armour_scalar: float | None = None,
     ) -> None:
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
@@ -1461,7 +1557,7 @@ class Combat:
         component = self._scene_component(shooter) if isinstance(shooter, bots.Bot) else None
         if component is not None:
             amount = component.world.outgoing_combat_damage(shooter.entity, amount, hit_tags)
-        dealt = vitals.damage(amount)
+        dealt = vitals.damage(amount, armour_scalar=armour_scalar)
         if dealt <= 0.0:
             return
         killed = vitals.pool_current(HEALTH_POOL) <= EPSILON
