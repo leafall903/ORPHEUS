@@ -29,6 +29,15 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_pending_authoritative_self_healing_changes_stored_digest(self):
+        session, _, players = self.scene()
+        script = players[0].body_script
+        before = snapshot_digest(self.capture(session))
+        script.self_healing = 0.32
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        script.self_healing = 0.0
+        self.assertEqual(snapshot_digest(self.capture(session)), before)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()

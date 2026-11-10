@@ -57,7 +57,7 @@ from ow174.game.commands import Command
 from ow174.game.mover import mover_data
 from ow174.game.props import ModelPose
 from ow174.game.content import JUNKENSTEIN_SHOCKING_SURPRISE, heroes
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import expr, graph, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import OWNER_HEALTH, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
@@ -734,7 +734,16 @@ class Combat:
         if script is None:
             return
         shots, script.component.shots[:] = list(script.component.shots), []
-        if self.is_dead(player) or self.is_stunned(player):
+        healing, script.self_healing = script.self_healing, 0.0
+        if self.is_dead(player):
+            return
+        if healing > 0.0:
+            target = next((target for target in self._targets() if target.owner is player), None)
+            if target is not None:
+                vitals = self.vitals_of(target)
+                if vitals.heal(healing) > 0.0:
+                    self._sync_body_health(player, vitals)
+        if self.is_stunned(player):
             return
         if command is not None:
             for state, number, time, activation in shots:
@@ -744,13 +753,63 @@ class Combat:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         try:
             self._melee(player, command, script)
+            self._soundwave(player, command, script)
         except Exception:
-            log.exception("[game] %s: %s's melee failed", self.match.label(), player.name)
+            log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
         if command is not None:
             try:
                 self._tesla(player, command, script)
             except Exception:
                 log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
+
+    def _soundwave(self, player, command, script) -> None:
+        """0079's 0776 st11 health operation, once per authored activation.
+
+        Radius and damage come from the target build's st10/st11 configuration.
+        Reconstruction: st10's angle 70 is treated as a full cone angle, with
+        capsule-centre angular selection and static line of sight. Native filter
+        semantics, knockback and cross-hero interception remain unverified.
+        """
+        if player.hero.guid != 0x02E0000000000079:
+            return
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x0776:
+                continue
+            state, search = instance.states.get(11), instance.states.get(10)
+            if state is None or search is None:
+                continue
+            counters = self.melee_seen.setdefault(script.entity, {})
+            key = (instance.id, state.index)
+            seen = counters.get(key, 0)
+            counters[key] = state.counter
+            if state.counter == seen or not state.active or command is None:
+                continue
+            hit = hit_def(state, {"m_modifyHealth": state.node.field("m_modifyHealth")})
+            radius = _number(search.evaluate(search.node.field("m_radius"), watch=False), 0.0)
+            angle = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
+            if hit is None or hit.amount <= 0 or radius <= 0 or not 0 < angle <= 360:
+                continue
+            origin, direction = self._eye(player), aim(*command.aim())
+            threshold = math.cos(math.radians(angle / 2))
+            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            for target in self._enemies(player):
+                shown = self.seen(target, view_tick)
+                if shown is None:
+                    continue
+                a, b = shown.segment()
+                if segment_distance(origin, a, b) - shown.radius > radius:
+                    continue
+                centre = (shown.feet[0], shown.feet[1] + shown.height / 2, shown.feet[2])
+                offset = _sub(centre, origin)
+                length = math.sqrt(_dot(offset, offset))
+                if length > EPSILON:
+                    toward = tuple(value / length for value in offset)
+                    if _dot(toward, direction) < threshold:
+                        continue
+                    wall = ray_world(self._collision(), origin, toward, length)
+                    if wall is not None and wall < length:
+                        continue
+                self._damage(player, target, hit.amount, False, hit.loadout, command.frame, hit_tags=hit.tags)
 
     def _tesla(self, player, command, script) -> None:
         """Reconstruct 00FE's continuous ModifyHealth using the actual active states.
@@ -1585,6 +1644,8 @@ class Combat:
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick, deadeye=deadeye)
             return
         self._sync_body_health(victim, vitals)
+        if not killed and not isinstance(victim, bots.Bot) and victim.body_script is not None:
+            regeneration.damaged(victim.body_script, _source_entity(shooter))
         if isinstance(victim, bots.Bot) and isinstance(victim.body_script, BotScript):
             victim.body_script.show_damage_nameplate(_source_entity(shooter))
             if (hit_reaction or deadeye) and not self.is_stunned(victim):

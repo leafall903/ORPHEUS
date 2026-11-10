@@ -6,6 +6,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Combined hero server
 
+- Compose the Junkenstein and Rialto data packs for a single independent server.
+  The 699-graph pack passed 52 scene, entrance, NPC, and Arcade tests, including
+  the three previously missing-graph cases. The windowed original client loaded
+  Normal Junkenstein's Revenge, played the opening, and entered the defense wave.
+  Full mission completion and the other difficulties and variants remain open.
+
+- Integrate the Mercy passive regeneration and Lúcio Soundwave damage handoffs.
+  Keep their original lane scope and register the relevant authoritative fields
+  with the server snapshot exporter. The combined runtime passed 119 targeted
+  combat, scene, entrance, NPC, and Arcade tests. Full hero and original-client acceptance remain open.
+
 - Port the Genji lane's structural state-stack dependency and verify Pharah rocket combat.
   The state-script, snapshot and selected hero regression group passed 69 tests.
   Seven Pharah tests and one Practice Range ownership and world startup test passed.

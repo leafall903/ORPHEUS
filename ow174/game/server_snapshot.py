@@ -79,12 +79,12 @@ FIELDS = {
                    "unreliable entities in_flight _combat_notices _body_health _combat_notice_tail "
                    "_body_destroy_wait _player_body_reuse_after _bot_scripts expected_in parked_in "
                    "leaving_since _own_controller_acked _mode_create_acked _pending_mode_frame "
-                   "_mode_fragments _display_notices _pending_possessions _confirmed_possessions"),
+                   "_mode_fragments _display_notices _pending_possessions _confirmed_possessions _npc_idle"),
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update historical_death"),
     Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends assembled players "
                   "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "collision_provider collision_state collision_world _collision_failed "
-                  "scene_host_factory scene_host scene_host_started scene_host_error"),
+                  "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script body_script_failed seen shown script mode_script next_countdown "
@@ -93,8 +93,8 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "model_pose_for wheel_actor_admits "
+        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen tesla_frames "
+        "model_pose_for wheel_actor_admits defender_damage_scale "
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices"
     ),
     combat.Vitals: _names("entity most now ids wave_health wave_health_id changed died_at death_tick killer"),
@@ -114,7 +114,7 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count self_healing"
     ),
     driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests communication_wheel wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects"),
     BotScript: _names(
@@ -125,7 +125,7 @@ FIELDS = {
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
-        "entity op build movement chunk chunk_last ch2 stream resend correction controller_close"
+        "entity op build movement chunk chunk_last ch2 stream resend correction controller_close npc_idle"
     ),
     BitWriter: _names("value count"),
     world.RecordWriter: _names("value count origin"),

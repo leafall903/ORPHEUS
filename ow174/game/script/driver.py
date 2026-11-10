@@ -31,7 +31,7 @@ from ow174.game import animation_pose, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER, heroes
-from ow174.game.script import expr, graph, nodes, runtime, spray_placement
+from ow174.game.script import expr, graph, nodes, regeneration, runtime, spray_placement
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -125,7 +125,8 @@ ACTION_BUTTONS.update({17: 97, 18: 98, 19: 99})
 ACTION_BUTTONS.update({action: 81 + action for action in range(10, 16)})  # 10..15 -> 91..96
 # Entity variables no graph of the body writes: the server's own code sets them.
 WEAPON_SLOTS, DEFAULT_SLOT, OWNER_HEALTH, HUD_HEALTH, HUD_MAX_HEALTH = 29, 16515, 253, 1732, 1737
-NOT_SENT = {OWNER_HEALTH}  # the client derives it itself (never sent)
+OWNER_MAX_HEALTH = 1762  # authored 0071/node89 input
+NOT_SENT = {OWNER_HEALTH, OWNER_MAX_HEALTH}  # derived from component 51
 BODY_SCALE_OVERRIDE = 31210  # the common body graph's size modifier input
 # The world's config vars whose server answer is the client's for a human player's own body (computed, or
 # answered null/false). A BooleanSwitch that reads any other one is uncertain and is not sent.
@@ -857,6 +858,7 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
+        self.self_healing = 0.0
         self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
 
     def __repr__(self) -> str:
@@ -889,6 +891,8 @@ class BodyScript(ReplicatedBody):
         HUD panel's number (no graph writes them: current and maximum). The
         body's pools added up, health, armour and shields (unverified: as OW1's HUD showed one number)."""
         super().set_health(health, most)
+        if self.hero == regeneration.MERCY:
+            self.component.set(OWNER_MAX_HEALTH, float(most))
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
@@ -929,6 +933,7 @@ class BodyScript(ReplicatedBody):
 
     def _run(self, frame: int, edges: list) -> None:
         self.component.run_frame(frame, edges)
+        self.self_healing += regeneration.report(self)
         self._report_shots()
         self._charge_ult()
 
