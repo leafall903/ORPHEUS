@@ -52,7 +52,7 @@ from dataclasses import dataclass
 
 from ow174.game import bots, contacts, observers, pools, projectiles, stats, voicelines, world
 from ow174.game.bits import BitWriter
-from ow174.game.collision import MOVER, World
+from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command
 from ow174.game.mover import mover_data
 from ow174.game.script import expr, graph, nodes, runtime
@@ -162,7 +162,9 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
-def capsule_visible(collision: World | None, origin, a, b, radius: float) -> bool:
+def capsule_visible(
+    collision: World | RayWorld | None, origin, a, b, radius: float, category: int = MOVER,
+) -> bool:
     """Reconstructed visibility: a static ray to the nearest capsule surface."""
     ab, ap = _sub(b, a), _sub(origin, a)
     length = _dot(ab, ab)
@@ -172,12 +174,12 @@ def capsule_visible(collision: World | None, origin, a, b, radius: float) -> boo
     if distance <= radius + EPSILON:
         return True
     reach = distance - radius
-    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach)
+    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach, category)
     return hit is None or hit + EPSILON >= reach
 
 
 def ray_world(
-    collision: World | None, origin, direction, length: float, category: int = MOVER,
+    collision: World | RayWorld | None, origin, direction, length: float, category: int = MOVER,
 ) -> float | None:
     """The distance to the first static hit, for callers that only need occlusion."""
     hit = collision.cast_ray(origin, direction, length, category) if collision is not None else None
@@ -599,7 +601,9 @@ class Combat:
             self.vitals[target.entity] = found
         return found
 
-    def communication_target(self, entity: int, offset, radius: float, aperture: float) -> int | None:
+    def communication_target(
+        self, entity: int, offset, radius: float, aperture: float, category: int,
+    ) -> int | None:
         collision = self.match.collision_world
         source = self.match._message_player(entity)
         if collision is None or source is None or not isinstance(offset, expr.Vec3):
@@ -615,6 +619,7 @@ class Combat:
         limit = math.cos(math.radians(aperture * 0.5))
         start, end = _along(origin, forward, -radius), _along(origin, forward, radius)
         screen_end = _along(eye, forward, radius)
+        rays = collision.ray_geometry or collision
         best = None
         best_score = math.inf
         for target in self._targets():
@@ -631,7 +636,7 @@ class Combat:
             depth = _dot(delta, forward)
             if depth < limit * math.hypot(*delta):
                 continue
-            if not capsule_visible(collision, eye, a, b, target.radius):
+            if not capsule_visible(rays, eye, a, b, target.radius, category):
                 continue
             # Use the projected combat capsule with the authored screen
             # and world distance weights.

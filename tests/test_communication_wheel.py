@@ -151,9 +151,9 @@ class CommunicationWheelTests(unittest.TestCase):
         script = speaker.body_script
         wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
 
-        def select():
+        def select(action=0x1E5):
             script.command(script.frame + 150, 0)
-            match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+            match.communication_action(speaker, {"+0x78": 0x0A90000000000000 | action, "+0x80": True})
             match.deliver_body_messages()
             return wheel.vars[375].value()
 
@@ -163,7 +163,18 @@ class CommunicationWheelTests(unittest.TestCase):
                 (0.4, 0, 5, 0.4, 4, 5, -0.4, 4, 5))
         match.collision_world = World(wall)
         self.assertEqual(select(), (expr.Entity(nearer.body),))
+        match.collision_world = World(())
+        match.collision_world.ray_geometry = RayWorld(wall, masks=(0x01, 0x01))
+        self.assertEqual(select(), (expr.Entity(nearer.body),))  # 0079 static category includes 0x01
+        native = script.world.native
+        with patch.object(script.world, "native", side_effect=lambda cfg, inst: (
+            True if cfg.get("$") == "STU_25ECB55F" else native(cfg, inst)
+        )):
+            self.assertEqual(select(0x16C), (expr.Entity(nearer.body),))  # 0111 uses the same static category
+        match.collision_world.ray_geometry = RayWorld(wall, masks=(0x20, 0x20))
+        self.assertEqual(select(), (expr.Entity(aligned.body),))
         nearer.mover.position = (0.0, 0.0, 41.0)
+        match.collision_world = World(wall)
         self.assertEqual(select(), ())
         self.assertFalse(wheel.node_state(wheel.graph.node(115)).active)
 
@@ -631,7 +642,7 @@ class CommunicationWheelTests(unittest.TestCase):
         ):
             with self.subTest(distance=distance, unlocks=unlocks, yaw=yaw):
                 world = World(wall(1.0), masks=(0x18, 0x18))
-                world.spray_geometry = RayWorld(wall(distance), masks=(0x40, 0x40))
+                world.ray_geometry = RayWorld(wall(distance), masks=(0x40, 0x40))
                 match = Match(
                     PRACTICE_RANGE, collision_provider=StaticCollisionProvider(world),
                     wheel_cosmetics_of=lambda *_: (unlocks, ()),

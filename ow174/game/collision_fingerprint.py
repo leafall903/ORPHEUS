@@ -24,7 +24,7 @@ MODEL_FILES = (
 TRIANGLE_SCENE_FIELDS = frozenset({
     "name", "data", "masks", "surfaces", "grid", "columns", "large", "lock", "lowest", "large_tuples",
 })
-WORLD_FIELDS = TRIANGLE_SCENE_FIELDS | {"engine", "spray_geometry"}
+WORLD_FIELDS = TRIANGLE_SCENE_FIELDS | {"engine", "ray_geometry"}
 RAY_FIELDS = TRIANGLE_SCENE_FIELDS | {"round_props"}
 ROUND_PROP_FIELDS = frozenset({"a", "b", "radius", "mask"})
 MESH_FIELDS = frozenset({
@@ -302,7 +302,7 @@ def _triangle_scene(world, record):
 def _record(world):
     record = _triangle_scene(world, _fields(world, collision.World, WORLD_FIELDS))
     record["engine"] = _engine(world.engine)
-    rays = record.pop("spray_geometry")
+    rays = record.pop("ray_geometry")
     if rays is not None:
         geometry = _triangle_scene(rays, _fields(rays, collision.RayWorld, RAY_FIELDS))
         if type(rays.round_props) is not tuple:
@@ -310,7 +310,7 @@ def _record(world):
         geometry["round_props"] = tuple(
             _fields(shape, collision._RoundProp, ROUND_PROP_FIELDS) for shape in rays.round_props
         )
-        record["spray_geometry"] = geometry
+        record["ray_geometry"] = geometry
     record["layout"] = {
         "world_cell": collision.CELL, "world_large": collision.LARGE,
         "mesh_cell": contacts.MeshShape.CELL, "mesh_large": contacts.MeshShape.LARGE,

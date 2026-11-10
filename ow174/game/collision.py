@@ -395,20 +395,16 @@ class _RoundProp:
 
 def probe_triangles(
     meshes, hulls, models=(), placements=(), groups=frozenset({0}), *,
-    prop_surfaces=False, round_props: list[_RoundProp] | None = None, category=None,
+    prop_surfaces=False, round_props: list[_RoundProp] | None = None,
 ) -> tuple:
     """Project static triangles and optionally collect uniform round props separately."""
     triangles, masks, surfaces = [], array("H"), array("H")
     for vertices, records in meshes:
         for a, b, c, _w0, _w1, _w2, mask, surface in records:
-            if category is not None and not mask & category:
-                continue
             triangles.append((*vertices[a], *vertices[b], *vertices[c]))
             masks.append(mask)
             surfaces.append(surface)
     for hull in hulls:
-        if category is not None and not hull[0] & category:
-            continue
         for a, b, c, mask in props.shape_triangles(("hull", *hull)):
             triangles.append((*a, *b, *c))
             masks.append(mask)
@@ -425,7 +421,6 @@ def probe_triangles(
                 for shape in models[model]
                 if not (analytic and shape[0] in ("sphere", "capsule"))
                 for i, triangle in enumerate(props.shape_triangles(shape))
-                if category is None or triangle[-1] & category
             ]
         for a, b, c, mask, surface in shapes[key]:
             corners = [props.place(p, translation, scale, rotation) for p in (a, b, c)]
@@ -434,8 +429,6 @@ def probe_triangles(
             surfaces.append(surface)
         if analytic:
             for shape in models[model]:
-                if category is not None and not shape[1] & category:
-                    continue
                 if shape[0] == "sphere":
                     _, mask, a, radius = shape
                     b = a
@@ -687,7 +680,7 @@ class World(_TriangleScene):
 
     def __init__(self, triangles, masks=None, surfaces=None, name: str = "", engine=None) -> None:
         super().__init__(triangles, masks, surfaces, name)
-        self.spray_geometry: RayWorld | None = None
+        self.ray_geometry: RayWorld | None = None
         if engine is None:  # loose triangles (stand-in worlds): one mesh
             mesh = soup_mesh(triangles, self.masks, self.surfaces)
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
@@ -723,7 +716,7 @@ class RayWorld(_TriangleScene):
             raise CollisionError(f"no expanded ray geometry for map {map_guid:#x}") from error
 
     @classmethod
-    def _load(cls, map_guid: int, identifiers: frozenset[int], category=None) -> "RayWorld":
+    def _load(cls, map_guid: int, identifiers: frozenset[int]) -> "RayWorld":
         with ray_cache_path(map_guid).open("rb") as file:
             header = _read_cache_header(file)
             _check_ray_header(header, map_guid)
@@ -732,7 +725,6 @@ class RayWorld(_TriangleScene):
         round_props: list[_RoundProp] = []
         triangles, masks, surfaces = probe_triangles(
             meshes, hulls, models, placements, groups, prop_surfaces=True, round_props=round_props,
-            category=category,
         )
         return cls(triangles, masks, surfaces, header.get("name", ""), round_props=round_props)
 
@@ -992,12 +984,12 @@ def _read_cache(map_guid: int, name: str, build_missing: bool, identifiers: froz
     if path.is_file():
         world = World.load(path, identifiers)
         try:
-            world.spray_geometry = RayWorld._load(map_guid, identifiers, SPRAY)
+            world.ray_geometry = RayWorld._load(map_guid, identifiers)
         except FileNotFoundError:
             pass
         except (OSError, CollisionError, lzma.LZMAError, ValueError, struct.error,
                 KeyError, IndexError, TypeError) as error:
-            log.warning("[game] no expanded spray geometry for %s: %s", name or hex(map_guid), error)
+            log.warning("[game] no expanded ray geometry for %s: %s", name or hex(map_guid), error)
         return world
     raise CollisionError(f"no collision cache for {name or hex(map_guid)}")
 

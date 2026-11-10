@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Use expanded static geometry for callout target visibility with the
+  static category packed by both authored ray profiles. Two native
+  asset-to-request cases and 96 offline tests pass. The source tag
+  predicate, dynamic visibility and original-client acceptance remain open.
 - Verify the authored callout recipient classes and native chat dispatch.
   All 29 native recipient and relation-tail cases and 34 offline wheel
   and codec tests pass. Entity service lookup and original-client chat

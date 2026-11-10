@@ -117,11 +117,11 @@ class RayCacheTests(unittest.TestCase):
         self.assertEqual((hit.distance, hit.mask, hit.surface), (1.0, EXTRA, 7))
         self.assertIsNone(core.cast_ray(ORIGIN, FORWARD, 2, EXTRA))
 
-    def test_match_loader_pins_mode_spray_geometry_and_fingerprints_it(self):
+    def test_match_loader_pins_mode_ray_geometry_and_fingerprints_it(self):
         collision.build(MAP, self, "synthetic")
         identifiers = props.mode_identifiers(MODE)
         legacy = collision._read_cache(MAP, "synthetic", False, identifiers)
-        self.assertIsNone(legacy.spray_geometry)
+        self.assertIsNone(legacy.ray_geometry)
         self.assertIsNone(legacy.cast_ray(ORIGIN, FORWARD, 8, EXTRA))
 
         expanded = collision.build(MAP, self, "synthetic", ray_geometry=True)
@@ -132,8 +132,8 @@ class RayCacheTests(unittest.TestCase):
         before = world_fingerprint(world)
         self.assertNotEqual(before, world_fingerprint(legacy))
         self.assertNotEqual(before, world_fingerprint(core))
-        self.assertEqual(core.spray_geometry.cast_ray(ORIGIN, FORWARD, 8, EXTRA).distance, 3.0)
-        self.assertEqual(world.spray_geometry.cast_ray(ORIGIN, FORWARD, 8, EXTRA).distance, 1.0)
+        self.assertEqual(core.ray_geometry.cast_ray(ORIGIN, FORWARD, 8, EXTRA).distance, 3.0)
+        self.assertEqual(world.ray_geometry.cast_ray(ORIGIN, FORWARD, 8, EXTRA).distance, 1.0)
         self.assertEqual(before, world_fingerprint(world))
 
         original = expanded.read_bytes()
@@ -146,7 +146,7 @@ class RayCacheTests(unittest.TestCase):
             expanded.write_bytes(data)
             with self.assertLogs("ow174.game", "WARNING"):
                 fallback = collision._read_cache(MAP, "synthetic", False, identifiers)
-            self.assertIsNone(fallback.spray_geometry)
+            self.assertIsNone(fallback.ray_geometry)
             self.assertEqual(world_fingerprint(fallback), world_fingerprint(legacy))
         self.assertEqual(world_fingerprint(world), before)
 

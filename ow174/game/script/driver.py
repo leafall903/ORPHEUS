@@ -123,6 +123,8 @@ WHEEL_ACTION_CATEGORIES = {
     0x0D80000000007420: frozenset((0x173, 0x1A3, 0x1A4, 0x1A5, 0x1A6)),
     0x0D80000000007428: frozenset((*range(0x16B, 0x173), *range(0x1E5, 0x1F5), 0x1F7, 0x1F9)),
 }
+# Static ray categories from the first request word, packed from m_category.
+WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
 # 104319 44A7D0, 44A980 and 44A950 return the zero-based index in these tables.
 WHEEL_EMOTE_ACTIONS = (0x172, 0x1A1, 0x1A0, 0x19F)
 WHEEL_VOICE_ACTIONS = (0x16F, 0x19D, 0x19C, 0x19B)
@@ -206,10 +208,15 @@ class BodyWorld(runtime.World):
         if (not self.communication_wheel or self.match is None
                 or state.instance.graph.index != 0x05AD or state.node.pos not in (113, 115)):
             return NotImplemented
+        collision_filter = state.node.field("m_3D667CE3") or {}
+        profile = collision_filter.get("m_C1903771") or {}
+        category = WHEEL_TARGET_CATEGORIES.get(expr.guid_of(profile.get("m_C1903771")))
+        if category is None:
+            return NotImplemented
         offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
         radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
         aperture = expr.to_float(state.evaluate(state.node.field("m_A30B383E"), watch=False))
-        target = self.match.combat.communication_target(self.body, offset, radius, aperture)
+        target = self.match.combat.communication_target(self.body, offset, radius, aperture, category)
         return (target,) if target is not None else ()
 
     def resolve_spray(self, length: float) -> dict | None:

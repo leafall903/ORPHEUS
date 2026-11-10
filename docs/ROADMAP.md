@@ -86,7 +86,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     Authored eligibility gates route actions to the aimed teammate and use the
     ordinary callout for enemies and free-for-all.
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
-    Marker effects, native target geometry and deployable eligibility remain open.
+    Target visibility uses expanded static rays with the common 1FDF
+    mask recovered from both .097 profiles. Marker effects, the source tag
+    binding, dynamic target geometry and deployable eligibility remain open.
     The recipient graph sends the actions in order with each action's source.
     Native fixtures verify the local entity check for directed chat and
     the source and relation branches for other callouts.

@@ -83,10 +83,11 @@ Source paths for the remaining actions
   cases verify that branch and both hit sources with fixture traversal.
   The body host takes the current eye position and aim, and traces the
   authored 4.5 metres against loaded static collision. The match collision
-  loader pins the category 0x40 portion of the map's expanded .rays.col
-  with the mode's placeable identifiers. The replay collision fingerprint
-  includes the pinned triangles and round props. With an absent or
-  unreadable sidecar, the ray uses the movement world's retained surfaces.
+  loader pins the map's expanded .rays.col with the mode's placeable
+  identifiers. Spray placement queries category 0x40. The replay
+  collision fingerprint includes the pinned triangles and round props.
+  With an absent or unreadable sidecar, the ray uses the movement
+  world's retained surfaces.
   Build a map's sidecar with tools/build_collision.py --ray-geometry.
   The local 0688 Practice Range sidecar has 299968 spray triangles,
   including 274205 without either mover category. An offline 4.5-metre
@@ -323,9 +324,18 @@ Source paths for the remaining actions
   by weight 1. The STU_AD7331B0 branch at C9733E normalizes
   world distance and multiplies by weight 0.01. The host uses
   projected combat capsules to approximate the native projection
-  and the cached movement geometry for line of sight. It shares
-  that ray filter between the two asset variants. Native camera
-  bounds and collision flags remain open.
+  and expanded static ray geometry for line of sight. With no expanded
+  cache, the ray uses the movement world's retained shapes.
+  CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
+  +28 and +35 through 17A8FC0 and writes the results into request
+  +2 and +0 respectively. Native execution with the extracted
+  flag rows gives (1FDF, 1FDF) at (+2, +0) for 0079 and
+  (1FDE, 1FDF) for 0111. E122A0 copies +0 into the static traversal
+  input at +70. Both wheel profiles therefore use static mask 1FDF.
+  The offline fixture checks included 0x01 and excluded 0x20 shapes.
+  It supplies the source tag predicate for action 016C to exercise
+  node 113. Native camera bounds, the source tag binding and
+  dynamic query filtering remain open.
   Node 119 requires relation bit 1 through the native BCAAE0
   filter. The match supplies same-team player bodies and the FFA
   hostility rule for this exact config. Node 120 short-circuits
