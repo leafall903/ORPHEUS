@@ -508,12 +508,23 @@ class Ground:
 
 
 @dataclass(frozen=True)
+class RayAttachment:
+    """A hit entity's rigid root or anchor pose at the time of the ray query."""
+
+    entity: int
+    position: tuple[float, float, float]
+    rotation: tuple[float, float, float, float]
+    key: int = 0
+
+
+@dataclass(frozen=True)
 class RayHit:
     distance: float
     point: tuple[float, float, float]
     normal: tuple[float, float, float]
     mask: int
     surface: int
+    attachment: RayAttachment | None = None
 
 
 class _TriangleScene:

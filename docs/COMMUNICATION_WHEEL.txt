@@ -59,8 +59,30 @@ Source paths for the remaining actions
   authored 4.5 metres against the loaded static collision cache.
   02CF state 1 follows its success plug and pulses state 14 when an
   equipped spray hits. The failure path clears placement on a miss
-  or empty slot. Dynamic attachment, native lifetime, full native
-  collision filtering and the 1313 client-local route remain open.
+  or empty slot.
+  At 98CE56 the native enter function supplies a stack hit buffer
+  to D0FCB0. It then chooses the success or failure plug from the
+  returned bit. The hit collector's 1B50CC7 arm copies hit vectors,
+  the entity pointer and shape data into the output buffer. This
+  enter path does not populate the state writer's attachment fields.
+  On the receiving side, 98A070 looks up the attached network
+  entity at +1F0. If it has not arrived yet, 98A4D5 requests a
+  retry. 97FA45 seeds a 600-update pending counter, and 97F9F0
+  decrements it until application or expiry. That counter is
+  separate from the lifetime of the applied decal.
+  For a nonzero attachment key at +1F4, 98A791 asks 1AFBE10 for
+  an anchor transform. Otherwise it uses the entity transform.
+  98AB92 applies the transform to the stored point and normal.
+  The stored direction is consumed separately at 98AC85.
+  The match now converts a ray hit with a declared rigid attachment
+  pose into that local point and normal, retaining direction, entity
+  and key. Eight offline executions of 98AB92 recover the original
+  world point and normal for four rotations and two input pairs.
+  A collision fixture sends both root and keyed attachments through
+  the authored state in owner and observer frames.
+  Current production ray caches still supply world-space static
+  hits. Dynamic hit ownership and anchor production, decal lifetime,
+  full collision filtering and the 1313 client-local route remain open.
 - Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside
   a cosmetic query. Its zero-based order is 16F, 19D, 19C, 19B.

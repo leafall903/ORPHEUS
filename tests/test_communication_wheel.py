@@ -17,7 +17,7 @@ from ow174.content.collection import Collection
 from ow174.game import combat, messages, observers, statescript
 from ow174.game.bits import BitWriter
 from ow174.game.body_vm_snapshot import export_body_vm
-from ow174.game.collision import StaticCollisionProvider, World, flat_world
+from ow174.game.collision import RayAttachment, RayHit, StaticCollisionProvider, World, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
@@ -429,6 +429,66 @@ class CommunicationWheelTests(unittest.TestCase):
                 else:
                     self.assertEqual(state.payload(), {})
                     self.assertFalse(spray.state(14).active)
+
+    def test_attached_spray_uses_anchor_space_in_owner_and_observer_frames(self):
+        class AttachedSurface(World):
+            def __init__(self, key):
+                super().__init__(())
+                self.key = key
+
+            def cast_ray(self, origin, direction, length, category):
+                self.request = (origin, direction, length, category)
+                # A half turn about Y translates the hit by two metres and
+                # reverses its world Z normal in the attachment's space.
+                anchor = RayAttachment(0x8000022E, (2.0, origin[1], 3.0), (0.0, 1.0, 0.0, 0.0), self.key)
+                return RayHit(3.0, (0.0, origin[1], 3.0), (0.0, 0.0, -1.0), category, 0, anchor)
+
+        for key in (0, 0x137):
+            with self.subTest(key=key):
+                surface = AttachedSurface(key)
+                match = Match(
+                    PRACTICE_RANGE, collision_provider=StaticCollisionProvider(surface),
+                    wheel_cosmetics_of=lambda *_: ((0x02500000000007F1,), ()),
+                )
+                self.assertTrue(match._refresh_collision())
+                player = match.add_player(1, "Soldier", SOLDIER, 0, False)
+                player.has_body = True
+                [create] = match.own_body_updates(player)
+                body = player.body_script
+                player.mover.position = (0.0, 0.0, 0.0)
+                player.mover.yaw = player.mover.pitch = 0
+                create.stream.arrived(0)
+                owner = decode.ClientBody.for_hero(SOLDIER)
+                [tree] = body.frames()
+                owner.apply(tree)
+                body.stream.arrived(tree.chunk_last)
+
+                runtime.send_message(
+                    body.component, 0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True}, body.entity,
+                )
+                body.command(body.frame + 1, 0)
+                spray = next(i for i in body.component.instances.values() if i.graph.index == 0x02CF)
+                self.assertEqual(surface.request, (
+                    (0.0, combat.eye_height(player.hero.body), 0.0), (0.0, 0.0, 1.0), 4.5, 0x40,
+                ))
+                payload = spray.state(1).payload()
+                self.assertEqual(payload, {
+                    "direction": (0.0, 0.0, 1.0), "point": (2.0, 0.0, 0.0), "normal": (0.0, 0.0, 1.0),
+                    "entity": 0x8000022E, "extra": key,
+                })
+                wire = spray_placement.wire_fields(payload)
+                self.assertEqual(wire["entity"], 0x8000022E)
+                self.assertEqual(wire["has_extra"], bool(key))
+                self.assertEqual(wire.get("extra", 0), key)
+                expected = (True, wire)
+                owner_frames = [owner.apply(update) for update in body.frames()]
+                remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
+                watched = decode.read_chunk(remote.getvalue(), remote.count).instances[spray.id]
+                self.assertEqual(watched.states[1], expected)
+                self.assertIn(expected, [
+                    frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
+                ])
 
     def test_callout_and_voice_selections_replicate_the_shared_graph(self):
         cases = (

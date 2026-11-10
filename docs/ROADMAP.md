@@ -62,8 +62,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
     The spray graph resolves eligible surfaces in loaded static collision and
-    replicates the placement in owner and observer frames. Dynamic attachment,
-    native lifetime and client-side cosmetic access remain open.
+    replicates the placement in owner and observer frames. Declared attachment
+    poses produce local point and normal data for both streams.
+    Live collision attachment discovery, native lifetime and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     Live match poses now supply candidates to the two authored target states.

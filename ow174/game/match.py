@@ -1084,7 +1084,7 @@ class Match:
         hit = collision.cast_ray(origin, direction, length, spray_placement.SURFACE_CATEGORY)
         if hit is None:
             return None
-        return {"direction": direction, "point": hit.point, "normal": hit.normal}
+        return spray_placement.from_hit(direction, hit)
 
     def _message_player(self, entity: int) -> Player | None:
         shown = (player for player in self.players if player.body == entity and self._shown(player))

@@ -3,6 +3,8 @@
 import math
 import struct
 
+from ow174.game import contacts
+from ow174.game.collision import RayHit
 from ow174.game.script.expr import f32, round_half_away
 
 STATE_CLASS = "STU_861D9015"
@@ -23,6 +25,18 @@ def _direction(vector: tuple[float, float, float]) -> tuple[int, int]:
     yaw = math.atan2(x, z) if x or z else 0.0
     pitch = math.copysign(math.pi / 2, y) if abs(y) > POLE else math.asin(y)
     return _quantize(yaw, 10430.3779296875), _quantize(pitch, 20860.755859375)
+
+
+def from_hit(direction: tuple[float, float, float], hit: RayHit) -> dict:
+    """Use the anchor's local point and normal for a hit that follows an entity."""
+    anchor = hit.attachment
+    if anchor is None:
+        return {"direction": direction, "point": hit.point, "normal": hit.normal}
+    # 98A070 reconstructs the world point and normal from this anchor frame.
+    point = contacts.unrotate(anchor.rotation, contacts.sub(hit.point, anchor.position))
+    normal = contacts.unrotate(anchor.rotation, hit.normal)
+    return {"direction": direction, "point": point, "normal": normal,
+            "entity": anchor.entity, "extra": anchor.key}
 
 
 def wire_fields(payload: dict) -> dict:
