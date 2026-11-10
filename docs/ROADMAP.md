@@ -94,7 +94,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     offset around the first-person pivot. Animated anchors, live pivot
     inputs and special camera inputs still require a server binding.
     Target visibility uses expanded static rays with the common 1FDF
-    mask recovered from both .097 profiles. Need Healing uses the authored
+    mask recovered from both .097 profiles. A ray hit owned by the
+    candidate stays visible. Need Healing uses the authored
     source body tag in its targeting and voice branches. Marker effects,
     runtime tag mutations, dynamic target geometry and deployable eligibility
     remain open.

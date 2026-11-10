@@ -188,6 +188,32 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(select(0x16C), (expr.Entity(nearer.body),))
             self.assertEqual(track.call_args.args[0].node.pos, 113)
 
+    def test_wheel_distinguishes_target_owned_ray_hits_from_blockers(self):
+        for owner in ("target", "other", "world"):
+            with self.subTest(owner=owner):
+                run = Run(names=("Speaker", "Target"))
+                speaker, target = run.players
+                speaker.mover.position = (0.0, 0.0, 0.0)
+                speaker.mover.yaw = speaker.mover.pitch = 0
+                target.mover.position = (0.0, 0.0, 15.0)
+                rays = World(())
+                run.match.collision_world = rays
+                attachment = None
+                if owner != "world":
+                    entity = target.body if owner == "target" else 0x8000022E
+                    attachment = RayAttachment(entity, (0.0, 0.0, 5.0), (0.0, 0.0, 0.0, 1.0))
+                hit = RayHit(5.0, (0.0, 1.55, 5.0), (0.0, 0.0, -1.0), 1, 0, attachment)
+                script = speaker.body_script
+                wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+
+                script.command(script.frame + 150, 0)
+                with patch.object(rays, "cast_ray", return_value=hit) as cast_ray:
+                    run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+                    run.match.deliver_body_messages()
+                cast_ray.assert_called_once()
+                expected = (expr.Entity(target.body),) if owner == "target" else ()
+                self.assertEqual(wheel.vars[375].value(), expected)
+
     def test_wheel_ranks_the_projected_rectangle_corner(self):
         run = Run(names=("Speaker", "Aligned", "Nearer"))
         speaker, aligned, nearer = run.players

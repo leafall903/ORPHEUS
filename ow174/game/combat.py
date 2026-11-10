@@ -180,8 +180,9 @@ def segment_distance(point, a, b) -> float:
 
 def capsule_visible(
     collision: World | RayWorld | None, origin, a, b, radius: float, category: int = MOVER,
+    *, target_entity: int | None = None,
 ) -> bool:
-    """Reconstructed visibility: a static ray to the nearest capsule surface."""
+    """Test the nearest capsule surface, allowing a hit owned by the intended target."""
     ab, ap = _sub(b, a), _sub(origin, a)
     length = _dot(ab, ab)
     share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
@@ -190,8 +191,11 @@ def capsule_visible(
     if distance <= radius + EPSILON:
         return True
     reach = distance - radius
-    hit = ray_world(collision, origin, tuple(axis / distance for axis in toward), reach, category)
-    return hit is None or hit + EPSILON >= reach
+    direction = tuple(axis / distance for axis in toward)
+    hit = collision.cast_ray(origin, direction, reach, category) if collision is not None else None
+    if hit is None or hit.distance + EPSILON >= reach:
+        return True
+    return hit.attachment is not None and hit.attachment.entity == target_entity
 
 
 def ray_world(
@@ -655,7 +659,7 @@ class Combat:
             depth = _dot(delta, forward)
             if depth < limit * math.hypot(*delta):
                 continue
-            if not capsule_visible(rays, eye, a, b, target.radius, category):
+            if not capsule_visible(rays, eye, a, b, target.radius, category, target_entity=target.entity):
                 continue
             screen = _communication_screen_score(target, eye, forward, right, up)
             # C9753A reads the candidate transform's translation.

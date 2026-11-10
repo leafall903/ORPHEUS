@@ -357,6 +357,12 @@ Source paths for the remaining actions
   eye height. Animated anchors, live pivot inputs and special
   camera bases remain open. Expanded static rays supply line of sight.
   With no expanded cache, the ray uses the movement world's shapes.
+  D607F0 reports occlusion for a hit owned by a different entity
+  or by the world. A miss or a hit owned by the candidate is clear.
+  Six native cases verify this decision with fixture scene returns.
+  The wheel preserves hit ownership through RayHit.attachment.
+  Offline selection covers candidate, other-entity and world hits.
+  Producing live dynamic ray hits remains open.
   CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
   +28 and +35 through 17A8FC0 and writes the results into request
   +2 and +0 respectively. Native execution with the extracted
