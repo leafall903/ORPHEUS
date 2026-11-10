@@ -416,11 +416,78 @@ def model_hardpoints(data: bytes) -> dict[int, tuple[int, tuple]]:
 
 
 @dataclass(frozen=True)
+class BoneTransform:
+    rotation: tuple[float, float, float, float]
+    scale: tuple[float, float, float]
+    translation: tuple[float, float, float]
+
+    def matrix(self) -> tuple[float, ...]:
+        sx, sy, sz = self.scale
+        return (*_rotate32(self.rotation, (sx, 0.0, 0.0)), 0.0,
+                *_rotate32(self.rotation, (0.0, sy, 0.0)), 0.0,
+                *_rotate32(self.rotation, (0.0, 0.0, sz)), 0.0,
+                *self.translation, 1.0)
+
+
+def model_reference_bones(data: bytes) -> dict[int, tuple[int | None, BoneTransform]]:
+    """Read the mskl parent-relative reference transforms, with each parent first."""
+    skeleton = chunks(data).get("mskl")
+    if skeleton is None:
+        return {}
+    if len(skeleton) < 94:
+        raise PropError("truncated model skeleton header")
+    count, = struct.unpack_from("<H", skeleton, 92)
+    if not count:
+        return {}
+    hierarchy, = struct.unpack_from("<q", skeleton)
+    transforms, = struct.unpack_from("<q", skeleton, 32)
+    ids, = struct.unpack_from("<q", skeleton, 48)
+    if any(not 0 < offset <= len(skeleton) - count * stride
+           for offset, stride in ((hierarchy, 6), (transforms, 48), (ids, 4))):
+        raise PropError("truncated model skeleton table")
+    names = struct.unpack_from(f"<{count}I", skeleton, ids)
+    bones = {}
+    for index, bone in enumerate(names):
+        parent, = struct.unpack_from("<h", skeleton, hierarchy + 6 * index + 4)
+        if not -1 <= parent < index or bone in bones:
+            raise PropError("invalid model skeleton hierarchy")
+        row = struct.unpack_from("<12f", skeleton, transforms + 48 * index)
+        # The fourth scale and position lanes are padding.
+        transform = BoneTransform(row[:4], row[4:7], row[8:11])
+        values = (*transform.rotation, *transform.scale, *transform.translation)
+        if not all(math.isfinite(value) for value in values):
+            raise PropError("invalid model skeleton transform")
+        bones[bone] = (names[parent] if parent >= 0 else None, transform)
+    return bones
+
+
+@dataclass(frozen=True)
 class ModelPose:
     """Hardpoints on one actor model with a lookup of current world-space parent matrices."""
 
     hardpoints: dict[int, tuple[int, tuple]]
     bone_matrix: Callable[[int], tuple[float, ...] | None]
+
+    @classmethod
+    def from_local_bones(
+        cls,
+        hardpoints: dict[int, tuple[int, tuple]],
+        reference: dict[int, tuple[int | None, BoneTransform]],
+        model_to_world: tuple[float, ...],
+        sampled: dict[int, BoneTransform],
+    ) -> "ModelPose":
+        """Compose one pose from sampled local transforms and reference values for untouched bones."""
+        if len(model_to_world) != 16:
+            raise ValueError("model-to-world matrix must have 16 values")
+        matrices = {}
+        for bone, (parent, transform) in reference.items():
+            local = sampled.get(bone, transform).matrix()
+            outer = model_to_world if parent is None else matrices[parent]
+            matrices[bone] = tuple(
+                sum(outer[4 * k + row] * local[4 * column + k] for k in range(4))
+                for column in range(4) for row in range(4)
+            )
+        return cls(hardpoints, matrices.get)
 
     def hardpoint_position(self, key: int) -> tuple[float, float, float] | None:
         point = self.hardpoints.get(key)

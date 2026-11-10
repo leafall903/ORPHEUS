@@ -228,6 +228,21 @@ class CommunicationWheelTests(unittest.TestCase):
                 expected = (expr.Entity(target.body),) if owner == "target" else ()
                 self.assertEqual(wheel.vars[375].value(), expected)
 
+    def test_model_pose_composes_sampled_parent_and_reference_child(self):
+        key = 0x0DC0000000000001
+        root = props.BoneTransform((0, 0, 0, 1), (1, 1, 1), (0, 0, 0))
+        child = replace(root, translation=(1, 2, 3))
+        reference = {5: (None, root), 9: (5, child)}
+        hardpoints = {key: (9, (0.25, 0.5, 1.0))}
+        world = (0, 0, -2, 0, 0, 3, 0, 0, 2, 0, 0, 0, 10, 20, 30, 1)
+        base = props.ModelPose.from_local_bones(hardpoints, reference, world, {})
+        self.assertEqual(base.hardpoint_position(key), (18.0, 27.5, 27.5))
+
+        sampled = replace(root, scale=(2, 3, 4), translation=(1, 0.5, 2))
+        active = props.ModelPose.from_local_bones(hardpoints, reference, world, {5: sampled})
+        self.assertEqual(active.hardpoint_position(key), (46.0, 44.0, 23.0))
+        self.assertEqual(base.hardpoint_position(key), (18.0, 27.5, 27.5))
+
     def test_wheel_rays_use_current_model_anchors_in_order(self):
         run = Run(names=("Speaker", "Target"))
         speaker, target = run.players

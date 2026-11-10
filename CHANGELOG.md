@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Compose wheel anchor poses from the original skeleton hierarchy and
+  sampled local transforms. Verify all 32 base skeletons and 9140 matrix
+  rows. Two rows differ by at most 0.000883. All 91 focused tests pass.
+  Animation sampling, blending and client acceptance remain open.
 - Decode native sight anchors and use supplied world-space bone poses
   in the original wheel ray order. Verify 32 original models and 64
   parent transforms. Offline selection covers primary, lower, secondary

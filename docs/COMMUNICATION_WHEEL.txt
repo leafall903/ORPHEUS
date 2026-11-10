@@ -485,7 +485,13 @@ Source paths for the remaining actions
   current parent matrices supplied for the target body. Offline wheel
   messages verify primary, lower and secondary rays and the upper-body
   fallback when the secondary matrix is missing. The match still needs
-  a pose producer, special query paths and runtime model replacement.
+  animation sampling and blending, special query paths and runtime model
+  replacement. The mskl reader recovers reference local rotation, scale,
+  translation and parent IDs. ModelPose composes those rows with a world
+  transform and supplied animation samples. A 32-model comparison
+  matches 9138 of 9140 stored matrix rows within 1e-4 per coordinate.
+  Two 25B9 rows differ by at most 0.000883. All 32 tests propagate a
+  sampled parent transform into the original primary sight anchor.
   D607F0 reports occlusion for a hit owned by a different entity
   or by the world. A miss or a hit owned by the candidate is clear.
   Six native cases verify this decision with fixture scene returns.
