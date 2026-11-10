@@ -375,11 +375,21 @@ Source paths for the remaining actions
   state 77 pushes entity 8323, and raw entry 74 reads optional parameter
   039D as a listener entity before choosing a localized action.
   05AD:135 sends the aimed entity in 039D. 0686:42 sends no parameters.
-  Body 020F is outside the prepared match bundle. D.Va 026A separately
+  The 4AD8, 4ADA and 4ADB text resources report that Symmetra's legacy
+  teleporter is online and give the remaining charges. With the optional
+  020F body and its seven additional graphs supplied, an explicit Match
+  body selection mounts 0169. Its positions 82 and 86 send the authored
+  actions. A real-graph offline run starts the authored online stack,
+  supplies three charges and verifies the untargeted and aimed choices in
+  both streams. The aimed choice carries the listener entity. Prepare the
+  graph bundle using extract_game_graphs.py with --entity 020F, an external
+  --output and the hero catalog in ORPHEUS_RUNTIME_DIR. Run Python with
+  -X utf8 for the roster names. The normal catalog selects 26F0.
+  D.Va 026A separately
   supplies tag 050F through variable 10929 when its linked pilot branch
   runs. The normal 040A fixture uses the ordinary percentage path.
-  Live 020F hosting, D.Va form association and Echo Duplicate lifecycle
-  remain open.
+  Mode-driven 020F selection and teleporter creation, D.Va form
+  association and Echo Duplicate lifecycle remain open.
   Node 58 uses STU_1ECB66A0. Native evaluator CDB390 calls 44A820
   to look up the full action GUID in 01A5.054 and return the .004
   texture. Offline native runs verify all 26 rows in both compiled

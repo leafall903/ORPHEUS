@@ -103,8 +103,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     The 0686 localized actions travel in owner and observer deltas.
     Repeated ultimate status reports 89, 90 and 100 percent through the
     same instance after its voice stack expires. A lost packet retries
-    the original percentage. The 0169 alternate receiver and form-specific
-    ultimate associations remain open.
+    the original percentage. The legacy Symmetra 0169 receiver replicates
+    its teleporter status when 020F is explicitly selected and supplied with
+    its graphs and online state. Mode-driven selection, teleporter creation
+    and other form-specific ultimate associations remain open.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     Live match poses now supply candidates to the two authored target states.
     Authored eligibility gates route actions to the aimed teammate and use the

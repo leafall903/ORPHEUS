@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Replicate the original legacy Symmetra teleporter status for an explicitly
+  mounted 020F body. Offline original-graph fixtures verify both receiver
+  actions with a declared online teleporter and charge count. All 102 focused
+  tests pass, including extraction with the external runtime catalog.
+  Mode-driven selection, teleporter creation and client acceptance remain open.
 - Deliver repeated ultimate status after the child voice-stack wait expires.
   Owner and observer streams carry all three authored charge branches and
   retain the captured percentage on retry. All 86 focused tests pass.

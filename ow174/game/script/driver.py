@@ -157,6 +157,7 @@ WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FD
 WHEEL_HEALING_TAG = 0x0D60000000000308
 WHEEL_GREETING_TAG = 0x0D60000000000661
 ASHE_BODY = 0x040000000000251C
+LEGACY_SYMMETRA_BODY = 0x040000000000020F
 # Player body definitions (.003) with the authored 0308.06C target tag in 104319.
 WHEEL_HEALING_BODIES = frozenset({
     0x04000000000000E4,  # Mercy
@@ -489,9 +490,12 @@ class BodyWorld(runtime.World):
         return NotImplemented
 
     def localized_callout(self, instance: runtime.Instance, node: graph.Node) -> None:
-        if (not self.communication_wheel or instance.graph.index not in (0x05AD, 0x0686)
-                or node.remote < 0 or not node.is_networked):
+        if not self.communication_wheel or node.remote < 0 or not node.is_networked:
             return
+        index = instance.graph.index
+        if index not in (0x05AD, 0x0686):
+            if self.body_definition != LEGACY_SYMMETRA_BODY or index != 0x0169 or node.pos not in (82, 86):
+                return
         component = instance.component
         selected = instance.vars.get(29699)
         values = []
@@ -646,7 +650,10 @@ class BodyScript(ReplicatedBody):
         if body_definition is None:
             body_definition = next((key for key, item in records.items() if int(item["hero"], 16) == hero), None)
         record = records.get(body_definition)
-        if record is None and (hero, body_definition) == (0x02E000000000007A, 0x0400000000000407):
+        if record is None and (hero, body_definition) in (
+            (0x02E000000000007A, 0x0400000000000407),
+            (0x02E0000000000016, LEGACY_SYMMETRA_BODY),
+        ):
             record = graph.entity_body(body_definition)
         if record is None or (record.get("hero") is not None and int(record["hero"], 16) != hero):
             raise ValueError(f"no statescript data for hero {hero:016X} and body {body_definition!r}")

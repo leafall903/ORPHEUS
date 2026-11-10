@@ -33,12 +33,16 @@ import gzip
 import json
 import math
 import re
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from ow174.paths import DATA_DIR
+
 OUT = ROOT / "data" / "game_graphs_174.json.gz"
-HEROES = ROOT / "data" / "game_heroes_174.json"
+HEROES = DATA_DIR / "game_heroes_174.json"
 NS = "{https://yretenai.com/dragonml/v1}"
 ID = NS + "id"
 NAME = NS + "name"
