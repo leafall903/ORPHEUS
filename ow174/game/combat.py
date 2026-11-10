@@ -137,6 +137,21 @@ def _communication_screen_score(target: "Target", eye, forward, right, up) -> fl
     return min(1.0, math.hypot(dx, dy) * math.sqrt(0.5))
 
 
+def _communication_visible(rays: World | RayWorld, origin, target: "Target", category: int) -> bool:
+    # CA38D9 and CA4244 use the lower and upper body points when no anchor is available.
+    for height_fraction in (0.3, 0.6):
+        point = _along(target.feet, (0.0, 1.0, 0.0), target.height * height_fraction)
+        delta = _sub(point, origin)
+        distance = math.hypot(*delta)
+        if distance <= EPSILON:
+            return True
+        direction = tuple(axis / distance for axis in delta)
+        hit = rays.cast_ray(origin, direction, distance, category)
+        if hit is None or (hit.attachment is not None and hit.attachment.entity == target.entity):
+            return True
+    return False
+
+
 def ray_capsule(origin, direction, a, b, radius: float) -> float | None:
     """Where a ray (unit direction) first meets the capsule around segment a-b: its distance, 0 from
     inside, None when it misses."""
@@ -659,7 +674,7 @@ class Combat:
             depth = _dot(delta, forward)
             if depth < limit * math.hypot(*delta):
                 continue
-            if not capsule_visible(rays, eye, a, b, target.radius, category, target_entity=target.entity):
+            if not _communication_visible(rays, origin, target, category):
                 continue
             screen = _communication_screen_score(target, eye, forward, right, up)
             # C9753A reads the candidate transform's translation.

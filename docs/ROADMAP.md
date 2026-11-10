@@ -101,8 +101,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     candidate root distance. The search origin rotates the authored
     offset around the first-person pivot. Animated anchors, live pivot
     inputs and special camera inputs still require a server binding.
-    Target visibility uses expanded static rays with the common 1FDF
-    mask recovered from both .097 profiles. A ray hit owned by the
+    Target visibility uses the rotated source offset and the native
+    lower-then-upper body ray fallback in expanded static geometry.
+    Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.
     The actor category writer is verified with fixture shape inputs

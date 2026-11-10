@@ -210,8 +210,39 @@ class CommunicationWheelTests(unittest.TestCase):
                 with patch.object(rays, "cast_ray", return_value=hit) as cast_ray:
                     run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
                     run.match.deliver_body_messages()
-                cast_ray.assert_called_once()
+                fractions = (0.3,) if owner == "target" else (0.3, 0.6)
+                self.assertEqual(cast_ray.call_count, len(fractions))
+                height = combat.mover_data(target.hero.body).stand_height
+                for call, fraction in zip(cast_ray.call_args_list, fractions, strict=True):
+                    origin, direction, length, mask = call.args
+                    for actual, expected in zip(origin, (0.0, 1.0, 0.0), strict=True):
+                        self.assertAlmostEqual(actual, expected)
+                    self.assertEqual(mask, 0x1FDF)
+                    endpoint = tuple(a + b * length for a, b in zip(origin, direction, strict=True))
+                    self.assertAlmostEqual(endpoint[1], fraction * height)
+                    self.assertAlmostEqual(endpoint[2], 15.0)
                 expected = (expr.Entity(target.body),) if owner == "target" else ()
+                self.assertEqual(wheel.vars[375].value(), expected)
+
+    def test_wheel_retries_above_partial_body_cover(self):
+        run = Run(names=("Speaker", "Target"))
+        speaker, target = run.players
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        target.mover.position = (0.0, 0.0, 12.0)
+        height = combat.mover_data(target.hero.body).stand_height
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+        for cutoff, expected in ((0.5 + 0.225 * height, (expr.Entity(target.body),)), (2.0, ())):
+            with self.subTest(cutoff=cutoff):
+                wall = ((-1, 0, 6, 1, 0, 6, -1, cutoff, 6),
+                        (1, 0, 6, 1, cutoff, 6, -1, cutoff, 6))
+                world = run.match.collision_world = World(wall)
+                script.command(script.frame + 150, 0)
+                with patch.object(world, "cast_ray", wraps=world.cast_ray) as ray:
+                    run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+                    run.match.deliver_body_messages()
+                self.assertEqual(ray.call_count, 2)
                 self.assertEqual(wheel.vars[375].value(), expected)
 
     def test_wheel_ranks_the_projected_rectangle_corner(self):

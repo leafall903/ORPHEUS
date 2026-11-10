@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Use the native lower and upper body ray fallback for directed callouts.
+  Seven native fixture cases and 88 focused offline tests pass.
+  Animated anchors, dynamic geometry and original-client acceptance remain open.
 - Verify the captured PC factory and inherited dispatch for cosmetic use
   and Acknowledge markers. Twelve native cases and two offline routing
   tests pass. The server-side effects and original-client acceptance remain open.

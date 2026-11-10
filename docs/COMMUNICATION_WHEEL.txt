@@ -397,8 +397,19 @@ Source paths for the remaining actions
   signed pitch and fixture pivot values. The host composes that
   offset using command aim and its current standing or crouched
   eye height. Animated anchors, live pivot inputs and special
-  camera bases remain open. Expanded static rays supply line of sight.
-  With no expanded cache, the ray uses the movement world's shapes.
+  camera bases remain open. CAF254 defaults the sight origin to the
+  same C9A430 result when the source override field is empty, as in
+  wheel nodes 113 and 115. DB1AA0 supplies the target anchor and its
+  stance height at +14, using 79A3B0 in the mover branch. With no
+  animated hardpoint, CA38D9 tests 30 percent of that height above
+  the anchor. If blocked, CA4244 tests 60 percent. The authored
+  m_8D13DD07 is zero for both nodes, so CA4294 skips the lateral rays.
+  Seven native fixture cases cover the source fallback and both body
+  heights with clear, partial and fully blocked paths. The host uses
+  these two points from the server body root and stance height.
+  Expanded static rays supply line of sight. With no expanded cache,
+  the ray uses the movement world's shapes. Animated target anchors
+  and special query paths remain open.
   D607F0 reports occlusion for a hit owned by a different entity
   or by the world. A miss or a hit owned by the candidate is clear.
   Six native cases verify this decision with fixture scene returns.
