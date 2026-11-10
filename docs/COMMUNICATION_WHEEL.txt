@@ -632,9 +632,17 @@ Source paths for the remaining actions
   05FE is an optional animation category. Node 171 copies its input
   variable 15231 to 15207 and clears 15231 with an empty
   STUConfigVarAnimCategory. Nodes 116 and 132 pass 15207 to 0686.
-  Its node 25 initializes 0341 with that variable. Animation nodes
-  10 and 11 use it in m_22326315 and sync it under 3B67. The known
-  21608 payload has no field for this category.
+  Its node 25 initializes the Hello gesture graph 0341 with that
+  variable. Animation nodes 10 and 11 use it in m_22326315 and
+  sync it under 3B67. A typed internal 02A3 selection carries the
+  category through both animation states to the owner and observer
+  frames. A subsequent ordinary wheel selection uses the default
+  category. The 21608 payload has no field for this category.
+  The 0686 root now retires through node 0 when its authored four-second
+  wait ends. A later selection allocates a fresh root. The 0341 stop
+  nodes 8 and 9 finish only their own SubScript. The primary-fire test
+  verifies that the gesture leaves the owner stream while 0686 stays live.
+  Model-dependent gesture durations remain open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's

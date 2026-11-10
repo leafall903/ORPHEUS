@@ -423,14 +423,25 @@ class BodyWorld(runtime.World):
             if node.cls == "STU_22926252" and node.pos in (1, 5):
                 component.destroy(instance)
                 return True
-        if index == 0x023A and node.cls == "STU_22926252" and node.pos in (9, 14, 57):
-            parent = instance.parent
-            if parent is not None and parent.graph.index == 0x069A:
-                state = parent.state(instance.parent_state)
-                if isinstance(state, nodes.SubScript) and state.active and state.child is instance:
-                    # End the SubScript state so its authored onEnd path runs.
-                    state.request_finish()
-                    return True
+        if node.cls != "STU_22926252":
+            return NotImplemented
+        if index == 0x0686 and node.pos == 0:
+            # Retire the root after its authored wait so the next PlayScript can allocate it again.
+            component.destroy(instance)
+            return True
+        if index == 0x023A and node.pos in (9, 14, 57):
+            parent_graph = 0x069A
+        elif index == 0x0341 and node.pos in (8, 9):
+            parent_graph = 0x0686
+        else:
+            return NotImplemented
+        parent = instance.parent
+        if parent is not None and parent.graph.index == parent_graph:
+            state = parent.state(instance.parent_state)
+            if isinstance(state, nodes.SubScript) and state.active and state.child is instance:
+                # End the SubScript state so its authored onEnd path runs.
+                state.request_finish()
+                return True
         return NotImplemented
 
     def localized_callout(self, instance: runtime.Instance, node: graph.Node) -> None:

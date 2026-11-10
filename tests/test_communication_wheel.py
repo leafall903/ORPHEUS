@@ -1116,6 +1116,63 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
 
+    def test_greeting_category_replicates_and_expired_callout_can_restart(self):
+        run = Run(names=("Speaker",))
+        player, = run.players
+        body = player.body_script
+        owner = decode.ClientBody.for_hero(SOLDIER)
+
+        def apply_owner_updates():
+            for update in body.frames():
+                owner.apply(update)
+                body.stream.arrived(update.chunk_last)
+
+        apply_owner_updates()
+        action = 0x0A9000000000016B
+        category = expr.Asset(0x0280000000000004)
+        self.assertTrue(run.match.queue_body_message(
+            player.body, 0x02400000000002A3,
+            {0x8FC: expr.Asset(action), 0x3E1: True, 0x5FE: category}, player.body,
+        ))
+        wheel = next(i for i in body.component.instances.values() if i.graph.index == 0x05AD)
+        first = None
+        for expected in (category, None):
+            if expected is None:
+                run.match.communication_action(player, {"+0x78": action, "+0x80": True})
+            run.match.deliver_body_messages()
+            body.command(body.frame + 10, 0)
+            apply_owner_updates()
+            self.assertEqual(wheel.vars[15207].value(), expected)
+            self.assertEqual(wheel.vars[15231].value(), expr.Asset(0))
+            [callout] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
+            [greeting] = [i for i in body.component.instances.values() if i.graph.index == 0x0341]
+            self.assertIs(greeting.parent, callout)
+            self.assertFalse(callout.stopped)
+            if first is not None:
+                self.assertNotEqual(callout.id, first.id)
+                self.assertNotIn(first.id, owner.graphs)
+            remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
+            observed = decode.read_chunk(remote.getvalue(), remote.count).instances[greeting.id]
+            self.assertEqual(owner.vars.get((greeting.id, 15207)), expected)
+            self.assertEqual(observed.vars.get(15207, (None,))[0], expected)
+            for state in (5, 6):
+                self.assertTrue(owner.states[greeting.id, state])
+                self.assertTrue(observed.states[state][0])
+            if expected is not None:
+                first = callout
+                body.command(body.frame + 250, 0)  # beyond the authored four-second wait
+                apply_owner_updates()
+                self.assertTrue(first.stopped)
+                self.assertNotIn(first.id, body.component.instances)
+                self.assertNotIn(greeting.id, body.component.instances)
+            else:
+                body.command(body.frame + 1, FIRE)
+                body.command(body.frame + 10, FIRE)
+                apply_owner_updates()
+                self.assertNotIn(greeting.id, body.component.instances)
+                self.assertNotIn(greeting.id, owner.graphs)
+                self.assertIn(callout.id, owner.graphs)
+
     def test_callout_deltas_retry_with_one_stamp_and_stop_after_ack(self):
         match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)

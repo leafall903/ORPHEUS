@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Retire the shared callout at its authored timeout so later wheel selections
+  can restart it. The Hello gesture can stop independently on primary fire.
+  The offline regression verifies an internal animation category in both
+  streams and a subsequent ordinary selection with the default category.
+  All 71 wheel, native replay and body snapshot tests pass. Model-dependent
+  gesture durations and client acceptance remain open.
 - Execute the inherited PC Action for Acknowledge markers and cosmetic use.
   Native probes verify 16 prediction gates and four rewind calls. All 47
   wheel and replay tests pass, including the terminal selection and report

@@ -74,7 +74,11 @@ A checked item records evidence for that specific scope. Its parent remains open
     emote. Automatic form transitions, runtime tag changes, live model remaps
     and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
-    the voice playback pulse for offline selections.
+    the voice playback pulse for offline selections. It retires after the
+    authored wait so subsequent selections restart. A typed internal 02A3
+    category reaches both owner and observer gesture states. Primary fire
+    retires the gesture while the callout remains live. Model-dependent
+    gesture durations remain open.
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
     The 21616 cosmetic-use report reaches the corresponding body instance.
@@ -128,8 +132,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     presenters are authored client-only on entity and mode graphs.
     All three wheel auxiliary entries and their exit lists target
     client-only states. Client scope scheduling remains open.
-    The targeted marker effect, additional 02A3 parameters, equipped-item
-    playback, recipient rules and original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
+    The targeted marker effect, equipped-item playback, recipient rules
+    and original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.
 - [ ] **Stability and delivery.** Verify tick and packet budgets, long-running matches, recovery, reproducible deployment, and final acceptance with the original client.
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
