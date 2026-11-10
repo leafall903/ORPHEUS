@@ -101,6 +101,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     sweeps retain wheel sprays, and keyed replacement and lifecycle cleanup
     remove them. Attachment production and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
+    Repeated ultimate status reports 89, 90 and 100 percent through the
+    same instance after its voice stack expires. A lost packet retries
+    the original percentage. The 0169 alternate receiver and form-specific
+    ultimate associations remain open.
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     Live match poses now supply candidates to the two authored target states.
     Authored eligibility gates route actions to the aimed teammate and use the

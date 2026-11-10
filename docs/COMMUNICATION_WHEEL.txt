@@ -363,6 +363,23 @@ Source paths for the remaining actions
   A separate offline comparison verifies all 20 authored text-map
   rows through observer frames. Each of the four voice choices emits
   a first-play pulse.
+  Ultimate Status (16E) uses entity 7730 and 6035. The ordinary
+  0B8B:49 and :38 stacks compute floored percentage and readiness
+  from charge 342 and cost 338. 0686 sends node 13 below 90 percent,
+  node 39 from 90 percent, or node 7 when ready. Offline selections
+  exercise 89, 90 and 100 percent on the same 0686 instance. Both
+  streams retry the first action with its captured 89 percent after
+  live charge reaches 95 percent. The later ready action survives
+  expiry of the instance's child voice stack.
+  The alternate 067F path is authored on 0169 in body 020F. Its raw
+  state 77 pushes entity 8323, and raw entry 74 reads optional parameter
+  039D as a listener entity before choosing a localized action.
+  05AD:135 sends the aimed entity in 039D. 0686:42 sends no parameters.
+  Body 020F is outside the prepared match bundle. D.Va 026A separately
+  supplies tag 050F through variable 10929 when its linked pilot branch
+  runs. The normal 040A fixture uses the ordinary percentage path.
+  Live 020F hosting, D.Va form association and Echo Duplicate lifecycle
+  remain open.
   Node 58 uses STU_1ECB66A0. Native evaluator CDB390 calls 44A820
   to look up the full action GUID in 01A5.054 and return the .004
   texture. Offline native runs verify all 26 rows in both compiled
@@ -733,9 +750,11 @@ Source paths for the remaining actions
   RMSz includes the entries and excludes the group terminator.
   A second 253-frame probe verified H=1 with the graph's raw node index.
   The server uses each stream's first carrying chunk as the group stamp,
-  repeats that stamp until ACK, and stops sending after the authored wait
-  or a superseding choice. A fresh observer full frame establishes a
-  baseline without replaying a pending callout.
+  repeats that stamp until ACK, and keeps the action for up to two seconds
+  after execution. For 0686, the re-armed root wait identifies the active
+  selection and supersedes earlier selections. The child voice-stack wait
+  can expire while the root still accepts selections. A fresh observer
+  full frame establishes a baseline without replaying a pending callout.
 - The same path now carries the 05AD recipient actions. It samples the
   variables named by the action's sync declarations when the action
   runs. Each stream sends its oldest pending action with those sampled

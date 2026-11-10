@@ -179,7 +179,7 @@ WHEEL_PLAY_GRAPHS = {
     (0x069A, 9): 0x1040,
 }
 MAX_WHEEL_CALLOUTS = 32
-DIRECTED_CALLOUT_MS = 2000
+WHEEL_CALLOUT_MS = 2000
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
@@ -792,15 +792,16 @@ class BodyScript(ReplicatedBody):
             instance = self.component.instances.get(event.instance)
             if instance is None or instance.stopped or instance.start != event.start:
                 continue
-            if instance.graph.index == 0x0686:
-                wait = instance.states.get(10)
-                selected = instance.vars.get(29699)
-                if (wait is None or not wait.active or selected is None
-                        or not expr.same(selected.value(), event.choice)
-                        or event.time < wait.start):
-                    continue
-            elif self.component.now - event.time > DIRECTED_CALLOUT_MS:
+            if self.component.now - event.time > WHEEL_CALLOUT_MS:
                 continue
+            if instance.graph.index == 0x0686:
+                # Re-entry re-arms the root wait. Its child voice-stack wait
+                # can already have finished when a new callout executes.
+                root = instance.states.get(0)
+                selected = instance.vars.get(29699)
+                if (root is None or not root.active or event.time < root.start
+                        or selected is None or not expr.same(selected.value(), event.choice)):
+                    continue
             pending.append(event)
         return Snapshot(self.frame, callout=history[-1].serial, callouts=tuple(pending))
 

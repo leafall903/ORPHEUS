@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Deliver repeated ultimate status after the child voice-stack wait expires.
+  Owner and observer streams carry all three authored charge branches and
+  retain the captured percentage on retry. All 86 focused tests pass.
+  Alternate-body status and original-client acceptance remain open.
 - Restore configurable callout icons from the original action-to-texture
   table. All 85 focused tests pass, including offline wire selections in
   both streams. Native probes cover all 26 texture rows, slot bounds and

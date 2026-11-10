@@ -24,7 +24,7 @@ from ow174.game.content import PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.match import Match
 from ow174.game.world import OP_CREATE, EntityUpdate
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
-from ow174.game.script.driver import BodyScript, BodyStream
+from ow174.game.script.driver import BodyScript, BodyStream, ULT_COST
 from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_ANY_CATEGORY, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, VOICE_EFFECT_DATA
 
 
@@ -1321,6 +1321,67 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(watcher.apply(viewer_next).actions, [])
         body.command(body.frame + 130, 0)
         self.assertEqual(body.callout_snapshot().callouts, ())
+
+    def test_repeated_ultimate_status_replicates_after_the_voice_stack_expires(self):
+        run = Run(names=("Speaker",))
+        player, = run.players
+        body = player.body_script
+        owner = decode.ClientBody.for_hero(SOLDIER)
+        [tree] = body.frames()
+        owner.apply(tree)
+        body.stream.arrived(tree.chunk_last)
+        body.command(body.frame + 1, 0)
+        [initial] = body.frames()
+        owner.apply(initial)
+        body.stream.arrived(initial.chunk_last)
+
+        watcher = decode.ClientBody.for_hero(SOLDIER)
+        stream = BodyStream(body.entity)
+        baseline = observers.snapshot(body)
+        tree = stream.full(observers.full_frame(body, baseline), baseline)
+        watcher.apply(tree)
+        stream.arrived(tree.chunk_last)
+
+        def updates():
+            [owner_update] = body.frames()
+            snap = observers.snapshot(body)
+            frame, keys = observers.delta(body, stream, snap)
+            return owner_update, stream.delta(frame, snap, keys, 0)
+
+        def check(updates, node, percent, stamps):
+            for client, update, stamp in zip((owner, watcher), updates, stamps, strict=True):
+                self.assertEqual(client.apply(update).actions, [(stamp, callout.id, node)])
+                if percent is not None:
+                    self.assertEqual(client.vars[0, 7730], percent)
+
+        cost = body.component.entity_var(ULT_COST).value()
+        first_id = None
+        for charge, percent, node in ((0.895, 89.0, 13), (0.905, 90.0, 39), (1.0, None, 7)):
+            body.set_ult_charge(cost * charge)
+            body.component.run_now()
+            run.match.communication_action(player, {"+0x78": 0x0A9000000000016E, "+0x80": False})
+            run.match.deliver_body_messages()
+            body.command(body.frame + 16, 0)
+            [callout] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
+            if first_id is None:
+                first_id = callout.id
+            self.assertEqual(callout.id, first_id)
+            if node == 7:
+                self.assertFalse(callout.state(10).active)
+            sent = updates()
+            stamps = tuple(update.chunk_last for update in sent)
+            check(sent, node, percent, stamps)
+            if node == 13:
+                for update in sent:
+                    update.stream.lost(update.chunk_last)
+                body.set_ult_charge(cost * 0.95)
+                body.command(body.frame + 1, 0)
+                self.assertEqual(body.component.entity_var(7730).value(), 95.0)
+                sent = updates()
+                check(sent, node, percent, stamps)
+            for update in sent:
+                update.stream.arrived(update.chunk_last)
+            body.command(body.frame + 64, 0)
 
     def test_targeted_wheel_message_table_routes_to_the_selected_body(self):
         run = Run(names=("Speaker", "Target", "Bystander"))
