@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Resolve Hello gesture timing from the current body's base model. The
+  optional runtime table covers 33 bodies and both animation aliases.
+  Eleven native probes and three offline Match runs verify model durations
+  and the gesture's natural exit. All 82 focused regression tests pass.
+  Live model overrides and client playback remain open.
 - Retire the shared callout at its authored timeout so later wheel selections
   can restart it. The Hello gesture can stop independently on primary fire.
   The offline regression verifies an internal animation category in both

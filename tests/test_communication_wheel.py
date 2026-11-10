@@ -25,7 +25,7 @@ from ow174.game.match import Match
 from ow174.game.world import OP_CREATE, EntityUpdate
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
 from ow174.game.script.driver import BodyScript, BodyStream
-from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_ANY_CATEGORY, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, EMOTE_TAGGED_DATA, VOICE_EFFECT_DATA
+from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_ANY_CATEGORY, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, VOICE_EFFECT_DATA
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -1115,6 +1115,40 @@ class CommunicationWheelTests(unittest.TestCase):
                     ]
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
                     self.assertEqual(remote_callout.states[13], pulse)
+
+    def test_greeting_finishes_at_the_first_authored_model_animation_end(self):
+        run = Run(names=("Speaker",))
+        player, = run.players
+        body = player.body_script
+        category = 0x0280000000000004
+        with TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data / GREETING_DURATION_DATA).write_text(json.dumps({
+                hex(body.world.body_definition): {
+                    "0x0C800000000002DE": {hex(EMOTE_ANY_CATEGORY): 1.5},
+                    "0x0C800000000001EE": {hex(category): 0.75, hex(EMOTE_ANY_CATEGORY): 1.75},
+                },
+            }), encoding="utf-8")
+            with patch("ow174.game.script.driver.DATA_DIR", data):
+                self.assertTrue(run.match.queue_body_message(
+                    player.body, 0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A9000000000016B), 0x3E1: True, 0x5FE: expr.Asset(category)},
+                    player.body,
+                ))
+                run.match.deliver_body_messages()
+                body.command(body.frame + 10, 0)
+                [gesture] = [i for i in body.component.instances.values() if i.graph.index == 0x0341]
+                for index, duration in ((5, 1500), (6, 750)):
+                    state = gesture.state(index)
+                    self.assertTrue(state.active)
+                    self.assertEqual([event.time - state.start for event in gesture.queue if event.state is state],
+                                     [duration, duration])
+                ending_frame = (gesture.state(6).start + 750) // body.frame_ms
+                body.command(ending_frame - 1, 0)
+                self.assertIn(gesture.id, body.component.instances)
+                body.command(ending_frame, 0)
+                self.assertNotIn(gesture.id, body.component.instances)
+                self.assertIn(gesture.parent.id, body.component.instances)
 
     def test_greeting_category_replicates_and_expired_callout_can_restart(self):
         run = Run(names=("Speaker",))

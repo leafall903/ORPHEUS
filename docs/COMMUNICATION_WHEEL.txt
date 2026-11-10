@@ -642,7 +642,23 @@ Source paths for the remaining actions
   wait ends. A later selection allocates a fresh root. The 0341 stop
   nodes 8 and 9 finish only their own SubScript. The primary-fire test
   verifies that the gesture leaves the owner stream while 0686 stays live.
-  Model-dependent gesture durations remain open.
+  For natural completion, both 0341 animation states resolve duration
+  from the current body's base model tree. The optional
+  data/greeting_durations_174.json holds both aliases for the 32 base
+  bodies and the D.Va mech. Generate it with extract_emote_durations.py
+  using the .021 and .015 exports and pass the matching .003 XML
+  definitions to --body-definitions. The greeting table is written
+  beside the emote duration output and is included in the replay hash
+  and runtime preparation when present. Supply a separate output path
+  for the emote table when extracting from a greeting-only .021 set.
+  104319 F4FBE0 follows nested IK wrappers and F4D310 selects blend
+  branches. The extractor accepts a blend duration if all eligible
+  leaves agree. Eleven offline native runs check Soldier: 76, Echo
+  and Brigitte, including seven declared Brigitte blend values.
+  Offline Match runs check both state timers and the gesture's exit
+  at the first completed animation: Soldier: 76 1000/1000 ms,
+  Echo 1567/1233 ms and Brigitte 1433/1433 ms. The callout remains live.
+  Live model overrides and original-client playback remain open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's

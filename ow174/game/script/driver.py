@@ -46,7 +46,7 @@ from ow174.game.statescript import (
     sendable,
 )
 from ow174.game.world import UNIT_ENTITY_SCALE
-from ow174.paths import DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA
+from ow174.paths import DATA_DIR, EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, GREETING_DURATION_DATA
 
 if TYPE_CHECKING:
     from ow174.game.match import Match
@@ -55,8 +55,8 @@ if TYPE_CHECKING:
 log = logging.getLogger("ow174.script")
 
 
-@lru_cache(maxsize=1)
-def wheel_emote_durations(path):
+@lru_cache(maxsize=2)
+def wheel_animation_durations(path):
     try:
         rows = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -381,28 +381,33 @@ class BodyWorld(runtime.World):
 
     def animation_duration(self, instance: runtime.Instance, node: graph.Node) -> float | None:
         parent = instance.parent
-        if (not self.communication_wheel or instance.graph.index != 0x023A
-                or parent is None or parent.graph.index != 0x069A):
+        if not self.communication_wheel or parent is None:
+            return None
+        context = (instance.graph.index, parent.graph.index)
+        if context not in ((0x023A, 0x069A), (0x0341, 0x0686)):
             return None
         alias = instance.evaluate(node.field("m_11E0A658"))
         if not expr.truthy(alias):
             # A zero alias skips the native model query.
             return 0.0
         category = instance.evaluate(node.field("m_22326315"))
-        blend = instance.find_var(INSTANCE, 8908)
-        blend = blend.value() if blend is not None else None
-        if not isinstance(alias, Asset) or not isinstance(blend, Asset):
+        if not isinstance(alias, Asset) or (category is not None and not isinstance(category, Asset)):
             return None
-        if category is not None and not isinstance(category, Asset):
-            return None
-        blend_guid = blend.guid
-        if not blend_guid and self.body_definition == 0x040000000000040A:
-            # The pilot's model component supplies its base tree when the equipped tree is empty.
-            blend_guid = 0x004000000000048A
-        durations = wheel_emote_durations(DATA_DIR / EMOTE_DURATION_DATA)
+        if context == (0x0341, 0x0686):
+            resource, filename = self.body_definition, GREETING_DURATION_DATA
+        else:
+            blend = instance.find_var(INSTANCE, 8908)
+            blend = blend.value() if blend is not None else None
+            if not isinstance(blend, Asset):
+                return None
+            resource, filename = blend.guid, EMOTE_DURATION_DATA
+            if not resource and self.body_definition == 0x040000000000040A:
+                # The pilot's model component supplies its base tree when the equipped tree is empty.
+                resource = 0x004000000000048A
+        durations = wheel_animation_durations(DATA_DIR / filename)
         return durations.get(
-            (blend_guid, alias.guid, category.guid if category is not None else 0),
-            durations.get((blend_guid, alias.guid, EMOTE_ANY_CATEGORY)),
+            (resource, alias.guid, category.guid if category is not None else 0),
+            durations.get((resource, alias.guid, EMOTE_ANY_CATEGORY)),
         )
 
     def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):

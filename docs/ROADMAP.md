@@ -77,8 +77,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     the voice playback pulse for offline selections. It retires after the
     authored wait so subsequent selections restart. A typed internal 02A3
     category reaches both owner and observer gesture states. Primary fire
-    retires the gesture while the callout remains live. Model-dependent
-    gesture durations remain open.
+    retires the gesture while the callout remains live. Natural completion
+    uses the two body-model aliases, extracted for 32 base bodies and the
+    D.Va mech. Three original-model offline fixtures exercise timer expiry.
+    Live model overrides and client playback remain open.
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
     The 21616 cosmetic-use report reaches the corresponding body instance.
