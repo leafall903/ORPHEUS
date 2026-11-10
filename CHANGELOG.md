@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the native wheel ray fallback for missing receiver handles and
+  trace its relation reference field. All 20 offline instruction cases
+  pass. Live reference production and client acceptance remain open.
 - Intersect the wheel ray with admitted bone-local actor shapes and
   preserve nearest-hit ownership across actor and static geometry.
   Verify 504 original shapes and offline wheel selection with explicit

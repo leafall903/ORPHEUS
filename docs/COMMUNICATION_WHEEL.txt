@@ -539,6 +539,16 @@ Source paths for the remaining actions
   to C1CF60 and sends result 2 to BEE420. BEEE82 stores the flags
   and returns whether they are nonzero. Thirty-six native cases
   verify those branches with fixture relation and receiver returns.
+  The BEE5FF receiver fallback calls C1CF60 only for a nonzero
+  reference entity. When the receiver handle at actor +30 is absent
+  or invalid, BEEC27 returns flags 0D for an accepted relation or no
+  reference, and zero for a rejected relation. Sixteen native cases
+  cover these combinations with fixture relations and handles.
+  The wheel's CAF660 call passes TrackTargets context +1A0 in stack
+  slot +60. CA3570 copies it to ray request +40. Four native fixture
+  cases verify the field transport. The fifth D607F0 argument instead
+  comes from search context +290. The source of the +1A0 field and
+  original player classification remain open.
   The early bypass, null-candidate and exclusion-list paths instead
   return true with flags zero. Three native cases cover those paths.
   BED095 and BED8D5 continue shape lookup when the callback
