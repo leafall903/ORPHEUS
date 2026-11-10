@@ -519,7 +519,8 @@ Source paths for the remaining actions
   The wheel can merge posed actor intersections with static hits
   when a dynamic admission service is supplied. Offline selections
   exercise a blocking actor, a candidate hit in front of a wall and
-  the wall alone. The match has no default dynamic admission service.
+  the wall alone. The match supplies default admission for posed
+  catalog base players.
   CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
   +28 and +35 through 17A8FC0 and writes the results into request
   +2 and +0 respectively. Native execution with the extracted
@@ -552,6 +553,16 @@ Source paths for the remaining actions
   through 3163BA8 after accounting for the registry's eight-byte
   offset bias in this block. The reference at +1A0 corresponds to
   m_9E1426F6. Original 05AD nodes 113 and 115 both leave it empty.
+  BEEE77 passes zero for the optional BEE420 profile gate. Native
+  execution from BEE5FF covers 36 combinations across both profiles,
+  six authored receivers and three reference cases. The fixture
+  supplies a valid generation-tagged handle, the 5ECEFF67 component
+  field and type/asset resolution. An empty reference selects the
+  accepted side without calling C1CF60. The two profile results
+  (0079, 0111) are (0, 7) for 0029, 002A, 00A5 and 00AD, and
+  (0D, 0D) for 00B2 and 00B3. The 003 definitions bind 002A to
+  011A and 01C3, 0029 to 0251, 00AD to 187E, 00B2 to 0932 and
+  00B3 to 090B. These flags precede the later shape traversal.
   The early bypass, null-candidate and exclusion-list paths instead
   return true with flags zero. Three native cases cover those paths.
   BED095 and BED8D5 continue shape lookup when the callback
@@ -593,7 +604,16 @@ Source paths for the remaining actions
   Forty-eight additional native cases exercise the 0100 category
   in BF1DD0. The offline selection test exercises both profiles and the 21608
   path. Other animation layers, replacement models and special
-  receiver/holder admission remain open.
+  receiver/holder admission remain open. Ice-wall 0932 and cryo 090B
+  reference models 2A64 and 2AC9. They provide seven and one convex
+  hulls respectively. Native execution of 1B21529 with all eight
+  original holder inputs sets actor category 1000. Forty-eight
+  additional BF1DD0 cases verify the mask stage for category 1000,
+  which is included in both profiles. The barrier models 0A3C and
+  0D02 each use motion 1 holder 00066F4C at bone 1, a mesh and sphere
+  respectively. The pose decoder currently handles motion 4.
+  Candidate-group filtering and live deployable shape registration
+  remain open.
   Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
   through the ordinary selection message. 05AD nodes 112 and 136 and
   0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.

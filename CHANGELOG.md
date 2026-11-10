@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the wheel's empty relation reference through the original
+  valid receiver path and identify the ice-wall and cryo shape
+  categories. All 92 offline instruction cases pass. Deployable
+  collision lifetime and client acceptance remain open.
 - Bind posed base player models to both wheel ray profiles using the
   original empty relation reference. Verify offline that a same-team
   posed body can block selection, including through action 21608.

@@ -148,7 +148,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     admits catalog base player shapes for both profiles. Native
     probes cover missing receiver fallback and relation reference
     transport. Both original nodes leave that reference empty.
-    Special receiver admission and general pose coverage remain open.
+    Native probes also verify the empty-reference result for six
+    authored receivers and the 1000 shape category for ice-wall and
+    cryo models. Deployable shape registration, candidate-group
+    filtering and general pose coverage remain open.
     Need Healing uses the authored source body tag in its targeting
     and voice branches. Marker effects,
     runtime tag mutations, dynamic target geometry and deployable eligibility
