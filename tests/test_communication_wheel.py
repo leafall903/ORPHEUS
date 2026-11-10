@@ -107,9 +107,12 @@ class CommunicationWheelTests(unittest.TestCase):
         marker = 0xA0000123
         action = 0x0A90000000000170
         selected = []
+        native_action = runtime.HANDLERS["STU_631D36C3"]
 
         def target_branch(instance, node, caller):
             selected.append((instance.id, node.pos, instance.evaluate(node.field("m_4A5CA514"))))
+            with patch.object(instance, "evaluate", side_effect=AssertionError("base Action read marker data")):
+                self.assertIs(native_action(instance, node, caller), True)
             return True
 
         def receive(sequence, selected_action, entity):
@@ -125,6 +128,7 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(selected, [(wheel.id, 165, expr.Entity(marker))])
             self.assertEqual(wheel.vars[16376].value(), expr.Entity(marker))
             self.assertEqual(run.match._body_messages, [])
+            self.assertEqual(speaker.body_script.world.wheel_callouts, [])
             speaker.body_script.command(speaker.body_script.frame + 150, 0)
 
             receive(1, action, 0)
@@ -1046,10 +1050,21 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertNotIn(8022, spray.vars)
         self.assertNotIn(8022, voice.vars)
 
-        report(4, player.body, spray, pixel)
-        self.assertEqual(spray.vars[8022].value(), expr.Asset(pixel))
-        self.assertNotIn(8022, voice.vars)
-        report(5, player.body, voice, effect)
+        native_action = runtime.HANDLERS["STU_94771561"]
+        reported_nodes = []
+
+        def use_branch(instance, node, caller):
+            reported_nodes.append((instance.graph.index, node.pos))
+            with patch.object(instance, "evaluate", side_effect=AssertionError("base Action read unlock data")):
+                self.assertIs(native_action(instance, node, caller), True)
+            return True
+
+        with patch.dict(runtime.HANDLERS, {"STU_94771561": use_branch}):
+            report(4, player.body, spray, pixel)
+            self.assertEqual(spray.vars[8022].value(), expr.Asset(pixel))
+            self.assertNotIn(8022, voice.vars)
+            report(5, player.body, voice, effect)
+        self.assertEqual(reported_nodes, [(0x02CF, 39), (0x0686, 70)])
         self.assertEqual(voice.vars[8022].value(), expr.Asset(effect))
         self.assertEqual(spray.vars[8022].value(), expr.Asset(pixel))
         self.assertTrue(spray.node_state(spray.graph.node(38)).active)

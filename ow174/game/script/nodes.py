@@ -2250,6 +2250,20 @@ def no_op(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_631D36C3", "STU_94771561")
+def wheel_base_action(instance: Instance, node, caller) -> bool:
+    authored = (instance.graph.index, node.pos)
+    if node.cls == "STU_631D36C3":
+        supported = authored == (0x05AD, 165)
+    else:
+        supported = authored in ((0x023A, 108), (0x02CF, 39), (0x0686, 70))
+    if not supported or not node.is_action or node.remote != -1:
+        return NotImplemented
+    # The PC factory selects the base Action. Its prediction record contains
+    # only the raw node index and instance ID, and its rewind hook is empty.
+    return no_op(instance, node, caller)
+
+
 @handler("STU_7106C356")
 def localized_callout(instance: Instance, node, caller) -> bool:
     instance.component.world.localized_callout(instance, node)

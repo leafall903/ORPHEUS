@@ -78,8 +78,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
     The 21616 cosmetic-use report reaches the corresponding body instance.
-    Native PC factory and dispatch probes verify the inherited Action
-    path. The server-side unlock-use effect remains open.
+    The body VM runs the inherited PC Action for unlock use. Native
+    probes verify its prediction record and empty rewind hook.
+    Separate server-only accounting remains unverified.
     The spray graph resolves eligible surfaces in loaded static collision and
     replicates the placement in owner and observer frames. Expanded ray caches
     supply spray-only surfaces and mode props when prepared for the map.
@@ -95,9 +96,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     Authored eligibility gates route actions to the aimed teammate and use the
     ordinary callout for enemies and free-for-all.
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
-    The selected marker reaches the authored terminal action. Its client
-    type methods and inherited Action path are verified. The server-side
-    marker effect remains open.
+    The selected marker reaches the authored terminal action. The body
+    VM runs the verified inherited PC Action. A separate server-only
+    marker effect remains unverified.
     Upright player targets use the native screen rectangle score with
     server stance dimensions and command aim. Equal screen scores use
     candidate root distance. The search origin rotates the authored
@@ -123,7 +124,7 @@ A checked item records evidence for that specific scope. Its parent remains open
     The server accepts the original wheel's 21608 action GUID and flag and
     delivers them to the sender's 02A3 graph entry. Acknowledge also
     preserves the selected marker as parameter 0644. An offline packet
-    reaches the targeted node with a fixture handler. The marker
+    reaches the targeted node and executes the inherited action. The marker
     presenters are authored client-only on entity and mode graphs.
     All three wheel auxiliary entries and their exit lists target
     client-only states. Client scope scheduling remains open.

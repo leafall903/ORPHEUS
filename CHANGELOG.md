@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Execute the inherited PC Action for Acknowledge markers and cosmetic use.
+  Native probes verify 16 prediction gates and four rewind calls. All 47
+  wheel and replay tests pass, including the terminal selection and report
+  paths. Separate server-only effects and client acceptance remain unverified.
 - Bind emote loadouts to the selected body definition. An offline run with
   the original 0407 graph inputs verifies mech startup and tagged emote
   timing between two pilot selections. The base runtime still selects the

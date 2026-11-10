@@ -49,8 +49,15 @@ Source paths for the remaining actions
   then process the empty out plug. Invalid fixture addresses in the
   subclass fields confirm the inherited handler does not read them.
   PC VM table 262C010 routes that notification via 97A170 to the
-  action-record queue at A0A0D0. The probe fixtures the notification;
-  the server-side unlock-use effect remains open.
+  prediction history at A0A0D0. It requires allocated history,
+  a prediction-enabled instance and no active rewind. The record
+  contains only the instance ID, raw node index and action kind.
+  A0F840 reads that record during rewind and calls the base Action's
+  empty +58 hook at 1CE5640. Sixteen native gate cases and four
+  rewind-hook calls cover the four wheel nodes that inherit Action.
+  All four nodes are absent from their remote-sync lists. The body VM
+  follows their output plugs without reading marker or unlock fields.
+  Separate server-only cosmetic accounting remains unverified.
 - The wheel's STU_4460419A queries use .096 action metadata extracted
   from the 104319 CASC. Category 7428.01C covers 16B–172, 1E5–1F4, 1F7
   and 1F9. Category 741E covers 172 and 19F–1A2. Category 7420 covers
@@ -616,10 +623,12 @@ Source paths for the remaining actions
   to 1E0773EB and its projection presenter is a separate class.
   The host forwards a nonzero 21608 entity field for action 0170
   as parameter 0644. A byte-level test reaches 05AD node 165 with
-  an Entity value and a fixture action handler. With a zero entity
+  an Entity value and runs the inherited action. With a zero entity
   field, the absent-marker path sends 05AC to the aimed teammate
   with the sender as caller and instigator. Other wheel actions
-  ignore the field. The server-side effect of STU_631D36C3 remains open.
+  ignore the field. The body VM now runs the inherited terminal Action
+  on the selected-marker branch. Any separate server-only marker
+  effect remains unverified.
   05FE is an optional animation category. Node 171 copies its input
   variable 15231 to 15207 and clears 15231 with an empty
   STUConfigVarAnimCategory. Nodes 116 and 132 pass 15207 to 0686.
