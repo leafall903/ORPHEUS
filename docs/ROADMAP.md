@@ -150,7 +150,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     transport. Both original nodes leave that reference empty.
     Native probes also verify the empty-reference result for six
     authored receivers and the 1000 shape category for ice-wall and
-    cryo models. Deployable shape registration, candidate-group
+    cryo models. The Reinhardt and Winston models use a separate
+    native geometry builder and resolve their mask selector at load.
+    Deployable shape registration, selector resolution, candidate-group
     filtering and general pose coverage remain open.
     Need Healing uses the authored source body tag in its targeting
     and voice branches. Marker effects,

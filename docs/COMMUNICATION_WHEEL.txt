@@ -611,9 +611,20 @@ Source paths for the remaining actions
   additional BF1DD0 cases verify the mask stage for category 1000,
   which is included in both profiles. The barrier models 0A3C and
   0D02 each use motion 1 holder 00066F4C at bone 1, a mesh and sphere
-  respectively. The pose decoder currently handles motion 4.
-  Candidate-group filtering and live deployable shape registration
-  remain open.
+  respectively. Model 0A3C has 98 vertices and 192 triangles.
+  Model 0D02 has a sphere centered at zero with radius 5. Both rows
+  carry m_1DE83A05=8000. Native 1B2D360 routes that bit through
+  17AD4B0, then dispatches m_D833F59A=0 through 17A8E80 and DE3300
+  for the mesh, and value 4 through the sphere builder at 1B2D3D5.
+  Four offline cases use the original model fields and fixture mask,
+  bone and mesh services. They verify both dispatches and preservation
+  of the sphere's center, radius and resolved mask at +32. The raw
+  holder decoder's 1FDF default alone does not resolve that selector.
+  The pose decoder currently handles motion 4. The separate hero
+  restoration tree has a Reinhardt barrier service and prepared mesh.
+  The main match has no equivalent barrier lifetime or collision
+  binding. Candidate-group filtering, selector resolution and live
+  deployable registration remain open.
   Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
   through the ordinary selection message. 05AD nodes 112 and 136 and
   0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.
