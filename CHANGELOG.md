@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Identify the 0170 Acknowledge target as a registered UI marker's
+  script owner. Seven offline native cases cover selection, radius,
+  ties and invalid candidates. Marker acknowledgement handling and
+  original-client acceptance remain open.
 - Accept 104319 ClientOutInstance 21608 selections through the game
   channel. The server delivers the action and flag to the sender's
   current body as 02A3. All 85 focused offline tests pass, including

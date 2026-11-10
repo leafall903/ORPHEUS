@@ -67,9 +67,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     All 20 directed 05AD messages reach an offline fixture's chosen body.
     The recipient graph sends the actions in order with each action's source.
     The server accepts the original wheel's 21608 action GUID and flag and
-    delivers them to the sender's 02A3 graph entry. The 21608 entity field,
-    additional 02A3 parameters, equipped-item playback, recipient rules
-    and original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
+    delivers them to the sender's 02A3 graph entry. Offline execution
+    verifies how Acknowledge chooses the marker identity in 21608.
+    Marker acknowledgement, additional 02A3 parameters, equipped-item
+    playback, recipient rules and original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.
 - [ ] **Stability and delivery.** Verify tick and packet budgets, long-running matches, recovery, reproducible deployment, and final acceptance with the original client.
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.

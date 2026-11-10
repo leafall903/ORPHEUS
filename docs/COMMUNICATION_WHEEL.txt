@@ -177,8 +177,34 @@ Source paths for the remaining actions
   ordinary body message queue captures the body before delivery.
   The byte-level test feeds protocol 1, offset 8 through the
   receive loop and verifies the 05AD variables and 0686 callout.
-  The client-provided entity is currently unused. Native mapping
-  of 05FE and 0644 and targeted-action behavior remain open.
+- The 0170.096 label resolves to ACKNOWLEDGE via 1BBE.07C.
+  STU_CC90A18D evaluator 943450 searches the local UI service's
+  slot 18 list. ADEAD0 reads data source 0062.116 or a derived
+  source. 68E9 supplies a world vector and 669D supplies the
+  projected two-dimensional position used by the search.
+  943450 computes the center from the viewport bounds, compares
+  squared screen distance against the squared input radius, and
+  retains the first marker at a tied distance. Failed projections
+  and the positive-infinity sentinel are skipped. ADE6F0 reads
+  the selected presenter's script owner through 1B71C20, D24C10
+  and D0D9B0. The result becomes the entity field in 21608.
+  Seven offline native cases exercise empty input, the strict
+  radius boundary, an in-range marker, ranking, ties and invalid
+  projections. The probe uses fixture UI property, viewport
+  and marker context services and executes the native identity
+  getter with encoded owner storage.
+  The list is maintained by STU_6E650898. Runtime row 2F77A98
+  points to constructor ADE350, which reaches AD8B00 and installs
+  vtable 2653D48. AD7A40 appends the presenter through 1B8E700.
+  AD7B60 removes it through 60F010. Both resolve the same slot 18.
+  The extracted 01B graphs C43, CDE, D57, E8E, 1225, 1AB1 and
+  1A52 contain this presenter class.
+  05AD node 164 branches on parameter 0644 for 0170. A supplied
+  value reaches STU_631D36C3. The absent-value branch still
+  searches for a body and can send directed message 05AC.
+  The host currently handles 21608 without the marker field.
+  The server's marker acknowledgement handler and the full
+  mapping of 05FE and 0644 remain open.
 - Localized callout nodes use STU_7106C356. The handler at AD15D0
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's
