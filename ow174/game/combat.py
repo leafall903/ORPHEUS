@@ -57,6 +57,7 @@ from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command
 from ow174.game.mover import mover_data
 from ow174.game.props import ModelPose
+from ow174.game.content import heroes
 from ow174.game.script import expr, graph, nodes, runtime
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import Snapshot
@@ -475,7 +476,7 @@ class Combat:
     def __init__(self, match) -> None:
         self.match = match
         self.model_pose_for: Callable[[int], ModelPose | None] = self._wheel_model_pose
-        self.wheel_actor_admits: Callable[[int, int, int, int, int], bool] | None = None
+        self.wheel_actor_admits: Callable[[int, int, int, int, int], bool] | None = self._wheel_base_actor_admits
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
@@ -704,6 +705,17 @@ class Combat:
         forward = aim(mover.yaw, 0)
         transform = (*right, 0.0, 0.0, 1.0, 0.0, 0.0, *forward, 0.0, *mover.position, 1.0)
         return script.world.wheel_model_pose(script.component, transform)
+
+    def _wheel_base_actor_admits(
+        self, profile: int, _source: int, entity: int, category: int, _holder_mask: int,
+    ) -> bool:
+        # The two wheel queries leave the relation reference empty. Their dynamic masks
+        # include category 0100, and catalog base player bodies have no authored receiver.
+        if profile not in (0x0690000000000079, 0x0690000000000111) or category != 0x0100:
+            return False
+        player = self.match._message_player(entity)
+        base = heroes().get(player.hero.guid) if player is not None else None
+        return base is not None and player.hero.body == base.body
 
     def communication_target(
         self, entity: int, offset, radius: float, aperture: float, category: int, *, profile: int = 0,

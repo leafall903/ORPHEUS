@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Bind posed base player models to both wheel ray profiles using the
+  original empty relation reference. Verify offline that a same-team
+  posed body can block selection, including through action 21608.
+  All 48 native category cases and 92 focused tests pass. General
+  pose coverage, special receivers and client acceptance remain open.
 - Verify the native wheel ray fallback for missing receiver handles and
   trace its relation reference field. All 20 offline instruction cases
   pass. Live reference production and client acceptance remain open.

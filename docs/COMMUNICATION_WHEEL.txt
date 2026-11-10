@@ -547,8 +547,11 @@ Source paths for the remaining actions
   The wheel's CAF660 call passes TrackTargets context +1A0 in stack
   slot +60. CA3570 copies it to ray request +40. Four native fixture
   cases verify the field transport. The fifth D607F0 argument instead
-  comes from search context +290. The source of the +1A0 field and
-  original player classification remain open.
+  comes from search context +290. The TrackTargets pointer slots
+  +188 through +1A8 match the ordered STU registry rows 3163AC8
+  through 3163BA8 after accounting for the registry's eight-byte
+  offset bias in this block. The reference at +1A0 corresponds to
+  m_9E1426F6. Original 05AD nodes 113 and 115 both leave it empty.
   The early bypass, null-candidate and exclusion-list paths instead
   return true with flags zero. Three native cases cover those paths.
   BED095 and BED8D5 continue shape lookup when the callback
@@ -583,8 +586,14 @@ Source paths for the remaining actions
   geometry to the sampled matrices. Tests transform the ray into bone
   space and check all 504 original shapes with a rotated, nonuniform
   transform. Each case verifies an interior start, an exterior hit,
-  a reversed ray and a segment that ends before the hit. Runtime
-  pose coverage and native per-shape admission remain open.
+  a reversed ray and a segment that ends before the hit. The match
+  now admits posed 0100 shapes from catalog base player bodies for
+  both wheel profiles. They use the missing-receiver fallback with
+  no relation reference, so same-team bodies can occlude the ray.
+  Forty-eight additional native cases exercise the 0100 category
+  in BF1DD0. The offline selection test exercises both profiles and the 21608
+  path. Other animation layers, replacement models and special
+  receiver/holder admission remain open.
   Action 016C reaches node 113 for Mercy and node 115 for Soldier: 76
   through the ordinary selection message. 05AD nodes 112 and 136 and
   0686 node 45 use STU_25ECB55F to test the source body's 0308.06C tag.

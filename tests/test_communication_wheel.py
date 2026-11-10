@@ -308,6 +308,18 @@ class CommunicationWheelTests(unittest.TestCase):
                 (5, 0x0100, ("sphere", 0x17DF, (0, 0, 0), 0.5)),
             ))
         run.match.combat.model_pose_for = poses.get
+        run.match.collision_world = World(())
+        blocker.team = speaker.team
+        args = speaker.body, expr.Vec3(0, 1.5, 0), 25, 20, 0x1FDF
+        for profile in (0x0690000000000079, 0x0690000000000111):
+            with self.subTest(default_profile=profile):
+                with patch.dict(poses, {blocker.body: None}):
+                    self.assertEqual(run.match.combat.communication_target(*args, profile=profile), target.body)
+                self.assertIsNone(run.match.combat.communication_target(*args, profile=profile))
+        script.command(script.frame + 150, 0)
+        run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+        run.match.deliver_body_messages()
+        self.assertEqual(wheel.vars[375].value(), ())
 
         wall = World(((-2, 0, 14.8, 2, 0, 14.8, -2, 3, 14.8),
                       (2, 0, 14.8, 2, 3, 14.8, -2, 3, 14.8)))
