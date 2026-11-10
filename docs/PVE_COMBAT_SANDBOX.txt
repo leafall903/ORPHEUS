@@ -454,7 +454,7 @@ Sniper repositioning frontier:
 
 Local Rialto integration runtime
 
-- Use `D:\overwatch 1.7.4\runtime-104319-rialto-pve` for ORPHEUS_RUNTIME_DIR
+- Use the prepared external Rialto runtime directory for ORPHEUS_RUNTIME_DIR
   and its `data\pve_npcs_174.json` for ORPHEUS_NPC_CATALOG. The runtime's
   default graph bundle includes the Rialto mission binding and Talon graphs.
 - The pack contains the 079F movement collision cache and the five Talon

@@ -132,6 +132,19 @@ def digest(component):
 
 
 class BodyVMSnapshotTests(unittest.TestCase):
+    def test_priority_dependency_kind_is_causal_snapshot_data(self):
+        component, instance = fixture()
+        state = instance.states[0]
+        state.active = True
+        variable = instance.find_var(expr.INSTANCE, 55)
+        state.watch(variable)
+        scalar = export_component_vm(component)
+        state.watch(variable, structural=True)
+        structural = export_component_vm(component)
+        self.assertNotEqual(snapshot_digest(scalar), snapshot_digest(structural))
+        self.assertEqual(elements(fields(raw(structural), ["var", 1, 55])["watchers"]),
+                         [[ref("state", 1, 0), True]])
+
     def test_pending_initialization_exports_without_running_or_changing_queued_work(self):
         component, instance = fixture()
         instance.initialization_pending = True

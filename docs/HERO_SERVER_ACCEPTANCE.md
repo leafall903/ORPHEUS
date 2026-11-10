@@ -10,6 +10,8 @@
 - **Ana**：两个 Biotic Rifle 输入路径可伤害敌人，也可治疗受伤的友军玩家和 NPC。服务器测试覆盖满血友军透过、尸体不复活和治疗上限。
 - **Mei**：喷雾与冰锥伤害、冰锥爆头、阵营、掩体、保留尸体和被攻击有服务器回归。爆头判定沿用服务器的简化模型。
 - **Winston**：Tesla Cannon 的输入、持续伤害、范围、掩体、多目标、阵营、装甲和 NPC 交互有服务器回归。目标锥和持续伤害装甲规则为重建。
+- **Pharah**：7 项补入的原线测试通过，覆盖火箭直击与溅射、掩体两侧、友军、NPC 尸体留存及被攻击。火箭冲量和其它技能未纳入此次复测。
+- **Genji 线共享机制**：相同数值的状态栈插入与移除可以刷新优先级条件，普通数值监听和快照仍通过回归。该结果只覆盖共享机制。
 
 ## 各线范围
 
@@ -21,13 +23,13 @@
 | 0005 Hanzo | 待整合 | 方向移动修正及弓箭链有局部证据。原版攀爬接触、箭矢与防御交互矩阵仍开。 |
 | 0006 Torbjörn | 待整合 | Rivet、Overload、炮塔、Molten Core 与 Matrix 局部测试。合版缺少投射物测试依赖及对应移植。 |
 | 0007 Reinhardt | 待整合 | Hammer、Fire Strike、Charge、Barrier、Earthshatter 有线内验收记录。完整矩阵和合版待验收。 |
-| 0008 Pharah | 待整合 | 火箭冲量、遮挡和 NPC 还击有线内测试。合版测试依赖、技能矩阵及原版表现待验收。 |
+| 0008 Pharah | 主火箭、静态掩体、NPC 和被攻击局部通过，来源 `e77d37b` | 火箭冲量、其他技能及原版表现待移植或验收。 |
 | 0009 Winston | Tesla Cannon 局部通过 | Barrier、Primal Rage、防御状态组合及原版效果仍开。来源 `33333e7`。 |
 | 000A Widowmaker | 待整合 | 狙击与 D.Va 破甲、机甲生命周期有私有线证据。当前全矩阵、原版表现和合版待验收。 |
 | 0015 Bastion | 待解决共享战斗与 NPC 代码冲突 | 交付 `034e5ff` 标记线内静态通过。原版客户端及合版尚未验收。 |
 | 0016 Symmetra | 待整合 | 主射、蓄能球、炮塔和传送有局部实现或测试。共享动作冲突及完整静态矩阵仍开。 |
 | 0020 Zenyatta | 待整合 | Orb、充能、反射和控制有局部回归。完整静态矩阵仍开。 |
-| 0029 Genji | 待整合 | Deflect、防御池、Dragonblade 和终极充能有局部证据。共享状态观察器冲突及完整矩阵仍开。 |
+| 0029 Genji | 共享状态栈优先级监听和快照回归通过，来源 `e4b86fa` | Deflect、防御池、Dragonblade 和终极充能有线内证据。战斗补丁及完整矩阵仍开。 |
 | 0040 Roadhog | 待整合 | Hook、Breather、Whole Hog 的冷却与 Hack/EMP 打断有线内测试。EMP 屏障及完整矩阵仍开。 |
 | 0042 McCree / Cassidy | 里阿尔托定向回归通过 | 原版剧情流程、狙击弹曳光精确落点及独立音轨、完整玩家对战矩阵和合版客户端复测仍开。 |
 | 0065 Junkrat | 待整合 | Steel Trap 的受害者停止和释放有线内回归。完整英雄静态矩阵仍开。 |
@@ -53,6 +55,8 @@
 设置 `ORPHEUS_RUNTIME_DIR` 指向已授权并准备好的 104319 服务器运行时，再从该工作树运行 `START_SERVER_LOCAL.cmd`。它提供仅服务器入口。原版客户端复测单独使用 1280×720 窗口模式。
 
 使用里阿尔托运行时执行 196 项测试，193 项通过。3 项 Junkenstein 测试缺少场景图，在原基础工作树用同一运行时复现。独立端口的服务器启动检查确认 Battle.net 和大厅可连接、游戏 UDP 已绑定、仪表盘返回 HTTP 200。
+
+后续增量通过 69 项状态脚本、快照、麦克雷及战斗回归，另有 7 项 Pharah 测试和 1 项 Practice Range 连接、世界创建与 Soldier 输入用例通过。
 
 合版测试包括 `test_game_ana`、`test_mei_combat`、`test_game_winston`、`test_game_combat`、`test_game_npc`、`test_npc_navigation`、`test_game_npc_control`、`test_npc_hotkeys`、`test_mccree_gun`、`test_mccree_roll`、`test_mccree_eye`、`test_pve_entrance`、`test_game_scene_host` 和 `test_arcade`。运行 `unittest` 时将工作树的 `tests` 目录加入 `PYTHONPATH`。
 

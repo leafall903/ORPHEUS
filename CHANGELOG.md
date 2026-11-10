@@ -6,6 +6,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Combined hero server
 
+- Port the Genji lane's structural state-stack dependency and verify Pharah rocket combat.
+  The state-script, snapshot and selected hero regression group passed 69 tests.
+  Seven Pharah tests and one Practice Range ownership and world startup test passed.
+  Original-client and complete hero coverage remain open.
+
 - Integrate the Ana Biotic Rifle, Mei icicle and Winston Tesla Cannon partial handoffs.
   The focused suite passed all 63 tests. The extended suite passed 193 of 196,
   with three missing Junkenstein graph errors also reproduced in the foundation.
