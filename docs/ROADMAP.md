@@ -103,6 +103,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     inputs and special camera inputs still require a server binding.
     Target visibility uses the rotated source offset and the native
     lower-then-upper body ray fallback in expanded static geometry.
+    All 32 base models declare the primary sight anchor. Native probes
+    verify anchor compilation, parent-matrix transforms and ray order.
+    Evaluated bone poses are still required for the primary sight ray.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace the primary sight anchor through 32 original player models.
+  The 160 native compile, lookup and transform cases, eight ray-order
+  cases and three offline targeting tests pass. Live bone poses and
+  original-client acceptance remain open.
 - Use the native lower and upper body ray fallback for directed callouts.
   Seven native fixture cases and 88 focused offline tests pass.
   Animated anchors, dynamic geometry and original-client acceptance remain open.
