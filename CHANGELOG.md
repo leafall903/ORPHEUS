@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the original voice pulse counter and reproduce a slot
+  substitution after a lost frame. All 11 native follow-count cases
+  pass. Per-pulse slot delivery and client playback remain open.
 - Keep a pending 0686 action when the graph accepts another selection.
   Both streams retry the first action with its original stamp and text
   before sending the second. All 93 focused tests and six native

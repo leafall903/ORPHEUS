@@ -670,6 +670,19 @@ Source paths for the remaining actions
   For a new voice graph, the first pulse sets the playback bit required
   by client reader 9FD760. It uses the body host's existing 500 ms
   freshness window. The native server's freshness duration is unknown.
+  The 9FD8CB follow path compares the wire counter at +24C to the
+  consumed counter at +248. It calls 1B73FA0 once per forward step,
+  wraps at 256 and ignores a zero step or a forward distance of
+  at least 128. Eleven original instruction cases verify duplicate,
+  wrap, boundary and skipped-count behavior. The follow adapter
+  records the slot supplied for the frame.
+  In an offline match, 016F first sends count 1 and choice 016F.
+  After a lost update and a valid 019D selection, both frame forms
+  send count 2 with only choice 019D. An established reader still
+  at count 0 follows the current slot twice. Preserving each pulse's
+  count and slot together until delivery remains open. Voice pulses
+  use state payloads. The short action queue cannot write those
+  payloads as action IDs.
 - On the 104319 image, ClientOutInstance 21616 is built by 904CFC and
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its

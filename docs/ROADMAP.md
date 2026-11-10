@@ -87,6 +87,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     recipient lifecycle, live model overrides and client playback remain open.
     The spray graph resolves the equipped unlock from the chosen slot.
     The voice graph resolves the equipped .00D playback effect.
+    Native probes verify the playback counter window and wrap.
+    A lost frame across two selections can merge pulses under the
+    newest slot. Per-pulse slot delivery remains open.
     The 21616 cosmetic-use report reaches the corresponding body instance.
     The body VM runs the inherited PC Action for unlock use. Native
     probes verify its prediction record and empty rewind hook.
