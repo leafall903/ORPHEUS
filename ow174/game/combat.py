@@ -48,6 +48,7 @@ What the server decides here:
 import logging
 import math
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from ow174.game import bots, contacts, observers, pools, projectiles, stats, voicelines, world
@@ -55,6 +56,7 @@ from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command
 from ow174.game.mover import mover_data
+from ow174.game.props import ModelPose
 from ow174.game.script import expr, graph, nodes, runtime
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import Snapshot
@@ -137,10 +139,16 @@ def _communication_screen_score(target: "Target", eye, forward, right, up) -> fl
     return min(1.0, math.hypot(dx, dy) * math.sqrt(0.5))
 
 
-def _communication_visible(rays: World | RayWorld, origin, target: "Target", category: int) -> bool:
-    # CA38D9 and CA4244 use the lower and upper body points when no anchor is available.
-    for height_fraction in (0.3, 0.6):
-        point = _along(target.feet, (0.0, 1.0, 0.0), target.height * height_fraction)
+def _communication_visible(
+    rays: World | RayWorld, origin, target: "Target", category: int, pose: ModelPose | None,
+) -> bool:
+    # CA408C, CA41F6 and CA4227 query the primary anchor, lower body and secondary anchor in order.
+    for key, height_fraction in ((0x0DC0000000000001, None), (None, 0.3), (0x0DC00000000001CD, 0.6)):
+        point = pose.hardpoint_position(key) if pose is not None and key is not None else None
+        if point is None:
+            if height_fraction is None:
+                continue
+            point = _along(target.feet, (0.0, 1.0, 0.0), target.height * height_fraction)
         delta = _sub(point, origin)
         distance = math.hypot(*delta)
         if distance <= EPSILON:
@@ -418,6 +426,7 @@ class Combat:
 
     def __init__(self, match) -> None:
         self.match = match
+        self.model_pose_for: Callable[[int], ModelPose | None] | None = None
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
@@ -674,7 +683,8 @@ class Combat:
             depth = _dot(delta, forward)
             if depth < limit * math.hypot(*delta):
                 continue
-            if not _communication_visible(rays, origin, target, category):
+            pose = self.model_pose_for(target.entity) if self.model_pose_for is not None else None
+            if not _communication_visible(rays, origin, target, category, pose):
                 continue
             screen = _communication_screen_score(target, eye, forward, right, up)
             # C9753A reads the candidate transform's translation.

@@ -481,8 +481,11 @@ Source paths for the remaining actions
   Native runs use the real 32 resource records with fixture allocation
   and parent-index lookup. They verify 32 compiled rows, 64 missing-key
   cases and 64 position results across two parent poses. The server
-  still needs evaluated bone poses, special query paths and runtime
-  model replacement handling.
+  decodes the same typed keys, parent bone IDs and offsets, and applies
+  current parent matrices supplied for the target body. Offline wheel
+  messages verify primary, lower and secondary rays and the upper-body
+  fallback when the secondary matrix is missing. The match still needs
+  a pose producer, special query paths and runtime model replacement.
   D607F0 reports occlusion for a hit owned by a different entity
   or by the world. A miss or a hit owned by the candidate is clear.
   Six native cases verify this decision with fixture scene returns.

@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Decode native sight anchors and use supplied world-space bone poses
+  in the original wheel ray order. Verify 32 original models and 64
+  parent transforms. Offline selection covers primary, lower, secondary
+  and upper fallback rays. All 90 focused tests pass. Pose production and
+  client acceptance remain open.
 - Decode 504 dynamic collision shapes from the 32 base player models
   with their original bone IDs, holder masks and actor category bits.
   All 45 focused tests pass. The static decoder matches its previous

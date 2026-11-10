@@ -49,6 +49,8 @@ player's own game install, like the collision chunk.
 import json
 import math
 import struct
+from collections.abc import Callable
+from dataclasses import dataclass
 from functools import cache
 
 from ow174.paths import DATA_DIR
@@ -388,6 +390,50 @@ def _moved(point, frame) -> tuple:
     t, q = frame
     x, y, z = _rotate32(q, point)
     return _f32(x + t[0]), _f32(y + t[1]), _f32(z + t[2])
+
+
+def model_hardpoints(data: bytes) -> dict[int, tuple[int, tuple]]:
+    """Read typed hardpoint keys, parent bone IDs and local offsets from a .00C model."""
+    payload = chunks(data).get("MSTU")
+    if payload is None or len(payload) < 16:
+        return {}
+    offset, size = struct.unpack_from("<qq", payload)
+    stu = Structured(payload[offset : offset + size])
+    points = {}
+    for item in stu.array(0, 0xC45F5F6F, 8):  # m_hardPoints
+        index, = struct.unpack_from("<i", item)
+        if not 0 <= index < len(stu.hashes) or stu.hashes[index] != 0xBE9DDFDF:
+            continue
+        fields = stu.fields[index]
+        key, parent = stu.raw(fields, NODE_ID), stu.raw(fields, PARENT)
+        if key is None or parent is None or len(key) != 8 or len(parent) != 8:
+            continue
+        guid, = struct.unpack("<Q", key)
+        bone, = struct.unpack("<Q", parent)
+        if guid >> 48 == 0x0DC0 and bone >> 48 == 0x0880:
+            points.setdefault(guid, (bone & 0xFFFFFFFF, _vector(stu.raw(fields, TRANSLATION))))
+    return points
+
+
+@dataclass(frozen=True)
+class ModelPose:
+    """Hardpoints on one actor model with a lookup of current world-space parent matrices."""
+
+    hardpoints: dict[int, tuple[int, tuple]]
+    bone_matrix: Callable[[int], tuple[float, ...] | None]
+
+    def hardpoint_position(self, key: int) -> tuple[float, float, float] | None:
+        point = self.hardpoints.get(key)
+        if point is None:
+            return None
+        bone, (x, y, z) = point
+        matrix = self.bone_matrix(bone)
+        if matrix is None or len(matrix) != 16:
+            return None
+        # 1AE6120 applies the parent matrix to the local offset as a position.
+        position = tuple(matrix[i] * x + matrix[4 + i] * y + matrix[8 + i] * z + matrix[12 + i]
+                         for i in range(3))
+        return position if all(math.isfinite(axis) for axis in position) else None
 
 
 def _model_shape_descriptors(data: bytes):

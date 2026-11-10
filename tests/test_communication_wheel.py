@@ -15,7 +15,7 @@ from ow174.accounts.profile import Profile
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates
 from ow174.content.collection import Collection
-from ow174.game import combat, messages, observers, statescript
+from ow174.game import combat, messages, observers, props, statescript
 from ow174.game.bits import BitWriter
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import RayAttachment, RayHit, RayWorld, StaticCollisionProvider, World, flat_world
@@ -227,6 +227,55 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertAlmostEqual(endpoint[2], 15.0)
                 expected = (expr.Entity(target.body),) if owner == "target" else ()
                 self.assertEqual(wheel.vars[375].value(), expected)
+
+    def test_wheel_rays_use_current_model_anchors_in_order(self):
+        run = Run(names=("Speaker", "Target"))
+        speaker, target = run.players
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        target.mover.position = (0.0, 0.0, 15.0)
+        rays = run.match.collision_world = World(())
+        primary, secondary = 0x0DC0000000000001, 0x0DC00000000001CD
+        height = combat.mover_data(target.hero.body).stand_height
+        obstruction = RayHit(5.0, (0.0, 1.0, 5.0), (0.0, 0.0, -1.0), 1, 0)
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+        positions = {5: (0.0, 1.5, 15.0), 6: (0.0, 1.2, 15.0)}
+        lookups = []
+
+        def matrix(bone):
+            lookups.append(bone)
+            if bone not in positions:
+                return None
+            return (0, 0, -2, 0, 0, 3, 0, 0, 2, 0, 0, 0, *positions[bone], 1)
+
+        pose = props.ModelPose(
+            {primary: (5, (0.25, 0.125, 0.25)), secondary: (6, (0.0, 0.1, 0.0))},
+            matrix,
+        )
+        run.match.combat.model_pose_for = lambda entity: pose if entity == target.body else None
+        for blocked, remove_secondary, expected, bones in (
+            (0, False, [(0.5, 1.875, 14.5)], [5]),
+            (1, False, [(0.5, 1.875, 14.5), (0, 0.3 * height, 15)], [5]),
+            (2, False, [(0.5, 1.875, 14.5), (0, 0.3 * height, 15), (0, 1.5, 15)], [5, 6]),
+            (2, True, [(0.5, 1.875, 14.5), (0, 0.3 * height, 15), (0, 0.6 * height, 15)], [5, 6]),
+        ):
+            with self.subTest(blocked=blocked, remove_secondary=remove_secondary):
+                lookups.clear()
+                if remove_secondary:
+                    del positions[6]
+                script.command(script.frame + 150, 0)
+                with patch.object(rays, "cast_ray", side_effect=[obstruction] * blocked + [None]) as ray:
+                    run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+                    run.match.deliver_body_messages()
+                self.assertEqual(wheel.vars[375].value(), (expr.Entity(target.body),))
+                self.assertEqual(ray.call_count, len(expected))
+                self.assertEqual(lookups, bones)
+                for call, wanted in zip(ray.call_args_list, expected, strict=True):
+                    origin, direction, length, _ = call.args
+                    endpoint = tuple(a + b * length for a, b in zip(origin, direction, strict=True))
+                    for actual, coordinate in zip(endpoint, wanted, strict=True):
+                        self.assertAlmostEqual(actual, coordinate)
 
     def test_wheel_retries_above_partial_body_cover(self):
         run = Run(names=("Speaker", "Target"))
