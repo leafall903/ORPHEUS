@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify Biped3P greeting parameter writes and reads in 28 offline instruction cases.
+  Upstream state inputs and greeting pose composition remain open.
+
 - Identify the authored third-person parameter updater for all 33 exported greeting bodies.
 
 - Trace scoped greeting parameter fields, clamp and misses in 20 offline native cases.
