@@ -90,8 +90,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     type methods are identified, and the action's effect remains open.
     Upright player targets use the native screen rectangle score with
     server stance dimensions and command aim. Equal screen scores use
-    candidate root distance. Animated anchors and special camera inputs
-    still require a server binding.
+    candidate root distance. The search origin rotates the authored
+    offset around the first-person pivot. Animated anchors, live pivot
+    inputs and special camera inputs still require a server binding.
     Target visibility uses expanded static rays with the common 1FDF
     mask recovered from both .097 profiles. Need Healing uses the authored
     source body tag in its targeting and voice branches. Marker effects,

@@ -348,8 +348,14 @@ Source paths for the remaining actions
   its search origin to the candidate mover root. A selection test
   distinguishes root ordering when both screen rectangles contain
   the reticle. The host uses mover dimensions and eye height.
-  Animated anchors, special camera bases and exact source transform
-  composition remain open. Expanded static rays supply line of sight.
+  The wheel sets m_0297060F and omits the hardpoint selector.
+  C9A8DF gets signed pitch from C61F70. C9A92F rotates the
+  authored local offset about D9F3F0's first-person pivot before
+  the actor basis maps it into world space. Six native cases cover
+  signed pitch and fixture pivot values. The host composes that
+  offset using command aim and its current standing or crouched
+  eye height. Animated anchors, live pivot inputs and special
+  camera bases remain open. Expanded static rays supply line of sight.
   With no expanded cache, the ray uses the movement world's shapes.
   CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
   +28 and +35 through 17A8FC0 and writes the results into request

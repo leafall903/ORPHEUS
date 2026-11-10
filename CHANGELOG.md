@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Rotate the wheel's search offset around the first-person pivot
+  using signed command pitch. Six native cases and 84 focused
+  offline tests pass. Live pivot inputs and original-client acceptance
+  remain open.
 - Use candidate root positions for the wheel's world-distance score.
   The equal-screen-score selection regression and all 83 focused
   offline tests pass. Original-client acceptance remains deferred.

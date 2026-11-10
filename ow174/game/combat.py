@@ -628,14 +628,16 @@ class Combat:
             return None
 
         mover = source.mover
-        origin = tuple(axis + delta for axis, delta in zip(mover.position, offset, strict=True))
         x, y, z = mover.position
-        eye = (x, y + eye_height(source.hero.body, mover.crouched), z)
+        pivot = eye_height(source.hero.body, mover.crouched)
+        eye = (x, y + pivot, z)
         forward = aim(mover.yaw, mover.pitch)
-        limit = math.cos(math.radians(aperture * 0.5))
-        start, end = _along(origin, forward, -radius), _along(origin, forward, radius)
         right = aim(mover.yaw + 16384, 0)
         up = aim(mover.yaw, mover.pitch - 16384)
+        # C9A92F pitches the local offset around the first-person pivot.
+        origin = _along(_along(_along(eye, right, offset.x), up, offset.y - pivot), forward, offset.z)
+        limit = math.cos(math.radians(aperture * 0.5))
+        start, end = _along(origin, forward, -radius), _along(origin, forward, radius)
         rays = collision.ray_geometry or collision
         best = None
         best_score = math.inf

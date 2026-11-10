@@ -226,6 +226,26 @@ class CommunicationWheelTests(unittest.TestCase):
         run.match.deliver_body_messages()
         self.assertEqual(wheel.vars[375].value(), (expr.Entity(higher.body),))
 
+    def test_wheel_pitches_search_origin_around_first_person_pivot(self):
+        run = Run(names=("Speaker", "Target"))
+        speaker, _ = run.players
+        run.match.collision_world = World(())
+        speaker.mover.position = (2.0, 3.0, 4.0)
+        speaker.mover.yaw = 16384
+        speaker.mover.pitch = 8192
+        pivot = combat.eye_height(speaker.hero.body)
+        rotated = (1.0 - pivot) * (0.5 ** 0.5)
+        expected = (2.0 + rotated, 3.0 + pivot + rotated, 4.0)
+
+        script = speaker.body_script
+        script.command(script.frame + 150, 0)
+        with patch.object(combat, "segment_distance", wraps=combat.segment_distance) as distance:
+            run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+            run.match.deliver_body_messages()
+        origin = distance.call_args_list[0].args[0]
+        for actual, wanted in zip(origin, expected, strict=True):
+            self.assertAlmostEqual(actual, wanted)
+
     def test_confirmed_action_directs_callout_only_to_the_aimed_teammate(self):
         cases = (
             (0x1E5, 0x12F4, PRACTICE_RANGE, True),
