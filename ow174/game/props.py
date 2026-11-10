@@ -467,6 +467,7 @@ class ModelPose:
 
     hardpoints: dict[int, tuple[int, tuple]]
     bone_matrix: Callable[[int], tuple[float, ...] | None]
+    actor_shapes: tuple[tuple[int, int, tuple], ...] = ()
 
     @classmethod
     def from_local_bones(
@@ -475,6 +476,7 @@ class ModelPose:
         reference: dict[int, tuple[int | None, BoneTransform]],
         model_to_world: tuple[float, ...],
         sampled: dict[int, BoneTransform],
+        actor_shapes: tuple[tuple[int, int, tuple], ...] = (),
     ) -> "ModelPose":
         """Compose one pose from sampled local transforms and reference values for untouched bones."""
         if len(model_to_world) != 16:
@@ -487,7 +489,7 @@ class ModelPose:
                 sum(outer[4 * k + row] * local[4 * column + k] for k in range(4))
                 for column in range(4) for row in range(4)
             )
-        return cls(hardpoints, matrices.get)
+        return cls(hardpoints, matrices.get, actor_shapes)
 
     def hardpoint_position(self, key: int) -> tuple[float, float, float] | None:
         point = self.hardpoints.get(key)

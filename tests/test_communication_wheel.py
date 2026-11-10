@@ -292,6 +292,45 @@ class CommunicationWheelTests(unittest.TestCase):
                     for actual, coordinate in zip(endpoint, wanted, strict=True):
                         self.assertAlmostEqual(actual, coordinate)
 
+    def test_wheel_orders_admitted_actor_shapes_with_static_hits(self):
+        run = Run(names=("Speaker", "Target", "Blocker"))
+        speaker, target, blocker = run.players
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        target.mover.position = (0.0, 0.0, 15.0)
+        blocker.mover.position = (8.0, 0.0, 5.0)
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+        poses = {}
+        for player, depth in ((blocker, 5.0), (target, 14.0)):
+            matrix = (0, 0, -1, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 1, depth, 1)
+            poses[player.body] = props.ModelPose({}, {5: matrix}.get, (
+                (5, 0x0100, ("sphere", 0x17DF, (0, 0, 0), 0.5)),
+            ))
+        run.match.combat.model_pose_for = poses.get
+
+        wall = World(((-2, 0, 14.8, 2, 0, 14.8, -2, 3, 14.8),
+                      (2, 0, 14.8, 2, 3, 14.8, -2, 3, 14.8)))
+        for admission, world, expected in (
+            (blocker.body, World(()), ()),
+            (None, World(()), (expr.Entity(target.body),)),
+            (target.body, wall, (expr.Entity(target.body),)),
+            (None, wall, ()),
+        ):
+            with self.subTest(admission=admission, wall=bool(world)):
+                run.match.collision_world = world
+
+                def admits(profile, source, actor, category, mask):
+                    self.assertEqual((profile, source, category, mask),
+                                     (0x0690000000000079, speaker.body, 0x0100, 0x17DF))
+                    return actor == admission
+
+                run.match.combat.wheel_actor_admits = admits
+                script.command(script.frame + 150, 0)
+                run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+                run.match.deliver_body_messages()
+                self.assertEqual(wheel.vars[375].value(), expected)
+
     def test_wheel_retries_above_partial_body_cover(self):
         run = Run(names=("Speaker", "Target"))
         speaker, target = run.players

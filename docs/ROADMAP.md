@@ -144,7 +144,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The actor category writer is verified with fixture shape inputs
     and original holders from seven player and NPC models. The actor
     decoder extracts 504 enabled bone-local shapes across all 32 base
-    player models. Live pose and query integration remain open.
+    player models. The wheel merges posed shape and static hits when
+    supplied a dynamic admission service. Native admission and pose
+    coverage remain open.
     Need Healing uses the authored source body tag in its targeting
     and voice branches. Marker effects,
     runtime tag mutations, dynamic target geometry and deployable eligibility

@@ -7,7 +7,7 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from functools import lru_cache
 
-from ow174.game.props import BoneTransform, ModelPose, model_hardpoints, model_reference_bones
+from ow174.game.props import BoneTransform, ModelPose, actor_model_shapes, model_hardpoints, model_reference_bones
 
 
 _TRACK_HEADER = struct.Struct("<4H6i")
@@ -168,7 +168,7 @@ def _wheel_model(path):
         data = path.read_bytes()
     except FileNotFoundError:
         return None
-    return model_hardpoints(data), model_reference_bones(data)
+    return model_hardpoints(data), model_reference_bones(data), tuple(actor_model_shapes(data))
 
 
 def wheel_clip_pose(directory, body: int, clip: int, seconds: float,
@@ -179,10 +179,10 @@ def wheel_clip_pose(directory, body: int, clip: int, seconds: float,
     animation = _wheel_clip(directory / "clips" / f"{clip & 0xFFFFFFFFFFFF:012X}.006")
     if animation is None:
         return None
-    hardpoints, reference = model
+    hardpoints, reference, shapes = model
     if looping and animation.duration > 0:
         seconds %= animation.duration
     sampled = animation.sample_absolute(seconds, reference)
     if not sampled:
         return None
-    return ModelPose.from_local_bones(hardpoints, reference, transform, sampled)
+    return ModelPose.from_local_bones(hardpoints, reference, transform, sampled, shapes)

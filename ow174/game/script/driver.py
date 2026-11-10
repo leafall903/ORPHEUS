@@ -254,13 +254,16 @@ class BodyWorld(runtime.World):
             return NotImplemented
         collision_filter = state.node.field("m_3D667CE3") or {}
         profile = collision_filter.get("m_C1903771") or {}
-        category = WHEEL_TARGET_CATEGORIES.get(expr.guid_of(profile.get("m_C1903771")))
+        profile_id = expr.guid_of(profile.get("m_C1903771"))
+        category = WHEEL_TARGET_CATEGORIES.get(profile_id)
         if category is None:
             return NotImplemented
         offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
         radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
         aperture = expr.to_float(state.evaluate(state.node.field("m_A30B383E"), watch=False))
-        target = self.match.combat.communication_target(self.body, offset, radius, aperture, category)
+        target = self.match.combat.communication_target(
+            self.body, offset, radius, aperture, category, profile=profile_id,
+        )
         return (target,) if target is not None else ()
 
     def resolve_spray(self, length: float) -> dict | None:

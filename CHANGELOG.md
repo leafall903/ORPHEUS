@@ -8,6 +8,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Intersect the wheel ray with admitted bone-local actor shapes and
+  preserve nearest-hit ownership across actor and static geometry.
+  Verify 504 original shapes and offline wheel selection with explicit
+  admission. All 92 focused tests pass. Native admission, pose coverage
+  and client acceptance
+  remain open.
 - Identify the greeting blend trees' high-bit data-flow inputs. Check
   the 104319 manifest and the declared parameter IDs in 03B1 and 0054.
   Runtime provider values and client acceptance remain open.

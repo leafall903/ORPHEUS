@@ -140,7 +140,7 @@ def _communication_screen_score(target: "Target", eye, forward, right, up) -> fl
 
 
 def _communication_visible(
-    rays: World | RayWorld, origin, target: "Target", category: int, pose: ModelPose | None,
+    rays: World | RayWorld, origin, target: "Target", category: int, pose: ModelPose | None, actor_shapes=(),
 ) -> bool:
     # CA408C, CA41F6 and CA4227 query the primary anchor, lower body and secondary anchor in order.
     for key, height_fraction in ((0x0DC0000000000001, None), (None, 0.3), (0x0DC00000000001CD, 0.6)):
@@ -155,9 +155,57 @@ def _communication_visible(
             return True
         direction = tuple(axis / distance for axis in delta)
         hit = rays.cast_ray(origin, direction, distance, category)
-        if hit is None or (hit.attachment is not None and hit.attachment.entity == target.entity):
+        nearest = hit.distance if hit is not None else distance
+        owner = hit.attachment.entity if hit is not None and hit.attachment is not None else None
+        for entity, matrix, geometry in actor_shapes:
+            crossing = _posed_shape_distance(origin, direction, nearest, matrix, geometry)
+            if crossing is not None and (crossing < nearest or hit is None and owner is None):
+                nearest, owner = crossing, entity
+        if owner == target.entity or (owner is None and hit is None):
             return True
     return False
+
+
+def _posed_shape_distance(origin, direction, reach: float, matrix, geometry) -> float | None:
+    """Intersect the world segment against an admitted bone-local shape."""
+    x, y, z = matrix[:3], matrix[4:7], matrix[8:11]
+    rows = (contacts.cross(y, z), contacts.cross(z, x), contacts.cross(x, y))
+    determinant = _dot(x, rows[0])
+    if not math.isfinite(determinant) or abs(determinant) <= EPSILON:
+        return None
+    relative = _sub(origin, matrix[12:15])
+    local_origin = tuple(_dot(row, relative) / determinant for row in rows)
+    local_direction = tuple(_dot(row, direction) / determinant for row in rows)
+    if not all(math.isfinite(value) for value in (*local_origin, *local_direction)):
+        return None
+    kind = geometry[0]
+    if kind == "hull":
+        enter, leave = 0.0, reach
+        for nx, ny, nz, plane in geometry[4]:
+            normal = (nx, ny, nz)
+            gap = plane - _dot(normal, local_origin)
+            speed = _dot(normal, local_direction)
+            if abs(speed) <= EPSILON:
+                if gap < 0.0:
+                    return None
+                continue
+            if speed < 0.0:
+                enter = max(enter, gap / speed)
+            else:
+                leave = min(leave, gap / speed)
+            if enter > leave:
+                return None
+        return enter
+    if kind not in ("capsule", "sphere"):
+        return None
+    speed = math.hypot(*local_direction)
+    if speed <= EPSILON:
+        return None
+    axis = tuple(value / speed for value in local_direction)
+    a = geometry[2]
+    b = geometry[3] if kind == "capsule" else a
+    crossing = ray_capsule(local_origin, axis, a, b, geometry[-1])
+    return crossing / speed if crossing is not None and crossing <= reach * speed else None
 
 
 def ray_capsule(origin, direction, a, b, radius: float) -> float | None:
@@ -427,6 +475,7 @@ class Combat:
     def __init__(self, match) -> None:
         self.match = match
         self.model_pose_for: Callable[[int], ModelPose | None] = self._wheel_model_pose
+        self.wheel_actor_admits: Callable[[int, int, int, int, int], bool] | None = None
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
@@ -657,7 +706,7 @@ class Combat:
         return script.world.wheel_model_pose(script.component, transform)
 
     def communication_target(
-        self, entity: int, offset, radius: float, aperture: float, category: int,
+        self, entity: int, offset, radius: float, aperture: float, category: int, *, profile: int = 0,
     ) -> int | None:
         collision = self.match.collision_world
         source = self.match._message_player(entity)
@@ -680,7 +729,22 @@ class Combat:
         rays = collision.ray_geometry or collision
         best = None
         best_score = math.inf
-        for target in self._targets():
+        targets = self._targets()
+        poses = {}
+        actor_shapes = []
+        if self.wheel_actor_admits is not None:
+            for actor in targets:
+                if actor.entity == entity:
+                    continue
+                pose = poses[actor.entity] = self.model_pose_for(actor.entity)
+                if pose is None:
+                    continue
+                for bone, actor_category, geometry in pose.actor_shapes:
+                    if self.wheel_actor_admits(profile, entity, actor.entity, actor_category, geometry[1]):
+                        matrix = pose.bone_matrix(bone)
+                        if matrix is not None and len(matrix) == 16:
+                            actor_shapes.append((actor.entity, matrix, geometry))
+        for target in targets:
             if target.entity == entity or isinstance(target.owner, bots.Bot) or self.is_dead(target.owner):
                 continue
             a, b = target.segment()
@@ -694,8 +758,8 @@ class Combat:
             depth = _dot(delta, forward)
             if depth < limit * math.hypot(*delta):
                 continue
-            pose = self.model_pose_for(target.entity)
-            if not _communication_visible(rays, origin, target, category, pose):
+            pose = poses[target.entity] if target.entity in poses else self.model_pose_for(target.entity)
+            if not _communication_visible(rays, origin, target, category, pose, actor_shapes):
                 continue
             screen = _communication_screen_score(target, eye, forward, right, up)
             # C9753A reads the candidate transform's translation.
