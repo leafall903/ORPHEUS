@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify the authored callout recipient classes and native chat dispatch.
+  All 29 native recipient and relation-tail cases and 34 offline wheel
+  and codec tests pass. Entity service lookup and original-client chat
+  acceptance remain open.
 - Trace marker presenters to their entity and mode resources and verify
   the authored wheel auxiliary scope targets. The 36 focused offline
   tests pass. The targeted marker effect and original-client scope

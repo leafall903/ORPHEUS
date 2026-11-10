@@ -450,7 +450,24 @@ Source paths for the remaining actions
   reaches the client chat path. The six authored 0686 actions now enter
   owner and observer deltas as short frame actions. They use the graph's
   synchronized variables and leave text rendering and filtering to the
-  native action handler. Recipient rules still need individual verification.
+  native action handler. Of the 38 actions in 05AD, the five
+  networked directed nodes are 13, 53, 54, 78 and 166. Node 49 is
+  a client-only directed action. The other 32 and all six 0686 nodes
+  use the non-directed form. Each directed action supplies an entity
+  to m_63CB0D07 and sets m_D030750C.
+  AD1A19 selects the recipient policy. The directed path needs a
+  view context and compares the recipient pointer to 5831A0's
+  result. The non-directed path uses channel 6 if the source is
+  unresolved. Otherwise it needs a view context and a true C1C0E0
+  comparison against 582B10's result. Eligible entity-based output
+  uses channel 5 with either plain or formatted text. AD1ABF can
+  suppress that output after the speaker checks at B64880/B64980.
+  Thirteen native dispatch cases exercise these paths with fixture
+  context and chat services. Sixteen relation-tail cases execute
+  C1C2B5 and C1D7D1 with fixture classifiers, entity IDs and side
+  values. They verify the ordinary same-entity and same-side paths,
+  distinct sides and the -1 and 4 exception inputs. The complete
+  entity lookup and special classification remain open.
   The wheel's BD02E168 states 40, 41 and 42 enter 05AD nodes 6, 24
   and 89 through m_5B10D01F. All three entry nodes and all 21 state
   indexes in the three exit lists are client-only. Owner-frame tests
@@ -487,8 +504,8 @@ Source paths for the remaining actions
   The original 104319 frame reader accepts 1,555 generated 05AD frames
   per form. The server keeps up to 32 recent callouts per body and
   expires 05AD actions after two seconds of body simulation time.
-  Those bounds are server delivery policy. Target acquisition and the
-  client's filtering and presentation still need verification.
+  Those bounds are server delivery policy. Target acquisition and
+  original-client presentation still need verification.
 
 Remaining static work includes the original selection and targeting
 transport, callout delivery and recipient rules, the emote and cosmetic

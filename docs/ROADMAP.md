@@ -88,6 +88,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
     Marker effects, native target geometry and deployable eligibility remain open.
     The recipient graph sends the actions in order with each action's source.
+    Native fixtures verify the local entity check for directed chat and
+    the source and relation branches for other callouts.
     The server accepts the original wheel's 21608 action GUID and flag and
     delivers them to the sender's 02A3 graph entry. Acknowledge also
     preserves the selected marker as parameter 0644. An offline packet
