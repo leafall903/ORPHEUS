@@ -18,7 +18,7 @@ from ow174.content.collection import Collection
 from ow174.game import combat, messages, observers, statescript
 from ow174.game.bits import BitWriter
 from ow174.game.body_vm_snapshot import export_body_vm
-from ow174.game.collision import RayAttachment, RayHit, StaticCollisionProvider, World, flat_world
+from ow174.game.collision import RayAttachment, RayHit, RayWorld, StaticCollisionProvider, World, flat_world
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.match import Match
@@ -583,7 +583,8 @@ class CommunicationWheelTests(unittest.TestCase):
             (3.0, (), 0, False),
         ):
             with self.subTest(distance=distance, unlocks=unlocks, yaw=yaw):
-                world = World((*wall(1.0), *wall(distance)), masks=(0x18, 0x18, 0x40, 0x40))
+                world = World(wall(1.0), masks=(0x18, 0x18))
+                world.spray_geometry = RayWorld(wall(distance), masks=(0x40, 0x40))
                 match = Match(
                     PRACTICE_RANGE, collision_provider=StaticCollisionProvider(world),
                     wheel_cosmetics_of=lambda *_: (unlocks, ()),

@@ -72,8 +72,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     The 21616 cosmetic-use report reaches the corresponding body instance.
     The native unlock-use action remains open.
     The spray graph resolves eligible surfaces in loaded static collision and
-    replicates the placement in owner and observer frames. Declared attachment
-    poses produce local point and normal data for both streams.
+    replicates the placement in owner and observer frames. Expanded ray caches
+    supply spray-only surfaces and mode props when prepared for the map.
+    Declared attachment poses produce local point and normal data for both streams.
     Live collision attachment discovery, native lifetime and client-side cosmetic access remain open.
     The 0686 localized actions travel in owner and observer deltas.
     All 20 directed 05AD messages reach an offline fixture's chosen body.

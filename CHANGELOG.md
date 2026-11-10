@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Load the expanded static ray cache for spray placement and include its
+  geometry in collision replay fingerprints. An offline Practice Range
+  ray hits a surface that the movement cache omits. All 26 focused collision
+  and wheel tests pass. Other maps require prepared ray caches. Dynamic
+  attachments, decal lifetime and original-client acceptance remain open.
 - Resolve nested model animation durations using the authored category order
   and parent categories. The local timing table covers all 284 untagged and
   eight tagged equipped mappings in the three wheel categories. All 97

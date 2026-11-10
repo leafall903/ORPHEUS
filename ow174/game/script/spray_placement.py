@@ -4,13 +4,13 @@ import math
 import struct
 
 from ow174.game import contacts
-from ow174.game.collision import RayHit
+from ow174.game.collision import SPRAY, RayHit
 from ow174.game.script.expr import f32, round_half_away
 
 STATE_CLASS = "STU_861D9015"
 CODEC = "861D9015"
 POLE = 0.9998455047607422
-SURFACE_CATEGORY = 0x40  # D0FCB0 ray request category
+SURFACE_CATEGORY = SPRAY
 
 
 def _quantize(angle: float, scale: float) -> int:

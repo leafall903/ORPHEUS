@@ -1081,7 +1081,8 @@ class Match:
         x, y, z = mover.position
         origin = (x, y + combat.eye_height(player.hero.body, mover.crouched), z)
         direction = combat.aim(mover.yaw, mover.pitch)
-        hit = collision.cast_ray(origin, direction, length, spray_placement.SURFACE_CATEGORY)
+        spray_geometry = collision.spray_geometry or collision
+        hit = spray_geometry.cast_ray(origin, direction, length, spray_placement.SURFACE_CATEGORY)
         if hit is None:
             return None
         return spray_placement.from_hit(direction, hit)

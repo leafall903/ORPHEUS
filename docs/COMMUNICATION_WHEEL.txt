@@ -72,7 +72,15 @@ Source paths for the remaining actions
   three frame contexts. Executing D0FCB0 with a query stub confirms
   the 0x40 category, the eye ray endpoints and the returned hit bit.
   The body host takes the current eye position and aim, and traces the
-  authored 4.5 metres against the loaded static collision cache.
+  authored 4.5 metres against loaded static collision. The match collision
+  loader pins the category 0x40 portion of the map's expanded .rays.col
+  with the mode's placeable identifiers. The replay collision fingerprint
+  includes the pinned triangles and round props. With an absent or
+  unreadable sidecar, the ray uses the movement world's retained surfaces.
+  Build a map's sidecar with tools/build_collision.py --ray-geometry.
+  The local 0688 Practice Range sidecar has 299968 spray triangles,
+  including 274205 without either mover category. An offline 4.5-metre
+  ray hits an exclusive triangle at 0.1 m where the mover cache misses.
   02CF state 1 follows its success plug and pulses state 14 when an
   equipped spray hits. The failure path clears placement on a miss
   or empty slot.
@@ -96,8 +104,8 @@ Source paths for the remaining actions
   world point and normal for four rotations and two input pairs.
   A collision fixture sends both root and keyed attachments through
   the authored state in owner and observer frames.
-  Current production ray caches still supply world-space static
-  hits. Dynamic hit ownership and anchor production, decal lifetime,
+  The expanded ray cache supplies world-space static hits.
+  Dynamic hit ownership and anchor production, decal lifetime,
   full collision filtering and the server-side unlock-use effect remain open.
 - Voice lines use the adjacent 25FB100 table in 104319. CE6260 implements
   STU_955C40AE using 44A980. The config appears in 0686 node 67 inside

@@ -19,12 +19,14 @@ from ow174.paths import ROOT
 SCHEMA = "ow174.collision-world.v1"
 MODEL_FILES = (
     "ow174/game/collision.py", "ow174/game/contacts.py", "ow174/game/props.py",
-    "ow174/game/collision_fingerprint.py",
+    "ow174/game/collision_fingerprint.py", "ow174/game/static_ray.py",
 )
-WORLD_FIELDS = frozenset({
-    "name", "data", "masks", "surfaces", "grid", "columns", "large", "lock", "lowest",
-    "large_tuples", "engine",
+TRIANGLE_SCENE_FIELDS = frozenset({
+    "name", "data", "masks", "surfaces", "grid", "columns", "large", "lock", "lowest", "large_tuples",
 })
+WORLD_FIELDS = TRIANGLE_SCENE_FIELDS | {"engine", "spray_geometry"}
+RAY_FIELDS = TRIANGLE_SCENE_FIELDS | {"round_props"}
+ROUND_PROP_FIELDS = frozenset({"a", "b", "radius", "mask"})
 MESH_FIELDS = frozenset({
     "vertices", "raw", "scale", "inverse_scale", "mask", "cache", "boxes", "corners", "masks",
     "surfaces", "bounds", "large", "grid", "low", "high",
@@ -283,8 +285,7 @@ def _engine(engine):
     }
 
 
-def _record(world):
-    record = _fields(world, collision.World, WORLD_FIELDS)
+def _triangle_scene(world, record):
     if type(world.name) is not str:
         _fail("collision world name must be text")
     for name, code in (("data", "d"), ("masks", "H"), ("surfaces", "H"), ("large", "I")):
@@ -295,7 +296,21 @@ def _record(world):
     _world_columns(world)
     del record["columns"], record["lock"]
     record["grid"] = _grid(world.grid, lambda entries: _grid_indices(entries, count))
+    return record
+
+
+def _record(world):
+    record = _triangle_scene(world, _fields(world, collision.World, WORLD_FIELDS))
     record["engine"] = _engine(world.engine)
+    rays = record.pop("spray_geometry")
+    if rays is not None:
+        geometry = _triangle_scene(rays, _fields(rays, collision.RayWorld, RAY_FIELDS))
+        if type(rays.round_props) is not tuple:
+            _fail("unsupported round prop collection")
+        geometry["round_props"] = tuple(
+            _fields(shape, collision._RoundProp, ROUND_PROP_FIELDS) for shape in rays.round_props
+        )
+        record["spray_geometry"] = geometry
     record["layout"] = {
         "world_cell": collision.CELL, "world_large": collision.LARGE,
         "mesh_cell": contacts.MeshShape.CELL, "mesh_large": contacts.MeshShape.LARGE,
