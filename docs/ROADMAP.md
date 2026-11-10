@@ -86,6 +86,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     Authored eligibility gates route actions to the aimed teammate and use the
     ordinary callout for enemies and free-for-all.
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
+    The selected marker reaches the authored terminal action. Its client
+    type methods are identified, and the action's effect remains open.
     Target visibility uses expanded static rays with the common 1FDF
     mask recovered from both .097 profiles. Need Healing uses the authored
     source body tag in its targeting and voice branches. Marker effects,

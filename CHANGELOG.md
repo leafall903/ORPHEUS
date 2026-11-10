@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Classify the three client code references to the targeted Acknowledge
+  action's type key. Nine offline native checks cover its STU type
+  methods. The effect handler and original-client acceptance remain open.
 - Resolve the Need Healing source tag from the seven tagged 104319
   player body definitions. The selection regression exercises the
   distinct target branches with Soldier: 76 and Mercy. All 81 focused

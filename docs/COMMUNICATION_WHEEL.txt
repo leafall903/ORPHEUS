@@ -445,9 +445,15 @@ Source paths for the remaining actions
   value reaches STU_631D36C3 at node 165. The authored action
   receives variable 16376 in m_4A5CA514 and has no outgoing link.
   Registration 276770 pairs the class with STU descriptor
-  31BEBA0 and type key 2DF7B50. A scan of the mapped image finds
-  the key in its own record and the STU descriptor, without a
-  runtime constructor row. Adjacent descriptor 31BEC60 belongs
+  31BEBA0 and type key 2DF7B50. The registration name is Unknown.
+  Absolute pointers to the key occur in its own record and the STU
+  descriptor. The three RIP-relative references are in vtable slots
+  2757830, 2757838 and 2757840. Their functions return the key
+  (15EF1A0), walk its STU inheritance chain (15F1EC0) and compare
+  the exact type (15F0BE0). Nine offline native cases confirm these
+  roles. No runtime constructor row for the action has been located.
+  The neighboring key 2DF7B40 does have one for the marker presenter,
+  with constructor ADE350. Adjacent descriptor 31BEC60 belongs
   to 1E0773EB and its projection presenter is a separate class.
   The host forwards a nonzero 21608 entity field for action 0170
   as parameter 0644. A byte-level test reaches 05AD node 165 with
