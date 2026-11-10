@@ -106,8 +106,11 @@ A checked item records evidence for that specific scope. Its parent remains open
     also receive their authored feedback action. Spray success and
     failure send the corresponding 02CF effect actions.
     Repeated ultimate status reports 89, 90 and 100 percent through the
-    same instance after its voice stack expires. A lost packet retries
-    the original percentage. The legacy Symmetra 0169 receiver replicates
+    same instance after its voice stack expires. Pending callouts on
+    that instance keep their original text and stamp across a new
+    selection. A lost packet retries the original percentage.
+    Each status also sends its authored effect after the localized
+    action. The legacy Symmetra 0169 receiver replicates
     its teleporter status when 020F is explicitly selected and supplied with
     its graphs and online state. Junkenstein checks 020F in legacy dialogue
     branches. Its inspected boss spawn rows use hero 0016, whose catalog

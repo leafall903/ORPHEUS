@@ -1453,7 +1453,7 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertNotIn(greeting.id, owner.graphs)
                 self.assertIn(callout.id, owner.graphs)
 
-    def test_callout_deltas_retry_with_one_stamp_and_stop_after_ack(self):
+    def test_reused_callout_retries_previous_selection_before_sending_next(self):
         match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
         [create] = match.own_body_updates(player)
@@ -1488,19 +1488,36 @@ class CommunicationWheelTests(unittest.TestCase):
         [owner_first] = body.frames()
         viewer_first = observer_update()
         first_seen = watcher.apply(viewer_first).actions
+        [callout] = [instance for instance in body.component.instances.values() if instance.graph.index == 0x0686]
+        first_text = watcher.vars[callout.id, 29862]
         body.stream.lost(owner_first.chunk_last)
         stream.lost(viewer_first.chunk_last)
 
+        body.command(body.frame + 32, 0)
+        runtime.send_message(
+            body.component, 0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001E6), 0x3E1: True}, body.entity,
+        )
         body.command(body.frame + 1, 0)
+        second_text = callout.vars[29862].value()
+        self.assertNotEqual(first_text, second_text)
         [owner_retry] = body.frames()
         viewer_retry = observer_update()
-        [callout] = [instance.id for instance in body.component.instances.values()
-                     if instance.graph.index == 0x0686]
-        self.assertEqual(owner.apply(owner_retry).actions, [(owner_first.chunk_last, callout, 59)])
-        self.assertEqual(first_seen, [(viewer_first.chunk_last, callout, 59)])
+        self.assertEqual(owner.apply(owner_retry).actions, [(owner_first.chunk_last, callout.id, 59)])
+        self.assertEqual(first_seen, [(viewer_first.chunk_last, callout.id, 59)])
         self.assertEqual(watcher.apply(viewer_retry).actions, first_seen)
+        for client in (owner, watcher):
+            self.assertEqual(client.vars[callout.id, 29862], first_text)
         body.stream.arrived(owner_retry.chunk_last)
         stream.arrived(viewer_retry.chunk_last)
+
+        body.command(body.frame + 1, 0)
+        [owner_second] = body.frames()
+        viewer_second = observer_update()
+        for client, update in ((owner, owner_second), (watcher, viewer_second)):
+            self.assertEqual(client.apply(update).actions, [(update.chunk_last, callout.id, 59)])
+            self.assertEqual(client.vars[callout.id, 29862], second_text)
+            update.stream.arrived(update.chunk_last)
 
         body.command(body.frame + 1, 0)
         [owner_next] = body.frames()
@@ -1571,6 +1588,10 @@ class CommunicationWheelTests(unittest.TestCase):
             for update in sent:
                 update.stream.arrived(update.chunk_last)
             body.command(body.frame + 64, 0)
+            feedback = updates()
+            check(feedback, 14, None, tuple(update.chunk_last for update in feedback))
+            for update in feedback:
+                update.stream.arrived(update.chunk_last)
 
     def test_targeted_wheel_message_table_routes_to_the_selected_body(self):
         run = Run(names=("Speaker", "Target", "Bystander"))

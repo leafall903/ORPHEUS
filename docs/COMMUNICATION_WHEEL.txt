@@ -910,10 +910,16 @@ Source paths for the remaining actions
   A second 253-frame probe verified H=1 with the graph's raw node index.
   The server uses each stream's first carrying chunk as the group stamp,
   repeats that stamp until ACK, and keeps the action for up to two seconds
-  after execution. For 0686, the re-armed root wait identifies the active
-  selection and supersedes earlier selections. The child voice-stack wait
-  can expire while the root still accepts selections. A fresh observer
-  full frame establishes a baseline without replaying a pending callout.
+  after execution. For 0686, re-arming the root wait keeps pending
+  actions on the same live instance. Each action carries its own
+  authored sync values. An offline loss case changes the selected
+  text before ACK, then verifies both streams retry the first action
+  with its original text and stamp before sending the second.
+  Six native frame-reader cases cover the first stamp, its retry
+  after receipt, and the next stamp in both formats. The
+  child voice-stack wait can expire while the root still accepts
+  selections. A fresh observer full frame establishes a baseline
+  without replaying a pending callout.
 - The same path now carries the 05AD recipient actions. It samples the
   variables named by the action's sync declarations when the action
   runs. Each stream sends its oldest pending action with those sampled

@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Keep a pending 0686 action when the graph accepts another selection.
+  Both streams retry the first action with its original stamp and text
+  before sending the second. All 93 focused tests and six native
+  frame-reader cases pass. Client playback remains open.
 - Replicate directed-callout and spray feedback actions. Verify
   Soldier and Mercy's directed healing messages, consecutive speaker
   identity and spray success and failure. All 93 focused tests and

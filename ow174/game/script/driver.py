@@ -833,12 +833,9 @@ class BodyScript(ReplicatedBody):
             if self.component.now - event.time > WHEEL_CALLOUT_MS:
                 continue
             if instance.graph.index == 0x0686:
-                # Re-entry re-arms the root wait. Its child voice-stack wait
-                # can already have finished when a new callout executes.
+                # Re-entry reuses the instance. Pending actions carry their original sync values.
                 root = instance.states.get(0)
-                selected = instance.vars.get(29699)
-                if (root is None or not root.active or event.time < root.start
-                        or selected is None or not expr.same(selected.value(), event.choice)):
+                if root is None or not root.active:
                     continue
             pending.append(event)
         return Snapshot(self.frame, callout=history[-1].serial, callouts=tuple(pending))
