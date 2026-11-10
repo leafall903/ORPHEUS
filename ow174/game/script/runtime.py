@@ -497,6 +497,9 @@ class World:
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
 
+    def finish_wheel_emote(self, instance: "Instance", node: Node):
+        return NotImplemented
+
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
         if not instance.component.strict:

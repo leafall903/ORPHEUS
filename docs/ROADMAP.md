@@ -56,7 +56,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     authored 05AD and 02CF graphs now mount through the player body stream.
     The emote graph chain reads untagged aliases and blend tree sets from
     equipped unlocks. The 023A owner frame carries the selected blend tree.
-    Tagged D.Va emotes and original-client playback remain open.
+    Emote cleanup releases the stack on a supplied finish or priority loss.
+    Natural completion, tagged D.Va emotes and original-client playback remain open.
     The shared 0686 graph replicates fixed and configurable callout data and
     the voice playback pulse for offline selections.
     The spray graph resolves the equipped unlock from the chosen slot.

@@ -20,6 +20,7 @@ from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import RayAttachment, RayHit, StaticCollisionProvider, World, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.match import Match
+from ow174.game.world import OP_CREATE, EntityUpdate
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
 from ow174.game.script.driver import BodyScript, BodyStream
 from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, VOICE_EFFECT_DATA
@@ -290,6 +291,59 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(client.graphs[emote.id], 0x069A)
         self.assertEqual(client.records[animation.id], (0x023A, (emote.id, animation.parent_state)))
         self.assertEqual(client.graphs[helper.id], 0x1040)
+
+    def test_emote_completion_releases_the_authored_stack_and_allows_another_selection(self):
+        aliases = (0x0C8000000000045C, 0x0C80000000000476)
+        body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True, emote_aliases=aliases)
+        create = EntityUpdate(body.entity, OP_CREATE)
+        body.created(create)
+        create.stream.arrived(0)
+        client = decode.ClientBody.for_hero(SOLDIER)
+
+        def replicate():
+            for update in body.frames():
+                client.apply(update)
+                body.stream.arrived(update.chunk_last)
+
+        def select(action):
+            runtime.send_message(
+                body.component, 0x02400000000002A3,
+                {0x8FC: expr.Asset(0x0A90000000000000 | action), 0x3E1: True}, body.entity,
+            )
+            body.command(body.frame + 1, 0)
+            replicate()
+            return {i.graph.index: i for i in body.component.instances.values()}
+
+        replicate()
+        current = select(0x172)
+        emote, animation, helper = (current[index] for index in (0x069A, 0x023A, 0x1040))
+        body.command(body.frame + 32, 0)
+        self.assertIs(select(0x1A1)[0x023A], animation)
+        anim_state = animation.node_state(animation.graph.node(0))
+        self.assertTrue(anim_state.active)
+        anim_state.request_finish()
+        body.command(body.frame + 1, 0)
+        replicate()
+
+        for instance in (emote, animation, helper):
+            self.assertNotIn(instance.id, body.component.instances)
+            self.assertNotIn(instance.id, client.graphs)
+        # 05AD's authored selection cooldown still applies after cleanup.
+        body.command(body.frame + 32, 0)
+        current = select(0x1A1)
+        self.assertIsNot(current[0x023A], animation)
+        self.assertEqual(current[0x023A].vars[2254].value(), expr.Asset(aliases[1]))
+
+        # Model a competing body state outranking 069A on the existing stack.
+        animation = current[0x023A]
+        competing = animation.node_state(animation.graph.node(65))
+        self.assertTrue(competing.active)
+        competing.link((expr.ENTITY, 33), priority=1_000, stack=True)
+        body.command(body.frame + 1, 0)
+        replicate()
+        for index in (0x069A, 0x023A, 0x1040):
+            self.assertNotIn(current[index].id, body.component.instances)
+            self.assertNotIn(current[index].id, client.graphs)
 
     def test_voice_lookup_uses_the_authored_equipped_slot_config(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)

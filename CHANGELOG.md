@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Release the emote's priority stack and helper when its authored
+  graph reaches a terminal action. The owner frame retires the old
+  descriptors and accepts a new selection after the existing cooldown.
+  All 50 focused tests pass offline, including finish and priority loss.
+  Natural animation timing and original-client playback remain open.
 - Route valid 21616 cosmetic-use reports to the originating spray or
   voice instance. All 41 focused tests and five native serializer cases
   pass offline. The server's unlock-use side effect and original-client

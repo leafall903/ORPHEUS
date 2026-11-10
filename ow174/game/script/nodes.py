@@ -2244,6 +2244,11 @@ def localized_callout(instance: Instance, node, caller) -> bool:
     return no_op(instance, node, caller)
 
 
+@handler("STU_22926252", "STU_3D419B63")
+def finish_wheel_emote(instance: Instance, node, caller) -> bool:
+    return instance.component.world.finish_wheel_emote(instance, node)
+
+
 for _name in (
     "STUStatescriptActionEffect",
     "STUStatescriptActionCriteria",

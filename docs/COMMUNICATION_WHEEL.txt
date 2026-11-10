@@ -147,8 +147,24 @@ Source paths for the remaining actions
   +0x88 loadout when the body is created. The offline test selects
   Soldier: 76's Take a Knee in slot 1 and reads 0476.014 and 06B2.021
   in 023A. The decoded owner frame carries the blend tree set.
-  Repeat selection behavior and the native client's animation playback
-  remain open.
+  An active 069A stack state holds entity variable 33 at priority F2.
+  This blocks a new selection at 05AD node 108. The Heroic animation's
+  end plug reaches 023A node 9, and the alternate exit and early
+  rejection paths use the same STU_22926252 class. Its runtime row
+  3293EA8 installs vtable 27AC3C8. The mapped client handler D34A80
+  simply returns true. The server host models the terminal behavior
+  for these authored wheel paths by ending the parent SubScript.
+  The parent's end action 069A:8 uses STU_3D419B63 and category 5.
+  CB9C70 passes the target and category to the native service.
+  The authored 1040 resource has category 5 in m_7E0BC920, so the
+  wheel host retires that helper and follows the authored terminal
+  action on 069A. When a higher-priority state takes the stack,
+  069A takes its under branch through the same category cleanup.
+  The offline owner-frame test supplies a finish event and a competing
+  stack entry. Both retire the old descriptors, and a new selection
+  succeeds after the authored cooldown. The source of natural animation
+  completion, the complete interrupt inputs and original-client
+  playback remain open.
 - The same PlayScript path now starts the self-targeted 0686 graph from
   05AD nodes 117 and 131. Their 05C5 message reaches 0686 node 33 and the
   graph selects the fixed, configurable or voice branch. Initializer 62

@@ -329,6 +329,34 @@ class BodyWorld(runtime.World):
             # The bundle already holds the resource, so submission can flush synchronously.
             play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
 
+    def finish_wheel_emote(self, instance: runtime.Instance, node: graph.Node):
+        if not self.communication_wheel:
+            return NotImplemented
+        component = instance.component
+        index = instance.graph.index
+        if index == 0x069A:
+            if node.cls == "STU_3D419B63" and node.pos in (7, 8):
+                # 1040 is the wheel helper in authored graph category 5.
+                if (expr.guid_of(node.field("m_category")) != 0x01E0000000000005
+                        or instance.evaluate(node.field("m_targets")) != Entity(self.body)):
+                    return NotImplemented
+                for helper in list(component.instances.values()):
+                    if helper.graph.index == 0x1040:
+                        component.destroy(helper)
+                return instance.follow(node, "m_outPlug", None)
+            if node.cls == "STU_22926252" and node.pos in (1, 5):
+                component.destroy(instance)
+                return True
+        if index == 0x023A and node.cls == "STU_22926252" and node.pos in (9, 14, 57):
+            parent = instance.parent
+            if parent is not None and parent.graph.index == 0x069A:
+                state = parent.state(instance.parent_state)
+                if isinstance(state, nodes.SubScript) and state.active and state.child is instance:
+                    # End the SubScript state so its authored onEnd path runs.
+                    state.request_finish()
+                    return True
+        return NotImplemented
+
     def localized_callout(self, instance: runtime.Instance, node: graph.Node) -> None:
         if (not self.communication_wheel or instance.graph.index not in (0x05AD, 0x0686)
                 or node.remote < 0 or not node.is_networked):
