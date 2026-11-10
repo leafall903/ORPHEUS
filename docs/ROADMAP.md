@@ -169,8 +169,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     Forty-two native cases verify scoped parameter selection, remapping
     and driver arithmetic. Twenty-two more verify row construction,
     resolver precedence and model-to-query handoff. Twenty-three more
-    verify factory selection, initialization and builtin reads. The
-    provider inputs for actual greetings and pose composition remain open.
+    verify factory selection, initialization and builtin reads. Twenty
+    more verify scoped provider field selection, clamping and misses.
+    The actual provider inputs and pose composition remain open.
     Both .097 profiles use mask 1FDF for static rays. A hit owned by the
     candidate stays visible. Offline native probes distinguish the
     profiles' dynamic rules, receiver overrides and shape-mask checks.

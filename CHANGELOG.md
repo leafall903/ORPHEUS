@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace scoped greeting parameter fields, clamp and misses in 20 offline native cases.
+  Actual provider inputs and pose composition remain open.
+
 - Trace greeting model provider creation and builtin parameter lookup in 23 native cases.
   Live provider inputs, pose composition and client acceptance remain open.
 

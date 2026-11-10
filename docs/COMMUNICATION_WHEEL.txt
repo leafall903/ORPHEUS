@@ -1002,6 +1002,15 @@ Source paths for the remaining actions
   constructors, allocation failures and missing or unknown input.
   For virtual slot +58, the first two implementations reach
   C131C0, the third returns false, and the fourth uses C15BA0.
+  C131C0 selects provider +10 or +240 for zero or nonzero scope.
+  It reads the float words at selected base +1B0 for ID 14 and
+  +218 for B6. IDs 81 and 1FE reach C0C7A0 and return false.
+  C15BA0 selects provider +10 or +3C. It reads B6 at selected
+  base +20 and computes 14 from +24, multiplying by the binary
+  float constant -0.6366197467 before clamping to [-1, 1].
+  IDs 81 and 1FE miss that provider. Twenty original-instruction
+  cases with synthetic fields check both scopes, both clamp limits,
+  an in-range value and the output buffer on misses.
   The builtin resolver C0CD30 reads 1FE as a float word at
   context +B0, or animation component +810 for BB8970. IDs 14,
   81 and B6 miss that resolver. Twelve original-instruction cases
