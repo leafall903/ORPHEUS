@@ -117,7 +117,16 @@ Source paths for the remaining actions
   ray hits an exclusive triangle at 0.1 m where the mover cache misses.
   02CF state 1 follows its success plug and pulses state 14 when an
   equipped spray hits. The failure path clears placement on a miss
-  or empty slot.
+  or empty slot. The owner and observer deltas retain the resolved
+  placement and authored slot 9259 with the corresponding feedback
+  event. A retry repeats the same action stamp and state counter.
+  Acknowledgment advances to the next placement or miss. A new
+  successful spray sends the placement again even when its geometry
+  and slot match. The bounded event queue keeps these results while
+  the instance is live. An observer full frame starts from the
+  current placement. Offline fixtures cover a changed slot and
+  point, a miss, and an identical repeat across loss. Both snapshot
+  encoders can record queued placements.
   At 98CE56 the native enter function supplies a stack hit buffer
   to D0FCB0. It then chooses the success or failure plug from the
   returned bit. The hit collector's 1B50CC7 arm copies hit vectors,

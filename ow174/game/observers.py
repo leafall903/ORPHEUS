@@ -152,7 +152,7 @@ def delta(script, stream: BodyStream, snap: Snapshot):
             entity_vars[var] = now or (None, ())
         else:
             wire(owner).vars[var] = now or (None, ())
-    touched_states = {key[1:] for key in touched if key[0] == "state"}
+    touched_states = {key[1:] for key in touched | keys if key[0] == "state"}
     for key in set(snap.states) | set(base.states) | touched_states:
         owner, index = key
         if owner not in snap.instances:

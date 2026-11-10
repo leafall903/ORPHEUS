@@ -214,6 +214,11 @@ class WheelCallout:
     values: tuple
 
 
+@dataclass(frozen=True)
+class WheelSprayEvent(WheelCallout):
+    placement: tuple
+
+
 WHEEL_LOADOUT_TYPES = {"emote_aliases": 0x0C80, "emote_blend_trees": 0x0040, "spray_unlocks": 0x0250, "voice_effects": 0x0300}
 
 
@@ -540,10 +545,16 @@ class BodyWorld(runtime.World):
         if (index, node.pos) == nodes.WHEEL_VOICE_PULSE and selected is not None:
             values.append(((instance.id, 29699), (selected.value(), ())))
         serial = self.wheel_callouts[-1].serial + 1 if self.wheel_callouts else 1
-        self.wheel_callouts.append(WheelCallout(
-            serial, instance.id, instance.start, node.pos, component.now, selected.value() if selected else None,
-            tuple(values),
-        ))
+        if index == 0x02CF and node.pos in (3, 8):
+            slot = instance.vars.get(9259)
+            values.append(((instance.id, 9259), (slot.value() if slot is not None else None, ())))
+            placement = tuple(sorted(instance.state(1).payload().items())) if node.pos == 8 else ()
+            event = WheelSprayEvent(serial, instance.id, instance.start, node.pos, component.now,
+                                   None, tuple(values), placement)
+        else:
+            event = WheelCallout(serial, instance.id, instance.start, node.pos, component.now,
+                                 selected.value() if selected else None, tuple(values))
+        self.wheel_callouts.append(event)
         del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
@@ -574,30 +585,66 @@ class Snapshot:
         return (index, event.node) == nodes.WHEEL_VOICE_PULSE
 
     def for_delta(self, base: "Snapshot", keys: set) -> "Snapshot":
-        """Project the variables and voice counter carried by this stream's next event."""
+        """Project this stream's next event with its variables and state payloads."""
         serial = next((key[1] for key in keys if key[0] == "callout"), base.callout)
         if not (self.callout or base.callout or self.callouts):
             return self
         if not self.callouts and self.callout == serial and serial > base.callout:
             return self  # owner delta already projected the selected event
         event = next((item for item in self.callouts if item.serial == serial and serial > base.callout), None)
-        values = self.vars | dict(event.values) if event is not None else self.vars
+        values = self.vars.copy()
+        if event is not None:
+            values.update(event.values)
         voice_owner = event.instance if event is not None and self.is_voice_pulse(event) else None
         states = self.states.copy()
+        pending_sprays = {item.instance for item in self.callouts
+                          if isinstance(item, WheelSprayEvent) and item.serial > base.callout}
         for instance, (index, _) in self.instances.items():
+            if index == 0x02CF:
+                self._project_spray(instance, event, instance in pending_sprays, base, states, values)
+                continue
             if index != nodes.WHEEL_VOICE_PULSE[0]:
                 continue
             key = (instance, 13)  # 0686:72
             previous = base.states.get(key)
             if instance == voice_owner:
-                count = (dict(previous[2])["count"] + 1) & 0xFF if previous is not None else 1
-                states[key] = ("STU_B9898052", True, (("count", count), ("fresh", True)))
+                states[key] = self._next_pulse(previous)
             elif previous is not None:
                 active = key in self.states and self.states[key][1]
                 states[key] = (previous[0], active, previous[2])
             else:
                 states.pop(key, None)
         return replace(self, callout=serial, callouts=(), vars=values, states=states)
+
+    @staticmethod
+    def _next_pulse(previous):
+        count = (dict(previous[2])["count"] + 1) & 0xFF if previous is not None else 1
+        return ("STU_B9898052", True, (("count", count), ("fresh", True)))
+
+    @staticmethod
+    def _project_spray(instance, event, pending, base, states, values) -> None:
+        placement_key, pulse_key, slot_key = (instance, 1), (instance, 14), (instance, 9259)
+        previous = base.states.get(pulse_key)
+        if isinstance(event, WheelSprayEvent) and event.instance == instance:
+            if event.placement:
+                states[placement_key] = (spray_placement.STATE_CLASS, True, event.placement)
+                states[pulse_key] = Snapshot._next_pulse(previous)
+                return
+            states.pop(placement_key, None)
+        elif pending:
+            # A different queued action precedes this placement on the stream.
+            if placement_key in base.states:
+                states[placement_key] = base.states[placement_key]
+            else:
+                states.pop(placement_key, None)
+            if slot_key in base.vars:
+                values[slot_key] = base.vars[slot_key]
+            else:
+                values.pop(slot_key, None)
+        if previous is not None:
+            states[pulse_key] = previous
+        else:
+            states.pop(pulse_key, None)
 
 
 def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_chunk: int):
@@ -610,6 +657,8 @@ def frame_callout(base: Snapshot, snap: Snapshot, touched: set, keys: set, next_
     keys.add(("callout", callout.serial, stamp))
     if snap.is_voice_pulse(callout):
         return None
+    if isinstance(callout, WheelSprayEvent) and callout.placement:
+        keys.add(("state", callout.instance, 1))  # repeat even when the geometry and slot match
     return stamp, callout.instance, callout.node
 
 
@@ -856,8 +905,9 @@ class BodyScript(ReplicatedBody):
             instance = self.component.instances.get(event.instance)
             if instance is None or instance.stopped or instance.start != event.start:
                 continue
-            voice = (instance.graph.index, event.node) == nodes.WHEEL_VOICE_PULSE
-            if not voice and self.component.now - event.time > WHEEL_CALLOUT_MS:
+            retained = (isinstance(event, WheelSprayEvent)
+                        or (instance.graph.index, event.node) == nodes.WHEEL_VOICE_PULSE)
+            if not retained and self.component.now - event.time > WHEEL_CALLOUT_MS:
                 continue
             if instance.graph.index == 0x0686:
                 # Re-entry reuses the instance. Pending actions carry their original sync values.
@@ -956,7 +1006,7 @@ class BodyScript(ReplicatedBody):
                 entity_vars[var] = now or (None, ())
             else:
                 wire(owner).vars[var] = now or (None, ())
-        touched_states = {key[1:] for key in touched if key[0] == "state"}
+        touched_states = {key[1:] for key in touched | keys if key[0] == "state"}
         for key in set(snap.states) | set(base.states) | touched_states:
             owner, index = key
             if owner not in snap.instances:

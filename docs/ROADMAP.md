@@ -110,7 +110,8 @@ A checked item records evidence for that specific scope. Its parent remains open
     deltas. Offline Need Healing and Group Up verify effect delivery
     and its order relative to localized actions. Directed recipients
     also receive their authored feedback action. Spray success and
-    failure send the corresponding 02CF effect actions.
+    failure send the corresponding 02CF effect actions. A lost delta
+    retains that action's slot, geometry and pulse until ACK.
     Repeated ultimate status reports 89, 90 and 100 percent through the
     same instance after its voice stack expires. Pending callouts on
     that instance keep their original text and stamp across a new

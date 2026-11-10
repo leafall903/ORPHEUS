@@ -137,7 +137,7 @@ FIELDS = {
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
-    driver.WheelCallout,
+    driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,

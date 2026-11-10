@@ -1199,6 +1199,83 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertTrue(spray.node_state(spray.graph.node(38)).active)
         self.assertTrue(voice.node_state(voice.graph.node(71)).active)
 
+    def test_spray_retry_keeps_the_placement_and_slot_until_ack(self):
+        for action, miss, x, slot in ((0x1A5, False, -1.0, 1), (0x1A5, True, -1.0, 1), (0x173, False, 0.0, 0)):
+            with self.subTest(action=hex(action), miss=miss):
+                run = Run(names=("Speaker",))
+                player, = run.players
+                body = player.body_script
+                body.world.spray_unlocks = (0x02500000000007F1, 0x0250000000000004)
+                player.mover.position = (0.0, 0.0, 0.0)
+                player.mover.yaw = player.mover.pitch = 0
+                run.match.collision_world = World(((-3, 0, 3, 3, 0, 3, -3, 4, 3),), masks=(0x40,))
+                owner = decode.ClientBody.for_hero(SOLDIER)
+                [tree] = body.frames()
+                owner.apply(tree)
+                body.stream.arrived(tree.chunk_last)
+                body.command(body.frame + 1, 0)
+                [initial] = body.frames()
+                owner.apply(initial)
+                body.stream.arrived(initial.chunk_last)
+
+                watcher = decode.ClientBody.for_hero(SOLDIER)
+                stream = BodyStream(body.entity)
+                baseline = observers.snapshot(body)
+                tree = stream.full(observers.full_frame(body, baseline), baseline)
+                watcher.apply(tree)
+                stream.arrived(tree.chunk_last)
+
+                def select(choice):
+                    run.match.communication_action(player, {"+0x78": 0x0A90000000000000 | choice, "+0x80": True})
+                    run.match.deliver_body_messages()
+                    body.command(body.frame + 1, 0)
+
+                def updates():
+                    [local] = body.frames()
+                    snap = observers.snapshot(body)
+                    frame, keys = observers.delta(body, stream, snap)
+                    return local, stream.delta(frame, snap, keys, 0)
+
+                def check(sent, stamps, selected, node, geometry, pulse):
+                    for client, update, stamp in zip((owner, watcher), sent, stamps, strict=True):
+                        frame = client.apply(update)
+                        self.assertEqual(frame.actions, [(stamp, spray.id, node)])
+                        self.assertEqual(client.vars[spray.id, 9259], selected)
+                        states = frame.instances[spray.id].states
+                        self.assertEqual(states.get(1), geometry)
+                        self.assertEqual(states.get(14), pulse)
+
+                body.command(body.frame + 16, 0)
+                select(0x173)
+                [spray] = [i for i in body.component.instances.values() if i.graph.index == 0x02CF]
+                original = (True, spray_placement.wire_fields(spray.state(1).payload()))
+                first = updates()
+                stamps = tuple(update.chunk_last for update in first)
+                pulse = (True, {"fresh": True, "count": 1})
+                check(first, stamps, 0, 8, original, pulse)
+                for update in first:
+                    update.stream.lost(update.chunk_last)
+
+                body.command(body.frame + 64, 0)
+                player.mover.yaw = 32768 if miss else 0
+                player.mover.position = (x, 0.0, 0.0)
+                select(action)
+                export_body_vm(body)
+                retry = updates()
+                check(retry, stamps, 0, 8, original, pulse)
+                for update in retry:
+                    update.stream.arrived(update.chunk_last)
+
+                body.command(body.frame + 1, 0)
+                later = updates()
+                if miss:
+                    geometry, feedback, pulse = (False, {}), 3, None
+                else:
+                    geometry = (True, spray_placement.wire_fields(spray.state(1).payload()))
+                    self.assertEqual(geometry == original, x == 0.0)
+                    feedback, pulse = 8, (True, {"fresh": True, "count": 2})
+                check(later, tuple(update.chunk_last for update in later), slot, feedback, geometry, pulse)
+
     def test_delayed_spray_use_report_matches_a_recently_sent_placement(self):
         run = Run(names=("Speaker",))
         player, = run.players

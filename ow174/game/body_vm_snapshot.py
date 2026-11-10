@@ -12,7 +12,7 @@ import random
 from ow174.game import replay_values
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
-from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout
+from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -95,6 +95,7 @@ _STATE_LAYOUTS = {
 }
 _VALUE_LAYOUTS = {
     WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
+    WheelSprayEvent: ("serial", "instance", "start", "node", "time", "choice", "values", "placement"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),

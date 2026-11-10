@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Communication wheel
+
+- Keep the spray slot, placement, use pulse and feedback together
+  until acknowledgment. Cover replacement, a miss and a repeat
+  at identical geometry in both frame forms. All 101 focused
+  tests pass. Client playback remains open.
+
 ### 2026-11-10
 
 #### Communication wheel
