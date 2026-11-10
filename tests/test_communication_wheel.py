@@ -188,6 +188,25 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(select(0x16C), (expr.Entity(nearer.body),))
             self.assertEqual(track.call_args.args[0].node.pos, 113)
 
+    def test_wheel_ranks_the_projected_rectangle_corner(self):
+        run = Run(names=("Speaker", "Aligned", "Nearer"))
+        speaker, aligned, nearer = run.players
+        run.match.collision_world = World(())
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        aligned.mover.position = (0.0, 0.0, 15.0)
+        dimensions = combat.mover_data(nearer.hero.body)
+        eye = combat.eye_height(speaker.hero.body)
+        # The reticle touches the upper corner of the nearer body's screen rectangle.
+        nearer.mover.position = (0.95 * dimensions.stand_radius, eye - dimensions.stand_height + 0.01, 8.0)
+        script = speaker.body_script
+        wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
+
+        script.command(script.frame + 150, 0)
+        run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
+        run.match.deliver_body_messages()
+        self.assertEqual(wheel.vars[375].value(), (expr.Entity(nearer.body),))
+
     def test_confirmed_action_directs_callout_only_to_the_aimed_teammate(self):
         cases = (
             (0x1E5, 0x12F4, PRACTICE_RANGE, True),

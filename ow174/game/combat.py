@@ -121,6 +121,22 @@ def eye_height(body: int, crouched: bool = False) -> float:
     return EYE
 
 
+def _communication_screen_score(target: "Target", eye, forward, right, up) -> float:
+    # C97F99 projects opposite corners of an upright player's bounds.
+    lower = _sub(_along(target.feet, right, -target.radius), eye)
+    upper = _sub(_along(_along(target.feet, right, target.radius), (0, 1, 0), target.height), eye)
+    lower_depth, upper_depth = _dot(lower, forward), _dot(upper, forward)
+    if min(lower_depth, upper_depth) < 1.1920928955078125e-6:
+        return 100.0  # C98185 projection failure
+
+    # The centered coordinates are twice the unit-viewport coordinates.
+    x1, x2 = _dot(lower, right) / lower_depth, _dot(upper, right) / upper_depth
+    y1, y2 = _dot(lower, up) / lower_depth, _dot(upper, up) / upper_depth
+    dx = max(0.0, min(x1, x2), -max(x1, x2))
+    dy = max(0.0, min(y1, y2), -max(y1, y2))
+    return min(1.0, math.hypot(dx, dy) * math.sqrt(0.5))
+
+
 def ray_capsule(origin, direction, a, b, radius: float) -> float | None:
     """Where a ray (unit direction) first meets the capsule around segment a-b: its distance, 0 from
     inside, None when it misses."""
@@ -618,7 +634,8 @@ class Combat:
         forward = aim(mover.yaw, mover.pitch)
         limit = math.cos(math.radians(aperture * 0.5))
         start, end = _along(origin, forward, -radius), _along(origin, forward, radius)
-        screen_end = _along(eye, forward, radius)
+        right = aim(mover.yaw + 16384, 0)
+        up = aim(mover.yaw, mover.pitch - 16384)
         rays = collision.ray_geometry or collision
         best = None
         best_score = math.inf
@@ -638,13 +655,9 @@ class Combat:
                 continue
             if not capsule_visible(rays, eye, a, b, target.radius, category):
                 continue
-            # Use the projected combat capsule with the authored screen
-            # and world distance weights.
-            near, sight = contacts.closest_segments(a, b, eye, screen_end)
-            screen_gap = max(0.0, math.dist(near, sight) - target.radius)
-            screen_depth = max(EPSILON, _dot(_sub(near, eye), forward))
+            screen = _communication_screen_score(target, eye, forward, right, up)
             center = tuple((lower + upper) * 0.5 for lower, upper in zip(a, b, strict=True))
-            score = min(1.0, screen_gap / screen_depth) + 0.01 * min(1.0, math.dist(origin, center) / radius)
+            score = screen + 0.01 * min(1.0, math.dist(origin, center) / radius)
             if score < best_score:
                 best, best_score = target.entity, score
         return best

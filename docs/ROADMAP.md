@@ -88,9 +88,9 @@ A checked item records evidence for that specific scope. Its parent remains open
     Acknowledge with no selected marker reaches the aimed teammate as 05AC.
     The selected marker reaches the authored terminal action. Its client
     type methods are identified, and the action's effect remains open.
-    The native screen score is verified offline. The projection trace
-    identifies the body dimension getters and viewport mapping. Camera
-    inputs and live projection bounds still require a server binding.
+    Upright player targets use the native screen rectangle score with
+    server stance dimensions and command aim. Animated anchors and
+    special camera inputs still require a server binding.
     Target visibility uses expanded static rays with the common 1FDF
     mask recovered from both .097 profiles. Need Healing uses the authored
     source body tag in its targeting and voice branches. Marker effects,

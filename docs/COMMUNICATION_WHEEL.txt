@@ -336,10 +336,16 @@ Source paths for the remaining actions
   native cases verify the score tail with fixture screen points.
   Both nodes author [0, 1] and weight 1 for screen distance.
   STU_AD7331B0 at C9733E normalizes world distance over [0, 40]
-  and multiplies by weight 0.01. The host uses
-  projected combat capsules to approximate the native projection
-  and expanded static ray geometry for line of sight. With no expanded
-  cache, the ray uses the movement world's retained shapes.
+  and multiplies by weight 0.01. The ranking branch writes unit
+  viewport bounds through 1A75B60. For upright human player bodies
+  the host projects the two stance corners with the command aim and
+  eye position, uses the screen rectangle score and applies the
+  failed-projection penalty. An offline selection test covers a
+  reticle inside the rectangle corner beyond the combat capsule.
+  The host still uses its mover dimensions, eye height and capsule
+  center for world distance. Animated anchors and special camera
+  bases remain open. Expanded static rays supply line of sight.
+  With no expanded cache, the ray uses the movement world's shapes.
   CA3570 passes the .097 GUID to D607F0. BEEEB0 packs resource
   +28 and +35 through 17A8FC0 and writes the results into request
   +2 and +0 respectively. Native execution with the extracted
@@ -353,8 +359,8 @@ Source paths for the remaining actions
   The 104319 .003 definitions give this tag to Mercy (00E4), Zenyatta
   (0216), Lucio (03FC), Ana (1424), Brigitte (1B1B), Moira (1C46)
   and Baptiste (29A6). The server resolves that membership from the
-  current hero's authored body ID. Runtime tag mutations, native camera
-  bounds and dynamic query filtering remain open.
+  current hero's authored body ID. Runtime tag mutations, animated
+  camera inputs and dynamic query filtering remain open.
   Node 119 requires relation bit 1 through the native BCAAE0
   filter. The match supplies same-team player bodies and the FFA
   hostility rule for this exact config. Node 120 short-circuits
