@@ -8,6 +8,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Trace the stance dimensions and perspective projection used by
+  callout targeting. Seven offline native screen scoring cases pass.
+  The server still approximates the native projection from its combat
+  capsules. Original-client acceptance remains deferred.
 - Classify the three client code references to the targeted Acknowledge
   action's type key. Nine offline native checks cover its STU type
   methods. The effect handler and original-client acceptance remain open.

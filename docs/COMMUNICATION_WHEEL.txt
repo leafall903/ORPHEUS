@@ -320,9 +320,23 @@ Source paths for the remaining actions
   aperture and source offset. It writes an empty or single-entity
   array to 375 before the existing transition.
   Native C96E10 handles composite score STU_B61DA2A5. The
-  STU_2FD4C482 branch normalizes screen distance and multiplies
-  by weight 1. The STU_AD7331B0 branch at C9733E normalizes
-  world distance and multiplies by weight 0.01. The host uses
+  STU_2FD4C482 constructs its projection through 1A784E0 with two
+  pi/2 angles. The projection tail at 1A7807B applies the camera
+  transform, rejects depth below 1.1920929e-6, optionally divides by
+  clip W, and maps X and inverted Y into the viewport. On the mover
+  dimension path, C97EF3 reads radius via C43F40 and C97EFE reads
+  height via 79A3B0. Both getters use stance and body scale. C97F99
+  forms the lower point by subtracting the camera lateral vector
+  times radius from the target anchor. It forms the upper point by
+  adding the radius vector and the target up vector times height.
+  C98042 clamps the screen reference to the projected rectangle,
+  multiplies the resulting distance by sqrt(2), normalizes and
+  clamps it to [0, 1], and applies the weight. C98185 adds 100
+  on projection failure independently of the weight. Seven offline
+  native cases verify the score tail with fixture screen points.
+  Both nodes author [0, 1] and weight 1 for screen distance.
+  STU_AD7331B0 at C9733E normalizes world distance over [0, 40]
+  and multiplies by weight 0.01. The host uses
   projected combat capsules to approximate the native projection
   and expanded static ray geometry for line of sight. With no expanded
   cache, the ray uses the movement world's retained shapes.
