@@ -8,6 +8,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Verify 144 native cases for the dynamic shape mask and exclusion
+  bypass used by wheel queries. Live shape production, final hit
+  collection and original-client acceptance remain open.
 - Verify 39 native cases for the wheel ray's dynamic filter callback.
   The filtered branch distinguishes rule rejection, relationship
   lookup and receiver lookup. Early bypasses return success with
