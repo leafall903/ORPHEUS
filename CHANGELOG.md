@@ -8,6 +8,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Communication wheel
 
+- Forward the selected marker from 21608 to the authored Acknowledge
+  branch as an entity parameter. The zero-marker packet still sends
+  05AC to the aimed teammate. All 74 focused offline tests and six
+  native entity-value cases pass. The marker action's effect and
+  original-client acceptance remain open.
 - Verify that both general decal cleanup loops retain type 1 wheel
   sprays. All 24 native instruction cases pass with mixed decal types
   and flags. Replacement and state cleanup use the keyed removal path.

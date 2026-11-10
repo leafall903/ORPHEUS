@@ -405,7 +405,9 @@ Source paths for the remaining actions
   retains the first marker at a tied distance. Failed projections
   and the positive-infinity sentinel are skipped. ADE6F0 reads
   the selected presenter's script owner through 1B71C20, D24C10
-  and D0D9B0. The result becomes the entity field in 21608.
+  and D0D9B0. F66C80 stores the result as a type 10 entity before
+  the event writes the 21608 field. Six native setter cases preserve
+  all 32 bits from zero, a body ID and a marker ID.
   Seven offline native cases exercise empty input, the strict
   radius boundary, an in-range marker, ranking, ties and invalid
   projections. The probe uses fixture UI property, viewport
@@ -425,11 +427,12 @@ Source paths for the remaining actions
   the key in its own record and the STU descriptor, without a
   runtime constructor row. Adjacent descriptor 31BEC60 belongs
   to 1E0773EB and its projection presenter is a separate class.
-  This image alone does not identify the server-side marker effect.
-  With a zero entity field, a 21608 test verifies the absent-marker
-  path sends 05AC to the aimed teammate with the sender as caller
-  and instigator. The host currently handles 21608 without the
-  marker field.
+  The host forwards a nonzero 21608 entity field for action 0170
+  as parameter 0644. A byte-level test reaches 05AD node 165 with
+  an Entity value and a fixture action handler. With a zero entity
+  field, the absent-marker path sends 05AC to the aimed teammate
+  with the sender as caller and instigator. Other wheel actions
+  ignore the field. The server-side effect of STU_631D36C3 remains open.
   05FE is an optional animation category. Node 171 copies its input
   variable 15231 to 15207 and clears 15231 with an empty
   STUConfigVarAnimCategory. Nodes 116 and 132 pass 15207 to 0686.

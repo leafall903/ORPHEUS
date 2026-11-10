@@ -93,6 +93,53 @@ class CommunicationWheelTests(unittest.TestCase):
         run.step({})
         self.assertIs(wheel.vars[9253].value(), False)
 
+    def test_acknowledge_marker_selects_the_authored_target_branch(self):
+        run = Run(names=("Speaker", "Teammate"))
+        speaker, teammate = run.players
+        teammate.team = speaker.team
+        speaker.mover.position = (0.0, 0.0, 0.0)
+        speaker.mover.yaw = speaker.mover.pitch = 0
+        teammate.mover.position = (0.0, 0.0, 10.0)
+        connection = game_client()
+        connection.player = speaker
+        speaker.client = connection
+        wheel = next(i for i in speaker.body_script.component.instances.values() if i.graph.index == 0x05AD)
+        marker = 0xA0000123
+        action = 0x0A90000000000170
+        selected = []
+
+        def target_branch(instance, node, caller):
+            selected.append((instance.id, node.pos, instance.evaluate(node.field("m_4A5CA514"))))
+            return True
+
+        def receive(sequence, selected_action, entity):
+            packet = BitWriter()
+            record = b"\x01\x08" + struct.pack("<QBI", selected_action, True, entity)
+            messages.write_channel(packet, [(sequence, record)])
+            packet.bit(0)
+            connection._payload_in(packet.getvalue(), 17.0)
+
+        with patch.dict(runtime.HANDLERS, {"STU_631D36C3": target_branch}):
+            receive(0, action, marker)
+            run.match.deliver_body_messages()
+            self.assertEqual(selected, [(wheel.id, 165, expr.Entity(marker))])
+            self.assertEqual(wheel.vars[16376].value(), expr.Entity(marker))
+            self.assertEqual(run.match._body_messages, [])
+            speaker.body_script.command(speaker.body_script.frame + 150, 0)
+
+            receive(1, action, 0)
+            run.match.deliver_body_messages()
+            self.assertIsNone(wheel.vars[16376].value())
+            self.assertEqual(len(selected), 1)
+            self.assertEqual([row[3] for row in run.match._body_messages], [0x02400000000005AC])
+            run.match.deliver_body_messages()
+            speaker.body_script.command(speaker.body_script.frame + 150, 0)
+
+            receive(2, 0x0A9000000000016B, marker)
+            run.match.deliver_body_messages()
+            self.assertIsNone(wheel.vars[16376].value())
+            self.assertEqual(len(selected), 1)
+
     def test_wheel_tracks_visible_players_before_the_authored_recipient_filter(self):
         run = Run(names=("Speaker", "Aligned", "Nearer"))
         speaker, aligned, nearer = run.players

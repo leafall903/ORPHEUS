@@ -1220,8 +1220,11 @@ class Match:
             return
         if not any((action & 0xFFFFFFFF) in actions for actions in WHEEL_ACTION_CATEGORIES.values()):
             return
-        # The native entity field needs the separate targeted-action path.
         params = {0x8FC: expr.Asset(action), 0x3E1: value["+0x80"]}
+        if action == (WHEEL_ACTION_PREFIX | 0x170):
+            marker = (value.get("+0x84") or {}).get("+0x0", 0)
+            if marker:
+                params[0x644] = expr.Entity(marker)
         self.queue_body_message(player.body, 0x02400000000002A3, params, player.body)
 
     def _wheel_use_report(self, player: Player, value: dict, parameters: bytes) -> None:

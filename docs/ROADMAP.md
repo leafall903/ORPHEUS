@@ -89,9 +89,10 @@ A checked item records evidence for that specific scope. Its parent remains open
     Marker effects, native target geometry and deployable eligibility remain open.
     The recipient graph sends the actions in order with each action's source.
     The server accepts the original wheel's 21608 action GUID and flag and
-    delivers them to the sender's 02A3 graph entry. Offline execution
-    verifies how Acknowledge chooses the marker identity in 21608.
-    Marker acknowledgement, additional 02A3 parameters, equipped-item
+    delivers them to the sender's 02A3 graph entry. Acknowledge also
+    preserves the selected marker as parameter 0644. An offline packet
+    reaches the targeted node with a fixture handler.
+    The targeted marker effect, additional 02A3 parameters, equipped-item
     playback, recipient rules and original-client acceptance are still open. See [Communication wheel](COMMUNICATION_WHEEL.txt).
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.
 - [ ] **Stability and delivery.** Verify tick and packet budgets, long-running matches, recovery, reproducible deployment, and final acceptance with the original client.
