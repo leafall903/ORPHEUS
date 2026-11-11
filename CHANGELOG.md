@@ -4,6 +4,33 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Shared original-language delivery history merge
+
+- Merge the existing shared Python/C++ runtime submission e1128509 into the
+  combined server history. The source tree's 133 source/test/document changes
+  are now committed; the generated roster stub remains outside Git.
+- Eighty submitted paths were already byte-identical to the combined tree.
+  Existing combined implementations retain every incoming definition and new
+  dictionary key, with two intentional supersessions: the Mystery candidate
+  remover is part of the general array handler, and the old Enforcer-only
+  declaration check is covered by the expanded NPC-profile checks. Resolve
+  shared-file conflicts to the integrated implementations so hero changes,
+  current VM contracts and lifecycle fixes are retained.
+- The original source tree's 100 selected checks passed before submission.
+  All 101 post-merge combat, launcher, NPC-context and array-insert checks passed.
+  Client acceptance and remaining non-appearance line integration remain open.
+
+### Shared original-language source submission
+
+- Preserve the existing Python/C++ server, launcher, protocol/VM, NPC sandbox,
+  roster, extraction-tool, tests and documentation work as a local shared-line
+  delivery. This records the source already present in the working tree;
+  generated relay binaries and local runtime/game data are excluded.
+- All 100 selected original-tree combat, launcher, NPC-context and array-insert
+  checks passed against the external prepared runtime. The broader hero-line
+  integration and client acceptance remain separate pending work. No remote
+  publication is performed by this source-submission checkpoint.
+
 ### Mercy historical attack ordering integration
 
 - Retain the original pending-attack scheduler, recorded boost selection and
