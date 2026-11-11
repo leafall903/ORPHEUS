@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+
+### Preserve outstanding Zarya roadmap notes
+
+- Commit the remaining roadmap record for Grasp, reflection, Matrix, movement
+  and NPC reconstruction, retaining the historical evidence and open limitations.
+  Historical full-static-before-commit wording does not withhold this delivery
+  under the user's current instruction to submit existing work.
+- Documentation-only preservation; no gameplay change or new acceptance claim.
+
+
 ### 2026-11-11
 
 #### Zarya server integration handoff

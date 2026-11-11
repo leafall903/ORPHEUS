@@ -64,6 +64,19 @@ A checked item records evidence for that specific scope. Its parent remains open
     Documented OW1 beam/DOT armour policies now run on actual Reinhardt pools:
     beam30% reduction and Graviton field DOT bypass, with raw barrier absorption.
     Native exhaustion/impact classification and ultimate generation remain open.
+    Actual Sigma Grasp now consumes Zarya secondary/ultimate through authored
+    boxes/events while beam/melee pass; an off-axis Sigma also protects all five
+    NPCs from these projectiles. Scoped authored60%/400-cap temporary shields now
+    use separate pools,3s grace and5/s decay with lifecycle/snapshot checks.
+    Native filters, native HealthPool/temporary flags and reflection
+    transport/full interactions remain open; external projectile tags are required.
+    Physical Genji reflection and melee block now execute through actual Zarya
+    player/five-NPC cases;returned fields retain transferred source/team.
+    Explicit0407 Matrix now protects players and five actual NPC capsules from
+    secondary/Graviton,with beam/melee exceptions,resource/release/cooldown and
+    control/reflection interactions. Native filters/attachment/form creation stay open.
+    NPC fixtures require the43-row navigation runtime's actual five mover records;
+    earlier38-row fallback geometry is historical,not complete native geometry.
     Graviton's actual cast now drives reconstructed ballistic impact,4-second
     damage/pull and release for players and five NPC bodies. Native aura/field
     actors, charge generation, force/immunity/escape and cross-defense cases remain open.
@@ -88,3 +101,49 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+### Uncommitted Enforcer incoming reconstruction (2026-11-09)
+
+- Actual13EB now emits all25 finite pellets under an explicitly declared manual
+  controller;full aggregate pools are installed before graph initialization.
+- Independent armour,travel-distance falloff,personal/projected barrier energy,
+  team/wall/release and ammo have executable fixtures. Ring math/phase,muzzle,
+  observer SHOTS_ONLY transport,native controller allocation/health semantics and
+  NPC specials remain open. Assassin is not yet integrated.
+- Preserve full-static-before-commit policy;no partial submission or client claim.
+
+Validation: broad:457 PASS 300.312s;all_script:840 PASS 24.375s;snapshots:61 PASS 970.344s;zero skips;Python source/test and pinned external hashes unchanged. Native tail8 and separate candidate defense6 PASS.
+
+### Movement-input and Enforcer defenses (uncommitted)
+
+Apply reviewed17/18/19 input consumers;actual1157/0F68 numeric scopes validate
+next-pose boundaries and raw bytes. Correct0263 ownership to Lucio. Promote
+23F0 tags and formalize full-burst defenses,ally Matrix protecting Zarya,and
+projected-NPC absorption of Genji returns. Vector motion/Assassin/full native
+defense/transport and complete static acceptance remain open.
+
+Validation: broad:500 PASS 451.468s;all_script:840 PASS 19.875s;causal_snapshots:2 PASS 80.485s;zero skips;Python source/test and pinned external hashes unchanged. Actual map-cache cases remain outside this run.
+
+### Assassin manual bridge and notification lifetime (uncommitted)
+
+Typed distinct controller/1650 target -> actual1157 contact25/continuous100/s;
+shared damage admission governs reconstructed pin and barrier interaction.
+33 focused methods pass,including independent attackers and lifecycle.
+Controller/target/pin/clock snapshots are causal/read-only. Notification markers
+are reset on state exit;Ability cleanup-before-arbitration remains reconstructed.
+Native QTE,immunity/cleanse,animation/cooldown,vector motion and AI stay open.
+
+Baseline515 broad/843 script/58 VM+server-storage PASS;post-baseline match-only scope restriction88 affected tests PASS 115.188s;factory2 PASS;zero skips;hashes stable within each run. Four StoredJournal gameplay cases excluded in this increment.
+Next:verified Zarya/McCree view-height gap,then1177 recipient services;complete
+static/native/client goal remains open and all current changes uncommitted.
+
+### Player view geometry (uncommitted)
+
+Use source03BF/02A3 standing/crouched views through one source/Target query;
+seal immutable profiles in replay and live snapshots. Verify low cover,history,
+projection LOS,and scoped enemy McCree70/140 into Zarya. The scoped Fan now uses
+six physical angular rays:nearby body300,personal/projected absorption200 for40
+energy and100 body damage. Actual five allied NPC targets pass projection and
+source-credit checks. Reconstructed seed identity and native bone/camera/muzzle
+differences are disclosed separately. Full functional scope remains open:
+Assassin recovery/rescue,ultimate charge and other control/defense/field cases.
