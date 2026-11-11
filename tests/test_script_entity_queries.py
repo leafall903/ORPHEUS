@@ -1,9 +1,10 @@
 """Original entity-query guards, typed failure, dependencies and owner lifetimes."""
 
 import unittest
+from unittest import mock
 
 from ow174.game.script import entity_queries as query
-from ow174.game.script import expr, runtime, scene
+from ow174.game.script import expr, health_queries, runtime, scene
 from tests.test_script_runtime_budget import graph, node
 
 OWNER, BODY = 0xA0000100, 0xA0000101
@@ -18,7 +19,8 @@ class ValueWorld(scene.SceneWorld):
 
 
 def config(cls=query.EXISTS, value=ABSENT):
-    return {'$': cls, **({'m_entity': {'$': 'Literal', 'value': value}} if value is not ABSENT else {})}
+    key = 'm_00903303' if cls == query.BODY else 'm_entity'
+    return {'$': cls, **({key: {'$': 'Literal', 'value': value}} if value is not ABSENT else {})}
 
 
 def setup():
@@ -38,10 +40,23 @@ def setup():
 
 
 class EntityQueryTests(unittest.TestCase):
+    def test_health_query_distinguishes_absence_zero_and_unknown_host(self):
+        world, _, instance, state, _, _, _ = setup()
+        cfg = {'$': health_queries.CURRENT, 'm_entity': {'$': 'Literal', 'value': (expr.Entity(BODY),)}}
+        with mock.patch.object(world, 'body_health', return_value=None) as service:
+            self.assertIs(instance.evaluate(cfg, state, initial=ABSENT), ABSENT)
+            service.return_value = (0.0, 400.0)
+            self.assertEqual(instance.evaluate(cfg, state, initial=ABSENT), 0.0)
+            self.assertEqual(instance.evaluate({**cfg, '$': health_queries.MAXIMUM}, state), 400.0)
+            self.assertEqual(instance.evaluate({'$': health_queries.CURRENT}, state), 0.0)
+            self.assertEqual(service.call_args_list, [mock.call(BODY, instance)] * 3)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'world query'):
+            instance.evaluate(cfg)
+
     def test_unknown_services_remain_strict_and_legacy_world_is_unchanged(self):
         world = ValueWorld()
         world.bind(OWNER)
-        for cls in (query.EXISTS, query.POSSESSED):
+        for cls in (query.EXISTS, query.POSSESSED, query.BODY):
             component = runtime.Component(OWNER, world=world, strict=True)
             instance = component.create(graph(), init=False)
             with self.assertRaises(runtime.UnsupportedScriptError) as error:
@@ -50,6 +65,70 @@ class EntityQueryTests(unittest.TestCase):
         permissive = runtime.Component(OWNER, world=world)
         instance = permissive.create(graph(), init=False)
         self.assertEqual(instance.evaluate(config(query.EXISTS)), expr.default_native(config(query.EXISTS)))
+
+    def test_body_query_missing_object_and_missing_component_write_typed_zero(self):
+        _, _, instance, state, context, targets, events = setup()
+        context.possession_context_present = False
+        self.assertEqual(instance.evaluate(config(query.BODY), state, initial=17), expr.Entity(0))
+        self.assertEqual(events, [('lookup', 0), ('environment', state, 0)])
+        events.clear()
+        targets[BODY] = query.Target(BODY, body_field=None)
+        self.assertEqual(instance.evaluate(config(query.BODY, expr.Entity(BODY)), state), expr.Entity(0))
+        self.assertEqual(events, [('lookup', BODY)])
+
+    def test_body_query_observes_component_before_reading_independent_body_field(self):
+        _, _, instance, state, context, targets, events = setup()
+        field = query.BodyField(OWNER)
+        targets[BODY] = query.Target(BODY, query.Possession(OWNER), body_field=field)
+
+        def observe(watcher, target):
+            self.assertIs(watcher, state)
+            self.assertIs(target, targets[BODY])
+            field.entity = 0xFFFFFFFF
+            events.append(('body field', watcher))
+
+        context.watch_possession = observe
+        cfg = config(query.BODY, ((expr.Entity(BODY),),))
+        self.assertEqual(instance.evaluate(cfg, state), expr.Entity(0xFFFFFFFF))
+        self.assertEqual(targets[BODY].possession.current, OWNER)
+        self.assertEqual(events, [('lookup', BODY), ('body field', state)])
+
+    def test_body_query_does_not_infer_field_from_current_possession(self):
+        _, _, instance, _, _, targets, _ = setup()
+        targets[BODY] = query.Target(BODY, query.Possession(OWNER))
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'component44 body field'):
+            instance.evaluate(config(query.BODY, expr.Entity(BODY)))
+
+    def test_target_record_query_preserves_missing_output_and_reads_typed_scalar(self):
+        world, _, instance, state, _, _, _ = setup()
+        cfg = {
+            '$': query.TARGET_RECORD_SCALAR,
+            'm_target': {'$': 'Literal', 'value': ((expr.Entity(BODY),),)},
+            'm_7826B991': {'$': 'Literal', 'value': expr.Entity(OWNER)},
+        }
+        with mock.patch.object(world, 'target_record_scalar', return_value=None) as service:
+            self.assertIs(instance.evaluate(cfg, state, initial=ABSENT), ABSENT)
+            for value in (0, 1.1, -0.5):
+                service.return_value = value
+                result = instance.evaluate(cfg, state, initial=ABSENT)
+                self.assertIs(type(result), float)
+                self.assertEqual(result, expr.f32(value))
+            self.assertEqual(service.call_args_list, [mock.call(OWNER, BODY)] * 4)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'world query'):
+            instance.evaluate(cfg)
+
+    def test_target_record_query_discards_result_when_its_owner_retires(self):
+        world, component, instance, _, _, _, _ = setup()
+
+        def retire(_owner, _target):
+            component.destroy(instance)
+            return 1.0
+
+        cfg = {'$': query.TARGET_RECORD_SCALAR}
+        with mock.patch.object(world, 'target_record_scalar', side_effect=retire) as service:
+            with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'target record query owner retired'):
+                instance.evaluate(cfg)
+            service.assert_called_once_with(0, 0)
 
     def test_namespace_failure_does_not_evaluate_or_subscribe(self):
         _, _, instance, state, context, _, events = setup()

@@ -1,0 +1,16 @@
+104319 FirstPerson height audit (private; static scope only)
+
+Reinhardt body0024 m_E29993A5=1.8 and m_816B830F=1.26.
+McCree body02A3 m_E29993A5=1.425 and m_816B830F=.9975.
+Read-only XML paths and SHA256 are in external reinhardt-eye-height-evidence.json.
+combat.eye_height now supplies player firing origins and Target.eye,which is
+retained in combat history. Soldier and unaudited bodies retain prior fallbacks.
+No global critical multiplier or head-bone/muzzle/camera policy is introduced.
+
+Two focused tests cover both actual hero selections and stand/crouch target/
+history records,four low triangle-cover rays,and the opposite old-default
+outcomes. They declare pose flags;native crouch transition/camera animation is
+not accepted by these fixtures. The existing HEAD_BELOW threshold is still a
+server reconstruction. Initial test setup tried a read-only crouched property,
+then used the wrong McCree hero ID;both fixture errors were corrected.
+Full hero combat goal remains open;client acceptance separate.

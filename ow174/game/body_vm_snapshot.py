@@ -8,11 +8,18 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+import types
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
-from ow174.game.script.bot import BotWorld
+from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.script import (
+    b61, controller_query, entity_filter, entity_queries, expr, graph, message_manager, message_receive,
+    message_receiver, message_scope, message_state, nodes, runtime,
+)
+from ow174.game.script.bot import AssassinControllerWorld, BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.sigma_barrier import BarrierWorld as SigmaBarrierWorld
+from ow174.game.winston_barrier import DomeWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -49,6 +56,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    nodes.HostCompletionGate: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -66,6 +74,12 @@ _STATE_LAYOUTS = {
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
+    nodes.MotionRequest: (("registered", "ready"), ()),
+    nodes.FacePosition: ((), ()),
+    nodes.AIButton: ((), ()),
+    nodes.B61State: ((), ()),
+    nodes.B61ExtendedState: ((), ()),
+    nodes.MovementFlags: (("movement_bits",), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
@@ -73,7 +87,7 @@ _STATE_LAYOUTS = {
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
-        ("max_shots", "min_shots"),
+        ("max_shots", "min_shots", "notified_ammo"),
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
@@ -89,16 +103,30 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "target_var"), ()),
+    nodes.TrackRay: ((), ()),
+    nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    b61.Registry: ("serial", "descriptors", "entries"),
+    b61.Entry: ("token", "priority", "serial", "payload"),
+    b61.Payload: ("enabled", "first", "second", "extras"),
+    controller_query.Target: ("entity", "has_component43", "retired"),
+    controller_query.Controller: ("entity", "has_component75", "has_component92", "retired"),
+    entity_queries.Target: ("entity", "possession", "possessor", "body_field"),
+    entity_queries.Possession: ("current",),
+    entity_queries.BodyField: ("entity",),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
                     "message", "assignment", "transient"),
     message_receive.Packet: ("message", "caller", "instigator", "params"),
+    message_manager.Key: ("entity", "flags", "message"),
+    message_manager.Sender: ("state", "priority", "prefer_later", "frame", "sequence"),
+    message_manager._Channel: ("senders", "receivers"),
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
@@ -383,17 +411,130 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld,
+                    DomeWorld, BarrierWorld, SigmaBarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match"))
+                fields.update(("body", "throttles", "match", "_possessor_query"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "manual_controller_context",
+                               "manual_controller_target", "manual_controller_descriptor",
+                               "manual_target", "match"))
+            if kind is AssassinControllerWorld:
+                fields.update(("match", "body", "target", "context", "target_filter", "records", "messages",
+                               "motion_request", "pin_input"))
+                request = obj.motion_request
+                if request is not None and (type(request) is not nodes.MotionRequest
+                                            or request.instance.component is not self.component
+                                            or not request.registered or not request.active):
+                    raise BodyVMSnapshotError("invalid Assassin controller motion request")
+                pin = obj.pin_input
+                if pin is not None and (type(pin) is not nodes.AIButton
+                                        or pin.instance.component is not self.component or not pin.active):
+                    raise BodyVMSnapshotError("invalid Assassin controller pin input")
+            if kind is BarrierWorld:
+                fields.update(("fight", "entity", "location"))
+            if kind is DomeWorld:
+                fields.update(("manager", "actor"))
+            if kind is SigmaBarrierWorld:
+                fields.add("actor")
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields,
+                                          exclude={"match", "_possessor_query", "manager", "actor", "fight"})}
+        if kind is message_state.Context:
+            world = self.component.world
+            if type(world) is not AssassinControllerWorld or obj is not world.messages or obj.component is not self.component:
+                raise BodyVMSnapshotError("unregistered controller message context")
+            callbacks = {"policy": AssassinControllerWorld.sender_policy,
+                         "frame": AssassinControllerWorld.message_frame,
+                         "priority": AssassinControllerWorld.message_priority,
+                         "receiver_policy": AssassinControllerWorld.receiver_policy,
+                         "receiver_generation": AssassinControllerWorld.receiver_generation}
+            required = {"component", "host", "timer_notify", "receiver_filter", "retired", "states", *callbacks}
+            data = _layout(obj, required)
+            for name, function in callbacks.items():
+                callback = data[name]
+                if (type(callback) is not types.MethodType or callback.__self__ is not world
+                        or callback.__func__ is not function):
+                    raise BodyVMSnapshotError("unregistered controller message callback")
+            host = data["host"]
+            if type(host) is not message_state.Host:
+                raise BodyVMSnapshotError("unregistered controller message host")
+            host_data = _layout(host, {"contexts", "current", "manager"})
+            manager = host_data["manager"]
+            if (type(manager) is not message_manager.Manager or host_data["current"]
+                    or host_data["contexts"] != (set() if obj.retired else {obj})
+                    or data["timer_notify"] is not None or data["receiver_filter"] is not None):
+                raise BodyVMSnapshotError("invalid controller message host storage")
+            fields = {"channels", "frame", "next_sequence", "retired", "_busy", "_discard_revision"}
+            manager_data = _layout(manager, fields | {"notify", "consume_work", "validate"})
+            if (manager_data["notify"] is not message_receiver.notify
+                    or manager_data["consume_work"] != host._work or manager_data["validate"] != host._check
+                    or manager_data["_busy"]):
+                raise BodyVMSnapshotError("invalid controller message manager storage")
+            return {"class": _name(kind), "identity": self.identity(obj), "fields_identity": self.identity(data),
+                    "fields": self.fields(obj, required, exclude={"host", *callbacks}),
+                    "callbacks": [[name, _name(function)] for name, function in callbacks.items()],
+                    "host": self.identity(host), "manager": self.identity(manager),
+                    "manager_fields": self.fields(manager, set(manager_data),
+                                                  exclude={"notify", "consume_work", "validate"})}
+        if kind is entity_filter.Context:
+            world = self.component.world
+            if type(world) is not AssassinControllerWorld or obj is not world.target_filter:
+                raise BodyVMSnapshotError("unregistered controller target filter")
+            callbacks = {"lookup": AssassinControllerWorld.filter_target,
+                         "relation_enemy": AssassinControllerWorld.filter_enemy,
+                         "watch_filter": AssassinControllerWorld.watch_target_filter}
+            data = _layout(obj, {"owner", "environment_present", "source", "watch_environment", "watch_tags",
+                                 "retired", *callbacks})
+            for name, function in callbacks.items():
+                callback = data[name]
+                if (type(callback) is not types.MethodType or callback.__self__ is not world
+                        or callback.__func__ is not function):
+                    raise BodyVMSnapshotError("unregistered controller target filter callback")
+            source = data["source"]
+            if (type(source) is not entity_filter.Target
+                    or source != entity_filter.Target(obj.owner, None, False, None, None, None)):
+                raise BodyVMSnapshotError("invalid controller target filter source")
+            if data["watch_tags"] is not None or data["watch_environment"] is not None:
+                raise BodyVMSnapshotError("invalid controller target filter subscription")
+            return {"class": _name(kind), "fields_identity": self.identity(data), "source": self.identity(source),
+                    "fields": self.fields(obj, set(data), exclude={"source", *callbacks}),
+                    "callbacks": [[name, _name(function)] for name, function in callbacks.items()]}
+        if kind is entity_queries.Context:
+            world = self.component.world
+            if type(world) is not AssassinControllerWorld or obj is not world.context:
+                raise BodyVMSnapshotError("unregistered entity-query context")
+            callbacks = {"lookup": AssassinControllerWorld.lookup, "watch_possession": AssassinControllerWorld.watch}
+            data = _layout(obj, {"owner", "namespace_present", "environment_present", "possession_context_present",
+                                 "watch_environment", "watch_possessor", "retired", *callbacks})
+            for name, function in callbacks.items():
+                callback = data[name]
+                if (type(callback) is not types.MethodType or callback.__self__ is not world
+                        or callback.__func__ is not function):
+                    raise BodyVMSnapshotError("unregistered controller possession callback")
+            return {"class": _name(kind), "fields_identity": self.identity(data),
+                    "fields": self.fields(obj, set(data), exclude=set(callbacks)),
+                    "callbacks": [[name, _name(function)] for name, function in callbacks.items()]}
+        if kind is controller_query.Context:
+            world = self.component.world
+            if type(world) is not BotWorld or obj is not world.manual_controller_context:
+                raise BodyVMSnapshotError("unregistered controller-query context")
+            callbacks = {"lookup": BotWorld.lookup_manual_controller,
+                         "resolve_controller": BotWorld.resolve_manual_controller,
+                         "watch_component43": BotWorld.watch_manual_controller}
+            data = _layout(obj, {"owner", "namespace_present", "retired", *callbacks})
+            for name, function in callbacks.items():
+                callback = data[name]
+                if (type(callback) is not types.MethodType or callback.__self__ is not world
+                        or callback.__func__ is not function):
+                    raise BodyVMSnapshotError("unregistered manual controller callback")
+            return {"class": _name(kind), "fields_identity": self.identity(data),
+                    "fields": self.fields(obj, set(data), exclude=set(callbacks)),
+                    "callbacks": [[name, _name(function)] for name, function in callbacks.items()]}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

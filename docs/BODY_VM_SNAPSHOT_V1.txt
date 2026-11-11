@@ -166,6 +166,11 @@ BodyWorld required fields, including those inherited from runtime.World:
 
   hero mode body throttles
 
+BodyWorld also has named host exclusions match and _possessor_query. The latter
+is an optional component43 Context with Match-owned lookup/observation callbacks;
+the enclosing server snapshot stores that context and its retirement flag.
+VM-only observations do not execute the relation or serialize Match host data.
+
 The exact runtime.World representation, when accepted by export_component_vm, has
 hero and mode. A custom World subclass with additional behavior or hidden storage
 is not equivalent to either supported World type.
@@ -183,6 +188,7 @@ present-with-None must remain distinct.
                            Optional lifecycle additions
 
   runtime.State            none
+  MotionRequest            registered ready
   BooleanSwitch            current pending
   Stack                    top under value var
   LogicalButton            down pressed_at early_counter
@@ -194,7 +200,7 @@ present-with-None must remain distinct.
   WaitFrames               target
   ChaseVar                 cur reached remaining last var interrupted
   WeaponVolley             offset volleys per_shot ammo0 rate spread0 links reported
-                           max_shots min_shots
+                           max_shots min_shots notified_ammo
   Anim                     none
   Ability                  flags presses cur cooldown_rate last var stack_var
   Defer                    none
@@ -348,3 +354,15 @@ same-time/nested FIFO, cross-instance sequence use and failure progression.
 The existing eight VM budget tests and sixteen native replay tests also pass.
 No game, UI or service is started by these checks; existing native trace code and
 the actual event dispatch/FIFO insertion call sites are unchanged.
+
+Manual Assassin follow-up:ModifyHealth.last_applied is an explicit causal
+clock field. BotWorld.manual_target and enclosing Match binding are registered;
+Match is excluded from the inner VM artifact and recorded by the server graph.
+Bot.attack_action is stored by the server snapshot. Typed world-local controller
+ID/target/retirement facts remain visible without executing entity queries.
+State inventory now covers37 concrete models. This remains observation,not a
+restorer or native controller/camera proof. See REINHARDT_ASSASSIN_INCOMING.txt.
+
+MovementFlags.movement_bits records the previous airborne and grounded
+predicates. The state uses this mask to write changed outputs only, so the
+mask belongs to the causal VM snapshot alongside the destination variables.

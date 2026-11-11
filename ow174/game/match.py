@@ -33,7 +33,19 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    heroselect,
+    mei_frost,
+    movelog,
+    notices,
+    pools,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -44,15 +56,16 @@ from ow174.game.collision import (
     default_collision_provider,
 )
 from ow174.game.commands import Command, CommandQueue
-from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
+from ow174.game.content import DVA, DVA_MECH, PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
-from ow174.game.script import expr, graph, nodes, runtime, scene_host
+from ow174.game.script import expr, graph, message_receive, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import ULT_CHARGE, ULT_COST, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
+from ow174.game.ultimate_charge import AUTHORED_CHARGE_HEROES
 from ow174.game.world import (
     GAME_MODE_ENTITY,
     NO_INPUT,
@@ -214,6 +227,7 @@ class Player:
         self.spawn = spawn_point(match.game_map, team, number)  # (position, yaw in degrees)
         self.mover = self.new_mover()
         self.commands = CommandQueue()
+        self.retained_ult_charge: float | None = None
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
         # Other players' bodies this player's client has: body -> False in the frame of its create.
@@ -322,10 +336,15 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        punches = self.match.combat.punches
+        impact_pose = ((tuple(self.mover.position), self.mover.velocity)
+                       if self.body in punches.impacts else None)
+        pulled = self.body in self.match.combat.gravitons.pulled
         stunned = self.match.combat.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
-            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+            if not self.mover.impulse_active:
+                self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
         if script is not None and not stunned:
@@ -337,7 +356,39 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        if pulled and script is not None and script.hero == combat.REINHARDT:
+            command = replace(command, buttons=command.buttons & ~8)
+        halted = self.match.combat.halt.moving(self.body)
+        if halted and script is not None and script.hero == combat.REINHARDT:
+            self.match.combat.charge_blocked(self, impact=False)
+            command = replace(command, buttons=command.buttons & ~8)
+        drive = None if pulled or halted else self.match.combat.charge_drive(self, command, seconds)
+        controlled = self.match.combat.controlled(self.body)
+        punch = None if pulled or halted or controlled else self.match.combat.punches.movement(self)
+        if self.match.combat.hooks.pulling(self.body):
+            self.mover.step_pose(command, seconds, tick, move_to=(tuple(self.mover.position), 1.0))
+        elif controlled:
+            # Hard control also suppresses the previous pose's forced throttle
+            # modifiers while their authored cleanup reaches the mover. Preserve
+            # external impulses for stun; a pin owns the captured pose entirely.
+            yaw, pitch = (self.mover.yaw, self.mover.pitch) if mei_frost.frozen(
+                self.match.combat, self.body) else (command.yaw, command.pitch)
+            self.mover.step_pose(Command(command.frame, yaw=yaw, pitch=pitch),
+                                 seconds, tick, suppress_throttle=True,
+                                 horizontal_drive=(0, 0) if self.match.combat.pinned(self.body) else None)
+        elif pulled:
+            self.mover.step_pose(command, seconds, tick, suppress_throttle=True, horizontal_drive=(0, 0))
+        elif punch is not None:
+            start = tuple(self.mover.position)
+            outcome = self.mover.step_pose(command, seconds, tick, move_to=punch)
+            ice = self.match.combat.walls.move_player(self, start)
+            target, speed = punch
+            distance = math.dist(start, target)
+            progress = distance - math.dist(self.mover.position, target)
+            hit = self.match.combat.punches.contact(self.match.combat, self, command, start)
+            if hit or outcome is not None or ice is not None or progress < min(distance, speed * seconds) / 2:
+                self.match.combat.punches.finish(self)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
@@ -345,7 +396,21 @@ class Player:
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            start = tuple(self.mover.position)
+            bash_limit = (None if self.mover.impulse_active
+                          else self.match.combat.brigitte_barriers.bash_movement_limit(self))
+            self.mover.step_pose(command, seconds, tick, horizontal_drive=drive, movement_limit=bash_limit)
+            ice_blocker = self.match.combat.walls.move_player(self, start)
+            if drive is not None:
+                self.match.combat.charge_contacts_step(self, command, start, drive, seconds,
+                                                       ice_blocker=ice_blocker)
+                distance = math.hypot(*drive) * seconds
+                progress = sum((self.mover.position[k] - start[k]) * drive[j]
+                               for j, k in enumerate((0, 2))) / math.hypot(*drive)
+                if ice_blocker is not None or progress < distance / 2:
+                    self.match.combat.charge_blocked(self, frame=command.frame)
+        if impact_pose is not None:
+            punches.wall_contact(self.match.combat, self, command, impact_pose, seconds)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -357,7 +422,8 @@ class Player:
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        mods = statescript_mods(script.component) if script else {}
+        self.mover.track_mods(mei_frost.movement_mods(self.match.combat, self.body, mods), command.frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -418,7 +484,10 @@ class Match:
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.assembled = False
         self.players: list[Player] = []
-        self._body_messages: list[tuple[BodyScript, Player, BodyScript, int, dict]] = []
+        self._body_messages: list[tuple[
+            runtime.Component, Player | bots.Bot, BodyScript | BotScript | runtime.Component,
+            tuple[int, dict] | message_receive.Packet,
+        ]] = []
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
@@ -600,9 +669,12 @@ class Match:
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            from ow174.game.npc_context import manual_components
+
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_components=manual_components(bot), match=self,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
@@ -651,7 +723,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.body_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -910,8 +982,28 @@ class Match:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                if self.combat.hooks.pulling(bot.entity):
+                    bot.last_tick = tick
+                    continue
+                if bot.entity in self.combat.gravitons.pulled:
+                    bot.last_tick = tick
+                    continue
+                if self.combat.halt.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
+                    continue
+                if self.combat.step_npc_knockback(bot, tick, RETAIL_QUANTA / 1e6):
+                    continue
+                if not self.combat.controlled(bot.entity, tick=tick):
+                    mods = self.combat.halt.patrol_mods(bot, tick)
+                    if mods is None and bot.route and bot.body_script is not None:
+                        mods = statescript_mods(bot.body_script.component)
+                    bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                             paused_until=self.combat.control_deadline(bot.entity),
+                             movement_mods=mods)
+                else:
+                    bot.last_tick = tick
+                    bot.velocity = (0.0, 0.0, 0.0)
+                    bot.held = (0, 0)
+                    bot.pace = 0.0
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1058,22 +1150,83 @@ class Match:
                 return expr.Vec3(*bot.position)
         return None
 
-    def _message_player(self, entity: int) -> Player | None:
-        shown = (player for player in self.players if player.body == entity and self._shown(player))
-        return next(shown, None)
+    def script_movement_flags(self, entity: int, owner: int) -> int | None:
+        for player in self.players:
+            if (player.body == entity and player.has_body and player.client is not None
+                    and (player.spawned or entity == owner)):
+                return player.mover.flags
+        for bot in self.bots:
+            if bot.entity == entity:
+                # Use the same precedence as the NPC movement update.
+                mover = self.combat.gravitons.npc_movers.get(entity)
+                if mover is None and (pull := self.combat.halt.pulls.get(entity)) is not None:
+                    mover = pull.mover
+                if mover is None:
+                    mover = self.combat.knockbacks.get(entity)
+                return mover.flags if mover is not None else bot.movement_flags
+        return None
 
-    def queue_body_message(self, target: int, message: int, params: dict, sender: int) -> bool:
+    def _message_body(self, entity: int) -> Player | bots.Bot | None:
+        for player in self.players:
+            if player.body == entity and self._shown(player):
+                return player
+        return next((bot for bot in self.bots if bot.entity == entity and not bot.dead), None)
+
+    @staticmethod
+    def _message_script(owner):
+        script = owner.body_script if owner is not None else None
+        return script if script is not None and not getattr(script, "retired", False) else None
+
+    def _message_endpoint(self, entity: int, *, typed: bool):
+        owner = self._message_body(entity)
+        script = self._message_script(owner)
+        if script is not None:
+            return owner, script
+        if typed and entity >> 28 == 0xD:
+            for bot in self.bots:
+                body = bot.body_script
+                if bot.dead or not isinstance(body, BotScript):
+                    continue
+                controller = body.assassin_controller
+                if (controller is not None and controller.entity == entity
+                        and not controller.owner_dead and controller.fault is None):
+                    return bot, controller
+        return None, None
+
+    def message_component(self, entity: int) -> runtime.Component | None:
+        _, endpoint = self._message_endpoint(entity, typed=True)
+        if isinstance(endpoint, runtime.Component):
+            return endpoint
+        return endpoint.component if endpoint is not None else None
+
+    def queue_body_message(self, target: int, message: int, params: dict, sender: int, *, source_world=None) -> bool:
         """Capture the source and recipient scripts before either entity ID can be reused."""
-        source, recipient = self._message_player(sender), self._message_player(target)
-        if source is None or recipient is None:
+        recipient = self._message_body(target)
+        source_script = self._message_script(self._message_body(sender))
+        script = self._message_script(recipient)
+        if source_script is None or script is None:
             return False
-        source_script, script = source.body_script, recipient.body_script
-        if source_script is None or source_script.retired or script is None or script.retired:
+        if source_world is not None and source_script.component.world is not source_world:
             return False
         if len(self._body_messages) >= MAX_BODY_MESSAGES:
             expr.warn_once("body-message-limit", "match body message queue reached %d", MAX_BODY_MESSAGES)
             return False
-        self._body_messages.append((source_script, recipient, script, message, dict(params)))
+        self._body_messages.append((source_script.component, recipient, script, (message, dict(params))))
+        return True
+
+    def queue_body_packet(self, packet: message_receive.Packet, targets: tuple[int, ...], source_world) -> bool:
+        """Queue one typed submission atomically, preserving target order and duplicates."""
+        source = self.message_component(packet.caller)
+        if source is None or source.world is not source_world or source.fault is not None:
+            return False
+        pending = []
+        for target in targets:
+            recipient, script = self._message_endpoint(target, typed=True)
+            if script is not None:
+                if len(self._body_messages) + len(pending) >= MAX_BODY_MESSAGES:
+                    return False
+                pending.append((source, recipient, script, packet))
+        self._body_messages.extend(pending)
         return True
 
     def deliver_body_messages(self) -> None:
@@ -1082,19 +1235,46 @@ class Match:
             return
         pending, self._body_messages = self._body_messages, []
         # Messages emitted by a receiver enter the next batch, outside its VM call stack.
-        for source, player, script, message, params in pending:
-            if source.retired or source.component.fault is not None:
+        for source, recipient, script, payload in pending:
+            sender = source.entity
+            if self.message_component(sender) is not source or source.fault is not None:
                 continue
-            if player.body_script is not script or script.retired or not self._shown(player):
+            typed = isinstance(payload, message_receive.Packet)
+            detached = isinstance(script, runtime.Component)
+            component = script if detached else script.component
+            target = component.entity
+            owner, endpoint = self._message_endpoint(target, typed=typed)
+            if owner is not recipient or endpoint is not script:
                 continue
             try:
-                component = script.component
                 # An earlier message can start or stop a later message's entry state.
-                if runtime.send_message(component, message, params, source.entity):
+                if typed:
+                    delivered = message_receive.deliver(component, payload)
+                else:
+                    message, params = payload
+                    delivered = runtime.send_message(component, message, params, sender)
+                if delivered:
                     component.run_now()
+                    if (isinstance(script, BotScript) and self.message_component(target) is component
+                            and (snapshot := script.capture_live()) is not None):
+                        for viewer in self.players:
+                            if viewer.spawned and viewer.client is not None:
+                                viewer.client.queue_bot_live(target, snapshot)
             except Exception:
-                log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
-                self.stop_body_script(player, failed=True)
+                role = "controller" if detached else "body"
+                log.exception("[game] %s: %s's %s message handling failed", self.label(), recipient.name, role)
+                if detached:
+                    if self.message_component(target) is component:
+                        recipient.body_script.retire_assassin_controller()
+                    continue
+                if recipient.body_script is not script:
+                    continue
+                if isinstance(recipient, bots.Bot):
+                    if isinstance(script, BotScript):
+                        script.retire_assassin_controller()
+                    recipient.body_script = None
+                else:
+                    self.stop_body_script(recipient, failed=True)
 
     def start_body_script(self, player: Player, create: EntityUpdate) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
@@ -1111,11 +1291,16 @@ class Match:
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
                 match=self,
+                body_definition=player.hero.body,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
+        if player.retained_ult_charge is not None:
+            cost = expr.to_float(script.component.entity_var(ULT_COST).value())
+            script.set_ult_charge(min(cost, player.retained_ult_charge))
+            player.retained_ult_charge = None
         script.created(create)
         player.body_script = script
         bodytrace.started(player, script)
@@ -1140,11 +1325,15 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            self.combat.prepare_shatter_frame(player)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
-            script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+            controlled = self.combat.controlled(player.body)
+            script.command(command.frame, 0 if controlled else command.buttons,
+                           0 if controlled else command.action, 0 if controlled else command.forward,
+                           0 if controlled else command.right)
         except Exception as error:
             bodytrace.failed(script, error)
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)
@@ -1241,13 +1430,22 @@ class Match:
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        if hero.guid == DVA and hero.body == DVA_MECH and graph.player_body(DVA, DVA_MECH) is None:
+            return False
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
+            if old_hero != hero.guid or hero.guid not in AUTHORED_CHARGE_HEROES:
+                player.retained_ult_charge = None
+            elif (script := player.body_script) is not None and script.entity == old and not script.retired:
+                slot = script.component.entity_var(ULT_CHARGE, create=False)
+                if slot is not None:
+                    player.retained_ult_charge = max(0.0, expr.to_float(slot.value()))
             self.combat.retire_player_body(player)
+            self.stop_body_script(player)
             player.new_body(entity)
             self.combat.record_replacement(entity)
         player.hero = hero
@@ -1277,6 +1475,7 @@ class Match:
             return
         self.notices.left(player)
         player.gone = True
+        player.retained_ult_charge = None
         player.client = None
         player.spawned = False
         self.stop_body_script(player)

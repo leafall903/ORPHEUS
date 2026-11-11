@@ -1,0 +1,29 @@
+Notification lifetime reconstruction
+
+Cancelling a state's queued CHANGED/CHECK events clears flags_changed and
+flags_check. Otherwise a new activation can retain a marker for an event that
+no longer exists and ignore future variable changes.
+
+Component.changed also skips a state while state.ending is true. State.end
+cancels old callbacks before on_end;cleanup can write a watched variable while
+the state is still active. Enqueuing another change at that point leaves a
+notification for the ending activation. The ending guard prevents this.
+
+Two minimal regressions cover reentry after cancellation and a watched write
+inside on_end. The private lane already had the cancellation marker fix;the
+cleanup-write regression failed before adding the ending guard. No persistent
+VM field or global arbitration phase is added.
+
+The generic runtime candidate also preserves the separate computed-cooldown
+expiry prerequisite: Ability.timer(2) notifies readers of its linked cooldown
+variable when remaining reaches zero. Millisecond rounding before zero schedules
+another1ms check. This lets a Barrier ready switch observe expiry without a
+variable assignment;the standalone portable candidate tests cover that path.
+
+This is a scoped server runtime invariant,not proof of complete original
+callback or cross-object arbitration order. Ability.stop release ordering is
+not changed by this fix. Hero/client acceptance remain separate.
+
+Final portable two candidate checks pass0.003s;915 all-script and58 hero/input/
+NPC regressions pass,plus11 final query/lifetime/resource methods. Full goal
+remains open. No new original-client session is claimed.

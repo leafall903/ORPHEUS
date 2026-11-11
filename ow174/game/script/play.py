@@ -69,41 +69,87 @@ def array_item(instance, cfg, *, watcher=None):
     return values[index] if isinstance(values, tuple) and 0 <= index < len(values) else None
 
 
-def _iter_values(instance, cfg, *, _depth=0, watcher=None):
+def fold_values(instance, cfg, *, watcher=None):
+    """104319 1B77D80: collect first, then fold under provider1B76A60.
+
+    The seed is evaluated only for nonempty input. Failed seed/step evaluation
+    preserves the accumulator; a missing final config copies it. Provider keys
+    are index000C, count041A, accumulator050D and current item050E (hex).
+    """
+    component = instance.component
+    with component.operation():
+        values = tuple(_iter_values(instance, cfg.get("m_814F8EC3"), watcher=watcher))
+        provider = {0x0C: 0, 0x41A: len(values), 0x50D: None}
+        if values:
+            provider[0x50E] = values[0]
+        with component.parameter_scope(provider):
+            if values:
+                seed = cfg.get("m_418D9D9D")
+                if seed is not None:
+                    provider[0x50D] = evaluate_scalar(instance, seed, initial=None, watcher=watcher)
+                step = cfg.get("m_C239F989")
+                for index, value in enumerate(values):
+                    component.consume_work("config fold iteration")
+                    provider.update({0x0C: index, 0x50E: value})
+                    if step is not None:
+                        provider[0x50D] = evaluate_scalar(instance, step,
+                                                        initial=provider[0x50D], watcher=watcher)
+                # Native increments beyond the final item before the projection.
+                provider[0x0C] = len(values)
+                del provider[0x50E]
+            final = cfg.get("m_8054375D")
+            if final is not None:
+                return evaluate_scalar(instance, final, initial=expr.EVALUATION_FAILED, watcher=watcher)
+            return provider[0x50D]
+
+
+def _iter_values(instance, cfg, *, _depth=0, watcher=None, check=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 
     A missing/failed config or a scalar null yields no item. Null members of an
     existing array are retained. Recognized native iterators retain their own
     traversal; unknown native iterator configs remain strict world queries.
     """
-    iterator = _iter_pairs(instance, cfg, _depth=_depth, watcher=watcher)
+    iterator = _iter_pairs(instance, cfg, _depth=_depth, watcher=watcher, check=check)
     try:
         for _, value in iterator:
             yield value
     finally:
         iterator.close()
+        if check is not None:
+            check()
 
 
-def _iter_pairs(instance, cfg, *, _depth=0, watcher=None):
+def _iter_pairs(instance, cfg, *, _depth=0, watcher=None, check=None):
     """The supported generic iterators' key/value rows, before value projection."""
     instance.component.consume_work("played graph config iteration")
+    if check is not None:
+        check()
     if _depth >= MAX_CONFIG_DEPTH:
         instance.component.budget_exceeded("played graph config iterator depth exhausted")
     if cfg is None:
         return
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         for child in cfg.get("m_configVars") or ():
-            yield from _iter_pairs(instance, child, _depth=_depth + 1, watcher=watcher)
+            yield from _iter_pairs(instance, child, _depth=_depth + 1, watcher=watcher, check=check)
         return
     iterator = controller_heroes.values(instance.context(watcher), cfg)
+    if check is not None:
+        check()
     if iterator is not NotImplemented:
         try:
             for value in iterator:
+                if check is not None:
+                    check()
                 yield 0, value
         finally:
             iterator.close()
+            if check is not None:
+                check()
         return
     value = instance.evaluate(cfg, watcher, initial=_FAILED)
+    if check is not None:
+        check()
     if value is _FAILED or value is None:
         return
 

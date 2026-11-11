@@ -123,10 +123,10 @@ class Peer:
         self.reliable += 1
         self.send(payload=payload.getvalue(), now=now)
 
-    def commands(self, first, count, buttons, *, forward=0, now=100.8):
+    def commands(self, first, count, buttons, *, forward=0, yaw=0, now=100.8):
         if count > 32:
-            self.commands(first, 32, buttons, forward=forward, now=now)
-            return self.commands(first + 32, count - 32, buttons, forward=forward, now=now)
+            self.commands(first, 32, buttons, forward=forward, yaw=yaw, now=now)
+            return self.commands(first + 32, count - 32, buttons, forward=forward, yaw=yaw, now=now)
         body, payload = BitWriter(), BitWriter()
         body.bits(0, 24)
         body.bits(count, 8)
@@ -137,7 +137,8 @@ class Peer:
             body.bit(0)  # unchanged right
             body.bit(1)  # forward follows
             body.signed(forward, 8)
-        body.bits(0, 32)
+        body.signed(yaw, 16)
+        body.bits(0, 16)
         body.bits(buttons, 24)
         body.bits(0, 24)
         for _ in range(count - 1):

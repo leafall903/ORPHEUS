@@ -8,6 +8,9 @@ from functools import cache
 
 from ow174.paths import DATA_DIR
 
+DVA = 0x02E000000000007A
+DVA_MECH = 0x0400000000000407
+
 HEROES_PATH = DATA_DIR / "game_heroes_174.json"
 MAPS_PATH = DATA_DIR / "game_maps_174.json"  # tools/extract_game_maps.py
 SOLDIER = 0x02E000000000006E

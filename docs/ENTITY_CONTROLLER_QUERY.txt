@@ -1,0 +1,61 @@
+Controller eligibility query -- build104319, classB96D3A98
+
+CC9BF0 evaluates the entity selector, converts its scalar value to a uint32
+entity ID, obtains the namespace and compares the full ID inside its low12-bit
+bucket. Missing entity writes false. A present entity's component43 is observed
+when available and watched; DA6910 resolves the controller independently after
+that observation. A missing controller writes false. The original bitset reader
+then requires component75 and rejects component92, in that order.
+
+controller_query.py preserves that sequence through an explicit Context:
+- Target declares component43 availability;unknown is not absence.
+- resolve_controller supplies the DA6910 result independently of that flag.
+- Controller declares75/92 availability separately. Unknown92 is not needed
+  when75 is known absent;it remains unsupported when75 is present.
+- Callback retirement/rebinding cannot continue on stale owner/target state.
+- Unmounted World.entity_controller_context keeps the previous world fallback,
+  including not evaluating the selector twice. A mounted service's known absent
+  namespace is unsupported;no safe native null-namespace result is established.
+
+440 original-function comparisons execute CC9BF0's scalar conversion, full-ID
+bucket matching with colliding low12 keys, component43 mask selection and
+post-decode observation branch,75/92 checks and typed boolean output/return.
+Adapters provide namespace/literal virtual services, component43 table pointer
+decryption, DA6910 controller resolution and synthetic variant disposal.
+Native component allocation, encryption, controller-resolution implementation,
+concurrent namespace locks and actual NPC controller facts remain open.
+No image bytes are bundled. Authorized image SHA256:
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+
+Eight query tests cover defaults, missing/unknown facts, ordering, fresh
+resolution after observation, unmounted fallback and callback lifetime.
+An actual Enforcer13EB fixture uses this generic query rather than a fixed
+predicate callback. It explicitly supplies controller75/92 facts and aggregate
+health service;92 blocks the manual shot profile,while its absence allows
+actual weapon damage. Those fixture hypotheses do not establish normal Match
+NPC controller allocation, health-query fidelity, AI or full Enforcer combat.
+At that checkpoint Match/BotWorld did not install a controller context.
+The later private npc_context manual-spawn policy installs declared75/no92
+facts for Enforcer/Assassin bodies,using this generic evaluator. That policy
+and its health/ring/physics consumers are excluded from the generic candidate;
+no native allocation or universal player/NPC controller profile is claimed.
+
+Regression checkpoints:913 script tests passed21.895s;after the separate
+notification ending-state fix,915 passed21.607s.58 actual hero/input/NPC/
+Barrier/Earthshatter regressions passed148.599s. Final11 query/lifetime/actual
+Enforcer methods passed5.348s after import/binding-lifetime checks;the440 native
+comparisons also pass against the final source. These overlapping counts are
+regression scopes,not accepted combat matrix cells or client acceptance.
+
+Further offline resolver evidence (native-controller-resolution-validation.json)
+384 DA6910 -> DA5FA0 mode0 fixtures execute original43/44 selector masks,
+compact slot popcounts,branch decisions,BD3F50/BD42D0 owner/namespace decode,
+full32 ID collision-bucket lookup and final44 record+8 owner decode. Component
+pointer cipher and BAD060 ID-mask services remain explicit adapters;namespace
+locks are absent. Non-null decoded43 selects its linked entity44;null/absent43 selects self44.
+A non-null43 whose linked entity lookup fails returns null without self44 fallback.
+This narrows the DA6910 adapter mechanically;it does not identify actual actor
+component presence,ID masks,controller lifetime or AI behavior. Mode1 optional
+component72 fallback is unverified;CC9BF0 calls mode0. Initial standalone link
+trace used a synthetic outside-image caller and hit the original caller guard;
+that failed trace is excluded. Accepted probe preserves original call sites.

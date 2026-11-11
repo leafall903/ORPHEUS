@@ -390,13 +390,17 @@ def _moved(point, frame) -> tuple:
     return _f32(x + t[0]), _f32(y + t[1]), _f32(z + t[2])
 
 
-def model_shapes(data: bytes, category: int = MOVER) -> list:
+def model_shapes(data: bytes, category: int = MOVER, *, static_only: bool = True) -> list:
     """The physics shapes of a 00C model that stop the category, in model space, as the engine keeps them:
     ("mesh", mask, vertices, triangles (a, b, c, wing0, wing1, wing2, mask, surface: the 32 B records of
     chunk 0x11, wing = the far corner of the neighbour across each edge, -1 none)), ("hull", mask,
     centroid, vertices, planes, faces, half edges), ("capsule", mask, a, b, radius), ("sphere", mask,
     centre, radius). A mesh's triangles carry their own masks; the other shapes the holder's. Only the
-    static ones (static_part), each moved to its node's place in the model."""
+    static ones (static_part), each moved to its node's place in the model.
+    An explicit static_only=False also returns authored non-mover shapes, for
+    consumers such as dynamically positioned barriers; it does not add them to
+    the movement world or infer their runtime collision policies.
+    """
     payload = chunks(data).get("MSTU")
     if payload is None or len(payload) < 16:
         return []
@@ -412,7 +416,7 @@ def model_shapes(data: bytes, category: int = MOVER) -> list:
         if shape is None:
             continue
         holder = stu.ref(wrapper, HOLDER)
-        if not static_part(stu, wrapper, holder):
+        if static_only and not static_part(stu, wrapper, holder):
             continue
         node = stu.raw(stu.fields[wrapper], NODE)
         frame = node_frame(table, struct.unpack_from("<I", node, 0)[0]) if node and len(node) >= 4 else None

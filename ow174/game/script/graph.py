@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from functools import cache, lru_cache
 from pathlib import Path
 
+from ow174.game.content import DVA, DVA_MECH
 from ow174.game.script.expr import Asset
 from ow174.paths import DATA_DIR
 
@@ -315,6 +316,13 @@ def bodies() -> dict[int, dict]:
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
+
+
+def player_body(hero: int, definition: int | None = None) -> dict | None:
+    """Resolve an explicit D.Va mech supplement or the ordinary hero body."""
+    if hero == DVA and definition == DVA_MECH:
+        return entity_body(definition)
+    return next((record for record in bodies().values() if int(record["hero"], 16) == hero), None)
 
 
 def entity_script_component(definition: int):

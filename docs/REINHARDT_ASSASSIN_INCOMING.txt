@@ -1,0 +1,182 @@
+Manual Assassin1157 pin -- private104319 server reconstruction
+
+The extracted primary AI slot0 remains button20. npc_control.start(...,
+action="pin") is a separate manual action routed to1157's actual logical
+button36. Default primary and other NPC inputs retain their prior mapping.
+This restores a bounded pin consumer,not primary20 attack semantics or AI.
+
+Manual Assassin's controller descriptor uses a world-local typed uint32 ID:
+D0000000 | (body entity &0FFFFFFF). DB742151 returns expr.Entity of that ID;
+existing expression member lookup resolves its entity-scope1650 target via
+BotWorld.entity_var. Original1157/node51 stores that Entity into#536. No Map
+is substituted for EntityID,no wire controller is allocated,and native ID
+allocation/component construction are not claimed. The ID,target,context and
+retirement state are causal storage. Retired contexts stop serving#1650.
+
+Declared contact policy is3m eye-to-eye plus actual static capsule LOS and
+team/living/present-target checks. The service's health query covers this1157
+owner/target aggregate HP. Native acquisition,animated contact and physics
+are unknown. Pin contact lowers the actual Reinhardt barrier and interrupts
+his attacks/abilities/movement;the barrier is not charged as a damage surface
+by this manual contact policy. Armour is applied by the normal damage path.
+
+STUStatescriptStateModifyHealth now calls an explicit World health consumer.
+Mode1 is elapsed-time damage/second;mode0 applies once on entry. This clock is
+a server reconstruction;native tick aggregation/armour timing are not claimed.
+A strict world with no health service fails closed. last_applied records the
+consumed clock,including skipped frames,so repeated clocks cannot replay damage.
+Default1157 initialization evaluates#13230=25 and#11984=100. Actual pin entry
+loses20 armour HP;during the damage phase ten16ms frames lose8 armour HP.
+
+The actual pin phase23 maintains control through the authored delay before
+ModifyHealth15 becomes active. A two-script-frame refresh bounds abandoned
+control,while explicit interruption/stop/death/removal releases immediately.
+Control sources are independent:releasing Assassin's pin preserves a separate
+stun. Source control immediately clears the NPC's last queued attack_input.
+A live pin can damage Reinhardt to death;the real death path retires its target
+and avoids duplicate effects. A fresh explicit engagement exits the unresolved
+release animation31 through normal graph exits. Native animation/recovery and
+cooldown fidelity remain unknown;this is not autonomous reacquisition.
+
+Tests cover typed target lookup,primary-slot preservation,initial/DOT damage,
+delay-time pin continuity,barrier lowering,blocked commands,stop/restart,
+wall/ally/range denial,source control/expiry,rearm,source death/removal,target
+departure/range break,actual victim death,and another Reinhardt's real Charge
+capturing the Assassin and releasing its victim. VM/full-server snapshots
+record action,target and clock mutations without evaluating graph callbacks.
+Unknown health consumers and unsupported context/retirement remain explicit.
+
+A deployed Mei Ice Wall across the pin sightline releases the input and
+clears the bound target. An active pin stops applying damage, held
+Barrier Field can raise again, and wall cancellation allows the same
+manual engagement to acquire a fresh pin.
+
+Controller graph1158 node1 reads the possessed body's current base-health pool
+through STU_783B4CF0. The build104319 getter at RVA 5C0530 sums populated slots
+for the selected pool kind. The exercised native getter produces the same sum
+when the selector tag changes. Match supplies its current health, armour and
+shield buckets to player and NPC scripts. Graph95 still reads its barrier pet
+through its scoped resource service. In the authored availability fixture,
+the expression rejects a body with zero base health and accepts positive base
+health with the other conditions held permissive.
+
+The Component88 request state STU_ECAEE401 now exposes the verified scheduled
+outputs to an explicit host. The original 1158 node2 queues node103 on begin,
+and dispatch3 tests node47 and queues node78 when #9149 exceeds #12018. The
+runtime audit begins node2 explicitly and supplies registration. Normal
+registration, scheduling, the custom request input and motion through the
+map remain open.
+
+The original action resolver uses base action 1B6EBA0 for STU_0B0BABC6.
+Nodes24 and58 therefore forward to their respective authored outputs. The
+paired scene fixture sends 07C8 from nodes34 and59 to the possessed body's
+0E62 node64. It binds animation aliases0561 and0572 and the authored float
+2.0. Only the node34 packet includes category022D. The alias-only action at
+node62 uses an explicit resource resolver and writes its typed result to
+#9687. A known miss writes an empty asset. With a supplied asset, node68
+runs the base action and node63 starts and finishes at the authored 2000 ms.
+These checks use mounted fixture graphs and SceneWorld transport. Actual match
+controller delivery, alias resource selection and client playback remain open.
+
+The match's existing deferred body-message queue now includes live mounted
+NPC bodies. A live match test supplies 07C8 from Reinhardt's body and reads
+the three parameters in the actual Assassin 0E62 graph. A probe action on the
+NPC sends a reply to a probe receiver on Reinhardt. Both deliveries preserve
+the recipients' command clocks. A queued pair is discarded when the Assassin
+dies and is removed before the batch drains. Its replacement receives neither.
+The legacy message path remains available. Mounted match body worlds also
+support typed action requests. An explicit strict sender fixture on Reinhardt
+delivers a typed 07C8 to the actual 0E62 receiver. Full parameter IDs separate
+matching low bits in different resource namespaces. Array order, caller and
+instigator are preserved. Omitted parameters leave previous bindings intact.
+When the prepared 1EBE graphs are present, a normal manual Assassin spawn
+mounts all six controller roots on a separate strict VM. The server uses the
+same world-local controller identity as the manual relation. The body owns
+the controller lifetime and retires it on death or explicit removal. The
+prepared empty C3619A38 config preserves its destination. The controller can
+read the match mode entity. Its B61 registry covers 142A nodes2 and3, including
+priority10 for the authored 0003.024 descriptor. The strict factory skips
+nodes12 and7 because the captured registry supplies no constructor. Node29
+registers the persistent 09DB receiver using a controller-local host and an
+explicit server-authoritative policy. A separate sender fixture verifies that
+the original receiver queues node32 and cancels that pending begin when the
+sender retires. Normal startup registers the listener and both B61 records.
+The captured factory skips seven unregistered 1172 state classes, including
+918B3FA9. The Match controller has no populated component46 record payloads.
+The base evaluators for the 1172 range query and the two 0C83 queries
+leave their output intact. A normal match advances the controller for 120
+frames with the listener still active. Death releases the host and records.
+The persistent message manager currently serves one controller. The match's
+separate typed packet queue can address the mounted controller. An explicit
+0079 reaches original 1172 and sets instance #536. Explicitly entering
+original 1158 node34 sends 07C8 to the mounted 0E62 body with its authored
+parameters. The queue preserves both command clocks and drops packets whose
+controller endpoint retired.
+
+The mounted controller selects the original 13C2 targeting channel. Node 4
+reads the possessed body's pose and the authored radius and filter. The Match
+adapter supplies visible live hostile player bodies in nearest-first order,
+with entity ID breaking ties. The server supplies the filter component inputs
+for this player projection. Empty searches keep polling. The original graph
+selects an eligible candidate through its random expression, writes #1650,
+clears a newly friendly target and replaces a dead target. The
+match test starts with a wall between Reinhardt and the Assassin, moves
+Reinhardt outside the authored radius, then brings him into unobstructed
+range. The acquisition order and LOS geometry are server reconstruction.
+Attack behavior selection, animation resolution and movement remain open.
+
+With 1158 explicitly selected by the test, the strict controller resolves
+STU_71A87E92 from Match body poses. Original node 53 reads the target from
+13C2, and node 26 admits it through the Match player filter projection.
+At 2 m, the original controller sends 07C8 twice through the Match queue.
+Node 31 supplies alias 0561, category 022C and 1.33 s. Node 34 then supplies
+alias 0561, category 022D and 2 s. Original 0E62 receives both. When the
+two-second wait at node 33 expires, 1158 sends 09DA and original 13C3 sets
+body #13401 to 3. The test overrides behavior selection only. It leaves
+controller frames, message delivery and both bodies on the Match clock.
+The Match supplies filter bits 0x40001 for eligible players. The observed
+route has no logical button 36 input or pin.
+
+In the farther-target test, explicit 1158 selection reaches original node 2.
+The Match holds its one default-priority request until the state retires.
+Original node 102 reads its authored position and the server applies the
+horizontal heading to the possessed body. Hard control suspends facing. Both
+death and the original node 36 windup exit release the live request. The
+windup exits on the first command frame to reach its authored 1.33 s deadline.
+Passive storage preserves the active request identity. This facing policy
+reconstructs yaw from the Match poses. Translation and native scheduling
+remain open.
+
+With original phase 2 explicitly entered through 1158 node 4, original
+node 12 holds authored logical button 36 on its possessed body. The Match
+gives an active manual command precedence and otherwise applies the live
+controller target through its existing pin contact checks. Original body
+1157 binds that target, pins Reinhardt, drops his active Barrier Field and
+applies its initial and periodic damage. Leaving phase 2 through the original
+switch releases the button and pin without late damage. The test supplies
+phase entry. The host's button ownership and contact policy are reconstructed.
+Automatic phase entry and native scheduling remain open.
+In a separate diagnostic, a farther selected player enters close range.
+Original nodes 74 and 75 arm a half-second watch on #14651. With Match's
+absent component46 record the watch expires into phase 3. Injecting a
+change to 1.0 while the watch is active makes the original graph select
+phase 2 and pin the player. Native record population remains open.
+The corresponding Match regression uses Reinhardt as the selected player
+and compares absent, zero and nonzero record values. Absent and 0.0 keep
+the watch active until the authored 500 ms deadline and leave Reinhardt at
+500 HP. A change to 1.0 during the watch makes original node 75 enter
+phase 2 and drops Reinhardt to 480 HP. The test selects the behavior and
+injects the two present values. Original controller and body graphs supply
+the phase transition, button, contact and damage.
+
+Diagnostics excluded from acceptance:primary20 alone did not start pin36;
+health-only refresh let the pin lapse during its delay;restart fixture forgot
+to re-aim its crosshair;charge interruption exposed stale attack_input;new
+state inventory needed its37th model. Corrected final logs are listed in the
+external manual-assassin-combat-summary.json after regression completes.
+
+Still OPEN:primary20 semantics,remaining applicable NPC special/AI behavior,
+full reflection/absorption/invulnerability/control-immunity interactions,
+normal damage ultimate economy and death/respawn/hero-switch retention,and
+full static goal audit. Parent spread_ramp/Fan ray updates are received but not
+yet integrated. No client,commit or full merge-ready claim.

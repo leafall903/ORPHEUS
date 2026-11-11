@@ -1,0 +1,1220 @@
+Reinhardt combat lane -- OPEN, not client accepted
+Target: 1.74.0.0.104319, hero02E0000000000007, body0400000000000024.
+
+Implemented candidate:
+The authored0048 graph owns primary windup, alternating swings, interruption
+and ModifyHealth values. Combat consumes active states3/4 and evaluates their
+main TrackTargets1/2 plus near queries8/9. The target blood/armour pools, hit
+notices, death and opt-in NPC corpse policy use the existing combat path.
+Each victim is hit once per damage-state activation, including overlapping
+main/near volumes and later entry into an already active swing. Death and body
+replacement prevent further damage and retire the old deduplication state.
+That mutable state is included in passive server snapshots.
+Reconstructed quick-melee input aliases the hammer's primary control. OR the
+physical keys before edge detection, retaining raw command history, so releasing
+one of two held controls cannot end or restart an attack. Direct melee-key
+windup/damage and primary/melee handoff tests pass; native input parity is open.
+
+Fire Strike candidate (reconstructed server marker policy):
+An explicit BodyWorld policy finishes00E2/state5's empty54FEB21C marker.
+The original0.5s wait, volley, winddown and6s cooldown run unchanged. This does
+not implement native54FEB21C. Unrelated strict graphs and nonempty marker
+configurations still reject that unsupported service. Ordinary other hero
+markers retain their previous passive behavior. The class has no extra stored
+fields, and passive VM storage includes its declared type.
+The authored25m/s projectile deals100 without critical scaling, lasts through
+its100m center travel limit and penetrates body targets once per entity lifetime.
+The two native0.85 direct-hit extents are reconstructed as a sphere for target
+and real static-world sweeps. Exact native shape and receiver/defense rules are
+not claimed. Victim history is stored and changes the server snapshot digest.
+
+Charge candidate (full interaction matrix still OPEN):
+The same explicit policy finishes only007D/state37's empty54FEB21C marker,
+allowing the native0.6s windup,3s run and10s cooldown graph to advance.
+Combat reconstructs a16.5m/s horizontal drive from #7726's16.5/60 step,
+and rate-limits movement heading using #34534's30 degree steering parameter.
+The exact native movement hook and interpretation of that parameter are not
+asserted. View yaw remains the command yaw; this is a velocity reconstruction.
+The shared mover replaces only horizontal wish velocity, retaining ground
+following, gravity and the actual swept static-world capsule. Vertical momentum
+survives drive release; fixed world-target movement retains its previous reset.
+An obstructed step feeds #59=0 through the same end branch as natural timeout;
+native wall-impact animation/recovery timing remains open. Timer expiry, death
+and body retirement release the drive. The original graph does not respond to
+a second Shift press as an OW2 manual cancel. Seven command/mover tests cover
+windup, speed, duration, steering/pitch, wall stop/cooldown, death, retirement,
+and airborne gravity/release. Stored heading and release mode affect passive
+server snapshot hashes.
+The reconstructed contact service sweeps the query's1.725 broad radius and
+0.536 pin half-width against living enemy capsules, with forward/LOS checks.
+It captures one frontal victim without initial damage, bumps additional or
+lateral targets for native state15's50 damage once per activation, and moves
+the captured body through the actual capsule engine. Spacing is reconstructed
+as owner+victim radii plus0.02m, rather than a native animated attachment.
+Blocked transport or owner obstruction applies native state12's300 pin damage,
+existing shields/armour order and ordinary death handling, once, then ends.
+Timeout or owner death/replacement/stun releases without wall damage; captured
+victim death/removal also releases ownership. Independent hard-control sources
+have separate deadlines and survive pin release. Controlled players receive
+no movement, jump/crouch or attack input; active actions are stopped. External
+impulse motion still runs; pins anchor transport.
+The opt-in barrier drops under control and Charge passes through its mesh.
+Controlled NPC route stepping pauses without accumulating catch-up movement;
+live weapon scripts advance while reports are discarded, avoiding later bursts.
+Four actual NPC bodies execute capture, transport and 300-damage wall scenarios.
+Heavy Assault's authored 6601 selects the impact branch at the tested contacts.
+This does not establish their incoming attack/special AI. New scoped tests
+also cover side-hit deduplication, second body, LOS, factions, blocked input,
+armour, independent control expiry, source/victim death and source interruption.
+Capture identity/history and control deadlines are passive stored server state.
+Native cone/filter/attachment, force conversion, other counter variants, general
+cross-hero control immunity/defenses and original-client presentation remain OPEN.
+
+Counter-charge candidate (actual player input; scoped reconstruction):
+007D/query74 runs in windup as well as motion. Its evaluated radius/cone,
+living enemy capsules, static LOS and opposing flag596 facing select a collision.
+The server samples current poses and pads the cone by the target capsule's
+angular extent; native moving-query interpolation and width service are open.
+The captured victim and already controlled actors are excluded. Each body's
+inline224E profile is selected by identifier6BBE and override7312=true, then its
+D7 duration is evaluated. This distinguishes Brigitte's ordinary0.75s hit stun.
+Original Rein007D/node153, Doomfist0D06/nodes164/165 and Brigitte0EE3/nodes119/121
+all provide2s counter knockdown. Atomic control ends both actions without damage
+and starts the original charge cooldown. It does not execute all native224E.
+Actual Shift/Shift, released Rocket Punch and Shield Bash inputs execute this
+path. Holding Punch or holding Brigitte's shield alone does not select it.
+Thirteen methods cover running/windup contact, close-input processing order,
+source control expiry, refusal/recovery, no health loss, same-facing/allied/
+cone/static-wall exclusions and recovery of the counterpart's native flag.
+The counterpart's general movement/damage and special9161/6601 counters are not
+accepted by these tests; incoming NPC charging/special actions remain open.
+
+Knockback/passive candidate (explicit velocity-delta reconstruction):
+Charge state15 supplies horizontal30/vertical10, scaled by ruleset10641;
+state49 supplies horizontal10/vertical5 on natural release with no health loss.
+Origins are behind the owner by5m and2m respectively; horizontal direction is
+from that origin to the receiver. The service interprets strengths as velocity
+deltas, rather than claiming native force/mass/profile conversion. Existing
+mover friction, above-run-cap momentum, gravity and swept capsule contacts own
+the resulting motion. NPCs use a cached authoritative mover until settled;
+route steps do not catch up during the push. Dead actors ignore impulses;
+captured actors reject unrelated pushes. Removal retires NPC motion immediately.
+Response uses current ordered movement modifier26. Original00A4/st4 multiplies
+Reinhardt's response by0.7; removing that state removes resistance in an executed
+test. Heavy Assault's actual1254/st0 sets26 to0. At the tested angle its
+6601 branch ends Charge without a body hit. The other four NPCs move and settle.
+This response immunity does not imply stun or capture immunity. Independent
+knockback motion and its impulse_active flag are passive stored server state.
+
+Resource-backed incoming Flashbang integration:
+The private lane includes reviewed shared64bf71c. Flashbang's stuns map
+and source-scoped controls share one query, exclusive deadline and interruption
+path, with input releases, buffered-press clearing, ability stops and shield
+lowering. Native status graph224E is not fully executed. Actual McCree input
+tests cover hammer stop/recovery, Charge stop during running AND windup (the
+old windup resumed after stun; phase-wide termination fixes this), barrier
+absorption without wearer stun and retained external impulse while stunned.
+Both public splash static LOS and lane barrier coverage apply. Complete native
+immunity/cleanse/stacking semantics and other hero effects remain open.
+
+Barrier candidate (explicit reconstructed pose/resources):
+When ORPHEUS_REINHARDT_COLLISION names a prepared external descriptor (or the
+external runtime supplies data/reinhardt_collision_174.json), Combat mounts
+the actual98-vertex192-triangle model mesh and source-derived resource policy.
+Absent input leaves this new service disabled; no normal runtime was changed.
+Native Pet17 controls raised/dropped state. The reconstructed pose aligns to
+aim at bind hardpoint29 minus shieldbone8C, then clears the actual owner capsule
+by the authored0.2m offset. This corrects the bind pose lying behind the wearer;
+it is not native skeletal animation or child actor replication.
+State owns1600 HP,200/s regeneration after2s lowered delay and a5s broken
+deadline. It mirrors current HP to native instance variable586. Enemy hitscan,
+projectiles and covered splash damage the shield. Friendly fire passes through;
+the mesh protects allies behind it and leaves rear/side exposure. The same
+projectile impact cannot spill through a shield it breaks. Death, disconnect
+and body retirement drop the live defense. Exact native receiver filtering,
+animation attachment, pet creates and original-client appearance remain open.
+
+Melee and Fire Strike damage an intersected enemy barrier while penetrating to
+actors behind it. Their victim histories distinguish shield hits from body
+hits. Fire Strike also supports multiple shield/body targets in one flight.
+The worn shield hit key includes the owner's body generation and the raised
+state's activation counter. A newly raised shield can take damage again from
+the same flight while the original body remains deduplicated. A recycled body
+ID with the same first-raise counter admits both the new shield and new body.
+This is reconstructed damage/receiver policy, with104319 receiver002A listing
+special0029/002B profiles; native flag semantics are not asserted. Supplemental
+gameplay reference: https://overwatch.fandom.com/wiki/Barrier
+The earlier candidate test incorrectly treated penetration as no shield damage;
+that expectation has been replaced by actual shield-and-body damage checks.
+
+Two shared runtime fixes were required for broken-shield recovery: cancel clears
+coalescing flags for removed callbacks, and cooldown timers notify dependent
+variables when their computed value reaches zero. A portable two-test fixture
+and a small candidate patch live outside this source in the lane directory.
+
+Data-backed inputs (external authorized runtime, no assets committed):
+- Damage states3/4:85, loadout0B9000000000002B, no critical multiplier.
+- Main query endpoints:(-2,1.5,3)/(2,1.5,3); radius1; reverse for second swing.
+- Near endpoints:(-1,1.5,1.5)/(1,1.5,1.5); radius0.5; reverse for second swing.
+- Query values include native body scale expressions; evaluate their current
+  values rather than replacing them with constants in combat.
+
+Reconstructed assumptions and limits:
+Treat each endpoint pair as a stationary capsule in command aim space around
+the feet, test it against retained target capsules and sample every command.
+The native moving-query interpolation, timing within the query, filter bits
+and hammer knockback remain unverified. Reconstructed static LOS follows the
+shared eye-to-nearest-target-capsule ray. Blocked victims are not tagged, so
+exposing a victim during an active swing can still hit once. Shield melee uses
+the actual overlapping triangle's GJK witness point for static LOS. Player
+primary/melee-alias, all five actual NPCs (ten visible/blocked scenarios) and
+shield/body behind a wall execute that policy. This is not proof of native
+swept hitbox or wall semantics. No general TrackTargets VM service or target-list replication is
+added. Generic player/NPC capsule shapes and lag history are existing inferred
+combat behavior. Deflect/absorb/invulnerability/control services remain open.
+These tests must not be used to accept cross-hero correctness or presentation.
+
+Acceptance matrix (each target column remains OPEN):
+Action                    Enemy player  Trooper Enforcer Sniper Assassin Heavy
+Primary Rocket Hammer     server tests  tests   tests    tests  tests    tests
+Melee key                 server tests  OPEN    OPEN     OPEN   OPEN     OPEN
+Fire Strike               server tests  tests   tests    tests  tests    tests
+Charge bump/pin/wall hit   server tests  tests   tests    tests  tests    tests
+Barrier Field             server tests  OPEN    OPEN     OPEN   OPEN     OPEN
+Earthshatter              OPEN          OPEN    OPEN     OPEN   OPEN     OPEN
+Incoming damage/death     server tests  OPEN    OPEN     OPEN   OPEN     OPEN
+Reflect/absorb/invuln/CC   OPEN          OPEN    OPEN     OPEN   OPEN     OPEN
+Corpse/health presentation OPEN          OPEN    OPEN     OPEN   OPEN     OPEN
+
+"tests" means the scoped damage/base-pool or terminal corpse test passes;
+it does not accept the target's incoming attacks, specials, defense or client
+appearance. All broad action/target acceptance cells remain open.
+
+Known blockers, reproduced against the actual extracted body:
+- Fire Strike00E2 previously stopped on54FEB21C/state5. The explicitly scoped
+  reconstructed policy now enables actual command-to-release/damage/cooldown
+  tests. Native marker behavior and reflect/absorb/barrier/invulnerability remain
+  open. No graph fields or plugs are rewritten by this candidate.
+- Charge007D has scoped reconstructed movement, acquisition, transport/control,
+  bump/pin damage, obstacle end and graph-timed cooldown tests. Native filters,
+  knockback, mutual charge, immunity and client animation remain open.
+- The reconstructed barrier service has executed collision/resource/lifetime
+  coverage. Native pet actor replication, animated attachment, receiver policy,
+  status interruption and accepted UI remain open. It needs the explicit
+  external geometry descriptor; no deployment is claimed.
+- Earthshatter00BE now executes a scoped server reconstruction. Effective cost
+  #338 is1540, consumed by native Ability14. Native0.45s windup and the airborne
+  landing path lead through marker29 to Shockwave0. A posed ground query supplies
+  TrackRay37; the airborne predicate uses node44's authored0.383s lower bound.
+  Input lock follows native state3 while physical inertia remains active.
+  The sampled101-ray ground front uses authored40m/s,20m,50degrees and1.75m
+  height. It rejects missing/steep ground, excessive ledges and static walls.
+  Actual opt-in barrier triangles stop individual fronts permanently, including
+  shield drop/break after contact; one wave deals50 shield damage. A visible
+  near sphere centred3m forward with radius1.75 deals250, and the separate front
+  deals50 once per body. Both use native loadout0027 and2.5s source-scoped control.
+  These overlapping events can total300 against a surviving near target.
+  Front heading is fixed at release; targets entering behind it receive no hit.
+  Wave retirement finishes native state0 and its authored ActionStopAbility.
+  Windup interruption consumes the cast without emission or refund. An emitted
+  wave continues after caster stun/death; body retirement removes it.
+  Ground sampling/target capsules, airborne predicate, shield near-hit policy
+  and emitted-wave persistence are explicit reconstructions. Exact native
+  Shockwave filters/terrain/receiver/immunity and presentation remain open.
+  Wave tests fill charge explicitly. Matched Reinhardt bodies now execute
+  common0B8B's authored passive waits and bypass diagnostic ULT_SECONDS60.
+  The body-binding bridge evaluates01C7/node39's actual capability expression
+  (it can reject charging), rather than forcing true or applying0694's override.
+  Match supplies actual controller/body identity pairs to the typed component43
+  query. Ten seconds adds50 points; actual multiplier/suppression/cap behavior
+  and context retirement have direct tests. Native completed-binding event and
+  observer callback phase remain reconstructed at command boundaries. Damage
+  charging, resource behavior across death and full ultimate economy stay open.
+  Four additional actual-Reinhardt resource probes execute common child0B8B:
+  native one-second waits add5 points,9532/12918 multiply passive gain,842
+  suppresses charge,338 caps at1540, and message00EB uses2A with9532 and clamps.
+  They explicitly supply lifecycle0694 and a component43 relation catalog and
+  disable the diagnostic fill. The actual query executes against that catalog;
+  missing either service produces no passive charge.
+  These probes reuse the documented0065 charge-resource frontier; they do not
+  prove native production lifecycle, Combat damage-message emission or native net-
+  damage/armour/overkill accounting. Four pass in1.426s; no shared VM patch is
+  needed for these passive/explicit-charge probes. Damage-fold/query work from
+  the other private lane has not been imported into this candidate.
+
+  F7262B36 is now implemented as the native typed primary-possessor query,
+  not an eligibility Boolean.2112 offline CDBDE0/D15520/BD42D0 cases match type,
+  value, success and dependency order with disclosed engine adapters. Missing
+  lookup leaves output unchanged; absent43 writes Entity(0); present43 is
+  observed before reading the mutable uint32 relation. Forward component44
+  and reverse-registry queries remain distinct. See ENTITY_QUERIES.txt and
+  external possessor-native-validation.json. Only the enclosing server snapshot
+  owns the Match query context; VM-only snapshots exclude that host boundary.
+  The native842 stack stays active under00BE/st27's2500ms wait after the
+  wave/channel has ended. A real cast verifies this extended lock, then5 points
+  from the next one-second wait. The first311-case regression had310 passes
+  and one incorrect test expectation of immediate post-channel charging. A
+  timeline probe identified the authored stack; only that test was corrected.
+  Final65 query/resource/ability/Earthshatter/actual-passive tests pass54.804s.
+  Two passive storage checks pass40.242s. These overlapping suites do not prove
+  complete economy or the complete static matrix.
+  A scoped damage bridge now sends actual resolved pool loss, the victim body
+  and authored ModifyHealth tags to0B8B message0012 (13/15/3D/0624). Delivery
+  follows health/death processing and supplies an empty excluded-detail list
+  because the amount already represents net host pool loss. Native itemized
+  gross/net equivalence remains open. No point formula is installed.
+  Generic fold, hostility, target-tag and ordered entity-filter mechanisms are
+  reused from reviewed0065 patch eb0885284d8c83d1c957b8a9c78ae31d7a30655bb0a846b309445eb52af9ac49.
+  No game data or Match catalog is copied. Tags remain attached to HitDef and
+  Wave near/front profiles and therefore survive projectile/wave storage.
+  Actual hammer/alias, Fire Strike, side bump, armour loss, overkill/terminal
+  corpse, faction/range rejection and shield/body accounting exercise the
+  message path. Multi-tag Earthshatter1FD rejects gain even without842; a real
+  Q emits250/50 events carrying that exclusion. Target3C3/11E priority and121
+  alternative admission execute through the shared services rather than a
+  fixed AC829876 result. Five actual NPC bodies execute15 outgoing event cases.
+  The16-method fixture explicitly supplies classification bit1/component97,
+  component50 absence, tags, optional-registry absence and observer sinks; its
+  passive wait is stopped to isolate damage gain. These are engine inputs, not
+  a recovered native component catalog. Normal Match damage gain stays disabled
+  without those services, as directly tested. Native classification/inheritance,
+  callback phase, accounting parity and complete resource lifecycle stay open.
+  Further native construction research portsF525E0's89 recognized schema/index
+  decisions, matching100 candidate and258 unknown checks plus seven XML layers.
+  All concrete bodies declare76; neither97 nor50 is established from those
+  declarations. Native17D3480 registers local slots and18392F0 unions runtime
+  dependency masks; those masks are not in the module-only capture. An external
+  preparation tool keeps effective tags/components/class bits explicitly unknown
+  and refuses to turn references into assumed inheritance. No normal charging
+  backend is enabled from these partial facts. See ENTITY_DEFINITION_COMPONENTS.txt.
+- The normal shared runtime still omits the five NPC bodies. This lane has
+  reviewed and fast-forwarded its private main to parent2ca9178, including
+  manual lifecycle/catalog/controls, authored weapon manager/slots, native
+  array selection, quick-melee static occlusion and resource-backed Flashbang.
+  Native1113EBD5 distinct-input joins are also reused, including pending-table
+  and plug-source passive storage. The lane's custom completion policy and
+  cancellation/cooldown fixes are preserved. Tests read the separate NPC
+  catalog and expanded graph bundle without copying/writing either runtime.
+  All five real body scripts load in permissive mode. Four tests cover20
+  actual-body scenarios:85 hammer damage,100 Fire Strike damage and an input-
+  driven terminal hammer hit on a preinjured body followed by retained corpse
+  lifetime. Enforcer/Assassin base100 pools route as shields.
+  A further scenario per body confirms Fire Strike damages a protecting enemy
+  barrier and that actual NPC behind it. Unapplied
+  difficulty/conditional pools are not inferred. NPC incoming weapons, specials,
+  geometry fidelity and client appearance remain open for this hero. The shared
+  manual controller is an available input, not proof of full incoming attacks.
+
+Original-client evidence: NONE for this candidate. Existing client PID12292 was
+observed without controlling it; no lease was acquired, no service was changed.
+The offline fixtures are deliberately separate from original-client acceptance.
+
+Repeat offline tests from this lane source, with PYTHONPATH pointing here and
+ORPHEUS_RUNTIME_DIR=D:\overwatch 1.7.4\runtime-104319:
+  python -B -m unittest discover -s tests -p test_game_reinhardt.py -q
+Use the existing original ORPHEUS .venv interpreter if needed; pytest is absent.
+No runtime copies or writes into the shared runtime are required.
+
+Validation checkpoint:
+- Damage bridge phase:906 script tests pass22.147s;255 combat/hero/NPC/
+  projectile/control/VM/Flashbang checks pass343.760s. Sixteen new damage-charge
+  methods pass31.679s, with two final real pin-wall/cap methods pass3.907s.
+  Two passive projectile/wave tag-storage checks pass69.370s. Suites overlap.
+- The255 run predates the parent NPC mover correction. The normal38-row input
+  lacks all five NPCs and previously selected generic defaults. A separate
+  read-only43-row input now supplies actual XML values: Trooper1.7/.5/5.75,
+  Enforcer1.9/.5/5, Sniper1.75/.5/4.5, Assassin1.5/.5/14, Heavy2.3/.7/2.2
+  (standing height/radius/forward speed). Table hash is
+  e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c.
+  Thirteen actual-NPC methods pass125.064s under that input, rechecking hammer,
+  Fire Strike, barrier/body hits, static LOS, impulses, capture/wall damage,
+  Earthshatter, terminal/corpse and outgoing damage charging. The Talon fixture
+  now mounts this table explicitly and restores its caller's mover path/cache;
+  it requires the actual input rather than silently falling back. These remain
+  inferred capsules using source dimensions, static collision fixtures and
+  declared classification backends, not native skeletal geometry or real-map/
+  original-client deployment. Shared runtime and hardlinked metadata are read-only.
+  Four final provenance/charge checks pass19.395s from the original runtime
+  environment; the fixture mounts the actual NPC table itself and restores
+  both path and cold cache after teardown. Full hero acceptance remains open.
+- Earthshatter phase:300 hero/combat/projectile/NPC/control/mover/replay/
+  command-epoch/VM/Flashbang regressions pass in212.349s. The hero file has119
+  test methods. One ground-front/blocker/victim-history passive snapshot passes
+  in27.959s. After an equivalent conditional style fix, the airborne cast check
+  passes in1.912s. Two portable runtime reproductions and patch forward/reverse
+  dry checks pass; Ruff and diff checks pass. Logs remain outside source.
+- Initial9 focused hammer tests and110 combined combat/NPC/ability regressions
+  passed; passive server snapshot suite13/13 passed in388.341s.
+- After adding the reconstructed melee alias,63 hammer/ability/driver/command-
+  epoch tests passed in19.269s, including11 hero-specific tests. Ruff passes.
+- These overlapping suites are not a count of accepted matrix cells.
+- After Fire Strike and actual NPC coverage,181 combat/projectile/NPC/VM/
+  ability/input tests pass in76.659s;18 collision regressions pass in0.408s.
+  A new penetrating-projectile victim-history digest test passes in15.717s.
+- The authorized original barrier model000000000A3C.00C was selectively read
+  and manifest-verified outside Git. Its non-static mesh contains98 vertices
+  and192 triangles, with successful front/back ray intersections and a side
+  miss. A new opt-in props.model_shapes(static_only=False) exposes such shapes;
+  default mover selection is unchanged. Shape data, native receiver002A.098,
+  Reinhardt model04F2 and attachment bind-pose evidence remain local research.
+  Source-derived geometry/resources now feed an opt-in reconstructed service.
+  Native animated attachment/receiver/child actor and client parity remain open.
+- Latest222 combined regressions pass in88.150s. Two passive projectile/barrier
+  stored-state tests pass in30.268s; five final death/disconnect/recovery/cancel
+  checks pass in3.181s. Two portable runtime reproductions pass independently.
+  Candidate shared patch checks forward against the pristine base index and
+  in reverse against this worktree. These checks do not constitute integration.
+
+Prepare outside source, using selected manifest-verified local models:
+  python -B tools/prepare_reinhardt_collision.py --owner OWNER04F2.00C
+    --shield SHIELD0A3C.00C --output EXTERNAL/reinhardt_collision_174.json
+The command is one line. It verifies known104319 model hashes and reads0095
+values from the authorized graph bundle. It refuses generated output in source.
+Set ORPHEUS_REINHARDT_COLLISION to that external descriptor before server startup.
+Normal services, read-only runtime-104319 and original client remain untouched.
+
+Native component dependency prerequisite (2026-11-09)
+Original18378C0/18380A0 rebuild143 static dependency records byte-for-byte;
+1826BD0 matches the source closure in572 seed/index cases and seven actual XML
+layer masks, without function adapters. Health51 requires25->97;all seven local
+layers compile-require97 and none50. The external declaration producer records
+these requirements separately from unknown runtime presence/class bits/tags.
+Nine focused tests pass0.092s. Primary factories97/76 are identified from the
+native linked registration list, but complete actor initialization is still
+OPEN. No normal Match classification or damage-charge backend is enabled by
+this prerequisite. Full combat, client acceptance and merge remain incomplete.
+See ENTITY_DEFINITION_COMPONENTS.txt and private native-component-dependencies.json.
+
+Tag initialization and cooldown input follow-up (2026-11-09)
+Original owner schema selection passes14 cases and base-tag ordered union passes
+42 native comparisons.43 tag/filter tests pass2.191s. Complete runtime tags,
+class bits and normal Match charging backend remain OPEN. Raw component26
+constructor initializes bits0;no class1 default is assumed.
+Parent notification identified a shared early-press defect;private actual
+FireStrike/Charge commands reproduce timestamp refresh while waiting for cooldown.
+Ability now retains the original queued timestamp and consumes the press only
+after all start gates pass. Preserve the separate computed-expiry notification
+fix required by Barrier readiness. Full static/client acceptance remains OPEN.
+
+Press-age follow-up verification:63 related tests PASS59.924s;906 all-script
+tests PASS19.418s;final3 actual hero input methods/six scenarios PASS33.461s.
+Ruff/diff and candidate dry checks pass. These are regression scopes,not a
+complete native combat matrix or original-client acceptance.
+
+Throttle follow-up:120 original instruction-prefix cases match17/18/19 handling
+with scalar lookup adapter. Native record fingerprint covers007D nodes19/87/88
+and00BE6/58.76 movement/replay/input/actual hero tests PASS85.533s. Removed the
+old Earthshatter command rewrite;raw input bytes survive authored restriction.
+29-case hero run28pass+one old loaded raw-state assertion;corrected focused
+windup check PASS3.354s. Earlier lateral assumption MULTIPLY0 versus ADD0 was
+corrected from resource mapping. Failed logs retained. Ruff/diff/dry checks PASS.
+Damage identity audit shows current wire-body bits produce0 gain whereas the
+controller produces85 for85 damage under explicit engine inputs. Original
+native emitter parameter15 identity remains OPEN;bridge unchanged,Match backend
+still disabled. No class1 fabrication. Full goal ACTIVE;no hero commit/merge.
+
+Actual incoming NPC weapon subset (2026-11-09)
+Trooper/Sniper/Heavy ordinary weapon graphs now have18 actual Match scenarios
+covering armour damage15/95/2.5,front shield damage20/100/5,explicit stop,
+control/expiry,static occlusion,allied denial and actual Earthshatter control
+expiry/recovery.5 methods PASS33.083s. Recording transport explicitly declares
+no NPC observer stream;simulation continues. Enforcer/Assassin remain OPEN.
+Enforcer13EB query sensitivity requires declared controller/health inputs to
+produce damage;no such hypothesis is installed in ordinary Match/BotWorld.
+See REINHARDT_NPC_INCOMING.txt and private npc-incoming-matrix.json.
+
+Final combined31 incoming/control/weapon/five-body/charge regression methods
+PASS138.963s;Ruff/diff PASS. Full five-NPC and full hero acceptance remain OPEN.
+
+Controller-query prerequisite (2026-11-09)
+B96D3A98 now runs through an explicit generic Context rather than an assumed
+NPC controller Boolean.440 originalCC9BF0 cases match typed lookup/observation/
+75-92/output flow with disclosed DA6910/pointer/host adapters. Actual13EB weapon
+fixture uses this query with declared controller and health facts;ordinary Match
+has no automatic profile. DA6910/native controller allocation and NPC specials
+remain OPEN. Ending-state cleanup notification defect is reproduced/fixed;
+915 script and58 hero regressions pass,plus11 final query/lifetime/Enforcer
+methods. See ENTITY_CONTROLLER_QUERY.txt and STATE_NOTIFICATION_LIFETIME.txt.
+
+Eye/controller/control follow-up -- full goal ACTIVE
+Native mode0 resolver384 cases match,with component cipher and BAD060 adapters.
+FirstPerson Rein1.8/1.26 and McCree1.425/.9975 confirmed from immutable XML.
+Fixed Charge one-pose forced-throttle drift with explicit post-modifier control
+boundary;external impulse physics preserved. Focused8 PASS2.808s;final broad
+214 PASS280.556s. Earlier158-method run had wrong-ID fixture failures and
+one real drift failure;retained as failed evidence,not counted as acceptance.
+Eye candidate SHA256 679f7127c445c077a0398b9e2ceab2263036d75c84c07b02023ac004b463e5bf
+Controller candidate SHA256 f6cb2e0e04243254631dfc4fc700196dd60aaf586d8f3a0ff730cd74a5bfa750
+Throttle candidate SHA256 be8e2959336530cbea65e57dc76e3d937efed7ee60e150b94bffeabdbdb39db0
+Ruff/diff/candidate checks pass as described in latest summary. Index empty,
+HEAD2ca9178;no commit/client/parent edits. Full NPC,defenses,cross-hero,ultimate
+and lifecycle coverage still open. User permits documented server reconstruction;
+unknown native parity is disclosed,not silently turned into a default profile.
+
+Manual Enforcer shotgun/controller/storage phase -- ACTIVE
+Normal manual spawn mounts declared75/no92 context and scoped13EB own health;
+25 authored pellets,deterministic tangent rings,flight-distance curve and per-hit
+armour now execute. Manual source death preserves issued pellets;stop/removal
+clears them and removal retires controller context. Source control,actual
+Shatter hold/expiry/recovery,cadence,wall/ally/range gates and three body/shield
+ranges pass. New causal context/target/descriptor fields are strictly exported
+without calling VM queries;unknown callback rebinding fails closed.
+Final158 combat/projectile/VM/server snapshot PASS1243.834s;916 script PASS
+21.624s;focused5 PASS50.507s. Earlier113 run had3 storage errors,now fixed.
+Eight Enforcer methods/13 matrix groups;see manual-enforcer-combat-summary.json.
+Default damage2,manual controller and health,tangent projection/phase,linear
+falloff and native camera/AI/difficulty differences remain explicit. Assassin
+actual pin/special/full defense/economy/cross-hero matrix still OPEN. Parent
+spread_ramp update received,not integrated. No client/parent/archive changes,
+no commit;HEAD2ca9178;full goal ACTIVE and merge_ready=false.
+
+Manual Assassin1157 typed target/control/clock phase -- full goal ACTIVE
+Raw primary0/button20 stays unchanged;explicit action pin selects36. A typed
+world-local controller ID supplies target1650 to original node51/#536;no Map
+stands in for EntityID and no controller is emitted on the wire. Contact3m,
+aggregate health and elapsed damage clock are explicit reconstruction policies.
+Actual phase23 owns pin through delay and DOT;source control immediately clears
+attack_input. Stop/death/removal/range/target loss release independently of other
+control. Other Reinhardt's actual Charge captures the attacker and rescues its
+victim;actual pin damage kills the victim and the death path cleans up.
+Action,target/controller and last_applied clock are causal VM/server storage.
+Final110 combined methods PASS528.567s;
+918 script PASS30.88s;fresh primary-switch1 PASS
+2.622s;clock2 PASS0.001s.
+Earlier diagnostics exposed delay-time control expiry,stale NPC attack_input,
+and the new37th state inventory;all fixed. Wrong restart aim/exception name/
+standalone node registration were fixture errors,not accepted evidence.
+See manual-assassin-combat-summary.json/assassin-pin-matrix.json. Primary20,
+economy/retention,defenses/full cross-hero/NPC scope and client parity remain
+open. Parent spread/Fan changes received,not yet integrated. No partial commit,
+HEAD2ca9178,index empty,original parent/runtime inputs untouched.
+
+Reinhardt carries its current ultimate balance across a same-hero body
+replacement. The Match retires the old script before replacement and restores
+the retained balance before exposing the new script. The replacement's cost caps
+the balance. A hero switch clears pending points. The pending balance participates
+in the server snapshot. This retention policy is a server reconstruction. Ordinary
+damage charging and native dead-time charge behavior require separate evidence.
+Thirty combined tests and one deferred-create retry test passed.
+
+McCree Flashbang 01E9 node 7 uses its resource launch lift and gravity when
+fighting Reinhardt. The server updates velocity before each 16 ms sweep and
+detonates on range expiry as a reconstruction policy. Shield impact and splash
+cover share the existing barrier path. The tests exercise actual commands,
+off-body expiry stun, barrier interception, hammer and Charge interruption,
+and Earthshatter cancellation. Fifty-seven combined and six focused tests
+passed. Cross-hero reflect, absorption and immunity coverage remains open.
+
+Ordinary Match supplies Reinhardt damage-charge admission from resolved pool
+loss on a current enemy player or NPC body. The policy is scoped to the
+particular delivery and the two class gates and hostility gate in 0B8B.
+Explicit native query hosts take precedence. The authored graph computes
+multipliers, the effective cap and ultimate damage exclusions. Fire Strike
+credit requires its original body lifetime. Existing in-flight unleased damage
+can finish after a swap. Normal tests cover armour, terminal loss, Barrier
+Field, Charge, all five NPC bodies and a full earned-and-spent Earthshatter.
+The default admission and target-tag fallback are server reconstruction
+policies. Original emitter identity, itemized accounting, effective tags and
+the remaining defense and full static matrix cases require separate evidence.
+
+Opposing Fortify and Transcendence
+
+The defender's ordinary command input starts Orisa Fortify or Zenyatta
+Transcendence. The combat host reads live Fortify 0CF4 state 4 and its
+authored damage scalar before resolving pools. Transcendence 017B state 3
+prevents pool loss. Its zero-duration entry callback at state 13 enters the
+authored Wait through a scoped host completion. Expiry and body retirement
+remove protection. Charge contact with Transcendence resolves as a bump
+without pool loss. Fortify routes through the impact branch below. Both
+defenses reject Earthshatter control and the shared pin path.
+
+The live damage policy leaves Fire Strike's penetration and contact history
+intact through a protected Zenyatta. This is a reconstruction for two
+authored defense states. General damage filter dispatch, other defensive
+heroes, reflection, absorption and client acceptance remain open.
+
+Genji Deflect and D.Va Defense Matrix
+
+Fire Strike 00E2 emits projectile definition 01EA. The extracted 104319
+003 target-tag table contains the definition with an empty list, so the
+scoped interception policy admits it. Genji uses live 03A3 state 10 and its
+90 degree setting. The server sweeps against the authored boxes, rotated by
+current aim about the eye and expanded by the Fire Strike radius. Static
+collision wins an equal-distance contact. Earlier body and shield contacts
+remain credited to Reinhardt. Reflection redirects along Genji's aim and
+preserves remaining range and the projectile's victim history. The original
+copies retire without an explosion, and the new flight belongs to Genji
+until it ends or his body retires. The host bounds redirections per step.
+Frontal Rocket Hammer contacts are blocked during Deflect, including the
+melee alias. Earthshatter damage and control still interrupt Deflect.
+
+Defense Matrix uses the active 02CC state 3 boxes from an explicitly
+selected 0407 mech, with the external authored graph and mover supplements.
+The live Match possessor drives the mech startup gate. A scoped resolver
+uses the graph's current-mech references to existing ruleset keys for
+activation and resource. Holding and releasing Matrix drive the authored
+resource and timing. An intercepted Fire Strike terminates without damage
+after the interception point. Hammer reaches the mech, and Charge can
+capture it and interrupt Matrix.
+
+The eye attachment, expanded boxes, projectile filtering and redirection
+are server reconstructions. General native filtering, Sigma Kinetic
+Grasp, full mech transitions, reflected projectile presentation and the
+remaining cross-hero acceptance cases are open.
+
+Sigma Kinetic Grasp
+
+Actual Sigma input starts 1D02 state 1. A Fire Strike intercepted by the
+authored Grasp boxes retires without later damage. The server supplies the
+100 damage value and source entity to the graph's absorption outputs. The
+original accumulation plug and the end path compute the shield grant.
+The host consumes the self-only 1D03 request once per Grasp and applies
+its amount and cap to a separate temporary shield pool. This pool takes
+damage before base shields and is excluded from healing. The host applies
+the authored three-second wait and five-per-second decay. Charge can end
+Grasp before conversion, and body replacement discards the pending grant.
+
+The box attachment, temporary pool, and decay clock are scoped server
+reconstructions. The native interception profile, general PlayScript
+execution, and client presentation require separate evidence.
+Fortify and Cryo-Freeze Charge impact
+
+The 007D counter query consumes live 9161 or 6601 from any eligible
+target and follows the impact flag path. Actual Fortify provides both
+flags. Actual Cryo-Freeze supplies 6601 while protected. Their tested
+contacts end Reinhardt's Charge and start its cooldown without a body
+hit or pin. Off-state damage and capture use the ordinary paths.
+
+A scoped completion for the empty 05FE state 41 callback lets Mei enter
+the authored Cryo-Freeze graph. Its active state 6 prevents damage and
+control at Reinhardt contacts. Actual cancel and expiry remove the
+protection. Cryo healing, native impact animation and the remaining
+variant sources require separate evidence.
+
+Incoming Mei spray and icicle
+
+Actual 05E6 state 13 volleys use their authored speed, range, damage
+and 0.5 extent. The host reconstructs a sphere sweep. Spray can hit
+successive enemy bodies once each and stops at the first barrier or
+static obstruction. Reinhardt's armour takes 1.375 from one default
+spray hit. An icicle body hit costs 70 armour and adds no frost.
+
+Confirmed spray damage on Reinhardt supplies the authored initial 0.2
+and increment 0.0285 to a per-source sample. The highest live sample
+drives slowdown, capped at 70 percent. A one-second gap clears it.
+Full progress freezes Reinhardt for 1.3 seconds and interrupts active
+abilities. Hits during freeze preserve its deadline. Freeze suppresses
+aim, movement and ability input, and the body lifetime owns cleanup.
+
+These are reconstructed status and projectile consumers for the tested
+default mode. Native effect attachment, foreign settings and stacking
+overrides, spray hit shape, icicle critical geometry, Blizzard and
+original-client presentation require separate evidence.
+
+Mei Ice Wall
+
+Actual 0622 preview, confirm and cancel commands drive the static wall
+host. Ground placement creates five 400-health columns in the tested
+flat arena. Confirm starts the 12-second cooldown. Columns expire after
+five seconds or retire with the source body. The host stores each live
+column and its independent health and lifetime.
+
+An enemy pillar takes 85 from a hammer swing and 100 from Fire Strike.
+It blocks covered bodies, the Earthshatter front and Charge movement.
+Fire Strike stops at the struck pillar, including the contact that
+breaks it. A later Charge can use the cleared opening. An own wall
+blocks Mei's icicle without losing health.
+
+Heavy Assault's 1408 Charge checks the same live columns for target
+sight, drive movement and capture transport. A wall between Heavy and
+Reinhardt stops the drive before capture. A pinned Reinhardt who reaches
+a column takes the 300-point impact, reduced to 295 by armour, and is
+released. Held Barrier Field can raise again after the release.
+
+The placement and oriented box geometry, attack ordering and movement
+correction are static server reconstructions. Native placement and
+physics, wall lifting, complete indirect splash, general NPC movement
+against Ice Wall and original-client presentation remain open.
+
+Incoming Mei Blizzard
+
+Actual 064A consumes the configured ultimate cost and emits its 0946
+throw after the authored windup. The host sweeps ballistic chords
+using the configured gravity. The first static or Ice Wall contact
+anchors the area. An empty-flight expiry produces no field.
+
+The area starts after 200 ms and lasts 4.25 seconds. The default
+20 damage per second costs Reinhardt 42.5 armour over the full field
+under per-tick armour rules. Area frost begins at 0.5 and accumulates
+0.04 at each 200 ms exposure pulse. Freeze lowers active Barrier Field.
+The tested throw crosses Barrier Field and bodies without direct
+damage. The resulting area also reaches Reinhardt through Barrier
+Field while static terrain and Ice Wall interrupt exposure.
+
+Actual Earthshatter can stop the throw during windup. The released
+area survives caster death and retires with the casting body. Genji's
+Deflect changes the source of the area. Defense Matrix and Kinetic
+Grasp can remove the throw before any area forms.
+
+The ballistic contact, area timing and damage, frost and target
+selection are static server reconstructions. Native filter and
+effect semantics, custom settings and client presentation are open.
+
+Talon Sniper slot selection and refill
+-------------------------------------
+
+Manual engagement selects the mounted Sniper alternate with logical
+button 16 and returns to the primary with 15. The switch graph owns
+active slot 31, and both weapons use the existing AI fire button 20.
+At eight metres, the alternate costs Reinhardt 2.5 armour per hit or
+5 from frontal Barrier Field. The primary costs 95 armour per hit.
+Static cover prevents the tested engagement, and stop releases input.
+One alternate hit breaks a field with five points left. A subsequent
+hit damages armour while the field is still broken. Actual Earthshatter
+suppresses the alternate through control and firing resumes in slot 2.
+The manual selector waits while its target is allied or beyond the
+100 metre host engagement limit.
+
+The authored 1122 and 1134 waits refill to 20 rounds in 910 ms.
+The 114F Heavy wait refills to 150 rounds in 1300 ms after a reload
+request. Depleted magazines and the Heavy reload request are fixture
+inputs. An actual terminal hammer hit ends the pending refill while
+the corpse continues ticking. Native AI reload requests remain open.
+
+An allied Reinhardt can use actual Earthshatter to release an active
+Assassin 1157 pin. The attacker reacquires after the knockdown ends.
+An allied Fire Strike kills an Assassin with 100 health remaining and
+ends the pin without further victim damage. The low health is a fixture.
+Assassin button 20 reaches 13B8 position 7, whose edge plugs have no
+links. The manual hold probe did not reach a damage path. The 13C3
+health node targets the Assassin itself. The ordinary input remains open.
+
+Incoming Ana Sleep Dart
+-----------------------
+
+The actual dart applies effect 026F after direct contact and costs
+Reinhardt 2.5 armour. A frontal Barrier Field stops the dart and
+takes five damage. A rear dart puts the body to sleep and lowers
+the field. Static cover, a missed shot, and allied team block the
+tested effect.
+
+The server uses the five-second 0BDE duration with an exclusive
+313-frame deadline. Sleep rejects movement and ability input,
+interrupts Fire Strike and Earthshatter before release, and ends a
+live Charge without an impact. Earthshatter's spent charge is not
+refunded. Positive damage after the first half-second begins a
+half-second wake that further damage does not extend. A lethal
+dart leaves no sleep on the corpse. Replacement clears body-local
+sleep and stored state includes the wake flag and deadline.
+
+The authored 15E8 dart uses the reconstructed interception boxes.
+Actual Genji Deflect changes its owner and flight direction. The
+return can sleep Reinhardt or stop at his frontal Barrier Field.
+Retiring the deflector retires the return flight. Defense Matrix
+consumes the dart while held and D.Va can be hit after releasing it.
+Kinetic Grasp consumes the dart and converts its five damage into
+three temporary shields at the normal end. A rear hit on an active
+Charge also releases its captured victim without a wall hit.
+
+The control bridge reconstructs gameplay timing. Native status
+graph presentation, other rulesets, general projectile filters, and
+untested overlap cases remain open.
+
+Incoming Ana Biotic Grenade
+---------------------------
+
+The actual 0B97 volley launches 1426. Its 50 damage blast removes
+45 Reinhardt armour and blocks healing for four seconds. An allied
+grenade heals 100 and amplifies subsequent healing by 1.5 for four
+seconds. Repeated allied grenades refresh the same amplification
+window. Anti-heal takes priority over amplification.
+
+An actual Soldier Biotic Field verifies both effects. When the
+scheduler catches up across an expiry, it applies the scalar for
+each retained healing frame. Death and body replacement clear the
+healing windows, and their values are causal stored state.
+
+Frontal Barrier Field takes the blast instead of the body, including
+when the same hit breaks it. A wall impact can heal Ana on its
+approach side while leaving Reinhardt behind the wall unaffected.
+Genji's actual Deflect redirects the grenade and determines which
+bodies receive healing or anti-heal. A reflected grenade can still
+stop at Reinhardt's Barrier Field. D.Va's active Matrix consumes
+the grenade before it bursts, and Kinetic Grasp converts its 50
+damage payload into 30 temporary shields. Allied Grasp leaves the
+friendly blast intact. Earthshatter denies new casts during control.
+A grenade already launched continues after Earthshatter or caster death.
+
+Flight and status application use scoped server reconstruction.
+Native grenade trajectory, generalized filter dispatch, and original
+client effects remain open.
+
+Zarya personal and projected barriers
+-------------------------------------
+
+Actual 0244 and 025C Pet and effect activations create a body-bound
+200-point pool for about two seconds. Projected Barrier uses the
+authored 30-metre query with a reconstructed allied aim and static
+visibility policy. The recipient is supplied as a typed entity to
+the graph. Enemy, distant and occluded targets are rejected.
+
+Personal Barrier absorbs 85 from either hammer input and passes
+17 energy through the original 0146 message to Zarya's energy graph.
+A Fire Strike that breaks it has no overflow into that body, and a
+later hammer hit reaches the body before the original pool expires.
+A distant Earthshatter costs the bubble 50 and does not knock down
+the protected body. Projected Barrier blocks or clears actual Ana
+sleep and grenade anti-heal on Reinhardt. Expiry and body replacement
+remove the protected pool.
+
+Actual Ice Wall blocks projected targeting until Mei removes the
+pillars. An enemy Fire Strike can spend 100 points from Reinhardt's
+Barrier Field and another 100 from the projected bubble while leaving
+the body intact. At close range, the separate Earthshatter hammer
+impact breaks the personal bubble and the later ground wave deals
+50 and applies knockdown. In the current static reconstruction,
+Charge captures the shielded body and the wall hit consumes the
+bubble without overflow. These tests distinguish separate contacts.
+
+Body-bound hit interception, projected target ranking and expiry are
+server reconstructions. Native Pet geometry and contact filters,
+full cleanse policy, and original client effects remain open.
+
+Incoming Zarya Particle Cannon
+------------------------------
+
+Actual 0241 TrackRay states supply typed target IDs to the damage
+state. The host resolves the authored query against current body
+capsules, Barrier Field, static cover and Ice Wall at a 15 m reach.
+The accepted command tick
+uses the evaluated damage rate once. At zero energy the rate is
+75 per second, or 0.6 armour per 16 ms damage tick on Reinhardt.
+A barrier-breaking tick does not damage the body. The following
+tick can hit armour. Actual Earthshatter stops held fire through
+knockdown and fire recovers when control ends.
+
+The actual 03DB secondary volley travels at 25 m/s and consumes
+25 rounds. Its zero-energy blast deals 47 raw, or 42 to Reinhardt's
+armour. Four volleys empty the magazine and automatic reload restores
+100. Absorbing an actual Fire Strike grants 20 energy, raising
+the beam rate to 94 and the secondary blast to 56.6. Static cover,
+team, range, miss and release are verified for the beam. The
+accepted-frame stamp is stored.
+
+The 03DB secondary can be redirected by actual Genji Deflect to
+Reinhardt or his Barrier Field. Defense Matrix consumes it before
+splash. Kinetic Grasp consumes an energy-20 shot at its launch
+payload of 56.6 and converts it into 33.96 temporary shields. The
+beam still hits bodies using active Deflect or Grasp.
+
+Beam collision, cadence, flight and interception boxes use static
+server reconstruction. Native filters, other Zarya abilities, and
+original-client effects remain open.
+
+Incoming Zarya Graviton Surge
+-----------------------------
+
+The actual 025F command spends 2100 and launches 08CE at 25 m/s
+with the authored gravity. A body, Barrier Field or static impact
+forms a 6 m, four-second area. A frontal field takes the five
+direct projectile damage. The area itself reaches Reinhardt
+through Barrier Field and costs 20 armour over full exposure.
+The area's 5 damage per second bypasses per-hit armour mitigation.
+
+The area pulls eligible players at a reconstructed 3 m/s,
+denies new Charge and ends active Charge. Reinhardt can
+still throw Fire Strike while pulled. Team and static cover deny
+area damage and pull. Duplicate world updates do not reapply damage
+or release a live pull. Caster death leaves a released area active,
+while source body replacement removes it.
+
+Actual Deflect changes projectile velocity to the deflector's aim
+while preserving the gravity. The resulting field uses the
+deflector's team and body identity. It does not grant ultimate
+charge from the reflected ultimate. Defense Matrix and Kinetic
+Grasp consume 08CE before it creates an area. Grasp converts the
+five direct damage into three temporary shields. An actual
+Projected Barrier suspends pull and absorbs field damage until
+it expires, after which the same field can reacquire Reinhardt.
+
+All five mounted Talon bodies use an independent swept mover while
+pulled. Route timers pause and resume without catch-up. Existing
+Reinhardt capture retains pose ownership and the field still deals
+damage. Pull interrupts Heavy Assault Charge. Trooper can keep
+firing at Reinhardt while pulled. Team change, manual removal and
+actual hammer death release the NPC mover. The mover is stored
+with the field's causal state.
+
+Elevated impacts lift Reinhardt and Trooper. Pull aims toward
+the field at body eye height, with grounded feet clamped against
+downward pull. On release an airborne Trooper uses the existing
+falling mover until grounded. Actual Fortify stops pull while
+still taking reduced damage. Cryo-Freeze and Transcendence stop
+pull and prevent field damage. Cancelling Cryo-Freeze allows the
+same field to reacquire. A projectile that expires in open air
+creates no field.
+
+The server reconstructs field contact, pull and damage. Generalized
+immunity and native effect/presentation remain separate items.
+
+
+Enemy Winston Barrier Projector
+-------------------------------
+
+Winston's actual button16 runs 00FA creation of 01C3 and starts
+the 00FC actor script. Its authored 700-point pool and nine-second
+expiry govern a stationary radius-five shell. The server host reuses
+the same-build 013B deployment path and reconstructs shell contact.
+
+Rocket Hammer and the melee binding each spend 85 on a reachable
+shell once per swing. Fire Strike spends 100 once per dome and
+continues through it, including through the far side. Charge crosses
+the shell without damage to it and can pin Winston and resolve a wall
+impact. An outside Earthshatter spends 50 on the shell. A blocked
+front stays stopped when that hit breaks the shell. Inside the dome
+the near and wave components reach a body before the far shell.
+Static cover blocks shell contact, and an allied shell lets Fire
+Strike reach an enemy within it without spending its pool.
+
+The deployed actor persists at its original position when Winston
+moves away and survives Winston's death. It retires on the authored
+clock. This checks the
+reconstructed shell and the mounted actor scripts. Native collision
+sampling, the direct near-strike shell case, incoming Winston weapon
+interactions and original-client presentation remain open.
+
+Incoming Winston Tesla Cannon
+-----------------------------
+
+Actual primary input starts 00FE search state 10 and health state 13.
+The server uses the authored eight-metre search radius, angle value
+40 and damage value 60. It reconstructs a capsule cone, interprets 40
+as the half-angle and applies 60 damage per second. Each 16 ms slice
+does .96 damage or .768 against Reinhardt's armour with the same-build
+Winston lane's continuous armour rule. Duplicate or older command
+frames cannot repeat a slice. Release, magazine exhaustion and reload
+use the authored states. Normal secondary input outside Primal neither
+starts Tesla nor spends its ammo.
+
+Frontal Barrier Field protects Reinhardt and an ally behind it. The
+beam spends .96 only once per slice on that shield. Breaking it holds
+both body paths blocked until the next slice. Static cover, rear aim,
+out-of-range and allied bodies reject the hit. A lethal rear Tesla
+hit lowers a raised Barrier Field in the same death dispatch. Actual
+Charge capture and Earthshatter interrupt firing, and the latter allows
+held fire to resume after control ends. Lethal Fire Strike ends Tesla.
+
+The shell intercepts eligible body rays. Native filter 002B, independent
+shield-only targeting, native armour parity, Winston's other attacks
+and original-client effects remain open.
+
+Incoming Winston Jump Pack
+-------------------------
+
+Actual button8 starts 010A state19 and its six-second cooldown. The
+server turns the graph's speed30 and 25-to-90-degree bounds into
+launch velocity. A repeated or stale command cannot launch a second
+time. Early recast is denied, and fresh input after cooldown can
+launch again. The collision mover supplies the landing edge.
+
+Takeoff uses the four-metre tracker and one damage. Landing uses
+the five-metre tracker and var476's 50-point maximum with linear
+capsule-distance falloff. Authored horizontal and vertical amounts
+feed the existing velocity-delta receiver, including Reinhardt's
+0.7 knockback scalar. Each impact is separate. Frontal Barrier Field
+takes both impacts without body damage or impulse. The landing that
+breaks it retains protection for Reinhardt and an ally for that
+impact. Static cover, allied team and range reject takeoff contact.
+
+Actual Earthshatter denies a cast during control. Lethal Fire Strike
+after takeoff and a caster body replacement each cancel the pending
+landing. Flight ownership and its launch frame are stored state.
+
+Launch angles, capsule falloff, impact rays and shield resolution
+use server reconstruction. Exact native impact filter and force
+conversion, direct shield-only acquisition and original-client
+effects remain open.
+
+Incoming Winston Primal Rage
+----------------------------
+
+Actual button32 enters 0109 only with enough ultimate charge. The
+active HealthPool adds 500 maximum health and refills the enlarged
+pool. Its original ChaseVar advances on the server world clock
+during input silence. On expiry the host clamps health to its normal
+maximum and keeps lost armour. Transform expiry does not advance the
+owner's command frame. Actual Fire Strike damages the enlarged pool.
+Lethal Charge wall impact clears the bonus immediately.
+
+00FE's alternating attack loops and the reconstructed 0.25-second
+completion gates produce 40-damage fists. They consume no ammo and
+earn no charge during the transformation. Body and shield contact
+are independent. A fist can hit both Reinhardt and Barrier Field
+or reach only the shield. A body hit uses the authored 25 horizontal
+and 7 vertical impulse through Reinhardt's 0.7 receiver. Range, rear
+aim, team and static LOS reject contact. Release prevents new swings.
+Actual Earthshatter interrupts a pending fist and leaves the
+transformation active. Held primary can strike again after control
+ends. Primal resets Jump Pack and gives it a two-second cooldown,
+then restores six at expiry.
+
+The host reconstructs melee volumes, clock routing, transform refill
+and clamping, and impulse conversion. Native filters, refill
+precedence under other healing effects, full Winston charge outside
+Primal and original-client effects remain open.
+
+Incoming Winston Quick Melee
+----------------------------
+
+Actual button 0x800 enters the 0043 ability and its original
+one-second cooldown. Its state 4 evaluates 30 damage. Against
+Reinhardt that takes 25 armour. A held button hits once, a valid
+buffered press can land on expiry, and stale packets cannot
+repeat the activation. The hit interrupts Tesla, which resumes
+on held primary when the graph's recovery ends. Earthshatter
+denies quick melee until its control expires.
+
+The shared melee sphere can hit Reinhardt and Barrier Field
+independently. A lethal body hit lowers the shield immediately
+and records the killer. Rear aim, static cover, team and range
+reject damage. A deployed Mei Ice Wall blocks the body path
+and takes the swing if in reach. A breaking swing still leaves
+the covered body untouched, and a later fresh swing reaches
+the body through the opening.
+
+The shared host reconstructs the authored 1.5-metre forward
+offset and one-metre sphere around the attacker's eye.
+Native target filters and original-client effects remain open.
+
+Incoming Orisa Fusion Driver
+----------------------------
+
+Actual 0BD4 primary emits a round at 120 m/s and spends one of
+150 rounds. The projectile deals 11 before armour, or 6 on a
+body hit against Reinhardt's full armour. A high body contact
+uses the same-build lane's 2x critical fallback and costs 17
+armour. Barrier Field takes the unscaled 11 regardless of aim
+height. A round that breaks the shield is consumed. The next
+round can reach Reinhardt. A lethal rear round records Orisa
+as the killer and lowers the raised shield in the death dispatch.
+
+World cover, allied team and rear aim deny damage. Misses
+still spend ammo. Manual reload restores the magazine, and
+held primary resumes after the authored empty-magazine reload.
+Actual Earthshatter interrupts new emission until control ends.
+Lethal Fire Strike stops further emission while existing rounds
+can complete flight.
+
+The host uses the shared reconstructed eye-height critical
+threshold. Spread, native critical hitboxes, projectile
+interception and original-client effects remain separate.
+
+Fusion Driver interception
+--------------------------
+
+The 0BD4/node50 round supplies a weapon loadout without a projectile
+entity. The server admits that loadout to its existing swept defense
+contacts. Actual Genji Deflect changes heading, owner and team.
+Reinhardt can be hit by an originally friendly round after reflection.
+Barrier Field takes the returned 11 points when facing Genji. The
+unblocked body takes six armour with Genji credited. Allied Deflect
+does not intercept the round.
+
+Actual Defense Matrix removes the round before body contact.
+Actual Kinetic Grasp consumes the 11 damage and converts it to 6.6
+temporary shields at the end of the ability. A nearer static wall
+removes the round before Grasp and yields no conversion.
+
+Interception uses reconstructed contact volumes and the loadout
+identifier. Native filter and client effect parity remain separate.
+
+Enemy Orisa Protective Barrier
+------------------------------
+
+Actual Orisa button16 emits the 0BD7 deployment round. A static
+impact queues the 0252 delay, then the original 0BD8 actor script
+starts with a 600-point pool and a twenty-second lifetime. Server
+contact uses the verified 104319 model 4062 triangle mesh. Changing
+the caster's body removes an unlanded round. An already deployed
+screen survives that change and expires on the actor's clock.
+
+Rocket Hammer and its melee binding can each spend 85 on the mesh
+without reaching the body. Fire Strike spends 100 once per deployed
+screen and continues through to Orisa. Allied screens take no
+damage from that Fire Strike and allow it to reach an enemy behind.
+Charge passes through and can capture Orisa. Earthshatter spends 50
+on the mesh and a stopped front stays stopped if the shield breaks.
+
+Deployment, swept contact and damage use reconstructed server
+services. Native filter ordering, shield replication, the direct
+near-strike shell case and original-client presentation remain open.
+
+Incoming Orisa Halt
+-------------------
+
+Actual 0CCB secondary emits a 25 m/s orb. The second press sends
+the authored message and freezes it. The original 0CCE victim
+graph owns the windup and MoveTo request. The collision mover
+consumes that request. The orb and victim script retire separately.
+An early second press is ignored. Caster replacement removes a
+flying orb.
+
+Barrier Field stops the orb. The area pull can still move Reinhardt
+without spending shield or body health. Halt movement interrupts
+active Charge without wall damage and denies a new Charge during
+that movement. Allied team, range and static cover deny selection.
+The host uses original 0CCC visibility samples with reconstructed
+root transforms and a central fallback.
+
+Actual Deflect redirects 172C, transfers its team and invalidates
+the original caster's detonation request. The redirected orb can
+land on geometry and pull Reinhardt, who was allied to its original
+caster. Actual Defense Matrix and Kinetic Grasp retire the orb
+without detonation. Grasp gains no shields from the damage-free orb.
+
+Orb hosting, contact, ownership transfer and targeting are
+reconstructed. Native filter probes cover hostile and allied
+admission to Deflect and Matrix. They leave transport and ownership
+transfer open. Broader filter parity and original client effects
+remain open.
+
+Talon Halt targets
+------------------
+
+The authored 0CCE victim script drives the collision mover for
+Trooper, Enforcer, Sniper and Assassin. The scoped position query
+reads the current Match pose for idle as well as active NPCs.
+Patrol does not advance while MoveTo owns the pose. Airborne NPCs
+return to the normal falling mover on release. Heavy Assault's
+authored 1254/6601 protection rejects movement.
+
+Actual Reinhardt Charge capture keeps control of a Trooper within
+the orb's radius. An unpinned Trooper can still hit Reinhardt with
+its actual primary during the Halt effect.
+
+The original post-pull wait subtracts 0.65 from the movement speed
+scalar. Trooper, Enforcer and Sniper reach 35% of their base speed.
+The Assassin's 1460 speed ramp combines with that subtraction. On
+expiry, only the Halt modifier drops. The body script continues to
+run while the NPC patrols, so the Assassin follows its live ramp
+after recovery. The live snapshot drops the ended victim script.
+A lethal Reinhardt hammer swing during the wait clears the effect
+and preserves the NPC death frame.
+
+Patrol movement and modifier consumption remain reconstructed.
+Native movement parity across sparse updates remains open.
+
+Barrier-only and posthumous damage credit
+---------------------------------------
+
+Against an opposing Reinhardt holding Barrier Field, both Hammer inputs
+remove 85 barrier points at 5 m with no body damage or damage-charge
+event. At 3 m they remove 85 barrier points and 80 armour. The authored
+charge entry receives 80 and the live balance reflects that gain plus
+any passive tick. Passive generation stays active in both tests.
+
+A separate Match test earns initial charge from a hammer hit and then
+releases Fire Strike. The fixture lowers the caster to one health so
+an actual enemy rifle command can kill him before projectile contact.
+The flight deals 100 damage once and credits the dead body. The same
+hero's respawn preserves the exact old balance. A subsequent hero
+switch clears the balance. This checks the ordinary Match charge path.
+
+Earthshatter wave hit history
+-----------------------------
+
+The near and wave hit histories record body generations. If a replacement
+reuses a hit body's ID and appears ahead of the same wave, its first
+contact receives 50 damage and a fresh 2.5 s knockdown. A separate fixture
+shows the wave damaging a replacement shield on an open path. The path
+already stopped by the old shield stays blocked. These tests constrain
+client ID availability to exercise the normal Match allocator's reuse path.
+
+Charge contact history
+----------------------
+
+Reinhardt and Heavy Assault deduplicate contact by body ID and generation
+within a running charge. The retirement path releases the old capture
+before its ID can be reused. In the Reinhardt fixture a replacement ahead
+of the same drive can be captured and takes 295 resolved armour and health
+damage at the wall. Heavy Assault can bump a replacement for 50 while
+keeping a different player pinned. The same replacement takes the bump
+once. The tests constrain client ID availability to exercise Match reuse.
+
+Interrupted charge windups
+--------------------------
+
+The 007D and 1408 windup end plugs can enqueue drive entry during an abort.
+The Match drains the authored running subgraph again if its drive remains
+active after the phase switch exits it. Earthshatter interrupts the Heavy
+Assault windup before it advances. An oblique opposing counter leaves both
+actors knocked down for two seconds. Neither actor resumes the old drive
+or acquires a pin when the control expires.
+
+Rocket Hammer body reuse
+-----------------------
+
+Body contact history combines the entity ID and generation with the active
+0048 swing counter. Both primary and melee-alias commands hit a replacement
+that reuses the first victim's ID during the same swing. Each generation
+takes 85 once. The fixture controls the normal allocator's availability
+check to force ID reuse and uses ordinary commands for the swing.
+
+Charge contact with Supercharger
+--------------------------------
+
+Reinhardt's 007D state 56 reads the deployed Supercharger's live 961 flag.
+The host sweeps the tracker against the device model and publishes its entity
+through the original output variable 6836. The authored switch ends the drive
+and state 58 deals 175 damage. The normal cooldown starts and the temporary
+target output clears. A friendly device leaves the drive intact so it can
+reach an enemy behind it. Static cover prevents contact.
+
+The static host uses the authored 0.5 metre factor at unit scale because the
+native scale query supplying 9339 is unresolved. The scoped damage callback
+handles the device's health and uses the same cleanup as hammer and projectile
+damage. Other 961 writers and client effects remain outside this evidence.
+
+Charge contact with Ice Wall
+----------------------------
+
+Mei's 0622 graph spawns five 0932 entities and runs 0636 on each. That
+graph sets the 961 target flag. The static host uses the first Ice Wall
+pillar blocking the moving charger as the contact for 007D state 56 or
+1408 state 51. The authored damage state hits that pillar once for 175
+and ends the drive even if the hit destroys the pillar. Friendly pillars
+still block movement and take no damage. If a pinned victim reaches the
+wall first, the existing victim impact deals 300 before armour and
+releases the pin. The pillar remains intact in those fixtures.
+
+Charge contact with Deploy Turret
+---------------------------------
+
+Torbjorn's 16C5 volley throws the 2931 carrier with its configured speed
+and gravity. A valid ground hit creates the 250-health 28B7 turret and
+publishes its ID to the deployment graph. The static host uses the
+1688 construction delay and the 1689 damage and firing cadence. A
+14-point shot reaches Barrier Field before Reinhardt's armour. With
+the field down, the same shot removes nine armour.
+
+The static turret has the 961 eligibility authored by 1688. Both
+007D and 1408 deal 175 on an unobstructed hostile contact. Friendly
+devices and wall-separated devices take no charge damage. Hammer and
+Fire Strike can also damage the deployed turret. Destruction, ready
+manual dismantle and owner body replacement retire the device and its
+deployment handle.
+
+The two Charge impact states exit when their authored half-second
+animation timer elapses. The server supplies the phase reset at this
+deadline, preserving the running cooldown while making later input
+eligible. The device collision sphere, construction and firing host,
+and phase completion are static policies. Successful body damage
+stores the turret entity as its source. Death notices resolve the owner
+through the existing presentation path.
+
+The owner can select Forge Hammer and repair this same turret through
+168C. The server supplies the nearby visible turret to the graph's
+query. The original messages repair 50 per admitted swing up to 250.
+Construction, distance, and cover prevent repair. The full-health
+message leaves the pools untouched. Native query parity and original
+client turret behavior still require evidence.

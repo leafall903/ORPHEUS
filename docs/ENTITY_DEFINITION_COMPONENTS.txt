@@ -1,0 +1,96 @@
+Entity-definition component declarations -- build104319
+
+F525E0 evaluates a resource component's virtual+28 type-info getter and reads
+its schema hash at type-info+B0. Its unsigned decision tree returns a runtime
+component index through the caller's byte destination, returning that pointer.
+The captured unknown fallback is0. definition_components.runtime_index ports
+the89 nonzero decisions; it requires an explicit uint32 schema hash. This is
+not the replicated component-number table and not entity construction.
+
+Validation
+An offline original-function probe executes all100 compared hash constants,
+including89 recognized cases, plus258 unknown checks. Python matches those
+decisions and every component key in seven actual XML definition layers. Only
+the resource object's type-info getter is an adapter; the original switch,
+fallback, destination write and return execute. The immutable authorized image
+hash is b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+Generated native records remain outside source; no image bytes are included.
+
+Declarations versus runtime facts
+The target-tag schema445E7678 maps to76. Schemas2B1A5E8C and B1BAB531 map to50.
+None of this switch's recognized schemas maps to97. Reinhardt0024, referenced
+1853 and the five Talon body XMLs do not declare97 or50 through this mapping;
+the six concrete bodies declare76. This does NOT prove those runtime components
+are absent. Built-in, dependency-added or later-created components are distinct.
+Likewise a reference named04A8896C is not proof of inheritance or tag merging.
+
+The native local-definition compiler17D3480 walks the component map at+38,
+usesF525E0, ignores index0 and keeps the first occupied slot for an index. It
+then processes child definitions separately. Its notification helper18392F0
+sets a component bit at context+2008 and, with the optional registry at+2078,
+ORs a returned256-bit dependency mask. The context constructor17D3840 binds
+that registry through global322E570. Its table lookup1826940 uses registry+28;
+the captured compiled table pointer is outside the module-only image. The
+underlying static source table is recoverable at32402B0, however. Original
+18378C0/18380A0 initialization rebuilds all143 records byte-for-byte. Original
+1826BD0 recursively follows each record's byte-index dependencies, with the
+destination256-bit mask as its visited set. Flags do not affect this closure.
+component_dependencies.py matches572 original cases across143 indices and four
+seed masks, without function adapters, and seven actual local declaration masks.
+
+Filter25 requires97;26 requires25;health51 transitively requires25 and97.
+Tag76 has no dependencies. All seven audited layers compile-require97;none
+compile-requires50. These are compiler requirements, not proof of instantiated
+components, class bits, active tags, reference inheritance or later lifetimes.
+The local compiler ignores mapped index0. Each recognized local component ORs
+its independently precomputed registry mask; a previous declaration is not a
+visited seed for another component's closure.
+
+Native1826990 builds the registry's constructor and dependency tables. Captured
+registration lists323DFA0/323DFA8 identify primary factory97=BCAE00 and76=BE2870.
+Their constructors write type bytes61/4C, respectively. Factory identification
+and constructor disassembly alone do not establish final actor classification.
+
+Preparation
+tools/prepare_actor_declarations.py --definition BODY.003.xml [--definition ...]
+  --output EXTERNAL/actor_declarations_174.json
+Use a single command line. The tool preserves source hashes, component classes,
+native indices, local target-tag refs and the two entity-definition refs. It
+also emits the compiled requirement mask/indices and97 requirement boolean. It
+rejects duplicate/polymorphic component values and malformed tag references.
+It never follows or flattens references. Effective components/tags, filter bits,
+runtime97/50 presence and registry/group services remain explicitly unknown.
+Output is marked noninstallable and is refused inside source. Nine dependency/parser/CLI
+tests cover these boundaries, including previsited-mask suppression and health
+requirements without runtime-presence assertions. No normal Match provider is enabled by this tool.
+
+Private lane records:actor-component-declarations.json,
+actor-native-references.json,actor-schema-mapping-callers.txt,
+actor-local-compile-notification-native.txt,component-dependency-metadata.json,
+runtime-inputs/actor_declarations_174.json,native-component-dependencies.json,
+component-factory-registrations.json. Earlier incorrectly addressed
+registry-vtable/initialization disassembly is a discarded lead, not evidence.
+No client controls, normal services or shared inputs were changed.
+
+Tag initialization frontier
+BE21E0 calls17D3870, selecting the owner entity's current definition via its
+validated+30 handle and looking up the component schema key. Fourteen original
+selection cases use seven actual layer key maps, including matching/mismatching
+virtual type checks. Only that resource type-compatibility check is an adapter.
+The live owner definition binding remains an explicit fixture input.
+
+BE1E80 initializes its base vector from that owner resource, then an optional
+component descriptor resource, preserving first occurrence order. Forty-two
+original cases match tag_initialization.base_tags with empty, duplicate, zero
+and maximum uint32 keys. Adapters supply owner-resource lookup, descriptor/type
+virtual getters and memcpy; preallocated vector capacity, absent tag registry,
+absent scene instance and absent dynamic expression are explicit services.
+43 tag/filter regressions pass2.191s. This helper is not a complete effective
+Tags provider: dynamic expressions, registry notifications, scene-instance
+additions, removals and lifetimes remain separate. Actual Match catalog disabled.
+
+Component26 raw default constructor5D4420 executes unchanged, without function
+adapters, and initializes filter bits at+90 to zero. It does not prove final
+actor class bits. B8AF90/B8BDF0/B8B020 update filter data and notifyC75000;
+actual low class-bit origin remains open. Raw byte-search hits in obfuscated
+code are candidate locations, not accepted decoded instructions or semantics.

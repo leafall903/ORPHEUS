@@ -41,8 +41,10 @@ The hero's values are its body's STUCharacterMoverComponent (data/game_movers_17
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
 heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
-states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
+states) and knockback, native ability phase hooks, moving platforms,
 other bodies.
+An explicit reconstructed horizontal_drive can replace wish velocity while
+retaining ground, gravity and static capsule contacts; Charge uses this path.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
 
 Besides the pose it keeps what other clients animate the body from, as the client's own mover writes it
@@ -168,6 +170,7 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
@@ -386,6 +389,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -454,6 +469,8 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.horizontal_driven = False  # ability drive preserves vertical momentum on release
+        self.impulse_active = False  # separate external momentum from walking when hard control clears input
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -623,13 +640,17 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        horizontal_drive: tuple[float, float] | None = None,
+        suppress_throttle: bool = False,
+        movement_limit=None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
             move_to = None  # no fractional world-target progress is kept between poses
-        if self.driven and move_to is None:
-            self.velocity = (0.0, 0.0, 0.0)
-        self.driven = move_to is not None
+        if self.driven and move_to is None and horizontal_drive is None:
+            self.velocity = (0.0, self.velocity[1] if self.horizontal_driven else 0.0, 0.0)
+        self.driven = move_to is not None or horizontal_drive is not None
+        self.horizontal_driven = horizontal_drive is not None
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
@@ -640,7 +661,8 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
-        jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
+        jump = (move_to is None and horizontal_drive is None
+                and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5)
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end
         if crouch and not self.crouched and stood_up is not None:
@@ -663,6 +685,9 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        right, forward = modified_throttles(active, right, forward)
+        if suppress_throttle:
+            right = forward = 0.0
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
@@ -670,19 +695,48 @@ class Mover:
             horizontal = (vx, 0.0, vz)
             angle = self.yaw * TURN
             axes = (math.sin(angle), math.cos(angle))  # forward (x, z); right is (-cos, sin)
-            self._friction(dt, horizontal, vy, grounded)
-            self._accelerate(dt, right, forward, axes, grounded)
-            self._cap(horizontal, axes)
+            if horizontal_drive is None:
+                self._friction(dt, horizontal, vy, grounded)
+                self._accelerate(dt, right, forward, axes, grounded)
+                self._cap(horizontal, axes)
+            else:
+                # A declared ability drive retains the normal ground, gravity and
+                # swept capsule path, replacing only horizontal wish velocity.
+                self.velocity = (horizontal_drive[0], vy, horizontal_drive[1])
             if not grounded:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                 self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
-            self._fall_after(self._move(dt, normal))
+            self._fall_after(self._move(dt, normal, movement_limit))
         else:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne and math.hypot(*self.velocity) < STEP:
+            self.impulse_active = False
         return outcome
+
+    def add_impulse(self, velocity, frame: int) -> tuple:
+        """Reconstructed velocity-delta boundary for server knockback.
+
+        Modifier26 is the authored response scalar (Reinhardt00A4/st4: x0.7).
+        The normal mover already preserves above-cap momentum while applying
+        friction, air drag, gravity and static contacts. Native force/mass and
+        hit-profile conversion into this velocity delta remain separate.
+        """
+        active = sorted((m for m in self.mods.values() if m.acts(frame)), key=Mod.order)
+        scalar = max(0.0, intent(active, 26, 1.0))
+        applied = tuple(f32(float(value) * scalar) for value in velocity)
+        if not any(applied):
+            return applied
+        self.impulse_active = True
+        self.velocity = tuple(quantise(old + delta)
+                              for old, delta in zip(self.velocity, applied, strict=True))
+        self.driven = self.horizontal_driven = False
+        if self.velocity[1] > 0:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        return applied
 
     def _fall_after(self, vertical: float) -> None:
         """The state's +832 after the move (0x7FF789B4F530): gravity's part of the velocity, added up in the
@@ -1038,7 +1092,7 @@ class Mover:
 
     # ---- 8. the move
 
-    def _move(self, dt: float, normal) -> float:
+    def _move(self, dt: float, normal, movement_limit=None) -> float:
         """Move the capsule and the feet (0x7FF789B4D9C0, 0x7FF789ACF640); the vertical speed before it is put
         on the grid."""
         vx, vy, vz = self.velocity
@@ -1054,6 +1108,19 @@ class Mover:
             f32(f32(rise + velocity[1]) * step) + 0.0,
             f32(f32(f32(0.0 * rise) + velocity[2]) * step) + 0.0,
         )
+        blocked = False
+        if movement_limit is not None:
+            dx, dy, dz = displacement
+            distance = math.hypot(dx, dz)
+            if distance > EPSILON:
+                direction = (dx / distance, 0.0, dz / distance)
+                clearance = self._capsule()[0] + STEP
+                reach = distance + clearance
+                contact = movement_limit(direction, reach)
+                if contact is not None and contact < reach:
+                    scale = max(0.0, contact - clearance) / distance
+                    displacement = contacts.v3(dx * scale, dy, dz * scale)
+                    blocked = True
         final, planes, touching = body.move(displacement, step, ROUNDS)
         vx, vy, vz = contacts.clip_velocity(velocity, planes)
         if grounded:
@@ -1064,6 +1131,8 @@ class Mover:
                 vx, vy, vz = vx * scale, 0.0, vz * scale
         if self._place(body, final, touching):
             vy = 0.0
+        if blocked:
+            vx = vz = 0.0
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
 

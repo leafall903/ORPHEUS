@@ -1,0 +1,159 @@
+Reinhardt incoming NPC weapon subset -- build104319, full matrix OPEN
+
+Actual external body/weapon graphs and authored NPC mover records run in an
+in-memory Match against Reinhardt's300 health/200 armour. Manual selection and
+engagement are reconstructed sandbox policy, not restored autonomous AI.
+The recording client declares no NPC projectile observer stream; projectile
+simulation runs, but transport/presentation are outside this fixture.
+
+Body             First body loss    First barrier loss    Incoming status
+Trooper          15                 20                    scoped executable
+Sniper           95                 100                   scoped executable
+Heavy Assault    2.5                5                     scoped executable
+Enforcer         none observed      not accepted          controller services OPEN
+Assassin         none observed      not accepted          acquisition/pin OPEN
+
+tests/test_reinhardt_npc_incoming.py has five methods covering18 scenarios for
+the first three rows: actual armour loss and explicit-stop cleanup, front
+barrier absorption, source control/expiry, static occlusion, allied-team
+engagement denial, and actual Earthshatter interruption/expiry/recovery.
+Five methods pass33.083s. Damage values come from actual mounted weapon flow
+through shared armour handling, not directly injected damage calls.
+The actual Earthshatter test fills charge explicitly; ordinary charge economy
+is not accepted by that fixture. Its target control remains the reconstructed
+service already documented in REINHARDT_COMBAT.txt.
+
+Baseline input probes inspect all five bodies both immediately and after20
+initialization frames. Enforcer and Assassin remain alive with no ordinary
+weapon damage; this is a frontier, not evidence that their attacks do no damage.
+An Enforcer-only sensitivity audit supplies explicit B96D3A98 controller and
+9B7648C3 health query hypotheses at13EB. Missing/false controller profile gives
+zero damage;true gives1 armour damage at8m. These are fixture hypotheses, not
+native controller allocation, correct difficulty/accounting or full Enforcer
+acceptance. No such profile was installed at that checkpoint. See the later scoped
+manual Enforcer policy and tests in REINHARDT_ENFORCER_INCOMING.txt.
+
+Initial diagnostic attempts failed because the shot observer read a None
+command and because the recording client lacked bot_stream. Their logs remain
+outside source and are excluded from accepted evidence. The observer uses the
+actual Match tick, and the fixture explicitly returns no observer stream.
+
+Still OPEN: all five autonomous acquisition/navigation/specials, complete
+controller contexts, native target geometry/filter/immunity, difficulty and
+weapon lifecycles, complete incoming attack matrices, and original-client
+presentation. Scoped passing cases do not complete the hero or any NPC.
+
+Final combined31 incoming/control/weapon/five-body/charge regression methods
+PASS138.963s;Ruff/diff PASS. Full five-NPC and full hero acceptance remain OPEN.
+
+Later manual Assassin pin36 has typed target/health/control clock consumers;
+its primary20 remains separate and incomplete. Actual Charge rescue,victim
+death and pin cleanup/storage execute in REINHARDT_ASSASSIN_INCOMING.txt.
+This extends the scoped incoming matrix without accepting the full NPC/hero.
+
+Sniper ammunition and target changes
+
+The mounted 1122 rifle and 1134 sidearm each initialize magazine variable 53
+from capacity 198. Their one-shot projectile volleys omit the ammunition
+output link. The manual static host deducts one round from the emitting
+weapon instance before projectile resolution. An empty magazine rejects
+emission, and the authored reload switch and wait restore the slot. The
+manual-host debit is a reconstruction. Native consumption and client
+presentation remain open.
+
+Once engaged, Sniper shares Enforcer's nearest visible opponent policy
+when the assigned player leaves. Reassignment or body retirement ends
+the active fire stack and the rifle's separate aim stack. The rifle
+starts its aim again for the next target. The sidearm keeps its slot
+and remaining ammunition through a target body replacement.
+
+Trooper rifle and Heavy Assault cannon interception
+
+Trooper 102E position 60 resolves entity 1FE6 for 20 damage. Heavy Assault
+114F position 47 reads entity 206A from variable 5875 for 5 damage. Both
+volleys resolve instantly with a 100 m range. The build's two entities carry
+target tag 02F9 and omit the three defenses' excluded tag 0145.
+
+The server traces these rays against active Deflect, Matrix and Grasp using
+their existing contact geometry. Bodies, walls and barriers can intercept a
+ray first. A reflection uses Genji's live aim and allegiance, preserves the
+remaining range and uses Genji as the damage source. Matrix consumes the
+ray. Grasp receives the resolved payload and converts 20 or 5 into 12 or 3
+temporary shields through its ordinary end state.
+
+Actual weapon and defense inputs exercise both rays. Rear-facing Deflect
+allows ordinary body damage. With inactive Matrix or Grasp the same ray
+continues to Reinhardt. A closer active Barrier Field takes the hit before
+Grasp, and a wall introduced at volley resolution occludes the trace.
+The firing NPC's allied Sigma can consume the reflected ray after its
+allegiance changes to Genji's team.
+The ray and defense geometry are server reconstructions.
+
+Explicit manual melee for Heavy Assault and Trooper
+
+The sandbox's manual melee action sends logical 31 to the existing 140E and
+1422 abilities. The authored windup reaches TrackTargets at Heavy node 6 or
+Trooper node 5. The contact host uses the query's body-local offset and
+radius and the paired health fields at Heavy node 5 or Trooper node 4.
+The default graph amounts are 80 and 30. Actual Reinhardt armour loss is
+75 and 25. The host applies the authored impulses through the existing
+velocity conversion and recipient response. Heavy melee can damage the
+active Barrier Field and reach the body in one swing.
+
+Tests cover windup, range miss, static occlusion, manual stop and actual
+Earthshatter interruption. A deployed Mei Ice Wall also blocks Heavy and
+Trooper melee against a covered body at contact. Cancelling the wall
+reopens the same attack path.
+Manual target reassignment and body retirement cancel the old melee
+windup and any queued contact. The graph sees an input release before a
+new press, so a replacement target can only be hit by a fresh swing.
+This is a reconstruction of the query geometry,
+filters and barrier behavior, with one sample per authored query entry.
+Native TrackTargets output, impulse conversion, autonomous acquisition,
+and client presentation remain open.
+
+Explicit manual Heavy Assault Charge
+
+Logical 35 starts 1408 through the normal NPC input path. The authored
+0.8-second windup leads to drive state 3 and tracker state 48. The static
+host sweeps the Heavy mover and the authored tracker volume. The first
+frontal player contact becomes the graph's typed capture target and is
+transported. Side contacts use state 13's 50 damage and authored impulse.
+A blocked capture uses state 11's 300 damage and ends through the
+ordinary graph state, where the 15-second cooldown starts. Open-ground
+timeout, manual stop, control and participant retirement release the pin.
+
+Manual reassignment or retirement of the selected target ends a pending
+or active Charge. An active capture releases without an impact. The
+server waits for the existing 1408 cooldown to finish before sending a
+new Charge input for the replacement, then the graph runs a fresh windup.
+
+The host locks heading at drive entry and uses Reinhardt's 16.5 m/s as a
+reconstruction for the shared drive class. The Heavy resource does not
+provide a verified speed. The static sweep, capture attachment and wall
+damage trigger are reconstructed.
+
+Heavy 1408 state 70 and Reinhardt 007D state 74 now participate in the
+shared opposing-596 counter check. The host samples the live query's
+offset, radius and cone, then checks facing, capsule overlap and static
+visibility. Both actual Charge inputs can end in the same dual knockdown
+with the authored two-second profiles, independent control sources and
+no damage when Heavy's state 70 admits Reinhardt first. When 007D state
+74 admits Heavy first, the live 6601 flag sets the authored impact
+variables and the host ends Reinhardt's Charge through the static
+impact path. Idle Heavy also carries 6601. The wall-separated case
+leaves both bodies unaffected.
+The 1408 state 51 branch consumes the live 961 flag from Orisa's deployed
+Supercharger 0D00. A swept overlap with its verified model feeds 6836
+and activates position 102 for 175 damage. A closer wall or a friendly
+device prevents that hit. A hostile device at 200 health takes one hit
+and remains at 25. A device at 115 after an actual hammer swing is
+destroyed and its aura is removed.
+State 42 uses the live 3692 flag set by Mei's 05FE Cryo-Freeze stack.
+The server sweeps the authored half-metre tracker volume in front of
+the Heavy. A visible Cryo target feeds the tracker output and the
+graph's boolean switch sets phase 2. The drive ends and enters its
+normal cooldown without body damage or capture. Cancelling Cryo before
+contact clears 3692 and restores ordinary capture.
+Other 9161, 6601 and 961 writers, exact native query and drive behavior
+and original-client presentation still require evidence.

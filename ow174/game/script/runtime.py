@@ -50,6 +50,13 @@ ABORT_PLUG = "m_F198FD3A"
 SUBGRAPH_STATES = "m_FF3DAF1E"
 
 STATE_CLASSES: dict[str, type["State"]] = {}  # node class -> runtime state class (nodes.py fills it)
+# 104319's registration list resolves E834E718 through 7C37840C (record 160).
+PLAIN_STATE_CLASSES = frozenset(("STUStatescriptState", "STU_E834E718"))
+# The captured 104319 factory advances these slots with neither a direct nor a base constructor.
+NATIVE_SKIPPED_STATE_CLASSES = frozenset((
+    "STU_531AA630", "STU_67A51ED0", "STU_724DFBC6", "STU_744BC2A9", "STU_918B3FA9",
+    "STU_93088159", "STU_A2FED3C1", "STU_AF1A4047", "STU_D9843704",
+))
 HANDLERS: dict[str, object] = {}  # action/condition handlers can defer with NotImplemented
 ENTRY_CLASSES = {"STUStatescriptEntry", "STU_571CC72E"}  # run at Init (EntryClientOnlySharedVars agrees too)
 MESSAGE_ENTRIES = {"STUStatescriptEntryGameMessage"}
@@ -278,12 +285,18 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def referenced_ruleset(self, selector):
+        world = self.instance.component.world
+        resolve = getattr(world, "referenced_ruleset_key", None)
+        key = resolve(self.instance, selector) if resolve is not None else None
+        return NotImplemented if key is None else self.ruleset(key)
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            self.watcher.watch(target, stack_order=True)
         return would_stack_to_top(target, priority)
 
     def poll_native(self, cfg: dict):
@@ -297,18 +310,40 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
-        if cfg.get("$") == "STU_4BD39CFD":
+        if cfg.get("$") in {"STU_4BD39CFD", "STU_A6B80C63"}:
             from ow174.game.script import play
 
+            if cfg["$"] == "STU_A6B80C63":
+                return play.fold_values(self.instance, cfg, watcher=self.watcher)
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import (
+            controller_heroes,
+            entity_filter,
+            entity_hostility,
+            entity_queries,
+            entity_tags,
+            entity_team,
+            health_queries,
+        )
 
         result = entity_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            from ow174.game.script import controller_query
+
+            result = controller_query.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_hostility.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_tags.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_filter.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -389,11 +424,58 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def movement_flags(self, entity: int):
+        """Movement flags, None for no mover, or NotImplemented without a host."""
+        return NotImplemented
+
+    def body_health(self, entity: int, instance: "Instance"):
+        """Current/maximum pools, known missing entity, or unavailable host."""
+        return NotImplemented
+
+    def filtered_body_health(self, entity: int, kind: int, tag: int, instance: "Instance"):
+        """Current health for one pool kind, with the same lookup outcomes."""
+        return NotImplemented
+
+    def local_current_health(self, cfg: dict, instance: "Instance"):
+        """Resolve a graph-local health resource before resolving a body ID."""
+        return NotImplemented
+
+    def local_filtered_health(self, cfg: dict, instance: "Instance"):
+        """Resolve a graph-local health resource before a body lookup."""
+        return NotImplemented
+
     def ai_weapon_button(self, slot: int) -> int | None:
+        return None
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
         return None
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
+
+    def b61_registry(self, entity: int):
+        """Explicit host for B61 controller state records."""
+        return NotImplemented
+
+    def register_motion_request(self, state: "State"):
+        """True for a registered request, False for a known absent scheduler."""
+        return NotImplemented
+
+    def unregister_motion_request(self, state: "State") -> None:
+        pass
+
+    def motion_request_ready(self, state: "State"):
+        """Whether the request may enter its readiness subgraph."""
+        return NotImplemented
+
+    def face_position(self, state: "State"):
+        return NotImplemented
+
+    def set_ai_button(self, state: "State", active: bool):
+        return NotImplemented
 
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
@@ -423,6 +505,10 @@ class World:
         """Known component55 alias list, known absence, or unknown."""
         return NotImplemented
 
+    def resolve_animation_alias(self, instance: "Instance", alias: int):
+        """Resolved resource GUID, a known miss (None), or an unavailable host."""
+        return NotImplemented
+
     def model_look_context(self, entity: int):
         """Explicit native namespace, target policy and model-look consumers."""
         return NotImplemented
@@ -435,12 +521,36 @@ class World:
         """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
 
+    def target_record_scalar(self, owner: int, target: int):
+        """Component46 record value, None for known absence, or an unknown service."""
+        return NotImplemented
+
+    def entity_possessor_context(self, entity: int):
+        """Component43 relation context; separate hosts may scope this service."""
+        return self.entity_query_context(entity)
+
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
         """Ordered native hero catalog, controller lookup and availability services."""
         return NotImplemented
 
+    def entity_controller_context(self, entity: int):
+        """CC9BF0 namespace, component43 observation and DA6910 controller resolution."""
+        return NotImplemented
+
     def entity_team_context(self, entity: int, *, component: "Component | None" = None):
         """Native context, two entity lookups and filter/environment dependencies."""
+        return NotImplemented
+
+    def entity_hostility_context(self, entity: int, *, component: "Component | None" = None):
+        """Native hostility namespace, component50 identity and neutral-group services."""
+        return NotImplemented
+
+    def entity_tag_context(self, entity: int, *, component: "Component | None" = None):
+        """Native target-tag namespace, component76 lists and subscription service."""
+        return NotImplemented
+
+    def entity_filter_context(self, entity: int, *, component: "Component | None" = None):
+        """Ordered game filter inputs, entity registry and optional group services."""
         return NotImplemented
 
     def script_failed(self, component: "Component") -> None:
@@ -487,6 +597,12 @@ class World:
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def create_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def destroy_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -650,7 +766,7 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, stack_order_changed=False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
         changed = not expr.same(before, after)
@@ -668,9 +784,9 @@ class Component:
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (stack_order_changed and state.watched.get(var)):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -993,8 +1109,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, stack_order_changed=False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, stack_order_changed=stack_order_changed)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1007,7 +1123,11 @@ class Instance:
                 if self.component.strict:
                     self.component.unsupported(self, "state reference", str(index))
                 return None
-            if self.component.strict and node.cls not in STATE_CLASSES and node.cls != "STUStatescriptState":
+            if self.component.strict and node.cls in NATIVE_SKIPPED_STATE_CLASSES:
+                return None  # 1B94286: no exact or fallback constructor, advance the state slot.
+            if self.component.strict and (
+                node.cls not in STATE_CLASSES and node.cls not in PLAIN_STATE_CLASSES
+            ):
                 self.component.unsupported(self, "state", node.cls, node)
             found = self.states[index] = STATE_CLASSES.get(node.cls, State)(self, node, index)
             found.on_created()
@@ -1027,6 +1147,10 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # Coalescing flags describe queued callbacks. A cancelled callback must
+        # not suppress all dependency changes after this state starts again.
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1338,13 +1462,13 @@ class Instance:
         return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
-        """The states a subgraph plug lists (m_FF3DAF1E)."""
+        """Existing states listed by a subgraph plug (1B6FD00 -> 1B931C0)."""
         plug = node.field(path)
         if not is_plug(plug):
             return []
         found = []
         for index in plug.get(SUBGRAPH_STATES) or []:
-            state = self.state(index) if index is not None else None
+            state = self.states.get(index)
             if state is not None:
                 found.append(state)
         return found
@@ -1415,7 +1539,7 @@ class State:
         self.start = 0
         self.ended_at = 0
         self.ticked_at = None
-        self.watched: dict[Var, None] = {}
+        self.watched: dict[Var, bool | None] = {}
         self.flags_changed = False
         self.flags_check = False
         self.polled = False
@@ -1471,6 +1595,8 @@ class State:
         self.ticked_at = self.now
         self.on_begin()
         self.on_enter()
+        if (self.instance.graph.index, self.node.pos) == (0x1B55, 6):
+            self.instance.component.world.create_entity(self.instance, self.node)
         if not self.active:
             return
         self.instance.follow(self.node, "m_onBeginPlug", self)
@@ -1487,6 +1613,8 @@ class State:
         self.instance.cancel(self)
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        if (self.instance.graph.index, self.node.pos) == (0x1B55, 6):
+            self.instance.component.world.destroy_entity(self.instance, self.node)
         self.on_cleanup()
         self.unwatch()
         self.polled = False
@@ -1517,10 +1645,13 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, stack_order=False) -> None:
         if self.active and not self.ending:
             var.watchers[self] = None
-            self.watched[var] = None
+            # WouldVarStackToTop depends on link priority even if the visible value stays equal.
+            self.watched.setdefault(var, None)
+            if stack_order:
+                self.watched[var] = True
 
     def unwatch(self) -> None:
         for var in self.watched:
@@ -1619,7 +1750,7 @@ class State:
         var = self.instance.find_var(*target)
         before = var.value()
         insert_link(var, Link(self, slot, priority, above, stack))
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, stack_order_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
         return var
@@ -1629,7 +1760,7 @@ class State:
         if bake:
             var.base = self.output(0)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, stack_order_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
 

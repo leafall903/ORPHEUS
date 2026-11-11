@@ -372,6 +372,7 @@ CONSTANTS = {
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
     "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
+    "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),  # Health pool kind, native 1B860F0.
 }
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
@@ -422,6 +423,10 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         # nothing. SetVar's +28 wrapper consequently uses int 0; ForCode's +20
         # call preserves the caller's destination. See CONFIG_EVALUATION.txt.
         return initial
+    if cls == "STU_C3619A38" and cfg.get("m_resourceKey") is None:
+        selector = cfg.get("m_F52607FF")
+        if isinstance(selector, dict) and selector.get("$") == "STU_B5A0CAF0":
+            return initial  # 1B936E0 selects the base evaluator, 123CC10, for this prepared form.
     if cls == "STUConfigVarDynamic":
         scope, var = dynamic(cfg)
         return ctx.var(scope, var)
@@ -444,6 +449,11 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
+        referenced = getattr(ctx, "referenced_ruleset", None)
+        if referenced is not None:
+            result = referenced(key)
+            if result is not NotImplemented:
+                return result
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault

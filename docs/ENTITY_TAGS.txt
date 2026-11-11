@@ -1,0 +1,64 @@
+Native target-tag queries -- target104319, module RVAs
+
+25ECB55F resolves through evaluatorCE5890, which evaluates the scalar entity
+config before namespace lookup. A failed/missing config becomes ID0 and still
+reaches lookup. Missing entity is false. It observes component76 when present,
+then DB2D40 obtains that component again before DB51F0 tests membership. A
+subscription can remove or replace the component before this second pass.
+BE2BB0 selects component76: word1, bit12. Tag resources compare by low32 key.
+The query has no established safe result for an absent namespace; a declared
+missing namespace remains unsupported in the Python context.
+
+DB51F0 reads base tags from component+60/+68, added tags through+100/+108 and
+removed tags through+110/+118. Both dynamic lists have two observed array-header
+layouts. The exact membership rule is:
+    base contains key ? !removed contains key : added contains key
+Thus a tag present in both dynamic lists has different results depending on its
+base membership. Unknown component presence never means an empty base/list.
+
+Implementation:
+World.entity_tag_context provides an explicit namespace, entity lookup and tag
+subscription service. Target.tags is Tags, known component absence None, or
+unknown NotImplemented. Tags contains explicit uint32 tuples for all three lists.
+Context and owner/instance lifetime are checked after each external callback.
+Wrong identities, malformed components and unknown subscriptions fail strictly.
+The second component read preserves native observation ordering. No persistent
+VM fields or snapshot schema changes are introduced. Native callback scheduling
+and actual Match component76/catalog production remain unimplemented.
+
+Evidence:
+540 runs of the original DB51F0 leaf function match Python for base/add/remove
+combinations, both dynamic-array layouts, present/absent/zero keys and full GUID
+high bits. These leaf runs execute all membership instructions with no function
+adapters. They do not execute list construction or ownership/destruction.
+50 runs of original CE5890,DB2D40 and DB51F0 match input defaults, namespace and
+component lookup order, subscriptions, component loss and boolean results.
+Those query runs adapt config conversion/disposal, namespace/entity lookup,
+component76 pointer retrieval, observation and key helpers. Original membership
+still executes. Code, probe dependencies and native-tags-validation.json remain
+outside Git; the existing authorized image is read-only.
+Eleven source tests cover precedence, scalar group selection, key0, missing/
+unknown components, failed inputs, fresh component reads, retirement and data
+validation. Nine Junkrat resource probes now include actual tag2ED alternative
+admission,3C3 half charge,11E three-quarter charge and their authored priority.
+The probes declare tag data; they no longer substitute a false25ECB55F query.
+They remain distinct from the84 actual-Match combat cases.
+
+Resource frontier:
+External tag-resource-layer-audit.json records authored tag declarations and
+04A8896C references for Junkrat and the five Talon bodies. Effective inheritance
+and dynamic tag production are not inferred. The charge graph's admission filter
+AC829876 now executes the ordered explicit-input pipeline described in
+ENTITY_FILTER.txt; actual Match engine data, lifecycle694/700, possession and
+real Combat event production remain open. Ultimate full economy/lifecycle and
+full hero static acceptance are open.
+
+Filter research boundary:
+AC829876 evaluatorCF4340 dispatches VM virtual150. Base VM constructor1B8B500
+installs27AEBB8 whose150 is1B8D970 (condition-only stage). The game VM constructor
+D0D0D0 then installs266AFE0 whose150 isD0DA20. That game override performs entity
+lookup, component25 observation, BCAAE0 mask/relationship checks, the base
+condition, D0EC70 tag clauses and additional DA8BD0/condition/component checks.
+Restoring the base condition alone would not restore the complete filter.
+The native listings are saved externally. No unconditional filter fallback or
+new all-target admission policy is installed by the target-tag change.

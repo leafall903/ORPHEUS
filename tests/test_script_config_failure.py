@@ -21,6 +21,12 @@ def fire(instance):
 
 
 class ConfigFailureTests(unittest.TestCase):
+    def test_prepared_empty_controller_resource_preserves_destination(self):
+        context = expr.Context()
+        destination = expr.Asset(42)
+        cfg = {"$": "STU_C3619A38", "m_resourceKey": None, "m_F52607FF": {"$": "STU_B5A0CAF0"}}
+        self.assertIs(expr.evaluate(cfg, context, initial=destination), destination)
+
     def test_empty_resource_preserves_destination_but_null_dynamic_overwrites(self):
         context = expr.Context()
         self.assertIsNone(expr.evaluate(EMPTY, context))
@@ -59,6 +65,65 @@ class ConfigFailureTests(unittest.TestCase):
                 fire(instance)
                 self.assertEqual(instance.find_var(0, 7).value(), 88)
                 self.assertEqual(instance.find_var(0, 8).value(), 17)
+
+    def test_base_action_fallback_follows_output_and_succeeds_with_no_link(self):
+        for cls in ("STU_0B0BABC6", "STU_9F3FE778"):
+            with self.subTest(cls=cls):
+                component = runtime.Component(123, strict=True)
+                relay = node(0, cls, m_outPlug=plug((1, "m_inPlug")))
+                empty = node(2, cls)
+                instance = component.create(graph([relay, setting(1, 17), empty]), init=False)
+                self.assertTrue(instance.run_node(instance.graph.node(0), None))
+                self.assertEqual(instance.find_var(0, 7).value(), 17)
+                self.assertTrue(instance.run_node(instance.graph.node(2), None))
+
+    def test_animation_alias_action_writes_typed_result_then_follows_output(self):
+        alias = 0x0C80000000000561
+        resolved = 0x0C8000000000BEEF
+
+        class AnimationWorld(runtime.World):
+            def __init__(self, result):
+                super().__init__()
+                self.result = result
+                self.lookups = []
+
+            def resolve_animation_alias(self, instance, alias):
+                self.lookups.append((instance.component.entity, alias))
+                return self.result
+
+        for configured, result, expected in (
+            ((expr.Asset(alias),), resolved, resolved),
+            (expr.Asset(alias | 0x1000000000000000), resolved, resolved),
+            (expr.Asset(alias), None, 0),
+            (expr.Asset(0x0400000000000001), NotImplemented, 0),
+        ):
+            with self.subTest(configured=configured, result=result):
+                world = AnimationWorld(result)
+                component = runtime.Component(123, world=world, strict=True)
+                action = node(0, "STU_DE66D3F5",
+                              m_59FEECBB={"$": "STU_EAA20CD6", "m_animAlias": configured},
+                              m_0A915A83=setting(0, 0)["fields"]["m_out_Var"],
+                              m_outPlug=plug((1, "m_inPlug")))
+                instance = component.create(graph([action, setting(1, 17, var=8)]), init=False)
+                instance.write((0, 7), 99)
+                self.assertTrue(instance.run_node(instance.graph.node(0), None))
+                self.assertEqual(instance.find_var(0, 7).value(), expr.Asset(expected))
+                self.assertEqual(instance.find_var(0, 8).value(), 17)
+                supplied = configured[0] if isinstance(configured, tuple) else configured
+                self.assertEqual(world.lookups, [] if result is NotImplemented else [(123, supplied.guid)])
+
+    def test_unknown_animation_resolver_stops_before_output(self):
+        component = runtime.Component(123, strict=True)
+        action = node(0, "STU_DE66D3F5",
+                      m_59FEECBB={"$": "STU_EAA20CD6", "m_animAlias": expr.Asset(0x0C80000000000561)},
+                      m_0A915A83=setting(0, 0)["fields"]["m_out_Var"],
+                      m_outPlug=plug((1, "m_inPlug")))
+        instance = component.create(graph([action, setting(1, 17, var=8)]), init=False)
+        instance.write((0, 7), 99)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "animation resource host"):
+            instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.find_var(0, 7).value(), 99)
+        self.assertIsNone(instance.find_var(0, 8, create=False))
 
     def test_successful_null_is_assigned_as_null(self):
         component = runtime.Component(123, strict=True)

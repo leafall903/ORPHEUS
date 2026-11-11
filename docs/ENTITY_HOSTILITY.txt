@@ -1,0 +1,71 @@
+Native hostility config A58C1E63 -- target104319, module RVAs
+
+The common ultimate-charge child0B8B asks this query before accepting message012
+damage. It is not simply target.team != source.team. The implemented evaluator
+requires an explicit engine-input Context; base worlds still have no service.
+The Junkrat resource fixture now declares targets and uses this evaluator rather
+than answering true from a special-case native callback. Match integration is open.
+
+Native route:
+Typeinfo2D774B0 -> registrationD02550 -> factoryD09200 -> vtable2663188.
+Scalar evaluatorCE5020 obtains the context, subscribes observation kind2 when
+an observer/hub exists, evaluates target/source/option in that order and looks
+up source before target. Failed entity inputs become typed invalid ID; failed
+option is false. A missing context returns no output. Config groups use their
+scalar first config. The queried identities are native uint32 values.
+
+CE5020 calls C1CF60 with the two found entity pointers. Its relevant services:
+- C1F000 reads component25 bit28 (spectator flag).
+- C1B570 supplies the team result, including its own native inheritance rules.
+- BD5EF0 selects component50. D6B260 supplies the current relation identity.
+  Its dynamic/override computation remains an explicit engine input here.
+- A found relation identity replaces the group-query entity. Otherwise a valid
+  fallback at component50+24 is allowed when guard+238 is invalid or equals
+  base+1C. Lookup then DA7ED0 may supply a fallback owner. Failed resolution
+  retains the original group entity and the unresolved-component marker.
+- C6C0A0 supplies the neutral/default group relation when required.
+
+C1CF60 decisions:
+1. The option path returns target team ==1 before ordinary identity/spectator
+   rejection. This unusual authored option is preserved, not renamed as a rule.
+2. If either pointer is null, return whether the pointers differ. Two missing
+   entities are false. This query result does not itself authorize damage.
+3. Resolve target then source relation identities. Equal identities are false.
+4. Equal teams -1/4 with neither unresolved component call the group relation;
+   matching group is false. Equal ordinary teams are false.
+5. Otherwise either original spectator flag rejects; remaining cases are true.
+
+API:
+World.entity_hostility_context(entity, component=...) returns Context or
+NotImplemented. Context declares availability, lookup, fallback-owner/group
+callbacks and observation hub availability. Target carries explicit team,
+spectator and component50 presence. Relation carries computed identity,
+fallback/base/guard. NotImplemented component presence faults if that branch is
+needed; it never silently becomes absence. Each callback revalidates context,
+owner and instance lifetime. Malformed/wrong-identity results fault. Existing
+native-query polling remains; original callback scheduling/replication is open.
+No persistent Instance/Component/BodyWorld fields or snapshot contract changes.
+
+Verification:
+356 offline runs of original C1CF60 agree with Python for ordinary/neutral teams,
+both spectator flags, option, missing pointers, target/source/both relations,
+matching identities, resolved/missing identities, fallback guards and groups.
+Component lookup, spectator/team/identity services, world/fallback-owner and
+group services are explicit adapters. Original hashed relation lookup, fallback
+gates and decision branches execute. Complete component storage/inheritance and
+native engine ownership are not inferred from these comparisons.
+57 original CE5020 runs verify no-context destination preservation, config and
+subscription order, first source/then target namespace lookup, failed/missing
+inputs, scalar nested entities, option defaults and output. Config conversion,
+observation/context and the C1CF60 call are adapters in those wrapper runs.
+
+Fourteen source tests cover the decisions plus typed inputs, scalar selection,
+strict unknown components/groups, callback result validation and retirement
+during subscription/lookup. Resource probes execute actual0B8B with declared
+ordinary opponent descriptors; lifecycle694, possession F7262B36 and filter
+AC829876 still have explicit adapters.25ECB55F now executes with declared tag
+data as described in ENTITY_TAGS.txt. Actual
+Combat damage-event emission, production relation data, detail type3EBB,
+armor/overkill and full charge/death/ultimate acceptance remain open.
+The existing client image and all native programs/dependencies/results remain
+external immutable inputs or lane-local research outputs, not Git artifacts.

@@ -17,18 +17,34 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    ana_sleep,
+    barriers,
     bots,
     combat,
     correction,
+    earthshatter,
+    graviton,
+    hook,
+    halt,
     heroselect,
+    mei_blizzard,
+    mei_wall,
     notices,
     observers,
+    orisa_barrier,
+    orisa_supercharger,
     projectiles,
     replay_values,
+    sigma_barrier,
+    torbjorn_turret,
     statescript,
     stats,
     voicelines,
+    winston_barrier,
+    winston_jump,
+    winston_primal,
     world,
+    zarya_barrier,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -38,8 +54,11 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
-from ow174.game.script.bot import BotScript, BotWorld
+from ow174.game.script import (
+    b61, controller_query, driver, entity_filter, entity_queries, expr, message_receive, message_state, play, runtime,
+)
+from ow174.game.script import graph as script_graph
+from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
 
@@ -86,16 +105,42 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
+                   "body_script body_script_failed retained_ult_charge seen shown script mode_script "
+                   "next_countdown "
                    "select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen hammer_hits "
+        "charge_drives charge_contacts controls knockbacks projectiles observers voice "
+        "barrier_geometry barriers stuns sleeps shatters frost walls blizzard zarya_bubbles zarya_casts "
+        "zarya_beam_frames gravitons winston_bubbles tesla_frames winston_jump winston_primal "
+        "orisa_barriers halt hooks superchargers sigma_barriers torbjorn_turrets"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    mei_blizzard.Blizzard: _names("fight flights areas"),
+    winston_primal.Primal: _names("fight bonus hits"),
+    winston_jump.JumpPack: _names("fight seen flights"),
+    halt.Halt: _names("fight orbs pulls"),
+    hook.Hooks: _names("fight flights seen"),
+    orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
+    orisa_supercharger.Superchargers: _names("fight active buffs graphs geometry"),
+    torbjorn_turret.Turrets: _names("fight devices"),
+    script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
+                               "states entries remote_nodes sync_vars _owner _remote _presence"),
+    script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
+    orisa_barrier.Geometry: _names("world triangles source"),
+    orisa_barrier.BarrierWorld: _names("hero mode fight entity location"),
+    sigma_barrier.Barriers: _names("fight geometry actors"),
+    sigma_barrier.BarrierWorld: _names("hero mode actor"),
+    winston_barrier.Barriers: _names("fight actors pending"),
+    winston_barrier.DomeWorld: _names("hero mode manager actor"),
+    graviton.Gravitons: _names("fight fields pulled npc_movers"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    combat.Vitals: _names(
+        "entity most now ids changed died_at death_tick killer last_damage_source "
+        "grasp_shields grasp_max grasp_decay grasp_activation healing_block healing_boost"
+    ),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -113,11 +158,16 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles match _possessor_query"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior assassin_controller"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    AssassinControllerWorld: _names(
+        "hero mode match body target context target_filter records messages motion_request pin_input"
+    ),
+    b61.Registry: _names("serial descriptors entries"),
+    BotWorld: _names("hero mode weapon_buttons owner_position manual_controller_context "
+                     "manual_controller_target manual_controller_descriptor manual_target match"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,13 +181,27 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input "
+        "attack_action pitch"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    bots.Bot: _names("_movement_flags movement_gravity"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    hook.Flight,
+    barriers.Geometry, barriers.Barrier, combat.ChargeContact, earthshatter.Wave,
+    mei_wall.Pillar, mei_wall.Input,
+    mei_blizzard.Flight, mei_blizzard.Area, ana_sleep.Sleep, zarya_barrier.Bubble, graviton.Field,
+    halt.Orb, halt.Pull, orisa_barrier.Barrier, winston_barrier.Bubble, sigma_barrier.Shield,
+    orisa_supercharger.Device, torbjorn_turret.Device, script_graph.SyncVar,
+    play.Request, play.Resource, play.InvocationContext, message_receive.Packet, b61.Entry, b61.Payload,
+    entity_queries.Context, entity_queries.Target, entity_queries.Possession, entity_queries.BodyField,
+    entity_filter.Context, entity_filter.Target,
+    controller_query.Context, controller_query.Target, controller_query.Controller,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -187,6 +251,11 @@ class _Graph:
             component = obj.component
             self.vm_extra.setdefault(id(component), []).append(obj)
             return ["vm_instance", self.value(component), obj.id]
+        if type(obj) is message_state.Context:
+            component = obj.component
+            if type(component.world) is not AssassinControllerWorld or component.world.messages is not obj:
+                _fail("unregistered stored message context")
+            return ["vm_message_context", self.value(component)]
         if type(obj) is tuple:
             return ["tuple", [self.value(item) for item in obj]]
         identity = id(obj)

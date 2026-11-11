@@ -685,6 +685,47 @@ class MoverStateTests(unittest.TestCase):
 
 
 class ModTests(unittest.TestCase):
+    def test_throttle_modifiers_split_forward_back_and_preserve_lateral_sign(self):
+        from ow174.game.mover import MULTIPLY, modified_throttles
+
+        self.assertEqual(modified_throttles([Mod(17, MULTIPLY, 0, 0)], -0.5, 1), (-0.5, 0))
+        self.assertEqual(modified_throttles([Mod(17, MULTIPLY, 0, 0)], -0.5, -1), (-0.5, -1))
+        self.assertEqual(modified_throttles([Mod(18, MULTIPLY, 0, 0)], 0.5, -1), (0.5, 0))
+        self.assertEqual(modified_throttles([Mod(19, SET, 2, 0)], -0.5, 0), (-1, 0))
+        self.assertEqual(modified_throttles([Mod(17, SET, 2, 0)], 0, 0), (0, 1))
+        self.assertEqual(modified_throttles([Mod(17, SET, 1, 0), Mod(18, SET, 0.5, 0)], 0, 0), (0, 0.5))
+
+    def test_control_suppresses_forced_throttle_without_erasing_external_impulse(self):
+        for impulse in (False, True):
+            with self.subTest(impulse=impulse):
+                actual, reference = soldier((0, 1, 0)), soldier((0, 1, 0))
+                actual.track_mods({(1, 2, 3): (17, SET, 1, 0)}, 10)
+                if impulse:
+                    for subject in (actual, reference):
+                        subject.add_impulse((0, 0, 10), 11)
+                actual.step_pose(Command(11), TICK, 11, suppress_throttle=True)
+                reference.step_pose(Command(11), TICK, 11)
+                self.assertEqual(actual.position, reference.position)
+                self.assertEqual(actual.velocity, reference.velocity)
+                self.assertEqual(actual.impulse_active, reference.impulse_active)
+                self.assertEqual(actual.throttles, (0, 0))
+                if impulse:
+                    self.assertGreater(actual.position[2], 0)
+                else:
+                    self.assertEqual(actual.position[2], 0)
+
+    def test_throttle_restriction_starts_and_ends_on_next_pose(self):
+        from ow174.game.mover import MULTIPLY
+
+        mover = soldier((0, 1, 0))
+        mover.track_mods({(1, 2, 3): (17, MULTIPLY, 0, 0)}, 10)
+        mover.step(Command(11, forward=127), TICK, 11)
+        self.assertEqual(mover.velocity, (0, 0, 0))
+        self.assertEqual(mover.throttles, (0, 127))
+        mover.track_mods({}, 11)
+        mover.step(Command(12, forward=127), TICK, 12)
+        self.assertGreater(mover.velocity[2], 0)
+
     def test_a_mod_acts_from_the_frame_after_the_statescript_turned_it_on_up_to_the_one_it_went_off(self):
         mover = soldier((0.0, 1.0, 0.0))
         mover.track_mods({(5, 0, 0): (SPEED, ADD, 0.5, 0.0)}, 10)

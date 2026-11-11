@@ -1,0 +1,56 @@
+Ordered game entity filter -- target104319, module RVAs
+
+CF4340 evaluates the candidate scalar and dispatches AC829876 through game VM
+266AFE0 virtual150 to D0DA20. entity_filter.py implements this order with an
+explicit Context backend. The default World returns NotImplemented. Actual
+Match component construction, subscriptions and charge events remain open.
+
+Order
+1. Candidate evaluation precedes even the null-filter true result. A non-null
+   filter requires declared lookup/context inputs. Missing entity returns false
+   and observes environment kind0 or fallback kind46 when a watcher is present.
+2. Unless any_bits is3FFFFFFF, require declared component97 presence; missing97
+   rejects a nonzero union of the six masks before component25 observations.
+3. Capture target component25, observe it, resolve/observe native owner data,
+   and run the mask helper only when the combined six masks are nonzero.
+   Known absent components differ from unknown inputs. Observation callbacks
+   may replace a component pointer; mask evaluation uses the captured pointer.
+4. Evaluate the base condition with the candidate-scoped0008 provider. Its
+   scope ends before tag configs and later conditions. Subscribe to component76
+   when tag configs exist, collect ordered typed tag clauses, then read fresh
+   tag data and test clauses. A failed earlier stage skips every later stage.
+5. DA8BD0 entity-result service rejects exactly result1. Declared missing registry
+   maps to native default2; unknown registry is unsupported. This service is not
+   inferred from one filter field or replaced with universal admission.
+6. Evaluate F61726FE with false default. False returns true. True requires known
+   component4/list availability; known absence also returns true. A present list
+   evaluates B40362FC with INT_MIN default, rejects that sentinel, skips groups
+   with nonpositive signed16 counts and accepts the first matching group/key.
+   The source snapshot supplies immutable group counts; callback-driven native
+   mutation of list length/counts is not an accepted production engine service.
+
+Context contract and limits
+Target declares uint32 entity identity, component25 FilterBits or known absence,
+component97 presence, component76 Tags or known absence, registry callback or
+known absence, and optional Groups or known absence. Context declares native
+owner pointer, relationship service and observation callbacks. Unknown services
+fault when needed. Context rebinding/retirement, target retirement and invalid
+instance lifetimes abort after callbacks, including empty collecting configs.
+No persistent VM fields or snapshot schema additions are introduced.
+
+Eighteen source entry-point tests cover order, defaults, callback lifetime,
+captured versus refreshed components and optional-group short circuits.393
+original D0DA20 pairwise flow comparisons match output and ordered stage trace.
+That probe adapts encrypted component/owner lookup, engine lookup/subscriptions,
+registry/config/list primitives and the independently tested mask/condition/tag
+stage outputs. It proves orchestration under those inputs, not the full engine.
+Stage and collector evidence is separately scoped in ENTITY_FILTER_STAGES.txt.
+
+Eleven actual0B8B resource/VM probes now execute this entry point without a fixed
+AC829876 callback. They declare static class bits, tags, known missing optional
+services, observation sinks and ordinary relationship inputs. Added cases prove
+required tag121 can admit a class-bit-rejected target and a removed121 rejects.
+Possession and lifecycle694 remain explicit fixture services. Diagnostic
+ULT_SECONDS is disabled only in these probes; actual combat charge remains open.
+All original image bytes, generated evidence and native probe programs remain
+outside Git in the isolated lane. No original-client acceptance is claimed.

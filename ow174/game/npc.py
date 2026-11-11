@@ -79,6 +79,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    if bot.body_script is not None:
+        bot.body_script.mount_assassin_controller()
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -94,22 +96,36 @@ def remove_spawned(match) -> tuple[int, ...]:
         if bot.spawner.get('manual_spawn') is not True:
             continue
         bot.died(match.tick)
+        match.combat.gravitons.retire(bot.entity)
+        match.combat.halt.drop_pull(bot.entity, terminal=True)
         script, bot.body_script = bot.body_script, None
         if script is not None:
+            script.retire_assassin_controller()
             component = script.component
+            from ow174.game import assassin
+
+            assassin.bind(component.world, component, None)
             component.owner_dead = True
             component.held.clear()
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
+            context = getattr(component.world, "manual_controller_context", None)
+            if context is not None:
+                context.retired = True
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns,
+                      match.combat.knockbacks):
             table.pop(bot.entity, None)
+        match.combat._release_captured(bot.entity)
+        match.combat._release_charge(bot.entity)
+        match.combat.controls = {key: end for key, end in match.combat.controls.items()
+                                 if key[0] != bot.entity}
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)
         match.bots.remove(bot)

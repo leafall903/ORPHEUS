@@ -25,6 +25,13 @@ from ow174.game.script.driver import BodyScript
 
 STATE_MODELS = (
     ("STU_TestPlainState", runtime.State),
+    ("STU_B61E6681", nodes.B61State),
+    ("STU_600E3C59", nodes.B61ExtendedState),
+    ("STU_ECAEE401", nodes.MotionRequest),
+    ("STU_AB9B30EF", nodes.FacePosition),
+    ("STU_D3CDCF04", nodes.AIButton),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
+    ("STU_54FEB21C", nodes.HostCompletionGate),
     ("STU_9028E035", nodes.RegisteredState),
     ("STU_9D7BF987", nodes.SharedVariables),
     ("STU_33A46033", nodes.EntityControl),
@@ -48,6 +55,7 @@ STATE_MODELS = (
     ("STU_2F4E2E3F", nodes.Watch),
     ("STU_CD46AF93", nodes.ForCodeSynced),
     ("STU_DEBD057B", nodes.Switch),
+    ("STU_96F1DBCF", nodes.MovementFlags),
     ("STU_37D754C8", nodes.SubScript),
     ("STUStatescriptStateGameMessageEntry", nodes.GameMessageEntry),
     ("STU_38EE1100", nodes.SendGameMessageState),
@@ -162,7 +170,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 43)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -174,7 +182,9 @@ class BodyVMSnapshotTests(unittest.TestCase):
         models = (
             ("STU_E4A30BCF", "button_id"), ("STUStatescriptStateWait", "ms"),
             ("STUStatescriptStateWeaponVolley", "max_shots"),
-            ("STUStatescriptStateWeaponVolley", "min_shots"), ("STU_2F4E2E3F", "seen"),
+            ("STUStatescriptStateWeaponVolley", "min_shots"),
+            ("STUStatescriptStateWeaponVolley", "notified_ammo"),
+            ("STU_2F4E2E3F", "seen"),
             ("STUStatescriptStateGameMessageEntry", "received"),
             ("STUStatescriptStateCosmeticEntity", "var"),
         )
@@ -194,7 +204,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         entity_var = component.entity_var(44)
         local_var = instance.find_var(expr.INSTANCE, 55)
         entity_var.watchers = {third: None, first: None, second: None}
-        first.watched = {local_var: None, entity_var: None}
+        first.watched = {local_var: None, entity_var: True}
         entity_var.links = [runtime.Link(second, 2, -0.0, False, True), runtime.Link(first, 1)]
         component.held = [29, 20]
         component.disabled = {20: [third, first]}
@@ -207,7 +217,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
             [ref("state", 1, 1), None], [ref("state", 1, 2), None], [ref("state", 1, 0), None],
         ])
         watched = fields(data, ["state", 1, 2])["watched"]
-        self.assertEqual(elements(watched), [[ref("var", 1, 55), None], [ref("var", 0, 44), None]])
+        self.assertEqual(elements(watched), [[ref("var", 1, 55), None], [ref("var", 0, 44), True]])
         links = [dict(item["fields"]) for item in elements(variable["links"])]
         self.assertEqual([item["state"] for item in links], [ref("state", 1, 0), ref("state", 1, 2)])
         self.assertEqual((links[0]["slot"], links[0]["above"], links[0]["stack"]), (2, False, True))

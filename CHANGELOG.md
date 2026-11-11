@@ -4,7 +4,394 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Reinhardt build 104319 server integration snapshot
+
+Packages the current Reinhardt combat implementation, the shared server and
+state-script dependencies used by it, the preparation tools, and the existing
+regression tests. This snapshot also includes incoming Shield Bash and Rocket
+Punch behavior and the server-side interactions with player and Talon bodies.
+
+At handoff, 19 targeted interruption and counter-charge tests passed. The
+existing release-timing regression log records 60 passing tests. The static
+acceptance ledger records 19 verified and 14 partially verified rows. Complete
+enemy-player coverage, defense and lifecycle coverage, cross-lane companion
+mounting, and original-client acceptance are still pending. Build 104319
+runtime inputs and prepared descriptors are supplied externally.
+
+### 2026-11-10
+
+#### Rocket Hammer distinguishes recycled victim IDs (private)
+
+Primary and melee-alias swings record body contacts by generation. An
+active swing can hit a replacement that reuses the original victim's ID
+once without starting another swing. Client acceptance remains open.
+
+#### Interrupted Charge retires pending drive starts (private)
+
+The 007D and 1408 windup exits can enqueue their running subgraphs while
+the phase is being cancelled. The Match drains the old running subgraph
+if its drive remains active after phase exit. Earthshatter now stops the
+Heavy Assault windup, and neither charge resumes after mutual knockdown.
+Client acceptance remains open.
+
+#### Charge tracks contact generations across body reuse (private)
+
+Reinhardt and Heavy Assault now distinguish replacement bodies in their
+active charge contact histories. Reinhardt can capture a replacement that
+reuses the first victim's ID and deliver the normal wall impact. Heavy
+Assault can bump a replacement while retaining its separate centre capture.
+Client acceptance remains open.
+
+#### Earthshatter tracks hit generations across body reuse (private)
+
+An active Earthshatter wave can damage and knock down a replacement that
+reuses a previously hit body ID. A replacement Barrier Field can take wave
+damage along an unblocked path. The old blocked path stays closed, and the
+new body's control starts at its own hit. Client acceptance remains open.
+
+#### Fire Strike tracks worn barriers across body reuse (private)
+
+Fire Strike records Barrier Field contact by body generation and raise.
+Reusing a retired body ID no longer suppresses damage to its new shield.
+Lowering and raising the same shield still creates a separate contact while
+the same body takes damage once per flight. Client acceptance remains open.
+
+#### Reinhardt damage credit across shields and respawn (private)
+
+The primary and melee alias each remove 85 barrier points in the shield-only
+fixture without awarding damage charge. At closer range the same hit removes
+85 barrier points and 80 armour, awarding 80 damage charge. A Fire Strike
+released before a lethal rifle hit awards 100 charge to the dead source body.
+Same-hero respawn retains the balance, and switching heroes clears it.
+
+#### Assassin close-range target record regression (private)
+
+When selected Reinhardt enters close range, original 1158 opens the 500 ms
+target record watch. Absent and zero values let it expire into phase 3. A
+test-supplied change to 1.0 makes original 1158 enter phase 2 and deal the
+initial pin damage through original body graph 1157. The mapped image audit
+identifies four direct readers of the record lookup. Record population and
+client acceptance remain open. All 28 Assassin incoming tests passed.
+
+#### Assassin controller button 36 reaches the mounted pin graph (private)
+
+Explicit entry into original 1158 phase 2 drives button 36 through the Match.
+Original body graph 1157 pins Reinhardt, drops his barrier, applies its
+initial and periodic damage, and releases the pin at phase exit. Match
+arbitrates the controller input alongside the manual path. Autonomous phase
+entry and client acceptance remain open.
+Twenty-seven Assassin tests, four shared NPC tests, 24 storage tests and
+935 script tests passed.
+
+#### Assassin movement request and facing (private)
+
+With original 1158 explicitly selected, the Match registers its single
+movement request and node 102 turns the possessed body toward the selected
+player. Hard control suspends turning. The 1.33 s windup exit and death
+both release the request. Six focused tests, two targeting and routing tests,
+24 storage tests and 935 script tests passed.
+Facing uses the server heading calculation. Translation, native timer
+scheduling, automatic attack selection and client acceptance remain open.
+
+#### Selected Assassin attack graph on the Match clock (private)
+
+Original 1158 reads the Match body positions and accepts the live target
+chosen by 13C2. With 1158 explicitly selected in the test, the near route
+sends both authored 07C8 variants to 0E62 and the timed 09DA to 13C3.
+Three focused tests, 24 storage tests and 935 script tests passed.
+Automatic selection, the movement scheduler, button 36 and client acceptance
+remain open.
+
+#### Live Assassin target acquisition (private)
+
+The mounted Assassin controller runs original 13C2 and supplies the authored
+search with live hostile players in range and line of sight. The graph clears
+a newly friendly target and reacquires after a target dies. Server distance
+ordering and capsule visibility supply the search policy. Autonomous attack
+input, native target-record population and client acceptance remain open.
+The 23 Assassin incoming tests, 47 shared Zarya and VM tests, and 935 script
+tests passed. The mounted server snapshot test also passed.
+
+#### Typed routing for the detached Assassin controller (private)
+
+The match queue routes typed packets between mounted controllers and bodies.
+The original 1172 receiver accepts 0079 through the queue. Explicitly entering
+1158 node 34 sends its original 07C8 payload to the Assassin body. Queued
+packets expire with their endpoints, and a receiver fault stays on the
+detached controller. Autonomous target selection and client acceptance remain
+open.
+
+#### Assassin controller startup through six roots (private)
+
+The strict controller follows the captured state-factory behavior for seven
+unregistered 1172 classes. The 1172 and 0C83 queries with verified base
+evaluators preserve their output. The real match runs the mounted controller
+for 120 frames with its initial listener and records active. Autonomous
+behavior and client acceptance remain open.
+
+#### Persistent messages on the Assassin controller (private)
+
+The detached controller owns a persistent message manager with an explicit
+server-authoritative policy. The original 142A graph registers its 09DB
+listener and both B61 records at startup. The strict factory skips the
+unregistered 531AA630 state, matching the captured build. Startup now stops
+in 1172 at STU_918B3FA9. Controller faults release the registered records
+and message channels.
+
+#### Assassin controller state records (private)
+
+The controller VM models the B61 state record and its extended form. The
+original 142A nodes register the authored values when exercised separately.
+The strict state factory skips 724DFBC6, matching the captured build registry.
+Normal startup now stops at the persistent game-message state on node 29.
+Autonomous combat and client acceptance remain open.
+
+#### Detached Assassin controller startup (private)
+
+When the prepared controller graphs are available, a manual Assassin spawn
+mounts the six original roots on a separate server VM. The controller faults
+independently of its body and retires with the body. Its startup uses the
+verified empty-resource evaluation and stops at the unsupported state
+STU_B61E6681. Autonomous combat and client acceptance remain open.
+
+#### Typed game messages for mounted match bodies (private)
+
+Mounted player and NPC script worlds can submit typed game-message packets
+through the existing deferred match queue. The queue preserves full parameter
+keys, array values and sender identities. It validates live body ownership at
+delivery and rejects over-capacity submissions as a batch. Detached controller
+allocation and client acceptance remain open.
+
+#### Match messages for mounted NPC bodies (private)
+
+The deferred body-message queue routes to and from mounted live NPC scripts.
+It verifies that both scripts are still attached before delivery and publishes
+NPC observer changes. A live match test delivers 07C8 to the Assassin body and
+routes a probe reply to Reinhardt. It exercises stale messages across death,
+removal and replacement. Autonomous controller transport remains open.
+
+#### Assassin body animation resource lookup (private)
+
+The script VM writes the typed result of the alias-only animation request and
+forwards the following base action. Both authored 07C8 receiver cases start
+and finish the body's two-second animation state with a supplied resource.
+A known resource miss leaves the state inactive. Live resource resolution,
+match transport and client playback remain open.
+
+#### Assassin controller action fallback (private)
+
+The script VM follows the authored output of STU_0B0BABC6 using its verified
+base action behavior. A paired scene fixture delivers both 07C8 variants
+from controller graph 1158 to body graph 0E62 and checks the received
+animation parameters. The body reaches its next unsupported animation
+action. The match transport and client acceptance remain open.
+
+#### Assassin movement request dispatch (private)
+
+The script VM models the Component88 request timer outputs and readiness
+subgraph for an explicit scheduler host. Subgraph exit now skips states
+the VM has never created, matching the build 104319 lookup. An authored
+fixture verifies node 2 dispatches through node 47 to node 78. Live NPC
+scheduling and client acceptance remain open.
+
+#### Health pool queries used by NPC behaviors (private)
+
+Player and NPC scripts can read the current health, armour or shield pool of
+a live combat body. The authored Assassin controller's availability expression
+reads base health. A fixture verifies its zero-health and positive-health
+branches. Three focused combat tests and 924 script tests passed. Automatic
+Assassin behavior selection, the full static matrix and client acceptance
+remain open.
+
 ### 2026-11-09
+
+#### Charge against Fortify and Cryo-Freeze (private)
+
+Charge reads the live 9161 and 6601 flags and uses the authored impact
+branch. Actual Fortify and Cryo-Freeze end the tested frontal contacts
+without body damage or capture. Cryo-Freeze prevents damage and control
+until the authored state expires or Mei cancels it.
+
+#### Heavy Assault and Trooper melee against Reinhardt (private)
+
+Manual logical 31 runs both NPCs' authored melee windups. Their query
+offsets, radii, damage and impulses drive server contacts against armour
+and Barrier Field. Static cover, manual stop and Earthshatter interrupt
+the tested contacts.
+
+#### Fire Strike against Kinetic Grasp (private)
+
+An actual Grasp consumes Fire Strike and feeds the authored absorption sum.
+The end request grants a separate temporary shield pool with the authored
+delay and decay rate. Hammer spends that pool before base shields, and
+Charge can interrupt Grasp before conversion.
+
+#### Reinhardt attacks against Deflect and Defense Matrix (private)
+
+Genji can block frontal hammer contacts and redirect Fire Strike with its
+remaining range and damage attribution. An explicitly loaded D.Va mech
+can consume Fire Strike using its live Matrix state. Contacts before the
+interception point still resolve, and hard control interrupts both abilities.
+
+#### Reinhardt attacks against Fortify and Transcendence (private)
+
+Actual Fortify and Transcendence inputs now govern damage and control at
+Reinhardt's hammer, Fire Strike, Charge and Earthshatter contacts. The
+server reads the authored defensive state and keeps Fire Strike penetration
+through a protected target. Charge bumps a control-immune target.
+
+#### Reinhardt damage charge in ordinary Match (private)
+
+Ordinary Match supplies Reinhardt damage-charge admission from resolved pool
+loss on a current enemy player or NPC body. The policy is scoped to the
+particular delivery and the two class gates and hostility gate in 0B8B.
+Explicit native query hosts take precedence. The authored graph computes
+multipliers, the effective cap and ultimate damage exclusions. Fire Strike
+credit requires its original body lifetime. Existing in-flight unleased damage
+can finish after a swap. Normal tests cover armour, terminal loss, Barrier
+Field, Charge, all five NPC bodies and a full earned-and-spent Earthshatter.
+The default admission and target-tag fallback are server reconstruction
+policies. Original emitter identity, itemized accounting, effective tags and
+the remaining defense and full static matrix cases require separate evidence.
+
+
+#### Incoming Flashbang flight (private)
+
+McCree Flashbang 01E9 node 7 uses its resource launch lift and gravity when
+fighting Reinhardt. The server updates velocity before each 16 ms sweep and
+detonates on range expiry as a reconstruction policy. Shield impact and splash
+cover share the existing barrier path. The tests exercise actual commands,
+off-body expiry stun, barrier interception, hammer and Charge interruption,
+and Earthshatter cancellation. Fifty-seven combined and six focused tests
+passed. Cross-hero reflect, absorption and immunity coverage remains open.
+
+
+#### Reinhardt ultimate retention (private)
+
+Reinhardt carries its current ultimate balance across a same-hero body
+replacement. The Match retires the old script before replacement and restores
+the retained balance before exposing the new script. The replacement's cost caps
+the balance. A hero switch clears pending points. The pending balance participates
+in the server snapshot. This retention policy is a server reconstruction. Ordinary
+damage charging and native dead-time charge behavior require separate evidence.
+Thirty combined tests and one deferred-create retry test passed.
+
+
+#### Typed manual Assassin pin and interruption lifecycle (private)
+
+- Keep primary20;add explicit pin36 with world-local typed controller target
+  lookup through entity variable1650 and original1157 node51. Contact/health/
+  clock/native allocation differences are documented server reconstruction.
+- Bind pin to phase23 across delay and DOT,release on stop/control/death/removal
+  or target loss,and clear NPC attack_input immediately when controlled.
+- Add explicit ModifyHealth service/clock and causal action/target/state storage.
+  Actual Charge rescue,actual victim death,barrier,input and lifecycle tests run.
+- Final110 related methods PASS528.567s;
+  918 all-script PASS30.88s;Ruff/diff PASS. Full goal
+  active;no hero commit/client acceptance. Economy/defenses/remaining NPC scope
+  and received parent Fan/spread update review remain open.
+
+
+#### Manual Enforcer incoming combat and causal controller state (private)
+
+- Mount explicit manual NPC75/no92 facts through the generic controller query;
+  Enforcer13EB reads its own aggregate health. No native controller allocation
+  or general player/NPC profile is claimed.
+- Execute its authored25-pellet ring pattern and direct flight-distance curve.
+  Deterministic tangent projection,phase0 and default difficulty are documented
+  reconstruction limits. Three body/shield ranges and weapon lifecycle execute.
+- Register controller/target/descriptor and callback bindings in strict VM and
+  server storage. Retiring or changing facts changes digests without callbacks.
+- Final158 related combat/VM/server-snapshot methods PASS1243.834s;
+  916 all-script PASS21.624s;Ruff/diff PASS. Full hero goal active;no client,
+  hero commit or merge-ready claim. Assassin/economy/defense coverage stays open.
+
+
+#### Audited FirstPerson heights and control cleanup (private)
+
+- Use authored Reinhardt1.8/1.26 and McCree1.425/.9975 stand/crouch heights
+  consistently in player shot origins,target eye and retained combat history.
+- Suppress hard-control throttle after modifier folding so Charge's old SET1
+  cannot move the interruption pose. Preserve external impulses. This is an
+  explicit server control reconstruction;native force/camera parity stays open.
+- Final 214 combat/hero/mover/Flashbang methods PASS280.556s;focused8
+  PASS2.808s;Ruff/diff PASS. Early failed fixture and drift logs are retained.
+- Narrow native controller resolution to component cipher/ID-mask adapters:
+  384 original mode0 cases match,including null decoded43 and full32 bucket
+  collisions. Actual controller construction/AI remains open.
+- Full static goal remains active;no hero commit or client acceptance.
+
+
+#### Controller query and ending-state notification prerequisites (private)
+
+- Port B96D3A98 orchestration through explicit owner/target/controller services.
+  440 originalCC9BF0 cases match typed selector/full-ID lookup,component43
+  observation,75/92 checks and boolean output. DA6910/pointer services are
+  adapters;actual NPC controller allocation/composition remains open.
+- Add an actual Enforcer13EB query fixture with explicit controller/health
+  facts;ordinary Match/BotWorld get no universal profile. Eight query tests
+  cover unknown facts,callback lifetime and preserving unmounted fallbacks.
+- Fix Component.changed requeueing notifications during ending-state cleanup;
+  the minimal regression failed before the guard. Cancel-marker/cooldown expiry
+  prerequisites remain intact. No new persistent VM field or arbitration phase.
+- 915 script checks pass21.607s;58 hero/input/NPC/Barrier/Earthshatter checks
+  pass148.599s. Final11 query/lifetime/Enforcer methods pass5.348s;portable2
+  pass0.003s. Native full/controller/AI/client/hero acceptance remains open.
+
+#### Reinhardt incoming NPC weapon evidence (private subset)
+
+- Add18 actual Match scenarios for Trooper/Sniper/Heavy ordinary weapons:
+  armour,front barrier,stop cleanup,control/expiry,wall/ally denial and actual
+  Earthshatter interruption/recovery. Five methods pass33.083s. NPC recording
+  client explicitly declares no observer stream while projectile simulation runs.
+- Five-body immediate/warmup probes leave Enforcer controller services and
+  Assassin acquisition/pin open. Enforcer query-profile sensitivity is an
+  explicit fixture hypothesis,not a production controller/backend change.
+  31 combined incoming/control/weapon/five-body/charge regressions pass138.963s;
+  Ruff/diff pass. Autonomous AI/specials,full native combat and client acceptance
+  remain open.
+
+#### Reinhardt movement input modifiers (private prerequisite)
+
+- Apply authored17/18/19 forward/back/lateral modifiers before acceleration.
+  Preserve raw movement bytes and modifier frame boundaries;remove the earlier
+  Earthshatter-specific command rewrite. Charge drive policy remains scoped.
+- 120 original prefix comparisons pass with scalar lookup stub;76 movement,
+  replay,input and actual hero tests pass85.533s. Corrected old raw-byte windup
+  expectation passes3.354s. Full native physics/client/combat acceptance open.
+- Current-wire damage identity audit yields0(body) versus85(controller) for
+  85 damage under explicit fixture services. Native parameter15 identity remains
+  unresolved;no victim remap or classification assumption is installed.
+
+#### Reinhardt prerequisite and shared press-buffer follow-up (private)
+
+- Add verified tag base-vector initialization:42 original BE1E80 cases match
+  ordered union/dedup under explicit resources and absent dynamic/scene services.
+  14 original owner schema lookup cases cover seven actual layer key maps;
+  live bindings and the virtual type service remain explicit inputs.43 tag/filter
+  regressions pass2.191s. Complete tags/classification and hero acceptance open.
+- Reproduce parent-reported early press timestamp refresh through actual Fire
+  Strike/Charge commands. Retain original press age until start gates pass;
+  keep the separate computed-cooldown expiry notification required by Barrier.
+  63 relevant regressions pass59.924s;906 all-script checks pass19.418s. Final
+  three actual hero input methods/six scenarios pass33.461s after an observer-only
+  test refactor. Ruff/diff and generic patch dry checks pass.
+  Client acceptance and complete combat matrix remain open;no deployment.
+
+#### Native component dependency requirements (private Reinhardt prerequisite)
+
+- Reconstruct143 native dependency records and port1826BD0 visited-mask closure.
+  Original initialization matches the captured table byte-for-byte;572 native
+  index/seed cases and seven actual declaration layers match the source port,
+  without function adapters. Health51 requires25->97.
+- External actor declarations now preserve compile-required masks separately
+  from unknown runtime presence/classification/tags. All seven audited layers
+  require97; none requires50. Nine focused boundary tests pass0.092s.
+- Primary factories97/76 are identified from original registration lists.
+  Complete initialization/lifetime and normal Match classification remain open.
+  No client acceptance, complete hero acceptance, commit or deployment is claimed.
 
 #### Native state-input joins and Deadeye timing
 
@@ -179,6 +566,180 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Reinhardt combat reconstruction candidate
+
+- Port F525E0's resource-component schema-to-runtime-index decisions and compare
+  Python with original offline execution for100 candidate hashes (89 recognized),
+  258 unknown checks and seven actual XML layers. The schema type-info getter is
+  an adapter. Keep declaration indices distinct from native object presence.
+  Add an external declaration preparer that preserves local tags/references and
+  refuses to invent effective inheritance/class/status/registry facts. Four
+  parser/CLI checks pass. No normal Match classification provider is enabled.
+  Trace the native local compiler and dependency-mask union; captured dependency
+  values and builtin97/category construction remain open. See
+  docs/ENTITY_DEFINITION_COMPONENTS.txt. This is prerequisite progress only.
+- Reuse the reviewed0065 generic fold/hostility/tag/ordered-filter prerequisite
+  (external patch SHA256 eb0885284d8c83d1c957b8a9c78ae31d7a30655bb0a846b309445eb52af9ac49).
+  It retains explicit engine inputs and strict unknown services; no game data or
+  actor catalog is imported. Pass87 dependency/query/resource tests after apply.
+- Preserve evaluated ModifyHealth identifier tags in melee, Charge, hitscan,
+  direct/splash/penetrating projectiles and both Earthshatter damage profiles.
+  The scoped Reinhardt bridge sends resolved pool loss and those tags to the
+  unchanged0B8B damage entry after health/death resolution. Native graph filters,
+  target reductions, multipliers and exclusions determine gain; no point formula
+  or loadout-based ultimate exclusion is substituted. Earthshatter's multi-tag
+  1FD exclusion survives both the near and front events.
+- Pass16 new Combat-to-charge methods, including15 scenarios using all five
+  actual NPC bodies, under disclosed actor-class/relationship/tag backends.
+  Cover actual primary/alias, Fire Strike, side bump, armour/overkill/death,
+  friendly/range misses, shield loss exclusion, source tags and tag admission/
+  reductions. The normal Match still lacks the native classification catalog;
+  an absent backend yields no damage charge. Native component construction,
+  target-tag inheritance, callback phase and gross/net itemization remain open,
+  as do death/respawn charge retention and complete hero/client acceptance.
+- After the parent supplied actual five-NPC mover inputs, recheck13 outgoing
+  contact/LOS/impulse/pin/shatter/charge methods against its read-only43-row
+  table. Pass125.064s. The previous38-row runtime used generic NPC fallbacks.
+  Talon fixtures now explicitly mount the real input with scoped cache/path
+  restoration and a provenance guard. Static fixture collision, inferred capsule
+  hitboxes and native actor classification remain distinct from these source
+  dimensions. No shared input/hardlink or normal service is modified.
+- Pass906 script and255 combat/hero/NPC/projectile/control/VM checks after the
+  damage bridge; the255 run predates the mover fixture update. Two passive tag
+  storage checks and two final pin-wall/damage-cap checks also pass. These suites
+  overlap; none accepts the full static or original-client matrix.
+- Implement F7262B36's typed primary-possessor lookup through the explicit
+  entity-query context, including missing-output, component43 absence, invalid
+  IDs and observation-before-read behavior. Compare2112 original offline query
+  cases with Python using disclosed engine adapters; outputs, success and
+  observation order match. Preserve existing forward current-possession queries.
+  Match provides actual controller/body identity pairs for Reinhardt; native
+  component callback scheduling uses the existing command-boundary poll policy.
+  Retire the context with its body and include it in enclosing passive storage.
+- Matched Reinhardt bodies now use0B8B's authored passive waits rather than the
+  diagnostic60-second fill. The binding bridge evaluates01C7/node39's actual
+  capability expression once body ownership is installed, without forcing true
+  or sending0694's stack override. Ten seconds gives50 points; actual multiplier,
+  suppression and cost-cap cases execute. Native binding-notification phase,
+  damage-event charging and death/respawn resource retention remain open.
+  Preserve00BE/st27's native2.5s842 charge lock after channel end; a timeline
+  probe corrected a test's earlier end assumption. Pass65 focused actual-Match,
+  Earthshatter/query/resource/ability tests after that correction and two passive
+  storage checks. The earlier311-case run had310 passes plus that expectation
+  failure; suites overlap. Ruff/diff and portable patch dry checks pass.
+- Connect Earthshatter00BE's native Ability14/cost1540/windup/landing/release to
+  an explicit server ground-wave reconstruction. Use authored40m/s,20m,50degree
+  cone,1.75m height, separate250 near/50 front damage and2.5s control. Retain
+  per-front terrain/shield blockers, victim history and frozen shield poses in
+  passive storage. Native state0 completion owns the ability channel end.
+  Exercise static walls, steps/gaps/ledges, team/range/aim, shield drop/break,
+  actual Flashbang interruption, caster death, body retirement, repeat casts
+  and outgoing damage/control against all five actual NPC bodies. Charge is
+  explicitly filled in these fixtures; native propagation/filter/immunity,
+  passive/damage charge economy and original-client acceptance remain open.
+  Pass300 relevant regressions, one passive wave snapshot and the final airborne
+  check. Four separate Reinhardt0B8B resource probes pass: authored5 points per
+  second, multipliers, suppression/caps and explicit charge message. Lifecycle
+  and possession are disclosed adapters; production charging stays open.
+- Reconstruct counter-charge from007D/query74 radius/cone, live596 facing and
+  each body's inline224E counter profile. Actual Rein Shift, Doomfist punch
+  release and Brigitte bash produce mutual2s control without health damage.
+  Verify windup/running collisions, no latent resume, faction/cone/LOS/facing,
+  input order, independent expiry and native cooldown recovery in13 methods.
+  Other counter variants, native geometry/status presentation and complete
+  counterpart movement/damage remain open. Review/reuse shared2ca9178 native
+  input joins with causal storage; only the private lane is fast-forwarded.
+  Pass251 hero/VM/input/ability/projectile/NPC-control/Flashbang checks and two
+  passive snapshot checks after integration. The hero file contains99 methods;
+  complete static matrix and original-client acceptance remain open.
+- Add reconstructed static LOS to hammer body hits and actual overlapping
+  shield triangles. Verify primary/melee input, late exposure, enemy players,
+  all five real NPCs with ten visible/blocked scenarios and shield/body walls.
+- Add collision-backed impulse motion for Charge side hits and natural release.
+  Read strengths from007D and response from live modifier26: Reinhardt00A4/st4
+  multiplies by0.7; Heavy Assault1254/st0 sets0. The other four actual NPCs move
+  and settle. Preserve gravity/friction/contacts, pinned anchoring, immediate
+  removal cleanup and passive stored motion. Strength-to-velocity conversion is
+  an explicit reconstruction; native force/mass/profile parity remains open.
+- Review shared64bf71c and unify its resource-backed Flashbang query/interrupt
+  path with source-scoped controls. Deny input while preserving external
+  momentum; retain exclusive deadlines, independent controls and NPC route
+  gap handling. Real McCree input covers hammer recovery, running/windup Charge
+  interruption and barrier absorption. Fix windup resuming after stun by ending
+  the entire authored charge phase. No native full224E execution is claimed.
+- Before shared Flashbang integration, pass271 motion/LOS/combat regressions
+  and two passive snapshot checks. After integration, pass285 combined checks
+  plus two snapshots; after the final windup fix pass25 contact/impulse/Flashbang
+  tests. These suites overlap. Original-client and full hero matrix stay open.
+- Connect active0048 hammer damage states to combat, evaluating the authored
+  main/near query endpoints, radii,85 damage and loadout. Reconstruct target
+  capsules in command aim space; retain one hit per victim per swing, late
+  entrants, alternating swings, faction filtering and body retirement.
+- Reconstruct the melee key as the hammer primary input, preserving raw command
+  history and the union of held primary/melee controls before edge detection.
+- Add an explicit owner policy for Fire Strike's empty00E2/state5 marker;
+  leave other strict native timing services unsupported. Original release,
+  winddown and cooldown plugs run. Reconstruct0.85 projectile radius and body
+  penetration with lifetime victim history and real static collision sweeps.
+- Extend that policy to Charge's empty007D/state37 marker. Reconstruct its
+  horizontal drive from authored16.5/60 steps and30 degree steering parameter;
+  retain the mover's ground/gravity/static contacts and vertical momentum on
+  release. Native0.6s windup,3s duration and10s cooldown own the lifetime; static
+  obstruction feeds the timeout end branch. Verify command-driven movement,
+  steering, wall stop, cooldown recovery, death and replacement in seven tests.
+  Native phase-hook parity remains open.
+- Reconstruct frontal Charge capture,50 side/extra-body bump damage once per
+  activation, collision-backed victim transport and300 wall damage through the
+  existing health/armour/death path. Add separately expiring hard controls to
+  suppress movement/input/attacks and interrupt actions/barriers. Release pins
+  on timeout, interruption, death or body retirement; retain other controls.
+  Exercise all five actual NPC bodies for capture/transport/wall damage.
+  Preserve captured identity/history and control deadlines in passive storage.
+  Native target filters/attachment, knockback, mutual charge, control immunity
+  and client appearance remain open; this is explicit server reconstruction.
+- Read the parent's external five-NPC catalog and graph bundle in scoped tests.
+  Verify actual-body hammer/Fire Strike damage and terminal hit/corpse lifetime,
+  retaining explicit base-pool/permissive-VM/fixture-transport limitations.
+  Expose opt-in non-static model shapes for barrier collision work;
+  default mover geometry remains unchanged. Game assets stay outside Git.
+- Add opt-in external104319 barrier mesh/resource loading. Reconstruct the
+  raised pose from bind hardpoint29, shieldbone8C, actual capsule and0.2m offset.
+  Intercept enemy hitscan, direct projectiles and occluded splash, preserving
+  ally fire, rear/side exposure and melee/Fire Strike penetration with shield
+  damage. Restore1600 HP,200/s regeneration after2s drop delay,5s break refusal
+  and recovery, variable586 feedback and death/disconnect/body-retire cleanup.
+- Fix cancelled callback coalescing flags and computed-cooldown expiry
+  notifications. Without both fixes a broken barrier could not raise again.
+  Preserve geometry, resource deadlines and attack victim history in passive
+  server state. Prepared assets and descriptors remain outside source/Git.
+- Pass222 combined combat/projectile/NPC/VM/ability/input/collision regressions,
+  two passive snapshot tests, five final cleanup/cancellation checks and two
+  portable shared-runtime reproductions. After Charge movement, pass138 hero,
+  mover, world-target/replay, physics-storage and command-epoch regressions,
+  plus one charge/drive passive-storage test. Targeted suites overlap. Ruff/diff
+  checks pass. This does not accept complete hero/target matrix cells.
+- After Charge contact/control integration, pass298 combined hero/combat/NPC,
+  VM/ability/input, mover/world-target/replay and physics-storage regressions;
+  pass one capture/control stored-state test. Fix pin-hit notification to use
+  the impact command's frame, then pass12 focused contact tests. These suites
+  overlap. Complete hero/target cells and original-client acceptance stay open.
+- Rebase the private lane's uncommitted candidate onto reviewed shared main
+  7cd1ed7 (manual NPC controls, authored weapon manager/slots, array selection,
+  quick-melee static occlusion). Preserve both shared visibility and lane
+  capsule-distance helpers. Pass212 dependency/hero/combat/VM regressions and
+  one capture/control snapshot test after integration; portable shared-runtime
+  reproductions and patch dry checks still pass. Original development main is
+  read-only to this lane; no hero commit, merge-ready claim or push is made.
+- Exact native sweep/filter/knockback and all cross-hero defenses remain open.
+  Fire Strike's native marker and defense parity, Charge/pinning, native barrier
+  pet/animation/receiver parity, Earthshatter native propagation/charge economy,
+  incoming five-NPC actions and
+  original-client acceptance remain open. No client controls
+  or normal services were changed. See docs/REINHARDT_COMBAT.txt.
+- This private lane supplies a reviewed commit/patch to the parent; it does not
+  merge into the original checkout or push. The required publication helper is
+  absent from this workspace. No GitHub synchronization is claimed.
 
 #### Optional persistent NPC corpses
 

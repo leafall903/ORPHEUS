@@ -1,0 +1,47 @@
+Statescript throttle modifiers -- build104319
+
+C33960..C33A8D splits signed forward into positive forward (property17) and
+positive backward magnitude (18), applies lateral property19 to abs(right),
+restores lateral sign and clamps the resulting axes. These values feed ordinary
+acceleration. Movement records retain the original command throttle bytes.
+modified_throttles applies existing ordered Mod/intent operations at this point.
+Modifier lifetimes continue to start/end at the following movement frame.
+
+120 comparisons execute the original instruction prefix and compare both axes
+against this helper. Scalar modifier lookup is an explicit arithmetic stub for
+add/multiply/replace, not a verified complete native modifier service or physics.
+The owned probe also verifies reaching the native prefix endpoint each time.
+Input image hash:b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+No image bytes or generated runtime data are included in source.
+
+Reinhardt
+Hero command-rewrite removal is a separate private integration change.
+007D nodes19/87 set17/18/19 to zero;node88 sets17 to one and18/19 to zero.
+00BE nodes6/58 set17/18 to zero and multiply19 by zero. Their actual activation
+and release run through authored graphs. The separate reconstructed Charge
+horizontal drive remains scoped to its running phase;complete native drive,
+force and geometry parity remain open.
+
+Remove the old Earthshatter-specific command rewrite: its authored modifiers
+now own movement restriction while the movement state keeps raw input bytes.
+The existing windup test changes its expected bytes from(0,0) to(0,127), while
+still requiring no acceleration and recovery after release.
+
+76 mover/world-target/replay/command-epoch and actual hero tests pass85.533s.
+Actual hero cases cover four Charge input directions, drive and post-end
+recovery, Earthshatter forward/back and both lateral signs, and recovery.
+Two generic tests cover split/sign/clamp and next-frame activation/release.
+A29-case hero run had28 passes and one old raw-byte expectation;the corrected
+windup test passes3.354s separately. Initial lateral test misread MULTIPLY0 as
+ADD0;the resource mapping corrected that test,not the implementation.
+No original-client acceptance or complete combat acceptance is claimed.
+
+Control integration follow-up:step_pose has an explicit suppress_throttle host
+argument(default false),applied after17/18/19 so forced SET1 cannot regenerate
+movement from a hard-control neutral command. This argument is a reconstructed
+server boundary,not a native prefix claim. External impulses keep normal mover
+friction/gravity/contact handling. A forced-throttle/no-throttle comparison with
+and without impulse verifies identical controlled movement. Actual Charge stun
+previously moved .103515625m during the cleanup pose;the strengthened existing
+test requires immediate and sustained stop. Match control binding remains in
+the private hero change,excluded from this generic mover candidate.

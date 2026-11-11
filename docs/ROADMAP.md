@@ -40,6 +40,33 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
+  - [ ] Accept Reinhardt combat against enemy players and all five Talon NPCs. Hammer/melee LOS, Fire Strike, Charge capture/wall damage/impulses/counter-charge, opt-in barrier geometry and incoming Flashbang interruption have scoped executable coverage. Earthshatter has reconstructed ground propagation, near/front damage, control and interruption with explicitly filled charge. Counter inputs include Rein, Doomfist and Brigitte; NPC impulse cases preserve Heavy Assault's zero response. Other counter variants, native force conversion, Earthshatter native propagation/ultimate economy, reflect/absorb/invulnerability/control immunity, incoming NPC actions and original-client acceptance remain open. See [Reinhardt combat](REINHARDT_COMBAT.txt).
+    Matched Reinhardt bodies now execute authored passive charge waits,
+    multipliers/caps and the post-channel charge lock through a reconstructed
+    binding bridge and typed controller lookup. Actual damage charging and
+    complete death/respawn resource lifecycle remain open.
+    Actual damage events now carry source tags into0B8B and execute its gain
+    rules under declared engine backends. Normal Match classification/tag
+    inheritance remains open. NPC fixtures require actual source mover inputs;
+    inferred hitboxes and original-client geometry still need acceptance.
+    Native resource-component index mapping, dependency closure and strict
+    declaration preparation now have offline evidence. Runtime dependency-added components, class bits
+    and effective tag initialization remain open. Original143 dependency records,
+    572 closure cases and seven layer masks match; compile requirements do not
+    enable a normal Match charging provider. Tag base union and owner schema
+    selection have scoped native comparisons;dynamic tags/lifetimes remain open.
+    FireStrike/Charge now preserve original early-press age at cooldown gates;
+    63 related regressions pass,including actual short/held input scenarios.
+    Authored throttle modifiers now enforce Charge/Earthshatter restrictions
+    while preserving raw input bytes;76 movement/input/replay checks pass.
+    Damage event victim body/controller identity remains unresolved.
+    Trooper/Sniper/Heavy normal incoming weapons have18 scoped armour/barrier/
+    control/LOS/team/stop/shatter scenarios. Enforcer,Assassin and complete NPC
+    AI/specials remain open;see [incoming NPC subset](REINHARDT_NPC_INCOMING.txt).
+    Native controller-query orchestration now matches440 original cases;actual
+    Enforcer fixture still declares controller/health facts. Native allocation
+    and real NPC composition remain open. Ending-state notification cleanup has
+    a minimal reproduction/fix and915 script/58 hero regressions.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.
   - [x] Extract and integrity-check local collision caches for all 95 catalog maps and handle missing caches explicitly.
@@ -57,3 +84,66 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+Private Reinhardt follow-up:audited1.8/1.26 FirstPerson height and enemy McCree
+1.425/.9975;post-modifier control cleanup fixes one-pose forced movement while
+preserving impulses. Final214 combat/hero/mover tests PASS280.556s.
+384 original controller mode0 cases narrow adapters;ordinary controller data,
+full NPC/defense/cross-hero/ultimate lifecycle matrix and client acceptance OPEN.
+
+Private Reinhardt manual-Enforcer follow-up:actual13EB25-pellet default-profile
+body/barrier/range/control/death/removal/cadence and causal storage tests pass.
+158 combined methods PASS1243.834s;916 script PASS21.624s. Native allocation,
+AI/camera/phase differences disclosed;Assassin/full economy/defense/cross-hero
+static matrix still open. Complete goal and commit gates unchanged.
+
+Private Reinhardt Assassin follow-up:actual1157 manual pin36 now uses typed
+controller target1650,normal damage/control and strict causal storage;primary20
+is preserved and remains separately incomplete. Actual Charge rescue/death and
+stop/control/LOS/team/range lifecycle execute. 110 combined
+methods PASS528.567s;918 script PASS30.88s.
+Full economy/defense/cross-hero/NPC ledger and client acceptance remain open.
+
+The mounted Assassin controller now runs original 13C2 against Match player
+bodies. The test covers LOS and range rejection, acquisition, clearing a
+newly friendly target and reacquisition after a target dies. The server
+reconstructs the search geometry. 1158 attack selection and movement remain open.
+
+Reinhardt carries its current ultimate balance across a same-hero body
+replacement. The Match retires the old script before replacement and restores
+the retained balance before exposing the new script. The replacement's cost caps
+the balance. A hero switch clears pending points. The pending balance participates
+in the server snapshot. This retention policy is a server reconstruction. Ordinary
+damage charging and native dead-time charge behavior require separate evidence.
+Thirty combined tests and one deferred-create retry test passed.
+
+McCree Flashbang 01E9 node 7 uses its resource launch lift and gravity when
+fighting Reinhardt. The server updates velocity before each 16 ms sweep and
+detonates on range expiry as a reconstruction policy. Shield impact and splash
+cover share the existing barrier path. The tests exercise actual commands,
+off-body expiry stun, barrier interception, hammer and Charge interruption,
+and Earthshatter cancellation. Fifty-seven combined and six focused tests
+passed. Cross-hero reflect, absorption and immunity coverage remains open.
+
+Ordinary Match supplies Reinhardt damage-charge admission from resolved pool
+loss on a current enemy player or NPC body. The policy is scoped to the
+particular delivery and the two class gates and hostility gate in 0B8B.
+Explicit native query hosts take precedence. The authored graph computes
+multipliers, the effective cap and ultimate damage exclusions. Fire Strike
+credit requires its original body lifetime. Existing in-flight unleased damage
+can finish after a swap. Normal tests cover armour, terminal loss, Barrier
+Field, Charge, all five NPC bodies and a full earned-and-spent Earthshatter.
+The default admission and target-tag fallback are server reconstruction
+policies. Original emitter identity, itemized accounting, effective tags and
+the remaining defense and full static matrix cases require separate evidence.
+
+Actual opposing Fortify and Transcendence inputs have scoped Reinhardt
+coverage for damage, capture refusal, Earthshatter control, duration and
+Fire Strike penetration. Reflection, absorption and the rest of the
+cross-hero defense matrix remain open.
+
+Actual Deflect and Defense Matrix inputs now intercept Fire Strike. Tests
+cover attribution on both sides of a reflection, expiry, wall and team
+ordering, Matrix resource use and release, and hard-control interruption.
+Matrix uses an explicitly selected 0407 mech with its authored inputs.
+Kinetic Grasp and the remaining defense and NPC interactions stay open.

@@ -1,0 +1,64 @@
+Manual Enforcer incoming combat -- private104319 server reconstruction
+
+npc.spawn -> Match._prepare_bot_script now supplies a declared controller
+composition(75 present,92 absent) only for manual Enforcer/Assassin bodies.
+BotWorld owns an explicit generic controller_query.Context and data-only
+Target/Controller records. Controller descriptor identity0 is not a namespace
+entity or wire controller. Unrelated bots,players and unmounted BotWorlds keep
+previous behavior. This composition is a reconstruction,not native allocation.
+Enforcer13EB owner9B7648C3 reads existing OWNER_HEALTH as aggregate current HP;
+other targets/graphs/classes are not given a general health-query backend.
+
+The original13EB node24 defines25 projectiles:one center,eight at half spread,
+sixteen at full spread,speed80m/s,range100m and lifetime5s. External resource
+reference and hash are in manual-enforcer-combat-summary.json. The scope uses
+a reviewed tangent-ring sampler with fixed phase0. Native RNG/phase,muzzle and
+animated bone transforms remain unknown. Direct-hit distance curves now use
+actual flight distance for body and shield contacts;the existing linear curve
+policy is explicit reconstruction. No new persistent projectile field is added.
+
+Current prepared default profile evaluates per-pellet amount2. It must not be
+reported as a native universal difficulty value. Observed one released volley:
+- 2m:25 armour HP or50 barrier HP;body shielded takes0.
+- 8m:20 armour HP or50 barrier HP;body shielded takes0.
+- 20m:1.4 armour HP orabout10 barrier HP;body shielded takes0.
+Pellets which miss keep flying until range/lifetime/wall completion. Armour is
+applied independently to each pellet. Lower far-range damage includes both the
+ring misses and the authored8..15m curve reaching.2 floor. Pool arithmetic has
+float quantization;the barrier assertion allows.01HP tolerance.
+
+Actual13EB launch tests also cover source-control delay,held-input repeat and
+<=1 launch/second rate cap,range/wall/ally denial,explicit stop removing all25
+inflight pellets,source death preserving already emitted pellets,and manual
+removal clearing attacks/instances and retiring the controller context. Actual
+Earthshatter explicitly fills charge,then blocks a rearmed Enforcer throughout
+control and permits attack recovery after expiry. Charge acquisition economics
+are not accepted by filling the ultimate fixture.
+
+Once engaged, Enforcer can select a new opponent when the assigned player
+leaves. Selection uses the nearest visible living opponent within the sandbox
+aim range. An explicit reassignment and a departure both release the old
+input and cancel the old 13EB windup before the next target can be fired on.
+The replacement starts a fresh windup. Initial engagement is manual.
+
+Retiring a selected player's body also cancels the pending windup. This
+applies when the player stays in the match and the new body reuses the old
+numeric ID. Released pellets keep flying and can hit the replacement
+according to its live position.
+
+The controller context uses named BotWorld callbacks rather than hidden closure
+state. Strict VM and full server storage register all three controller records;
+mutable bits/retirement change digests without executing queries. Unknown or
+rebound callbacks fail closed in the VM exporter. No snapshot schema version
+or restorable-state claim is introduced.
+
+Initial failed diagnostics are excluded:wrong ultimate slot fixture,an assumed
+three launches in300 frames,and an unregistered BotWorld snapshot field. They
+led to corrected fixture semantics and a real storage fix. The final log names
+and counts are recorded externally after successful regression completion.
+
+Still open:Assassin actual pin/normal/special attacks,all-five autonomous AI,
+complete cross-hero defenses and ultimate/damage economy/full hero matrix.
+Native controller allocation,difficulty,spread phase,camera/muzzle/animation
+and physics parity are disclosed differences,not silently assumed evidence.
+No client acceptance,hero commit or full merge-ready claim.

@@ -19,6 +19,50 @@ The result remains an Entity even when its stored identity is zero or invalid.
 This is the forward current-object relation, not an inversion of DB742151's
 reverse primary-possessor catalog.
 
+00707E1E (CE7660) evaluates selector m_00903303 and looks up the typed entity.
+Missing lookup observes the active or fallback environment and writes Entity(0).
+An existing entity without component44 also writes Entity(0). For a present
+component it observes the dependency at +18 before BD4A90 reads the body ID
+at +D0. Target.body_field declares that value independently of current
+possession. A host that knows current possession alone still lacks this field.
+
+D379F515 (CE7EA0) evaluates m_target before m_7826B991, then resolves the
+owner's component46 and its target-keyed record. A found record writes the
+float32 at +114. Missing owner, component or record preserves the caller's
+destination. World.target_record_scalar supplies the scoped lookup, with
+None for known absence and NotImplemented for an unavailable service.
+Record population and native lifetime are separate from this evaluator.
+
+9B7648C3 and 60146072 read current and maximum values through component51
+virtuals +40 and +50. Invalid identities and known controllers without
+health return zero. Missing valid entities preserve the destination. Match
+uses the same current and maximum totals as the body health HUD, without
+creating pools during lookup. Existing graph-specific health providers keep
+their scoped behavior. Native pool aggregation remains separate.
+
+F7262B36 (CDBDE0) additionally reads the component43 primary-possessor relation.
+Its selector field is m_801B298F, evaluated through scalar +20 then F64C20; a
+missing/failed/non-entity selector becomes Entity(0) before lookup. Like the
+current-possession query it does not prefilter invalid identities. D15520 looks
+up the entity, selects component43 with BD4680, and succeeds with Entity(0) when
+the component is absent. A present component is observed at its+18 dependency
+before BD42D0 reads its primary possessor (decoded D8 via E0/BAD060). Stored zero
+and invalid uint32 values remain Entities. Missing entity lookup leaves output
+unchanged and observes the active/fallback environment. It does not reverse
+the primary-possessor registry or return an alive/eligible Boolean.
+Target.possessor is a separate Possession record or known component43 absence;
+Context.watch_possessor is independent of component44 observation. The default
+World.entity_possessor_context delegates to entity_query_context, while hosts
+may install this relation separately without enabling other entity queries.
+
+Private Reinhardt lane validation compares2112 offline original CDBDE0/D15520
+cases against this implementation: output type/value, success and observation
+order match. Native selector conversion, presence branch, observer call and
+BD42D0 getter run. Namespace/literal/lookup/hub, component table decryption,
+getter key and variant allocator are explicit adapters. The authorized captured
+image remains immutable; no process was attached. This proves that scoped
+query contract, not engine component construction or complete charging.
+
 The environment dependency kind is 0 when the active environment exists and
 46 on the fallback environment. An explicitly absent dependency hub is allowed;
 unknown hubs or component observers remain strict. Selector variable watches

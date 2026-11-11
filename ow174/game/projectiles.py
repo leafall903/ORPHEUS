@@ -346,6 +346,9 @@ class Projectiles:
             else:
                 viewer.client.queue_entities([create])
 
+    def intercepted(self, shot: Shot) -> None:
+        self._end(shot, self.match.tick, explode=False)
+
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
         if isinstance(shot.player, bots.Bot):
@@ -481,10 +484,12 @@ class Projectiles:
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
         # The opening tick has no heal, and the field ends before the expiry tick.
         # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+        first = max(first_tick, start + 1)
+        last = min(tick, expires - 1)
+        if first <= last:
+            amount = HEAL_PER_SECOND * FRAME_MS / 1000
+            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount,
+                                  ticks=range(first, last + 1))
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return
