@@ -5,6 +5,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Restore delivered Soldier mode and debug-charge inputs
+
+- Preserve the authored 005A Practice Range variant instead of replacing its
+  mode with the base training mode. Restore the map-header mode lookup and the
+  delivered strict Skirmish membership predicate, including its special mode.
+- Keep an explicit positive Soldier sandbox timer independent of the native
+  passive permission gate while the graph timer remains suppressed. Default
+  authored charging and other heroes' generation policies are unchanged.
+- All three existing variant, strict map-header and single-source positive-
+  override checks passed. Mode entity selection and other clock reconciliation
+  remain open; no client or full-line acceptance is claimed.
+
+
+
 ### Integrate delivered Soldier combat-charge classification
 
 - Mount the delivered target-tag lookup, charge expression context, supported

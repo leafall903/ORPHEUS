@@ -1965,6 +1965,13 @@ class BodyScript(ReplicatedBody):
                 if not ultimate.practice_timer(self.world):
                     ultimate.passive_points(self)
                 return
+            if self.ult_seconds > 0:
+                cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+                charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+                if cost > 0 and charge < cost:
+                    step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                    self._gain_ult_points(cost, charge, step)
+            return
         if self.hero == regeneration.MERCY and self.world.match is not None:
             return  # The delivered 0B8B graph owns Mercy passive charge.
         if self.hero == 0x02E0000000000079 and self.world.match is not None:

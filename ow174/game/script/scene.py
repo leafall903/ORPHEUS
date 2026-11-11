@@ -2424,6 +2424,14 @@ class SceneWorld(runtime.World):
 
     def native(self, cfg: dict, instance: runtime.Instance):
         kind = cfg.get("$")
+        if kind == "STU_16753B11" and self.map_guid is not None:
+            from ow174.game.content import authored_map_modes
+
+            modes = authored_map_modes(self.map_guid)
+            if modes is not None:
+                value, success = play.evaluate_scalar_result(instance, cfg.get("m_gamemode"))
+                mode = play._asset(value) if success else 0
+                return mode != 0 and (mode in modes or mode == 0x0230000000000045)
         if (instance is not None and kind in ("STU_2200A66D", "STU_021D01CD")
                 and self.entity_directions is not None):
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
