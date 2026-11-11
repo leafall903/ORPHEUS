@@ -11,7 +11,7 @@ class Console:
         self.catalog = dict(catalog)
         self.menu_open = False
 
-    def press(self, key: str, match, player):
+    def press(self, key: str, match, player, *, attack_action="primary"):
         if key == '=':
             self.menu_open = True
             return {'handled': True, 'action': 'menu', 'menu_open': True,
@@ -31,7 +31,8 @@ class Console:
         if match.combat.is_dead(player):
             raise ValueError('NPC spawning and engagement require a living player')
         if key == '0':
-            return {'handled': True, 'action': 'start', 'entity': npc_control.start(match, player)}
+            entity = npc_control.start(match, player, action=attack_action)
+            return {'handled': True, 'action': 'start', 'entity': entity}
         position = self.spawn_position(match, player)
         team = 1 if player.team == 0 else 0
         bot = npc.spawn(match, self.catalog[key], position, team=team, yaw=player.mover.yaw + 32768)

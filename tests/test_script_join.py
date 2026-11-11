@@ -10,6 +10,22 @@ from ow174.game.script import nodes, runtime
 
 
 class JoinTests(unittest.TestCase):
+    def test_canceled_check_can_be_queued_again_after_state_reentry(self):
+        component, instance = self.setup_join()
+        state = instance.state(0)
+        self.arrive(instance, 4)
+        self.assertTrue(state.flags_check)
+        state.end(False)
+        self.assertFalse(state.flags_check)
+        self.arrive(instance, 5)  # complete and clear this join activation
+        component.run_now()
+        state.begin()
+        self.arrive(instance, 4)
+        self.assertTrue(any(event.kind == runtime.CHECK and event.state is state for event in instance.queue))
+        component.run_now()
+        self.assertFalse(state.flags_check)
+        self.assertTrue(state.active)
+
     def setup_join(self, *, linked=True, count=2):
         definition = make_graph(1, [
             node(0, "STUStatescriptState", state=0),

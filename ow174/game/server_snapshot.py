@@ -17,18 +17,28 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barrier_mesh,
     bots,
     combat,
     correction,
+    earthshatter,
     graviton,
     heroselect,
+    interception,
     notices,
     observers,
+    orisa_barrier,
     projectiles,
+    reinhardt_barrier,
+    reinhardt_charge,
     replay_values,
+    sigma_barrier,
     statescript,
     stats,
     voicelines,
+    winston_barrier,
+    winston_jump,
+    winston_primal,
     world,
     zarya,
 )
@@ -40,7 +50,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -94,13 +104,29 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice beam_seen zarya_barriers zarya_gravitons zarya_recovery stuns"
+        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen zarya_melee_ready "
+        "zarya_secondary_ready hammer_hits "
+        "shatters charge_contacts booster_contacts projectiles observers voice beam_seen zarya_beam_world_ms zarya_barriers "
+        "genji_strikes genji_blades genji_assists rifle_doses pending_nano pending_contacts zarya_gravitons zarya_recovery "
+        "zarya_charge_tick zarya_charge_ready stuns sleeps grasp_health pins reinhardt_barriers halt_pulls "
+        "winston_jump winston_primal projectile_defense_starts projectile_defense_windows"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
-    zarya.Barriers: _names("combat active projected"),
+    winston_jump.JumpPack: _names("combat seen flights"),
+    winston_primal.Primal: _names("fight seen bonus expiries"),
+    winston_primal.Expiry: _names("owner frame tick"),
+    combat.Vitals: _names(
+        "entity most now ids changed died_at death_tick killer temporary_shields "
+        "healing_block_until healing_boost_until nano_until"
+    ),
+    interception.GraspShields: _names("combat grants decays pending"),
+    reinhardt_barrier.ReinhardtBarriers: _names(
+        "fight geometry states experimental orisa orisa_pending winston winston_pending"),
+    winston_barrier.Bubble: _names("entity owner instance team centre health expires starts_tick"),
+    winston_barrier.PendingRelease: _names("owner wait generation frame tick"),
+    zarya.Barriers: _names("combat active projected expiries pending_cleanses cooldown_deadlines"),
+    zarya.BarrierExpiry: _names("owner duration generation frame tick started ended_ahead"),
     zarya.ShieldRecovery: _names("combat bodies"),
-    graviton.Gravitons: _names("combat fields npc_movers"),
+    graviton.Gravitons: _names("combat fields npc_movers player_pulls"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -118,11 +144,19 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles aim match"),
+    driver.BodyWorld: _names(
+        "hero mode body throttles aim match _body_owner_context _entity_query_context "
+        "phase_started phase_deadline"
+    ),
+    body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
+                               "watch_owner retired"),
+    entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
+                                   "lookup watch_environment watch_possession retired"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components "
+                    "controller_entity manual_target match"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -136,14 +170,18 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "impulse_mover attack_action"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
+    barrier_mesh.Geometry, reinhardt_barrier.BarrierState, sigma_barrier.Barrier, orisa_barrier.Barrier,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
-    zarya.Barrier, zarya.Recovery, graviton.Field,
+    zarya.Barrier, zarya.Recovery, graviton.Field, earthshatter.Wave, reinhardt_charge.Contact,
+    combat.TemporaryShield, combat.RifleDose, combat.CommandContact, interception.ShieldDecay,
+    interception.DefenseWindow, interception.DefenseCost, interception.PendingGraspGrant,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -426,7 +464,9 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     graph = _Graph(boundaries, WorldRegistry() if assets is None else assets)
     with server.lock:
         roots = {"server": graph.value(server), "archived_matches": graph.value(archives),
-                 "canonical_movers": graph.value(loaded_mover_table())}
+                 "canonical_movers": graph.value(loaded_mover_table()),
+                 "eye_profiles": graph.value(combat.EYE_PROFILES),
+                 "projectile_tags": graph.value(interception.catalog_snapshot())}
         nodes = graph.finish()
     return {
         "schema": SCHEMA, "scope": SCOPE, "restorable": False,

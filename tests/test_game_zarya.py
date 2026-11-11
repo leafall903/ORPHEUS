@@ -61,6 +61,25 @@ class ZaryaBeamTests(unittest.TestCase):
         self.fire(30, 0)
         self.assertEqual(self.health(), before)
 
+    def test_primary_future_command_batch_cannot_spend_unelapsed_world_time(self):
+        self.fire(1)
+        weapon = next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0241)
+        ammo = weapon.vars[53].value()
+        start = self.run.frame
+        self.a.take_commands([Command(start + offset, buttons=1) for offset in range(1, 51)])
+        self.assertEqual(self.fight.tick, start)
+        self.assertEqual(self.health(), 200)
+        self.assertEqual(weapon.vars[53].value(), ammo)
+
+        tick = start + 3
+        self.run.match.update(tick * combat.TICK, tick, frames=False)
+        self.a.take_commands([Command(start + offset, buttons=1) for offset in range(51, 54)])
+        self.assertAlmostEqual(self.health(), 196.4)
+        self.assertAlmostEqual(weapon.vars[53].value(), ammo - 0.96, places=3)
+        self.a.take_commands([Command(start + 54, buttons=1)])
+        self.assertAlmostEqual(self.health(), 196.4)
+        self.assertAlmostEqual(weapon.vars[53].value(), ammo - 0.96, places=3)
+
     def test_allies_are_not_damaged(self):
         self.b.team = self.a.team
         self.fire()
@@ -98,12 +117,114 @@ class ZaryaBeamTests(unittest.TestCase):
         self.assertTrue(resumed)
         self.assertLess(self.health(), before_reload)
 
+    def test_reload_waits_cannot_be_skipped_with_future_commands(self):
+        self.fire(1, 2)
+        first, = self.fight.rockets
+        weapon = next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0241)
+        start = self.run.frame
+        self.a.take_commands([Command(start + 40, buttons=0x400), Command(start + 200)])
+        refill, recovery = weapon.state(46), weapon.state(12)
+        self.assertEqual(self.fight.tick, start)
+        self.assertEqual(weapon.vars[53].value(), 75)
+        self.assertTrue(refill.active)
+        self.assertTrue(recovery.active)
+
+        cases = ((65, 75, True, True), (66, 100, False, True),
+                 (92, 100, False, True), (93, 75, False, False))
+        for client_offset, (world_offset, ammo, refill_active, recovery_active) in enumerate(cases, 201):
+            with self.subTest(world_offset=world_offset):
+                tick = start + world_offset
+                self.run.match.update(tick * combat.TICK, tick, frames=False)
+                self.a.take_commands([Command(start + client_offset, buttons=2 if world_offset >= 92 else 0)])
+                self.assertEqual(weapon.vars[53].value(), ammo)
+                self.assertEqual(refill.active, refill_active)
+                self.assertEqual(recovery.active, recovery_active)
+                self.assertEqual(sum(rocket is not first for rocket in self.fight.rockets), int(world_offset == 93))
+        self.a.take_commands([Command(start + 205, buttons=2)])
+        self.assertEqual(sum(rocket is not first for rocket in self.fight.rockets), 1)
+        self.assertEqual(weapon.vars[53].value(), 75)
+
+    def test_idle_reload_releases_stale_fire_before_recovery(self):
+        self.fire(1, 2)
+        self.fire(39, 0)
+        self.fire(1, 0x400)
+        start = self.run.frame
+        script = self.a.body_script
+        weapon = next(i for i in script.component.instances.values() if i.graph.index == 0x0241)
+        for offset, ammo in ((66, 75), (67, 100), (92, 100)):
+            tick = start + offset
+            self.run.match.update(tick * combat.TICK, tick, frames=False)
+            self.assertEqual(weapon.vars[53].value(), ammo)
+        self.a.take_commands([Command(start + 92, buttons=2)])
+        self.assertTrue(weapon.state(12).active)
+        self.assertFalse(self.fight.rockets)
+        tick = start + 94
+        self.run.match.update(tick * combat.TICK, tick, frames=False)
+        self.assertFalse(weapon.state(12).active)
+        self.assertFalse(self.fight.rockets)
+        self.assertEqual(weapon.vars[53].value(), 100)
+        self.assertEqual(script.frame, tick - 1)
+        self.a.take_commands([Command(tick, buttons=2)])
+        self.assertEqual(len(self.fight.rockets), 1)
+        self.assertEqual(weapon.vars[53].value(), 75)
+
+    def test_idle_reload_preserves_the_next_future_command(self):
+        self.fire(1, 2)
+        first, = self.fight.rockets
+        start = self.run.frame
+        self.a.take_commands([Command(start + 40, buttons=0x400), Command(start + 200)])
+        script = self.a.body_script
+        weapon = next(i for i in script.component.instances.values() if i.graph.index == 0x0241)
+        for offset, ammo, refill, recovery in ((66, 75, True, True), (67, 100, False, True),
+                                               (92, 100, False, True), (93, 100, False, True),
+                                               (94, 100, False, False)):
+            tick = start + offset
+            self.run.match.update(tick * combat.TICK, tick, frames=False)
+            if offset == 92:
+                self.a.take_commands([Command(start + 201, buttons=2)])
+            self.assertEqual(weapon.vars[53].value(), ammo)
+            self.assertEqual(weapon.state(46).active, refill)
+            self.assertEqual(weapon.state(12).active, recovery)
+            self.assertEqual(script.frame, start + (200 if offset < 92 else 201))
+        self.assertTrue(all(rocket is first for rocket in self.fight.rockets))
+        self.a.take_commands([Command(start + 202, buttons=2)])
+        self.assertEqual(weapon.vars[53].value(), 75)
+        self.assertEqual(sum(rocket is not first for rocket in self.fight.rockets), 1)
+
     def test_secondary_consumes_25_ammo_including_volley(self):
         self.fire(1, 2)
         weapon = next(i for i in self.a.body_script.component.instances.values()
                       if i.graph.index == 0x0241)
         # Authored SetVar subtracts24; the volley's default single shot spends1.
         self.assertEqual(weapon.vars[53].value(), 75)
+
+    def test_secondary_recovery_cannot_be_skipped_with_future_commands(self):
+        self.fire(1, 2)
+        weapon = next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0241)
+        shot, = self.fight.rockets
+        start = self.run.frame
+        self.a.take_commands([Command(start + 1), Command(start + 100, buttons=2)])
+        self.assertEqual(self.fight.tick, start)
+        self.assertEqual(self.fight.rockets, [shot])
+        self.assertEqual(weapon.vars[53].value(), 75)
+
+        ready = start + 62
+        self.run.match.update((ready - 1) * combat.TICK, ready - 1, frames=False)
+        self.a.take_commands([Command(start + 101, buttons=2)])
+        self.assertTrue(all(rocket is shot for rocket in self.fight.rockets))
+        self.assertEqual(weapon.vars[53].value(), 75)
+        self.run.match.update(ready * combat.TICK, ready, frames=False)
+        self.a.take_commands([Command(start + 102, buttons=2)])
+        self.assertEqual(sum(rocket is not shot for rocket in self.fight.rockets), 1)
+        self.assertEqual(weapon.vars[53].value(), 50)
+
+    def test_held_secondary_keeps_authored_paced_cadence(self):
+        self.fire(1, 2)
+        weapon = next(i for i in self.a.body_script.component.instances.values() if i.graph.index == 0x0241)
+        self.fire(61, 2)
+        self.assertEqual(weapon.vars[53].value(), 75)
+        self.fire(1, 2)
+        self.assertEqual(weapon.vars[53].value(), 50)
 
     def test_enemy_rifle_consumes_zarya_shields_before_health(self):
         self.b.mover.position[2] = -5
@@ -120,6 +241,75 @@ class ZaryaBeamTests(unittest.TestCase):
         self.fire(1, 0x800)
         self.fire(40, 0)
         self.assertEqual(self.health(), 170)
+
+    def melee_state(self):
+        graph = next(i for i in self.a.body_script.component.instances.values()
+                     if i.graph.index == 0x0043)
+        return graph.state(4)
+
+    def test_aimed_melee_miss_uses_swing_without_hit_feedback(self):
+        self.b.mover.position[2] = 1.5
+        self.run.step({self.a: (16384, 0, 0x800)})
+        self.fire(40, 0)
+        self.assertEqual(self.melee_state().counter, 1)
+        self.assertEqual(self.health(), 200)
+        self.assertFalse(self.a.client.messages(combat.HIT))
+
+    def test_out_of_range_melee_uses_swing_without_hit_feedback(self):
+        self.b.mover.position[2] = 3.5
+        self.fire(1, 0x800)
+        self.fire(40, 0)
+        self.assertEqual(self.melee_state().counter, 1)
+        self.assertEqual(self.health(), 200)
+        self.assertFalse(self.a.client.messages(combat.HIT))
+
+    def test_melee_cooldown_rejects_repress_until_authored_recovery(self):
+        self.b.mover.position[2] = 1.5
+        self.fire(1, 0x800)
+        start = self.run.frame
+        for offset in range(1, 62):
+            self.fire(1, 0x800 if offset % 2 == 0 else 0)
+            self.assertEqual(self.melee_state().counter, 1)
+            self.assertEqual(self.health(), 170)
+        self.fire(1, 0x800)
+        self.assertEqual(self.run.frame - start, 62)
+        self.assertEqual(self.melee_state().counter, 2)
+        self.assertEqual(self.health(), 140)
+
+    def test_melee_cooldown_cannot_be_skipped_with_future_commands(self):
+        self.b.mover.position[2] = 1.5
+        self.fire(1, 0x800)
+        instance = self.melee_state().instance
+        cooldown = instance.states[instance.graph.node(14).state].var
+        start = self.run.frame
+        self.a.take_commands([Command(start + 1), Command(start + 65, buttons=0x800)])
+        self.assertEqual(self.fight.tick, start)
+        self.assertEqual(self.melee_state().counter, 1)
+        self.assertEqual(self.health(), 170)
+        self.assertGreater(cooldown.value(), 0.98)
+
+        ready = start + 62
+        self.run.match.update((ready - 1) * combat.TICK, ready - 1, frames=False)
+        self.a.take_commands([Command(start + 66), Command(start + 67, buttons=0x800)])
+        self.assertEqual(self.melee_state().counter, 1)
+        self.assertEqual(self.health(), 170)
+        self.assertGreater(cooldown.value(), 0)
+
+        self.run.match.update(ready * combat.TICK, ready, frames=False)
+        self.assertEqual(cooldown.value(), 0)
+        self.a.take_commands([Command(start + 68), Command(start + 69, buttons=0x800)])
+        self.assertEqual(self.melee_state().counter, 2)
+        self.assertEqual(self.health(), 140)
+
+    def test_held_melee_requires_release_after_recovery(self):
+        self.b.mover.position[2] = 1.5
+        self.fire(130, 0x800)
+        self.assertEqual(self.melee_state().counter, 1)
+        self.assertEqual(self.health(), 170)
+        self.fire(1, 0)
+        self.fire(1, 0x800)
+        self.assertEqual(self.melee_state().counter, 2)
+        self.assertEqual(self.health(), 140)
 
     def test_static_wall_blocks_melee_without_hit_feedback(self):
         self.b.mover.position[2] = 1.5
@@ -431,7 +621,13 @@ class ZaryaProjectedBarrierTests(unittest.TestCase):
 
     def test_caster_death_ends_reconstructed_protection(self):
         self.cast()
+        self.hit(self.b, 20)
+        self.assertEqual(self.health(), 200)
+        storage = self.fight.zarya_barriers.projected
+        self.assertEqual(storage[self.a.body].remaining, 180)
         self.hit(self.a, 500)
+        self.assertTrue(self.fight.is_dead(self.a))
+        self.assertNotIn(self.a.body, storage)
         self.hit(self.b, 20)
         self.assertEqual(self.health(), 180)
 

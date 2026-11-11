@@ -1,12 +1,12 @@
 """Manual NPC attack selection and input policy, reconstructed for the sandbox.
 
-Slot0 comes from each body's extracted AI definition. This is manual targeting,
-not restored native autonomous acquisition, navigation or enemy special behavior.
+Slot0 comes from each body's extracted AI definition, with an explicit manual
+Assassin1157 button36 bridge. Native autonomous acquisition/navigation stay open.
 """
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, heavy_charge
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -15,10 +15,15 @@ def manual(bot):
     return bot.spawner.get('manual_spawn') is True
 
 
-def button(bot):
+def button(bot, action=None):
     script = bot.body_script
     if script is None:
         raise ValueError('NPC body script is unavailable')
+    action = bot.attack_action if action is None else action
+    if action == 'charge' and heavy_charge.instance_of(bot) is not None:
+        return 35  # authored Heavy 1408 logical input
+    if action != 'primary':
+        raise ValueError('Manual NPC action is unavailable for this body')
     result = script.component.world.ai_weapon_button(0)
     if type(result) is not int:
         raise ValueError('NPC primary weapon input is unavailable')
@@ -41,7 +46,7 @@ def selected(match, player):
     if best is None:
         return None
     distance, target = best
-    wall = combat.ray_world(match.collision_world, origin, direction, distance)
+    wall = fight.cover_ray(origin, direction, distance, exclude=player)
     if wall is not None and wall < distance:
         return None
     if (not isinstance(target.owner, bots.Bot) or not manual(target.owner)
@@ -50,11 +55,18 @@ def selected(match, player):
     return target.owner
 
 
-def start(match, player):
+def start(match, player, *, action="primary"):
     bot = selected(match, player)
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
-    button(bot)  # validate before changing policy
+    button(bot, action)  # validate before changing policy
+    if bot.attack_action != action:
+        previous = button(bot)
+        if bot.attack_action == "charge":
+            heavy_charge.finish(match.combat, bot, heavy_charge.instance_of(bot))
+        bot.body_script.component.edges([(previous, False)])
+        bot.attack_input = False
+        bot.attack_action = action
     bot.attack_target = player.entity
     bot.firing = True
     return bot.entity
@@ -68,9 +80,15 @@ def stop(match):
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
+        if bot.attack_action == "charge":
+            heavy_charge.finish(match.combat, bot, heavy_charge.instance_of(bot))
+        bot.attack_action = "primary"
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
+            if heavy_charge.instance_of(bot) is not None:
+                values.add(35)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
                 values.add(primary)  # also cancel a down edge queued before the next VM update
@@ -87,25 +105,37 @@ def stop(match):
 def update_input(fight, bot):
     """Refresh manual aim and release input on death, occlusion, range or target loss."""
     target = next((p for p in fight.match.players if p.entity == bot.attack_target), None)
-    enabled = (not bot.dead and not fight.is_stunned(bot) and bot.firing
+    enabled = (not fight.match.ended and not bot.dead and not fight.is_stunned(bot) and bot.firing
                and target is not None and target.spawned and target.has_body
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and (fight.match.game_map.free_for_all or target.team != bot.team))
+    if enabled and bot.attack_action == "charge" and fight.zarya_gravitons.fields:
+        enabled = fight.zarya_gravitons.movement_for(bot) is None
     if enabled:
         origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
-            wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
+            wall = fight.cover_ray(origin, direction, distance)
             enabled = wall is None or wall >= distance
             bot.yaw = float(bots.heading(dx, dz))
             bot.pitch = float(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    desired = target.body if enabled else None
+    if bot.hero == assassin.HERO and component.world.controller_entity is not None:
+        world = component.world
+        if world.manual_target != desired:
+            assassin.bind(world, component, None)
+            bot.attack_input = False
+        if assassin.recovering(component):
+            desired, enabled = None, False
+        assassin.bind(world, component, desired)
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

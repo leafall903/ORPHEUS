@@ -14,9 +14,9 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import correction, graviton, interception, match, mover
 from ow174.game import replay_manifest as manifest
-from ow174.game.script import driver, runtime
+from ow174.game.script import driver, graph, runtime
 from ow174.paths import DATA_DIR, ROOT
 
 RUNTIME = {
@@ -212,10 +212,18 @@ class ReplayManifestTests(unittest.TestCase):
         for name in ("EVENTS_PER_TIME", "MAX_SCRIPT_WORK", "MAX_INSTANCE_UPDATES", "MAX_COMPONENT_UPDATES"):
             self.assertEqual(config[f"ow174.game.script.runtime.{name}"], getattr(runtime, name))
         self.assertEqual(config["ow174.game.script.driver.MAX_SHOTS"], driver.MAX_SHOTS)
+        self.assertEqual(config["ow174.game.interception.CATALOG_SHA256"], interception.CATALOG_SHA256)
+        self.assertEqual(config["ow174.game.script.graph.GRAPH_SUPPLEMENT_SHA256"],
+                         graph.GRAPH_SUPPLEMENT_SHA256)
+        self.assertEqual(config["ow174.game.mover.MOVERS_SUPPLEMENT_SHA256"], mover.MOVERS_SUPPLEMENT_SHA256)
+        self.assertEqual(config["ow174.game.graviton.DAMAGE_PER_SECOND"], graviton.DAMAGE_PER_SECOND)
         with (
             mock.patch.object(match, "HEALTH", 222.0),
             mock.patch.object(correction, "HEROES", {123, 456}),
             mock.patch.object(runtime, "MAX_SCRIPT_WORK", runtime.MAX_SCRIPT_WORK + 1),
+            mock.patch.object(interception, "CATALOG_SHA256", "f" * 64),
+            mock.patch.object(graph, "GRAPH_SUPPLEMENT_SHA256", "a" * 64),
+            mock.patch.object(mover, "MOVERS_SUPPLEMENT_SHA256", "b" * 64),
         ):
             changed = manifest.runtime_configuration(quanta_us=7000, run_options={"mode": "controlled"})
         differences = manifest.compare_manifests(
@@ -224,6 +232,9 @@ class ReplayManifestTests(unittest.TestCase):
         self.assertEqual({row["path"] for row in differences}, {
             "configuration/ow174.game.match.HEALTH", "configuration/ow174.game.correction.HEROES",
             "configuration/ow174.game.script.runtime.MAX_SCRIPT_WORK", "configuration/run.quanta_us",
+            "configuration/ow174.game.interception.CATALOG_SHA256",
+            "configuration/ow174.game.script.graph.GRAPH_SUPPLEMENT_SHA256",
+            "configuration/ow174.game.mover.MOVERS_SUPPLEMENT_SHA256",
         })
         self.assertEqual(config["ow174.game.correction.HEROES"], correction.HEROES)
         for quanta, options in ((True, {}), (0, {}), (16000, None)):

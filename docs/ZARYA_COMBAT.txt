@@ -80,8 +80,20 @@ The actual ultimate button/charge graph now launches a swept projectile using
 the authored9.8 motion scalar as vertical acceleration. Its direct hit deals5,
 and its authored03E2 deployable starts a server field:4 seconds,6-metre capsule
 acquisition and5 damage/second. The field deals20 more to a stationary captured
-enemy. Allies/caster are excluded. Player movement commands and actual NPC bodies
-are pulled with the collision mover; the first active field controls movement.
+enemy. Allies/caster are excluded. The world clock sweeps player and NPC bodies
+with the collision mover. The first active field controls movement. Commands
+during a pull record input and aim without adding a second displacement.
+If an active defense ends the pull before the next world update, a new
+movement command first relinquishes the pull's velocity ownership. Later
+world cleanup does not erase movement already accepted after that handoff.
+Overlapping fields each apply their damage. When the first field ends, the
+next eligible field takes over the pull without combining their speeds.
+NPC pull movers retire when their target leaves the field or becomes allied.
+Retirement clears velocity still owned by the pull and preserves a later
+independent mover or impulse.
+Personal and projected Zarya barriers absorb field damage while the host still
+pulls the protected body. Transcendence also suppresses the host's field damage
+while permitting pull. Native barrier and aura admission remains open.
 Field expiry releases movement and removes temporary NPC movers. Repeated world
 ticks do not repeat damage, and bounded catch-up integrates the remaining lifetime.
 Caster death does not cancel an existing field. Original cast body identity is
@@ -95,10 +107,17 @@ ordinary movement while acquired; keep fields after caster death/replacement;
 nudge static-surface impacts .01m outward. Ballistic gravity and force integration
 are host interpretations. The native aura/filter/force/escape/immunity protocol
 and real replicated field actor are NOT implemented by this increment.
-Shared automatic ultimate charge still uses the existing60-second fill policy;
-native passive generation and damage-generated charge remain OPEN. Tests of that
-policy prove current code gates, not retail charge speed. Graviton full acceptance
-and the complete static goal remain OPEN.
+Zarya gains five charge points per second on the match clock and one point per
+point of admitted enemy pool damage. The authored cost caps the grant. Barriers
+and projectile interception prevent damage credit. Graviton impact and field
+damage give zero charge. Charge pauses during the authored cast wait and while
+the current body owns the projectile or field. The match clock counts retained
+ticks once, even across duplicate updates, command gaps and field expiry.
+
+Death freezes charge. Same-hero respawn carries it to the new body, and damage
+from an older body cannot charge the replacement. The rate, damage conversion
+and body ownership policy are server reconstructions. Native charge generation,
+replication and the original-client behavior remain separate evidence.
 
 Shield recovery increment
 -------------------------
@@ -282,8 +301,21 @@ no early decay, elapsed-time numeric decay with the shared ChaseVar's float32/
 epsilon tolerance, decay continuing during a later projectile's flight, restarting
 only on actual absorption, zero clamping and new-body energy/pool retirement after
 death. The new-body undefined numeric variable evaluates as0; no client HUD proof
-is inferred. Status232 gating and full projected re-absorption/control semantics
-remain open. All complete-static and original-client gates remain open.
+is inferred. Graph 0242/node10 reads entity variable 232. A test uses actual
+secondary absorption for energy and toggles the variable through the VM to
+verify decay holds and resumes, including during an active decay. The native
+writer for variable 232 remains open.
+
+After an actual enemy beam breaks the projected barrier, another input during
+the cooldown leaves the pet inactive. A fresh input after recovery projects a
+new barrier to the same ally. An actual secondary then uses 47 of the new pool,
+preserves the ally's health and credits another 9.4 energy.
+
+An initialized pool records the protected body. Its cached capacity retires
+when that body dies, is replaced, or is removed as a manual NPC. The same
+retirement handles the caster's death or replacement under this host's policy.
+The selected body remains the one established by the authored cast. A new
+body does not inherit its predecessor's capacity or create absorption energy.
 A separate real-NPC fixture projects onto an allied Soldier while Trooper, Sniper
 and Heavy Assault execute their actual button20 weapon paths. With explicit cast
 timing and no observer projectile transport, the ally stays at200 health over120
@@ -320,8 +352,70 @@ capacity remaining is also fully intercepted and contributes only the last2
 energy, reaching40; continued primary fire under a protected personal barrier; and previously emitted secondary/deployed Graviton
 surviving source stun. Projection also protects each of the five actual allied
 NPC bodies from Flashbang damage and stun, with5 energy credited to the caster.
+
+Flashbang graph 01E9 node 7 now applies the authored 0.05 upward launch bias
+and gravity 20. The host advances it in fixed 16 ms velocity-before-sweep steps
+and detonates at the range-derived lifetime if it has no earlier contact.
+At expiry the same damage, visibility and barrier checks apply as at impact.
+Bare off-axis Zarya and each actual NPC take 25 and are stunned. Personal and
+projected barriers prevent both and credit five energy to the caster. The
+sourced 037D definition has an empty target-tag set. Grasp and Matrix consume
+it without an explosion, and a Deflect return credits Genji through impact
+and barrier absorption. Sweep order, expiry detonation, range clock and the
+return velocity policy are server reconstructions.
 These fixtures omit NPC observer projectile transport and automatic acquisition.
-Existing-control cleanse, non-Flashbang effects, overlapping statuses, invulnerability,
+An allied projection can be cast after an actual Flashbang stun. The static
+host absorbs subsequent Peacekeeper damage while retaining the existing stun
+deadline. The stun expires on that deadline with the barrier still active.
+Ana's 0BDD Sleep Dart applies its authored 026F effect after an admitted
+five-damage hit. The host uses a separate five-second world deadline and
+blocks voluntary commands through the existing control gate. A later
+admitted damage event wakes the target. Either Zarya barrier can absorb
+the dart and prevent sleep. Native wake and animation rules remain open.
+
+Ana's Biotic Grenade uses projectile 1426 and the authored 0B97 gravity.
+The explosion deals 50 to enemies or heals allies for 100, subject to
+range and cover. A Zarya barrier can absorb the damage and prevent the
+four-second healing block. Friendly grenade healing passes through the
+barrier and grants no energy. Healing amplification is 1.5 for four
+seconds, with healing block taking priority until its deadline. Status
+handling is reconstructed. Native cleanse and natural shield recovery
+interaction remain open.
+Expired block and boost deadlines are retired on the world clock. Older
+updates cannot restore them. When a rifle dose spans the block deadline,
+only its remaining ticks can heal. The blocked share is consumed.
+
+The lane's zarya-projectile-tags-ana.json adds five verified Ana definitions
+from the extracted target-build catalog. The empty tag sets on grenade 1426
+and Sleep Dart 15E8 admit the existing Deflect, Grasp and Matrix paths.
+Actual reflected grenade damage and antiheal use Genji's body and team;
+Zarya can absorb the return and gains 10 energy attributed to Genji.
+Reflected Sleep Dart retains its five-damage sleep effect. Grasp and Matrix
+consume both projectiles before damage, healing or status delivery.
+Reflected hip rifle binds its 70-point dose to the return target and
+credits Genji for the damage.
+
+Ana's 0B94 hip and scoped rifle volleys bind a 70-point dose to the hit
+body. The host integrates the B95 duration of 0.6 seconds on the world
+clock, using a reconstructed linear cadence. An active Zarya barrier can
+absorb an enemy dose on contact and grant 14 energy. Friendly doses pass
+through protection, use the healing block and boost deadlines, and do not
+grant energy. Replaced targets do not inherit the dose. Duplicate or older
+world ticks cannot reapply its completed share.
+
+Ana's 0B9E Nano release uses the authored selected target and duration.
+The host reconstructs allied range, aim and cover selection. Actual Nano
+heals up to 250, boosts outgoing damage by 1.5, and reduces incoming body
+damage by half for eight seconds. Barriers receive boosted attack damage
+before body reduction. Projectiles and a resulting Graviton field retain
+the source scale at launch. Actual Graviton then deals 7.5 on contact and
+30 over the field lifetime, even when Nano expires before impact. Personal
+and projected barriers absorb those values during their active window.
+The world deadline retires Nano so an older update cannot restore it.
+Native target filtering, modifier stacking and
+original-client delivery remain open.
+
+Native existing-control cleanse, overlapping statuses, invulnerability,
 reflect/absorb and native client status/HUD/animation/audio remain open. The goal
 is not complete from the existence of a shared stun dictionary or these cases.
 Validation:269 expanded combat/driver/NPC tests pass in157.041s,14 strict
@@ -366,6 +460,441 @@ encoding tests pass in1.314s, and the latest11 armour cases pass in5.263s. Exter
 NPC data is enabled with zero skips. Ruff/diff pass. The initial zero-energy beam
 reproduction failed at30 armour lost instead of42 before the production change.
 
+Sigma Grasp physical interception (2026-11-09)
+---------------------------------------------
+Reviewed parent2ca9178 native distinct-input join is imported with provenance;
+its10 join cases and70 existing Zarya weapon/ultimate cases pass before the new
+service. The new Grasp service adapts the committed Genji43f4e1b view-local box
+service and DVaee2db6d projectile-tag reader/extractor. It does not import either
+hero lane's remaining mobility/form/ultimate or temporary shield implementation.
+
+Actual Sigma1D02 State1 (node7) supplies active view-local boxes, absorb mode1,
+output6584 and absorption plug32; its authored script accumulates21312. Its
+filter references tag0145 and profile0002.097. Eye anchoring, aim basis and
+interpreting0145 as an exclusion remain explicit reconstruction; native profile
+execution and dynamic tags are open. The service clips its sweep at the first
+body/static collision, uses the emitted projectile team, and writes direct plus
+splash damage into the authored absorption event. Future field damage is not
+included in that value.
+
+A separate extractor exports target tags from existing104319 XML. The supplied
+external subset declares Zarya secondary03DB (tag02F9) and ultimate08CE (tags0412,
+06B2,07D4), neither with0145. No generated catalog is shipped in Git. Set
+ORPHEUS_PROJECTILE_TAGS before imports. Unknown or excluded definitions pass
+through this service; an absent catalog is not absorption acceptance. Immutable
+parsed data and its same-read byte hash are captured in strict stored snapshots
+and replay configuration. Rocket.definition stays available without a prediction
+lease and is also causal stored state.
+
+Actual right-click is consumed for absorbed47 with no body/splash hit. Actual
+ultimate still spends2100 but is consumed for5 with no damage or field deployment.
+Beam/melee bypass this physical flight path. Actual rear-facing, expired/allied,
+nearer-body and wall cases refuse absorption; source team changes retain the
+original team policy. Confirmed owner copies retire without explosion release.
+Five real NPC bodies are protected from secondary/ultimate by an enemy Sigma's
+box placed off the aim ray; the beam still damages each NPC60. The offset is1m,
+beyond Sigma's .7m body plus .15m beam radius, separating body cover from Grasp.
+
+Native temporary shield services, hitscan admission, native attachment/filter geometry,
+other absorbing heroes, reflection and client delivery remain open. The initial
+new fixtures reset Sigma's look direction and then placed his capsule in the beam
+path; those fixture failures are corrected and are not called native defects.
+Original-client and full-static acceptance remain separate open gates.
+Dead defenders and body replacement during flight also stop interception; those
+two lifecycle cases are included in the latest16-method absorption run. Validation:
+311 combat/driver/NPC/manifest tests pass in167.109s,823 script tests in17.577s,
+58 VM/alias/server snapshots in488.303s,latest16 absorption tests in12.270s.
+External NPC/tag inputs are enabled with zero skips; Ruff/diff pass.
+Per the latest user instruction, this entire batch stays uncommitted until the
+complete static goal passes. There is no new candidate patch or merge submission.
+
+Scoped Grasp temporary shields (uncommitted,2026-11-09)
+-----------------------------------------------------
+The actual1D02 node34 PlayScript call supplies1D03 amount=21312*.6 and cap400;
+node71 supplies3s delay and node70 evaluates decay5/s. A narrowly guarded host
+hook handles only that current live component/self-target call. The native1D03
+HealthPool/query service is not executed. Stable tagged pool IDs, damage order,
+idempotent activation tokens and authoritative world-tick decay are reconstruction.
+Adapted from committed Sigmae6a9550; no wholesale dirty peer source is imported.
+
+Actual absorbed secondary47 yields28.2 separate temporary shields; ultimate5
+yields3, with no field. Actual primary/secondary/melee consume the temporary
+pool before base shields. Healing base pools does not refill it. Eight actual
+full-energy secondary shots cap the grant at400. Actual cooldown rejects early
+input, discarded input stays discarded, and a later activation can replenish the
+same pool ID. Repeated grant execution and old/duplicate clock updates do not
+duplicate grant or decay. Death/replacement retires clocks; match end clears this
+host-owned pool. Encoded pool/HUD/stat checks accompany these cases.
+
+Native temporary-pool flags, stacking/max semantics, control interruption and
+original-client feedback remain open. Broader post-change regression is being
+rerun; prior Grasp test totals above describe the earlier interception checkpoint.
+
+The stronger cooldown test initially failed: a released press during11s cooldown
+restarted Grasp exactly when cooldown reached zero. Ability.can_start removed the
+buffered tuple and reinserted it with the current timestamp on every failed start,
+effectively renewing its age forever. It now reinserts the original tuple. This
+preserves the authored early-press window and held-input behavior; exact native
+PC start-check remains the separately documented PS4-derived reconstruction.
+The failing production-input reproduction is retained as a regression. Actual
+Sigma cases verify short-window buffering and held-button reuse. A Soldier
+released-edge/repress smoke case passes, but Soldier's separate running weapon
+controller does not validate those two Ability start paths; those initial new
+expectations failed and were replaced with the relevant Sigma cases.
+
+Additional1D03 resource review confirms the identifier0D80000000005847 in nodes0/3
+pool queries and node6 HealthPool. Thus5847 itself is resource-backed; the host
+storage/slot ownership still remains reconstruction. Native nodes0/1 calculate
+room using the tagged current pool and the entity9527 modifier; modifier
+normalization and per-request native state stacking remain unaccepted here.
+
+Validated checkpoint:333 combat/driver/NPC/health/manifest tests pass167.585s;
+824 script tests pass17.252s;59 VM/alias/server snapshots pass654.707s. Additional
+two actual Sigma early-window/held cases pass11.985s, and rear Flashbang interrupt
+passes2.518s (absorbed47,health375,Grasp stops,cooldown~12,no synthetic grant).
+Zero skips;Ruff/diff pass. Production hashes stayed fixed during the full suite.
+The17 shield/input/control methods are covered across these runs. Original-client
+and full hero static acceptance remain open;no new commit or patch is generated.
+
+Genji physical reflection (uncommitted,2026-11-09)
+------------------------------------------------
+The active03A3/state10 node18 supplies mode0 and three boxes, including reversed
+corners. The resource carries tag0145, angle90 and raw0x0690000000000002, whose
+decoded file type is0002.097 (GUID type bits are reversed). The
+existing peer's003BF damage-tag admission cannot cover Zarya: secondary direct
+ModifyHealth is empty, and Graviton direct tags are0990/2D60/4D29/4D61. The service
+instead uses the external projectile-definition tags shared with physical Grasp.
+Eye anchoring, aim frame, corner normalization and frontal angle remain host
+reconstruction; native profiles/dynamic tags/attachment remain unaccepted.
+
+Baseline actual active Deflect received47 secondary,25 Graviton and30 melee;
+beam60 passed as expected. Current20 player tests pass:secondary returns47 with
+deflector damage credit and authored6584 output;Graviton transfers field owner,
+team and frozen source while original charge stays spent. Projectile damage,
+definition,gravity and left+flown remain unchanged by the transfer. Old owner
+prediction ends without explosion;the remaining tick interval is integrated
+after the new aim, bounded at8 reflections as a host policy.
+
+Actual tests cover rear/side approach,allied/expired defenses,unknown/excluded
+metadata,no prediction lease,nearer body/static wall,changed deflector team,
+death/body replacement/departure,and personal barrier against returned damage.
+A barrier press during the original ultimate cast is refused and the returning
+impact deals5;activate the barrier before casting to test interception.
+Two active Genji bodies can reflect the same actual secondary or Graviton in
+sequence. The second deflector owns damage and any resulting field. The
+original caster's allied Sigma can instead absorb the first return, consume
+the projectile and prevent field deployment. Native filtering and transport,
+reflection limits and the remaining control matrix stay open. Node109 TrackStat refers to02CF/
+02D1;the general permissive TrackStat handler still does not host native stats.
+
+Incoming Genji graph0304 primary burst and secondary fan each hit three
+times for 29 per hit at close range. The secondary uses the authored count
+and spread with the Genji lane's planar -9/0/+9 degree reconstruction.
+Either Zarya barrier absorbs all 87 and grants 17.4 energy to its caster.
+Native angular distribution, muzzle offsets and client delivery remain open.
+
+Incoming Swift Strike uses the authored 01DB MoveTo and 0029 ray query.
+The host supplies Genji's live eye and aim, runs the static ray and sweeps
+the authored radius over actual movement. A target can be hit once per
+dash. An unblocked dash moves 15 metres and hits for 50. Either Zarya
+barrier can absorb the hit and grant 10 energy. Native ray and target
+filters and dynamic barriers remain open.
+Graviton taking control of the mover aborts an active dash. The dash does
+not resume when the field expires. A Flashbang admitted by the damage
+path also interrupts the dash. A projected barrier can absorb Flashbang
+before its stun, allowing the dash to finish.
+An actual elimination of Zarya sends graph 01DB its authored 0093 event.
+An allied elimination after Genji damage uses event 169F within the host's
+reconstructed five-second contribution window. Both events clear the
+authored cooldown. Absorbed damage and expired contributions grant no
+reset. Native elimination credit and event fan-out remain open.
+
+Incoming Dragonblade uses weapon graph 0304's two sword target windows
+and their evaluated 110 damage. The reconstructed capsule and aim query
+uses the authored reach and angle, current team and static cover. A single
+window admits each body once. Either Zarya barrier absorbs a swing and
+grants 22 energy. An exposed ally can still be hit by the same swing
+while the projected recipient is protected. Native sword geometry and
+remaining dynamic defenses stay open.
+
+Flashbang prevents new swings during its control window while the authored
+0317 Dragonblade timer continues. A new press after control and any remaining
+draw lock can swing again. Late Flashbang does not move the expiry tick or
+restore the spent charge. This timer-versus-input rule is reconstructed.
+
+All five actual NPC bodies also receive47 returned secondary or5+20 returned
+Graviton while originally allied to the source. They stand between the source
+and deflector,so outbound ally exclusion and return target order are explicit.
+The first fixture incorrectly moved the source after input;stored mover state
+restored that position and the source body received the5 impact. The fixture
+now places both source and NPC before the first frame. A separate initial
+attribute error queried Bot.killer instead of the authoritative Vitals.killer.
+The corrected10-subcase NPC method passes15.180s. A broader run exposed a real
+compatibility error in the new melee gate:BotScript has no player-only retired
+attribute. Check the missing mover/type first;the corrected20 player cases plus
+all-five NPC melee method pass22.200s. Another actual projected-recipient return
+case passes2.696s:recipient health200,barrier153,caster energy9.4 and sourceGenji.
+Its first assertion incorrectly queried personal storage before any hit;the
+projected pool is allocated lazily and keyed by caster. The production selection
+was correct,so this was a fixture assertion correction. Broader regression is running;
+the earlier59-snapshot checkpoint above predates these reflection changes.
+Final post-fix358 broad tests pass310.250s;the new reflected owner/team/source/
+remaining-flight/spawn causal snapshot passes96.188s. Zero skips;Ruff/diff pass,
+and all pinned production/test hashes match. No new VM storage fields were added
+by reflection. Full static and original-client acceptance remain open.
+
+Matrix and actual NPC mover inputs (uncommitted,2026-11-09)
+---------------------------------------------------------
+Reviewed/adapted peer190bc7c direct body owner,301c61c explicit body inputs,
+601d748 Fusion Cannon ray consumer,6941c22 ruleset fallback/query cache and
+ee2db6d physical Matrix policy. All are uncommitted adaptations with recorded
+provenance;none was cherry-picked into new partial history. The old Match.HEALTH
+override remains available while defaultNone selects the actual form pools.
+
+Explicit0407 has300 health+300 armour and radius.7,whereas canonical DVa040A is
+the pilot. Its graph/mover supplements are additive and reject conflicting base
+data;byte hashes are sealed at process import and checked when inputs load.
+Canonical base input files and the parent's hardlinked metadata stay read only.
+Missing body/mover/pools rejects form selection before retiring the current body.
+Body owner and live entity query contexts and passive Instance+230 ruleset target
+are captured in strict snapshots. Typed3832D36C non-null values stay typed;null/
+failed selectors use their reference metadata and declared entity default service.
+The prior real-mech probe had600 HP/.7 radius but Matrix resource/capacity0 and
+inactive state. With the ruleset service restored,actual Matrix commands supply
+capacity100,drain50/s,recharge16/s,cooldown and minimum-hold/exhaustion branches.
+This explicit-body fixture does not implement native spawn/demech/CallMech.
+
+Actual02CC/state3 node9 mode1 has four quarter boxes spanning at unit scale
+[-1.25,-1,.8]..[1.25,1,10.25]. The shared physical sweep clips defenses at the
+nearest body/wall and compares Grasp/Matrix with Genji reflection,using frozen
+emitted team. Known03DB/08CE without tag0145 are absorbed. Unknown/excluded tags
+pass. The original shot is ended without explosion and a future Graviton field
+is cancelled. Eye frame,tag exclusion and native097 profile semantics remain
+reconstruction/open. No extra per-projectile cost is authored;event rebaking
+changes some resource samples by at most4 binary32 ULP in the measured64..128 band.
+
+Nineteen player Matrix methods cover secondary/ultimate(no field,charge spent),
+beam42 over.8s into mech armour,melee25 into armour,minimum hold/release,resource
+exhaustion,metadata/no lease,allies/frozen team,nearer wall/body,death/pilot return,
+actual rear Flashbang interrupt and Genji return absorbed by an allied Matrix.
+Actual enemy Fusion Cannon sends11 separate2-damage events:Zarya loses22 or her
+personal barrier loses22 and queues4.4 energy for the next caster command frame.
+The ring phase/degrees remain a declared ray reconstruction. General native
+stats,attachment/filter,lag compensation and broader control/defense gaps stay open.
+
+The parent's43-row npc-navigation-runtime replaces the earlier38-row base's
+generic NPC fallback. Its sourced heights/radii/speeds are Trooper1.7/.5/5.75,
+Enforcer1.9/.5/5,Sniper1.75/.5/4.5,Assassin1.5/.5/14 andHeavy2.3/.7/2.2. The fixture
+now requires explicit records and asserts those actual combat target capsules.
+The mech supplement adds one row,for44 loaded movers. All older five-NPC results
+must be read with their fallback-geometry limit;the current suite reruns them
+using actual parameters. An off-axis Matrix protects all five against secondary/
+Graviton,while beam60/.8s still hits each capsule. The test waits for secondary
+recovery before starting that interval;the first short wait measured34.875 because
+the primary could not start yet,not because Matrix blocked beam damage.
+
+Set ORPHEUS_RUNTIME_DIR to verification/retribution/npc-navigation-runtime,
+ORPHEUS_GRAPH_SUPPLEMENT to the existing007A/mech-supplement.json.gz and
+ORPHEUS_MOVERS_SUPPLEMENT to007A/mech-movers.json,before importing modules. Keep
+ORPHEUS_ZARYA_NPC_DATA and ORPHEUS_PROJECTILE_TAGS as in the earlier fixture.
+These are static flat collision fixtures;the new runtime has no prepared real-map
+collision cache and does not establish deployment or original-client acceptance.
+Current443 broad tests pass233.250s and840 script tests pass13.469s,zero skips.
+Full61 VM/alias/server snapshots pass682.672s. All pinned source/test/external
+input hashes match after the run. Full static goal remains open and no new commit
+or patch is created. Enforcer/Assassin incoming,all NPC specials,remaining
+defense/control/invulnerability and charge generation still require work.
+
+Current uncommitted Enforcer incoming reconstruction
+--------------------------------------------------
+Manual Enforcer13EB declares controller component75 present/92 absent. This scoped
+predicate follows offline CC9F61/182C470 evidence, but actual NPC controller
+allocation is not established. Aggregate owner-health is a host adapter; the
+numeric-query component51 getter/pool semantics remain open. Manual spawn now
+installs full pools before graph initialization (Enforcer250+100=350).
+
+Actual13EB/node24 authors25 projectiles,2 damage,80m/s,100m range,1.25s clipped
+life,spread4,rings(0,1),(.5,8),(1,16),falloff8..15m down to.2. Finite combat now
+expands all25,retains independent damage/armour and tracks swept path distance
+through reflection for direct falloff. Near5m damage50;armour25;both personal and
+projected barriers intercept50 and queue10 caster energy (binary32 rounding).
+Ten-metre fixture has14 landed pellets;each scales by its own travelled distance.
+Wall/team/release and actual ammo decrement are exercised. DVa11 rays reuse the
+same validated ring expansion. Degree/tangent mapping and zero phase remain
+reconstructed;authored pattern field92308789=2,muzzle hardpoint6,native spread,
+SHOTS_ONLY observer transport,all NPC specials/difficulty/AI are not accepted.
+Assassin target/pin bridge is still under review and is not installed here.
+
+
+Latest Enforcer checkpoint: broad:457 PASS 300.312s;all_script:840 PASS 24.375s;snapshots:61 PASS 970.344s;zero skips;Python source/test and pinned external hashes unchanged.
+Own-image predicate tail8 cases PASS. Separate candidate23F0 catalog6 cases PASS:
+Matrix blocks25 pellets;Genji returns50 to Enforcer;Grasp accumulates50 and
+grants30 temporary shields. Candidate catalog is not the pinned regression input
+and is not yet promoted. Full static acceptance remains open;no commit/patch.
+
+Movement-input and Enforcer defense extension (uncommitted)
+---------------------------------------------------------
+The reviewed mover now applies properties17/18/19 to positive forward,backward
+magnitude and absolute lateral input,then restores lateral sign and clamps. Raw
+command bytes and snapshot field layouts are unchanged. Own-image120 original
+C33960..C33A8D comparisons pass with an explicit scalar-mod lookup adapter.
+Actual1157/node33 and0F68/node3 numeric scopes execute through VM->statescript_mods
+->track_mods->Mover.step,including next-pose start/end,raw-byte preservation and
+axis restoration. Explicit state entry is a fixture;unsupported vector-motion
+records and complete Assassin target/pin/AI are not accepted. Resource0263 belongs
+to Lucio body03FC;the earlier inventory attribution to Zarya Graviton was wrong.
+
+External catalog now includes sourced23F0 tag02F9,three definitions total. Actual
+Enforcer25-pellet commands are absorbed by Matrix/Grasp or reflected by Genji.
+Disabled defenses provide health/damage controls;Grasp accumulates50 and converts
+to30 temporary shields. Off-axis ally Matrix protects Zarya without body cover;
+Zarya projection on an allied Enforcer blocks the reflected burst and credits10
+energy to the caster with Genji's body as source. Native volumes/filter/attachment,
+ring phase/muzzle,controller allocation,SHOTS_ONLY transport and difficulty stay
+open. These formal cases supersede the separate candidate-catalog probes above.
+
+Assassin target-query evidence (prior bridge checkpoint)
+---------------------------------------------------------
+Own-image32 original CD1940 cases pass for absent/present context,target and
+controller relation with four owner-ID fixtures. The original18262E0 helper
+executes its encrypted component owner lookup and returns the owner's+B0 variant;
+F66C80 copies it. Missing target/relation emits typed invalid Entity;missing
+context preserves the previous output. Relation lookup DA7F10,namespace/selector
+and fixture variant lifetime remain explicit adapters;component43 watcher and
+native NPC controller allocation are not compared. This supports typed Entity
+for the future manual1157 target service and rules out the shared Map shortcut.
+Actual graph51 reads member1650 of that controller into536. Native allocation,
+foreign target lifetime,health-query meaning and pin/barrier admission remain
+open;no Assassin production bridge or full pin acceptance is claimed here.
+
+
+Current movement/defense validation: broad:500 PASS 451.468s;all_script:840 PASS 19.875s;causal_snapshots:2 PASS 80.485s;zero skips;Python source/test and pinned external hashes unchanged.
+The2 causal snapshot cases cover current changes;the previous full61 suite is
+historical,not rerun in this increment. Real-map-cache classes are explicitly
+excluded from this stand-in collision run. Full static/client goals stay open.
+
+Assassin production increment (uncommitted)
+-------------------------------------------
+Manual Assassin reserves two monotonic NPC IDs:body and a separate server-only
+controller. No controller entity/components are advertised on the native wire.
+DB742151 returns the declared controller Entity;foreign member1650 supplies the
+current victim body to actual1157/node51/local536. Native allocation/registry and
+aggregate-health meaning remain explicit adapters. Input36 is selected for this
+manual path;extracted primary20 graph13B8 has no damage outlet. Manual contact
+range3 and LOS/team/death/body checks are policies,not recovered AI acquisition.
+
+Actual1157/node25 supplies25 contact damage;node15 supplies100 continuous damage
+under reconstructed mode1 elapsed milliseconds. A duplicate update does not deal
+again;clock last_applied is captured. The normal damage/barrier/pool pipeline
+returns body-damage admission. An admitted nonlethal hit establishes scoped host
+control and interrupts abilities;blocked hits retire that source's control.
+Personal/projected barriers block contact and a complete breaking hit,crediting
+5 energy for25 absorbed (or remaining capacity on break). An ally projection in
+the continuous phase blocks the next tick and releases host control. Native QTE,
+barrier interaction immunity/cleanse and continuous armour classification remain
+open;the reconstructed admission rule is not evidence of those native services.
+
+Control prevents Zarya movement, fire, ability use and ultimate resource spend.
+Stop, source Flashbang, death or removal, target loss, match end and scope exit
+release control. Multiple attackers own independent entries.
+
+For manual graph 1157, release animation 31 uses the two-second duration from
+parallel wait 37. Manual input stays disabled from the queued release entry
+through its end. A valid held request can reengage after the release ends.
+An admitted melee hit against the pinning Assassin releases that source's pin
+and enters the same recovery. A missed or absorbed melee hit leaves the pin in
+place. These rules reconstruct recovery and rescue on the server. Original
+animation timing, forced interaction, vector movement and AI remain open.
+
+Source context clears at retirement. Snapshots capture the controller ID,
+target, match link, pin map, health clock and existing VM events without
+evaluating the graph or advancing combat.
+
+Shared lifecycle review reproduced two failures before correction. State.end now
+clears canceled CHANGED/CHECK deduplication markers and ending watchers are skipped.
+A join CHECK reentry case also verifies a fresh check can queue. Ability.stop
+cleans its outgoing scope/resources before releasing arbitration;this cross-object
+ordering is reconstructed. Full native scheduling/ordering remains open.
+
+
+Assassin checkpoint validation: Baseline515 broad/843 script/58 VM+server-storage PASS;post-baseline match-only scope restriction88 affected tests PASS 115.188s;factory2 PASS;zero skips;hashes stable within each run. Four StoredJournal gameplay cases excluded in this increment.
+Source/target metadata are current for the final scope restriction. Original
+FirstPerson review now identifies Zarya03BF1.6/1.12 and McCree02A31.425/.9975,
+while the current combat path still uses1.55/1.15 fallback for these bodies.
+Native view/low-cover geometry must be corrected/revalidated before acceptance.
+1177 has existing start/init handlers;proper invocation/source binding and
+required victim services/08FE handling remain open. Current host pins are not
+full recipient/QTE acceptance. No commit/patch/merge-ready claim.
+
+Player view-height correction (uncommitted)
+------------------------------------------
+Original body03BF FirstPerson fields E29993A5/816B830F supply Zarya1.6/1.12;
+02A3 supplies McCree1.425/.9975. Combat.eye_height now feeds both source_eye
+and player Target.eye/history. Soldier retains1.55/1.085;unlisted bodies retain
+existing1.55/1.15 fallbacks. NPC origin/eye remains its declared1.55 proxy until
+animated muzzle/AI pose services are provided. These base view values do not
+establish native bones,head regions,camera offsets or muzzle animation.
+
+EYE_PROFILES is an immutable tuple in required replay configuration and a direct
+live snapshot input. Capturing it does not query geometry or execute gameplay.
+Actual Zarya beam clears a2.575m-high wall standing,while crouched it is blocked
+by2.135m cover (feet1m). McCree standing/crouched sources respect their lower base
+views. Projection tests cover both source clearance and lower recipient-eye LOS.
+
+The parent's scoped implicit primary critical policy is adapted only for owned
+McCree01D2/node31:70 body/140 reconstructed eye-region hits on Zarya. Explicit
+Fan1x remains;the critical-policy test fixes ray direction to isolate that
+multiplier. Actual owned McCree01D2/node37 shots use the scoped0..6-degree cone
+and generated native table math. The body/instance/node/activation seed inputs
+and uniform-radius binding are declared server reconstructions. Cold table
+caches do not affect stored state or repeated event results.
+
+At2m six distinct rays hit Zarya for300;personal barrier blocks the first200,
+grants40 energy and leaves100 body damage. Projected barriers reproduce these
+amounts on all five actual allied NPCs,with energy and source credited to the
+caster and incoming McCree body respectively. Far aim,cover and ally cases are
+tested separately. Native global critical default,head bones,seed-handle/muzzle
+identity and original-client behavior remain separate from this functional proof.
+
+Secondary self-damage and impulse
+---------------------------------
+The owned 0241 node 41 bakes its splash and knockback settings at emission.
+At the closest ring, 47 enemy damage corresponds to 23.5 self damage.
+The host maps the authored force fields to five horizontal and eight upward
+velocity units, with interpolated ring falloff. The closest self impulse
+uses a separate half scale. The energy-dependent 792F0B4D field remains
+unbound pending consumer evidence.
+
+Self damage reaches the owner's current body without barrier energy,
+ultimate charge, enemy hit feedback or hero damage credit. A new body and
+a deflected projectile use their existing ownership rules. Hostile force
+follows admitted damage and is suppressed by cover, immunity, absorption
+and an active Graviton pull. The five actual NPCs use their extracted mover
+parameters for collision and landing. These damage and force roles are
+server reconstructions of the authored fields.
+
+Defensive phase interaction
+---------------------------
+The hosted Reaper, Mei and Moira body graphs advance the three scoped
+54FEB21C entry nodes into their authored protection branches. Reaper and
+Moira use Wait nodes at 3 and 0.75 seconds. Mei's ChaseVar counts down from
+four. The protection ends before the recovery tails. Actual cancel inputs
+and subsequent cooldown eligibility follow the same graphs.
+
+Wraith and Fade allow combat rays and projectiles to pass through and pause
+Graviton damage and pull while active. Targets that leave the field remain
+free when protection ends. Cryo uses the live combat capsule as solid cover
+for rays, blasts and ally selection behind it. Cryo itself remains a valid
+projected-barrier recipient. The frozen owner cannot move or jump but may
+cancel through the authored input path.
+
+The host records a world-tick deadline from the resource at each activation.
+The deadline removes combat protection if commands stop and stays expired
+on an older tick. Resumed body commands process the authored VM transitions.
+These policies reconstruct phase admission, cover geometry and host timing.
+Native status filters, movement collision against another actor's ice block,
+and original-client behavior remain separate.
+
 Original client and publication
 -------------------------------
 A historical process/title observation is not current client-state evidence. No
@@ -374,3 +903,350 @@ client evidence for every row remains OPEN, including HUD, beam, barrier, VFX,
 sound, knockback, pull and all five NPC attacks/specials/corpse presentation.
 Patch delivery only: no merge to root source and no manual push. The configured
 workspace work/sync_orpheus_publication.py helper is absent; no publication claimed.
+
+Reinhardt Barrier Field
+----------------------
+The scoped host adapts the 006E graph0095 service and the 0007 build104319
+192-triangle model descriptor through ORPHEUS_REINHARDT_COLLISION. Its digest
+is part of the replay model, and its pool and timers are stored causal state.
+The graph supplies raised state, capacity, regeneration and break timing.
+The transform uses the reconstructed raised aim pose and hardpoints. Native
+pet attachment, animation and original-client replication remain separate.
+
+Actual Zarya beam and direct secondary pay 60 per .8s and 47 respectively
+into the shield, without body damage or ultimate charge. Nearby splash uses
+closest mesh distance, static cover and retained shield cover for the whole
+explosion, even when that explosion breaks the shield. Quick melee can hit
+both shield and body. The Graviton projectile applies its 5 direct to the
+shield and deploys on the incoming side. The host then pulls Reinhardt and
+applies 1.6 body damage over 20 ticks while the raised shield remains at1595.
+Native Graviton aura interaction and attack-specific penetration remain open.
+
+
+Fortify, Transcendence and movement resistance
+---------------------------------------------
+Fortify consumes the active Orisa 0CF4/state4 amount. Its .6 multiplier is
+applied after Zarya barriers and before armour. While active, the host rejects
+rifle criticals, Flashbang stun, Assassin pin and Zarya secondary impulse.
+Graviton damage still applies at the reduced rate, while pull is gated until
+Fortify ends. These are scoped host bindings for the target-build state.
+
+The output-free zero-duration Zen 017B/state13 callback advances into the
+authored Transcendence lifetime. Both defensive windows use their authored
+ChaseVar duration as a world-clock deadline even when owner input stalls. The host admits projectile/body collision
+but denies damage, hit notices and damage charge while state3 is active.
+The existing Zarya projected shield can still absorb the full payload first.
+The native aura healing, speed and complete control semantics remain open.
+
+Secondary impulse consumes the live movement modifier26 using the mover's
+ordering and operations. The actual unraised Reinhardt passive scales the
+base impulse by .7, yielding upward5.6 and radial3.5 without changing the
+42 damage into armour. Heavy Assault graph1254/state0 sets modifier26 to
+zero, so it takes 47 damage without moving. Trooper, Enforcer, Sniper and
+Assassin retain the base impulse. Native impulse conversion and mass remain open.
+
+Cryo-Freeze pet geometry
+------------------------
+Entity 090B.003 in build104319 provides a .5-radius, 2-metre shape with
+zero offset and no model collision config. The host interprets it as a
+vertical capsule based at Mei's feet. Active protection supplies the
+capsule on either team, independently of her crouch stance. Beam uses
+the authored .15 sweep radius against the ice. Projectile, blast and LOS
+queries use the pet surface through the common cover query.
+
+Player movement, NPC secondary impulse and NPC Graviton pull feed the
+same live capsules into the existing contact solver as transient
+constraints. All four impulse-eligible Talon NPCs collide with the ice
+after receiving the authored 47 damage. Each of the five NPCs is deflected
+by the ice during Graviton pull even when its initial centre LOS ray
+clears. Cancel removes the obstacle. The contact constraints are derived
+from captured body/script state and retire with the defensive window.
+Native attachment, receiver and contact category dispatch, and ordinary
+NPC route locomotion remain open.
+
+Incoming Fire Strike
+--------------------
+The scoped empty Reinhardt 00E2/state5 callback now reaches the authored
+0.5-second windup, volley and cooldown. Definition 01EA has 100 damage,
+25 m/s and 100 m center travel. The server reuses the 0007 reconstruction
+of the 0.85 direct-hit extents as a sphere. It records each victim lifetime
+and shield activation it has already hit, including across a reflection.
+
+Personal and projected Zarya barriers consume the 100 damage and give
+the caster 20 energy. The projectile can still hit actors behind them.
+A wall stops it, Grasp consumes it, and Deflect transfers its source
+while preserving the remaining travel and contact history. The 01EA
+tag entry comes from the target-build catalog. Native callback, sweep
+shape, receiver geometry and original-client behavior remain open.
+
+Incoming Rocket Hammer
+----------------------
+The 0048 swing states3/4 supply 85 damage. Their main and near query
+segments are evaluated in aim space and tested against retained body
+capsules and the raised Reinhardt mesh. Each body or mesh can be hit
+once per swing activation. Primary and quick melee feed the same
+authored input without rewriting raw command history. Host stun/pin
+interrupts the active swing stack so a canceled swing cannot hit later.
+
+Personal and projected Zarya barriers absorb 85 and grant 17 energy.
+The same swing can still damage other enemy bodies in range. Native
+moving-query interpolation, force conversion and physical explosion
+states33/34 remain separate from this damage and interruption bridge.
+
+Incoming Earthshatter
+---------------------
+The 00BE graph owns 1540 cost and release timing. A scoped pose and
+downward ground service opens the original release path. The host
+samples 101 ground fronts across the authored 50-degree cone at 40 m/s
+up to 20 m. The 250 close hit and 50 propagating hit are independent.
+Only an admitted body hit applies the 2.5-second host stun. Personal
+and projected barriers absorb 50 without stun and credit 10 energy.
+A close hit that breaks a full barrier is absorbed and credits 40
+energy. The later wave is then eligible to damage and stun the wearer.
+
+Static walls, Cryo cover and raised Reinhardt meshes can stop the
+reconstructed front. Once a ray is blocked it does not restart on
+later shield release. Active wave geometry and hit history are stored.
+Native Shockwave propagation, tags, close-hit filter and client
+presentation remain separate. Reinhardt Charge is still open.
+
+Incoming Reinhardt Charge
+-------------------------
+The 007D graph owns the empty entry marker, windup, running state and
+cooldown. The host reconstructs horizontal drive from the authored step
+value and steering scalar. It uses the live capsule solver for the owner
+and captured body. Contact tests use the authored broad and pin sizes.
+A side contact deals 50 once. A captured target takes 300 only on an
+obstructed release. Timeout or source control releases without wall damage.
+The Heavy Assault 6601 flag selects an impact without damage or capture.
+
+For the reconstructed Zarya interaction, capture interrupts other actions
+and preserves a barrier already in force. A personal or projected barrier
+can consume the later 300 wall damage and credit its remaining 200 as 40
+energy. A pinned owner cannot activate a new barrier. Transport, native receiver
+filters, force and presentation remain open.
+
+A running Charge evaluates 007D/state74 before ordinary contact. An
+opposing player with the authored 596 flag can trigger a mutual knockdown
+through the retained capsule, facing, cone and LOS checks. Each player
+uses its authored inline 224E duration. The interruption releases an
+already captured Zarya without wall damage or consuming her barrier.
+Allied or wall-separated charges do not counter. Native receiver filters
+and other hero counter variants remain open.
+
+Heavy Assault Charge
+--------------------
+Manual NPC control can select Charge through Console.press with
+attack_action="charge". The 1EBB body uses logical button 35 and graph
+1408 for its 0.8-second windup, drive state, contact tracking and cooldown.
+The host uses a reconstructed horizontal drive of 16.5 m/s and the live
+capsule solver. The graph supplies 50 side damage and 300 wall damage.
+A barrier already active at capture stays active. Allied projection can
+also reach the captured target. Either barrier can absorb the wall hit and
+award 40 energy to its caster. Manual stop, NPC removal and Graviton release
+the captured target without wall damage.
+
+The Heavy counter tracker can interrupt an opposing Reinhardt in his
+authored readiness window. Both use the graph-derived 2-second knockdown.
+The captured target is released without wall damage. Native counter
+ordering, drive speed, attachment and force, and autonomous Heavy Charge
+selection remain open.
+
+Incoming Sigma Accretion
+
+Actual secondary ability input launches the 1BBB/node 9 rock. The host reads
+its gravity and launch bias from the graph and sweeps its updated velocity.
+An admitted direct hit routes the authored damage tags back to 1BBB and
+resolves the 224E request. The reconstructed control host evaluates target
+gates 4 and 122 and uses the request's duration for its stun clock.
+
+An unshielded Zarya takes 70 total damage and 50 stun ticks. Personal Barrier
+and Projected Barrier each spend 70 shield points and give the Zarya caster
+14 energy. The protected body takes no damage, stun, or impulse.
+
+The host uses the authored horizontal and vertical knockback values and
+ring scales. Direct hits push along flight; splash pushes radially and
+does not apply a second impulse to the directly hit body. The player
+mover retains the external momentum during stun, resolves static collision,
+and clears the flag on landing. The flag is included in physics snapshots.
+A wall impact produces 40 damage and radial knockback without a stun.
+
+Projected Barrier blocks all 70 damage, stun and impulse for each of the
+five actual NPCs and awards 14 caster energy. Without a barrier, each
+takes 70 damage and 50 stun ticks. Heavy Assault retains its existing
+knockback immunity; the other four are pushed and land normally. Native
+impulse integration and wider control admission remain open.
+
+Incoming Sigma Hyperspheres
+
+Actual primary input launches the two 187F spheres. The host reads gravity,
+body and world sweep radii, and rebound settings from nodes 45 and 56.
+Static collision can redirect the remainder of a flight step without
+refreshing lifetime. At expiry each surviving sphere airbursts once.
+The reconstructed blast impulse pulls exposed targets toward the burst.
+
+A direct pair deals 110 damage. Each direct sphere delivers 25 impact
+plus 30 splash. Personal and Projected Barrier each absorb the pair for
+22 caster energy. The sphere that breaks a barrier is fully intercepted,
+including its splash on that protected body. Splash against other
+exposed targets resolves independently. The same contact policy covers
+Accretion. Native contact arbitration and impulse integration remain open.
+
+Sigma projectile defense admission
+
+Actual primary emits 2D35 first and 32B4 second. Both definitions have
+empty tag lists in the extracted catalog. With both rows loaded, Deflect
+returns both spheres under Genji ownership. The pair deals 110 to a bare
+Zarya or gives her personal barrier 22 energy credited to Genji. Defense
+Matrix consumes both without body damage. Kinetic Grasp accumulates 110
+and grants 66 temporary shields on its authored exit.
+
+The Accretion definition 18B7 carries exclusion tag 0145. A real rock
+passes through all three defenses and stuns and interrupts the receiver.
+Grasp awards no temporary shields for that hit. Admission geometry and
+tag interpretation remain reconstructed.
+
+Sigma Experimental Barrier
+
+The actual 1B55 Pet request and its 1A2A child bind a scoped server actor.
+The actor uses the manifest-verified C015 model from build 104319, including
+120 triangles from the dynamic holder. The existing static map extractor
+still omits dynamic holders by default. Phase, placement, motion and
+recharge are reconstructed from the graph inputs.
+
+Enemy Particle Cannon beam and grenade hits reach the mesh before the
+owner. The fixture takes 36 beam damage and 47 grenade damage from 700
+barrier health. Allied beam passes through and hits an enemy. Recall
+restores the exposed body route. A grenade that breaks a barrier preserves
+cover for that explosion. The breaking fixture pre-drains barrier health
+through the production damage handler. The Pet entity is in body VM
+snapshots. Experimental Barrier's Earthshatter, melee, Graviton field and
+remaining lifecycle interactions require separate verification.
+
+Graviton versus Experimental Barrier
+
+Actual ultimate input spends the full charge. Against an enemy C015 mesh
+the projectile deals 5 to the barrier and deploys on its incoming face.
+The field's reconstructed admission checks static cover and Cryo geometry.
+It applies 20 total damage over 250 ticks and pulls Sigma while the mesh
+remains deployed. An allied Experimental Barrier admits the projectile
+to a hostile body behind it. Native field targeting remains unverified.
+Replacing Sigma's body removes the old deployed actor and permits a new
+700-point actor from the replacement body's actual deploy input.
+
+After a Zarya grenade deals 47 barrier damage, actual recall rejects an
+early redeploy press and starts the 2-second recharge delay. Recharge then
+restores 80 per second to the 700 cap, and a fresh press redeploys. Cooldown
+outputs now notify dependent graph states as time passes. Cancelling an
+event clears its coalescing flags so later state entry can notify again.
+
+Experimental Barrier melee and Earthshatter
+
+Actual Zarya melee independently admits 30 damage to the enemy C015 mesh
+and 30 to Sigma when both are in range. At longer melee distance only the
+mesh is reached. Allied mesh, static wall and aimed-miss fixtures verify
+their separate gates. Actual Sigma melee deals 30 to an exposed target;
+either Zarya barrier absorbs it for 6 caster energy.
+
+The reconstructed Earthshatter front tests the actual posed C015 mesh.
+A hostile barrier crossing the ground front takes 50 once and shields
+Zarya behind it. The wave retains its blocking pose even if its hit breaks
+the shield. The breaking fixture reduces it to 25 through production
+damage before the cast. Reinhardt's allied barrier is ignored by the
+front, which reaches Zarya for 50 and applies its stun. Native front
+sampling and client acceptance remain separate.
+
+Incoming Sigma Gravitic Flux
+
+Actual ultimate and primary confirmation enter 1E41 placement and selection.
+The host traces static ground and evaluates the authored target volume over
+current player capsules. The actual 1DBC request carries Sigma's body source.
+Entry applies 50 damage, and slam applies half of maximum health after
+landing. The authored velocity rows run through the server mover. The effect
+retires at its terminal action.
+
+A personal barrier can absorb entry for 10 energy while the target is
+lifted. Personal or projected barrier timed before landing absorbs the slam.
+Five-NPC Flux, interruption and native movement and targeting remain open.
+
+Flux interruption
+
+Actual Sleep Dart during selection stops the cast. During lift it
+releases only the effects owned by the interrupted caster's body.
+Once the target's 1DBC descent is committed, the slam still resolves
+on landing. The same lift/descent split holds when a real Zarya grenade
+kills the caster. The lethal fixture reduces Sigma to 20 before firing.
+Interruption resumes ordinary passive charge without refunding the cast.
+Five-NPC Flux and original-client validation remain open.
+
+Flux versus the five manual NPC bodies
+
+Actual charged Flux selects Trooper, Enforcer, Sniper, Assassin and Heavy
+Assault through their real capsules and delivers 1DBC to each body's VM.
+Trooper, Enforcer, Sniper and Assassin take 50 on entry and half maximum
+health on landing. Their authored velocity and mover modifiers run through
+the existing NPC impulse mover, which retires on landing. Heavy Assault
+takes 50 and exits through its authored gate before it lifts.
+
+Projected Barrier protects each of the four lifted NPCs from the slam
+when timed before landing. Projecting it before Heavy Assault's entry
+absorbs 50 for 10 energy. The NPC receiver and mover services remain a
+server reconstruction; native targeting and presentation are separate.
+
+Flux versus defensive windows
+
+Actual Wraith Form, Fade and Cryo-Freeze exclude the target at selection.
+Activation during lift removes 1DBC and prevents the slam. Actual Fortify
+before entry reduces the hit to 25 through the current armour model and
+prevents lift. Activating it during lift releases Orisa after the 45-point
+armoured entry hit. Defense timing and effect retirement are reconstructed.
+
+Replacing Sigma during lift invalidates the old body source and retires
+the live effect. Replacing the target detaches its previous VM from the
+match; no effect or damage crosses to the replacement body.
+
+Graviton during Sigma Flux
+
+Actual ultimate inputs show Graviton pulling hostile Sigma both during
+selection and after confirmation without cancelling Flux. A confirmed
+Flux lifts Zarya while her field still pulls Sigma. Allied Graviton
+does not move or damage Sigma. The field releases the pull at its world
+deadline. This is the reconstructed host's movement arbitration.
+
+Incoming Orisa Halt
+
+Actual 0CCB emits a server orb and binds its entity to the authored
+existence and owner queries. The second press follows node 26 to stop
+and detonate the orb; static impact also schedules detonation. The
+scoped host pulls eligible visible hostile players without damage.
+Either Zarya barrier stops acquisition without consuming shield health
+or granting energy. Allied and wall-covered bodies are excluded.
+Timing, target selection and the follow-up slow are reconstructed.
+The NPC target branches, full slow/cooldown lifecycle and original-client
+acceptance require separate verification.
+
+Orisa Halt lifecycle
+
+Actual pre-arming input does not detonate the orb. After detonation the
+host tracks a 16-tick pull and the follow-up slow up to tick 41. The
+receiver's forward speed reads 35% of baseline during slow and returns
+to baseline on expiry. Repeated input during authored cooldown produces
+no additional orb; a fresh press after recovery creates a new entity.
+Personal or projected barrier applied during pull stops horizontal
+displacement without consuming shield health or generating energy. The
+receiver then lands under normal physics. Body replacement retires an
+in-flight orb or an active receiver effect under the old body identity.
+
+Halt versus manual NPCs
+
+Actual Orisa inputs pull unprotected Trooper, Enforcer, Sniper and
+Assassin without damage. Heavy Assault's live 6601 flag prevents the
+pull. Projected Barrier prevents movement for all five, retains its
+200 points and grants no energy. Reconstructed NPC motion uses the
+existing collision mover during pull and a reduced route speed cap
+during slow. The Trooper patrol fixture measures the 35% cap and its
+return to normal speed after expiry.
+
+Orisa Protective Barrier
+Actual Orisa button 16 launches the 0BD7 volley and deploys the 4062 mesh after ground contact. 0BD8 initializes 600 HP and a 20-second lifetime. Enemy Zarya beam deals 36 and grenade deals 47 while protecting Orisa. Allied beam and grenade reach an enemy through the mesh. The grenade that breaks the shield still respects its cover for that explosion.
+The host reconstructs deployment delay, eligible surface, pose, and shared hit and health handling. This increment exercises the initialized lifetime, without running Orisa expiry or replacement to completion. Orisa-specific melee, Graviton, Earthshatter, snapshot behavior, and original-client parity remain unverified.

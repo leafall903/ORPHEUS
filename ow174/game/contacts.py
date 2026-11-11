@@ -2217,7 +2217,7 @@ class CharacterBody:
             self.teleport(moved)
         return self.position
 
-    def move(self, displacement, dt: float, rounds: int, adaptive: bool = True):
+    def move(self, displacement, dt: float, rounds: int, adaptive: bool = True, *, extra_capsules=()):
         """The engine's character move: (final position, clip planes, touching). Each round updates the
         contacts at the current position, turns every manifold into a plane through its deepest point,
         projects the target out of the planes (Gauss-Seidel, 5 mm slop, 5 mm tolerance) and moves the body
@@ -2229,12 +2229,16 @@ class CharacterBody:
         current = start
         constraints: list = []
         passes_total = 0
+        # Live blockers use the same manifold solver without mutating the map or
+        # storing contacts whose lifetime is owned by a different actor.
+        temporary = tuple(ConvexContact(StaticShape(Capsule(a, b, radius)))
+                          for a, b, radius in extra_capsules)
         tolerance = TOUCH
         tolerance_sq = f32(tolerance * tolerance)
         for _ in range(max(0, rounds)):
             self.update_pairs()
             constraints = []
-            for contact in self.contacts:
+            for contact in (*self.contacts, *temporary) if temporary else self.contacts:
                 sign = contact.sign
                 for manifold in contact.manifolds(self):
                     n = manifold.normal if sign > 0.0 else neg(manifold.normal)

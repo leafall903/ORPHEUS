@@ -69,7 +69,8 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 }
@@ -173,6 +174,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_optional_lifecycle_storage_distinguishes_missing_from_present_none(self):
         models = (
             ("STU_E4A30BCF", "button_id"), ("STUStatescriptStateWait", "ms"),
+            ("STUStatescriptStateWait", "world_deadline"),
             ("STUStatescriptStateWeaponVolley", "max_shots"),
             ("STUStatescriptStateWeaponVolley", "min_shots"), ("STU_2F4E2E3F", "seen"),
             ("STUStatescriptStateGameMessageEntry", "received"),
@@ -187,6 +189,17 @@ class BodyVMSnapshotTests(unittest.TestCase):
                 present = export_component_vm(component)
                 self.assertIsNone(fields(raw(present), ["state", 1, 0])[optional])
                 self.assertNotEqual(snapshot_digest(missing), snapshot_digest(present))
+
+    def test_ruleset_entity_cache_is_passive_causal_storage(self):
+        component, instance = fixture()
+        baseline = export_component_vm(component)
+        instance.ruleset_target_entity = 0xA0000101
+        changed = export_component_vm(component)
+        self.assertNotEqual(snapshot_digest(baseline), snapshot_digest(changed))
+        self.assertEqual(fields(raw(changed), ["instance", 1])["ruleset_target_entity"], 0xA0000101)
+        instance.ruleset_target_entity = -1
+        with self.assertRaises(BodyVMSnapshotError):
+            export_component_vm(component)
 
     def test_watchers_watched_links_and_causal_work_queues_keep_their_actual_order(self):
         component, instance = fixture(("STU_TestPlainState",) * 3, allocation=(2, 0, 1))
@@ -507,12 +520,23 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles", "aim"})
+        world = dict(body["world"]["fields"])
+        self.assertEqual(set(world), {"hero", "mode", "body", "throttles", "aim", "_body_owner_context",
+                                      "_entity_query_context", "phase_started", "phase_deadline"})
+        context = dict(world["_body_owner_context"]["fields"])
+        self.assertEqual(context["owner"], script.entity)
+        self.assertIs(context["instance_present"], True)
+        self.assertIs(context["retired"], False)
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):
             ignored_transport = export_body_vm(script)
         self.assertEqual(snapshot_digest(baseline), snapshot_digest(ignored_transport))
+        script.world._body_owner_context.retired = True
+        retired = snapshot_digest(export_body_vm(script))
+        self.assertNotEqual(snapshot_digest(baseline), retired)
+        script.world._entity_query_context.possession_context_present = False
+        self.assertNotEqual(snapshot_digest(export_body_vm(script)), retired)
         script.unknown_execution_state = 1
         with self.assertRaises(BodyVMSnapshotError):
             export_body_vm(script)

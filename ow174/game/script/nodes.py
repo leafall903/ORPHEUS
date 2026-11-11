@@ -833,6 +833,12 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        clock = self.instance.component.world.state_clock(self)
+        if clock is not None and self.ms > 0:
+            tick, tick_ms = clock
+            frame_ms = self.instance.component.frame_ms
+            elapsed = (self.now % frame_ms + self.ms) // frame_ms * frame_ms
+            self.world_deadline = tick + (elapsed + tick_ms - 1) // tick_ms
         if self.dynamic():
             self.ticks()
             self.tick()
@@ -849,6 +855,12 @@ class Wait(State):
 
     def timer(self, param: int) -> None:
         if param == 1:
+            deadline = getattr(self, "world_deadline", None)
+            if deadline is not None:
+                clock = self.instance.component.world.state_clock(self)
+                if clock is not None and clock[0] < deadline:
+                    self.timer_at(self.instance.component.frame_ms, 1)
+                    return
             self.request_finish()
 
     def tick(self) -> None:
@@ -934,6 +946,13 @@ class ChaseVar(State):
         duration = _field(self, "m_5BEFF040")
         self.remaining = int(to_float(self.evaluate(duration, watch=False)) * 1000) if duration else None
         self.last = self.now
+        clock = self.instance.component.world.state_clock(self)
+        if clock is not None:
+            tick, tick_ms = clock
+            frame_ms = self.instance.component.frame_ms
+            # Preserve the first command frame's fractional debit, once per world interval.
+            start = tick * tick_ms - min(tick_ms, frame_ms - 1 - self.now % frame_ms)
+            self.world_used = max(getattr(self, "world_used", start), start)
         if target is not None:
             var = self.instance.find_var(*target)
             before = var.value()
@@ -953,8 +972,18 @@ class ChaseVar(State):
 
     def tick(self) -> None:
         dt = self.now - self.last
+        world_used = getattr(self, "world_used", None)
+        if world_used is not None and dt > 0 and not self.reached:
+            clock = self.instance.component.world.state_clock(self)
+            if clock is not None:
+                tick, tick_ms = clock
+                dt = min(dt, max(0, tick * tick_ms - world_used))
+                self.world_used += dt
+        self.advance(dt)
+
+    def advance(self, dt: int) -> None:
+        self.last = self.now
         if dt <= 0 or self.reached:
-            self.last = self.now
             return
         before = self.var.value() if self.var else None
         dest = self.destination()
@@ -971,7 +1000,6 @@ class ChaseVar(State):
             if rate > 0:
                 step = f32(f32(f32(rate * MS) * dt) + EPSILON)
                 self.cur, self.reached = self._step(self.cur, dest, step)
-        self.last = self.now
         if self.var is not None:
             self.instance.changed(self.var, before)
         if self.reached:
@@ -1039,6 +1067,7 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
 
@@ -1079,6 +1108,12 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            cfg = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1129,12 +1164,26 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        return self.spread0
+        return self.spread_at(self.now - self.start - self.offset)
+
+    def spread_at(self, elapsed: int) -> float:
+        """239B571E normalized spread, captured PC104319 D80A50-D80A99.
+
+        The ramp is baked when firing starts; the output is not an angle.
+        D5F979-D5F996 passes completed shots plus one to the ramp function.
+        Optional between-shot decay and other launch classes remain unmodeled.
+        """
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        increase = f32(max(0, self.shots_at(elapsed) + 1) / self.spread_ramp)
+        return min(1.0, f32(increase + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
@@ -1191,9 +1240,13 @@ class Anim(State):
     def on_enter(self) -> None:
         duration = _field(self, "m_86701C3E")
         if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
-            return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
+            seconds = self.instance.component.world.animation_duration(self)
+            if seconds is None:
+                expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
+                return
+        else:
+            seconds = self.evaluate(duration, watch=False)
+        ms = seconds_to_ms(seconds)
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
         if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
@@ -1238,6 +1291,7 @@ class Ability(State):
         self.last = 0
         self.var: Var | None = None
         self.stack_var: Var | None = None
+        self.cooldown_observed = 0.0
 
     # the cooldown
 
@@ -1265,17 +1319,29 @@ class Ability(State):
         self.cooldown_rate = self.rate()
         self.last = self.now
         self.var = self.link(target)
+        self.cooldown_observed = self.cur
+        self.set_cooldown_start(self.now)
+
+    def set_cooldown_start(self, at: int) -> None:
+        self.last = at
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
         if self.cur > 0 and self.cooldown_rate > 0:
-            self.timer_at(max(1, round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate))), 2)
+            delay = at + self.cooldown_ms() - self.now
+            if delay > 0:
+                self.timer_at(delay, 2)
+
+    def cooldown_ms(self) -> int:
+        return max(1, round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate)))
 
     def remaining(self) -> float:
         return max(0.0, f32(f32(f32(f32(self.now - self.last) * -MS) * self.cooldown_rate) + self.cur))
 
     def output(self, slot: int):
         """Slot 0: the cooldown left (the cooldown variable); slot 1: true (the stack variable)."""
-        return self.remaining() if slot == 0 else True
+        if slot != 0:
+            return True
+        return max(self.remaining(), self.instance.component.world.ability_cooldown_floor(self))
 
     def var_written(self, var: Var) -> None:
         if var is self.var:
@@ -1303,19 +1369,27 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def pop_press(self, button: int) -> tuple[int, int, int] | None:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
+
+    def take_press(self, button: int) -> bool:
+        return self.pop_press(button) is not None
 
     # starting and stopping
 
     def tick(self) -> None:
+        # The linked getter changes with time even without a variable write.
+        if self.var is not None:
+            before = self.cooldown_observed
+            self.cooldown_observed = self.output(0)
+            self.instance.changed(self.var, before)
         self.activate()
 
     def timer(self, param: int) -> None:
@@ -1358,10 +1432,10 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        pressed = None
         if start:
-            pressed = self.take_press(start)
-            if not pressed:
+            pressed = self.pop_press(start)
+            if pressed is None:
                 if not self.held(start):
                     self.flags &= ~self.HELD
                     return False
@@ -1371,13 +1445,16 @@ class Ability(State):
             return False
         ready = (
             self.remaining() <= 0
+            and self.instance.component.world.ability_start_allowed(self)
             and self.condition("m_150F0D92")
             and self.condition("m_F495731F")
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+            if pressed is not None:
+                # Keep the original edge age; renewing it every tick makes an early
+                # press survive arbitrarily long cooldowns after its release.
+                self.presses.insert(0, pressed)
             return False
         if start:
             self.flags |= self.HELD
@@ -1430,18 +1507,22 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Reconstructed cleanup-before-arbitration-release ordering.
+
+        Queue the outgoing scope's exit/refill before unblocking a weapon that
+        could otherwise sample stale resources. Full native ordering is open.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1811,6 +1892,57 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STU_4C96470A")
+class CompatiblePlacement(State):
+    """Host placement boundary; native prediction/filter/geometry services remain explicit."""
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "native placement service", self.node.cls, self.node,
+            )
+        result = self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+        if result is not NotImplemented:
+            self.ticks()
+
+    def tick(self) -> None:
+        self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+
+    def plug_enter(self, input_path: str) -> bool:
+        if input_path == "m_6647ED22":
+            if self.active:
+                result = self.instance.component.world.refresh_compatible_placement(self, confirm=True)
+                return result is not NotImplemented
+            return True  # a retired selection cannot confirm a cast
+        return super().plug_enter(input_path)
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Scoped world health service; manual1157 elapsed-time semantics are reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        result = self.instance.component.world.modify_health(self, 0)
+        if result is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
     """A target search supplied by an explicit host service, empty when undeclared.
@@ -1989,6 +2121,18 @@ def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedTyp
         if target is not None:
             instance.write(target, value)
     instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_B6E3C77D")
+def deploy_compatible_entity(instance: Instance, node, caller) -> bool:
+    from ow174.game import winston_barrier
+
+    deployed = winston_barrier.deploy(instance, node)
+    if deployed is NotImplemented:
+        return NotImplemented
+    if deployed:
+        instance.follow(node, "m_outPlug", None)
     return True
 
 
@@ -2198,9 +2342,11 @@ def stop_ability(instance: Instance, node, caller) -> bool:
 
 @handler("STUStatescriptActionSendGameMessage")
 def send_game_message(instance: Instance, node, caller) -> bool:
+    from ow174.game import orisa_halt
+
     if instance.component.strict:
         game_message.execute(instance, node)
-    else:
+    elif not orisa_halt.trigger(instance, node):
         send(instance, node, caller)
     instance.follow(node, "m_outPlug", None)
     return True
@@ -2218,6 +2364,30 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.play_compatible_script(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_22926252")
+def retire_flux_effect(instance: Instance, node, caller):
+    from ow174.game import sigma_flux
+
+    component = instance.component
+    if (component.strict or instance.graph.index != sigma_flux.FLUX_EFFECT
+            or node.pos not in (3, 5, 45, 61) or getattr(component.world, "match", None) is None):
+        return NotImplemented
+    component.destroy(instance)
+    return True
+
+
+@handler("STU_FF3471E9")
+def apply_flux_velocity(instance: Instance, node, caller):
+    from ow174.game import sigma_flux
+
+    if not sigma_flux.flux_velocity(instance, node):
+        return NotImplemented
     instance.follow(node, "m_outPlug", None)
     return True
 
@@ -2241,3 +2411,28 @@ for _name in (
 
 
 __all__ = ["ABORT", "Asset"]
+
+
+@state_class("STUStatescriptStatePet")
+class CompatiblePet(State):
+    """Explicit reconstructed Pet host hook; strict native execution remains unsupported."""
+
+    def on_created(self) -> None:
+        self.pet_entity = None
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
+        entity = self.instance.component.world.create_compatible_pet(self)
+        if entity is NotImplemented:
+            return
+        if type(entity) is not int or not expr.valid_entity(entity):
+            raise ValueError("compatible Pet factory returned an invalid entity")
+        self.pet_entity = entity
+        self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(entity))
+
+    def on_end(self, finished: bool) -> None:
+        if self.pet_entity is not None:
+            self.instance.component.world.retire_compatible_pet(self, self.pet_entity)
+            self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(0))
+            self.pet_entity = None

@@ -8,9 +8,19 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+import types
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import (
+    body_owner,
+    entity_queries,
+    expr,
+    graph,
+    message_receive,
+    message_scope,
+    nodes,
+    runtime,
+)
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -28,7 +38,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 ))
@@ -50,6 +61,8 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.CompatiblePlacement: ((), ()),
+    nodes.CompatiblePet: (("pet_entity",), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -68,16 +81,18 @@ _STATE_LAYOUTS = {
     nodes.AIBehavior: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
-    nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
+    nodes.Wait: ((), ("ms", "world_deadline")), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
-    nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
+    nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ("world_used",)),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.Anim: ((), ()),
-    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
+    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var",
+                    "cooldown_observed"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
@@ -93,6 +108,11 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    entity_queries.Context: ("owner", "namespace_present", "environment_present",
+                             "possession_context_present", "lookup", "watch_environment",
+                             "watch_possession", "retired"),
+    body_owner.Context: ("owner", "instance_present", "environment_present", "lookup", "watch_environment",
+                         "watch_owner", "retired"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -189,6 +209,9 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        target = fields["ruleset_target_entity"]
+        if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance ruleset target entity')
         frame = fields['initialized_frame']
         if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance initialization frame')
@@ -388,12 +411,20 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "aim", "match"))
+                fields.update(("body", "throttles", "aim", "match", "_body_owner_context",
+                               "_entity_query_context", "phase_started", "phase_deadline"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "controller_entity", "manual_target", "match"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
+        if (kind is types.MethodType and obj.__self__ is self.component.world
+                and type(obj.__self__) is BodyWorld
+                and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
+                                     BodyWorld._poll_body_owner)):
+            return {"class": "builtins.method", "identity": self.identity(obj),
+                    "owner": ["component", "world"], "function": _name(obj.__func__)}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -421,7 +452,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event):
+            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}

@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import FELL, GRAVITY_SCALE, Mover, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -122,6 +123,7 @@ class Bot:
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.attack_action = "primary"
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
@@ -156,12 +158,51 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.impulse_mover: Mover | None = None
 
-    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
+    def ensure_impulse_mover(self, tick: int, collision, *, category: int) -> Mover:
+        if self.impulse_mover is None:
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision,
+                                       mover_data(self.body), category=category)
+            self.impulse_mover.velocity = self.velocity
+            self.last_tick = tick
+        return self.impulse_mover
+
+    def apply_impulse(self, impulse, tick: int, collision, *, category: int) -> None:
+        if self.dead:
+            return
+        mover = self.ensure_impulse_mover(tick, collision, category=category)
+        mover.velocity = tuple(a + b for a, b in zip(mover.velocity, impulse, strict=True))
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.fall = 0.0
+        self.velocity = mover.velocity
+        self.pace, self.held = 0.0, (0, 0)
+        self.moved_tick = tick
+
+    def _step_impulse(self, tick: int, seconds: float, collision, extra_capsules) -> None:
+        mover = self.impulse_mover
+        mover.use(world=collision)
+        if self.body_script is not None:
+            from ow174.game import sigma_flux
+
+            sigma_flux.track_npc_motion(self, mover, tick)
+        mover.step_pose(Command(tick, yaw=round(self.yaw), pitch=round(self.pitch)), seconds, tick,
+                        extra_capsules=extra_capsules)
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        self.moved_tick = tick
+        if not mover.airborne and math.hypot(*self.velocity[::2]) < 1e-3:
+            self.impulse_mover = None
+            self.velocity = (0.0, 0.0, 0.0)
+
+    def step(
+        self, tick: int, seconds: float, collision=None, *, paused_until: int = 0, extra_capsules=(),
+        speed_scale: float = 1.0,
+    ) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
-        if not self.route:
+        if not self.route and self.impulse_mover is None:
             if tick < paused_until:
                 self._pause(tick)
                 self.last_tick = tick
@@ -171,10 +212,12 @@ class Bot:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            if at < paused_until:
+            if self.impulse_mover is not None:
+                self._step_impulse(at, seconds, collision, extra_capsules)
+            elif at < paused_until:
                 self._pause(at)
-            else:
-                self._tick(at, seconds, collision)
+            elif self.route:
+                self._tick(at, seconds, collision, speed_scale=speed_scale)
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -182,7 +225,7 @@ class Bot:
         self.held = (0, 0)
         self.moved_tick = tick
 
-    def _tick(self, tick: int, dt: float, collision) -> None:
+    def _tick(self, tick: int, dt: float, collision, *, speed_scale: float = 1.0) -> None:
         before = (self.position, round(self.yaw))
         self.held = (0, 0)
         if not self.keys:
@@ -194,7 +237,7 @@ class Bot:
                 self.keys = True
                 self.turning = 0.0
         if self.keys:
-            self._walk(tick, dt, collision)
+            self._walk(tick, dt, collision, speed_scale=speed_scale)
         else:
             if self.target is not None:
                 self._slide(dt, collision)
@@ -204,7 +247,7 @@ class Bot:
         if (self.position, round(self.yaw)) != before:
             self.moved_tick = tick
 
-    def _walk(self, tick: int, dt: float, collision) -> None:
+    def _walk(self, tick: int, dt: float, collision, *, speed_scale: float = 1.0) -> None:
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -215,7 +258,7 @@ class Bot:
             return
         self.direction = ((tx - x) / distance, (tz - z) / distance)
         self._turn(dt)
-        self.pace = min(self.speed, self.pace + self.accel * dt)
+        self.pace = min(self.speed * speed_scale, self.pace + self.accel * dt)
         self.held = self.last_held = throttles(self.yaw, self.direction)
         self.input_tick = tick
         stride, slide = self.pace * dt, self._slide_length(dt)
@@ -296,6 +339,7 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.impulse_mover = None
         self.attack_target = None
         self.attack_input = False
         self.keys = False
@@ -337,10 +381,11 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            (DEAD if self.dead else 0) | (self.impulse_mover.flags if self.impulse_mover is not None else 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
+            air_ticks=self.impulse_mover.air_ticks if self.impulse_mover is not None else 0,
             gravity=GRAVITY_SCALE,
         )
 

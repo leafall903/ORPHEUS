@@ -145,7 +145,7 @@ class Var:
         self.resolving = False
         self.partial = None
 
-    def value(self, below: "State | None" = None):
+    def value(self, below: "State | None" = None, *, excluding: "State | None" = None):
         # Native1BA70B0's in-resolution flag exposes the current lower value.
         # This also prevents a selection filter from re-entering its own link.
         if self.resolving:
@@ -155,7 +155,7 @@ class Var:
             for link in self.links:
                 if link.state is below:
                     break
-                if link.state.active:
+                if link.state is not excluding and link.state.active:
                     supplied = link.state.output(link.slot)
                     if supplied is not expr.EVALUATION_FAILED:
                         self.partial = supplied
@@ -262,6 +262,12 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -277,6 +283,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -302,9 +326,11 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -366,6 +392,12 @@ class World:
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
+    def create_compatible_pet(self, state: "State"):
+        return NotImplemented
+
+    def retire_compatible_pet(self, state: "State", entity: int) -> None:
+        pass
+
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
@@ -386,8 +418,31 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
+
+    def refresh_compatible_placement(self, state: "State", *, confirm: bool):
+        return NotImplemented
+
+    def ability_start_allowed(self, state: "State") -> bool:
+        """Apply any authoritative world gate before an ability starts."""
+        return True
+
+    def ability_cooldown_floor(self, state: "State") -> float:
+        """Return any additional cooldown remaining on the world clock."""
+        return 0.0
+
+    def state_clock(self, state: "State") -> tuple[int, int] | None:
+        """Return the world tick and tick duration for a state using that clock."""
+        return None
 
     def track_targets(self, state: "State"):
         """Optional host target search; NotImplemented preserves an undeclared service."""
@@ -437,6 +492,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Explicit direct component43 ownership services, adapted from DVa190bc7c."""
         return NotImplemented
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
@@ -499,6 +558,27 @@ class World:
         resource = resolve_resource(instance, node)
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> bool:
+        """Optional scoped body reconstruction; unhandled permissive calls remain inert."""
+        return False
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        """Optional scoped health consumer; unresolved native health services stay unknown."""
+        return NotImplemented
+
+    def end_health(self, state: "State") -> None:
+        pass
+
+    def animation_duration(self, state: "State"):
+        """Optional duration in seconds for a scoped server animation."""
+        return None
+
+    def begin_compatible_state(self, state: "State") -> None:
+        """Allow an explicitly scoped host transition for an unresolved state."""
+
+    def end_compatible_state(self, state: "State", finished: bool) -> None:
+        """Notify the host when an authored state finishes or aborts."""
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -674,7 +754,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -943,6 +1023,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -1031,6 +1112,9 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # Cancelled notifications must not suppress work after re-entry.
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1489,7 +1573,13 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Canceled notifications cannot leave deduplication markers latched into
+        # a later activation. Cleanup writes must not schedule this ending state.
+        self.flags_changed = False
+        self.flags_check = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
+        if not self.instance.teardown:
+            self.instance.component.world.end_compatible_state(self, finished)
         self.on_end(finished)
         self.on_cleanup()
         self.unwatch()
@@ -1570,6 +1660,7 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        self.instance.component.world.begin_compatible_state(self)
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""
@@ -1664,18 +1755,23 @@ def message_entries(instance: Instance, message: int) -> list[Node]:
     return found
 
 
-def send_message(component: Component, message: int, params: dict, sender: int) -> int:
-    """Deliver a game message to every instance of the component (at now). Returns how many nodes get it."""
-    return sum(send_instance_message(instance, message, params, sender)
+def send_message(
+    component: Component, message: int, params: dict, sender: int, *, at: int | None = None,
+) -> int:
+    """Queue a game message for every instance of the component and return the recipient count."""
+    return sum(send_instance_message(instance, message, params, sender, at=at)
                for instance in list(component.instances.values()))
 
 
-def send_instance_message(instance: Instance, message: int, params: dict, sender: int) -> int:
-    """Queue a message at the component clock for only this graph instance."""
+def send_instance_message(
+    instance: Instance, message: int, params: dict, sender: int, *, at: int | None = None,
+) -> int:
+    """Queue a message for this graph instance at the supplied time or the current component clock."""
     entries = message_entries(instance, message)
+    time = instance.component.now if at is None else at
     for node in entries:
         delivery = (message, dict(params), sender)
-        instance.post(Event(instance.component.now, 0, MESSAGE, node=node, message=delivery))
+        instance.post(Event(time, 0, MESSAGE, node=node, message=delivery))
     return len(entries)
 
 

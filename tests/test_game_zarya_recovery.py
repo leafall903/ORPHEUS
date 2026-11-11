@@ -155,6 +155,39 @@ class ZaryaRecoveryTests(unittest.TestCase):
         self.fight.update(tick * 0.016, tick, frames=False)
         self.assertAlmostEqual(self.shields(), 130)
 
+    def test_projectile_impact_keeps_shield_recovery_earned_before_impact(self):
+        for sparse in (False, True):
+            with self.subTest(sparse=sparse):
+                self.setUp()
+                self.assertTrue(self.run.match.switch_hero(self.b, self.a.hero))
+                self.b.mover.position[:] = [0, 1, 5]
+                for _ in range(51):
+                    self.run.step({self.b: (-32768, 0, 1)})
+                damaged = self.run.frame
+                self.assertAlmostEqual(self.shields(), 140)
+                self.advance(180)
+                self.run.step({self.b: (-32768, 0, 2)})
+                self.run.step({})
+                rocket, = self.fight.rockets
+                self.assertIs(rocket.shooter, self.b)
+                self.assertEqual(rocket.last_tick, self.run.frame)
+                self.assertAlmostEqual(self.shields(), 140)
+
+                end = damaged + 210
+                for tick in (end,) if sparse else range(self.run.frame + 1, end + 1):
+                    self.run.match.update(tick * combat.TICK, tick, frames=False)
+                self.run.frame = end
+                self.assertFalse(self.fight.rockets)
+                impact = self.fight.zarya_recovery.bodies[self.a.body].damaged_tick
+                self.assertEqual(impact, damaged + 193)
+                shields = 140 + 2.16 - 47
+                self.assertAlmostEqual(self.shields(), shields, places=4)
+                self.assertAlmostEqual(self.health(self.a), 200 + shields, places=4)
+                self.advance(impact + 187 - end)
+                self.assertAlmostEqual(self.shields(), shields, places=4)
+                self.advance(1)
+                self.assertAlmostEqual(self.shields(), shields + 0.24, places=4)
+
     def test_dead_body_does_not_regenerate_and_respawn_discards_its_clock(self):
         self.hit(500)
         old = self.a.body

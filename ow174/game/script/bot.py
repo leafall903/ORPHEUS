@@ -31,12 +31,30 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
+        controller_entity: int | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        if controller_entity is not None and (
+            type(controller_entity) is not int or not expr.valid_entity(controller_entity)
+            or not 0 <= controller_entity <= 0xFFFFFFFF or controller_components is None
+        ):
+            raise ValueError("manual controller needs a valid distinct identity and declared components")
+        self.controller_entity = controller_entity
+        self.manual_target = None
+        self.match = None
+
+    def entity_var(self, entity: int, var: int):
+        if self.controller_entity is not None and entity == self.controller_entity:
+            return expr.Entity(self.manual_target) if var == 1650 and self.manual_target is not None else None
+        return super().entity_var(entity, var)
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_entity is not None and slot == 0:
+            return 36  # actual1157 pin; extracted20 graph13B8 has no damage outlet
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +62,16 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_context, sigma_flux
+
+        value = sigma_flux.flux_effect_native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,6 +99,24 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, sigma_flux
+
+        result = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
+    def animation_duration(self, state):
+        from ow174.game import assassin
+
+        return assassin.animation_duration(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +124,8 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
+        controller_entity: int | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +134,10 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        if controller_entity == entity:
+            raise ValueError("manual controller cannot alias its body")
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components,
+                         controller_entity=controller_entity)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -127,6 +178,9 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -141,6 +195,9 @@ class BotScript(ReplicatedBody):
             return None
         if frame < self.frame:
             raise ValueError("bot death predates its script")
+        from ow174.game import assassin
+
+        assassin.bind(component.world, component, None)
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
         # A bot can die in the tick that created it. Its initial frame is already

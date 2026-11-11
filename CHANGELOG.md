@@ -4,7 +4,168 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Zarya server integration handoff
+
+- Collect the current 1.74.0.0.104319 Python implementation and its regression
+  fixtures on top of the existing Zarya lane history. This includes the
+  cross-hero barrier, projectile, control, and movement services used by the
+  player and five NPC combat cases.
+- End the remaining Ana rifle damage or healing when the recipient's team
+  changes its relationship to the firing team. End Gravitic Flux on a newly
+  allied recipient at the next world update. Both rules are server
+  reconstructions.
+- The latest recorded barrier and defense suites passed 85 and 108 tests.
+  Full static acceptance and original-client validation remain open.
+
 ### 2026-11-09
+
+#### Uncommitted player-eye geometry correction
+
+- Use original03BF Zarya1.6/1.12 and02A3 McCree1.425/.9975 FirstPerson base
+  heights for both attack origins and player Target/history eyes. Preserve
+  Soldier1.55/1.085 and unlisted-body fallbacks. Immutable profile rows are
+  sealed in replay configuration and current server snapshots without evaluation.
+- Actual standing/crouched low-cover and projected-target cases verify both
+  origin and recipient heights. Adapt the parent's owned McCree01D2/node31
+  implicit2x policy for incoming primary70/140 into Zarya;Fan keeps explicit1x
+  and six50-damage rays. Head-region/implicit-default policy remains
+  reconstructed;native bones/camera/muzzle animation remain separate.
+- Use generated 104319 spread tables and scoped0..6-degree Fan rays for owned
+  McCree01D2/node37,with declared server seed identity. Near Zarya and all five
+  projected allied NPC cases verify200 blocked,40 energy and100 body damage;
+  far aim,cover,team filtering and read-only causal storage are tested separately.
+- Goal tool verified active with the unchanged full Zarya objective. Functional
+  acceptance still requires every applicable behavior/edge case;document native
+  differences separately without relabeling untested behavior as complete.
+  No partial commit,patch or merge-ready claim.
+
+#### Uncommitted Assassin controller and health/control bridge
+
+- Reserve a distinct server-only manual controller for Assassin;actual1157 reads
+  its typed primary-possessor Entity and foreign1650 target member. Source/target
+  lifetime,stop,death,removal,replacement,team/range/wall and match end retire it.
+- Actual25 contact and reconstructed100/s continuous health use the shared damage
+  path. Control follows admitted body damage;Zarya personal/projected barriers
+  block damage and host control,including a breaking hit. A projection during
+  continuous damage releases host control on the blocked hit. This is not native
+  QTE/barrier-immunity/cleanse acceptance;contact3m,clock,allocation,release and
+  animation reset remain explicit host policies. Native AI/vector motion open.
+- Store controller/target/pin/health-clock causal state and verify read-only export.
+  Two simultaneous attackers retain independent control ownership.
+- Reproduce canceled-notification failures,clear CHANGED/CHECK markers on exit,
+  skip ending watchers,and reconstruct Ability cleanup before arbitration release.
+  Two notification and one join-reentry regression pass;native cross-object exit
+  ordering remains open. No commit,patch or full acceptance claimed.
+
+#### Uncommitted movement-input and Enforcer defense extension
+
+- Adapt the reviewed input17/18/19 consumer, preserving command bytes and existing
+  snapshot fields. The own-image120 native-prefix comparisons use an explicit
+  scalar-modifier lookup adapter. Actual1157 and0F68 numeric scopes verify input
+  restrictions,next-pose publication/release and restored axes. Vector motion,
+  Assassin pin/AI and native modifier-service equivalence remain open.
+- Promote sourced23F0 tag02F9 into the external projectile catalog. Actual Enforcer
+  bursts exercise Matrix/Genji/Grasp,including off-axis ally Matrix protecting
+  Zarya,and Genji's returned burst intercepted by Zarya's projection on Enforcer.
+  Grasp accumulates50 and grants30 temporary shields. Defense geometry remains
+  reconstructed;SHOTS_ONLY observer transport remains open.
+- Correct the resource inventory:0263 is a Lucio body graph,not Zarya Graviton.
+  No partial commit,patch or merge-ready claim.
+
+#### Uncommitted Enforcer incoming pellet reconstruction
+
+- Scope the reviewed manual-controller predicate to actual Enforcer13EB. Initialize
+  aggregate pools before graph startup. Native controller allocation and pool-query
+  getter semantics remain open; this is an explicit sandbox context.
+- Expand the authored25-pellet ring volley into independent finite flights with
+  individual armour and cumulative-distance falloff. Reuse the ring expansion for
+  D.Va's existing11 rays. Preserve each eligible projectile's delivery lifecycle.
+- Exercise real input/ammo,50 close damage,25 armour damage,partial hits/falloff,
+  personal/projected barrier absorption and caster energy,wall/team/release cases.
+  Native ring phase,muzzle attachment,SHOTS_ONLY observer transport and NPC AI
+  remain open. No commit,patch,full-static or original-client acceptance claimed.
+
+#### Uncommitted Zarya Matrix and real NPC geometry work
+
+- Adapt reviewed DVa190bc7c body ownership,301c61c explicit body/additive inputs,
+ 601d748 independent Fusion Cannon rays,6941c22 typed ruleset/member defaults,
+ and ee2db6d physical Matrix policy. Retain Zarya effects, reflected authority,
+ frozen teams and compatible Grasp hooks. No reviewed commit was cherry-picked.
+- Explicit0407 uses its authored300 health/300 armour and .7m radius. Missing form
+ data rejects replacement;pilot040A and Soldier fallback are not mech acceptance.
+ Add read-only graph/mover supplements,seal their byte hashes in configuration,
+ and reject changed inputs. Capture owner/query contexts and Instance+230 cache
+ without executing their callbacks. Native mech creation/transform stays open.
+- Matrix uses active02CC/state3/node9 mode1 boxes and external definition tags.
+ Actual Zarya secondary/Graviton are consumed without damage/field;charge stays
+ spent. Beam/melee exceptions,release/minimum hold,resource/cooldown/exhaustion,
+ frozen team,metadata,nearer collision,dead/retired receivers,Flashbang interrupt,
+ reflected-then-Matrix and actual Fusion Cannon into Zarya/barrier are exercised.
+- Use the parent's read-only43-row npc-navigation-runtime,with one mech mover
+ added for44 loaded rows. Five NPC tests now require explicit mover records and
+ verify target-build heights/radii/speeds. Old38-row NPC results used fallback
+ geometry and remain historical. Actual five-body Matrix protection and .8s
+ beam60 exception pass after finishing the preceding secondary recovery.
+- Pass443 combat/body/NPC/health/manifest tests in233.250s and840 script tests
+ in13.469s,and61 full VM/alias/server snapshots in682.672s,zero skips. All pinned
+ source/test and external input hashes stay unchanged through the final run.
+ Native097 filters,attachment/lag compensation,status/field/charge gaps and
+ original-client acceptance remain open. All changes remain uncommitted.
+
+#### Uncommitted Zarya Grasp interaction work (full static goal still open)
+
+- Reviewed/imported parent2ca9178 distinct-input joins with provenance before the
+ latest submission policy. Retain subsequent work uncommitted until the complete
+ static hero goal passes; these results are not a partial merge submission.
+- Adapt committed Genji43f4e1b view-local Sigma Grasp and DVaee2db6d tag/extractor
+ foundations to physical projectile definitions and frozen emitted teams. Actual
+ secondary/Graviton are consumed before nearer bodies/walls for47/5 absorbed;
+ ultimate charge remains spent and no field appears. Beam/melee remain applicable.
+- Track projectile definition independently of prediction delivery, retire confirmed
+ copies without explosion and feed the authored absorption output/plug. Capture
+ immutable external tags in stored state and their byte hash in replay configuration.
+ Five actual NPC bodies are protected from secondary/ultimate while beam60 passes.
+- Pass311 combat/driver/NPC/manifest tests in167.109s,823 script tests in17.577s,
+ 58 VM/alias/server snapshot tests in488.303s and latest16 absorption tests in12.270s;
+ zero skips, Ruff/diff pass. Two later death/body-replacement cases belong to the
+ latest16 invocation. Initial fixture failures came from resetting Sigma aim and
+ placing his body in the beam; corrected fixtures separate body cover from Grasp.
+- Add scoped1D02/node34 temporary shield conversion from authored parameters:
+ 60% absorbed damage,400 cap,3s grace and5/s decay. Separate stable pool slots
+ participate in damage/HUD/encoding and causal stored state, with lifecycle and
+ idempotent grant handling. Native1D03 HealthPool and pool flags remain unaccepted.
+- Preserve original button-edge age when retrying an ability whose cooldown or
+ start condition is not ready. A released press previously renewed every tick
+ and restarted Grasp after an11s wait. Actual Grasp and Soldier regressions now
+ cover expired edges; actual Sigma covers the short early window and held reuse.
+- Native097 profiles, dynamic tags/attachment geometry,
+ reflection, other defenses/statuses, charge generation and remaining NPC skills
+ stay open. No new partial commit, patch, root merge or publication is authorised.
+
+#### Uncommitted Zarya projectile reflection work
+
+- Use actual03A3/state10/mode0 boxes and external definition tags to admit Zarya
+ secondary and Graviton, whose direct ModifyHealth entries lack the peer003BF
+ damage tag. Normalize authored reversed corners; eye frame and90-degree gate
+ remain reconstruction. Quick melee uses the reviewed frontal capsule block.
+- Transfer projectile owner, team and source body while preserving definition,
+ damage, gravity and remaining flight; finish the old prediction without release.
+ Continue the remaining tick interval after a return, capped at8 reflections.
+ Reflected Graviton fields use the transferred owner/team/source, with original
+ charge spent. Deliver the authored6584 event;native TrackStat hosting is open.
+- Add projected-recipient return interception:47 barrier capacity,9.4 caster
+ energy and Genji as the recorded damage source. Guard missing NPC mover/type
+ before reading player-only retirement state;full regression exposed5 NPC melee
+ failures in the first version,then the corrected focused21 cases passed.
+- Pass20 initial actual player cases plus the projected-recipient case,and one
+ five-NPC method with10 weapon/body subcases.
+ Final358 combat/driver/NPC/health/manifest checks pass310.250s and the new
+ reflected-authority causal snapshot passes96.188s;zero skips,all pinned hashes
+ match. Native
+ filters/attachment/transport, complete defense/control and repeat-reflection
+ interactions remain open; no partial commit or submission is generated.
 
 #### Zarya beam/DOT armour policy restoration (partial static acceptance)
 
