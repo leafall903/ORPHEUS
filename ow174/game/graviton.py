@@ -57,7 +57,7 @@ class Gravitons:
                 or getattr(owner, 'gone', False)
                 or self.fight.vitals_of(target).dead
                 or (not self.fight.match.game_map.free_for_all and target.team == field.team)
-                or moira.fading(owner)
+                or moira.fading(owner) or self.fight.recalls.active(owner)
                 or immunity.wraith_active(owner, target.entity)):
             return False
         a, b = target.segment()
@@ -101,6 +101,9 @@ class Gravitons:
                         heavy_assault.stop(script.component)
                 else:
                     moira.clear_fade_press(target.owner)
+                    from ow174.game import tracer
+
+                    tracer.discard_mobility_input(target.owner)
             if seconds:
                 self._pull(target, position, seconds, tick)
         for target in targets:

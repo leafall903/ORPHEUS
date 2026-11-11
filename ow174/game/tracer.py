@@ -3,6 +3,7 @@
 import math
 
 from ow174.game import contacts
+from ow174.game.mover import turned_pitch
 from ow174.game.script import expr
 
 HERO = 0x02E0000000000003
@@ -26,6 +27,36 @@ def recalling(owner):
     world = getattr(script, "world", None)
     match = getattr(world, "match", None)
     return match is not None and match.combat.recalls.locked(owner)
+
+
+def hold_pose(player, command):
+    """Preserve delivered Recall translation freeze while accepting view changes."""
+    mover = player.mover
+    mover.yaw = command.yaw
+    mover.pitch = turned_pitch(command.pitch)[0]
+    mover.history.append(mover.snapshot(command.frame))
+
+
+def discard_mobility_input(player):
+    """Retire pre-capture Blink and Recall presses on Graviton admission."""
+    from ow174.game.script import nodes
+
+    script = player.body_script
+    if script is None or script.hero != HERO:
+        return
+    component = script.component
+    released = [(button, False) for button in component.held if button in MOBILITY_BUTTONS]
+    for button, _ in released:
+        component.held.remove(button)
+    component.edges(released)
+    for instance in component.instances.values():
+        if instance.graph.index not in (BLINK_GRAPH, 0x001A):
+            continue
+        for state in instance.states.values():
+            if isinstance(state, nodes.LogicalButton):
+                state.pressed_at = None
+            elif isinstance(state, nodes.Ability):
+                state.presses.clear()
 
 
 def filter_edges(world, edges):

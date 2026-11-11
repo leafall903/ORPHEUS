@@ -409,6 +409,12 @@ class Player:
         command = fight.sombra_controls.input(self, command)
         command = fight.clamp_sleep_command(self, command)
         pulled = self.body in fight.zarya_gravitons.pulled
+        if fight.recalls.locked(self):
+            from ow174.game import tracer
+
+            tracer.hold_pose(self, command)
+            self._advance_body_frame(command)
+            return
         if stunned or fight.recalls.locked(self):
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             impact = self.match.combat.punch_impacts.get(self.body)

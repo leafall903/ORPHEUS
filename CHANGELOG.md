@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain delivered Recall pose and pre-capture mobility input behavior
+
+- Freeze Recall translation while retaining incoming view angles, matching the
+  delivered pose handler. Clear already buffered Blink/Recall presses when a
+  Graviton first captures the player; active Recall prevents field admission.
+- All38 original Recall, buffering and Pulse checks passed. Preserve the wider
+  47-check defense result (19 failures, five errors, one skip), including older
+  Soldier/Genji policy differences and the not-yet-mounted Sigma Grasp service.
+  No checks were removed or weakened and no acceptance gate blocks this commit.
+  Remaining cross-hero integrations and original-client acceptance stay open.
+
 ### Preserve Tracer cross-hero delivery and Pulse reflection policy
 
 - Retain65 remaining original Tracer check files unchanged for the delivered
