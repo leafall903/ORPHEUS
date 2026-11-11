@@ -484,7 +484,8 @@ class Projectiles:
         steps = min(tick, expires - 1) - max(first_tick - 1, start)
         if steps > 0:
             amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount,
+                                  seconds=FRAME_MS/1000*steps, end_tick=min(tick, expires-1))
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return

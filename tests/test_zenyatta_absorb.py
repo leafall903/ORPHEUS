@@ -2,14 +2,17 @@
 
 import struct
 import unittest
+from dataclasses import replace
+from itertools import product
 
 import test_zenyatta_combat as weapon_tests
+from test_game_combat import aim, in_world
 
 from ow174.game import combat
 from ow174.game.collision import World
 from ow174.game.commands import FIRE, SECONDARY
 from ow174.game.content import PRACTICE_RANGE, heroes
-from ow174.game.script import graph
+from ow174.game.script import expr, graph
 from ow174.game.world import POOLS, SHIELDS_POOL
 
 
@@ -55,6 +58,133 @@ class ZenyattaAbsorbTests(unittest.TestCase):
         self.assertAlmostEqual(zen.body_script.component.entity_var(342).value()-charge,
                                (run.frame-frame)*combat.TICK*5, places=4)
 
+    def test_actual_grasp_absorbs_enemy_deflected_orb_and_grants_shields(self):
+        genji_hero = 0x02E0000000000029
+        for active in (False, True):
+            with self.subTest(grasp=active):
+                run, zen, sigma = self.arena(start=False)
+                match = run.match
+                match.game_map = replace(match.game_map, free_for_all=False)
+                zen.team = sigma.team = 0
+                genji = match.add_player(3, "Genji", genji_hero, 1, False)
+                in_world(match, genji)
+                self.assertTrue(match.switch_hero(genji, heroes()[genji_hero]))
+                run.players.append(genji)
+                x, y, z = zen.mover.position
+                sigma.mover.position = [x, y, z+3]
+                genji.mover.position = [x, y, z+13]
+                sigma.mover.body = genji.mover.body = None
+                fight = match.combat
+                guard = {
+                    genji: (*aim(fight._eye(genji), (x, y+1, z+3)), 16),
+                    sigma: (0, 0, 8 if active else 0),
+                }
+                for _ in range(20):
+                    run.step(guard)
+                self.assertEqual(self.active(sigma), active)
+                direction = aim(fight._eye(zen), (x, y+1, z+13))
+                run.step({**guard, zen: (*direction, FIRE)})
+                orb, = fight.rockets
+                for _ in range(35):
+                    run.step(guard)
+                    if orb not in fight.rockets:
+                        break
+                self.assertIs(orb.shooter, genji)
+                self.assertNotIn(orb, fight.rockets)
+                self.assertEqual(self.vitals(run, sigma).total, 400 if active else 352)
+                self.assertEqual(self.vitals(run, zen).total, 200)
+                self.assertEqual(self.vitals(run, genji).total, 200)
+                self.assertEqual(self.instance(sigma).find_var(0, 21312).value(), 48 if active else None)
+                self.assertEqual(len(genji.client.messages(combat.HIT)), 0 if active else 1)
+                self.assertFalse(zen.client.messages(combat.HIT))
+                for _ in range(100):
+                    run.step({})
+                self.assertAlmostEqual(self.vitals(run, sigma).bonus_shields, 28.8 if active else 0, places=4)
+
+    def test_volley_crosses_deflect_then_grasp_expiry_in_one_flight(self):
+        run, zen, sigma = self.arena(start=False)
+        match = run.match
+        match.game_map = replace(match.game_map, free_for_all=False)
+        zen.team = sigma.team = 0
+        genji_hero = heroes()[0x02E0000000000029]
+        genji = match.add_player(3, "Genji", genji_hero.guid, 1, False)
+        in_world(match, genji)
+        self.assertTrue(match.switch_hero(genji, genji_hero))
+        genji.team = 1
+        run.players.append(genji)
+        x, y, z = zen.mover.position
+        sigma.mover.position = [x, y, z + 4]
+        genji.mover.position = [x, y, z + 24]
+        sigma.mover.body = genji.mover.body = None
+        fight = match.combat
+        target = next(target for target in fight._targets() if target.owner is genji)
+        mark_aim = aim(fight._eye(zen), fight._eye(genji))
+        body_aim = aim(fight._eye(zen), (x, y + target.height * .5, z + 24))
+        return_aim = aim(fight._eye(genji), (x, y + 1, z + 4))
+
+        run.step({zen: (*mark_aim, 8)})
+        owner = fight.zenyatta.owner(zen)
+        orb = owner.discord
+        self.assertIsNotNone(orb)
+        self.assertEqual(orb.target, genji.body)
+        # Stagger the two authored durations to bracket the first two returned orbs.
+        for frame in range(130):
+            run.step({zen: (*body_aim, SECONDARY), genji: (*return_aim, 16 if frame == 31 else 0),
+                      sigma: (0, 0, 8 if frame == 37 else 0)})
+        self.assertTrue(self.active(sigma))
+        genji_instance = next(i for i in genji.body_script.component.instances.values() if i.graph.index == 0x03A3)
+        deflect = genji_instance.states[genji_instance.graph.node(18).state]
+        self.assertTrue(deflect.active)
+
+        sigma_instance = self.instance(sigma)
+        absorbed = sigma_instance.find_var(0, 21312)
+        shield = self.vitals(run, sigma)
+        charge = zen.body_script.component.entity_var(342)
+        before_charge, before_frame = charge.value(), run.frame
+        shots = {}
+        deflect_expired = grasp_expired = False
+        for _ in range(100):
+            bonus_before = shield.bonus_shields
+            hits_before = len(genji.client.messages(combat.HIT))
+            run.step({zen: (*body_aim, 0), genji: (*return_aim, 0), sigma: (0, 0, 0)})
+            for rocket in fight.rockets:
+                shots[id(rocket)] = rocket
+            if not deflect_expired and not deflect.active:
+                self.assertEqual(sum(rocket.shooter is genji for rocket in fight.rockets), 2)
+                deflect_expired = True
+            if not grasp_expired and not self.active(sigma):
+                self.assertTrue(deflect_expired)
+                self.assertEqual(absorbed.value(), 48)
+                self.assertEqual(sum(rocket.shooter is genji for rocket in fight.rockets), 1)
+                self.assertFalse(genji.client.messages(combat.HIT))
+                grasp_expired = True
+            if len(genji.client.messages(combat.HIT)) > hits_before:
+                self.assertTrue(grasp_expired)
+                self.assertAlmostEqual(bonus_before, 28.8, places=4)
+                self.assertEqual(shield.bonus_shields, 0)
+            if len(shots) == 5 and not fight.rockets:
+                break
+
+        self.assertTrue(grasp_expired)
+        self.assertEqual([rocket.shooter for rocket in shots.values()], [genji] * 2 + [zen] * 3)
+        self.assertFalse(fight.rockets)
+        self.assertIs(owner.discord, orb)
+        self.assertEqual(absorbed.value(), 48)
+        self.assertEqual(sigma_instance.find_var(0, 41).value(), expr.Entity(genji.body))
+        self.assertAlmostEqual(shield.bonus_shields_max, 28.8, places=4)
+        self.assertEqual(shield.bonus_shields, 0)
+        self.assertAlmostEqual(shield.total, 380.8, places=4)
+        for shooter, victim, amount, count in ((genji, sigma, 48, 1), (zen, genji, 60, 3)):
+            hits = [notice["+0x78"] for notice in shooter.client.messages(combat.HIT)]
+            self.assertEqual([(hit["+0x0"]["+0x0"], hit["+0x4"], hit["+0x8"]) for hit in hits],
+                             [(victim.body, amount, 0)] * count)
+        self.assertEqual(self.vitals(run, genji).total, 20)
+        self.assertEqual(self.vitals(run, zen).total, 200)
+        weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x164)
+        self.assertEqual(weapon.vars[53].value(), 15)
+        self.assertAlmostEqual(charge.value() - before_charge,
+                               180 + (run.frame - before_frame) * combat.TICK * 5, places=3)
+
     def test_back_is_not_protected_and_grants_no_extra_shields(self):
         run, zen, sigma = self.arena(yaw=0)
         run.step({zen: (0, 600, FIRE)})
@@ -72,6 +202,92 @@ class ZenyattaAbsorbTests(unittest.TestCase):
         pool = parts[SHIELDS_POOL*POOLS+1]
         self.assertEqual(struct.unpack('<IffI', pool[:16]), (4, 144, 144, SHIELDS_POOL))
         self.assertEqual(pool[17], 0)  # explicit reconstructed over-health classification
+
+    def test_critical_volley_straddles_grasp_start_and_natural_expiry(self):
+        for expires_during_flight in (False, True):
+            with self.subTest(expires_during_flight=expires_during_flight):
+                run, zen, sigma = self.arena(start=False)
+                sigma.mover.position[2] += 16
+                sigma.mover.body = None
+                fight = run.match.combat
+                vitals = self.vitals(run, sigma)
+                instance = self.instance(sigma)
+                angles = aim(fight._eye(zen), fight._eye(sigma))
+                charge = zen.body_script.component.entity_var(342)
+                weapon = next(i for i in zen.body_script.component.instances.values() if i.graph.index == 0x164)
+
+                def step(*, fire=0, grasp=0):
+                    run.step({zen: (*angles, fire), sigma: (-32768, 0, grasp)})
+
+                step(fire=8)
+                owner = fight.zenyatta.owner(zen)
+                orb = owner.discord
+                self.assertEqual(orb.target, sigma.body)
+                # At this distance, frame 31 puts the two-second expiry between impacts two and three.
+                for frame in range(130):
+                    step(fire=SECONDARY, grasp=8 if expires_during_flight and frame == 31 else 0)
+                self.assertEqual(self.active(sigma), expires_during_flight)
+                before_charge, before_frame = charge.value(), run.frame
+                absorbed = instance.find_var(0, 21312)
+                shots = {}
+                outcomes = []
+                transitioned = False
+                for _ in range(90):
+                    was_active = self.active(sigma)
+                    start_grasp = not expires_during_flight and len(outcomes) == 2 and not transitioned
+                    hits_before = len(zen.client.messages(combat.HIT))
+                    absorbed_before = absorbed.value() or 0
+                    bonus_before = vitals.bonus_shields
+                    step(grasp=8 if start_grasp else 0)
+                    live = {id(rocket): rocket for rocket in fight.rockets if rocket.shooter is zen}
+                    shots.update(live)
+                    damage_events = len(zen.client.messages(combat.HIT)) - hits_before
+                    absorbed_damage = (absorbed.value() or 0) - absorbed_before
+                    if damage_events or absorbed_damage:
+                        self.assertIn((damage_events, absorbed_damage), ((1, 0), (0, 48)))
+                        if expires_during_flight and damage_events and not hits_before:
+                            self.assertAlmostEqual(bonus_before, 57.6, places=4)
+                            self.assertEqual(vitals.bonus_shields, 0)
+                            self.assertAlmostEqual(vitals.total, 337.6, places=4)
+                        outcomes.append("hit" if damage_events else "absorbed")
+                    if self.active(sigma) != was_active:
+                        self.assertTrue(live, "Grasp boundary must occur with an orb still in flight")
+                        self.assertEqual(len(outcomes), 2, outcomes)
+                        transitioned = True
+                    if len(outcomes) == 5:
+                        break
+                expected = (["absorbed"] * 2 + ["hit"] * 3 if expires_during_flight
+                            else ["hit"] * 2 + ["absorbed"] * 3)
+                self.assertTrue(transitioned)
+                self.assertEqual(outcomes, expected)
+                self.assertEqual(len(shots), 5)
+                self.assertFalse(fight.rockets)
+                self.assertIs(owner.discord, orb)
+                self.assertEqual(weapon.vars[53].value(), 15)
+                hit_count = expected.count("hit")
+                hits = [notice["+0x78"] for notice in zen.client.messages(combat.HIT)]
+                self.assertEqual([(hit["+0x0"]["+0x0"], hit["+0x4"], hit["+0x8"]) for hit in hits],
+                                 [(sigma.body, 120, combat.CRITICAL)] * hit_count)
+                self.assertAlmostEqual(charge.value() - before_charge,
+                                       120 * hit_count + (run.frame - before_frame) * combat.TICK * 5,
+                                       places=3)
+                self.assertEqual(absorbed.value(), 48 * expected.count("absorbed"))
+
+                if not expires_during_flight:
+                    self.assertTrue(self.active(sigma))
+                    self.assertEqual(vitals.bonus_shields, 0)
+                    for _ in range(130):
+                        step()
+                        if not self.active(sigma) and vitals.bonus_shields:
+                            break
+                self.assertFalse(self.active(sigma))
+                timer = instance.states[instance.graph.node(45).state]
+                self.assertAlmostEqual(timer.ended_at - timer.start, 2000, delta=16)
+                self.assertAlmostEqual(vitals.bonus_shields_max, 57.6 if expires_during_flight else 86.4,
+                                       places=4)
+                self.assertAlmostEqual(vitals.bonus_shields, 0 if expires_during_flight else 86.4,
+                                       places=4)
+                self.assertAlmostEqual(vitals.total, 97.6 if expires_during_flight else 246.4, places=4)
 
     def grant_burst(self):
         run, zen, sigma = self.arena(start=False)
@@ -236,6 +452,59 @@ class ZenyattaAbsorbTests(unittest.TestCase):
                             self.instance(sigma).find_var(0, 21312).value(),
                             len(run.match.combat.rockets), len(run.match.combat.projectiles.shots)))
         self.assertEqual(results, [(400, 48, 0, 0), (400, 48, 0, 0)])
+
+    def test_grasp_expiry_during_catchup_matches_continuous_projectile_impacts(self):
+        def start():
+            run, zen, sigma = self.arena(start=False)
+            x, y, z = zen.mover.position
+            sigma.mover.position = [x, y, z+16]
+            sigma.mover.body = None
+            fight = run.match.combat
+            angles = aim(fight._eye(zen), (x, y+1, z+16))
+            run.step({sigma: (-32768, 0, 8)})
+            self.assertTrue(self.active(sigma))
+            return run, zen, sigma, angles
+
+        run, zen, sigma, angles = start()
+        absorbed = self.instance(sigma).find_var(0, 21312)
+        run.step({zen: (*angles, FIRE), sigma: (-32768, 0, 0)})
+        launch = run.frame
+        for _ in range(30):
+            run.step({sigma: (-32768, 0, 0)})
+            if absorbed.value() == 48:
+                break
+        self.assertEqual(absorbed.value(), 48)
+        travel = run.frame-launch
+        self.assertGreater(travel, 5)
+
+        for impact, skipped in product((124, 125), (False, True)):
+            with self.subTest(impact=impact, skipped=skipped):
+                run, zen, sigma, angles = start()
+                fight = run.match.combat
+                cast = run.frame
+                absorbed = self.instance(sigma).find_var(0, 21312)
+                for relative in range(1, 122):
+                    run.step({sigma: (-32768, 0, 0),
+                              zen: (*angles, FIRE if relative == impact-travel else 0)})
+                self.assertTrue(self.active(sigma))
+                self.assertTrue(any(rocket.shooter is zen for rocket in fight.rockets))
+                if skipped:
+                    run.frame += 4
+                    run.step({sigma: (-32768, 0, 0)})
+                else:
+                    for _ in range(5):
+                        run.step({sigma: (-32768, 0, 0)})
+                self.assertEqual(run.frame, cast+126)
+                for _ in range(20):
+                    run.step({sigma: (-32768, 0, 0)})
+                self.assertFalse(self.active(sigma))
+                self.assertFalse(fight.rockets)
+                health = self.vitals(run, sigma)
+                protected = impact == 124
+                self.assertEqual(absorbed.value(), 48 if protected else 0)
+                self.assertAlmostEqual(health.bonus_shields, 28.8 if protected else 0, places=4)
+                self.assertAlmostEqual(health.total, 428.8 if protected else 352, places=4)
+                self.assertEqual(len(zen.client.messages(combat.HIT)), 0 if protected else 1)
 
     def test_actual_zen_melee_bypasses_grasp_without_becoming_extra_shields(self):
         run, zen, sigma = self.arena()

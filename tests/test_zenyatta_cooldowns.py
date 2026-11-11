@@ -51,6 +51,33 @@ class ZenyattaCooldownTests(unittest.TestCase):
             run.step({genji: (-32768, 0, 0)})
         self.assertTrue(fixture.active(genji))
 
+    def test_held_deflect_starts_when_ready_without_refreshing_the_original_press(self):
+        fixture = deflect_tests.ZenyattaDeflectTests()
+        run, _, genji = fixture.arena()
+        ability = next(i for i in genji.body_script.component.instances.values()
+                       if i.graph.index == 0x03A3).state(0)
+        for _ in range(150):
+            run.step({})
+        self.assertFalse(fixture.active(genji))
+        first = (run.frame+1)*16
+        for _ in range(800):
+            run.step({genji: (-32768, 0, 0x10)})
+            self.assertTrue(all(record[0] == first for record in ability.presses if record[1] == 36))
+            if fixture.active(genji):
+                break
+        else:
+            self.fail('held actual Deflect never started after its cooldown')
+        early = ability.evaluate(ability.node.field('m_246438AD'), watch=False)*1000
+        self.assertGreater(ability.now-first, early)  # held input, not a refreshed buffered tap
+        # A released ability finishes, remains off through cooldown, and accepts
+        # a fresh press after readiness. Every transition uses actual commands.
+        for _ in range(900):
+            run.step({})
+        self.assertFalse(fixture.active(genji))
+        self.assertLessEqual(ability.remaining(), 0)
+        run.step({genji: (-32768, 0, 0x10)})
+        self.assertTrue(fixture.active(genji))
+
 
 if __name__ == "__main__":
     unittest.main()

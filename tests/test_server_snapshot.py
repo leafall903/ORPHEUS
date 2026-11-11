@@ -2,6 +2,7 @@
 
 import copy
 import dataclasses
+import os
 import sys
 import tempfile
 import types
@@ -29,6 +30,178 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_actual_chain_hook_flight_is_causal_stored_state(self):
+        from ow174.game.commands import Command
+
+        session, _, players = self.scene()
+        hog = players[0]
+        session.apply('switch_hero', {'account': hog.account_lo, 'hero': 0x02E0000000000040})
+        match = hog.match
+        for index in range(37):
+            frame = match.tick + 1
+            match.update(frame * 0.016, frame)
+            hog.take_commands([Command(frame, yaw=0, pitch=0, buttons=0x08 if index == 25 else 0, extra=0)])
+        hook = match.combat.chain_hooks[hog.body]
+        self.assertGreater(hook.remaining, 0)
+        before = snapshot_digest(self.capture(session))
+        hook.remaining -= 1
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_actual_scrap_ball_nested_payload_is_causal_stored_state(self):
+        from ow174.game.commands import SECONDARY, Command
+
+        session, _, players = self.scene()
+        hog = players[0]
+        session.apply('switch_hero', {'account': hog.account_lo, 'hero': 0x02E0000000000040})
+        match = hog.match
+        for _ in range(25):
+            frame = match.tick + 1
+            match.update(frame * 0.016, frame)
+            hog.take_commands([Command(frame, yaw=0, pitch=0, buttons=0, extra=0)])
+        frame = match.tick + 1
+        match.update(frame * 0.016, frame)
+        hog.take_commands([Command(frame, yaw=0, pitch=0, buttons=SECONDARY, extra=0)])
+        ball, = match.combat.rockets
+        self.assertEqual(ball.definition, 0x0400000000000295)
+        self.assertIsNotNone(ball.split)
+        before = snapshot_digest(self.capture(session))
+        ball.split = dataclasses.replace(ball.split, speed=ball.split.speed + 1)
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_matrix_catalog_is_cold_read_only_and_loaded_contents_are_causal(self):
+        from ow174.game import matrix
+
+        session, _, _ = self.scene()
+        with mock.patch.object(matrix, '_tag_table', None):
+            with mock.patch.object(matrix, 'read_tags',
+                                   side_effect=AssertionError('export must not load tags')):
+                cold = snapshot_digest(self.capture(session))
+            matrix._tag_table = {0x0400000000000236: frozenset()}
+            loaded = snapshot_digest(self.capture(session))
+            self.assertNotEqual(cold, loaded)
+            matrix._tag_table[0x0400000000000236] = frozenset({0x0D60000000000145})
+            self.assertNotEqual(loaded, snapshot_digest(self.capture(session)))
+
+    def test_direct_body_owner_context_and_ruleset_target_cache_are_causal(self):
+        from ow174.game.dva import HERO
+
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply('switch_hero', {'account': player.account_lo, 'hero': HERO})
+        registry = player.body_script.world.dva_queries
+        before = snapshot_digest(self.capture(session))
+        registry.owner_context.environment_present = False
+        owner_changed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, owner_changed)
+        instance = next(iter(player.body_script.component.instances.values()))
+        instance.ruleset_target_entity = player.entity
+        self.assertNotEqual(owner_changed, snapshot_digest(self.capture(session)))
+
+    @unittest.skipUnless(os.environ.get('ORPHEUS_DVA_RUNTIME'), 'requires actual mech metadata')
+    def test_timed_actor_clock_anchor_is_causal_stored_state(self):
+        from ow174.game import dva, npc
+
+        session, _, players = self.scene()
+        match = players[0].match
+        actor = npc.spawn(match, npc.Definition(dva.HERO, dva.MECH, 'Timed mech', 300, 300),
+                          players[0].mover.position, team=1, manual=False, script_clock=(7000, 7))
+        before = snapshot_digest(self.capture(session))
+        actor.spawner['dva_clock']['world_ms'] += 1
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_dva_registry_context_and_callbacks_are_causal_stored_state(self):
+        from ow174.game.dva import HERO
+
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply('switch_hero', {'account': player.account_lo, 'hero': HERO})
+        context = player.body_script.world.dva_queries.context
+        before = snapshot_digest(self.capture(session))
+        context.environment_present = False
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_manual_pin_registry_is_causal_stored_state(self):
+        session, _, players = self.scene()
+        fight = players[0].match.combat
+        before = snapshot_digest(self.capture(session))
+        fight.pins[0xC0000FFF] = players[0].body
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_expired_control_interval_is_causal_stored_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        before = snapshot_digest(self.capture(session))
+        fight.control_history[player.body] = [(fight.tick - 2, fight.tick)]
+        self.assertFalse(fight.is_stunned(player))
+        self.assertTrue(fight.is_stunned(player, tick=fight.tick - 1))
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_thawed_view_history_is_causal_stored_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        before = snapshot_digest(self.capture(session))
+        sample = (1.0, (fight.tick - 2) * 16, fight.tick * 16, 8192, 1024)
+        fight.frost.freeze_history[player.body] = [sample]
+        self.assertIsNone(fight.frost.sample(player, fight.tick))
+        self.assertEqual(fight.frost.sample(player, fight.tick - 1), sample)
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_healing_modifier_source_activation_and_expiry_are_causal_state(self):
+        from ow174.game.healing import Modifier
+
+        session, _, players = self.scene()
+        player = players[0]
+        service = player.match.combat.healing
+        previous = snapshot_digest(self.capture(session))
+        effect = Modifier(player.body, 100, 350)
+        service.anti[player.body] = effect
+        for field, value in (('source', player.body+1), ('start', 101), ('end', 351)):
+            current = snapshot_digest(self.capture(session))
+            self.assertNotEqual(previous, current)
+            previous = current
+            setattr(effect, field, value)
+        current = snapshot_digest(self.capture(session))
+        self.assertNotEqual(previous, current)
+        service.amp[player.body] = Modifier(player.body, 104, 350)
+        self.assertNotEqual(current, snapshot_digest(self.capture(session)))
+
+    @unittest.skipUnless(os.environ.get('ORPHEUS_BARRIER_DATA'), 'requires external verified barrier mesh')
+    def test_barrier_geometry_hp_and_recovery_clock_are_causal_state(self):
+        from ow174.game.barriers import Barrier
+
+        session, _, players = self.scene()
+        player = players[0]
+        service = player.match.combat.barriers
+        initial = snapshot_digest(self.capture(session))
+        service.triangles[0][0][0] += .01  # private scene copy, never the external input
+        geometry_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(initial, geometry_digest)
+        barrier = Barrier(player, player.body, 1, 1600, 1600, 0, 0, 0)
+        service.owners[player.body] = barrier
+        owner_digest = snapshot_digest(self.capture(session))
+        barrier.hp = 1552
+        hp_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(owner_digest, hp_digest)
+        barrier.blocked_until = 5.0
+        self.assertNotEqual(hp_digest, snapshot_digest(self.capture(session)))
+
+    def test_projected_bubble_hp_and_expiry_are_causal_state(self):
+        from ow174.game.barriers import PROJECTED, Bubble
+
+        session, _, players = self.scene()
+        player = players[0]
+        service = player.match.combat.barriers
+        bubble = Bubble(player, player.body, PROJECTED, 1, 16, 2.0, 200)
+        service.bubbles[player.body, PROJECTED] = bubble
+        before = snapshot_digest(self.capture(session))
+        bubble.hp -= 48
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, damaged)
+        bubble.expires += 0.5
+        self.assertNotEqual(damaged, snapshot_digest(self.capture(session)))
+
     def test_extra_shields_conversion_counter_and_decay_clock_are_causal_state(self):
         session, _, players = self.scene()
         player = players[0]
@@ -61,7 +234,12 @@ class ServerSnapshotTests(unittest.TestCase):
         ready_digest = snapshot_digest(self.capture(session))
         self.assertNotEqual(ready_digest, orb_digest)
         player.body_script.world.zenyatta_charge_ammo = 1
-        self.assertNotEqual(snapshot_digest(self.capture(session)), ready_digest)
+        charge_digest = snapshot_digest(self.capture(session))
+        self.assertNotEqual(charge_digest, ready_digest)
+        player.body_script.emp_suppressed_buttons = 0x20
+        self.assertNotEqual(snapshot_digest(self.capture(session)), charge_digest)
+        del player.body_script.emp_suppressed_buttons
+        self.assertEqual(snapshot_digest(self.capture(session)), charge_digest)
 
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
@@ -203,6 +381,23 @@ class StoredJournalTests(unittest.TestCase):
             sendto=send, verify_stored_state=True,
         )
         return session, sent
+
+    def test_finite_zen_orb_initial_catalog_and_stored_state_replay_match(self):
+        from ow174.game import matrix
+
+        self.assertIsNotNone(matrix.loaded_tags())  # bound before the first controlled root
+        session, sent = self.make()
+        peers, players = journal_tests.ServerJournalTests().connected(session, sent, two=False)
+        player = players[0]
+        session.apply('switch_hero', {'account': player.account_lo, 'hero': 0x02E0000000000020})
+        peers[0].commands(player.body_script.frame+1, 1, 1)
+        self.assertTrue(any(r.definition == 0x0400000000000236 for r in player.match.combat.rockets))
+        session.tick(101.2)
+        document = session.finish()
+        self.assertEqual(document['state_profile'], 'registered-domain-v1')
+        result = _ReplaySession(document, session.registry.resolve).run()
+        self.assertTrue(result['stored_state_verified'])
+        self.assertFalse(result['complete_battle_replay'])
 
     def test_stored_profile_replays_creation_raw_spawn_and_vm_state(self):
         with mock.patch("socket.socket", side_effect=AssertionError("no sockets")):

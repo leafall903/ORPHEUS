@@ -8,9 +8,20 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+import types
 
-from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game import dva, replay_values
+from ow174.game.script import (
+    body_owner,
+    entity_queries,
+    expr,
+    graph,
+    message_receive,
+    message_scope,
+    modifiers,
+    nodes,
+    runtime,
+)
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -28,8 +39,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
-    "initialized_frame",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire", "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
@@ -72,7 +83,7 @@ _STATE_LAYOUTS = {
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
@@ -90,10 +101,17 @@ _STATE_LAYOUTS = {
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.TrackRay: ((), ()),
     nodes.ReconstructedCastGate: ((), ()),
+    nodes.PlacementProbe: (("queries", "result"), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
+    nodes.AssassinDirectionRecord: ((), ()),
+    nodes.HealthPool: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    modifiers.NumericModifiers: ("_source_frame", "ready", "records", "velocity_sets"),
+    modifiers.Record: ("kind", "key", "start", "field", "operation", "value", "priority", "upper", "end"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -190,6 +208,9 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        target = fields['ruleset_target_entity']
+        if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance ruleset target cache')
         frame = fields['initialized_frame']
         if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance initialization frame')
@@ -389,12 +410,63 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match", "zenyatta_charge_ammo"))
+                fields.update(("body", "throttles", "match", "zenyatta_charge_ammo", "dva_queries"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
+                               "body", "dva_queries", "manual_target"))
+                if hasattr(obj, "pool_profile"):
+                    fields.add("pool_profile")
+                if hasattr(obj, "assassin_direction_records"):
+                    fields.add("assassin_direction_records")
+                    fields.add("assassin_numeric_modifiers")
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
+        if kind is dva.QueryRegistry:
+            _layout(obj, {'world', 'context', 'owner_context'})
+            if obj.world is not self.component.world or type(obj.context) is not entity_queries.Context:
+                raise BodyVMSnapshotError('foreign DVa query registry')
+            context = obj.context
+            data = _layout(context, {'owner', 'namespace_present', 'environment_present',
+                                    'possession_context_present', 'lookup', 'watch_environment',
+                                    'watch_possession', 'retired'})
+            callbacks = {}
+            for field, function in (('lookup', dva.QueryRegistry.lookup),
+                                    ('watch_possession', dva.QueryRegistry.watch_possession)):
+                callback = data[field]
+                if (type(callback) is not types.MethodType or callback.__self__ is not obj
+                        or callback.__func__ is not function or vars(function)):
+                    raise BodyVMSnapshotError('unknown DVa registry callback')
+                callbacks[field] = [self.identity(callback), self.identity(function), function.__qualname__]
+            if data['watch_environment'] is not None:
+                raise BodyVMSnapshotError('unknown DVa registry environment hub')
+            owner = obj.owner_context
+            if type(owner) is not body_owner.Context:
+                raise BodyVMSnapshotError('foreign direct body owner context')
+            owner_data = _layout(owner, {'owner', 'instance_present', 'environment_present',
+                                         'lookup', 'watch_environment', 'watch_owner', 'retired'})
+            owner_callbacks = {}
+            for field, function in (('lookup', dva.QueryRegistry.lookup_owner),
+                                    ('watch_owner', dva.QueryRegistry.watch_owner)):
+                callback = owner_data[field]
+                if (type(callback) is not types.MethodType or callback.__self__ is not obj
+                        or callback.__func__ is not function or vars(function)):
+                    raise BodyVMSnapshotError('unknown direct body owner callback')
+                owner_callbacks[field] = [self.identity(callback), self.identity(function),
+                                          function.__qualname__]
+            if owner_data['watch_environment'] is not None:
+                raise BodyVMSnapshotError('unknown direct body owner environment hub')
+            return {'class': _name(kind), 'identity': self.identity(obj),
+                    'fields_identity': self.identity(vars(obj)),
+                    'world_identity': self.identity(obj.world), 'context_identity': self.identity(context),
+                    'context_fields_identity': self.identity(vars(context)),
+                    'context': {key: self.value(value) for key, value in data.items()
+                                if key not in ('lookup', 'watch_possession')}, 'callbacks': callbacks,
+                    'owner_context_identity': self.identity(owner),
+                    'owner_context_fields_identity': self.identity(vars(owner)),
+                    'owner_context': {key: self.value(value) for key, value in owner_data.items()
+                                      if key not in ('lookup', 'watch_owner')},
+                    'owner_callbacks': owner_callbacks}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

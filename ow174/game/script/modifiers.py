@@ -106,12 +106,13 @@ class NumericModifiers:
     does not assign property names, supply base values or move a game entity.
     """
 
-    def __init__(self, source_frame: int = 0, *, ready: bool = True):
+    def __init__(self, source_frame: int = 0, *, ready: bool = True, host_velocity: bool = False):
         self.source_frame = _uint(source_frame, 32, "source frame")
         if type(ready) is not bool:
             raise ValueError("modifier readiness must be bool")
         self.ready = ready
         self.records: list[Record] = []
+        self.velocity_sets = {} if host_velocity else None
 
     @property
     def source_frame(self) -> int:

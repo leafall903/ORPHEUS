@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import lucio, pools, symmetra, winston, zarya
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -69,8 +69,9 @@ MAX_GAP = 256  # command frames run at most to catch up
 MAX_SHOTS = 256  # shots kept on the component's list for combat.py
 MAX_REPORTS = 128  # owner frames kept on the reports list for projectiles.py
 KILL_FEED_PULSERS = {0x01CF: 108, 0x0C18: 8}  # their client-only plug posts 0765.025 to the mode UI
+LOGICAL_PRIMARY = 20
 EDGE_BITS = (  # command button bit -> logical button, in the client's order (0x7FF789C66AA0)
-    (0x40, 11), (0x80, 12), (0x01, 20), (0x02, 29), (0x08, 35), (0x10, 36), (0x20, 37), (0x04, 30),
+    (0x40, 11), (0x80, 12), (0x01, LOGICAL_PRIMARY), (0x02, 29), (0x08, 35), (0x10, 36), (0x20, 37), (0x04, 30),
     (0x800, 31), (0x400, 14), (0x01, 111), (0x02, 112), (0x04, 113), (0x08, 114), (0x10, 110), (0x20, 116),
     (0x40, 115),
 )  # fmt: skip
@@ -127,11 +128,105 @@ class BodyWorld(runtime.World):
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
         self.zenyatta_charge_ammo: int | None = None
+        from ow174.game import dva
+
+        self.dva_queries = dva.QueryRegistry(self) if hero == dva.HERO else None
+
+    def entity_query_context(self, entity):
+        if (entity == self.body and self.match is not None and not self.match.ended
+                and self.dva_queries is not None):
+            return self.dva_queries.context
+        return NotImplemented
+
+    def body_owner_context(self, entity):
+        if (entity == self.body and self.match is not None and not self.match.ended
+                and self.dva_queries is not None):
+            return self.dva_queries.owner_context
+        return NotImplemented
+
+    def polled_entity_var(self, entity, var, watcher):
+        if self.hero == 0x02E0000000000004 and var == 6442 and self.match is not None:
+            target = next((p for p in self.match.players if p.has_body and p.body == entity), None)
+            script = target.body_script if target is not None else None
+            slot = script.component.entity_var(var, create=False) if script is not None else None
+            return slot.value() if slot is not None else None
+        return (self.dva_queries.member(entity, var, watcher)
+                if self.dva_queries is not None else NotImplemented)
+
+    def script_component_present(self, entity):
+        if self.dva_queries is None or self.match is None:
+            return NotImplemented
+        return self.dva_queries.script(entity) is not None
+
+    def entity_ruleset(self, entity, key):
+        if self.dva_queries is None or self.match is None:
+            return NotImplemented
+        script = self.dva_queries.script(entity)
+        return script.component.world.ruleset(key) if script is not None else None
 
     def assignment_value(self, instance, node, value):
         from ow174.game.zenyatta import weapon_assignment
 
         return weapon_assignment(self, instance, node, value)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import sombra_emp
+
+        result = sombra_emp.modify_health(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        if self.hero == lucio.HERO:
+            return lucio.modify_health(self, state, elapsed_ms)
+        if self.hero == winston.HERO:
+            return winston.modify_health(self, state, elapsed_ms)
+        if self.hero == symmetra.HERO:
+            return symmetra.modify_health(self, state, elapsed_ms)
+        return zarya.modify_health(self, state, elapsed_ms)
+
+    def track_ray(self, state, active):
+        if self.hero == symmetra.HERO:
+            return symmetra.track_ray(self, state, active)
+        return NotImplemented
+
+    def end_health(self, state):
+        from ow174.game import sombra_emp
+
+        sombra_emp.end_health(self, state)
+
+    def placement_probe(self, state):
+        from ow174.game import dva
+
+        return dva.placement_probe(self, state)
+
+    def create_actor(self, instance, node):
+        from ow174.game import dva
+
+        result = dva.create_actor(self, instance, node)
+        if result is not NotImplemented:
+            return result
+        from ow174.game import barriers
+
+        return barriers.create_dome(self, instance, node)
+
+    def destroy_script_body(self, instance, node):
+        from ow174.game import barriers
+
+        return barriers.destroy_dome(self, instance, node)
+
+    def play_script(self, instance, node):
+        from ow174.game import barriers
+
+        if (self.hero, instance.graph.index, node.pos) == (barriers.WINSTON, 0xFA, 2):
+            barriers.play_dome(self, instance, node)
+        else:
+            super().play_script(instance, node)
+
+    def play_resolved_script(self, instance, node, resource):
+        from ow174.game import sombra_emp, sombra_hack
+
+        if not (sombra_emp.route(self, instance, node, resource)
+                or sombra_hack.route(self, instance, node, resource)):
+            super().play_resolved_script(instance, node, resource)
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -140,8 +235,58 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def unit_body_scale(self, cfg, instance):
+        target = cfg.get("m_entity")
+        component = instance.component
+        if (component.entity == self.body and expr.valid_entity(self.body)
+                and isinstance(target, dict)
+                and target.get("$") in {"STU_B5A0CAF0", "STUConfigVarDynamic"}
+                and instance.evaluate(target) == Entity(self.body)):
+            override = component.entity_var(BODY_SCALE_OVERRIDE, create=False)
+            scale = override.value() if override is not None else None
+            if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
+                return UNIT_ENTITY_SCALE
+        return NotImplemented
+
+    def track_targets(self, state):
+        from ow174.game import mercy_boost, sombra_emp, sombra_hack
+
+        if (self.hero == 0x02E000000000013B and self.match is not None
+                and state.instance.graph.index == 0x0B9E and state.index in (3, 6)):
+            selected = self.match.combat.nano_targets(self.body, state)
+        else:
+            selected = mercy_boost.targets(self, state)
+            if selected is None:
+                selected = sombra_emp.targets(self, state)
+            if selected is None:
+                selected = sombra_hack.targets(self, state)
+        if selected is not None:
+            state.instance.write(expr.lvalue(state.node.field("m_8A2905A0")), selected)
+            return True
+        return False
+
     def native(self, cfg: dict, instance):
+        from ow174.game import sombra_hack
+
         cls = cfg.get("$")
+        if cls in ("STU_AC829876", "STU_E72F6348"):
+            answer = sombra_hack.predicate(self, cfg, instance)
+            if answer is not NotImplemented:
+                return answer
+            if self.hero == symmetra.HERO:
+                answer = symmetra.stage_predicate(self, cfg, instance)
+                if answer is not NotImplemented:
+                    return answer
+        if self.hero == symmetra.HERO and cls == "STU_25ECB55F":
+            answer = symmetra.ammo_predicate(self, cfg, instance)
+            if answer is not NotImplemented:
+                return answer
+        if self.dva_queries is not None and instance is not None and instance.graph.index == 0x026A:
+            from ow174.game import dva
+
+            pose = dva.entry_pose(self, instance, cfg, cls)
+            if pose is not NotImplemented:
+                return pose
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -149,19 +294,34 @@ class BodyWorld(runtime.World):
             return Vec3(f32(right * THROTTLE_UNIT), f32(forward * THROTTLE_UNIT), 0.0)
         if cls == "STU_37F20D24":  # GetGameMode: the match's mode (what component 114 announces)
             return Asset(self.mode)
-        if cls == "STU_FDBB0B67":  # entity size used by the authored movement and effect graphs
-            target = cfg.get("m_entity")
-            component = instance.component
-            if (component.entity == self.body and expr.valid_entity(self.body)
-                    and isinstance(target, dict)
-                    and target.get("$") in {"STU_B5A0CAF0", "STUConfigVarDynamic"}
-                    and instance.evaluate(target) == Entity(self.body)):
-                override = component.entity_var(BODY_SCALE_OVERRIDE, create=False)
-                scale = override.value() if override is not None else None
-                if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
-                    return UNIT_ENTITY_SCALE
+        if cls == "STU_FDBB0B67":
+            scale = self.unit_body_scale(cfg, instance)
+            if scale is not NotImplemented:
+                return scale
+        if (self.hero == 0x02E0000000000004 and self.match is not None and instance is not None
+                and instance.graph.index == 0x01C7):
+            if cls == "STU_4A101787":
+                return True  # scoped authoritative role for the authored eligibility gate
+            if cls == "STU_9622CAD6":
+                from ow174.game.world import GAME_MODE_ENTITY
+
+                return Entity(GAME_MODE_ENTITY)
+            if cls == "STU_ABB6C23E":
+                return Asset(0)  # reconstructed ordinary mode category
+        if (self.hero == 0x02E0000000000004 and self.match is not None and instance is not None
+                and instance.graph.index == 0x0B8B and cls == "STU_F7262B36"):
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_801B298F")))
+            player = next((p for p in self.match.players
+                           if p.has_body and not p.gone and p.body == entity), None)
+            return Entity(player.entity if player is not None else 0)
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if self.hero == 0x02E0000000000004 and cls == "STU_AC829876":
+            from ow174.game import mercy_boost
+
+            result = mercy_boost.award_filter(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
@@ -263,10 +423,16 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        if body_definition is None:
+            record = next((item for item in graph.bodies().values() if int(item['hero'], 16) == hero), None)
+        else:
+            record = graph.bodies().get(body_definition) or graph.entity_body(body_definition)
+            if record is not None and record.get('hero') not in (None, f'0x{hero:016X}'):
+                raise ValueError('selected body belongs to another hero')
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -286,7 +452,11 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        initial_pools = (pools.body_pools(hero) if body_definition is None
+                         else pools.active_pools(hero, body_definition))
+        if hero == 0x02E0000000000004:
+            self.component.set(9583, 1.0)  # reconstructed default staff acquisition angle
+        self._spawn(start_frame, sum(initial_pools) if health is None else health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -349,7 +519,10 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        from ow174.game import sombra_hack
+
         self.component.run_frame(frame, edges)
+        sombra_hack.retire_finished(self)
         self._report_shots()
         self._charge_ult()
 
@@ -358,6 +531,9 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
+        if (self.hero == 0x02E0000000000004 and self.world.match is not None
+                and expr.truthy(self.component.entity_var(2426).value())):
+            return  # the mounted authored 0B8B clock owns passive charge
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -539,6 +715,16 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        if self.world.dva_queries is not None:
+            from ow174.game import dva
+
+            match = self.world.match
+            if match is not None:
+                owner = next((p for p in match.players if p.body == self.entity), None)
+                if owner is not None:
+                    dva.retire_source(match, owner)
+            self.world.dva_queries.context.retire()
+            self.world.dva_queries.owner_context.retired = True
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

@@ -35,10 +35,17 @@ def _numbers(entries) -> dict[int, float]:
 def hero_pools(hero: int) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
     record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    result = record_pools(record)
+    if result is None:
+        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
+    return result
+
+
+def record_pools(record: dict | None) -> tuple[float, float, float] | None:
+    """Read actual0033 schema pools for a selected definition, without hero fallback."""
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
-        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
         return None
     values = _numbers(body.fields["m_publicSchema"]["m_entries"])
     values.update(_numbers(item.get("m_1EB5A024")))
@@ -48,3 +55,20 @@ def hero_pools(hero: int) -> tuple[float, float, float] | None:
 def body_pools(hero: int) -> tuple[float, float, float]:
     """hero_pools, or FALLBACK (logged) for a hero without data."""
     return hero_pools(hero) or FALLBACK
+
+
+def active_pools(hero: int, definition: int) -> tuple[float, float, float]:
+    """Read a selected body's actual pools; an absent alternate form cannot borrow the pilot."""
+    record = graph.bodies().get(definition) or graph.entity_body(definition)
+    if record is not None:
+        if record.get('hero') not in (None, f'0x{hero:016X}'):
+            raise ValueError('selected body pools belong to another hero')
+        values = record_pools(record)
+        if values is None:
+            raise ValueError(f'selected body {definition:016X} has no0033 health pools')
+        return values
+    canonical = next((body for body, row in graph.bodies().items()
+                      if int(row['hero'], 16) == hero), None)
+    if canonical is not None and canonical != definition:
+        raise ValueError(f'selected body {definition:016X} has no prepared definition')
+    return body_pools(hero)

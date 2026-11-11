@@ -9,7 +9,7 @@ This is not a native engine implementation or original-client acceptance.
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import stats
+from ow174.game import defense_filters, stats
 from ow174.game.script import expr
 from ow174.game.world import SHIELDS_POOL
 
@@ -17,6 +17,7 @@ HERO = 0x02E0000000000020
 DISCORD, HARMONY = 0x08, 0x10
 ORB_RANGE, LOS_GRACE, RECOVERY = 40.0, 3.0, 0.75
 HARMONY_RATE, TRANSCENDENCE_RATE, DISCORD_SCALE = 30.0, 300.0, 1.25
+TICK = 0.016
 
 
 def weapon_assignment(world, instance, node, value):
@@ -76,6 +77,29 @@ class Zenyatta:
                 if orb is not None and orb.target == body:
                     self.set_orb(owner, name, None)
 
+    def interrupt(self, player):
+        """Reconstructed control binding to0164's authored lost-priority exit.
+
+        Stack122 under ->98 clears1392 and aborts35/visual scopes before the
+        held button is released. A running35 also uses its normal end/cooldown
+        plugs. No ammunition refund or generic body-control semantics implied.
+        """
+        script = getattr(player, 'body_script', None)
+        if getattr(player.hero, 'guid', None) != HERO or script is None:
+            return
+        for instance in list(script.component.instances.values()):
+            if instance.graph.index != 0x0164:
+                continue
+            node = instance.graph.node(122)
+            charge = instance.states.get(node.state) if node is not None else None
+            if charge is not None and charge.active:
+                instance.follow(node, 'm_underSubgraphPlug', charge)
+            node = instance.graph.node(35)
+            volley = instance.states.get(node.state) if node is not None else None
+            if volley is not None and volley.active:
+                volley.end(False)
+        script.component.run_now()
+
     def set_orb(self, owner, name, orb):
         setattr(owner, name, orb)
         script = getattr(owner.player, "body_script", None)
@@ -86,21 +110,37 @@ class Zenyatta:
             if instance.graph.index == graph:
                 instance.write((0, 1606), expr.Entity(orb.target) if orb is not None else 0)
 
-    def ultimate(self, player):
+    def ultimate_state(self, player):
         script = getattr(player, "body_script", None)
         if script is None or getattr(player.hero, "guid", None) != HERO:
-            return False
-        return any(
-            instance.graph.index == 0x017B and (state := instance.states.get(3)) is not None
-            and state.active for instance in script.component.instances.values()
-        )
+            return None
+        return next((state for instance in script.component.instances.values()
+                     if instance.graph.index == 0x017B and (state := instance.states.get(3)) is not None
+                     and state.active), None)
+
+    def ultimate_last_world_tick(self, player):
+        state = self.ultimate_state(player)
+        return defense_filters.last_countdown_world_tick(state) if state is not None else None
+
+    def ultimate(self, player):
+        end = self.ultimate_last_world_tick(player)
+        return end is not None and self.combat.tick <= end
+
+    def stale_ultimate_flag(self, player):
+        end = self.ultimate_last_world_tick(player)
+        return end is not None and self.combat.tick > end
+
+    def cleanse_discord(self, body):
+        for owner in self.owners.values():
+            if owner.discord is not None and owner.discord.target == body:
+                self.set_orb(owner, "discord", None)
 
     def allied(self, player, target):
         return target.owner is player or (
             not self.combat.match.game_map.free_for_all and target.team == player.team
         )
 
-    def visible(self, player, target):
+    def visible(self, player, target, *, hostile_barriers=False):
         from ow174.game.combat import _sub, ray_world
 
         origin = self.combat._eye(player)
@@ -109,8 +149,11 @@ class Zenyatta:
         distance = math.sqrt(sum(axis * axis for axis in delta))
         if distance <= 1e-9:
             return True
-        wall = ray_world(self.combat._collision(), origin, tuple(axis / distance for axis in delta), distance)
-        return wall is None or wall >= distance
+        direction = tuple(axis / distance for axis in delta)
+        wall = ray_world(self.combat._collision(), origin, direction, distance)
+        if wall is not None and wall < distance:
+            return False
+        return not hostile_barriers or self.combat.barriers.ray(player, origin, direction, distance) is None
 
     def select(self, player, command, healing):
         from ow174.game.combat import _dot, _sub, aim
@@ -122,12 +165,17 @@ class Zenyatta:
                 continue
             if self.combat.vitals_of(target).dead:
                 continue
+            if not healing and self.combat.barriers.bubble(target) is not None:
+                continue
             delta = _sub((target.feet[0], target.feet[1] + target.eye, target.feet[2]), origin)
             distance = math.sqrt(_dot(delta, delta))
             if distance > ORB_RANGE or distance <= 1e-9:
                 continue
             alignment = _dot(delta, direction) / distance
-            if alignment < math.cos(math.radians(10)) or not self.visible(player, target):
+            # Reconstructed default acquisition policy. Retention keeps its
+            # existing world-only ray. Personal barriers cleanse separately.
+            if alignment < math.cos(math.radians(10)) or not self.visible(
+                    player, target, hostile_barriers=not healing):
                 continue
             key = (-alignment, distance, target.entity)
             if best is None or key < best[0]:
@@ -140,11 +188,12 @@ class Zenyatta:
             return
         pressed = command.buttons & ~owner.buttons
         owner.buttons = command.buttons
-        active = self.ultimate(player)
+        active = self.ultimate_state(player) is not None
         if active and not owner.ultimate_active:
             target = next((t for t in self.combat._targets() if t.owner is player), None)
             if target is not None:
                 vitals = self.combat.vitals_of(target)
+                self.combat.healing.cleanse_negative(target)  #017B#8440 satisfies0C72 abort predicate
                 vitals.heal(sum(vitals.most.values()))  # authored017B/ModifyHealth self restoration
                 self.combat._sync_body_health(player, vitals)
         owner.ultimate_active = active
@@ -171,6 +220,10 @@ class Zenyatta:
                 return DISCORD_SCALE  # multiple Zenyattas do not multiply Discord
         return 1.0
 
+    def discord_deadline_in_gap(self, start, end):
+        return any(start < orb.last_visible + LOS_GRACE <= end
+                   for owner in self.owners.values() if (orb := owner.discord) is not None)
+
     def charge(self, player, amount):
         script = getattr(player, "body_script", None)
         if (getattr(player.hero, "guid", None) != HERO or script is None or amount <= 0
@@ -184,22 +237,75 @@ class Zenyatta:
         if getattr(target.owner.hero, "guid", None) == HERO:
             self.owner(target.owner).last_damage = self.combat.now
 
-    def heal(self, healer, target, amount):
+    def regenerate_before_damage(self, target, vitals):
+        tick = self.combat.tick
+        if self.last_tick is None or tick <= self.last_tick + 1:
+            return
+        owner = self.owners.get(target.entity)
+        if owner is not None:
+            # Keep healing from omitted updates before damage resets the deadline.
+            now = self.combat.now
+            self.regenerate_shields(owner, target, vitals, now-(tick-self.last_tick)*TICK, now-TICK, tick-1)
+
+    def regenerate_shields(self, owner, target, vitals, start, end, end_tick):
+        # Reconstructed shield regeneration: shield pool only, 30/s
+        # after three seconds without actual damage.
+        dt = end - max(start, owner.last_damage + 3.0)
+        if dt <= 0 or vitals.now[SHIELDS_POOL] >= vitals.most[SHIELDS_POOL]:
+            return False
+        vitals.now[SHIELDS_POOL] = min(
+            vitals.most[SHIELDS_POOL],
+            vitals.now[SHIELDS_POOL] + 30.0*dt*self.combat.healing.factor(target, dt, end_tick=end_tick),
+        )
+        vitals.changed.add(SHIELDS_POOL)
+        return True
+
+    def heal(self, healer, target, amount, *, seconds=0.0, end_tick=None, award_charge=True):
         vitals = self.combat.vitals_of(target)
         if vitals.dead or not self.allied(healer, target):
             return
-        given = vitals.heal(amount)
+        given = vitals.heal(amount*self.combat.healing.factor(target, seconds, end_tick=end_tick))
         if given > 0:
             healer.stats.add(stats.HEALING, given)
-            self.charge(healer, given)
+            if award_charge:
+                self.charge(healer, given)
             self.combat._sync_body_health(target.owner, vitals)
+
+    def competing_heals(self, *, wounded=False):
+        targets = {target.entity: target for target in self.combat._targets()}
+        sources = {}
+        for body, owner in self.owners.items():
+            player = owner.player
+            if body not in targets or player.body != body or self.combat.is_dead(player):
+                continue
+            sources[body] = sources.get(body, 0) + 1  # passive shield recovery
+            if owner.harmony is not None:
+                target = targets.get(owner.harmony.target)
+                if target is not None and self.allied(player, target):
+                    sources[target.entity] = sources.get(target.entity, 0) + 1
+            if self.ultimate(player):
+                origin = self.combat._eye(player)
+                for target in targets.values():
+                    point = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
+                    if self.allied(player, target) and math.dist(origin, point) <= 10:
+                        sources[target.entity] = sources.get(target.entity, 0) + 1
+        for entity, count in sources.items():
+            if count < 2:
+                continue
+            if not wounded:
+                return True
+            vitals = self.combat.vitals_of(targets[entity])
+            if not vitals.dead and any(vitals.now[pool] < maximum for pool, maximum in vitals.most.items()):
+                return True
+        return False
 
     def update(self):
         tick = self.combat.tick
         if self.last_tick is not None and tick <= self.last_tick:
             return
         # The first admitted tick covers one interval, never an entire match uptime.
-        dt = 0.016 if self.last_tick is None else (tick - self.last_tick) * 0.016
+        first_tick = tick if self.last_tick is None else self.last_tick + 1
+        dt = (tick - first_tick + 1) * TICK
         self.last_tick = tick
         targets = {target.entity: target for target in self.combat._targets()}
         for body, owner in list(self.owners.items()):
@@ -207,16 +313,10 @@ class Zenyatta:
             if body not in targets or player.body != body or self.combat.is_dead(player):
                 self.retire(body)
                 continue
-            vitals = self.combat.vitals_of(targets[body])
-            # Reconstructed OW1 shield regeneration: shield pool only, 30/s
-            # after three seconds without actual damage. Boundary overlap is
-            # integrated, so a skipped update does not heal its pre-delay time.
-            regen_dt = max(0.0, self.combat.now - max(self.combat.now - dt, owner.last_damage + 3.0))
-            if regen_dt and vitals.now[SHIELDS_POOL] < vitals.most[SHIELDS_POOL]:
-                vitals.now[SHIELDS_POOL] = min(
-                    vitals.most[SHIELDS_POOL], vitals.now[SHIELDS_POOL] + 30.0 * regen_dt,
-                )
-                vitals.changed.add(SHIELDS_POOL)
+            target = targets[body]
+            vitals = self.combat.vitals_of(target)
+            now = self.combat.now
+            if self.regenerate_shields(owner, target, vitals, now-dt, now, tick):
                 self.combat._sync_body_health(player, vitals)
             for name in ("harmony", "discord"):
                 orb = getattr(owner, name)
@@ -230,14 +330,25 @@ class Zenyatta:
                 point = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
                 if math.dist(self.combat._eye(player), point) <= ORB_RANGE and self.visible(player, target):
                     orb.last_visible = self.combat.now
-                if self.combat.now - orb.last_visible >= LOS_GRACE:
+                elapsed = now - orb.last_visible
+                if name == "harmony":
+                    end_tick = tick
+                    if elapsed >= LOS_GRACE:
+                        # The expiry update itself never heals, even in a catch-up interval.
+                        end_tick -= math.floor((elapsed-LOS_GRACE)/TICK) + 1
+                    if end_tick >= first_tick:
+                        seconds = (end_tick-first_tick+1)*TICK
+                        self.heal(player, target, HARMONY_RATE*seconds, seconds=seconds, end_tick=end_tick)
+                if elapsed >= LOS_GRACE:
                     self.set_orb(owner, name, None)
-                elif name == "harmony":
-                    self.heal(player, target, HARMONY_RATE * dt)
-            if self.ultimate(player):
+            end = self.ultimate_last_world_tick(player)
+            if end is not None and end >= first_tick:
+                end_tick = min(tick, end)
+                seconds = (end_tick-first_tick+1)*TICK
                 origin = self.combat._eye(player)
                 for target in targets.values():
                     point = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
                     distance = math.dist(origin, point)
-                    if distance <= 10 and self.visible(player, target):
-                        self.heal(player, target, TRANSCENDENCE_RATE * dt)
+                    if distance <= 10 and self.visible(player, target, hostile_barriers=True):
+                        self.heal(player, target, TRANSCENDENCE_RATE*seconds,
+                                  seconds=seconds, end_tick=end_tick, award_charge=False)

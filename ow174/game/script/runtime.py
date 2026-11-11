@@ -255,7 +255,9 @@ class InstanceContext(Context):
         slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
         if slot is not NotImplemented:
             return self._read(slot)
-        value = component.world.entity_var(entity, var)
+        value = component.world.polled_entity_var(entity, var, self.watcher)
+        if value is NotImplemented:
+            value = component.world.entity_var(entity, var)
         if value is NotImplemented:
             if component.strict:
                 component.unsupported(self.instance, "entity variable service", f"{entity:08X}:{var}")
@@ -269,6 +271,30 @@ class InstanceContext(Context):
             if component.strict:
                 component.unsupported(self.instance, "entity position", f"{entity:08X}")
             return expr.Vec3(0.0, 0.0, 0.0)
+        return value
+
+    def resolved_member(self, entity: int, var: int):
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, 'foreign entity ruleset', f'{entity:08X}:{key}')
         return value
 
     def ruleset(self, key: int):
@@ -302,9 +328,11 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -386,11 +414,45 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def polled_entity_var(self, entity: int, var: int, watcher: "State | None"):
+        """Optional host member service with explicitly reconstructed polling."""
+        return NotImplemented
+
+    def script_component_present(self, entity: int):
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def placement_probe(self, state: "State"):
+        return NotImplemented
+
+    def create_actor(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def track_targets(self, state: "State") -> None:
+        pass
+
+    def track_ray(self, state: "State", active: bool):
+        return NotImplemented
+
+    def destroy_script_body(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def set_health_pool(self, state: "State", active: bool):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -429,6 +491,10 @@ class World:
 
     def data_flow_context(self, entity: int):
         """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Explicit direct component43 ownership namespace, distinct from possession."""
         return NotImplemented
 
     def entity_query_context(self, entity: int):
@@ -670,7 +736,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -939,6 +1005,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, last resolved member VM for CCFAC0.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -1338,13 +1405,13 @@ class Instance:
         return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
-        """The states a subgraph plug lists (m_FF3DAF1E)."""
+        """Look up existing states listed by a subgraph plug (m_FF3DAF1E)."""
         plug = node.field(path)
         if not is_plug(plug):
             return []
         found = []
         for index in plug.get(SUBGRAPH_STATES) or []:
-            state = self.state(index) if index is not None else None
+            state = self.states.get(index)
             if state is not None:
                 found.append(state)
         return found
@@ -1358,7 +1425,8 @@ class Instance:
         for state in states:
             if state.active:
                 state.end(False)
-        self.drop_begins(states)
+        # End callbacks can queue begins for other children in this same subgraph.
+        self.drop_begins(self.follow_states(node, path))
 
     def run_node(self, node: Node, caller: "State | None") -> bool:
         """Run an action, condition or entry now; returns whether it took a path."""
@@ -1485,6 +1553,10 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # A canceled notification cannot keep its coalescing marker into the
+        # next activation. End hooks below must not enqueue fresh notifications.
+        self.flags_changed = False
+        self.flags_check = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

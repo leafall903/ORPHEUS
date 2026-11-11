@@ -10,9 +10,40 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Four NPC ranged reverse attacks now execute, including reconstructed Enforcer
   readiness and25-pellet rings. All-five secondary/melee/ultimate-heal fixtures
   execute. Selected actual Sigma absorption/conversion/decay and Flashbang
-  charge-interrupt/Transcendence-immunity cases now execute. Assassin reverse
-  attack, remaining secondary control edges and broader
+  charge-interrupt/Transcendence-immunity cases now execute. Selected actual1157
+  Assassin reverse contact/rate/control, source interruption and victim immunity
+  now execute through a reconstructed manual bridge. Native pin/recovery,
+  remaining secondary control edges and broader
   defenses/control remain open. See [lane evidence](ZENYATTA_COMBAT.txt).
+  Uncommitted work executes selected Reinhardt barrier mesh/damage/break/regen
+  cases with external prepared geometry; full shield/status/Matrix coverage is
+  still open. Do not submit new code before full static hero acceptance.
+  Uncommitted Ana grenade hosting executes selected anti-heal/amplification,
+  overlap/expiry, Transcendence flag8440 cleanse/immunity and all-five NPC
+  healing cases. Native status filters, other cleanses, AI tuning and broader
+  control/defense combinations remain open.
+  Actual Genji melee zero-filter and field anti/amp expiry integration now have
+  selected input evidence. Full static acceptance and original-client acceptance
+  remain separate open gates; parent reference work is not a reviewed commit.
+  Actual D.Va pilotQ now executes a scoped reconstructed placement query with
+  ground/slope/clearance/body rejection evidence. A scoped null-config cast gate
+  and actual026A/15 now create a separate0407 mech with300 health/300 armour;
+  actual Zen primary/burst/melee damage it. Broader possession and Matrix,
+  full actor lifecycle and native placement/timing/factory policies remain open.
+  Match-backed query hosting now recognizes the mech and reaches authored seat20.
+  Foreign health reads and source retirement execute with explicit polling.
+  Native17/18/19 direction handling now suppresses summon steering while keeping
+  raw input/look; next-frame onset and replacement recovery have input evidence.
+  Seat20 has not transferred ownership or activated Matrix; those gates stay open.
+  A subsequent execution reproduced an unpossessed mech VM stall; the current
+  uncommitted fix advances its creator-domain clock using elapsed world time.
+  Seven actual-Q timing/death/source-cleanup checks pass, including7ms frames
+  and the original350ms wait. Notification lifetime fixes pass825 script tests.
+  Explicit prepared0407 form selection now uses its own pools/mover/graphs.
+  Direct owner/ruleset fallback initializes real Matrix resource; selected Zen
+  primary/burst absorption, bypass, depletion/recovery and retirement execute.
+  All841 script tests pass on the new model. Complete battle/replay reruns are
+  pending; Q ownership, native Matrix filters/history and other cases stay open.
 
 | Milestone | Exit criteria | Current evidence |
 | --- | --- | --- |

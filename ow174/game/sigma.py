@@ -27,16 +27,20 @@ class Sigma:
         without a fabricated critical hit or victim-side Discord amplification.
         Interception output source is the current projectile damage owner.
         """
-        from ow174.game.combat import _source_entity
-
         amount = 0.0
         if rocket.direct is not None:
             amount += max(0.0, rocket.direct.amount * rocket.direct.scale(distance))
         if rocket.blast is not None:
             amount += max(0.0, rocket.blast.amount)
+        self.record_absorption(state, rocket.shooter, amount)
+
+    def record_absorption(self, state, shooter, amount):
+        """Publish the absorbed amount and current damage owner to the authored graph."""
+        from ow174.game.combat import _source_entity
+
         instance = state.instance
         instance.write(expr.lvalue(state.node.field("m_F6CDC81C")), amount)
-        source = expr.Entity(_source_entity(rocket.shooter))
+        source = expr.Entity(_source_entity(shooter))
         instance.write(expr.lvalue(state.node.field("m_0A2CABA3")), source)
         # Projectile tags are not fabricated. The numeric output and its authored
         # sum path are hosted; general native tag/filter and event semantics remain open.

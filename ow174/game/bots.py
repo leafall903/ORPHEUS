@@ -46,7 +46,7 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.mover import GRAVITY_SCALE, Mover, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -124,6 +124,14 @@ class Bot:
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
+        self.dva_mover = None
+        self.impulse_mover = None
+        self.special_mover = None
+        self.special_attack = False
+        self.special_target_body = None
+        self.dva_buttons = 0
+        self.dva_shell = False
+        self.dva_shell_spent = False
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
@@ -158,11 +166,26 @@ class Bot:
         self.last_tick: int | None = None
 
     def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
-        """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
+        """Advance route or forced movement up to `tick` on the map's collision if loaded."""
+        from ow174.game import assassin
+
         if self.dead:
             return
-        if not self.route:
-            if tick < paused_until:
+        if self.dva_shell:
+            from ow174.game.commands import Command
+
+            first = max(self.last_tick+1, tick-CATCH_UP+1)
+            if first > tick:
+                return
+            self.dva_mover.use(world=collision)
+            for at in range(first, tick+1):
+                self.dva_mover.step_pose(Command(at, yaw=round(self.yaw), pitch=round(self.pitch)), seconds, at)
+            self.last_tick = tick
+            self.position, self.velocity = tuple(self.dva_mover.position), self.dva_mover.velocity
+            self.moved_tick = tick
+            return
+        if not self.route and self.impulse_mover is None:
+            if tick < paused_until or assassin.velocity_locked(self, tick):
                 self._pause(tick)
                 self.last_tick = tick
             return
@@ -171,10 +194,35 @@ class Bot:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            if at < paused_until:
+            if assassin.velocity_locked(self, at):
+                self.impulse_mover = None
                 self._pause(at)
-            else:
+            elif self.impulse_mover is not None:
+                self._step_displacement(at, seconds, collision)
+            elif at < paused_until:
+                self._pause(at)
+            elif self.route:
                 self._tick(at, seconds, collision)
+
+    def displacement_mover(self, collision, tick: int) -> Mover:
+        if self.impulse_mover is None:
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision, mover_data(self.body))
+            self.impulse_mover.velocity = self.velocity
+            self.last_tick = tick
+        return self.impulse_mover
+
+    def _step_displacement(self, tick: int, seconds: float, collision) -> None:
+        from ow174.game.commands import Command
+
+        mover = self.impulse_mover
+        mover.use(world=collision)
+        mover.step_pose(Command(tick, yaw=round(self.yaw), pitch=round(self.pitch)), seconds, tick)
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        self.held = (0, 0)
+        self.pace = 0.0
+        self.moved_tick = tick
+        if not mover.airborne and math.hypot(self.velocity[0], self.velocity[2]) <= EPSILON:
+            self.impulse_mover = None
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -298,6 +346,10 @@ class Bot:
         self.dead = True
         self.attack_target = None
         self.attack_input = False
+        self.impulse_mover = None
+        self.special_mover = None
+        self.special_attack = False
+        self.special_target_body = None
         self.keys = False
         self.held = (0, 0)
         self._stand()

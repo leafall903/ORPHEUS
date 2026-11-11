@@ -69,8 +69,8 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
-    "initialized_frame",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire", "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
@@ -508,7 +508,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
         self.assertEqual(set(dict(body["world"]["fields"])), {
-            "hero", "mode", "body", "throttles", "zenyatta_charge_ammo",
+            "hero", "mode", "body", "throttles", "zenyatta_charge_ammo", "dva_queries",
         })
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())

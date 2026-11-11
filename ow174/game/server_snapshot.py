@@ -20,7 +20,9 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    dva,
     heroselect,
+    matrix,
     notices,
     observers,
     projectiles,
@@ -38,7 +40,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -92,13 +94,17 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice zenyatta sigma stuns"
+        "match vitals history replacement_ticks rockets chain_hooks respawns next_bot now tick melee_seen "
+        "projectiles observers voice zenyatta sigma stuns sleeps frost blizzard barriers healing pins control_history"
     ),
     combat.zenyatta.Zenyatta: _names("combat owners last_tick"),
     combat.sigma.Sigma: _names("combat conversions last_tick"),
+    combat.mei_blizzard.Blizzard: _names("combat flights areas"),
+    combat.mei_frost.Frost: _names("combat samples sources freeze_history"),
+    combat.barriers.Barriers: _names("combat triangles bounds owners bubbles domes"),
+    combat.healing.HealingEffects: _names("combat anti amp"),
     combat.Vitals: _names("entity most now bonus_shields bonus_shields_max ids changed "
-                         "died_at death_tick killer"),
+                         "nano_until died_at death_tick killer"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -116,11 +122,16 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match zenyatta_charge_ammo"),
+    driver.BodyWorld: _names("hero mode body throttles match zenyatta_charge_ammo dva_queries"),
+    dva.QueryRegistry: _names("world context owner_context"),
+    body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
+                               "watch_owner retired"),
+    entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
+                                  "lookup watch_environment watch_possession retired"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match body dva_queries manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -134,14 +145,21 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch dva_mover impulse_mover special_mover special_attack special_target_body dva_buttons dva_shell dva_shell_spent"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    driver.BodyScript: _names("emp_suppressed_buttons"),
+    BotWorld: _names("pool_profile"),
+    combat.Vitals: _names("conditional_pools"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
-    combat.zenyatta.Owner, combat.zenyatta.Orb,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
+    combat.ConditionalPool, combat.ChainHook,
+    combat.zenyatta.Owner, combat.zenyatta.Orb, combat.barriers.Barrier, combat.barriers.Bubble, combat.barriers.Dome,
+    combat.healing.Modifier, combat.mei_blizzard.Flight, combat.mei_blizzard.Area,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -424,7 +442,9 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     graph = _Graph(boundaries, WorldRegistry() if assets is None else assets)
     with server.lock:
         roots = {"server": graph.value(server), "archived_matches": graph.value(archives),
-                 "canonical_movers": graph.value(loaded_mover_table())}
+                 "canonical_movers": graph.value(loaded_mover_table()),
+                 "matrix_tags": graph.value(matrix.loaded_tags()),
+                 "matrix_tags_path": graph.value(str(matrix.TAGS_PATH) if matrix.TAGS_PATH else None)}
         nodes = graph.finish()
     return {
         "schema": SCHEMA, "scope": SCOPE, "restorable": False,

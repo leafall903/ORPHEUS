@@ -4,7 +4,292 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Zenyatta 104319 static combat integration
+
+- Deliver the accumulated weapon, support, defense, and manual NPC combat code
+  with the shared server changes and regression tests it uses.
+- The latest clean replay applied 127 patches and matched all 96 worktree
+  paths before this handoff entry. Its 37 focused tests passed with zero skips.
+  A separate 493-test regression covers an earlier checkpoint.
+- Full static acceptance, a full regression of this revision, and original
+  client acceptance remain pending. Runtime and extracted inputs are external.
+
 ### 2026-11-09
+
+#### Matrix query and catalog lifecycle follow-up (uncommitted)
+
+- The preceding108-file model completed566 battle methods in551.869s,
+  22 server snapshot/replay methods in1013.050s and841 script methods in25.991s,
+  zero skips. All three reports and final disk hashes matched. This checkpoint
+  is historical after the following source changes; it is not full hero acceptance.
+- A diagnostic found that an inactive Matrix query allocated lazy State3.
+  Read the existing state registry instead. All18 Matrix checks pass26.061s,
+  including no query allocation, nearer-body priority, Harmony/Transcendence,
+  no per-hit drain and actual back Flashbang interruption followed by Orb damage.
+- A separate actual finite-Zen STORED journal reproduced an initial-state
+  mismatch when the process-global catalog changed from cold to loaded during
+  recording. The earlier47-root wire-only match did not verify stored state.
+  Bind the immutable configured catalog at module initialization before the
+  first controlled root (empty catalog when unconfigured). Keep catalog/path
+  observable in snapshots. The actual finite-Orb registered-domain stored
+  replay passes551.213s. All841 current script regressions pass24.238s,zero skips;
+  complete current battle/snapshot suites are not yet rerun after these fixes.
+- No commit/submission/client control. Parent's later McCree-only cone helper
+  and native random-table notice is recorded but not imported. Existing Fan
+  factor checks here do not prove current shared scatter accuracy or parity.
+
+#### Selected0407 forms and Zenyatta Matrix combat (uncommitted, partial)
+
+- Select an explicit prepared body through Match/BodyScript, validating its
+  record, pools and mover before retiring the current body. Real0407 uses its
+  own graphs,600 total pools and0.7m radius; returning to040A restores150.
+  These are explicit form commands, not a completed Q possession transition.
+- Port the frozen007A direct-body-owner backend and ruleset null-selector
+  fallback, with scoped DVa Match bindings and causal owner/cache snapshots.
+  Own-lane original-instruction probes pass1056 owner and1296 ruleset cases
+  under declared engine storage/lookup/selector/property adapters. Candidate
+  references are still unreviewed WIP, not imported committed dependencies.
+- Host current-pose active02CC/st3 boxes for known finite Volley projectiles.
+  Manifest-verified primary0236 and secondary0261 tags are separately exported;
+  unknown definitions pass through. Tag0145 exclusion and eye/aim attachment
+  are reconstructions; the complete native097 filter is not implemented.
+  Consumption precedes a farther body/wall/barrier and ends prediction records
+  without an explosion release or direct/splash/status/ultimate-damage award.
+- Seven real form/resource checks pass;13 Matrix checks plus two causal server
+  snapshot checks pass51.693s. The new frozen model passes all841 script tests
+  in25.991s,zero skips. Full battle and server snapshot/replay reruns are pending.
+  Hitscan/beam Matrix, arbitrary payloads, historical activation/pose, all five
+  NPC combinations, native filter/attachment and Q ownership remain open.
+- The earlier530-method clock run had four death-adapter failures. Restricting
+  component-clock access to real BotScript restores all four old interfaces;
+  those four plus seven actor-clock checks pass9.579s. The old snapshot run was
+  explicitly stopped for this confirmed source fix and is not acceptance.
+  Parent's later spread_ramp notice has not been imported; reconcile before any
+  eventual submission. No complete static hero/client/merge-ready claim.
+
+#### Notification lifetime, created-body clocks and combat eyes (uncommitted, partial)
+
+- Clear canceled CHANGED/CHECK markers when State ends and prevent cleanup
+  writes from notifying an ending state. Finish Ability scope/resource cleanup
+  before releasing its arbitration link; that cross-object order is an explicit
+  reconstruction. Two formerly failing minimal cases and all825 script tests
+  now pass without skips. Actual Zen held-primary empty-magazine reload and
+  full-burst-to-primary traces retain their real ammunition consumption.
+- Advance Q-created unpossessed0407 scripts continuously using their creator's
+  frame origin/quantum and elapsed world time. Map projectile/death times across
+  those domains; bootstrap with actual600 combined pools before publication.
+  Roll back failed required-script creation and retire only the source's owned
+  actors on source-script failure/replacement. Seven actual-Q clock tests pass,
+  including7ms frames, positive/negative origins, skipped ticks, the authored
+  350ms wait, an actual Zen kill and preservation of an unrelated manual corpse.
+- Read manifest-verified104319 FirstPerson fields for Zen0216, McCree02A3 and
+  mech0407; share stance lookup between firing origin and target head proxy.
+  Four checks pass for resource hashes/fields, actual crouch commands, Zen low
+  cover and selected McCree primary/Fan critical factors. Missing McCree primary
+  factor2 is reconstructed only at01D2/31; explicit Fan1 remains unchanged.
+  Camera/muzzle/bone transforms and native head regions remain unverified.
+- Complete combat and server snapshot reruns are pending on this frozen model.
+  The515/19 results below belong to its predecessor. Full Zen static matrix,
+  DVa possession/Matrix and original-client acceptance remain open. No commit,
+  merge submission, deployment, client control or push was performed.
+
+#### D.Va actual entity queries and summon input limits (uncommitted, partial)
+
+- Bind DVa BodyWorld to the existing104319 entity-query interpreter through
+  an explicit Match-backed registry: mode, controllers, current player bodies
+  and actual unpossessed bodies. Controller44 reads its real current body.
+  Unknown/invalid identities stay absent; no body alias or constant true result.
+- Read foreign body variables from their actual components without creating
+  slots or borrowing the caller's variables. Poll these reads explicitly;
+  cross-component Var subscriptions and a generic native namespace remain open.
+  Retire the binding with the source BodyScript. Store namespace flags, callback
+  bindings and retirement causally; VM export rejects unknown callbacks.
+- Actual Q now takes026A/28's true branch and reaches authored seat20 after
+  the original wait; the previous65 false fallback is superseded. The seat
+  remains a carrier: no current-body change, owner script adoption or Matrix.
+- The shared throttle-modifier report applies to026A's active17/18/19 rows.
+  Adapt only the direction split/sign/clamp fix from a frozen read-only parent
+  mover reference; the dependency is uncommitted and must be reconciled before
+  submission.120 original instruction-prefix comparisons pass with scalar-mod
+  lookup explicitly stubbed. This is not full native mover equivalence.
+- Nine actual query/movement methods pass: real identity and received-health
+  reads, no foreign slot creation/watch links, source retirement, callback
+  snapshot guards, directional input suppression with raw bytes/look retained,
+  next-frame onset with inertia, and hero replacement restoring movement. The
+  boundary fixture originally expected the factory in Q's first frame; replace
+  that incorrect assumption with observed input-scope onset and a matched
+  held-versus-neutral physical trajectory.515 full regressions and19 complete
+  snapshot/replay checks pass with zero skips on the same frozen106-file model;
+  both reports and the final on-disk input/source hashes agree.
+  Original-client, possession/seat/actor lifecycle and Matrix gates stay open;
+  all new source remains uncommitted.
+- Follow-up inspection found the unpossessed mech VM does not advance after
+  creation: world/pilot1020->1120 leaves mech1013 because the ordinary bot loop
+  skips non-firing, non-manual bodies. Creator command frames and world ticks
+  also need explicit mapping. Record this failed execution; creation/received
+  health/query evidence does not prove live timers/resources. Fix advancement
+  and clock domains before owner adoption or Matrix acceptance. A read-only007A
+  reference has useful explicit-form interfaces and an uncommitted factory,
+  but its explicit-form tests do not prove Q transformation. Nothing imported.
+- A later shared lifecycle notice reproduces two additional failing minimal
+  cases in this lane: canceled CHANGED/CHECK markers survive State.end and
+  cleanup writes notify an ending state. These failures are retained outside
+  Git, not covered by the green515/19 selection. Fix notification lifetime and
+  review cleanup-before-arbitration against actual Zen resources before the
+  next actor-clock/ownership stage; do not claim the shared parent fix imported.
+
+#### D.Va independent mech factory before possession (uncommitted, partial)
+
+- Reconstruct only026A/64's null-config completion, corroborated by original
+  null-config/output/event instruction segments with a declared clock binding.
+  Opaque engine-clock traversal and generic54 timing remain unverified. The
+  scoped factory handler stops without output/success plugs when data is absent.
+- Actual pilotQ now runs026A/15 and allocates an independent0407 body through
+  the existing unpossessed-body host. Read its0033 overrides as300 health and
+  300 armour; run its own initial/weapon graphs and actual2m/.7m mover data.
+  Record source body/controller identities. Keep it separate from manual NPC
+  removal; the five manually spawned NPCs' corpse policy is unchanged.
+- Fourteen actual-input placement/factory methods pass. Actual Zen primary,
+  five-Orb burst and quick melee deal43/215/25 through mech armour; friendly
+  fire, insufficient charge and missing-data failure paths execute. The actual
+  mech VM exports its received health. This is an unpossessed mech; pilot input
+  does not activate Matrix and no player-form replacement is claimed.
+- Prepare an owned44-row runtime variant: only graph/mover metadata are new;
+  unchanged files are read-only hardlinks. Traverse58 graph indexes:50 existing
+  records match, seven are new, and one is inherited missing.
+  Shared01C7 retains the base bundle's missing0F9C reference; selective104319
+  OpenFile also fails for that asset. Record the unresolved reference rather
+  than claiming a complete native resource closure.
+- After factory creation,026A/28's unhosted existence query still takes the
+  legacy fallback and leaves65 active. Real entity/foreign-variable queries,
+  1.75-second possession/seat path, actor/controller cleanup, native factory
+  flags and Matrix combat remain open. The FFA third-player probe exposed the
+  reused manual-NPC0/1 team restriction; summoned bodies now use native FFA
+  filter4 and an actual Q/Orb regression passes. Manual NPC team rules stay0/1.
+  The two verified pre-fix test processes were stopped and their partial logs
+  retained.486 final-model regressions and18 full snapshot/replay checks pass
+  with zero skips; both reports and the final on-disk hashes agree on the same
+  frozen106-file production model and declared inputs. Earlier
+  479/18 logs describe the prior model. Keep all new work uncommitted.
+- Review the shared cooldown-buffer report without importing parent WIP. The
+  lane already reinserts the original consumed press tuple on failed start
+  gates. Four actual Zen/Genji checks pass: early expiry, near-ready buffer,
+  held input preserving its original timestamp, and a new ready press. The held
+  method is supplemental to the full run; no production change was required.
+
+#### D.Va pilot placement before the Matrix interaction (uncommitted, partial)
+
+- Host only026A/node38's explicit placement request. Read direction and reach
+  from the actual nested70C754CD query, then reconstruct a ground ray, authored
+  slope limit, static capsule clearance and living-body rejection. Publish only
+  the placement position1626 whose Vec3 consumer is identified; other native
+  outputs, filters, animated hardpoints and footprint search remain open.
+- Actual full-chargeQ now follows placement success. Missing ground, steep
+  ground, low ceiling and allied/enemy occupancy follow failure. Actual yaw,
+  pitch and insufficient-charge cases execute; the stored result and query
+  count participate in VM snapshots. Eight placement methods and the complete
+  479-method regression run pass with zero skips and unchanged input/model
+  hashes. This supersedes the earlier471-method model for combat regressions.
+  All18 full snapshot/replay checks also pass on the identical106-file model;
+  both reports and the final on-disk input/source hashes agree.
+- The prior placement-only model retained54FEB21C/node64 after400 frames, with no
+  B6E3C77D factory call or mech actor38. Existing offline-image inspection shows
+  timing/output/event services requiring further verification. Do not bypass
+  that gate or count placement as mech/possession/Matrix acceptance. All new
+  work remains uncommitted; full static and original-client acceptance stay open.
+
+#### Zenyatta versus manual Assassin, melee guard and field status timing (uncommitted, partial)
+
+- Port the contact-pin portion of the shared parent's uncommitted bridge from
+  a stable external12-file SHA256 reference snapshot. This is not a reviewed
+  dependency commit. Keep unrelated navigation/Deadeye/launcher work out, retain
+  the lane's Enforcer difficulty checks, and preserve all work uncommitted.
+- Parent data review found the canonical38-row mover table omitted all five
+  Talon NPCs. Revalidate using the separate43-row npc-navigation-runtime inputs;
+  the test fixture now rejects fallback dimensions. All-five edge hit/miss,
+  170m-hit/190m-miss, wall and team fixtures pass. Fixed eye/muzzle placement,
+  capsule interpretation and animated poses remain reconstructed. Historical
+  NPC geometry results are not full original-geometry acceptance.
+- Declare the manual controller context and supply1157's original target536
+  expression through a data-only possessor Map/#1650. Reconstruct3m contact/LOS,
+  one-shot25 then one-second delay and100/s health-state mode, pin control and
+  cleanup. Preserve corpses. Clock/target/controller/pin state is stored.
+- Execute actual1157 input versus Zen: contact/continuous damage, pinned weapon,
+  ultimate and movement rejection, look continuation, allied Harmony and
+  Transcendence healing without cleansing pin, stop/restart, range/wall/team,
+  actual support Flashbang and wounded-source bullet kill, body replacement and
+  removal. Active017B now rejects pin control before interruption can stop it.
+- The immediate-release test exposed delayed charged Orbs after control ended.
+  Bind interruption to0164 Stack122's authored under branch:98 clears charge
+  and aborts35/visual scopes before button release; active35 follows its own end
+  and cooldown plugs. Cancel does not refund ammunition; new primary input works.
+- Host actual03A3/CombatModFilter107 for0043 quick melee: its zero factor,
+  listed tags and unchanged positive-dot expression block the front without
+  returned damage/charge. Actual back/end,80/90/100-degree, team/FFA/range/wall
+  and body replacement tests execute. Tag matching and source parameter binding
+  remain reconstructed; no generic native filter equivalence is claimed.
+- Biotic Field now passes its retained healing interval and actual last healing
+  tick to anti/amp integration. Actual casts prove normal/skipped anti expiry,
+  amp expiry and field expiry agree; the former endpoint-only rule over-healed.
+- Pass471 regressions with zero skips using actual NPC mover rows and explicit
+  read-only canonical map collision inputs;18 complete snapshot/replay checks
+  pass on the same frozen105-file model. Input/model hashes remain unchanged.
+  The first43-row run exposed above-head aim fixtures and missing-cache skips;
+  retain its failed log, use body-centre command aim and the external input
+  runner for current evidence. Ruff/diff checks pass. Native
+  controller allocation/wire, pin pose/approach/escape/recovery and broader
+  immunity/cleanse/cooldown semantics remain open, along with the wider matrix.
+
+#### Ana healing-status interactions with Zenyatta (uncommitted, partial)
+
+- Selectively manifest-check grenade1426/053-0267 and graphs0C71/0B99/0C72
+  outside Git. Host the human branch literals: enemy60, friendly100, received
+  healing factors0/1.5, four-second duration and0.05-second modifier delay.
+  Replace the generic carrier50 explosion with the faction branch; do not add
+  both damage amounts. Reflected ownership chooses the new faction/source.
+- Apply the modifier to Harmony, Transcendence, shield regeneration and shared
+  area healing. Integrate activation/expiry overlap for Zen's continuous rates.
+  Anti-heal takes precedence; amplification does not stack; refresh preserves
+  the active interval. Retire status on death/body replacement. Actual017B
+  flag8440 cleanses recognized anti-heal and rejects a later grenade branch.
+- Actual-input evidence covers player and all-five NPC healing, exclusive
+  expiry, effective ultimate gain, cooldown/recast, self/FFA, overlapping casts,
+  static walls, reflected source, grasp consumption and barrier splash rejection.
+  Status source/activation/expiry are registered in stored server snapshots.
+- Faction/routing, refresh, interval integration and shield-regeneration policy
+  are explicit reconstructions. Native PlayScript/CombatModFilter, AI tuning,
+  gravity, tag293E exclusions, general cleanse and presentation remain open.
+  Pass440 complete focused regressions and22 final healing methods (19 overlap
+  main, three supplementary clock/NPC-lifecycle cases), plus17 complete stored
+  snapshot/replay checks on the frozen model. Ruff/diff checks pass. Full static
+  acceptance remains open. No new
+  commit or submission is made.
+
+#### Zenyatta versus reconstructed Reinhardt barrier (uncommitted, partial)
+
+- Selectively export/manifest-check104319 Pet011A and its A3C model outside Git.
+  Prepare98 vertices/192 query triangles with a provenance-checking source tool;
+  pin model and geometry SHA256. Runtime accepts an external prepared file via
+  ORPHEUS_BARRIER_DATA or data/barriers_174.json and rejects modified geometry.
+- Host actual0095/Pet51 secondary deployment, resource1600 HP,200/s recovery
+  after lowering2s, and5s break boundary. Route projectile/hitscan damage through
+  the nearest hostile barrier, preserve friendly passage and physical back hits,
+  prevent one breaking projectile overflowing to the body, and clip splash.
+- Pass10 direct-input barrier methods: primary/head aim, charged burst, teams,
+  protected ally, lowering/back, static wall, recovery, repeated-fire break/rearm,
+  melee/replacement, Flashbang and invalid external inputs. The parent native
+  input-join fix is imported;112 hero/join/VM checks passed before this host.
+- Pass420 focused regressions and16 complete snapshot/replay checks on frozen
+  model source. A supplementary hitscan/integrity run passes2 methods (one
+  overlaps the main run), directly protecting Zen from actual Soldier fire.
+  Ruff/diff checks pass. None of these counts closes the full static matrix.
+- Pet health/attachment/regen/damage routing are reconstructed; animated
+  hardpoint29, native raycast filter classes, Pet entity transport and original-
+  client presentation are unaccepted. Cast/LOS status interactions, other shield
+  heroes, Matrix, Assassin and the wider matrix remain open. Keep this new work
+  uncommitted until full hero static acceptance, per the latest user instruction.
 
 #### Sigma grasp versus Zenyatta and Flashbang control boundaries (lane0020, partial)
 

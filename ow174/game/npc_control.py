@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, heavy_assault, sniper_reposition
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -50,19 +50,26 @@ def selected(match, player):
     return target.owner
 
 
-def start(match, player):
+def start(match, player, *, special_attack=False):
     bot = selected(match, player)
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
     button(bot)  # validate before changing policy
+    if special_attack and bot.hero not in heavy_assault.MELEE and bot.hero != sniper_reposition.HERO:
+        raise ValueError("Selected NPC has no hosted special attack")
+    if bot.special_attack:
+        heavy_assault.stop(bot.body_script.component)
+        sniper_reposition.stop(bot)
+        bot.special_mover = None
+    bot.special_attack = special_attack
+    bot.special_target_body = player.body if special_attack else None
     if bot.hero == 0x02E00000000001CE:
         component = bot.body_script.component
         index = component.entity_var(9948).value()
         if index is not None and (type(index) is not int or not 0 <= index < 4):
             raise ValueError('Enforcer attack difficulty index must select one of four authored entries')
         if index is None:
-            # Manual sandbox default: first authored attack-damage table entry.
-            # This is not a native mission/difficulty or conditional-pool claim.
+            # Existing explicit manual default; no mission difficulty is inferred.
             component.set(9948, 0)
     bot.attack_target = player.entity
     bot.firing = True
@@ -77,8 +84,14 @@ def stop(match):
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
+        bot.special_attack = False
+        bot.special_target_body = None
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
+            heavy_assault.stop(component)
+            sniper_reposition.stop(bot)
+            bot.special_mover = None
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
@@ -105,7 +118,8 @@ def update_input(fight, bot):
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -115,6 +129,25 @@ def update_input(fight, bot):
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    desired = target.body if enabled else None
+    if (bot.hero == assassin.HERO and component.world.manual_target != desired):
+        assassin.bind(component.world, component, desired)
+        bot.attack_input = False
+    if bot.special_attack:
+        if target is None or target.body != bot.special_target_body or target.gone or fight.is_dead(target):
+            bot.special_attack = False
+            bot.special_target_body = None
+            bot.attack_target = None
+            bot.firing = False
+            enabled = False
+        if not enabled:
+            heavy_assault.stop(component)
+            sniper_reposition.stop(bot)
+        elif (sniper_reposition.update(fight, bot, target)
+              or heavy_assault.update(bot, component, enabled)):
+            enabled = False
+        if bot.hero == heavy_assault.HERO:
+            heavy_assault.advance_charge(fight, bot, fight.tick)
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)
