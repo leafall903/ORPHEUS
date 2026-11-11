@@ -96,8 +96,8 @@ TRUSTED_NATIVES = {
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# it starts), its cost #338e comes from the Entries. The legacy GM fill uses ULT_SECONDS
+# (0: never). Opted-in Orisa uses its original0B8B damage/timer graph through orisa_charge.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -135,7 +135,32 @@ class BodyWorld(runtime.World):
         return super().position(entity)
 
     def native(self, cfg: dict, instance):
+        from ow174.game import orisa_charge, orisa_halt
+
+        halt = orisa_halt.native(self, cfg, instance)
+        if halt is not NotImplemented:
+            return halt
+
+        charge = orisa_charge.native(self, cfg, instance)
+        if charge is not NotImplemented:
+            return charge
         cls = cfg.get("$")
+        if self.match is not None and cls in ("STU_E72F6348", "STU_2B2E2F6D"):
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity") or cfg.get("m_81A364DE")))
+            orb = self.match.combat.orisa.orbs.get(entity)
+            device = self.match.combat.orisa.superchargers.active.get(entity)
+            if device is not None:
+                if cls == "STU_E72F6348":
+                    return True
+                if cfg.get("m_7BDB02D1") == 0:
+                    return Entity(device.source_body)
+            if orb is not None:
+                if cls == "STU_E72F6348":
+                    return True  # actual currently registered server ability entity
+                if cfg.get("m_7BDB02D1") == 0:
+                    # Reconstruct only the declared pet-owner relation used by
+                    # Halt's own-body gate, never arbitrary entity ownership.
+                    return Entity(orb.rocket.source_body)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -143,6 +168,18 @@ class BodyWorld(runtime.World):
             return Vec3(f32(right * THROTTLE_UNIT), f32(forward * THROTTLE_UNIT), 0.0)
         if cls == "STU_37F20D24":  # GetGameMode: the match's mode (what component 114 announces)
             return Asset(self.mode)
+        if cls == "STU_9B7648C3":
+            # Native CEB6C0 -> D177C0 resolves component51 (BCC870) and its
+            # numeric getter at vtable+40. Reconstructed aggregate-health
+            # consumer, using the same authoritative input as the body HUD.
+            # Unknown/foreign entities retain the ordinary unsupported path.
+            target = cfg.get("m_entity")
+            if (instance.component.entity == self.body and isinstance(target, dict)
+                    and instance.evaluate(target) == Entity(self.body)):
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if type(value) in (int, float):
+                    return f32(value)
         if cls == "STU_FDBB0B67":  # entity size used by the authored movement and effect graphs
             target = cfg.get("m_entity")
             component = instance.component
@@ -161,8 +198,17 @@ class BodyWorld(runtime.World):
             return False
         return super().native(cfg, instance)
 
+    def entity_var(self, entity: int, var: int):
+        from ow174.game import orisa_charge
+
+        value = orisa_charge.foreign_var(self, entity, var)
+        return super().entity_var(entity, var) if value is None else value
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
+        if (match is not None and sender == self.body
+                and match.combat.orisa.receive(target, message, sender)):
+            return
         if (match is not None and sender == self.body
                 and match.queue_body_message(target, message, params, sender)):
             return
@@ -348,11 +394,17 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Set the ultimate's charge (#342e; cost#338e): an explicit GM override."""
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+        from ow174.game import orisa_charge
+
+        if orisa_charge.activate(self):
+            return
+        blocked = self.component.entity_var(842, create=False)
+        if (self.ult_seconds <= 0 or (blocked is not None and expr.truthy(blocked.value()))
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

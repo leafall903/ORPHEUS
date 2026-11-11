@@ -395,6 +395,12 @@ class World:
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State") -> None:
+        pass
+
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented
@@ -670,7 +676,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1485,6 +1491,9 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These bits coalesce events that cancel just removed. A later begin
+        # must be able to enqueue fresh completion/variable notifications.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

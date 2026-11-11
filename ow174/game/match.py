@@ -33,7 +33,20 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    heroselect,
+    movelog,
+    notices,
+    orisa_charge,
+    pools,
+    stats,
+    world,
+    wraith,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -327,6 +340,11 @@ class Player:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
+        forced = self.match.combat.orisa.movement(self)
+        if forced is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=forced)
+            self._advance_body_frame(command)
+            return
         requests = []
         if script is not None and not stunned:
             requests = [
@@ -354,6 +372,7 @@ class Player:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
             self.match.body_command(self, command, movement_end=movement_end)
+            wraith.advance(self)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
@@ -598,12 +617,17 @@ class Match:
         if graph.entity_body(bot.body) is None:
             return
         try:
+            from ow174.game import assassin, npc_context
+
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_components=npc_context.manual_components(bot),
             )
+            if bot.hero == assassin.HERO:
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -631,12 +655,12 @@ class Match:
         """Whether other players' clients get this player's body."""
         return player.spawned and player.has_body and player.client is not None
 
-    def own_body_updates(self, viewer: Player) -> list[EntityUpdate]:
+    def own_body_updates(self, viewer: Player, *, charge_ratio=None) -> list[EntityUpdate]:
         """The viewer's own body: its movement state rides in the create (at frame 0xFFFFFFFE) and in a
         movement record at the packet frame."""
         state = deepcopy(viewer.pose())
         create = EntityUpdate(viewer.body, OP_CREATE, movement=state)
-        self.start_body_script(viewer, create)
+        self.start_body_script(viewer, create, charge_ratio=charge_ratio)
         # The new script must exist before its projectile lease is captured. The create's
         # stream remains the native driver's arrival gate; only the payload is frozen here.
         create.build = self._body_builder(viewer, state, own=True)
@@ -910,8 +934,10 @@ class Match:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                if not self.combat.orisa.controls(bot.entity, tick):
+                    mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
+                    bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                             paused_until=self.combat.stuns.get(bot.entity, 0), movement_mods=mods)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1056,6 +1082,9 @@ class Match:
         for bot in self.bots:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
+        position = self.combat.orisa.position(entity)
+        if position is not None:
+            return expr.Vec3(*position)
         return None
 
     def _message_player(self, entity: int) -> Player | None:
@@ -1096,7 +1125,7 @@ class Match:
                 log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
                 self.stop_body_script(player, failed=True)
 
-    def start_body_script(self, player: Player, create: EntityUpdate) -> None:
+    def start_body_script(self, player: Player, create: EntityUpdate, *, charge_ratio=None) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
         self.stop_body_script(player)
@@ -1116,6 +1145,8 @@ class Match:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
+        orisa_charge.restore(script, charge_ratio, player.entity)
+        self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
         bodytrace.started(player, script)
@@ -1243,6 +1274,7 @@ class Match:
         the later records wait for acknowledgement of their prerequisites."""
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
+        charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
             if entity is None:
@@ -1255,7 +1287,7 @@ class Match:
         player.has_body = True
         if player.client is not None and player.spawned:
             components = self._possession(player)
-            player.client.queue_entities(self.own_body_updates(player))
+            player.client.queue_entities(self.own_body_updates(player, charge_ratio=charge_ratio))
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,

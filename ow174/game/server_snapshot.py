@@ -23,6 +23,9 @@ from ow174.game import (
     heroselect,
     notices,
     observers,
+    orisa,
+    orisa_barrier,
+    orisa_supercharger,
     projectiles,
     replay_values,
     statescript,
@@ -39,6 +42,7 @@ from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import driver, expr, runtime
+from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -93,8 +97,18 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns pins ability_impacts orisa"
     ),
+    orisa.Orisa: _names("fight charge_metadata halt_graph halt_query_graph orbs pulls results "
+                        "barriers superchargers"),
+    orisa_barrier.Barriers: _names("fight geometry definition_graph active retiring pending"),
+    orisa_barrier.Geometry: _names("world triangles source"),
+    orisa_barrier.BarrierWorld: _names("hero mode fight entity location"),
+    orisa_supercharger.Superchargers: _names("fight active buffs graphs geometry"),
+    orisa_supercharger.DeviceWorld: _names("hero mode fight entity location"),
+    script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
+                               "states entries remote_nodes sync_vars _owner _remote _presence"),
+    script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
@@ -117,7 +131,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -143,6 +157,7 @@ DATACLASSES = (
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
     statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map,
+    orisa.Orb, orisa.Pull, orisa_barrier.Barrier, orisa_supercharger.Device, script_graph.SyncVar,
 )
 
 

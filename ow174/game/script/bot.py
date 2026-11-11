@@ -1,6 +1,6 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+from ow174.game import assassin, observers
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -31,19 +31,61 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == assassin.HERO and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
         # Reconstruction policy for the single authored firing placement behavior.
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
+    def entity_var(self, entity: int, var: int):
+        # 1157's timed release reads these members on the engaged victim.
+        if (self.hero == assassin.HERO and self.match is not None and entity == self.manual_target
+                and var in (478, 2380)):
+            for player in self.match.players:
+                script = player.body_script
+                if (player.body == entity and player.spawned and not player.gone
+                        and script is not None and script.component.entity == entity):
+                    value = script.component.entity_var(var, create=False)
+                    return value.value() if value is not None else None
+        return super().entity_var(entity, var)
+
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import npc_context, orisa_halt
+
+        pin = assassin.native(self, cfg, instance)
+        if pin is not NotImplemented:
+            return pin
+
+        controller = npc_context.native(self, cfg, instance)
+        if controller is not NotImplemented:
+            return controller
+
+        halt = orisa_halt.native(self, cfg, instance)
+        if halt is not NotImplemented:
+            return halt
+        if cfg.get("$") == "STU_9B7648C3" and instance is not None:
+            # Same scoped component51 aggregate-health reconstruction as
+            # BodyWorld, now for the NPC's actual synchronized combat pools.
+            # Foreign entities still take the ordinary unsupported path.
+            target = cfg.get("m_entity")
+            if (isinstance(target, dict)
+                    and instance.evaluate(target) == expr.Entity(instance.component.entity)):
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if type(value) in (int, float):
+                    return expr.f32(value)
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -72,12 +114,19 @@ class BotWorld(runtime.World):
         return super().native(cfg, instance)
 
 
+    def modify_health(self, state, elapsed_ms):
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def end_health(self, state):
+        assassin.end_health(self, state)
+
+
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +135,7 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -127,6 +176,7 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -147,6 +197,7 @@ class BotScript(ReplicatedBody):
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
         component.owner_dead = True
+        assassin.bind(component.world, component, None)
         if self.behavior is not None:
             component.destroy(self.behavior)
             self.behavior = None

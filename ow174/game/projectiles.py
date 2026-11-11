@@ -346,6 +346,10 @@ class Projectiles:
             else:
                 viewer.client.queue_entities([create])
 
+    def absorbed(self, shot: Shot) -> None:
+        """Retire an intercepted shot without its impact release."""
+        self._end(shot, self.match.tick, explode=False)
+
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
         if isinstance(shot.player, bots.Bot):

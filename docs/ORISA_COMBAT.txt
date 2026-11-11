@@ -1,0 +1,877 @@
+Orisa static combat restoration -- build1.74.0.0.104319
+Hero02E000000000013E. Full static acceptance OPEN; live-client acceptance OPEN.
+
+Evidence boundary
+Actual Match/BodyScript/graphs, commands, swept projectiles, pools and deaths.
+Synthetic collision and transport; permissive NPC VMs. No NPC AI/specials,
+native equivalence, difficulty-scaled health or original-client proof is claimed.
+
+Data-backed: Fusion Driver0BD4 amount11/speed120/magazine150, Fortify0CF4/state4
+filter -0.4, melee0043 amount30, authored cooldown/reload clocks.
+Reconstructed: rifle omitted crit multiplier2x (this weapon only), direct projectile
+crit/falloff, Fortify reduction-before-armour/critical immunity, melee occlusion.
+
+Native query investigation
+STU_9B7648C3 registration1991F0; factory record2F88FC8; runtime vtable2663B28,
+evaluatorCEB6C0 -> D177C0. BCC870 selects component51; successful path invokes
+numeric getter+40. Aggregate-pool meaning is reconstructed, NOT instruction-
+compared. Only the current body's authoritative health input is supplied;
+foreign/unknown query support remains absent. Damage/heal/death and real ultimate
+cast/windup-death execution tests cover this consumer; no condition is forced.
+Existing captured image is read-only; no fresh live-client access occurred.
+
+Additional fixes
+- WeaponVolley notifies watchers when clock-driven linked outputs change and on
+  terminal ammo bake. Holding fire now reaches authored automatic reload.
+- Manual NPC script health initializes from all explicit pools, including shields.
+- Preserve an Ability buffered press's original timestamp when readiness fails.
+  Refreshing that timestamp on every poll allowed a stale detonation press to
+  cast another orb during cooldown. Fresh presses within the authored early
+  window still work. Volley notification memory uses stable variable keys and
+  is included in the fail-closed body VM storage export.
+- Scoped Orisa consumers allocate monotonic IDs, write actual projectile output
+  5875, expose live existence/owner/position and receive authored003F messages.
+  Detonation freezes the flight, delays radius/team/LOS/#9161 selection0.4s,
+  uses collision-backed player/NPC movers and retires the orb after0.5s.
+  Force-to-speed50, capsule geometry and the0.65s movement window are explicit
+  reconstructions. No network projectile create or native physics equality is
+  claimed. Other immunity, continuous tracking and transport remain open.
+
+Operation matrix (every row still PARTIAL or OPEN)
+Primary: player hit/crit/miss/armour/shields/team/wall/ammo/manual+auto reload
+  have execution evidence. Five actual NPCs take11, exclude allies, die from held
+  fire/automatic reload, retain corpses beyond deadline, then explicitly remove.
+Melee: five actual NPCs take30 once; training Bot wall blocks. Full player matrix OPEN.
+Fortify: damage/crit suppression, cooldown refusal/recovery, expiry, death/switch
+  retirement and healing semantics covered. Actual five NPC attacks/control OPEN.
+Halt: flight/body pass-through, original message/arming gate, primitive pull,
+  team/radius/LOS/Fortify, collision, cooldown refusal/recovery/early buffering,
+  Reaper Wraith exclusion at detonation and retirement of an acquired pull,
+  death/body cleanup and actual Trooper pull covered. Continuous target tracking,
+  other immunity, native force fidelity and network entity transport remain OPEN.
+Barrier: real gravity arc/world landing and spawn metadata covered. Actual
+  deployable blocking/collision/health/destruction/replication OPEN.
+Supercharger: charge gate and actual volley after windup, death-before-launch
+  rejection covered. Deployable/ally boost/LOS/team/destruction/end OPEN.
+Passive: armour pools covered; firing movement slow and native policy OPEN.
+
+Five NPCs use real catalog hero/body GUIDs and base pools: Trooper, Enforcer,
+Sniper, Assassin, Heavy Assault. Heavy Assault keeps4000 base health; no lowered
+health or fake ammo refill is used for its held-fire kill. Conditional/difficulty
+pool changes remain unapplied. These are NOT complete original difficulty totals.
+
+Remaining applicable requirements
+Barrier/reflection/absorption/invulnerability; Halt vs Fortify/control immunity;
+stun/root/displacement/interruption; complete deployable range/LOS/team/FFA/
+conditions/resources/duration/cancel/end; ally-only Supercharger boost; correct
+combat-generated ultimate charge (passive timer alone insufficient); every NPC's
+actual weapon/special attacks on Orisa; complete player melee/input-loss/cross-
+hero matrix; original-client all-skill presentation and bidirectional combat.
+
+Next implementation frontiers
+1. Halt0CCB and barrier0BD7 set m_45271E8C=0. Their one-shot volleys evaluate
+   speed25/lifetimes999 and30. Combat now carries their authoritative zero-damage
+   flights without owner leases. Swept gravity uses fixed substeps across gaps,
+   preserves landing positions and records bounded impact metadata. Need actual
+   full deployable/impact effect consumers and network entity transport. Halt now has
+   internal IDs and authored003F routing; ID registration alone is not replication.
+2. Supercharger0CF5 now reaches WeaponVolley state10. Its following deployable/
+   aura has no complete engine consumer. Preserve authored0.4/0.5 windup and
+   StopAbility, rather than replacing authored plugs.
+   Its authored gravity100 now lands the projectile; this is an impact event,
+   not proof of a deployed boost aura.
+3. Shared TrackTargets still returns no targets. Orisa's scoped reconstruction
+   does one delayed search and mover control; it is not full authored TrackTargets
+   execution. Full barrier/boost/reflect/absorb/invulnerability stay incomplete.
+4. Actual NPC graph probe: Trooper102E/state23 and Enforcer13EB/state14 evaluate
+   damage0 without missing combat inputs; Heavy114F/state25 evaluates5. Sniper
+   and Assassin have no initial WeaponVolley in this probe. This is diagnostic.
+5. The read-only ability supplement extracts missing0252/0CCC/0CCE/0D00/0E84
+   plus four ability entity definitions, with no missing references or base-pack
+   mutation. Executing0CCE's real start entry for60 frames does not move a target;
+   its disconnected MoveTo must not be forced. Orb0CCC TrackTargets transition
+   invokes PlayScript0CCE and starts0.4s PhysicsExplosion(-50,radius7) as well as
+   the0.5s destruction wait. Actual TrackTargets callback and orb physics consumers
+   must be restored together; the target helper alone is not the pull mechanism.
+
+Verification
+PYTHONPATH=this source and tests; ORPHEUS_RUNTIME_DIR=external normal runtime;
+ORPHEUS_NPC_RUNTIME=explicit read-only prepared NPC package.
+python -B -m unittest test_orisa_combat test_orisa_flights test_orisa_halt test_orisa_npc test_game_npc
+  test_game_combat test_game_projectiles test_script_driver
+  test_script_runtime test_game_script_runtime test_script_abilities
+  test_game_body_script test_game_script_replication test_game_owner_delta_loss
+  test_body_vm_snapshot test_body_vm_aliases -q
+248 passed in one expanded run; a subsequent real incoming-fire-during-pull test
+also passes (249 across two runs).20 combat,8 flight,16 Halt and5 Talon-body tests.
+Ruff and staged/unstaged diff checks pass. Fixed-step curved collision, repeated
+input, body pass-through, world landing and hero-switch cleanup are covered.
+Pull behavior has its own actual-movement tests; no network entity transport,
+native force equivalence, barrier blocking or aura is inferred from those tests.
+Full goal remains active. User's full-static gate must pass before own commit.
+
+Barrier static extension (partial)
+tools.extract_orisa_geometry reads only the checked4062.00C CASC record and emits
+an external orpheus-orisa-geometry-v1 file. Original model SHA256:
+92c08849cb4348870aad667c74231e8c475cd05bf438c443860d2e8b9f55b28e.
+Its232 vertices/460 triangles preserve the actual dome. props.model_shapes keeps
+its previous static-only default; explicit static_only=False permits this dynamic
+model. The original category masks are retained. Native dynamic filter semantics
+are not established by selecting all categories for these scoped ray queries.
+
+Set ORPHEUS_ORISA_GEOMETRY to the external geometry file; default optional path
+is DATA_DIR/orisa_geometry_174.json. No archive/model binary is stored in Git.
+Absent geometry means the manager cannot block shots; it does not substitute a
+flat plane. Geometry availability must be checked before barrier acceptance.
+
+On actual0BD7 floor impact, scoped manager delays0.1s(0252), allocates an internal
+shared ID, deploys at the impact with original launch yaw,600HP and20s(0BD8).
+Enemy direct hitscan/projectiles intersect the real rotated mesh before bodies;
+nearer map/body hits win, teammates/owner pass, FFA uses owner identity. Damage
+has distance scaling but no headshot multiplier/armour; depletion removes collision.
+No hero damage/kill credit is assigned for these deployable hits. New deployment
+replaces this owner's old barrier; expired pending deploys do not refresh after a
+gap, and source-body retirement cancels pending deployment.
+
+Initial14 tests pass with the real external mesh: curvature/edge/overhead/yaw, authored
+command/impact delay/HP/deadline, enemy hitscan/projectile and friendly projectile,
+empty background, nearer body/wall, actual30-round600HP depletion, following shot
+damage, team-vs-FFA and retirement/expiry. These are static consumer tests only.
+Still OPEN: network creation/destruction/HP/effects, authored entity0252/0BD8
+execution, exact placement/filter policy, post-deployment owner death/switch/leave,
+replacement cooldown scenario, complete splash and special projectile/beam/heal/melee/
+reflect/absorb/control interaction policies, five-NPC incoming barrier attacks,
+and original-client appearance/bidirectional combat.
+
+2026-11-09 blast extension: impact now executes authored splash, including
+zero-direct-damage projectiles. Closest actual mesh points determine radial
+distance, static-world and pre-impact enemy barrier geometry determine visibility.
+A1e-4m offset toward the incoming side avoids starting visibility rays exactly
+on a surface. The pre-impact barrier set blocks the whole event even if direct
+or radial damage destroys one. This contact/ordering/visibility policy is a
+reconstruction, not native combat equivalence. Self-damage, multi-sample visibility,
+special penetration, bouncing/fuse/expiry explosions remain unaccepted.
+
+20 barrier checks pass, including actual Soldier Helix40+80, Pharah40+80,
+Junkrat40+80 and Zarya0+47 at the tested initial charge state. Exposed incoming-side
+NPC takes radial falloff; nearby protected owner stays unharmed even if the same
+explosion destroys the shield. A body impact near the barrier gives radial-only
+shield damage. Static walls prevent blast through-wall damage. The expanded
+suite now passes291 checks in72.346s. ORPHEUS_ORISA_GEOMETRY must point at the
+real external geometry for these checks; no original-client acceptance inferred.
+
+Supercharger evidence before scoped aura implementation: original0D00 node8
+references status0x04A000000000027E(type053). Read-only extraction checks size/MD5;
+its m_5A4051BC references graph0D01. Original0D01 node8 sets#174 to0.5, node7's
+CombatModFilter reads#174 and lists identifiers3FCE/0317. This establishes the
+authored chain and value, not all native filter/stack/credit/linger semantics.
+The status resource also carries m_7DAE8F10=5 with meaning unverified. Keep aura
+OPEN pending actual lifecycle/target/filter execution rather than assuming an
+instant1.5 multiplier alone completes it. External evidence stays outside Git.
+
+Authored Supercharger/static aura extension (partial)
+tools.prepare_orisa_supercharger builds an external supplement containing original
+0D00/0D01/25B4 graph records, status027E reference provenance and actual42A2 model
+geometry. ORPHEUS_ORISA_SUPERCHARGER selects it; optional default is
+DATA_DIR/orisa_supercharger_174.json. Absent supplement means unavailable, not a
+fabricated deployment.42A2 has88 collision triangles; raw model SHA256:
+5aada1440329c045e6c9a2e597fd8f7e56570cfefde7bec549ae002477bbb1bd.
+
+Actual0CF5 command/impact spawns an internal device component and executes original
+0D00 Entries plus25B4. Entries set#199=200 and#215=15; those values drive health
+and deadline. Original TrackTargets state must be active and supplies radius25,
+with authored visibility origin at device+(0,0.4,0). The world consumer selects
+live owner/teammate capsules (FFA owner only), checks range and static/enemy-barrier
+LOS, then attaches original0D01 to the actual target body component. Its actual
+000F application message runs SetVar#174=0.5 and activates CombatModFilter/Stack.
+This is original graph execution around scoped consumers, not generic native
+TrackTargets/HealthPool/CombatModFilter service restoration.
+
+Outgoing damage reads the active status modifier; boosts body direct/radial/melee
+damage and deployable damage before target Fortify/armour. Deployable geometry
+participates in nearest ray/projectile hits; direct/radial depletion removes the
+device and its statuses. No headshot/armour multiplier applies to device health.
+The pre-impact boost is retained for one radial event. Expiry, loss of range/LOS,
+target death or body retirement remove status instances and their variable links.
+
+Nine actual-path tests pass: original initialization/status, Orisa22->33 damage,
+allied Soldier20->30 damage to an enemy bot, team/FFA exclusion, range departure/
+return, static wall,200HP destroyed by ten real20-damage hits,15s expiry, actual
+enemy-input owner death followed by body switch. The other20 barrier checks pass.
+
+Still OPEN: native status resource field5/refresh/linger/stack/credit semantics;
+exact target hardpoint1 (currently capsule eye), filters and immunity; multiple
+boost sources and projectile boost-snapshot timing; per-weapon penetration/fuse/
+self-damage rules; NPC status-clock and full incoming/ally-boost matrix; proper
+authored HealthPool/CombatModFilter/TrackTargets engine services; network device
+create/destroy/health/effects and original-client presentation. Deployed owner
+death/switch/leave persistence remains a policy gap. Combat-generated ultimate
+charge remains unimplemented; tests explicitly fill the authored charge gate and
+disable the existing passive timer. Full objective and commit gate remain open.
+
+Shared foundation integration
+Own isolated main is based on reviewed7cd1ed7 (no own commit). Preserve parent
+NPC manager/sparse weapon mounting, authored array selection and manual controller
+infrastructure. Replace the previous own temporary melee visibility reconstruction
+with shared capsule_visible, keeping authored sphere/viewed capsule semantics.
+Both dated changelog sets are retained. Backup stash1a15d6ea and pre-integration
+review patch remain external backup evidence; do not pop that stash again.
+Before integration300 tests passed in109.486s. After integration346 expanded
+Orisa/combat/VM/collision/CASC/NPC/McCree/console checks pass in120.780s. Parent
+infrastructure availability does not prove Orisa's full five-enemy incoming AI/
+specials matrix. No shared source changes, own commit, merge release or push.
+
+Authored combat charge and device identity extension (partial)
+Original0B8B supplies the formulas; no direct +damage assignment is added:
+-0012 message binds amount0013, recipient0015, loadout003D, excluded-layer detail0624.
+-Action23 adds amount*valueOr(#9532e,1)*valueOr(#13022e,1), capped at#338e.
+-Action4 adds5*valueOr(#9532e,1)*valueOr(#12918e,1) on its original1s Wait loop.
+-Original1C7/0694 receive scope activates its charge permission Stack#2426 when
+ the reconstruction observes a shown current player body. This phase mapping is
+ not native round/lifecycle equivalence. F7262's typed controller lookup, enemy
+ relation, known combat-body filter1 and static tags are scoped world adapters.
+
+ORPHEUS_ORISA_CHARGE selects external orisa_charge_174.json prepared by
+tools.extract_orisa_charge. It retains37 actual body definitions' target tags
+from XML, including all five actual Talon definitions, plus source hashes.
+Runtime-added tags are not restored. Foreign target variables read authoritative
+body components. Non-chargeable damage detail is an empty array because this
+Vitals model has no such layer; only the empty A6B80C63 reduction is implemented.
+Generic/native fold semantics and the full pool/tag/credit matrix remain OPEN.
+Missing metadata retains the legacy GM clock, without charge acceptance. With
+this bridge positive ult_seconds uses the authored5/s rate; explicit0 retains
+manual-only passive behavior in the scoped controller query.
+
+Original0CF5/entry32 receives0859 with typed caller=device and instigator=source
+body, using the already-verified message_receive helper. It binds#40 and starts
+EntityExists switch31, whose real Stack#842 blocks passive and damage charge.
+Previous static aura work omitted this callback and therefore missed the block.
+Registry destruction invalidates that switch before another same-tick hit, without
+rewriting the cached handle. Original0D01 application now uses caller/instigator
+bindings too. Device positions resolve through the shared body-position service.
+
+Ten focused tests pass: actual22-damage credit,5/s timer and passive disable,
+miss/team/static-cover rejection, armour/Fortify actual-loss credit, melee30,
+overkill/dead-body and enemy-barrier exclusion, five Talon11 hits, real device
+destruction/recovery and full earned-charge cast. The full-cost test uses original
+cost1680 and Heavy Assault4000HP with passive disabled; held fire and automatic
+reload fill the gate, then actual ultimate input deploys and resets charge.
+No lowered cost/HP, refill or set_ult_charge is used in that test.
+
+Own main now includes reviewed public64bf71c hit effects/stun deadlines/routes/
+snapshots. Keep parent hit-effect calls and own radial/mesh visibility; NPC route
+honors both stun pauses and Halt control. Backup stash6d9a6b85 retained (do not
+pop). Initial conflict-resolution script failed on Windows default encoding;
+explicit UTF-8 retry removed all markers. Fortify vs Flashbang immunity/
+interruption/recovery still needs direct evidence; a shared hook is insufficient.
+Full goal remains active.
+
+Stored-state repair and current test boundary
+Expanded377 on64bf71c failed11 snapshot checks because older Combat registration
+did not include ability_impacts/orisa. Explicit manager/domain/graph/deployable/
+DeviceWorld layouts are now registered. Model-local queries use the existing
+fingerprinted World asset type; actual model triangles/masks are retained.
+The first fixed-source13 server-snapshot tests pass in380.466s. Afterward charge
+metadata became match-owned state instead of a repeated external lookup;2 new
+causal checks plus the10 charge tests pass in11.161s. They prove metadata changes
+and queued ability work affect the digest, and capture does not reread metadata.
+
+After that fixed boundary, reviewed/reused public2ca9178 native input joins and
+its VM schema fields. Existing volley cache storage fix was preserved. Only the
+changelog conflicted; both entries were kept. Backup stash0c346b9e retained;
+do not pop. Final expanded389 run is pending separately; no merged-source pass
+or completed static/client acceptance is claimed. Full charge respawn/switch
+persistence and native phase/filter/tag/fold/credit semantics still need evidence.
+
+389-test boundary result and control extension
+The pending2ca9178 expanded suite completed:389 PASS in579.281s, before this
+control extension. Initial snapshot failures are resolved; source hashes/runs
+remain separately attributed. Complete static/client acceptance is still OPEN.
+
+Read-only original resource evidence:0CF4 owns CombatModFilter state4 and live
+Stack#9161, plus other flags/tags/properties whose native meaning is not assigned
+here. Flashbang's checked053/0079 maps to0228/common224E. Its status category enum
+is2; Supercharger's is0. No complete native status manager or category immunity
+service is inferred from those enum values. The scoped Flashbang consumer checks
+both actual Fortify filter activation and#9161 before applying control; damage
+has already gone through mitigation. Protected input and running startup stay live.
+
+An initial actual-input test FAILED because Supercharger still launched after a
+startup Flashbang. Original0CF5 starts cast states from its one-shot4E22B5C4 output,
+and StopAbility6 runs immediately. Its maintained B969 scope is empty. Thus the
+public Ability.stop hook cannot cancel detached Wait30's health-checked launch.
+The new scoped consumer aborts still-active Wait30 and cast Wait7 using ordinary
+State.end(False); queued launch is removed, charge stays spent. Flight/deployed
+objects are unaffected. This models the required server interruption behavior,
+without proving native cancellation dispatch, animation or general status semantics.
+
+Nine direct-input tests pass: Fortify Flashbang damage10 after reduction/armour,
+continued fire/movement/control immunity; expiry returns normal20 damage/control;
+Fortify tap during control is refused and new input afterward works; ordinary
+stun suppresses fire/movement then restores both; Supercharger startup is canceled
+without stale replay, empty charge refuses and a new full-charge input succeeds;
+Fortify protects startup; post-deployment stun keeps the same device/deadline;
+body replacement drops old control without inheriting Fortify. Startup recovery
+tests explicitly fill charge to isolate eligibility (full earned1680 is tested
+separately). Native cleanse/stack/immunity categories/other CC and NPC specifics
+remain OPEN. Current253 relevant expanded checks pass in73.990s, including all99
+Orisa checks and shared combat/projectile/NPC/control/ability/route checks. The
+earlier389 suite predates this small control-policy extension; its13 snapshot
+checks and native join schema remain historical evidence, not a new full rerun.
+
+Same-hero charge restoration (partial)
+An actual weapon hit earned22 points, enemy weapon fire killed the owner, and
+the ordinary scheduled respawn replaced its body with charge0. The synchronous
+replacement bridge now retains the old ratio for same-Orisa creation only and
+sends original0B8B message14F2 with full parameter key0A40000000000951 before
+the first body snapshot. The graph binds instance#32280 and executes its own
+entity#32365/ruleset#13024 refusal and min(cost,ratio*cost) formula. There is no
+new persistent charge cache or direct assignment of charge#342. Different-hero
+replacement and return start at zero, without recovering departed hero progress.
+Sixteen charge tests pass in11.375s, including real death/respawn, live reselect,
+different-hero return, the snapshot value, clamp and both refusal gates. These
+gates are isolated configuration tests; actual hit/death paths earn their charge.
+An additional probe showed the retained device still live while a replacement
+body gained33 damage-derived charge with no#842. Replaying original0859 onto the
+new body's0CF5 rebinds that device handle and its authored existence/charge block.
+Removal invalidates the matching current-body handle, without requiring that
+body to equal the device's original source. Actual enemy-fired device destruction
+releases#842 immediately. Three real lifecycle cases (reselect, other-hero return,
+enemy-fired death and scheduled respawn) preserve device/source/deadline and block
+charge on damaging hits, then permit it after destruction. The device source is
+never reassigned to the new body. No persistent cache or new snapshot field is
+introduced. Native controller dispatch and exact deployed-owner persistence
+policy remain OPEN, as do the full matrix and original-client acceptance.
+Current284 expanded checks pass in110.877s, covering all105 Orisa checks plus
+shared combat/projectile/NPC/control/ability/body-script/match-screen regressions.
+
+Incoming Talon primary interactions (partial)
+Read-only prepared actual bodies/graphs execute through npc_control.start,
+authored logical input and Match._bot_weapons/_shoot. Trooper102E/node60,
+Sniper1122/node6 and Heavy114F/node47 generated actual first volleys. First-hit
+Orisa pool losses are15/95/2.5, reduced to7/55/1.5 during actual0CF4 Fortify.
+The three attacks hit the command-deployed real barrier mesh for20/100/5,
+without owner damage. Allied NPCs actually receive the0D01 Supercharger status
+and their fired attacks cause25/145/3.75 against enemy Orisa, or13/85/2.25 when
+Fortify is active. Values include actual armour mitigation, not just displayed
+status or weapon metadata. No input gives no attacks; stop releases the authored
+button and further damage stops. Team change and static cover release input.
+Real held NPC primary fire kills Orisa without changing the NPC pools, releases
+input while the target is dead and reacquires its scheduled replacement body.
+
+BotWorld now answers only its own9B7648C3 query using synchronized#253 combat
+health as f32, with foreign/missing contexts unchanged. This is the same scoped
+component51 aggregate reconstruction as BodyWorld, not proof of native health
+getter semantics. Actual body fire reduces Enforcer pools350->339 and its
+13EB/node18 health predicate evaluates true. Node1 still has an unresolved
+controller predicate; no shots are manufactured. The read-only parent research
+CC9F61 tail shows4B present/5C absent, but native NPC controller allocation and
+namespace/entity resolution remain unproven. No parent uncommitted controller
+policy was imported. Assassin13B8's button20 has no outgoing attack plugs;
+its13C3 message-driven special/target/animation/health paths remain unimplemented.
+Both Enforcer and Assassin incoming attacks remain OPEN after500 held-input
+frames, as do all five NPC specials, exact AI acquisition/navigation/range/reload
+and native aura/filter/client semantics. Seven methods cover28 scenarios.
+The fixture supplies no registered NPC observer stream; it does not mock actual
+combat, projectile flight or damage. NPC projectile transport is not accepted.
+Current291 expanded checks pass in117.758s, including all112 Orisa checks and
+shared combat/projectile/NPC/control/ability/body-script/match-screen checks.
+No new VM/snapshot fields were introduced by the self-health query.
+
+Barrier lifecycle execution (partial)
+Five new actual-input methods cover9 cases without modifying health, deadlines,
+pending queues or projectiles. One real enemy round leaves the first shield580;
+an early ability tap is refused during original0BD7 cooldown#61. Waiting for its
+authored10-second clock to finish does not replay that tap. A fresh tap launches
+the second barrier while the old one still intercepts; only the new landing
+replaces it with a new monotonic entity,600 health and a later original lifetime.
+Actual enemy fire kills the owner; its scheduled replacement body retains the
+same deployed shield/source/deadline, and another enemy shot still hits shield
+instead of the replacement body. Switching to Soldier also leaves the same
+shield until its unmodified20-second deadline, verified through normal ticks.
+Real casts observed during physical flight or the0.1-second landing wait are
+cleaned up on actual switch/leave; there is no manually reinserted old rocket.
+
+Two death-boundary cases first weaken Orisa to10 health with actual enemy fire.
+Casting immediately emits at1087 before death1089, and that projectile continues
+to land with600 health. Waiting4 additional frames before casting causes death
+before emission: no projectile or shield appears. These are fixture frame
+numbers, not claimed native animation timings. Existing body graph/lifecycle
+code handles both; no runtime change was needed. New5 checks pass in25.431s;
+all16 implementation/tool hashes still match the preceding291-check source.
+The suites are separately attributed, not presented as a new combined full run.
+Native deployed-pet ownership/active-leave cleanup and transport are still OPEN.
+Original14A1 STUPetComponent flags are retained as unassigned evidence; their
+names alone do not establish native persistence semantics. Enforcer/Assassin
+incoming and every NPC special remain OPEN; parent's new manual context/pin
+work is uncommitted and was not imported into this lane.
+
+Authored0BD8 barrier component and live storage (partial)
+Landing now starts original0BD8 through Instance.start_entries (BB4AC733), which
+binds the real emission body into instance40 and executes original setters586/
+587=600 and567e=20. Original ChaseVar29 updates215e; its maintained HealthPool0
+scope is the authoritative collision window. Actual damage updates the existing
+server deployable health and mirrors253 for original mappings. The native
+HealthPool damage engine/pool internals/scalars are not inferred from this bridge.
+The configured until value is metadata, while active collision follows the graph
+scope. Existing ChaseVar f32/per-step epsilon may expire one16ms frame before
+the integer deadline. Normal-tick lifecycle assertions now check the original
+clock's zero and scope end rather than requiring the old synthetic exact tick.
+Replacement/depletion/scope end destroys the component and its queued states.
+Original0.5s destroy-effect tail and523EE38D engine action are not restored;
+mesh removal does not establish native entity/visual destruction equivalence.
+
+BarrierWorld and DeviceWorld have explicit VM storage adapters, with fight
+owned by the enclosing server capture. Server fields include definition_graph,
+the component and instance; capture does not reread external data. An initial
+no-import observation test caught local world-type imports in capture. Those
+imports moved to module preparation and final48 graph/VM/alias checks pass in
+21.466s, including the no-import guard and actual live device export. A raw peer
+scenario deploys actual barrier and Supercharger before complete server capture;
+mutating hidden clock/current graph storage changes its digest. These isolated
+storage mutations are not presented as actual combat or damage inputs.
+
+Shared combat/VM341 checks pass in210.786s before the import-only adjustment.
+Full13 snapshot run initially had12 passes and one manifest mismatch because a
+Python docstring changed while that test was running. This was test interference;
+the source was frozen and the affected test was rerun separately. Final raw-peer
+live-deployable capture passes in38.257s and the affected frozen-source replay
+passes in349.184s. Results are recorded separately in test-results.json.
+No native HealthPool/scalars, destroy tail, entity transport, filters, ownership,
+Enforcer/Assassin incoming, NPC specials or full static/client item is closed by
+this incremental graph integration.
+
+Natural barrier ending phase and corrected NPC mover profile (partial)
+After the original HealthPool0 scope ends, the barrier leaves active collision
+and enters explicitly stored retiring state. Its original Wait30 remains active
+for500ms; the same0BD8 VM advances until that phase finishes, then local storage
+retires. Actual enemy primary hits the owner through the non-colliding ending
+shield while its VM remains alive. Regular-tick end minus start is500ms. A gap
+keeps the scheduled500ms deadline and processes an overdue event on resumption;
+observed end time is not backdated. The initial gap assertion expected500ms even
+with no intervening update and observed625ms; the corrected check verifies the
+authored queue deadline, no restored collision and eventual cleanup. Native
+gap-dispatch equivalence remains unaccepted. Damage/replacement death phases,
+rendered effects and native entity deletion are still OPEN.
+
+Read-only class/dispatch analysis of the authorized captured image follows
+523EE38D -> genericDD856C32 factory1B701A0 -> input1B6EBA0. Primitive+50=D34A80
+returns true; game namespace+138=97A170 forwards code recording toA0A0D0 before
+the declared output is followed.8CC3BD5A resolves the generic7C37840C state
+factory1B702C0. The captured registry has no specific compiled factory for either
+class. This does not prove native HealthPool internals or a global delete action;
+no such handler was added. Native code was disassembled, not executed/live-run.
+
+Parent data review identified a geometry limitation in the earlier NPC evidence:
+runtime-104319 has38 mover rows and none for the five Talon bodies. Their earlier
+spatial checks used generic fallback capsules and cannot establish original NPC
+geometry. Current static validation explicitly uses read-only
+verification/retribution/npc-navigation-runtime (43 mover rows) together with
+the actual npc-runtime graph catalog. The preparation metadata/source hashes and
+existing extraction mapping were independently checked; base inputs and hardlinks
+were not written. This profile has no real-map collision cache: tests use static
+flat-world/triangle-wall fixtures, not an original-client map deployment.
+Height/radius/run-forward values are Trooper1.7/.5/5.75, Enforcer1.9/.5/5,
+Sniper1.75/.5/4.5, Assassin1.5/.5/14 and Heavy2.3/.7/2.2. Current20 new geometry
+scenarios require explicit rows and check actual projectile lateral0.6m/high2.05m
+boundaries (only Heavy hits), plus all-five static cover. Sixteen actual NPC
+outgoing/incoming checks pass in42.181s on these prepared dimensions. Speeds are
+prepared metadata, not proof of native AI navigation. Animated muzzle, skeletal
+and head hitboxes, all NPC specials and complete geometry fidelity remain OPEN.
+Current43-row profile348 combat/VM checks pass in282.619s (126 Orisa plus222
+shared checks). Three complete-server storage checks pass in66.143s, including
+raw-input deployment followed by actual non-colliding retiring VM capture and
+hidden Wait-state mutation detection. The first storage fixture advanced wall
+time alone; the corrected fixture advances simulation ticks with explicit
+missed-frame counts and keeps its in-memory client connection alive. The
+initial5-test storage run's other4 checks passed; the affected method and its
+related2 storage checks then passed on the corrected fixture. These are separate
+runs, not a claimed new full13 snapshot rerun. All jobs closed; Ruff/diff pass.
+
+Actual weapon movement and original Halt control diagnostic (prior checkpoint)
+Four new actual command/pose checks pass in9.507s without health/ammo/timer edits.
+Orisa reaches5.5m/s normally and approximately3.85 while firing: original0BD4
+node88 stacks23184e+0.3, and common01C7 node152 adds min(-23184e,-23186e) to mover
+property0. Releasing fire restores speed. Manual reload and actual150-round
+depletion/auto-reload restore movement speed, then held fire resumes3.85. Fortify
+does not remove this intrinsic weapon reduction. Recorded velocities quantize
+to1/1024; examples are3.849609375 and5.5. This covers these bounded weapon/stance
+conditions, not the full movement/passive/control matrix or original client.
+
+Read-only0CCC/0CCE resource hashes were rechecked against the prepared supplement.
+0CCC transitions invoke PlayScript0CCE with typed position078/radius07B/owner00A.
+0CCE's150ms then250ms waits lead to MoveTo3: speed20 and destination
+centre+normalize(target_position-centre), within its1s scope. On movement end,
+Wait5 holds Stack36 for650ms; it adds0.6500000358 to23186e. Diagnostic execution
+of the actual graph produces movement at frame25, arrival/end at39, post-move
+speed1.9248046875 while23186 is active, and5.5 again after expiry/recovery.
+The diagnostic explicitly adapts only own position, supplies typed start values
+and a synthetic caller; it does not cast Halt or execute PhysicsExplosion/native
+force. Production legacy50/.65 ground-centre control remains in place and does
+not implement these authored MoveTo/post-slow phases. PhysicsExplosion's -50
+force must not be conflated with the separately authored20 MoveTo request.
+Continuous targets/six visibility samples, full target-status lifecycle/immunity,
+priority arbitration, force integration and exact native fidelity remain OPEN.
+The diagnostic is an implementation target and contradiction to broad acceptance,
+not a claimed fix. All16 runtime/tool hashes still match the preceding348 run;
+only the four new checks ran for this unchanged implementation.
+
+Authored Halt target control implementation (current partial checkpoint)
+The preceding diagnostic limitation is superseded for target MoveTo/post-slow.
+Real command/detonation now creates original0CCE on the actual target component,
+binding the actual orb caller and typed centre078/radius07B/owner00A. A scoped
+own-position adapter supplies the authoritative player/NPC pose. Original waits
+13/9 schedule150+250ms before MoveTo3; normal player movement and a scoped NPC
+collision mover consume its20m/s offset request and report arrival/blocking to
+that same VM state. Wait5/Stack36 then own650ms of65% movement penalty#23186.
+Actual forward input reaches1.925m/s, then5.5 after expiry; with Orisa firing it
+recovers to3.85. Actual Fortify input clears the post-slow. NPC movers start at
+current pose only when a real MoveTo request exists; no startup catch-up jump.
+The old54-frame NPC assertion failed because only three20m/s steps had elapsed.
+The corrected60-frame check verifies startup stillness, bounded per-frame travel,
+greater-than1m displacement, unchanged health and death retirement together.
+
+Prepare inputs outside the source tree:
+python -B -m tools.prepare_orisa_halt --xml <original XML> --types <STU Types>
+  --output <external orisa_halt_174.json>
+Set ORPHEUS_ORISA_HALT to that file with the other explicit Orisa inputs and the
+43-row NPC mover profile. Missing authored graph input cannot activate the old
+50-speed substitute. The match retains its graph; server capture does not reread
+the supplement.27 checks pass in107.572s, including real two-peer startup/linger
+capture and reversible hidden-wait digest probes followed by actual retirement.
+This is scoped static execution, not proof of native force or full Halt fidelity.
+Acquisition remains one-shot radius/capsule plus a central visibility ray. Native
+PhysicsExplosion(-50,radius7), continuous TrackTargets and its six rays, full
+priority/status dispatch, NPC post-slow locomotion, cross-hero policies and
+projectile replication remain OPEN; all original-client acceptance remains OPEN.
+The frozen implementation also passes357 combat/VM regression checks in187.935s
+(135 Orisa plus222 shared). These overlap the26 combat checks in the27-check
+targeted run; the extra targeted check is real two-player server-state capture.
+All33 staged Python files pass Ruff and both diff checks pass.36 files are staged
+for review; no own commit, merge, push or client session. Full goal stays ACTIVE.
+
+Native target-query scheduling discovery (current research, not combat acceptance)
+Captured image b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2
+contains exact TrackTargets41E3C7A7 factory records for8F5E50 andC8DC70, typeinfo
+2DE0C18. The concrete261EAE8 vtable reaches beginC93570, tickC95590 and query
+updateCAE3B0. Tick calls refresh predicateCA9460. Config+214 is m_DD792FF0:
+values1/2/3/4 select3/6/12/30 frames; original0CCC node1 uses3. Same-frame work
+is rejected, a hashed identifier/node-key phase distributes refreshes, and an
+overdue interval permits refresh. Offline Unicorn executes this exact predicate
+for15 policy/identifier combinations with explicit supplied frame/context/ID
+services:1425 function calls pass interval, same-frame and overdue checks.
+This does not prove the caller's clock quantum, phase-key provenance, result
+callbacks, filters or visibility. The query updater callsCA3570 with the actual
+visibility array and native flags; its semantics remain the next research target.
+
+Correction to the earlier six-sample assumption: six XML records exist, but rows
+0/1 and2/3 are identical and the first five m_start fields are null/default.
+Neither that array nor the500ms orb lifetime justifies a guessed six-axis ray
+implementation or replaying PlayScript on every simulation frame. Existing
+one-shot central-ray acquisition remains incomplete. Runtime Python hashes stay
+unchanged from357+27 checks; no new combat acceptance or client execution is
+claimed for the offline native probe. The complete goal remains ACTIVE/OPEN.
+
+Original visibility sample combination and Fortify press-age checks
+NativeCA3570 passes the original sample array toCA4450. The latter prefers the
+offset config at sample+10 over the explicit start at+8. It evaluates that offset
+and adds the supplied origin. With m_E8474EE8 enabled, it first ray-tests origin
+to that offset start; an obstructed leg skips that sample. It then ray-tests the
+sample start to the configured end at+18. The first clear main segment returns
+false (no rejection) and writes start/end/cache-valid at state+1D0/+1E0/+1F0.
+All obstructed samples return true. Missing/empty arrays return false from this
+helper; the outer caller's fallback policy remains separate. An explicit start
+is evaluated only when the offset config is absent, so it must not be combined
+with a present offset. The original0CCC m_E8474EE8 is true.
+
+Offline Unicorn executes the actualCA4450 instructions for75 cases: all64 masks
+of six main segments, six cases where the only clear main segment has a blocked
+offset leg, all offset legs blocked, the disabled-leg option, explicit start
+without offset, and missing/empty arrays. Config vector/bool evaluation and ray
+obstruction are supplied services. Endpoint/cached-success and early-return order
+are verified, not actual native collision or full TrackTargets fidelity.
+Native vector configs66F3B89E/021D01CD/D32169F6 use transform queryD1B5E0 and
+read its row0/row2/row1 respectively after success. Their exact pose/query-context
+inputs are still required before replacing the reconstructed visibility path.
+CAB750 is conditional per-frame history storage, not the target callback itself.
+The query updater's output-array replacement and1BA5C40 notification were traced;
+full begin/completion/PlayScript timing is still unverified. A class supporting
+refresh does not prove this graph repeats callbacks for its entire500ms lifetime.
+
+Parent cooldown notice was reviewed against the private Ability implementation:
+_take_press returns the original(time,button,activation) tuple, which can_start
+reinserts unchanged after a failed gate. It does not refresh time to now.
+Four actual0CF4 Fortify methods pass in16.614s: too-early release expires and a
+fresh ready press works; a released press within its authored150ms early window
+starts on readiness; a fresh press held through cooldown can start after its
+short buffer ages out; holding the original cast never repeats until release and
+repress. No health/cooldown/timer mutations were used. The first24-test run also
+loaded20 existing combat methods; its38.898s pass is not24 new checks. Runtime
+Python remains unchanged from357 regression/27 overlapping target-storage checks.
+Only the4 new methods are additional current combat evidence. Full goal stays OPEN.
+
+Configured visibility backend (partial, not yet wired into Halt acquisition)
+script.target_visibility.sample_segments implementsCA4450's ordered configured
+samples with supplied vector and obstruction services. It preserves float32
+vector reads/additions, uses the original zero vector on known failed/missing
+vector conversion, tests an enabled origin-offset leg, returns the first clear
+main segment for caching, and rejects only when every configured sample fails.
+Unknown services remain explicit VisibilityUnavailable errors. No pose, native
+collision mask, target filter, outerCA3570 fallback or query context is invented.
+The external native probe now has79 cases: the original75 plus null start/end,
+large-origin float32 addition, and fractional origin/config vectors. Null-config
+cases execute the captured1B721B0 branch itself. Differential tests compare all
+native ray endpoints/order, evaluated config order, rejection and success cache.
+57 current backend/skill/VM checks pass in32.554s. This includes2 new methods;
+the native differential method contains79 cases. It is not57 new combat cases.
+The helper is deliberately still separate from the reconstructed Halt acquisition
+until the actual query pose/filter/lifecycle services are established. Neither
+the12-frame class refresh policy nor500ms orb lifetime proves repeated callbacks.
+Original PlayScript empty-target handling906F1A..906F39 still follows its output;
+the complete TrackTargets begin/completion path remains under verification.
+
+Parent mover-input notice review: the21 initialized Orisa kit graphs yield
+MovementMod indices0/7/10/11/12/26, no17/18/19 input rows. The read-only inventory
+is external orisa-input-modifier-inventory.json. No mover change was imported.
+This does not cover arbitrary dynamic target-control/cross-hero/NPC graphs and
+cannot close the full input matrix. Full goal remains ACTIVE; no own commit.
+
+Native completion and parameter context follow-up (partial research)
+An isolated Unicorn probe executes the real8F5E50 TrackTargets allocation/factory,
+C8B3B0/C8B460 and1B6F760 constructors, including their ordinary list initialization.
+Only18512C0 allocation supplies isolated memory. The result is4D0 bytes, vtable
+261EAE8, initial state flags4000. The common constructor sets4000 at1B6F84C.
+DoBeginState1B70A33..3F passes instance+318 bit10 to the class begin hook. Its
+1B70A92..AD0 path reaches the completion hook when state flag4000 is present.
+The initial gate is therefore not absent by default, but exact authoritatively
+initialized instance/query/notification behavior still needs whole-graph proof.
+
+Four isolated native906D50 PlayScript cases cover resource absent/present with
+an empty target iterator and output-walk false/true. Actual1B6EBA0 and its
+D34A80 primitive execute; the action returns true in all four cases. Services
+for resource selection, iterator/context/type checks, namespace notification,
+output walking and cleanup are explicit inputs. Five actual1B73EC0 cases check
+zero, rejected, accepted and ordered mixed transitions; the first accepted link
+makes completion true. These9 predicates plus the factory make10 native cases,
+not10 combat checks. They support investigating immediate completion of0CCC's
+query1->PlayScript12 transition, not claiming a complete graph lifecycle.
+The initial probe harness clobbered RAX in its cookie-check stub; the corrected
+stub preserves it, matching24E39C0's actual instruction path. No engine defect
+or runtime behavior was inferred from that harness failure.
+
+Correction to the parameter-context analysis: the nested92 expression is
+bytecode13, which reads a parameter. It is not bytecode8/9 variable access.
+Existing expr.run already uses Context.param for13 and source() prints param(92)
+when given that nested expression. A diagnostic evaluates all six actual0CCC
+sample records with node35's authored0.3, supplied owner/provided-entity poses
+and basis rows. It observes parameter92 reads and no variable92 reads. It does
+not establish the native provider's entity binding, pose source or collision
+semantics. Therefore no temporary variable92 assignment or guessed candidate
+binding has been added to production acquisition. The sample backend remains
+separate pending these services and full query lifecycle. All36 Python files
+are unchanged from the preceding39-file checkpoint; no new combat acceptance.
+
+Configured visibility integrated into actual Halt (current partial checkpoint)
+The native query loop atCAF4D0 enumerates an actor,18262E0 supplies its identity,
+CAF4E3..4EF copies that identity into the fixed92 provider, andCAF4F5..50B pushes
+the scope. Visibility executes under it; CAF679..680 removes it. The provider's
+1B8D870 method matches0A4000000000005C and F66C80 writes an entity value. Offline
+execution verifies20 typed-key/entity cases and4 preallocated scope push/pop
+depths, preserving prior scope entries. The separate D27629 use belongs to
+CombatModFilter6226036A; it was not mistaken for the query's only binding site.
+
+Orisa now retains original0CCC as halt_query_graph beside0CCE. Actual Halt reads
+node1's configured samples and offset-leg policy, with node35's authored0.3.
+An explicit evaluation context binds parameter92 to the candidate and supplies
+the existing authoritative body root position/yaw; the manager's stationary orb
+has zero velocity in this profile. Configured float32 segments use static-world
+obstruction queries. A successful configured segment bypasses the old central
+test. When all configured samples fail, the previous central fallback remains:
+CA3570 does not unconditionally reject after its configured helper fails.
+The full native fallback's hardpoints/bounds/masks, root tilt/animation, general
+target filtering and query lifecycle are still OPEN; this is not native engine
+equivalence. Missing0CCC/0CCE input cannot silently revert to old targeting.
+
+Six actual-input visibility methods cover11 cases: thin central cover, two
+candidate headings, obstructed offset legs, the outer fallback, missing query
+data, and all five actual Talon bodies on the explicit43-row mover profile.
+Heavy Assault's first expected-pull assertion failed for a valid authored reason:
+query results include its body, but0CCE's immunity switch rejects Stack6601,
+which is true through original1254/node29. Four other bodies move; Heavy stays
+in place and all pools stay unchanged. The corrected test asserts that exact
+resource-backed distinction rather than bypassing immunity.
+
+The parent's canceled-notification defect was independently reproduced by three
+causal tests. Ending canceled queued CHANGED/CHECK events but retained their
+coalescing flags; later state reentry could no longer enqueue notifications.
+State.end now clears both existing flags after cancel. Component.changed skips
+the ending state while other active watchers still receive notifications.
+The Join case uses the actual1113EBD5 handler, not manual CHECK-marker injection.
+The first draft used the wrong Join class; the corrected pre-fix run reproduces
+all3 failures in0.003s. After the fix, all3 pass with the6 visibility methods
+in8.007s. No extra persistent fields or global arbitration phase were added.
+The parent's separate Ability.stop resource-release reorder is not part of this
+change; full native/cross-object resource ordering remains unaccepted.
+
+Frozen-runtime455 combat/script/VM methods pass in292.137s, including the79-case
+visibility differential method, ordinary skills, native Join, driver, runtime
+budget/strict checks and body storage/aliases. Four whole-server methods pass
+in149.441s, including active0CCE/0BD8/device capture. A separate new metadata
+check passes in2.675s: changing the retained query offset changes the causal
+digest and restoring it restores the digest, with external rereads prohibited.
+The probe restores data before any combat continuation; it is not a modified
+combat input. These are overlapping runs, not460 new combat cases. Full static
+and original-client acceptance remain OPEN, with no own commit/merge/push.
+
+2026-11-09 player optics correction (partial)
+Original body1498 STUFirstPersonComponent m_E29993A5=1.78,
+m_816B830F=1.246; enemy McCree02A3=1.425/0.9975. Combat now uses these
+heights for player shot origins and Target.eye, including retained history.
+Actual standing/crouched low-cover firing differentiates both heroes, with
+damage and HIT notices checked. Two methods pass2.843s; corrected pre-fix
+baseline exposes four failures. Pose history is sampled by Match.update before
+the next input, so the history check holds each stance for two actual frames.
+These static fields do not establish animated camera or native head hitboxes.
+Full static/client scope, all NPC specials and cross-hero matrix remain OPEN.
+The first optics-expanded run had1 failure/18 subtest errors (457 methods,
+260.501s): level rays from the corrected eye missed short NPCs, and the old
+level enemy shot no longer hit Orisa's reconstructed head region. Fixtures now
+aim actual commands at each NPC capsule centre for selection, and at Orisa's
+current eye for the launch/death boundary; selection remains the real visible
+ray and death remains real enemy damage. No runtime gate is bypassed. All14
+affected methods pass50.317s after correcting those test aims.
+
+Offline native begin-phase slice, five explicit Instance318 flag cases:
+actual1B70A29..1B70A46 dispatches261EAE8+B8 -> C93570, with phase bit10.
+Phase0 resets1C8 and immediately callsCAE3B0; phase1 skips it. Both reset4B0
+toFFFFFFFF and call base1B72D80 with toggle1. Only base toggle and candidate
+query invocation are supplied services, and one captured absolute vtable slot
+is rebased to the isolated RVA map. The initial harness expected an RVA in the
+absolute capture slot; rebasing corrected the harness, not the native engine.
+Authoritative flag origin/lifetime and full completion/order remain OPEN;
+this does not establish a continuously repeated query or change scheduling.
+
+Current frozen-runtime checks:457 combat/script/VM methods PASS339.207s;
+five whole-server storage methods PASS121.194s;32 replay/manifest/two-player
+lifecycle methods PASS422.123s. All40 staged Python files Ruff PASS and both
+diff checks PASS. Counts overlap; full static/client acceptance remains OPEN.
+
+Native completion-event dispatch research:12 actual1B71570 -> actual1B73EC0
+cases PASS. State4000 enables the check, pending10 skips it. A successful
+supplied transition requests typed event2 at supplied time1000, except when
+Instance318 bit2 or21 suppresses it. Begin-phase bit10 alone does not suppress
+completion. Time/transition/event-allocation/append-notify are supplied services;
+native event list/dispatch, real action, DoEnd and authoritative instance flag
+origin/lifetime remain OPEN. DoBegin's1B73E00 and1B74380 dispatch C8/D8 links;
+they are not themselves the IsComplete predicate (vtable20/1B73EC0).
+No production Python changes from the verified457/5/32 checkpoint.
+
+Enforcer controller integration (subsequent partial production change)
+Manual Enforcer bodies now declare controller components(75,), and the scoped
+B96D3A98 evaluator requires75 present/92 absent, matching eight recorded native
+bitset cases. No native controller allocation is claimed. None/wrong graph or
+foreign entity remain unsupported; explicit disqualifying sets return false.
+Actual13EB input now reaches its volley: amount2, speed80, observed armour loss1
+or Fortify+armour loss0.6. Full primary is NOT accepted: node24 authors25 pellets
+with613BDDB0 concentric rings1/8/16 but Combat currently emits one projectile.
+Native ring-launch references D886C4/D886E7 now identified for the next repair.
+77 context/NPC/VM checks PASS51.939s, including causal server digest changes
+for the controller profile. Initial checks exposed a missing VM snapshot field;
+both VM and server layouts now store it. Expanded/replay verification is separate.
+
+Current frozen Enforcer-context source:466 combat/script/VM/server-storage
+methods PASS560.429s;32 replay/manifest/two-player lifecycle methods PASS545.228s.
+All42 staged Python files Ruff PASS, both diff checks and reverse patch check
+PASS. Runs overlap; no whole primary or full static acceptance is inferred.
+Offline nativeD80310 ring launch/seed/uniform tables/884090 rotation execute
+75 sample cases with explicit aspect1 and forwardZ/owner123/shot2. Three
+spread8 profiles use jitter0 or2 and phase0 or random. Each emits25 distinct
+finite unit directions; zero-jitter rings agree with0/4/8 degrees. Scalar libm
+is stubbed. Initial omitted aspect+C collapsed an axis; the harness now supplies
+the explicit base field. No production ring model/differential acceptance yet.
+
+Subsequent Enforcer25-pellet production integration
+13EB/node24's25 authored projectiles now use613BDDB0 rings(0,1),(.5,8),(1,16),
+spread230, jitter2 and phase (absent means native random phase). The common
+null aspect field defaults to1 in nativeD87D7C/D88A63, matching this unit-aspect
+model. Full32768 generated random-table values match the capture;525 actual
+native/model direction cases pass with worst error1.2e-7, including seed/pose
+variation and native small-jitter second-axis threshold. Production requires
+no capture or table assets. Seed identity is explicitly reconstructed as body,
+instance.id,node.pos,activation.counter; native handle mapping remains OPEN.
+Actual input emits25 distinct ballistic projectiles and consumes one round.
+12 focused context/NPC methods pass56.066s with real mitigation, barrier,
+boost, stop/team/wall, death and respawn behavior. Actual ray/capsule hit count
+drives the pool delta (one per armour hit,0.6 with Fortify). All25 hits cannot
+be assumed: node-based seeds produce23 hits in the first fixture and24 after
+another respawn volley. The earlier all-hit expectation failed five subcases
+in63.050s and was corrected without changing scatter. Full AI/specials,
+range/cross-hero/native transport and original-client matrix remain OPEN.
+
+Final ring checkpoint:467 combat/script/VM/server-storage methods PASS637.818s;
+32 replay/manifest/two-player lifecycle methods PASS577.020s.43 Python files
+Ruff and both diff checks PASS. Actual13EB binding records spread230=4,jitter2,
+25 distinct projectiles and ammo4->3. Additional25 native/model directions for
+that4-degree profile match with worst6e-8 (explicit representative root-facing
+pose,not animated muzzle). Full seed/muzzle/client parity remains unclaimed.
+Next direct hero gap: Fusion Driver0BD4/node50 has239B571E,no decay,ramp4,
+but current private normalized spread and projectile direction stay constant/
+centred. Existing centre-ray damage/charge evidence does not accept real scatter.
+Assassin actual1EBD body includes1157 (100/s+25 damage,pin23,input36), while
+current manual primary slot remains20. Actual damage/control/Fortify and
+cleanup must be verified against that graph,not only a synthetic pin fixture.
+
+Fusion Driver launch spread
+Original BD4/node50 supplies ramp4 and cone endpoints 0.25 and 1.2 degrees.
+AE71CF reads the launch counter at +270, D5FF60 dispatches it to the spread
+function, and AE73F2 increments it after firing. The state output independently
+uses shots_at(elapsed)+1. Twenty-one D80A50 ramp4 comparisons passed.
+The server declares body/instance/node/activation seed inputs, uniform-radius
+sampling and the existing body-pose origin. Native handle and muzzle parity
+remain open. Two focused checks exercised the first five actual projectiles
+and a centre-ray hit that becomes a miss, plus the inverse edge placement.
+Actual body impact yields11 damage and11 charge. A missed impact yields zero.
+
+The frozen Fusion Driver revision passed 469 extended checks in 681.993 s
+and 32 replay checks in 590.502 s.
+
+Manual Assassin 1157
+The authored body now enters 1157 through manual input 36. Nodes 25 and 15
+produce 25 contact damage and 100 per second through the ordinary pools.
+Orisa loses 20 armour on contact and 8 armour across ten continuous frames.
+Pin identity, target context and the elapsed damage clock enter snapshots.
+Actual input is refused during the pin and resumes after stop. Source
+removal and victim body replacement clear the old pin and damage scope.
+The reconstructed 3 m manual contact policy refuses the entire pin phase
+while active Fortify and its control-immunity flag both apply. The test sees
+the pin recover after Fortify expires. Native contact damage under Fortify,
+native range and animation, and the remaining attack matrix are open.
+
+The Assassin integration passed 472 extended checks in 551.015 s and
+32 replay checks in 572.166 s.
+
+Curved Flashbang interactions
+The original 01E9 node 7 supplies launch lift 0.05 and gravity 20. The
+server adopts velocity-before-sweep at 16 ms and detonates at its
+range/speed lifetime. The expiry test recorded 20 damage plus control
+against exposed Orisa, 10 damage with Fortify and zero damage behind
+static cover. Another cast hit the authored barrier mesh, took 25
+barrier health and left the nearby owner free of damage and control.
+Fifty scoped trial checks passed. Native integration order and expiry
+remain reconstruction boundaries, with original-client acceptance open.
+
+The curved Flashbang revision passed 474 extended checks in 704.371 s
+and 32 replay checks in 605.109 s.
+
+Genji Deflect versus Fusion Driver
+Actual input 16 opens 03A3 node 18 for 125 frames. The server evaluates its
+three box expressions and uses a first-person origin with a yaw-aligned pose.
+Genji body 0225 provides standing height 1.2 and crouched height 0.84.
+A returned round transfers to Genji, follows his aim and gives him hit
+credit. The original Orisa gains zero charge. A centred return dealt 17
+damage to armour or 3.3 while Fortify was active. Aim away produced a
+return miss. Wall, teammate, back attack and expiry cases passed, along
+with retirement of the return on reflector body replacement.
+Native filter, pose, effect dispatch, returned projectile delivery, and
+other weapons and projectile types remain open. D.Va mech 0407 and its
+02CC graph were prepared from original XML for the next absorption check.

@@ -1039,8 +1039,10 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
+        self.last_values: dict[tuple, object] = {}
 
     def on_enter(self) -> None:
         self.offset = 0
@@ -1048,6 +1050,15 @@ class WeaponVolley(State):
         self.reported = 0
         self.params()
         self.arm()
+        self.ticks()
+
+    def tick(self) -> None:
+        # Linked ammo/spread outputs are functions of the clock. Watchers must
+        # see their transitions even when no external SetVar writes the slot.
+        # In particular, the authored empty-magazine branch starts auto reload.
+        for var in self.links:
+            before = self.last_values.get(var.key, var.value())
+            self.last_values[var.key] = self.instance.changed(var, before)
 
     def report(self, until: int) -> None:
         """Put the shots fired up to `until` (ms) that are not on the component's list yet on it: shot k
@@ -1079,6 +1090,12 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            ramp = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(ramp, watch=False))) if ramp else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1091,6 +1108,7 @@ class WeaponVolley(State):
             var.base = value
             self.links.append(self.link(target, slot))
             self.instance.changed(var, before)
+        self.last_values = {var.key: var.value() for var in self.links}
 
     def _out(self, name: str) -> Var | None:
         target = lvalue(_field(self, name))
@@ -1129,20 +1147,34 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        return self.spread0
+        return self.spread_at(self.now - self.start - self.offset)
+
+    def spread_at(self, elapsed: int) -> float:
+        """D80A50 normalized spread for the launch without between-shot decay."""
+        return self.spread_for_index(self.shots_at(elapsed) + 1)
+
+    def spread_for_index(self, index: int) -> float:
+        """D80A50 accepts a count supplied by its caller."""
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        increase = f32(max(0, index) / self.spread_ramp)
+        return min(1.0, f32(increase + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
-                before = var.value()
+                before = self.last_values.get(var.key, var.value())
                 var.base = values.get(link.slot)
                 self.unlink(var)
                 self.instance.changed(var, before)
         self.links = []
+        self.last_values = {}
 
     def payload(self) -> dict:
         return {"start": self.start, "offset": self.offset, "volleys": self.volleys, "counter": self.counter}
@@ -1303,15 +1335,18 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def _take_press(self, button: int) -> tuple[int, int, int] | None:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
+
+    def take_press(self, button: int) -> bool:
+        return self._take_press(button) is not None
 
     # starting and stopping
 
@@ -1358,10 +1393,10 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        press = None
         if start:
-            pressed = self.take_press(start)
-            if not pressed:
+            press = self._take_press(start)
+            if press is None:
                 if not self.held(start):
                     self.flags &= ~self.HELD
                     return False
@@ -1376,8 +1411,10 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+            if press is not None:
+                # Preserve the physical input time. Refreshing it on every
+                # failed poll makes an early press survive indefinitely.
+                self.presses.insert(0, press)
             return False
         if start:
             self.flags |= self.HELD
@@ -1809,6 +1846,32 @@ class GamePadVibration(State):
 
     def on_enter(self) -> None:
         self.request_finish()
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Explicit world health service; supported manual1157 clock is reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
 
 
 @state_class("STUStatescriptStateTrackTargets")
