@@ -5,6 +5,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Integrate delivered Soldier combat-charge classification
+
+- Mount the delivered target-tag lookup, charge expression context, supported
+  damage-message entries and enemy/controller query inputs. Pass the actual
+  struck body definition and recipient into Soldier's charge policy; keep the
+  existing policies for other heroes, including Genji's posthumous projectile.
+- Route eligible Field healing through the same delivered lifecycle/cap gates.
+  Preserve the original 37-check Soldier charge fixture in the combined tree.
+- Seven enabled focused charge/lifecycle checks passed; the three tag cases
+  then passed with the original lane's prepared catalog (the smaller combined
+  catalog lacks those target rows). The full discovery run exposed remaining
+  mode-startup/clock and older fixture-interface gaps; those do not withhold code.
+  No client acceptance or complete Soldier line merge is claimed.
+
+
+
 ### Restore delivered Soldier idle body clocks
 
 - Anchor admitted Soldier body frames to world ticks. Advance the delivered

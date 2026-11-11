@@ -741,6 +741,16 @@ class BodyWorld(runtime.World):
     def native(self, cfg: dict, instance):
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
 
+        if instance is not None and instance.graph.index == ultimate.CHARGE_GRAPH and ultimate.practice_timer(self):
+            result = ultimate.tagged_damage_query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+            if (cfg.get("$") == "STU_F7262B36" and instance.component.entity == self.body
+                    and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
+                player = next((p for p in self.match.players if p.has_body and p.spawned and not p.gone
+                               and p.body == self.body and p.hero.guid == self.hero), None)
+                return Entity(player.entity) if player is not None else None
+
         if (cfg.get("$") == "STU_021D01CD" and instance is not None and instance.graph.index == 0x0257
                 and self.match is not None and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
             player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
@@ -1918,14 +1928,14 @@ class BodyScript(ReplicatedBody):
             runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
             self.component.run_now()
 
-    def gain_ult_charge(self, points: float) -> float:
+    def gain_ult_charge(self, points: float, *, kind="damage", target_definition=None, recipient=None) -> float:
         """Reconstructed one-point-per-effective-damage credit, capped at cost.
 
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
         if (self.retired or self.component.fault is not None
-                or (self.hero == 0x02E000000000013B and self.component.owner_dead)
+                or (self.hero in (0x02E000000000013B, 0x02E000000000006E) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
                 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return 0.0
@@ -1933,6 +1943,14 @@ class BodyScript(ReplicatedBody):
         before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if not math.isfinite(cost) or not math.isfinite(before) or before < 0 or cost <= 0 or before >= cost:
             return 0.0
+        if self.hero == 0x02E000000000006E:
+            if recipient is not None and ultimate.practice_timer(self.world):
+                if kind == "healing":
+                    return ultimate.field_healing_points(self, points, recipient)
+                result = ultimate.tagged_damage_points(self, points, recipient, target_definition)
+                if result is not None:
+                    return result
+            points = ultimate.combat_points(self, points, kind, target_definition)
         after = min(cost, f32(before + min(points, cost - before)))
         self.set_ult_charge(after)
         return after - before

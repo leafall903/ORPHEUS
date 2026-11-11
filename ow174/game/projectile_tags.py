@@ -44,3 +44,7 @@ _CATALOG = read_catalog(_raw) if _raw is not None else MappingProxyType({})
 def absorbable(definition):
     known = _CATALOG.get(definition)
     return known is not None and EXCLUDED_TAG not in known
+
+
+def tags_of(definition):
+    return _CATALOG.get(definition)

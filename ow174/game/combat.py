@@ -3623,14 +3623,8 @@ class Combat:
                     if (shooter.hero.guid == 0x02E000000000006E
                             and (source_entity is None or source_entity == shooter.body)):
                         script = shooter.body_script
-                        if (script is not None and not script.retired and not script.component.owner_dead
-                                and not any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
-                            from ow174.game import ultimate
-
-                            if ultimate.practice_timer(script.world):
-                                ultimate.field_healing_points(script, min(given, eligible), target.entity)
-                            else:
-                                script.set_ult_charge(ultimate.combat_value(script, min(given, eligible), "healing"))
+                        if script is not None:
+                            script.gain_ult_charge(min(given, eligible), kind="healing", recipient=target.entity)
                 self._charge_echo_health_event(shooter, given, source_body=source_entity)
                 moira.gain_combat_charge(shooter, given, body=source_entity, healing_target=target, healing_tags=tags)
             self.baptiste.healing_charge(shooter, target, min(given, eligible), source_body=source_entity)
@@ -6553,7 +6547,12 @@ class Combat:
                     and hero not in (regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
-                script.gain_ult_charge(points)
+                if hero == 0x02E000000000006E:
+                    definition = victim.body if isinstance(victim, bots.Bot) else getattr(
+                        getattr(victim, "hero", None), "body", getattr(victim, "definition", None))
+                    script.gain_ult_charge(points, target_definition=definition, recipient=target.entity)
+                else:
+                    script.gain_ult_charge(points)
             if enemy and current_source and hero == 0x02E0000000000029:
                 tick = self.match.tick if world_tick is None else world_tick
                 self.genji_assists.setdefault(target.entity, {})[shooter.body] = (shooter, tick)
