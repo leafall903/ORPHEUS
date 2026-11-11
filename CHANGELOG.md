@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Tracer Blink and pistol spread
+
+- Route the delivered0024 action through the current authoritative capsule and
+  Mei-wall mover interfaces. Preserve throttle direction,7.5m resource distance,
+  charge flow, retained-pose guard and same-frame correction history.
+- Retain the delivered Recall/pull input exclusions using the combined control
+  owners. Mount original dual-bullet cone sampling and captured activation
+  angles; register retained spread in the inert body/server snapshot layout.
+- Restore Tracer's confirmed standing/crouched FirstPerson fallback values and
+  preserve the original core and spread verification sources.
+- All19 original Blink/spread checks passed. The broader39-check run still
+  exposes head-region/critical and older target-fixture differences, which are
+  the next Tracer reconciliation work. Existing code is submitted without full
+  acceptance; no complete Tracer merge or original-client acceptance is claimed.
+
+
 ### Merge Lucio original-language delivery
 
 - Merge delivery17da4f0f after restoring moving-recipient world ticks, optional

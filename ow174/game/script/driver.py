@@ -1353,6 +1353,11 @@ class BodyWorld(runtime.World):
         self.wheel_callouts.append(event)
         del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
 
+    def blink(self, instance, node):
+        from ow174.game import tracer
+
+        return tracer.blink(self, instance, node)
+
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
@@ -1846,7 +1851,9 @@ class BodyScript(ReplicatedBody):
             if grounded is not None:
                 self.component.set(545, grounded)
             self.component.set(2070, bool(forward or right))
-        self._run(frame, button_edges(self.buttons, buttons, action))
+        from ow174.game import tracer
+
+        self._run(frame, tracer.filter_edges(self.world, button_edges(self.buttons, buttons, action)))
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons

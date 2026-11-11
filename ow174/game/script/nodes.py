@@ -2948,6 +2948,9 @@ class WeaponVolley(State):
             time = start + shot_time(self.reported, self.rate)
             if time > until:
                 break
+            from ow174.game import tracer_pistol
+
+            tracer_pistol.remember(self, self.reported, time, activation)
             self.instance.component.shots.append((self, self.reported, time, activation))
             self.reported += 1
 
@@ -4969,6 +4972,17 @@ def _raycast_request(instance: Instance, node) -> RaycastRequest | None:
     return RaycastRequest(
         origin, direction, float(length), tuple(entity.id for entity in entities), filter_config
     )
+
+
+@handler("STU_A807207A")
+def blink(instance: Instance, node, caller):
+    callback = getattr(instance.component.world, "blink", None)
+    result = callback(instance, node) if callback is not None else NotImplemented
+    if result is NotImplemented:
+        return NotImplemented
+    if result:
+        instance.follow(node, "m_outPlug", None)
+    return bool(result)
 
 
 @handler("STU_08D6BA6E")

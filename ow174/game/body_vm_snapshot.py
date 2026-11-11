@@ -118,7 +118,7 @@ _STATE_LAYOUTS = {
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported", "last_values"),
-        ("max_shots", "min_shots"),
+        ("max_shots", "min_shots", "shot_spread"),
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),

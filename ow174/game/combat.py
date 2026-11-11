@@ -125,6 +125,7 @@ MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notic
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 # 104319 FirstPerson standing and crouched fields. Unlisted bodies use the fallback.
 EYE_STANDING = {
+    0x0400000000000001: 1.25,
     0x0400000000001424: 1.25,
     0x0400000000001C46: 1.7,
     0x04000000000029A6: 1.35,
@@ -133,6 +134,7 @@ EYE_STANDING = {
     0x0400000000002AB1: 2.1, 0x04000000000003BF: 1.6,
 }
 EYE_CROUCHED = {
+    0x0400000000000001: 0.875,
     0x0400000000001424: 0.875,
     0x0400000000001C46: 1.1,
     0x04000000000029A6: .945,
@@ -4233,6 +4235,14 @@ class Combat:
             if not npc and shooter.hero.guid == 0x02E000000000006E:
                 direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
+        if not npc and shooter.hero.guid == 0x02E0000000000003:
+            from ow174.game import tracer_pistol
+
+            if tracer_pistol.active(state):
+                count = int(field("m_numProjectilesPerShot", 1))
+                if not 1 <= count <= 64:
+                    raise ValueError("unsupported Tracer bullet count")
+                directions = tracer_pistol.rays(state, number, time, activation, direction, count)
         if (npc and shooter.hero == 0x02E0000000000002 and state.instance.graph.index == 0x0019
                 and node.pos == 10 and self._scene_component(shooter) is state.instance.component):
             from ow174.game import weapon_spread
