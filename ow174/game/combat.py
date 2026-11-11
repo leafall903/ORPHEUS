@@ -1202,6 +1202,8 @@ class Combat:
 
     def _hit_effect(self, target: Target, effect: int | None, *, shooter=None) -> None:
         """Apply the reconstructed Flashbang interruption and the scoped Talon reaction."""
+        if effect not in (SLEEP_DART_EFFECT, FLASHBANG_EFFECT):
+            return
         vitals = self.vitals_of(target)
         if vitals.dead or self._invulnerable(target.owner) or immunity.control_immune(target.owner, target.entity):
             return
@@ -1211,9 +1213,6 @@ class Combat:
                 vitals.sleep_wake_floor = floor
                 vitals.sleep_until = self.tick + SLEEP_TICKS
                 self._interrupt(target)
-            return
-        if (effect != FLASHBANG_EFFECT or self._invulnerable(target.owner)
-                or immunity.control_immune(target.owner, target.entity)):
             return
         # Scoped Fortify consumer: require both the actual0CF4 CombatModFilter
         # window and its authored#9161 control flag. Damage was already resolved;

@@ -624,7 +624,7 @@ class MatchSceneHostTests(unittest.TestCase):
         hook.instance.write((runtime.INSTANCE, 9570), True)
         state(vm, 0x01C6, 28)
         gate = state(control, 0x0BC6, 25)
-        nav = SimpleNamespace(handoff_complete=True, search=None, path=(), drop_started=None)
+        nav = SimpleNamespace(handoff_complete=False, search=None, path=(), drop_started=None)
         actor = SimpleNamespace(
             entity=A, hero=hero, position=(0, 0, 0), keys=False, dead=False, navigation=nav,
         )
@@ -632,8 +632,26 @@ class MatchSceneHostTests(unittest.TestCase):
         world.bind(target.entity)
         fight._enemies.return_value = [target]
 
+        mode = runtime.GAME_MODE_ENTITY
+        world.bind(mode)
+        mode_vm = host.add(mode, definition())
+        wave = scene_host.graph.graph(0x0CBC)
+        gate_node = wave.states[4]
+        returning = graph([node(index, 'STUStatescriptStateWait', state=index, m_timeout=literal(1))
+                           for index in range(4)]
+                          + [node(gate_node.pos, 'STUStatescriptStateWait', state=4, m_timeout=literal(1))])
+        returning.index = wave.index
+        wave_instance = vm.create(returning, init=False)
+        wave_instance.initialized = True
+        wave_instance.state(4).begin()
         with mock.patch.object(vm, 'edges') as edges:
             junkenstein_ai.update_boss_combat(host, actor, vm)
+            self.assertFalse(nav.handoff_complete)
+            edges.assert_not_called()
+            mode_vm.set(8521, True)
+            mode_vm.set(8566, True)
+            junkenstein_ai.update_boss_combat(host, actor, vm)
+            self.assertTrue(nav.handoff_complete)
             edges.assert_called_once_with([(35, True)])
             vm.held[:] = [35]
             hook.flags = hook.RUNNING

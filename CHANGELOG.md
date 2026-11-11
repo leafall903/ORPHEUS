@@ -19,6 +19,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Python scenario integration
 
+- Port the returning Reaper and Roadhog combat handoff from the Junkenstein
+  scenario branch. The authored return-wave state and mode flags permit
+  combat after the intro is skipped. The existing Python shield recharge
+  covers the encounter bosses, including the Summoner.
+- Pass 149 scene, StateScript, and combat checks with the combined runtime.
+  Original-client verification remains open.
 - Integrate the existing Junkenstein Vengeful Ghost, Mystery Swap, and late
   wave health changes with the combined Rialto and hero server. Preserve
   the scene host's intro and movement replication changes.
