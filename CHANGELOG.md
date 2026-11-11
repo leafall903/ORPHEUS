@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy historical attack ordering integration
+
+- Retain the original pending-attack scheduler, recorded boost selection and
+  bounded history deadline. Capture ranged and melee contacts before waiting
+  for an older staff frame; commit attacks in source order, once, or resolve
+  base damage when the history window expires. Projectiles keep their original
+  launch caster at impact. Preserve existing Orisa admission, projectile
+  defense, quick-melee knockback and Assassin-rescue consumers.
+- Keep already committed pre-death boost rows while closing the caster's
+  unprocessed frames at death. Clear pending source attacks on body retirement.
+  Register pending contacts in stored-server snapshots and correct the NPC
+  chain fixture's effect-pack patch to the actual merged graph loader.
+- All player chain/ordering checks passed across the 48-case run and the
+  four-case caster-death follow-up. Three NPC test methods still fail in
+  pounce ownership and Assassin/Heavy Assault attack mapping; retain those
+  tests and implementations for further integration. The initial three
+  attack-first rifle/Helix/melee checks also passed independently.
+- A 95-case shared run kept core combat, Mercy damage, Lucio and stored-server
+  checks passing. The Genji/Mei defense mismatches reproduce on pre-change
+  c856fef5 (six subtest failures and one error). The Baptiste NPC check passed
+  when rerun with the explicit prepared five-NPC input. Client acceptance and
+  the remaining non-appearance line integration are still pending.
+
 ### Mercy boost charge and effect-target integration
 
 - Preserve the exact launch caster and outgoing multiplier with hitscan,

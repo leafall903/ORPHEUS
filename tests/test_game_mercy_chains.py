@@ -664,7 +664,7 @@ class MercyChainNpcTests(unittest.TestCase):
 
     def assassin_chain_encounter(self):
         fixture = MercyChainTests()
-        with patch.object(boost_tests, "EFFECT_BUNDLE", NPC_EFFECT_BUNDLE):
+        with patch.object(graph, "GRAPHS_PATH", NPC_EFFECT_BUNDLE):
             fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         fixture.start()
@@ -766,7 +766,7 @@ class MercyChainNpcTests(unittest.TestCase):
         for definition in catalog.values():
             with self.subTest(npc=definition.name):
                 fixture = MercyChainTests()
-                with patch.object(boost_tests, "EFFECT_BUNDLE", NPC_EFFECT_BUNDLE):
+                with patch.object(graph, "GRAPHS_PATH", NPC_EFFECT_BUNDLE):
                     fixture.setUp()
                 try:
                     fixture.chain.spawn = ((20.0, 1.0, 5.0), 0.0)

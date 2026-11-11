@@ -104,7 +104,7 @@ from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, STEP, Mover, clam
 from ow174.game.props import ModelPose
 from ow174.game.script import expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import OWNER_HEALTH, ULT_CHARGE, Snapshot
+from ow174.game.script.driver import OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -1223,6 +1223,43 @@ class TimedHit:
     applied: float = 0.0
 
 
+@dataclass(frozen=True)
+class RangedContact:
+    hit: HitDef
+    origin: tuple
+    direction: tuple
+    reach: float
+    view_tick: float
+    charge_context: tuple | None
+    definition: int | None
+    state: object
+    world_tick: int | None = None
+
+@dataclass(frozen=True)
+class MeleeContact:
+    hit: HitDef
+    origin: tuple
+    centre: tuple
+    radius: float
+    view_tick: float
+    charge_context: tuple | None
+    tags: tuple
+    state: object
+    ring: object
+    hit_reaction: bool
+    direction: tuple
+
+@dataclass(frozen=True)
+class PendingAttack:
+    shooter: object
+    source: BodyScript
+    frame: int
+    deadline: int
+    waiting: tuple[BodyScript, ...]
+    bonuses: tuple[tuple[BodyScript, float], ...]
+    payload: RangedContact | MeleeContact | Rocket
+
+
 class Combat:
     """The match's health, hits, deaths and respawns."""
 
@@ -1235,6 +1272,7 @@ class Combat:
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
+        self.pending_attacks: list[PendingAttack] = []
         self.timed_hits: list[TimedHit] = []
         self.recalls = tracer_recall.Recalls(self)
         self.breathers = breather.Breathers(self)
@@ -1414,6 +1452,7 @@ class Combat:
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
         player.clear_valkyrie_pose()
+        self.pending_attacks[:] = [attack for attack in self.pending_attacks if attack.shooter is not player]
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != player.body]
         self.recalls.retire(player.body)
         self.breathers.retire(player.body)
@@ -2072,7 +2111,7 @@ class Combat:
             self._weapon_beam(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
-
+        self._flush_pending_attacks()
 
     def _soundwave(self, player, command, script) -> None:
         """0079's 0776 st11 health operation, once per authored activation.
@@ -2606,32 +2645,41 @@ class Combat:
             from ow174.game.script import charge
 
             charge_context = charge.damage_context(script, state, modify)
-            boosted = self._support_hit(player, HitDef(amount, loadout))
-            amount = boosted.amount
             origin, direction = self._eye(player), aim(*command.aim())
             ring = knockback.quick_melee_ring(state) if player.hero.guid == lucio.HERO else None
             centre = _along(origin, direction, reach)
-            protected = self.barriers.area(player, centre, radius, amount)
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
-            for target in self._enemies(player, damageable=True):
-                if target.entity in protected:
+            self._submit_attack(player, command.frame, MeleeContact(
+                HitDef(amount, loadout), origin, centre, radius, view_tick, charge_context,
+                health_tags(state, modify), state, ring, player.hero.guid == mccree.HERO, direction,
+            ))
+
+    def _resolve_melee(self, shooter, frame, contact, amount, boost):
+        from ow174.game import assassin
+
+        origin, centre, radius = contact.origin, contact.centre, contact.radius
+        state = contact.state
+        modify = state.node.field("m_modifyHealth") or {}
+        protected = self.barriers.area(shooter, centre, radius, amount)
+        for target in self._enemies(shooter, damageable=True):
+            if target.entity in protected:
+                continue
+            shown = self.seen(target, contact.view_tick)
+            if shown is None:
+                continue
+            a, b = shown.segment()
+            if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
+                    and capsule_visible(self._collision(), origin, a, b, shown.radius)):
+                if (deflections.blocks_melee(self, shooter, target, state, modify)
+                        or self._genji_deflects(target, contact.direction)):
                     continue
-                shown = self.seen(target, view_tick)
-                if shown is None:
-                    continue
-                a, b = shown.segment()
-                if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
-                        and capsule_visible(self._collision(), self._eye(player), a, b, shown.radius)):
-                    if (deflections.blocks_melee(self, player, target, state, modify)
-                            or self._genji_deflects(target, aim(*command.aim()))):
-                        continue
-                    landed = self._damage(player, target, amount, False, loadout, command.frame,
-                                          hit_reaction=player.hero.guid == mccree.HERO,
-                                          damage_charge=charge_context, boost_credit=boosted.boost_credit)
-                    if landed and ring is not None and not self.orisa._immune(target.owner):
-                        impulse = knockback.quick_melee_impulse(ring, origin, shown, direction)
-                        self.knockbacks.apply(target, impulse, impact_frame=command.frame)
-                    assassin.rescue_with_melee(self, player, target)
+                landed = self._damage(shooter, target, amount, False, contact.hit.loadout, frame,
+                                      hit_reaction=contact.hit_reaction, hit_tags=contact.tags,
+                                      damage_charge=contact.charge_context, boost_credit=boost)
+                if landed and contact.ring is not None and not self.orisa._immune(target.owner):
+                    impulse = knockback.quick_melee_impulse(contact.ring, origin, shown, contact.direction)
+                    self.knockbacks.apply(target, impulse, impact_frame=frame)
+                assassin.rescue_with_melee(self, shooter, target)
 
     def _echo_beam(self, player, command, script) -> None:
         """Reconstructed 1FBD/st17 health consumer, driven by the authored ability lifetime.
@@ -2785,6 +2833,7 @@ class Combat:
             self.zarya_gravitons.update(at, TICK)
             moira.advance_orbs(self)
             moira.advance_spray_heals(self)
+            self._flush_pending_attacks()
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
@@ -3609,23 +3658,130 @@ class Combat:
         height = eye_height(player.hero.body, crouched)
         return (x, y + height, z)
 
+    def damage_scale(self, shooter) -> float:
+        boost = self._damage_boost(shooter)
+        return boost[1] if boost is not None else 1.0
+
+
+    def _damage_boost(self, shooter, *, frame=None) -> tuple[BodyScript, float] | None:
+        """Capture the largest bonus and its exact source script at attack creation."""
+        return self._best_boost(self._boost_candidates(shooter, frame))
+
+
+    def _boost_candidates(self, shooter, frame):
+        if self.match.game_map.free_for_all:
+            return
+        entity = _source_entity(shooter)
+        for healer in self.match.players:
+            script = healer.body_script
+            if healer is shooter or healer.team != shooter.team or script is None or script.retired:
+                continue
+            if self.is_dead(healer):
+                recorded = self.support_effects.historical_boosts(script.entity, frame)
+                if recorded is not None:
+                    yield script, recorded.get(entity, 0.0)
+            else:
+                yield script, support.boost_amount(script, entity, frame=frame)
+
+
+    @staticmethod
+    def _best_boost(candidates):
+        winner = max(candidates, key=lambda item: item[1], default=None)
+        if winner is None or winner[1] <= 0:
+            return None
+        source, bonus = winner
+        return source, 1.0 + bonus
+
+
+    def _awaited_boost_sources(self, shooter, frame):
+        if self.match.game_map.free_for_all or not self.tick - HISTORY <= frame < self.tick:
+            return ()
+        waiting = []
+        for healer in self.match.players:
+            script = healer.body_script
+            if (healer is shooter or healer.team != shooter.team or healer.gone
+                    or script is None or script.hero != regeneration.MERCY
+                    or script.retired or script.frame >= frame or self.is_dead(healer)):
+                continue
+            retained = getattr(healer, "valkyrie_pose", None)
+            if ((retained is not None and (frame + 1) * script.frame_ms - 1 < retained.expires_ms)
+                    or self.support_effects.historical_boosts(script.entity, frame) is not None):
+                waiting.append(script)
+        return tuple(waiting)
+
+
+    def _submit_attack(self, shooter, frame, payload):
+        if not isinstance(shooter, bots.Bot) and (source := shooter.body_script) is not None:
+            view = frame if isinstance(payload, Rocket) else min(frame, math.floor(payload.view_tick))
+            deadline = view + HISTORY - 1
+            waiting = self._awaited_boost_sources(shooter, frame) if self.tick < deadline else ()
+            if waiting or any(attack.source is source for attack in self.pending_attacks):
+                bonuses = tuple(self._boost_candidates(shooter, frame))
+                self.pending_attacks.append(PendingAttack(shooter, source, frame, deadline, waiting, bonuses, payload))
+                return
+        self._commit_attack(shooter, frame, payload, self._damage_boost(shooter, frame=frame))
+
+
+    def _flush_pending_attacks(self):
+        if not self.pending_attacks:
+            return
+        pending, self.pending_attacks = self.pending_attacks, []
+        blocked = set()
+        for attack in pending:
+            source = attack.source
+            if attack.shooter.gone or attack.shooter.body_script is not source or source.retired:
+                continue
+            if (source in blocked or (self.tick < attack.deadline and any(
+                not script.retired and not script.component.owner_dead and script.frame < attack.frame
+                for script in attack.waiting
+            ))):
+                blocked.add(source)
+                self.pending_attacks.append(attack)
+                continue
+            try:
+                candidates = []
+                for caster, bonus in attack.bonuses:
+                    if caster in attack.waiting and not caster.retired:
+                        recorded = self.support_effects.historical_boosts(caster.entity, attack.frame, pending=True)
+                        if recorded is not None:
+                            bonus = recorded.get(source.entity, 0.0)
+                        elif caster.component.owner_dead:
+                            # The attack was waiting for a frame this caster never simulated.
+                            bonus = 0.0
+                    candidates.append((caster, bonus))
+                self._commit_attack(attack.shooter, attack.frame, attack.payload, self._best_boost(candidates))
+            except Exception:
+                log.exception("[game] %s: %s's pending attack failed", self.match.label(), attack.shooter.name)
+
+
+    def _commit_attack(self, shooter, frame, payload, boost):
+        scale = boost[1] if boost is not None else 1.0
+        if isinstance(payload, Rocket):
+            for name in ("direct", "blast"):
+                definition = getattr(payload, name)
+                if definition is not None and not definition.healing:
+                    setattr(payload, name, replace(definition, amount=definition.amount * scale, boost_credit=boost))
+            payload.boost_credit = (boost if any(definition is not None and not definition.healing
+                                                for definition in (payload.direct, payload.blast)) else None)
+            self.rockets.append(payload)
+            self.orisa.admit(payload)
+        elif isinstance(payload, MeleeContact):
+            self._resolve_melee(shooter, frame, payload, payload.hit.amount * scale, boost)
+        else:
+            hit = payload.hit
+            if not hit.healing:
+                hit = replace(hit, amount=hit.amount * scale, boost_credit=boost)
+            targets = tuple((target, shown) for target in self._shot_targets(shooter, hit)
+                            if (shown := self.seen(target, payload.view_tick)) is not None)
+            self._hitscan(shooter, payload.state, payload.origin, payload.direction, payload.reach,
+                          targets, hit, frame, payload.world_tick, view_tick=payload.view_tick,
+                          definition=payload.definition)
+
     def _support_hit(self, shooter, definition):
         if definition is None or definition.healing or self.match.game_map.free_for_all:
             return definition
-        source = _source_entity(shooter)
-        candidates = (
-            (player.body_script, support.boost_amount(player.body_script, source))
-            for player in self.match.players
-            if player is not shooter and player.has_body and not player.gone
-            and player.team == shooter.team and player.body_script is not None
-            and not self.is_dead(player)
-        )
-        winner = max(candidates, key=lambda item: item[1], default=None)
-        if winner is None or winner[1] <= 0:
-            return definition
-        caster, bonus = winner
-        scale = 1.0 + bonus
-        return replace(definition, amount=definition.amount * scale, boost_credit=(caster, scale))
+        boost = self._damage_boost(shooter)
+        return replace(definition, amount=definition.amount * boost[1], boost_credit=boost) if boost else definition
 
     def _shoot(
         self, shooter, command, state, number: int, time: int,
@@ -3677,7 +3833,7 @@ class Combat:
             # Declared server identity and uniform-radius sampling policy.
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
-        direct = self._support_hit(shooter, hit_def(state, node.field("m_6396149F")))
+        direct = hit_def(state, node.field("m_6396149F"))
         charge_context = None
         if (not npc and direct is not None and direct.loadout == 0x0B9000000000003E
                 and shooter.hero.guid == regeneration.MERCY
@@ -3710,7 +3866,7 @@ class Combat:
                 gravity = projectiles.unconditional_gravity(state)
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
-            blast = self._support_hit(shooter, hit_def(state, node.field("m_D2D11CE9")))
+            blast = hit_def(state, node.field("m_D2D11CE9"))
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
             if biotic_grenade:
@@ -3847,8 +4003,7 @@ class Combat:
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
                     )
-                    self.rockets.append(rocket)
-                    self.orisa.admit(rocket)
+                    self._submit_attack(shooter, shot_frame, rocket)
             return
         if direct is None or direct.amount <= 0.0:
             return
@@ -3867,11 +4022,11 @@ class Combat:
 
             seed = weapon_spread.seed_base(shooter.entity, state.instance.id, node.pos, activation[0])
             directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
-        targets = tuple((target, shown) for target in self._shot_targets(shooter, direct)
-                        if (shown := self.seen(target, view_tick)) is not None)
         for pellet in directions:
-            self._hitscan(shooter, state, origin, pellet, reach, targets, direct, shot_frame,
-                          view_tick if npc else None, view_tick=view_tick, definition=definition)
+            self._submit_attack(shooter, shot_frame, RangedContact(
+                direct, origin, pellet, reach, view_tick, charge_context, definition, state,
+                view_tick if npc else None,
+            ))
 
     @staticmethod
     def _enforcer_pattern(state, forward, seed, shot):
@@ -6244,7 +6399,11 @@ class Combat:
         victim.clear_valkyrie_pose()
         victim.mover.script_data = None
         victim.mover.flight_scale = None
-        self.support_effects.retire(victim.body)
+        script = victim.body_script
+        pools = self.vitals.get(victim.body)
+        death_tick = pools.death_tick if pools is not None and pools.death_tick is not None else self.tick
+        boost_end = min(death_tick, script.frame + 1) if script is not None else None
+        self.support_effects.retire(victim.body, boost_end_frame=boost_end)
         self.lucio_auras.retire(victim.body)
         self.knockbacks.retire(victim.body)
         self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != victim.body]
