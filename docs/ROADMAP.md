@@ -14,6 +14,33 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Junkrat (02E0000000000065) against enemy players and all five manual
+  PvE NPC species, every weapon/ability/passive, cross-hero effects and original
+  client presentation. Partial primary-input damage, reconstructed gravity,
+  static blast/melee occlusion, reloads, melee cooldown, partial death volleys
+  and mine lifecycle/falloff/impulse tests exist. Actual five-body outgoing damage,
+  repeated primary kills and retained corpses pass explicit fixtures; incoming
+  Trooper/Sniper/Heavy primary has partial evidence. Resource-backed trap damage/root,
+  destruction/release, target flags and shared input-buffer expiration now have
+  executed tests. Partial RIP-Tire cost/actor/movement/destruction/explosion and
+  all-five-NPC tire/death-passive damage now execute. Bounces, complete mine/trap
+  interactions, native tire climbing/possession/replication, complete charge interactions,
+  full death passive and other NPC attacks remain open. Live encrypted command
+  ingress now rejects future clocks before simulation; explicit offline calls
+  retain their simulation clock. Actor timers/control enter strict server-state
+  snapshots. Native input prediction/latency remains unverified.
+  Match charge now has a resource-configured world-clock passive host and actual
+  damage012 bridge,with23 focused charge/input/snapshot checks. Natural charge,
+  spend,detonation,suppression and repeated reuse execute. Earned charge survives
+  same-hero respawn;different-hero selection resets it. The retained death body
+  can earn passive and Total Mayhem charge under original gates. Native service/event
+  mapping differences and remaining interactions are disclosed in
+  [Junkrat charge](JUNKRAT_CHARGE.txt). Full hero acceptance stays unchecked.
+  Partial actual Flashbang input now verifies Junkrat release cancellation,
+  recovery, independent placed actors and root/stun overlap; full native status,
+  immunity/cleanse, tire cancellation and grenade bounce consumers remain open. See
+  [Junkrat combat](JUNKRAT_COMBAT.txt).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,

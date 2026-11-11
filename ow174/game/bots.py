@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -121,7 +122,9 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
-        self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.attack_target = None  # current player controller for a manually started engagement
+        self.attack_slot = None  # manual Sniper weapon slot
+        self.reload_requested = False
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
@@ -156,15 +159,44 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.pursuit = None  # automatic Assassin grid frontier and route
+        self.lunge = None
+        self.lunge_ready = 0
+        self.displacement: Mover | None = None  # reconstructed external knockback body
+        self.rooted_until_tick = 0  # reconstructed Steel Trap control expiry
+
+    def add_impulse(self, velocity, collision, *, tick: int | None = None) -> None:
+        current_tick = (self.last_tick or 0) if tick is None else tick
+        if self.dead or self.rooted_until_tick > current_tick:
+            return
+        self.ensure_displacement(collision).add_impulse(velocity)
+
+    def ensure_displacement(self, collision) -> Mover:
+        if self.displacement is None:
+            self.displacement = Mover(self.position, round(self.yaw), collision, mover_data(self.body))
+            self.displacement.velocity = self.velocity
+        return self.displacement
 
     def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
+        paused_until = max(paused_until, self.rooted_until_tick)
+        if tick < paused_until:
+            self._pause(tick)
+            self.displacement = None
+            self.last_tick, self.moved_tick = tick, tick
+            return
+        if self.displacement is not None and not self.dead:
+            mover = self.displacement
+            if mover.last_command is None or mover.last_command.frame < tick:
+                mover.step(Command(tick), seconds, tick)
+                self.position, self.velocity = tuple(mover.position), mover.velocity
+                self.moved_tick, self.last_tick = tick, tick
+                if not mover.airborne and math.hypot(*mover.velocity) < .1:
+                    self.displacement = None
+            return
         if not self.route:
-            if tick < paused_until:
-                self._pause(tick)
-                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
@@ -296,7 +328,11 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.pursuit = None
+        self.lunge = None
         self.attack_target = None
+        self.attack_slot = None
+        self.reload_requested = False
         self.attack_input = False
         self.keys = False
         self.held = (0, 0)

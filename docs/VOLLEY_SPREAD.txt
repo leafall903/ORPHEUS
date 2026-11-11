@@ -1,0 +1,53 @@
+WeaponVolley normalized spread -- shared partial104319 restoration
+
+Adopted from the parent private development tree after reviewing the narrow
+WeaponVolley and causal-layout delta. Preserve this lane's Total Mayhem
+allows_dead behavior and prior lifecycle fixes;do not replace the whole class.
+
+For STU_239B571E with no m_23C72C36 decay config,params captures m_AC20B1C1
+as spread_ramp. Output2 uses completed-shot index+1 divided by the captured ramp,
+plus float32 initial normalized spread,capped at1. A ramp below1e-7 returns1.
+The output remains normalized,not degrees or a physical shot direction. Ending
+the state preserves its final output. Decay configs and other launch classes
+retain their prior behavior;their full model is not implemented by this change.
+
+spread_ramp is included in the WeaponVolley body_vm_snapshot layout,which
+server_snapshot reuses. Six imported minimal methods cover initial/positive
+ramp,float32 rounding,baking/reentry,unknown/decaying launch classes and a
+causal snapshot digest change when the captured ramp changes.
+
+Parent evidence reviewed from external verification/retribution files:
+-fan-spread-native-validation.json:120 normalized spread comparisons and20
+ angle comparisons;D80A50-D80A99 and caller D5F979-D5F996 index mapping.
+-fan-uniform-generation-validation.json:16384 uint32 and16384 Gaussian values.
+-fan-transform-native-validation.json:128 cases,aspect1,scalar libm adapters,
+ maximum vector error6.840727e-8;caller seed/counter and muzzle mapping OPEN.
+These remain external research artifacts. This lane does not claim to rerun
+those original comparisons or to integrate the parent's random generator.
+
+Actual combat rays still lack this spread-direction sampling. A correct output
+variable and a causal snapshot are not proof of actual Fan or Junkrat physical
+spread. Full hero static and original-client acceptance remain incomplete.
+
+The51-method focused run covers the6 new methods,body VM snapshots,actual
+Junkrat primary/passive and original-eye geometry. A process-only Match charge
+trial separately confirms a viable694/012 bridge through original0B8B:
+5 passive points at63 frames,and actual40+80 grenade damage adds120. This trial
+uses declared class1/component97,FFA team-1,owned raw tags,body->controller
+relation and recorded no-op subscriptions. Additional actual primary trials on
+all5 NPCs likewise obtain5 passive+120 damage charge using their owned tags and
+explicit43-row movers. The trial sends actual pool loss as012.amount13,runtime
+target15,Combat loadout as identifier3D and empty details0624. The native
+identifier/itemized-detail event mapping is unproved. Production binding,lifetime,
+death/replacement and ultimate lifecycle remain open;these process-only trials
+are not charge acceptance.
+
+A further Heavy trial naturally reaches cost1925 over885 actual held-fire
+frames after the basic trial,without a fill command. Actual Q consumes charge
+to0,creates one tire,then actual detonation deals600 with no charge during
+preparation/explosion. After recovery the resource passive resumes to15.
+This verifies a process-only proposed bridge path;production service ownership,
+event mapping,death/replacement and complete interactions remain unaccepted.
+An external read-only preparation table now holds owned tags for32 heroes and
+all5 NPCs,37 records with hashes and explicit null-tag slots. It does not supply
+native category bits,effective inherited tags or live tag modifiers.

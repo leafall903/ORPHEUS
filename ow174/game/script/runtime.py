@@ -38,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -251,7 +251,14 @@ class InstanceContext(Context):
     def member(self, entity: int, var: int):
         component = self.instance.component
         if entity == component.entity:
-            return self._read(component.entity_var(var, create=self.watcher is not None))
+            value = self._read(component.entity_var(var, create=self.watcher is not None))
+            if value is None:
+                from ow174.game import dva_matrix
+
+                fallback = dva_matrix.ruleset_member(self.instance, entity, var)
+                if fallback is not NotImplemented:
+                    return fallback
+            return value
         slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
         if slot is not NotImplemented:
             return self._read(slot)
@@ -297,18 +304,39 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
-        if cfg.get("$") == "STU_4BD39CFD":
+        if cfg.get("$") in {"STU_4BD39CFD", "STU_A6B80C63"}:
             from ow174.game.script import play
 
+            if cfg["$"] == "STU_A6B80C63":
+                return play.fold_values(self.instance, cfg, watcher=self.watcher)
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import (
+            controller_heroes,
+            entity_filter,
+            entity_hostility,
+            entity_queries,
+            entity_relation,
+            entity_tags,
+            entity_team,
+            pet_relation,
+        )
 
         result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_hostility.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_tags.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_filter.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_relation.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = pet_relation.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -389,8 +417,27 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def entity_definition(self, entity: int):
+        """The authoritative definition GUID, zero for a known miss, or unknown lookup."""
+        return NotImplemented
+
+    def refresh_compatible_placement(self, state, *, confirm: bool):
+        return NotImplemented
+
+    def track_body_ray(self, state):
+        return NotImplemented
+
+    def track_targets(self, state):
+        return NotImplemented
+
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -441,6 +488,26 @@ class World:
 
     def entity_team_context(self, entity: int, *, component: "Component | None" = None):
         """Native context, two entity lookups and filter/environment dependencies."""
+        return NotImplemented
+
+    def entity_hostility_context(self, entity: int, *, component: "Component | None" = None):
+        """Native hostility namespace, component50 identity and neutral-group services."""
+        return NotImplemented
+
+    def entity_tag_context(self, entity: int, *, component: "Component | None" = None):
+        """Native target-tag namespace, component76 lists and subscription service."""
+        return NotImplemented
+
+    def entity_filter_context(self, entity: int, *, component: "Component | None" = None):
+        """Ordered game filter inputs, entity registry and optional group services."""
+        return NotImplemented
+
+    def entity_relation_context(self, entity: int, *, component: "Component | None" = None):
+        """Native component43 relation namespace, decoded identities and observations."""
+        return NotImplemented
+
+    def pet_relation_context(self, entity: int, *, component: "Component | None" = None):
+        """Explicit component72 lookup and observation;no creation/owner relation is inferred."""
         return NotImplemented
 
     def script_failed(self, component: "Component") -> None:
@@ -495,6 +562,12 @@ class World:
         resource = resolve_resource(instance, node)
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
+
+    def create_world_entity(self, instance, node):
+        return NotImplemented
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> bool:
+        return False
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -670,7 +743,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1203,6 +1276,20 @@ class Instance:
                 event = self.queue.pop(0)
                 self.dispatch(event)
 
+    def stop(self) -> None:
+        """Stop executing a parentless instance while retaining its registry entry."""
+        if self.stopped:
+            return
+        self.stopped = True
+        self.initialization_pending = False
+        for state in list(self.states.values()):
+            state.end(False)
+        for state in list(self.states.values()):
+            state.on_destroyed()
+        self.states.clear()
+        self.queue.clear()
+        self.join_inputs.clear()
+
     def dispatch(self, event: Event) -> None:
         state = event.state
         if event.kind == STATE_OP:
@@ -1229,6 +1316,8 @@ class Instance:
         elif event.kind == ASSIGN:
             scope, identifier, value = event.assignment
             self.write((scope, identifier), value)
+        elif event.kind == STOP:
+            self.stop()
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1338,13 +1427,13 @@ class Instance:
         return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
-        """The states a subgraph plug lists (m_FF3DAF1E)."""
+        """The allocated states a subgraph plug lists (m_FF3DAF1E)."""
         plug = node.field(path)
         if not is_plug(plug):
             return []
         found = []
         for index in plug.get(SUBGRAPH_STATES) or []:
-            state = self.state(index) if index is not None else None
+            state = self.states.get(index)
             if state is not None:
                 found.append(state)
         return found
@@ -1358,7 +1447,8 @@ class Instance:
         for state in states:
             if state.active:
                 state.end(False)
-        self.drop_begins(states)
+        # Ending a state can enqueue a begin for another member of this subgraph.
+        self.drop_begins(self.follow_states(node, path))
 
     def run_node(self, node: Node, caller: "State | None") -> bool:
         """Run an action, condition or entry now; returns whether it took a path."""
@@ -1485,6 +1575,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These coalescing markers describe events that cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1632,6 +1724,29 @@ class State:
         self.instance.changed(var, before)
         for state in var.stack_states():
             state.stack_changed(var)
+
+
+@handler("STU_22926252")
+def request_instance_stop(instance: Instance, node: Node, caller: State | None) -> bool:
+    # Build 104319 1B6C8F0 queues operation 7 before following the output.
+    # The Match host retires the separately loaded Flux effect at its terminal actions.
+    component = instance.component
+    if (instance.graph.index == 0x1DBC and not component.strict
+            and node.pos in (3, 5, 45, 61) and getattr(component.world, "match", None) is not None):
+        component.destroy(instance)
+        return True
+    if (instance.graph.index in (0x0B1F, 0x0B32) and not component.strict
+            and instance.parent is None and getattr(component.world, "match", None) is not None):
+        component.destroy(instance)
+        return True
+    # Steel Trap uses the queued operation on its parentless victim status.
+    if instance.graph.index != 0x09BC or instance.parent is not None:
+        return NotImplemented
+    if node.field("m_67B81D25") is not None or node.field("m_EB35D2F1") is not None:
+        return NotImplemented
+    instance.post(Event(instance.component.now, 0, STOP))
+    instance.follow(node, "m_outPlug", caller)
+    return True
 
 
 def run_entry(instance: Instance, node: Node, caller: State | None) -> bool:

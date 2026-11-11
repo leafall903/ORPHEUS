@@ -16,7 +16,7 @@ from unittest.mock import patch
 from test_game_combat import Run, aim
 
 from ow174.dashboard.server import start_dashboard
-from ow174.game import npc
+from ow174.game import npc, npc_control
 from ow174.game.script import graph
 from ow174.game.server import GameServer
 
@@ -83,6 +83,21 @@ class NpcConsoleHttpTests(unittest.TestCase):
         self.assertEqual(removed['entities'], [created['entity']])
         self.assertEqual(self.match.bots, [])
 
+    def test_auto_spawn_requires_weapon_graph_without_leaving_a_body(self):
+        self.player.mover.yaw = 0
+        fight = self.match.combat
+        entity = fight.next_bot
+        self.assertEqual(self.request("1", attack="auto")[1]["handled"], False)
+        self.assertEqual(self.request("1", menu_open=True, attack="auto")[0], 400)
+        self.assertEqual(self.match.bots, [])
+        self.assertEqual(fight.next_bot, entity)
+        self.assertNotIn(entity, fight.vitals)
+        self.assertNotIn(entity, fight.replacement_ticks)
+        status, created = self.request("1", menu_open=True)
+        self.assertEqual(status, 200)
+        self.assertEqual(created["entity"], entity)
+        self.assertFalse(self.match.bots[0].firing)
+
     def test_refused_keys_clock_and_missing_catalog_never_spawn(self):
         self.assertEqual(self.request('unknown')[0], 400)
         self.assertEqual(self.request('1', menu_open='true')[0], 400)
@@ -101,6 +116,23 @@ class NpcConsoleHttpTests(unittest.TestCase):
             self.match.combat._eye(self.player), (x, y + 1, z))
         self.assertEqual(self.request('0')[0], 400)  # synthetic fixture intentionally has no weapon script
         self.assertFalse(bot.firing)
+        def locked_attack(match, player, *, action):
+            self.assertTrue(self.game.lock._is_owned())
+            self.assertIs(match, self.match)
+            self.assertIs(player, self.player)
+            self.assertIn(action, ("secondary", "auto"))
+            return bot.entity
+
+        with patch.object(npc_control, "start", side_effect=locked_attack) as start:
+            for mode in ("secondary", "auto"):
+                status, attack = self.request("0", attack=mode)
+                self.assertEqual(status, 200)
+                self.assertEqual(attack["entity"], bot.entity)
+                self.assertEqual(start.call_args.kwargs["action"], mode)
+            self.assertEqual(self.request("0", attack="unknown")[0], 400)
+            self.assertEqual(self.request("{", attack="secondary")[0], 400)
+            self.assertEqual(self.request("{", attack="auto")[0], 400)
+            self.assertEqual(start.call_count, 2)
         self.assertEqual(self.request('{')[1]['count'], 1)
         self.player.gone = True
         self.assertEqual(self.request('-')[0], 400)

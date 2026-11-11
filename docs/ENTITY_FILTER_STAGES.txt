@@ -1,0 +1,71 @@
+Game entity-filter stages -- target104319, module RVAs
+
+AC829876 dispatches through game VM266AFE0 virtual150 to D0DA20. The helpers
+below restore specific stages of that pipeline. ENTITY_FILTER.txt documents the
+ordered entry point now using them with explicit engine inputs. Actual Match
+world data and complete filter/charge acceptance remain open.
+
+Mask/relationship stage BCAAE0 -- filter_masks.py
+The six compiled uint64 fields map to Masks in this order:
+84065FD1 any_bits,1E14CCA8 all_bits,4EA686DB no_bits,
+27CF71D5 any_relation,66747E7D all_relation,89831602 no_relation.
+Raw allowance is any matching bit or the special3FFFFFFF marker. Required bits
+must all match; any excluded bit rejects. Known absent component25 has bits0.
+If an owner pointer exists and any full64 relationship mask is nonzero, the
+native relationship helper is called even after a static failure. Bit28 selects
+C1C690/C1ECD0 instead of ordinary C1CF60. The supplied result is an explicit
+engine input here, not an inferred team comparison. Self counts as friendly.
+Relationship flags1/2/4 mean friendly/enemy/self: allowance can add a match,
+requirements are conjunctive and exclusions add rejection. Other flag bits do
+not select a relation but still trigger that native service call.
+Native D0DA20 skips this helper when all six masks are0. Calling Masks() directly
+is therefore not equivalent to evaluating an unconstrained complete filter.
+
+400 original BCAAE0 static comparisons pass without function adapters.6153
+additional original comparisons pass with explicit C1CF60/C1C690 and spectator
+option results. They cover all low-three relationship-mask combinations,
+owner absent/self/other, enemy/friendly, spectator branches and high bits.
+Seven source tests cover mask roles, conjunctions, eager calls and unknown data.
+
+Compiled tag clauses DB2FD0 -- filter_tags.py
+The three groups are any tags (filter+58,9C7BD8B8), all tags (+60,B486603E),
+and excluded tags (+68,8B2A4DF3). Membership uses the restored Tags rules.
+Known absent component76 fails positive clauses but satisfies exclusion-only
+clauses. Full resource GUIDs compare through their low32 membership keys.
+Empty compiled clauses accept without requiring tag data; this does not bypass
+the earlier entity lookup and other complete-filter gates.
+645 original DB2FD0 cases, including original DB5030/DB4E70 membership helpers,
+match Python. Component-pointer retrieval/key helper are adapters; compiled
+arrays are supplied directly. Target absent/component absent, dynamic tag
+precedence, duplicate/high-bit resources and null/empty groups are covered.
+Eleven source tests pass, including four collector checks. collect() processes
+the three configs in order through existing collecting interfaces, converts
+typed resources, rejects zero/non-assets and deduplicates full64 GUIDs while
+preserving first occurrence. Ten original DB2C10 comparisons execute F65540
+conversion, zero rejection and deduplication; iterator/cleanup/vector services
+are adapters. This does not prove the entire native generic iterator backend.
+
+Base condition1B8D970 -- filter_condition.py
+An absent condition returns true even without context. A present condition
+without context returns false. A valid candidate temporarily provides parameter
+0008 as a typed Entity. Invalid candidates do not push this provider, allowing
+an existing outer parameter0008 to remain visible.90BFC0 keeps its true default
+after a known no-output config failure; successful false/null results differ.
+The scope is restored after success, failure and strict unsupported execution.
+163 original1B8D970/90BFC0 comparisons match, executing original F64940 boolean
+conversion and F63740 primitive disposal. Config callbacks and provider-vector
+copy are adapters. Twelve original1B8D810 provider lookups execute without
+function adapters and verify full parameter key, typed entity and refusal.
+Six source tests pass. This condition stage is called inside the game override;
+it is not the whole game filter or a general admission policy.
+
+Ordered entry point and remaining engine work
+These helpers now execute through AC829876 under an explicit entity_filter.Context,
+including the resource probe's charge-graph admission path. See ENTITY_FILTER.txt
+for D0DA20 order, declared engine services and393 native flow comparisons.
+Actual Match still provides no such Context. Native component construction,
+registry/group services, observation timing and charge-event production remain
+open; the resource fixture is not an actual combat/economy acceptance result.
+Native programs, existing read-only client image, generated listings and the
+native-filter-*-validation.json records remain outside Git in this lane.
+No persistent VM/snapshot fields or normal-service/client changes are introduced.

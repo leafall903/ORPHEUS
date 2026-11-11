@@ -1,0 +1,73 @@
+Junkrat throttle modifiers -- target104319,partial static acceptance
+=================================================================
+The shared mover previously collected numeric properties17/18/19 but did not
+apply them to acceleration. This lane adopts the reviewed parent's split/sign/
+clamp sequence:modify positive forward17,backward magnitude18,unsigned lateral19,
+restore the original lateral sign,subtract backward from forward and clamp both
+outputs to[-1,1]. Application occurs after storing the existing raw throttle
+bytes/history and before acceleration. Existing modifier ordering and next-frame
+start/exclusive-end intervals remain unchanged. No snapshot field is added.
+
+An owned external probe reruns the original C33960..C33A8D prefix against the
+existing authorized104319 image.120 comparisons pass with an explicit scalar
+modifier-lookup stub for add/multiply/set. This verifies the split,sign and clamp,
+not the native modifier service or complete character physics. The parent's
+uncommitted source/docs/probe were read-only references;no parent source is edited.
+
+Four source methods consume original resource states and the actual mover:
+-0232/node73 suppresses positive/reverse/lateral inputs while its scope applies;
+ before start and after the exclusive end,normal inputs reach acceleration.
+-0233/node14 adds1 to forward and multiplies backward by0. Idle and reverse
+ commands therefore produce forward drive. Ending the state restores raw intent.
+-0233/node23 zeroes both longitudinal sides and lateral input,then restores them.
+-Unsigned lateral modification restores the original sign before limiting.
+All movement assertions observe acceleration input while preserving the raw
+command's throttle bytes. These tests explicitly begin/end only the original
+numeric states;they do not assume complete ultimate/tire VM admission. A process-
+local negative control replaces only the new throttle function with identity,
+reproducing the previous omission. All three resource methods reject that behavior
+through six failed subtests and no errors. The fixed four-method suite passes.
+
+The prior read-only closure audit starts at the selected Junkrat body,mine,trap
+and tire definitions. It visits14 entities and77 graph references(76 present),
+125 modifier rows and41 properties17/18/19. Missing0F9C remains explicit. This
+does not infer dynamically selected scripts or foreign status lifetimes.
+
+Tire integration frontier
+The Match tire adapter decodes the authored 0233/node14 modifier rows and
+schedules them on its mover from the drive deadline. During preparation it
+still suppresses all movement. Neutral and reverse commands now drive forward
+with their raw bytes intact. The adapter retires the mover on finish. It uses
+the normal drive branch throughout active movement, with the complete stop
+and interrupt branches pending. Match advances the tire at most once per world
+frame, including the retained combat frames when a scheduler update arrives late.
+Input supplies the latest steering and queues a jump edge until the next pose.
+After the shared 32-frame input retention window, steering becomes neutral
+and keeps the last view angles. The authored forward drive still applies.
+Detonation is admitted on a fresh armed button edge. This is a declared
+server timing policy. The original evaluator returns
+true for0233's BooleanSwitch32 only with local699=true,local2016=false and
+entity478=false across all eight Boolean combinations. Node73's1.4s wait
+finishes through node79 to set699. Nodes20,21,28,62 and156 can reach the
+node39 setter for2016. Drive14 versus stopped23 uses these inputs,whose timing must
+come from the real actor/control host rather than an unconditional forced drive.
+
+039C's own ordered initial scripts are0234,0033,004B,25B4,not a direct initial0233.
+An external own-component extraction retains schemas/order without flattening
+children. Strict initialization stops at0033/0AC15F78(current possession),which
+already has a generic entity-query implementation requiring explicit context.
+A declared known-absent component44 context advances to F76C486C at frame0.
+That absence is an exploratory fixture input,not proven live actor data. The
+permissive120-frame run does not restore accepted tire control. Native CEDBD0
+was located read-only;existing ENTITY_QUERIES.txt documents the supported query.
+F76C486C is now implemented separately as the native component72+D8 query.
+0033/node51 actually nests 0AC15F78(F76C486C(self)). A declared pet->controller->
+current-body pair advances the original expressions to B591EBFE/node66 at frame0.
+The zero-only pet registry is rejected for the actor's live identity. This does
+not establish the pair's production creation data or complete actor/control VM.
+See PET_RELATION.txt for193 original query comparisons and12 source methods.
+
+Next work is the actual039C host,current-object/control context,initialization,
+0234->0233 handoff and numeric-state lifecycle,then input/drive/stop/recovery and
+wall-climb/transport phases. Full Junkrat,NPC and original-client gates stay open.
+All generated inputs,audits,negative controls and native evidence stay outside Git.

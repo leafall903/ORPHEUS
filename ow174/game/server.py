@@ -987,7 +987,7 @@ class Client:
             self.log(f"[<<<] undecodable input: {error}", logging.DEBUG)
             return
         if commands and self.player.spawned:
-            boundary = self.player.take_commands(commands)
+            boundary = self.player.take_commands(commands, not_after=self.player.match.tick)
             if boundary is not None:
                 self.log(f"[!] command clock boundary at {boundary:08X}; leaving", logging.WARNING)
                 self.server.take_out(self.player, "command clock boundary", now=now)
@@ -1187,12 +1187,17 @@ class GameServer:
                         return match.switch_hero(player, hero)
         return False
 
-    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:
+    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False,
+                attack: str = "primary") -> dict:
         """Serialize debug-console actions with the ordinary game tick."""
         from ow174.game.npc_console import Console
 
         if not isinstance(key, str) or key not in ('=', '-', '0', '{', 'Escape', *'123456789'):
             raise ValueError('Unknown NPC console key')
+        if attack not in ("primary", "secondary", "charge", "melee", "reload", "reposition", "auto") or (
+            attack != "primary" and key != "0" and not (attack == "auto" and key in "123456789")
+        ):
+            raise ValueError("Invalid NPC console attack")
         if type(menu_open) is not bool:
             raise ValueError('Invalid NPC menu state')
         with self.lock:
@@ -1205,7 +1210,7 @@ class GameServer:
             player = self.player_of(account_lo)
             if player is None:
                 raise ValueError('The selected account has no active match')
-            return console.press(key, player.match, player)
+            return console.press(key, player.match, player, attack=attack)
 
     def skin_changed(self, account_lo: int, hero_guid: int) -> bool:
         """The lobby equipped an item of a hero (24500): a player in a match who plays that hero gets the

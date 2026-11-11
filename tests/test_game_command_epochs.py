@@ -17,6 +17,24 @@ from ow174.game.script.driver import BodyScript, CommandEpochError
 
 
 class QueueEpochTests(unittest.TestCase):
+    def test_future_frame_does_not_poison_a_later_due_frame_or_consume_retransmission(self):
+        queue = CommandQueue()
+        admitted, boundary = queue.before_limit(
+            [Command(1100), Command(101)], 2000, anchor=100, not_after=101,
+        )
+        self.assertEqual(([c.frame for c in admitted], boundary, queue.last_frame), ([101], None, 101))
+        admitted, boundary = queue.before_limit([Command(1100)], 2000, not_after=1100)
+        self.assertEqual(([c.frame for c in admitted], boundary, queue.last_frame), ([1100], None, 1100))
+
+    def test_authoritative_ceiling_keeps_due_prefix_and_leaves_future_suffix_unconsumed(self):
+        queue = CommandQueue()
+        admitted, boundary = queue.before_limit(
+            [Command(101), Command(102), Command(103)], 2000, anchor=100, not_after=102,
+        )
+        self.assertEqual(([c.frame for c in admitted], boundary, queue.last_frame), ([101, 102], None, 102))
+        admitted, _ = queue.before_limit([Command(102), Command(103)], 2000, not_after=103)
+        self.assertEqual([c.frame for c in admitted], [103])
+
     def test_a_far_older_packet_cannot_reset_the_queue(self):
         queue = CommandQueue()
         queue.new([Command(5000, buttons=1)])

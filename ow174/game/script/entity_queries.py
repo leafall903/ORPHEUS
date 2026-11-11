@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from ow174.game.script import expr, play
 
+DEFINITION = 'STU_1A3FA5B0'
 EXISTS = 'STU_E72F6348'
 POSSESSED = 'STU_0AC15F78'
 
@@ -60,6 +61,12 @@ class Context:
 def evaluate(evaluation, cfg):
     """Return NotImplemented only when this world has not installed the service."""
     cls = cfg.get('$')
+    if cls == DEFINITION:
+        instance = evaluation.instance
+        value = play.evaluate_scalar(instance, cfg.get('m_entity'), initial=expr.Entity(0),
+                                     watcher=evaluation.watcher)
+        definition = instance.component.world.entity_definition(expr.to_entity(value) & 0xFFFFFFFF)
+        return NotImplemented if definition is NotImplemented else expr.Asset(definition)
     if cls not in (EXISTS, POSSESSED):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher

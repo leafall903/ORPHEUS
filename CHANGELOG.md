@@ -4,7 +4,423 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Junkrat server integration
+
+- Consolidate the current Junkrat combat, NPC interaction, RIP-Tire and Ana
+  Sleep Dart changes with the Sombra Hack and EMP compatibility implementation.
+- Use the build 104319 Sombra graphs with reconstructed static targeting,
+  silence and barrier routing. Focused runs cover character shields, Zarya
+  bubbles, Winston domes, Reinhardt shields and deployed Junkrat constructs.
+- The staged runtime code and tests passed 1680 tests against pinned 104319
+  resources. Full static combat acceptance and original-client acceptance
+  remain open.
+
+### 2026-11-10
+
+#### D.Va Fusion Cannons against Junkrat
+
+- Expand 050A/6's eleven authored pellets with the build 104319 ring inputs.
+  Resolve each ray through the existing static, body and defense contacts.
+- Actual input at four metres deals 22 damage. Miss, static cover and ally
+  controls deal none. Sustained primary fire destroys each Junkrat
+  deployable, including RIP-Tire before driving.
+- Verify all eighteen Micro Missiles and their cover and team boundaries.
+  Flashbang interrupts the burst. Cooldown rejects input before full reuse.
+- Restrict Matrix ruleset resolution to real runtime instances. The prior
+  combined run exposed one generic expression context error. All 69
+  focused VM cases and six actual Matrix scenarios pass after the fix.
+- All 246 Fusion regressions pass. Host eye, muzzle and seed identities
+  remain reconstructed. Original-client acceptance stays open.
+
+#### Defense Matrix against incoming NPC rays
+
+- Pass the authored projectile definition through instantaneous hitscan.
+  Reuse the Matrix tag and box checks before farther body and shield
+  contacts. Preserve nearer static contacts and the existing contact on ties.
+- Trooper and Heavy Assault slot-0 fire is intercepted by frontal Matrix.
+  Inactive and rear-facing controls keep the 20 and 5 damage respectively.
+  The box transform and the NPC aim are reconstructed. Original-client
+  acceptance stays open.
+
+#### Defense Matrix against Junkrat projectiles
+
+- Load the explicitly selected D.Va mech body and its health pools, then
+  bind the authored 02CC resource and possession queries to the Match.
+- Sweep the live Matrix boxes before farther projectile contacts. Known
+  eligible projectile definitions use the prepared 104319 entity tags.
+  Matrix absorbs Frag, a flying Concussion Mine and Total Mayhem, while
+  Steel Trap keeps its authored exclusion. Absorbed mines clear their
+  deployment state and projectiles retire without blast or charge.
+- Eleven actual-input cases and 261 focused regressions pass. The cases
+  cover rear, inactive, same-team and static-cover boundaries. Native
+  attachment and filter fidelity and original-client acceptance stay open.
+
+#### RIP-Tire placement retry and support
+
+- Use the Match mover's grounded state for the 0232 placement gate. The
+  authored 250 ms wait and held-input branch retry without spending charge
+  while airborne. Releasing input or taking Flashbang cancels the retry.
+- Reject a front contact marked NOT_GROUND before evaluating the near-body
+  fallback. The same geometry remains eligible without that surface bit.
+- Actual input probes and 79 focused regressions pass. Native placement
+  sweeps, filter resources and original-client acceptance remain open.
+
+#### Gravitic Flux release of Steel Trap
+
+- Host the authored Sigma cast confirmation, target selection and 1DBC
+  delivery on player bodies. The Match adapter reconstructs static-ground
+  placement, capsule visibility, lift, damage, landing and interruption.
+- Keep the Steel Trap victim graph's queued stop when handling Flux's terminal
+  actions. A hit releases the root 60 ticks early, then applies 50 entry
+  damage and half maximum health on landing. Miss and invalid placement
+  retain the trap. Flashbang during lift clears the effect before slam.
+- Four actual-input scenarios and 263 related regression cases pass.
+  Native target indexing, caster flight and original client acceptance
+  remain open.
+- Host 1DBC on the five authored sandbox NPC bodies using their existing
+  weapon script clock and capsule displacement. Four release Steel Trap
+  early and take landing damage. Heavy Assault takes the entry hit and
+  keeps its trap through the original deadline. A lethal Trooper slam
+  preserves its corpse and attributes the kill to Sigma.
+- Six actual-input NPC scenarios and 186 related regression cases pass.
+  Native encounter admission and movement remain open.
+
 ### 2026-11-09
+
+#### Frag Launcher terrain ricochet
+
+- Sweep the primary grenade against terrain and body capsules with a 0.2m
+  candidate radius. Reflect velocity at terrain contact and finish the remaining
+  tick. Body impact applies direct and splash damage. The reconstructed server
+  policy retains half the velocity and explodes at the third terrain contact
+  or the existing flight bound. Native collision tuning remains open.
+
+#### Physical projectile damage falloff
+
+- Accumulate projectile travel across world steps and evaluate authored direct-hit
+  falloff at contact. The Enforcer 13EB/24 consumer covers close-range damage
+  and a 12m volley within the authored 8m to 15m falloff interval. Launch inputs
+  are declared and the server measures distance along the projectile path.
+
+#### Production Junkrat charge and world-clock lifetime
+
+- Attach declared Match actor/controller,hostility,filter and owned-tag services
+  to the original0B8B charge graph. Emit012 from actual positive pool loss with
+  disclosed identifier/detail projection. Exclude constructs,self/friendlies,
+  retired sources and active/recovering tires. Lease projectile source IDs
+  so an old death volley cannot credit a replacement body.
+- Replace Match Junkrat's diagnostic60s fill with a world-clock passive host
+  evaluating original conditions1/63/64,timeout3 and value4. Input silence still
+  earns;late,duplicate and future owner frames cannot replay passive awards.
+  Suppression restarts its deadline. Other graph branches stay in the original VM.
+- Retire bindings with old script.entity when Player.body already names the
+  replacement. Clear NPC tag/query caches on removal,and register all clocks,
+  contexts,callbacks,tags and catalog hashes in causal server snapshots.
+  Preserve earned charge across same-hero body handoffs and automatic respawn
+  under a controller reserve;consume it on attachment,and clear it on a different
+  hero or leave. Actual120 becomes125 after respawn plus one passive award.
+- Add an external-input extractor for32 hero and5 NPC owned tag components.
+  No generated game metadata is committed. Missing/invalid inputs disable
+  charge without restoring diagnostic fill. Twenty-three focused checks pass in
+  90.703s,including two naturally earned ultimate cycles and automatic respawn.
+- Original01C7/75 and/76 both enable2426 on694/700. Remove a provisional700
+  stop dispatch after inspecting these original links. Reject the earlier
+  respawn reset and extra death-suppression guards after original0B8B tests.
+  Still-owned death bodies earn passive5/sec and actual Total Mayhem charge
+  under authored gates;retired sources remain excluded. Three affected broad
+  runs were intentionally stopped and retained as interrupted evidence. Native service catalogs,
+  inherited tags and012 identifier/itemized-detail mapping remain unproved.
+  See docs/JUNKRAT_CHARGE.txt. The selected regression run passed all 1473 cases
+  in 1142.472s with zero skips. Full static and original-client gates remain open.
+
+#### Shared normalized spread state and charge bridge trial
+
+- Adopt the parent's no-decay239B571E normalized WeaponVolley ramp. Capture
+  spread_ramp at activation,retain its final output and include the causal
+  field in body/server snapshots. Preserve this lane's Total Mayhem and
+  notification-lifetime changes. Adopted functions/layout/tests match the
+  read-only parent source;51 focused methods pass,including6 new spread checks.
+- All1450 current selected regressions pass in1149.375s,zero skips. The
+  selection now includes5 additional stored-journal/mover checks beyond the
+  prior1439 eye cases plus6 spread methods,including actual two-player stored
+  state replay through damage,death,respawn and hero change.
+- Combat direction sampling and optional native decay remain open. Parent
+  native evidence is reviewed separately;this lane does not claim to rerun it
+  or integrate random tables into actual damage rays. See docs/VOLLEY_SPREAD.txt.
+- Process-only Match694/012 trials on an enemy player and all5 NPCs obtain5
+  passive charge at63frames and120 charge from actual40+80 grenade damage.
+  Owned tags are read from original inputs. Class/filter/possession/observer
+  services and the loadout-to-identifier projection are declared reconstruction
+  inputs;production event binding,lifetime and ultimate economy remain open.
+  An additional Heavy trial naturally earns1925,casts to0,deals600 with no
+  ultimate recharge,and resumes passive charge after recovery. External owned
+  tags are prepared for32 heroes and5 NPCs;these remain process-only trials.
+  No full hero static/client acceptance,completion commit or merge readiness.
+
+#### Owned FirstPerson offsets and physical mine geometry
+
+- Share original Junkrat0380 standing1.25/crouched.875m and enemy McCree02A3
+  1.425/.9975m offsets between shot origins and player Target.eye. Preserve
+  Soldier crouch and unrecorded-body defaults. Five actual-input geometry
+  methods pass;restoring old heights produces five expected failing subcases.
+- Preserve near NPC mine120 damage with an explicit full-radius precondition.
+  Add actual5m throws against all five NPCs,checking independent surface-distance
+  falloff. Split range/wall tests into fresh matches to avoid prior self-launch
+  moving the owner and placing the second mine on the victim's side of the wall.
+- All22 focused eye/mine methods and1439 current full selected regressions pass
+  in420.032s,zero skips. Keep the first failed1437 run for fixture diagnosis.
+  See docs/EYE_HEIGHTS.txt for original input hashes and reconstruction limits.
+  Full static combat and original-client acceptance remain incomplete;no parent
+  merge,completion commit or publication is claimed.
+
+#### Exit notification lifetime and refill handoff
+
+- Clear canceled CHANGED/CHECK coalescing markers on state exit and exclude
+  ending states from variable notifications. Three minimal methods fail before
+  the fix and pass after it,including fresh join checks after state reentry.
+- Queue ability scope cleanup before arbitration release. The partial-magazine
+  actual McCree handoff previously left4 after one shot from a refill of6;it now
+  leaves5. Partial and input-emptied resource consumers pass. Native cross-object
+  order remains unproven;this is a disclosed server reconstruction.
+- Add actual Junkrat held-fire through15 grenades/two reloads and Flashbang
+  interruption during manual reload with held-fire recovery. Seven focused
+  checks pass. No new VM field/global phase,WeaponVolley refill exception,parent
+  source write or full hero/client acceptance is introduced.
+- Execute240 original cancel/clear boundary comparisons,including original
+  event-list unlink/count updates,with declared state-index/deallocation
+  adapters. All1432 current selected regressions pass in380.437s,zero skips.
+  Independent exact-base lifecycle export passes five methods.
+- The1432 run preceded the owned FirstPerson correction above and does not
+  establish original eye geometry or full hero acceptance.
+
+#### Native pet-component entity query for tire bootstrap
+
+- Implement F76C486C/CE2CF0/D1BEE0 with explicit component72 lookup/observation
+  context. Missing objects succeed typed zero;missing native context preserves
+  the caller destination. Observe before reading the captured component+D8 field.
+- Twelve focused methods and193 original-flow comparisons pass with declared
+  engine/config/pointer adapters.43 related query methods pass. The real0033/51
+  nested expression advances in a declared pet->controller->body bootstrap to
+  unsupported B591EBFE/66. Production bindings and full tire control stay open.
+- All1425 current selected regressions pass in403.328s with zero skips. The
+  standalone pet patch passes12 methods against an exact-base source export;
+  its separate follow-up variant handles the ConfigChargeVM dispatch overlap.
+- The parent's notification-marker/ending-state and ability-exit-order report
+  is reviewed read-only and queued separately. Those fixes are not included
+  in this1425-case run or claimed complete here.
+
+#### Authored throttle modifiers and tire-control correction
+
+- Apply17/18/19 to positive-forward/backward magnitude/unsigned lateral input,
+  restore lateral sign and clamp after preserving raw command bytes. Review the
+  parent's same fix read-only;120 original-prefix comparisons pass with declared
+  scalar lookup. Four actual-resource numeric-state/mover consumer methods pass;
+  the old identity behavior fails six subtests in a controlled negative run.
+- Confirm0233 drive state14 forces forward even for idle/reverse raw input.
+  The existing manual tire adapter does not host this lifecycle;its neutral/
+  reverse control is not accepted.039C's own initial scripts are0234,0033,004B,
+  25B4. Strict bootstrap needs current-possession context,then F76C486C in an
+  exploratory known-absent component44 fixture. Full tire VM/transport stays open.
+- All1413 current selected regressions pass in404.422s with zero skips. A
+  separate exact-base source export plus only the throttle patch passes four
+  resource consumers. Raw command bytes and snapshot layouts remain unchanged.
+
+#### Complete ring-vector math and explicit multi-pellet consumption
+
+- Reconstruct native table-uniform conversion (675 bitwise comparisons) and
+  full direction/noise/aspect math (788 comparisons within1e-6). Eleven focused
+  math methods pass. Preserve native aspect scaling without renormalizing.
+- Consume authored multi-pellet ring volleys only with explicit resolved launch
+  context. Actual Enforcer13EB/24 now emits25 distinct physical projectiles and
+  deals50 close damage in the declared paired-VM probe. Five direct consumer
+  methods cover close damage/count,misses,wall/team filtering and missing-context
+  rejection. The absent service no longer silently substitutes one projectile.
+- Native seed/table lifecycle,strict AI,range/falloff and multi-pellet client
+  prediction/transport remain open. The probe retains declared controller and
+  random inputs;full hero and original-client acceptance are not claimed.
+- All1409 current selected regressions pass with zero skips in539.422s,using
+  the existing runtime and explicit43-row NPC movers. A separate exact-base
+  source export plus only the launch helper patch passes11 math methods.
+- Read-only follow-up to the parent's throttle17/18/19 fix confirms use in
+  Junkrat0232 and tire0233/0234. The selected script closure has14 entities,
+  77 graphs,41 relevant modifier records and one explicit missing0F9C graph.
+  Applying/reviewing the shared mover fix and verifying actual lifecycle input
+  boundaries remains next work;this full run does not claim that change.
+
+#### Actual trap cooldown-buffer follow-up
+
+- Retain this lane's existing original-timestamp retry fix after reviewing the
+  parent's same-defect report. Add actual09BA/3 tests for a released short press
+  inside the authored150ms window and continuously held early input. Existing
+  trap/mine checks cover expired early presses and fresh presses after recovery.
+  No parent workspace writes or uncommitted implementation import is involved.
+- All20 trap,14 mine and12 generic ability methods pass in39.829s. Ruff and
+  patch checks pass. Full hero/original-client acceptance remains open.
+
+#### Native ring-launch boundaries and Enforcer volley gap
+
+- Add the independently verified scalar ring stage:669 original-code
+  comparisons without function adapters and six focused Python methods pass.
+  A separate400-case full native vector probe uses a declared seed callback,
+  table and original CRT SSE dispatch. Combat does not yet use the helper;
+  random/rotation/aspect integration and multi-pellet physics remain open.
+- An explicit permissive controller/body bridge lets actual Enforcer13EB/24
+  emit a2-damage projectile. Its resource declares25 projectiles,while current
+  Combat emits one;this is not accepted NPC incoming damage or production AI.
+  Native C3619A38 difficulty semantics and association lifetimes remain open.
+
+#### Authored NPC AI definitions and missing controller graphs
+
+- Add a source/input-safe extractor for the five bodies' associated AI
+  definitions, preserving own component/schema order and extracting only graph
+  records absent from the external base. Child scripts do not leak ownership;
+  missing references remain explicit and prepared inputs are never overwritten.
+- Extract five definitions and18 previously omitted graphs without cloning the
+  base bundle. Seven new extraction methods and three existing pool methods pass.
+  The prior1384-case full production regression remains valid;runtime code is
+  unchanged by this extraction step. No single1391-case run is claimed.
+- Allocate ordered controller scripts in isolated resource probes. All strict
+  bootstraps stop at142A/C3619A38. Authored9134 writes in permissive probes are
+  not accepted AI or substitutes for control gates. Actual Match AI hosting,
+  Enforcer/Assassin incoming attacks, specials and full hero acceptance stay open.
+
+#### Live total-health queries and explicit Talon geometry
+
+- Restore9B7648C3 health totals for attached player/NPC worlds from current
+  Match pools, preserving invalid-ID zero and valid-missing no-output behavior.
+  Match548 original48-slot float32 sum-block cases without function adapters.
+  Register BotWorld's new Match reference in both snapshot layouts;the enclosing
+  server snapshot owns the reference. The same548 cases also pass through the
+  complete concrete getter with declared code bounds and an original caller.
+- Require authored mover rows for all five Talon NPCs. The old38-row input used
+  generic defaults and did not prove native NPC geometry. Current checks use
+  the separate read-only43-row input and retain flat-collision/capsule limits.
+- Add eight query/accumulation methods and two NPC geometry/live-health methods.
+  All1384 selected regressions pass in316.297s with zero skips on current code,
+  using existing runtime inputs and an explicit43-row mover table. The isolated
+  health-only base patch passes10 checks,including component storage export.
+  Enforcer now passes its health gate but retains component43/control blockers;
+  Assassin incoming attacks and every NPC special remain open. No full hero,
+  original-client, completion-commit or publication acceptance is claimed.
+
+#### Native component43 relation query for charge resources
+
+- Implement F7262B36/CDBDE0/D15520 with declared engine namespace/component43
+  inputs. Preserve no-output failures, typed-zero component absence, environment
+  observations and captured-component reads after observation. Unknown services
+  and retired callbacks remain strict.
+- Match193 original query comparisons with disclosed engine/component/getter
+  adapters. Twelve query tests and eleven authored charge-resource tests pass;
+  the resource fixture no longer substitutes a fixed F7262B36 callback.
+- All1374 selected regressions pass in355.797s with zero skips in a single
+  current invocation. Ruff/diff and exact-base patch checks pass.
+- Actual Match component43 relations and lifecycle/charge events remain open;
+  full hero static/client acceptance, completion commit and publication stay open.
+
+#### Ordered native game filter and charge-resource admission
+
+- Implement AC829876 through the ordered D0DA20 pipeline with explicit engine
+  lookup, component97/25/76 inputs, observations, masks, scoped condition,
+  collected tag clauses, registry result and optional group checks. Unknown
+  engine services stay strict; callback retirement aborts later evaluations.
+- Restore ordered typed-resource tag collection and full64 deduplication. Match
+  ten original DB2C10 collector cases and393 original D0DA20 flow cases, with
+  engine/iterator/stage-result adapters and their limits documented separately.
+- Remove the fixed AC829876 resource-fixture callback. Eleven actual0B8B probes
+  execute declared class/tag admission, including required/removed tag121.
+  Eighteen entry-point and four collector tests pass in the40-case focused run.
+  All1362 selected regressions pass in364.234s with zero skips; Ruff and patch
+  checks pass. This is a single current full selected invocation.
+  Actual Match engine data, charge-event production, full hero static/client
+  acceptance, completion commit and publication remain open.
+
+#### Native mask, tag-clause and filter-condition stages
+
+- Restore BCAAE0 raw-mask/relationship composition, DB2FD0 compiled tag clauses
+  and1B8D970 candidate-scoped conditions as separate helpers. Preserve eager
+  relationship calls, self/friendly rules, conjunctive requirements, dynamic
+  tag precedence, absent-component handling and failed-condition defaults.
+- Match400 original static mask cases without function adapters and6153 mask
+  cases with declared native relationship results;645 compiled tag-clause
+  cases;163 original condition cases;12 unadapted candidate-provider lookups.
+  Engine-input adapters and incomplete collection/query scope are documented.
+- Pass20 new helper tests and877 current script tests in24.766s. The prior
+  1318-case full selected run is retained;1338 distinct selected methods now
+  exist across the unchanged combat/core checks and the added helper checks.
+  Ruff/diff checks pass. No actual full-filter or charge bridge is installed;
+  full hero static/client acceptance, completion commit and publication stay open.
+
+#### Native target tags and authored charge branches
+
+- Implement25ECB55F component76 lookup/observation and DB51F0 membership for
+  explicit base/added/removed tag data. Preserve the distinct base/removal and
+  non-base/addition precedence, refresh the component after subscription and
+  reject unknown data, malformed identities and retired contexts.
+- Remove the Junkrat probe's false-tag callback. Execute actual0B8B tag2ED
+  alternative admission,3C3 half charge and11E three-quarter charge, including
+  their priority. Actual Match tag construction/inheritance and event/lifecycle
+  integration remain open; nine resource probes are separate from84 combat cases.
+- Match540 original membership cases without function adapters and50 original
+  query cases with disclosed engine inputs. Eleven source tag tests and all
+  1318 selected regressions pass in297.956s, zero skips. Ruff/diff checks pass.
+- Locate full game-VM filterD0DA20 and its mask/tag/condition helpers. Preserve
+  its distinction from the base condition-only method; install no universal
+  admission fallback. Full static hero/client acceptance stays open. No completion
+  commit, parent-main edits, normal-service changes or publication.
+
+#### Native hostility queries for charge eligibility
+
+- Implement A58C1E63 with explicit namespace/team/spectator/component50 inputs,
+  identity/fallback resolution and neutral-group services. Preserve native config
+  order, missing-input/default behavior and option branch; validate context and
+  instance lifetime after callbacks. Unknown engine data remains unsupported.
+- Replace the Junkrat resource fixture's fixed enemy predicate with this query.
+  Actual Match relation data, lifecycle/possession/filter/tag inputs and Combat
+  damage-event production remain open, so the charge economy is not accepted.
+- Pass356 offline original relation comparisons and57 original query-wrapper
+  cases with disclosed engine adapters. Pass1303 broad source cases in193.175s
+  plus21 focused cases in1.467s after adding two ordering/retirement checks:
+  1305 distinct selected cases, including14 query tests and7 charge probes.
+  Zero skips; Ruff/diff checks pass. No client acceptance, completion commit,
+  parent-main edits or publication.
+
+#### Native config fold for Junkrat itemized charge data
+
+- Implement A6B80C63 from the104319 fold evaluator and its scoped parameter
+  provider. Collect input before binding parameters, evaluate the seed only for
+  nonempty input, preserve the accumulator after failed steps and restore outer
+  providers after nested evaluation or strict failure. Keep unknown services
+  unsupported and add no persistent VM fields.
+- Replace the charge probe's fixed exclusion-sum adapter with actual itemized
+  maps and the authored selection/sum expression. Record the original evaluator
+  and provider route in CONFIG_FOLD.txt. Thirty-five offline native fold-loop
+  comparisons and20 native provider lookups match, with disclosed engine-service
+  adapters; owning variants and combat event emission are not accepted.
+- Pass1291 distinct selected cases across broad and final-code focused/script
+  runs, including all84 actual-Match Junkrat cases,7 charge-resource probes and
+  9 fold checks. Final-code832 script tests and16 focused tests pass; zero skips.
+  Ruff/diff checks pass. Full charge lifecycle, full static hero acceptance and
+  original-client acceptance remain open; no completion commit or publication.
+
+#### Junkrat authored ultimate-charge frontier
+
+- Review/fast-forward parent2ca9178 state-input joins in the isolated lane.
+  Keep the shared join/snapshot fields alongside existing Junkrat changes.
+- Correct the diagnostic-fill comment: common child0B8B already contains
+  authored passive and event-based charge writes. Execute seven resource/VM
+  probes for5-point one-second waits, multipliers, caps, suppression, explicit
+  charge messages, net damage and the distinct012/148 identifier gates.
+- Supply missing lifecycle/possession/filter/prevention services explicitly in
+  probes. This is resource evidence, not actual Combat charge acceptance.
+  Production event emission, native filters, damage accounting and complete
+  death/ultimate lifecycle remain open; diagnostic filling is still present.
+- Pass525 relevant tests in268.206s after the shared join update, including
+  all84 existing Junkrat cases and33 additional join/VM snapshot regressions.
+  Seven separate charge-resource probes pass in1.618s (532 distinct selected
+  cases total, zero skips). Ruff/diff checks pass. No original-client acceptance,
+  completed-hero commit, parent-main edits or manual push.
 
 #### Native state-input joins and Deadeye timing
 
@@ -29,6 +445,33 @@ This log records tested changes and their acceptance status. Entries are grouped
   an external bundle. Normal runtime data/services and original working changes
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
+
+#### Junkrat interruption, independent actors and overlapping control
+
+- Review/fast-forward parent64bf71c and retain its resource-backed Flashbang
+  service alongside Junkrat terminal volleys, traps, mines and tire lifetime.
+  Compose NPC root/stun pause gates without delayed displacement catch-up and
+  register both stun deadlines and independent Junkrat actors in stored state.
+- Prevent a hit on a construct from releasing its creator's input or stopping
+  creator abilities. Native construct status receivers are still unsupported;
+  this boundary does not establish immunity. Synchronize BodyScript.buttons on
+  control release so a silent stun interval cannot hide the next held-fire edge.
+- Pass seven actual-input Junkrat tests:25 incoming damage and suppression/
+  recovery, mine cancellation before release, already-released trap retention,
+  remote mine rejection/reuse, input-silent recovery, independent trap damage,
+  and real three-player trap/stun overlap with95 remaining health. The trap's
+  root still blocks movement after the shorter stun permits firing again.
+- Locate the original3FE1A93B collision parameter compiler and record authored
+  value-to-runtime field mappings outside Git. Response consumers, units,
+  restitution/friction and fuse semantics remain unresolved; no grenade bounce
+  implementation is inferred from numeric resemblance.
+- Complete native immunity/cleanse/stacking, tire/body interruption, all defense
+  interactions, charge generation, grenade/death-passive fidelity and remaining
+  NPC paths stay open. No original-client controls, normal-service changes,
+  completed-hero commit, root merge or manual push.
+- Pass492 selected tests in307.484s, including84 Junkrat cases and408 relevant
+  parent/combat/NPC/network/journal/stored-state regressions, with zero skips.
+  Ruff and diff checks pass. The full static matrix remains unaccepted.
 
 #### Resource-backed Flashbang control reconstruction
 
@@ -55,6 +498,29 @@ This log records tested changes and their acceptance status. Entries are grouped
   Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
   lane merged. Normal runtime/services and original working changes preserved.
 
+#### Authoritative live command time and Junkrat stored state
+
+- Bound live input by the receiving match's current tick before consuming the
+  command queue or advancing body/movement/combat state. Leave future frames
+  unconsumed so due retransmissions work; preserve existing epoch/lease checks.
+  Keep the offline simulation interface explicit. The admission rule is a
+  reconstructed server policy, with native latency/prediction still unverified.
+- Pass five encrypted-link Junkrat tests for future mine/trap recovery, ultimate
+  fill, weapon/movement input, tire drive/detonation, due retransmission and real
+  cooldown reuse. Preserve the original unbounded-call failure separately and
+  record actual encrypted-ingress rejection in external evidence.
+- Register Junkrat managers/actors/recovery and NPC restraint/displacement in
+  strict stored-state snapshots. Actual mine/trap/tire creation and timer edits
+  prove causal fields affect the snapshot. Update due-input test fixtures to
+  advance authoritative time before sending historical command windows.
+- Review/fast-forward parent7cd1ed7 and use its shared quick-melee occlusion
+  check. Keep both heroes' documented limits; no edits to parent main or client.
+- Pass482 distinct selected cases across the core/server runs and focused
+  corrective checks, including77 Junkrat cases. Keep the initial99/100 server
+  result and the corrected stored replay result separately in external evidence;
+  no selected failure remains unresolved. Ruff/diff checks pass. The complete
+  Junkrat static matrix remains open; no completion commit or merge readiness.
+
 #### McCree melee static-wall occlusion
 
 - Prevent quick melee from damaging targets through static walls: retain the
@@ -70,6 +536,33 @@ This log records tested changes and their acceptance status. Entries are grouped
   lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
   five-NPC AI/navigation/specials and original-client combat remain open. Normal
   inputs/services and original working changes are preserved; no hero lane merged.
+
+#### Partial resource-backed Junkrat RIP-Tire actor
+
+- Add an external039C XML profile extractor and a tire-specific placement/actor
+  adapter gated by the actual0232 Ability and authored1925 ultimate cost. Read
+  100 health and actual movement geometry/speeds from the prepared external
+  profile; missing data rejects without charge loss. Keep game data outside Git.
+- Route movement/jump and new detonation edges to the tire after authored0233
+  preparation/arming. Preserve the exposed hero, allow control after creator
+  death, apply600-to50 explosion falloff, world-clock timeout and0232 recovery,
+  and quietly retire destroyed/replaced actors. Native placement queries,
+  actor VM hosting, wall climbing and possession/replication remain open.
+- Execute tire damage against all five real NPC bodies and actual Trooper/Heavy
+  projectile interception by a jumping tire. Execute six50-damage Total Mayhem
+  explosions against all five with explicit fixture death triggers and retained
+  NPC corpses. Adapt incoming tests to the reviewed parent manual controller.
+  Adopt parent dependencies through6debff3; actual Sniper projectiles now deal100
+  to Junkrat, including while trapped. Enforcer/Assassin primary remain open.
+- Pass376 tests (72 Junkrat and304 related regressions), Ruff and diff checks.
+  GM-charge, flat-world, permissive-VM and FakeClient fixtures remain explicit;
+  this is partial static evidence, with no original-client acceptance.
+- Preserve a concrete FAILED future-clock probe: after consuming two mine
+  charges, future input frames restore a third release without world-time
+  advancement. Full charge generation, timing admission, grenade bounce/fuse,
+  defense/control interactions and complete NPC abilities remain unaccepted.
+  Keep the full goal active and merge readiness false. No lane completion commit,
+  root-source edits, normal deployment or push; publication helper remains absent.
 
 ### 2026-11-08
 
@@ -179,6 +672,49 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Partial Junkrat projectiles, mines and traps
+
+- Evaluate the extracted uniform projectile motion parameter and integrate
+  downward acceleration with16ms sweeps, including scheduler gaps. Preserve
+  bounded flight/hit timing. Include rounded static sweep endpoints and stop
+  splash/melee damage behind static geometry while retaining exposed-side damage.
+  Reconstruct the authored allow-shots-while-dead flag, flush terminal volleys
+  at death without further player input, and execute Total Mayhem's six fuses.
+- Register sticky/damageable Concussion Mines through the authored projectile
+  output and secondary message. Restore quiet replacement, remote explosion,
+  25-health destruction, two-charge recovery, owner/death checks and cleanup.
+  Read the missing096B graph externally: its authored curve is120 damage up to
+  1.5m, falling to30 at3m. Add reconstructed player/NPC collision-backed impulse
+  and self-launch from the authored15 magnitude, with team/heal/crit exclusions.
+- Add a damageable100-health Steel Trap with resource-backed arming/search,
+  80 damage,3s restraint,9588 exclusion and9161 short-duration branches.
+  Preserve aim/attacks while movement is restrained; destruction/expiry/body
+  replacement releases only its owned root. NPC impulse restrictions expire
+  on the correct world tick. Two independently owned traps retire separately.
+- Preserve the original Ability press timestamp when a ready check fails.
+  Refreshing the timestamp each frame incorrectly queued a released key until
+  cooldown expiry many seconds later. Actual mine/trap input regressions cover
+  rejection, expiration and fresh-key reuse.
+- Pass344 tests, including55 actual-Match Junkrat tests and relevant combat,
+  NPC, mover, driver, health, ability and extractor regressions. Cases cover
+  player damage, incoming player fire, training-target death/corpse retention,
+  duplicate input, gravity, scheduler gaps, expiry, wall occlusion, reloads,
+  team filtering, melee cooldown, partial death-passive damage/fuses,14 mine
+  lifecycle/falloff tests and five actual NPC-body fixture tests. Repeated primary
+  kills all five species and retains corpses; primary/melee/mine damage and mine
+  displacement execute against all five. Trooper/Heavy authored primary input
+  damages Junkrat even while trapped; Enforcer/Sniper/Assassin incoming attacks
+  remain open.18 trap tests and all-five-NPC root/release/movement tests pass. Ruff and
+  diff checks pass. Gravity/geometry are explicitly reconstructed; no fresh
+  native engine comparison or original-client acceptance is claimed.
+- Full Junkrat combat remains open: grenade bounce/fuse, complete mine timing/
+  modifiers/replication, complete trap aura/tether/cleanse semantics, RIP-Tire,
+  complete Total Mayhem, complete NPC
+  incoming/specials, status/barrier/reflect/absorb/invulnerability and presentation.
+  Reuse the explicit parent NPC catalog read-only without modifying normal inputs.
+  See docs/JUNKRAT_COMBAT.txt. No normal deployment/root merge or push; required
+  publication helper remains absent. Supply the isolated lane commit for review.
 
 #### Optional persistent NPC corpses
 

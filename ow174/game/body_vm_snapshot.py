@@ -9,7 +9,7 @@ import hashlib
 import json
 import random
 
-from ow174.game import replay_values
+from ow174.game import enforcer, replay_values
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -71,11 +71,13 @@ _STATE_LAYOUTS = {
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.AssassinLaunchVector: ((), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
@@ -89,7 +91,8 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "var"), ()),
+    nodes.TrackBodyRay: (("result", "outputs"), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -383,17 +386,18 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, enforcer.ControllerWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+                fields.update(("weapon_buttons", "owner_position", "match",
+                               "manual_target", "controller_components", "enforcer_controller"))
+            # The match and the separate Enforcer VM belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "enforcer_controller"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

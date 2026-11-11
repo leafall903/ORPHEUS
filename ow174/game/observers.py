@@ -86,9 +86,12 @@ def _graphs(script) -> dict:
 
 def full_frame(script, snap: Snapshot):
     graphs = _graphs(script)
-    wires = {
-        item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
-    }
+    wires = {}
+    for item, (graph_index, parent) in snap.instances.items():
+        # A frozen baseline can outlive a dynamically removed status instance.
+        definition = graphs.get(item) or graph.graph(graph_index)
+        graphs[item] = definition
+        wires[item] = InstanceWire(item, definition, parent=parent)
     entity_vars = {}
     for (owner, var), value in snap.vars.items():
         if owner == 0:

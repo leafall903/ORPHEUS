@@ -1,0 +1,98 @@
+Junkrat Match ultimate charge --104319 disclosed server reconstruction
+
+Production wiring
+-----------------
+Match attaches a charge binding after creating the current Junkrat body script.
+Common message694 starts the original2426 lifecycle stack. Combat emits012 after
+actual positive pool loss,using amount13,live target15,Combat loadout as the
+declared identifier3D and an empty detail0624 array. Original0B8B evaluates its
+full damage filter,hostility,tags,multipliers and cap. Constructs,self,friendly
+targets,retired owners and active/recovering tires cannot earn through this
+bridge. A still-owned dead body follows the authored gates and can earn from
+Total Mayhem. Source body leases on physical projectiles prevent old death volleys
+from crediting a replacement body. Misses and blocked damage produce no event.
+
+Match Junkrat no longer uses the cost/60 diagnostic helper. Standalone diagnostic
+BodyScripts and other heroes retain their existing diagnostic policy. A missing
+or invalid charge input profile disables Match Junkrat charge;there is no fake
+diagnostic fallback. Explicit GM fill remains available for other readiness tests.
+
+The passive host uses world tick milliseconds independently of input receipt.
+It evaluates original0B8B conditions1/63/64,timeout3 and value4. This retains the
+one-second5*9532*12918 policy,mode/11942/842 gates and effective cost338=1925.
+Only the original passive gate1 is aborted in the owner-frame VM;other branches
+remain live. Deadlines advance by1000ms,not rounded63-frame intervals,so normal
+16ms timing is63/125/188. Suppression discards the deadline and starts a fresh
+interval on resume. Silent inputs still earn;late/repeated/future input cannot
+replay awards. This world-clock host is an explicit server reconstruction.
+
+Ownership and declared services
+-------------------------------
+ChargeSystem lives on Match combat,with bindings to the exact Player,BodyScript,
+body lease and0B8B instance. Retirement uses script.entity because Player.body
+already names the new body when the old script stops. Replacement/leave retires
+contexts and cached actor targets. Original01C7/75 and/76 show694 and700 both
+begin the2426 stack. A provisional700 death-stop dispatch was removed. Original
+0B8B also adds passive5 and receives damage012 with owner_dead true and a held
+body/controller relation. The Match binding follows that resource behavior
+until the actual script/instance retires. Native death-time relation lifetime
+remains unproved;the ordinary Match ownership model is disclosed reconstruction.
+Earned points survive death. Before a same-hero body handoff,including automatic
+respawn,the host reserves current points under the controller identity. The new
+script consumes that reserve and clamps to its authored cost. Changing to a
+different hero or leaving clears it. The reserve also survives deferred body
+creation/ACK;it is causal stored state. The first prototype incorrectly reset
+charge on respawn and its5-only assertion was rejected. With old-body passive
+suppressed by the authored11942 input to isolate transfer,actual120 becomes125
+after respawn and one new passive award,without a GM fill. A separate default
+gate trial earns10 passive over125 dead-body ticks,and actual Total Mayhem earns
+200 for200 pool loss before retirement.
+NPC removal clears explicit added/removed tags and retires its cached filter.
+The server snapshot registers clocks,catalog hashes,bindings,all context/target
+descriptors,callbacks and live tag overrides. Body VM snapshots continue to
+exclude enclosing Match services;the full server snapshot owns those inputs.
+
+Four ordinary-engine service bridges use known current bodies/controllers:
+-component43 self relation is the actual Player.body->Player.entity mapping;
+-hostility follows current teams;FFA uses the declared neutral/unshared policy;
+-configured ordinary combatants use reconstructed class1/component97 identity;
+-tag bases come from each body's own original component. Explicit live added/
+ removed lists use the original Tags membership implementation. Native observer
+ hubs are reconstructed by existing native polling and world-clock reevaluation.
+Unknown body definitions fail admission rather than acquiring a generic profile.
+
+Input preparation
+-----------------
+Set ORPHEUS_CHARGE_ENTITY_INPUTS to an external profile created with:
+python -B tools/extract_charge_entity_inputs.py <original003_XML_directory>
+ <external_output.json> --npc-catalog <prepared_pve_npcs_174.json> --include-dva-mech
+Use the external 104319 runtime when running the tool. This profile includes
+32 primary hero bodies, the alternate D.Va mech body, and five Talon bodies.
+The extractor hashes each original XML input, preserves explicit component
+absence and null tag slots, and rejects duplicate tags, unexpected asset types,
+and missing files.
+No original game inputs or generated profiles belong in this source repository.
+
+Verification and limits
+-----------------------
+Eighteen actual combat methods cover world-only passive time/late catch-up,
+primary/melee and overkill,miss/wall/friendly rejection,all5 NPC damage inputs,
+mine/trap charge,multipliers,tag reduction priority,passive suppression,actual
+construct destruction/self-launch,duplicate/future owner clocks,death/source
+replacement,earned points through death/automatic respawn,same/different-hero
+handoffs,NPC removal
+and two naturally earned ultimates with actual spend,
+600-damage detonation,suppression and recovery. One causal snapshot method
+detects deadline/tag/context changes and immediate old-binding retirement.
+Four input preparation/validation methods cover strict external metadata.
+All23 focused methods pass in90.703s. The current broad run is recorded externally.
+
+Effective inherited tags,native component/category catalog,original observer
+ordering and native012 identifier/itemized-detail mapping remain unproved.
+Original passive sibling66's stat-related effects are not hosted by this numeric
+world-clock adapter;no native stat-telemetry equivalence is claimed.
+The empty-detail projection covers the current ordinary health/armour/shield
+model;additional health exclusions/barriers need their explicit future event
+mapping. Native full VM/timing equivalence is not claimed. Remaining defenses,
+special statuses,ult interrupt/actor fidelity and full Junkrat static acceptance
+remain separate open matrix requirements. Original-client acceptance is OPEN.

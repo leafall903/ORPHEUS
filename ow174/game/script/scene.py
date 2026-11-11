@@ -696,6 +696,12 @@ class SceneWorld(runtime.World):
         record = self.entities.get(entity)
         return record.position if record is not None else None
 
+    def entity_definition(self, entity: int):
+        record = self.entities.get(entity)
+        if record is None:
+            return 0
+        return record.placement.definition if record.placement is not None else NotImplemented
+
     def entity_var(self, entity: int, var: int):
         slot = self.entity_var_slot(entity, var)
         if slot is not NotImplemented:

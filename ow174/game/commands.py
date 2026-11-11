@@ -179,13 +179,19 @@ class CommandQueue:
         return fresh
 
     def before_limit(
-        self, commands: list[Command], limit: int, *, anchor: int | None = None
+        self, commands: list[Command], limit: int, *, anchor: int | None = None,
+        not_after: int | None = None,
     ) -> tuple[list[Command], int | None]:
-        """Admit the fresh prefix that fits the current body epoch, and report its first boundary."""
-        return self._consume(commands, limit, anchor)
+        """Admit fresh frames in the body epoch and optional authoritative time window.
+
+        Future input is left unconsumed so an overlapping/retransmitted window can
+        deliver it when due. A future frame cannot hide a later due frame.
+        """
+        return self._consume(commands, limit, anchor, not_after)
 
     def _consume(
-        self, commands: list[Command], limit: int | None = None, anchor: int | None = None
+        self, commands: list[Command], limit: int | None = None, anchor: int | None = None,
+        not_after: int | None = None,
     ) -> tuple[list[Command], int | None]:
         # Validate the whole window first so malformed input cannot partly advance the queue.
         if any(type(item.frame) is not int or not 0 <= item.frame <= FRAME_MASK for item in commands):
@@ -200,6 +206,8 @@ class CommandQueue:
             wrapped = previous is not None and command.frame < previous
             if limit is not None and (wrapped or command.frame > limit):
                 return fresh, command.frame
+            if not_after is not None and command.frame > not_after:
+                continue
             if wrapped:
                 self.wraps += 1
             fresh.append(command)

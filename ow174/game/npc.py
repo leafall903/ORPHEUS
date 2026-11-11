@@ -50,7 +50,7 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0, auto_engage: bool = False) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -74,12 +74,24 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     from ow174.game.match import BOT_RECORD_DELAY
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
-    match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
     match.combat.record_replacement(entity)
+    match._prepare_bot_script(bot)
+    if auto_engage:
+        from ow174.game import npc_control
+
+        try:
+            npc_control.validate_engagement(bot)
+        except ValueError:
+            # No create has been sent and the identity is still unallocated.
+            match.bots.remove(bot)
+            match.combat.vitals.pop(entity)
+            match.combat.replacement_ticks.pop(entity)
+            raise
+        npc_control.begin_engagement(bot)
+    match.combat.next_bot += 1
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
             viewer.client.queue_entities([match._bot_create_update(bot)])
@@ -94,6 +106,9 @@ def remove_spawned(match) -> tuple[int, ...]:
         if bot.spawner.get('manual_spawn') is not True:
             continue
         bot.died(match.tick)
+        match.combat.junkrat.retire_body(bot.entity)
+        match.combat.clear_pins(bot.entity)
+        match.combat.npc_melee_pending.discard(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component
@@ -108,7 +123,8 @@ def remove_spawned(match) -> tuple[int, ...]:
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns,
+                      match.combat.heavy_charge_contacts, match.combat.npc_melee_seen):
             table.pop(bot.entity, None)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)

@@ -17,14 +17,22 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    assassin,
     bots,
     combat,
     correction,
     heroselect,
+    junkrat,
+    junkrat_charge,
+    junkrat_tire,
     notices,
+    npc_navigation,
     observers,
     projectiles,
     replay_values,
+    barriers,
+    enforcer,
+    sigma_grasp,
     statescript,
     stats,
     voicelines,
@@ -33,12 +41,13 @@ from ow174.game import (
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
-from ow174.game.commands import CommandQueue
+from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import driver, expr, runtime
+from ow174.game.script import entity_relation
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -93,9 +102,19 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns sombra_hacks pins heavy_charge_contacts heavy_charge_pins npc_melee_pending npc_melee_seen junkrat grasp_shields grasp_grants barriers"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    barriers.Barriers: _names("fight live seen next_entity world reinhardt"),
+    barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
+    barriers.world_bubbles.WorldBubbles: _names("fight actors next_id"),
+    junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
+    junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
+    junkrat_charge.ChargeBinding: _names(
+        "system player script body instance enabled next_ms targets hostility tags "
+        "relation_target relation filtered"
+    ),
+    junkrat_tire.TireSystem: _names("combat actors recovery next_entity last_error last_result"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer temporary_shields sleep_until sleep_wake_floor"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -117,7 +136,9 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position match manual_target controller_components enforcer_controller"),
+    enforcer.ControllerWorld: _names("hero mode"),
+    enforcer.ManualController: _names("host target context"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,13 +152,20 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_slot reload_requested pitch "
+        "rooted_until_tick displacement pursuit lunge lunge_ready"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
-    GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
+    *junkrat_charge.SNAPSHOT_TYPES,
+    entity_relation.Context, entity_relation.Target, entity_relation.Relation,
+    barriers.reinhardt_barrier.RaisedBarrier, barriers.reinhardt_barrier.Geometry,
+    barriers.Bubble, barriers.world_bubbles.FixedBubble, combat.TemporaryShield, sigma_grasp.ShieldDecay,
+    GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData, Command,
+    junkrat.Mine, junkrat.Trap, junkrat_tire.WallClimb, junkrat_tire.Tire,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    npc_navigation.Search, npc_navigation.Pursuit, assassin.Lunge,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -302,7 +330,6 @@ class _Graph:
         elif kind is World:
             data = {"asset": self._asset(obj)}
         elif kind is Mover:
-            from ow174.game.commands import Command
             from ow174.game.mover import Snapshot
             from ow174.game.physics_snapshot import snapshot_mover_with_identities
 

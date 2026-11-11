@@ -1,0 +1,54 @@
+Current total-health query -- target104319, module RVAs
+
+9B7648C3 evaluatorCEB6C0 checks context and namespace before scalar entity
+selection, then calls D177C0. An invalid uint32 entity succeeds float0 without
+lookup. A valid missing entity gives no output, with environment0/46 observation
+when applicable. A known missing component51 succeeds0. A present component is
+captured, observed at+20, then queried through virtual40. Schema A658CA1C is
+STUHealthComponent: native F52AE2/F52B6A maps it to component index33hex=51.
+The concrete client vtable260F630 maps virtual40 to5BBC80.
+
+5BBE44..5BBFA6 sums48 slots in ascending order. Slot0's active marker is atD8
+and current float atE0, with14hex-byte stride. Any nonzero uint32 marker enables
+addition. Every addition rounds to float32; inactive current values are ignored.
+The three groups each hold16 slots.548 original sum-block comparisons pass
+without function adapters, including every individual slot, non-boolean markers,
+rounding cancellation, randomized combinations and nonfinite floats. This is
+the sum block; its caller validation, component lookup and notification hub are
+not executed by that comparison. Native image/listings/probes remain outside Git.
+
+health_query.py exposes that sum and a reconstructed live Match backend. Attached
+BodyWorld and BotWorld queries read current Combat.Vitals, with one modeled base
+slot for each existing health/armour/shield kind and all other slots declared
+absent. Valid missing targets preserve the caller destination; invalid selectors
+succeed0. Existing VM native polling observes changes per frame; exact component
+notification timing, target namespaces beyond Combat._targets and temporary/
+additional health slots remain open. Detached worlds retain their old unsupported
+query behavior. This is not an implementation of every native namespace service.
+
+BotWorld.match is registered in both server_snapshot.py and body_vm_snapshot.py.
+The enclosing server snapshot owns this causal reference;component-only export
+recognizes the field and leaves its external Match to the enclosing snapshot.
+Match supplies it through the NPC constructor. An entity not yet admitted to
+the target registry can update its polled gates on following frames. Eight
+query/accumulation tests cover live player damage,
+all three base pool kinds, selector conversion, missing entities and detached
+worlds. Two additional Junkrat NPC methods require explicit authored mover rows
+and query all five real bodies before/after actual primary damage.
+
+Enforcer13EB/node18 now reads350 rather than an unsupported value in the declared
+catalog fixture, passing its total-health>0 gate. It then reaches node1's separate
+component43/control gates and still produces no volley. Assassin13C3 uses its own
+target/ModifyHealth paths. Neither incoming attack nor NPC specials are accepted
+by the health-query change. Full autonomous AI and original-client acceptance
+remain open.
+
+NPC geometry correction
+Earlier NPC checks used the normal38-row mover table, which omitted all five
+Talon bodies and therefore selected generic defaults. Those runs do not prove
+native NPC geometry. Current acceptance requires the separately prepared43-row
+table, with read-only parent-owned preparation evidence and hashes. Declared
+height/radius pairs are Trooper1.7/.5,Enforcer1.9/.5,Sniper1.75/.5,Assassin1.5/.5,
+Heavy2.3/.7. Existing collision remains a flat fixture and body capsules remain
+a reconstruction; authored mover dimensions do not establish model hitboxes or
+live map navigation. The runtime's shared hardlinked metadata is never written.

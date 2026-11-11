@@ -1,0 +1,36 @@
+Owned FirstPerson heights -- partial static geometry acceptance, build104319
+
+Combat.eye_height supplies both the player's shot origin and Target.eye,which
+is retained in rewind history. Junkrat0380 uses standing1.25/crouched.875m;
+enemy McCree02A3 uses1.425/.9975m. Soldier03CF crouched1.085 and unknown-body
+legacy defaults1.55/1.15 are preserved. NPC eye/muzzle fallback remains1.55m.
+
+Read-only provenance:each body's own STUFirstPersonComponent,standing field
+m_E29993A5 and crouched m_816B830F,from the existing target-build XML inputs:
+-003/000000000380.003.xml SHA256
+ 369718b8111f94be6b3d40957d67b72f86d480ce506d7542628b06bfed2f5769
+-003/0000000002A3.003.xml SHA256
+ c2cef822f24e0b66102fabc72c0c1684f65f7de7b7de84b64bec3c868935e5bf
+No game inputs are copied into this source tree.
+
+Five test_junkrat_eye_geometry methods exercise actual posture/input,physical
+grenade origins,Target.eye and low cover. A1.4m wall blocks standing Junkrat;
+1.1m cover distinguishes standing/crouched shots. Enemy McCree uses its owned
+heights against an actual Junkrat victim. Restoring the previous generic heights
+in a process-only negative control produces five expected failing subcases.
+
+The corrected lower throw origin exposes two old fixture assumptions:
+-At5m NPC separation,a pitch4096 mine parks2.689m forward and is outside the
+  full-damage surface radius. The existing120 assertion now uses4.5m and checks
+  the1.5m full-damage precondition. A new actual5m throw checks all five NPCs
+  against independently calculated capsule-surface distance and authored linear
+  falloff120@1.5m to30@3m. Normal-radius NPC damage98.14148;Heavy107.12843.
+-A prior test detonated one mine before placing another wall scenario. Owner
+  self-launch moved the second mine to the victim's side of the wall. Range and
+  wall tests now have independent Match instances,and the wall case checks that
+  the mine and victim's capsule lie on opposite sides before actual detonation.
+
+This establishes the disclosed server eye-offset reconstruction. Animated
+muzzles,original camera motion,skeletal critical zones,grenade bounce/fuse and
+complete NPC aiming remain separate unproved matters. No original-client
+acceptance or complete Junkrat static acceptance is claimed.

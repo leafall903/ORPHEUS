@@ -1,0 +1,689 @@
+Junkrat combat restoration — partial, unaccepted
+Target: Overwatch 1.74.0.0.104319, hero 02E0000000000065, body 0400000000000380
+
+Scope and provenance
+--------------------
+The hero lane owns a source-only clone on main. The shared runtime is read-only.
+The lane includes reviewed parent dependencies through64bf71c via local
+fast-forwards.64bf71c is the integration base for the current partial patch.
+This patch supplies uniform projectile gravity, stable 16 ms chord sweeps over
+scheduler gaps, a static-impact endpoint tolerance, static blast/melee occlusion
+and partial postmortem volley/fuse execution, registered mines, Steel Traps and
+a resource-backed RIP-Tire actor adapter.
+It does not establish complete Junkrat combat or original-client presentation.
+
+The authored 022B/12 volley evaluates speed25, motion E1A5B579/599AB8D7=12.25,
+direct40 and blast80, with explosion rings .5m=1 and2m=.125. Its magazine is5.
+These values come from existing extracted target-build graphs, not a current
+Overwatch balance reference. The interpretation of E1A5B579 as uniform downward
+acceleration, constant-acceleration integration, capsule collision and a single
+static visibility ray remain reconstructed. There is no fresh native engine
+comparison for their timing, dimensions or sampling. The 022B/31 primary uses
+a swept sphere with candidate radius 0.2m from its collision configuration.
+Terrain reflects the velocity along the contact normal with reconstructed
+retention 0.5, then consumes the remaining time in the same world tick.
+
+Genji's 03A3 Deflect state 10 supplies three target-build boxes at node 18.
+The server normalizes their endpoints and tests tagged grenades and immediate
+shots against those bounds. The eye-relative transform, frontal direction
+check, projectile-radius expansion and interception order are reconstructed.
+Deflect transfers the source body and team, uses the defender's aim and keeps
+the projectile's remaining flight and terrain contact budget. The old
+predicted shot retires. A reflected immediate shot retains the original range
+and falloff budget. Frontal quick melee uses the active-state direction check.
+Trooper 1422 and Heavy Assault 140E melee share the player melee damage tags.
+Their reconstructed block uses the same direction check after an attached
+barrier takes precedence. The blocked strike deals no body damage or impulse.
+Airborne mines retain their owner and a parked mine can still deal its remote
+blast damage. The native cast filters and reflected presentation remain open.
+
+Sigma's active 1D02 Grasp box absorbs an eligible enemy primary grenade that
+reaches it before terrain or a body. This uses the target-build box configs with
+a reconstructed view transform and centre-line intersection. The server retires
+the grenade and supplies nominal impact plus blast damage to the authored
+accumulator. Actual commands cover 120 absorbed in front, damage from behind,
+and refusal through closer static terrain or from an ally. The original end
+request converts the 120 accumulator to 72 in a distinct temporary shield
+pool. The server consumes that pool before the base shield pool and decays
+it using the authored delay and rate. The PlayScript request and pool service
+are reconstructed. Other Junkrat projectile eligibility remains open.
+
+The same adapter absorbs verified hitscan projectile definitions for the
+Trooper, Heavy Assault and Soldier rifle. Their 104319 entity resources carry
+02F9 and pass the authored exclusion for 0145. The server evaluates the
+definition selected by the weapon state, tests the same Grasp box and feeds
+distance-scaled direct damage into the accumulator. Cover and team are
+checked on the incoming ray and again after a Deflect source transfer.
+The native hitscan admission callback and original-client presentation
+remain open.
+
+Reaper's authored 0020 Wraith phase allows grenades through and prevents
+Steel Trap capture. The server completes the zero-duration startup service.
+The same target can take a grenade hit or trigger the preserved trap after
+Wraith ends. Orisa's active 0CF4 Fortify scales damage before armor and
+prevents mine displacement. The authored 0CF4 node 17 sets entity flag 9161,
+which selects the Steel Trap 09BB short duration branch. The 0.01 s root
+occupies one authoritative world tick. The server applies reduced trap damage
+and releases the target on the next tick.
+
+The static sweep extends its endpoint by1e-6m and clamps the hit to the step.
+Without that tolerance a mathematically exact contact can round just past the
+step and then be ignored as a zero-distance surface on the next step. Blast
+occlusion starts1e-4m before a static contact, on the incoming side. The target
+sample is the nearest point on the capsule axis; the ray ends at its surface.
+These tolerances and sampling are reconstruction choices requiring client QA.
+Motion/occlusion apply to shared projectiles, including other heroes using the
+same extracted motion class. Existing straight-flight and healing tests pass.
+Dynamic barriers, deflect, absorption and invulnerability are still unsupported.
+
+Concussion Mine reconstruction
+------------------------------
+096A/8 now creates a registered damageable mine, writes its actual entity to the
+authored output5875 and routes the body's secondary003F message to it. Static
+collision parks the mine without exploding. A second cast/0511 replaces the old
+mine quietly. Enemy weapon damage destroys its25-health body without killing
+its creator or exploding it. Mines have no hero critical hitbox and cannot be
+healed by a healing area. Owner identity rejects enemy/expired-body messages;
+dead owners cannot detonate. Death before the throw volley cancels its release.
+
+The initially absent096B graph was extracted read-only from external target-build
+XML, outside Git. Its HealthPool declares25; setter44 declares minimum damage30,
+setter45 full radius1.5, setter46 outer radius3 and setter47 maximum damage120.
+Node37 interpolates120 to30 between1.5 and3. The implementation uses that curve
+with the existing reconstructed body-capsule distance. The body volley's flat
+ring alone is insufficient evidence for the deployable's damage falloff.
+
+096A's authored magnitude15 drives a reconstructed radial impulse through the
+player/NPC mover. The creator can launch without self damage; teammates are not
+damaged or displaced. NPC displacement runs the normal static collision mover
+instead of merely changing a velocity field. Exact native impulse composition,
+resistance, movement-ability/root/immunity conflicts, surface adhesion rules and
+midair body collisions remain open. Current mine entities have no completed
+native create/movement/health/destroy replication or client presentation.
+
+Fourteen actual-Match mine tests cover impact versus remote detonation, airborne
+detonation, replacement, two charges/third rejection/recovery, enemy destruction,
+message ownership, death/cast cancellation, hero-switch cleanup, self/enemy
+movement, critical-hit exclusion, healing/team semantics and a75-damage sample
+halfway through the authored falloff interval. Recovery currently follows the
+body VM's command clock. The original unbounded offline probe consumes both charges,
+then sends future command frames2130/2160 while the world stays at1130. A third
+mine releases without eight seconds of world time. FUTURE_CLOCK_AUDIT.json
+retains that historical failure. Live ingress now rejects future frames before
+simulation, as described below; offline simulation callers remain explicit.
+
+Steel Trap reconstruction and input-buffer correction
+-----------------------------------------------------
+09BA/1 throws carrier11A9; its spawn recipe names103A and09BB. The registered
+trap parks on collision, then waits09BB's .5s arming delay before searching the
+authored1m radius. A nearest visible enemy body takes the authored80 damage and
+is restrained for the authored3s duration.103A's0033 override199 supplies100
+health. Targets flagged by entity variable9588 are excluded by09BB's actual
+target filter; the post-hit9161 condition selects its .010000001s branch rather
+than the ordinary3s hold. These flag inputs are tested, but the complete native
+sources of those flags and hero-specific immunity/cleanse lifecycles remain open.
+
+Root constraints freeze walk/jump and MoveTo requests while preserving aim,
+attacks and body timers. Player movement goes through the normal mover with
+movement input constrained. NPC root gates reject impulses rather than queueing
+them for release, then normal collision movement resumes after the hold. Mine
+knockback does not move an actively restrained target. Each trap owns a separate
+root entry, so retirement removes only that trap's constraint. Victim death, victim-body
+replacement, owner-body retirement, destruction, a later cast or duration expiry
+remove the owned root. A lethal80-damage capture does not restrain the corpse.
+
+Eighteen real-Match trap tests execute landing/arming, hit/miss, search geometry,
+range/team/LOS,80 damage, cooldown rejection/reuse/replacement, movement
+restriction with attacks allowed, expiry,100-health weapon destruction and
+escape, replacement/death, declared exclusion/short-hold flags, scheduler-gap
+timing, a living Roadhog's mine-versus-restraint interaction, dead-owner retention,
+owner replacement and two independently owned traps on one target. Actual NPC
+fixtures execute80 damage/root/expiry/blocked impulse and resumed movement on
+all five bodies. Trapped Trooper/Sniper/Heavy can still shoot the Junkrat player.
+These are partial executable model semantics, not a complete authored09BB VM,
+native trap hit receiver, tether geometry, aura transport or original-client QA.
+
+RIP-Tire partial actor adapter
+------------------------------
+0232's actual Ability gate validates the authored1925 cost. Once it runs, a
+tire-specific adapter supplies a reconstructed floor/capsule placement, creates
+an independently damageable039C actor and consumes charge once. It does not
+pretend that the retained native placement query or generic CreateEntity service
+has been implemented. The original TIRE_PREFLIGHT.json remains historical failure
+evidence; TIRE_EXECUTION.json records the now executable narrow path separately.
+
+tools/extract_junkrat_tire.py reads external039C XML into an external profile.
+The authored0033 override199 supplies100 health. The actual mover provides
+forward12/backward6/strafe3, jump9, height.8/radius.3 and gravity scale1.75. No
+game-data profile enters Git. Configure ORPHEUS_JUNKRAT_TIRE_PROFILE explicitly,
+or prepare junkrat_tire_174.json under the external runtime. Missing/invalid data
+rejects the cast and preserves charge; no hero-sized fallback actor is invented.
+
+Placement evaluates the 0232/37 cast origin and length, then the 0232/54 fallback
+position. The static adapter supplies the creator's position, horizontal aim
+and existing body-scale service. It samples a vertical ground ray and validates
+the tire capsule at each candidate. Native shape-cast filtering and the fallback
+creator retreat remain open.
+
+0233 supplies1.4s preparation and a further.2s detonation gate. The tire accepts
+actual movement/jump commands after preparation while the original hero remains
+exposed and stationary. New primary/secondary/Q edges detonate after arming;
+early presses are not queued. Deadline expiry uses the world clock without new
+player commands. The current10s timer starts at arming; exact native phase and
+timeout ordering still require comparison. Creator0232 supplies1.5s recovery.
+
+0233's explosion declares600 full damage through2m and50 at10m, with linear
+falloff. Actual Match tests execute600 and a325 sample at6m, static occlusion,
+team/owner exclusion,100-health weapon destruction without explosion, vulnerable
+creator death with continued tire control, recovery and quiet body-replacement
+cleanup. Five actual NPC bodies take up to600; surviving Heavy remains alive,
+and killed NPCs retain corpses. Jumping tire geometry also intercepts authored
+Trooper20/Heavy5 rounds. This is partial ballistic interception, not NPC target
+acquisition of a tire. Native wall-climb contact and full0233/0234 actor VM hosting,
+possession/view, create/movement/health/destroy transport, all cancel/interrupt
+paths and complete charge interactions remain open. The original tire tests use
+explicit GM charge. New production charge cases naturally earn/spend/reuse
+charge;the Match diagnostic60s fill is removed for Junkrat. See JUNKRAT_CHARGE.txt.
+
+Authoritative live input and stored state
+------------------------------------------
+The real Client supplies match.tick as an admission ceiling to Player.take_commands
+and CommandQueue.before_limit. No future command updates the consumed frame,
+body VM, movement, attacks, cooldowns or ultimate charge. Such frames are left
+unconsumed; due overlapping/retransmitted input is still accepted. A malicious
+future frame cannot poison a later due frame in the same window. Existing body
+epoch/lease-boundary rejection still applies. This is an explicit server policy,
+not a recovered native prediction buffer or an original-client latency claim.
+
+The offline take_commands interface can still simulate explicit future frames
+when no receipt clock is supplied; real Client._payload_in always supplies one.
+COMMAND_CLOCK_INGRESS_AUDIT.json records an encrypted-datagram regression: two
+mine casts remain two and all body/queue/movement state remains unchanged after
+the future throw/release pair. Five encrypted-link tests additionally cover
+trap cooldown/replacement, no future ultimate fill or weapon/movement input,
+armed tire drive/detonation refusal, real cooldown reuse and due retransmission.
+
+The strict stored-server-state registry now explicitly includes the Junkrat
+manager, mine/trap/tire actors, tire recovery and NPC root/displacement state.
+A real actor-creation test changes mine/trap/tire timers and observes different
+stored hashes. Fields are serialized rather than omitted to make replay pass.
+The controlled server replay remains a separate diagnostic, not native capture.
+
+Flashbang input interruption and overlapping control
+-----------------------------------------------------
+Reviewed parent64bf71c preserves ModifyHealth's authored effect0079. Its
+053/0079 ->0228 ->224E resource route supplies a reconstructed0.8s stun (the
+mode13408 branch supplies1.7s). This is a shared server control service, not the
+complete native224E manager or an immunity/cleanse/presentation implementation.
+
+Seven actual-input Junkrat tests now cover25 incoming damage with body input,
+movement, melee, mine/trap and full-charge Q suppressed during control; primary
+and movement recover after expiry. A mine started immediately before the actual
+Flashbang impact is canceled before projectile release, with later fresh reuse.
+09BA releases its trap on the key-down frame, so a trap already thrown before
+the stun remains live and can capture the caster for80 damage and3s restraint.
+An existing mine cannot detonate while its owner is stunned and accepts a fresh
+secondary input after expiry.
+
+An actual three-player case overlaps a trap's root and Flashbang on one Junkrat:
+he takes80 then25, cannot move or fire during the stun, then can fire while the
+longer independent trap root continues blocking movement. Root and stun retain
+separate owners/deadlines. NPC route/displacement integration keeps their pause
+gates consistent; exact native knockback during control remains open.
+
+Control explicitly synchronizes the body driver's last buttons with the VM's
+released buttons, including when no commands arrive during the stun. Otherwise
+the first subsequently held-fire command can lose its press edge. A regression
+executes actual Flashbang, an input-silent interval and the subsequent shot.
+
+An independent trap hit for25 retains75 health and does not release its creator's
+held fire or stop the creator's abilities. Owned constructs currently have no
+implemented native status receiver. Their owner pointer is for attribution and
+must not redirect an actor's control effect into the hero. This is an ownership
+boundary, not proof of native construct immunity. Tire/body stun during windup
+or remote control, full cancellation rules and all native status receivers remain
+open. No control row is closed merely because the shared stun hook exists.
+
+Primary collision resource audit
+--------------------------------
+Read-only inspection of the existing target-build client image locates the
+original volley parameter compiler at RVA00D87AF0..00D8CE43. It reads the
+3FE1A93B collision config at00D8A36E and compiles its scalar/boolean fields at
+00D8A383..00D8AE69 into the cached collision object referenced at offset88.
+External GRENADE_COLLISION_AUDIT.json records source fingerprints and mappings:
+360294F0=100 ->20, D9EFD182/E94D94BA/8BCA0BAF=true ->24/25/26,
+0D20DAFD=.5 ->30, CE33458D=300 ->34 and C29D35E8=.75 ->44 (hex offsets).
+This proves parameter conversion/storage only. The response consumer, units,
+fuse scheduling and restitution/friction semantics have not been established.
+No bounce/fuse implementation or acceptance is inferred from these values.
+
+The cooldown tests exposed a shared Ability bug: failed ready checks reinserted
+the press with a fresh timestamp each frame. A released press could then cast
+many seconds later. Preserve the original press tuple on retry, so the resource's
+early-press window actually expires. Real trap/mine input tests now assert that
+a rejected press does not revive after10/8s, and that a fresh press then works.
+Two additional actual09BA/3 trap checks cover a released short press within
+the authored150ms window and continuously held early input. Both start once
+when ready. The short-press check also observes the unchanged original tuple
+after release. This lane's existing take_press_entry/reinsert implementation
+preserves the same timestamp contract as the parent's later retain/consume
+variant;the uncommitted parent implementation was reviewed read-only,not copied.
+
+Five-species NPC evidence
+--------------------------
+The normal runtime graph pack remains unchanged. Explicit static fixtures read
+the parent-prepared npc-runtime/data catalog and graph pack through the
+ORPHEUS_PVE_NPC_DATA setting, while all other inputs still use runtime-104319.
+No archive/client/runtime copy was made. The parent catalog resolves variable221
+as shield health, not armor, and lists unapplied difficulty/conditional pools.
+
+Seven tests execute all five actual body graphs, with flat collision, adapter
+transport and permissive body VMs declared. Actual Junkrat primary deals120,
+melee30 and close-range mine120 to each base-pool body. Mine impulses move all
+five bodies. Repeated primary input kills each species, including4000-base-HP
+Heavy Assault, and the manual corpse persists after the respawn deadline.
+Manual authored primary-button input damages Junkrat for20 from Trooper and5
+from Heavy Assault on their first hits. Enforcer, Sniper and Assassin primary
+entry probes produce no damage after150 frames and remain OPEN. These fixtures
+do not prove production AI acquisition, enemy specials or original-client play.
+NPC_INCOMING_AUDIT.json outside the repository records this incomplete matrix.
+
+The manual Assassin bridge maps slot0 to button36 for the authored 1157 pin.
+Actual Match tests against Junkrat deal 25 at contact and 16 over ten world
+frames during the continuous phase. The victim's movement and primary input
+remain suppressed while pinned. Manual stop, lost range, a static wall and team
+changes release the victim and stop damage. The manual 3m range, target context
+and continuous damage clock are reconstructed. Autonomous approach, original
+control semantics and the complete interruption matrix remain open.
+
+Headless evidence (tests/test_junkrat_projectile_combat.py)
+--------------------------------------------------------
+Sixteen tests use the real Match/Player input, volley and damage paths:
+- Primary input deals40 direct plus80 splash to an enemy player: health200->80.
+  Replaying the old command deals no additional damage.
+- Resource-backed gravity changes position/velocity over20 ticks; one scheduler
+  gap produces exactly the same trajectory as contiguous updates.
+- Ballistic hit timing/notices match contiguous ticks after a scheduler gap.
+- A shortened flight lifetime remains bounded during a gap.
+- A wall stops the actual primary projectile and shields a body within blast range.
+- A body exposed on the incoming side of that wall still takes splash damage.
+- An enemy Soldier primary actually damages the Junkrat player.
+- Two primary grenades kill a training-bot damage target; the opt-in corpse stays
+  past its respawn deadline. This test has no NPC behavior script and proves no AI.
+- Primary misses deal no damage; a full magazine empties after five shots,
+  refuses fire during automatic reload, refills and can fire again. Manual
+  reload also refuses fire until it completes. Teammates take no primary damage.
+- Melee deals30, refuses an early second activation and deals30 again after its
+  cooldown. Out-of-range targets and targets behind static walls take no damage.
+- A dead Junkrat cannot execute primary or melee attacks. His authored six
+  Total Mayhem volleys now execute once without further dead-player input,
+  damage a nearby enemy50 per explosion and retain the dead hero as killer.
+  Separate unobstructed-flight tests execute all six authored .8s through1.3s
+  fuses. Their launch scatter, bounce and exact native expiry policy remain open.
+
+Baseline combat/projectile, NPC transport, health and Soldier ability regressions
+pass144 tests. They include synthetic and modeled-peer fixtures; this count does
+not imply authored NPC/controller execution or original-client acceptance.
+
+Required outgoing acceptance matrix
+-----------------------------------
+P = partial headless damage evidence; O = open, no acceptance.
+Every original-client cell is O. Complete incoming/ability interaction remains O
+for the requested NPC species; partial outgoing evidence is shown below.
+
+Action                 Enemy player  Training target  Trooper Enforcer Sniper Assassin Heavy Assault
+Frag Launcher          P             P                P       P        P      P        P
+Reload/ammo/cadence     P             O                O       O        O      O        O
+Quick melee            P             O                P       P        P      P        P
+Concussion Mine        P             O                P       P        P      P        P
+Steel Trap             P             O                P       P        P      P        P
+RIP-Tire               P             O                P       P        P      P        P
+Total Mayhem           P             O                P       P        P      P        P
+
+Incoming: enemy-player Soldier primary has headless damage evidence only.
+Incoming Trooper20/Sniper100/Heavy5 primary: partial headless damage only. Other NPC incoming
+weapons, all enemy specials and their death attribution: O. Complete Player/NPC
+movement, targeting, simultaneous combat and client presentation: O.
+
+Cross-hero interactions
+-----------------------
+Health damage/player hit notices/training-target death: partial tests above.
+Primitive root/escape, Flashbang interruption/recovery/overlap, knockback/self-launch,
+deployable health/destruction and friendly filtering have partial evidence above. Complete
+hero-specific armor/shield, barrier, reflect/absorb, invulnerability, amplification,
+stun/silence/root/cleanse, ultimate-charge and death-passive interaction matrices
+remain O. Friendly healing keeps its ally/enemy rules and excludes these
+unhealable deployables.
+
+Concrete remaining implementation gaps
+--------------------------------------
+The charge bullets below retain earlier resource-probe frontiers. Match now
+installs declared current-actor charge services and a resource-configured
+world-clock passive host,with actual Combat012 events and source-body leases.
+Twenty-three charge/input/snapshot methods pass. Same-hero respawn preserves
+points,and original gates permit passive/Total Mayhem charge while the old body
+remains owned. Original012 identifier/detail and
+native service-catalog fidelity remain unproved;the reconstruction and remaining
+interaction requirements are recorded in JUNKRAT_CHARGE.txt.
+- Common004B loads child0B8B, which does write ultimate charge342. The earlier
+  claim that no body graph adds charge was wrong. Its one-second Wait adds
+  5 * valueOr(9532,1) * valueOr(12918,1), capped at effective cost338=1925.
+  Passive entry requires2426, a valid F7262B36 entity query, !842, !11942
+  and the mode11002 branch. This is a discrete authored timer, not cost/60.
+- Eleven resource/VM probes supply explicit lifecycle message694, possession,
+  entity admission and declared hostility/tag component data.
+  F7262B36 now executes the native component43 query under declared relation
+  inputs, rather than a fixed query callback. Match now supplies a declared
+  current body/controller mapping;native engine equivalence remains open.
+  See ENTITY_RELATION.txt for the query's failure and observation rules.
+  Actual01C7 receiver starts its2426 stack; actual0B8B waits then add5 at
+  frame63/125/188 for16ms quanta. Multipliers, cap and842 suppression pass.
+  Explicit messageEB uses parameter2A and clamps both bounds. Message012
+  uses amount13/target15/source-identifiers3D and detail array0624. Native fold
+  A6B80C63 sums detail records'499 when16056 equals identifier3EBB; the graph
+  subtracts that sum from amount13, clamps at0, then applies
+  9532/13022; source identifiers1FD/25A are excluded. Message148 instead
+  requires identifier90D. These outcomes execute graph expressions/branches.
+  Native event timing, ownership/filter semantics, armor/overkill accounting,
+  production Combat event emission and death/respawn/ultimate lifecycle were
+  unaccepted by those probes. The current Match host has separate actual-input
+  evidence;standalone probes still disable Diagnostic ULT_SECONDS here.
+  These eleven probes are separate from the84 actual-Match Junkrat tests.
+- A6B80C63 now executes the native fold structure, including collection before
+  parameter binding, nonempty-only seed, accumulator-preserving failed steps,
+  final projection, exhausted item fallthrough and nested-provider cleanup.
+  Thirty-five offline original1B77D80 comparisons and20 original1B76A60
+  provider lookups pass. Iterator/config/variant services are explicit adapters;
+  no full native damage-event or owning-variant acceptance is inferred. The
+  resource probe now supplies actual itemized maps rather than a fixed sum.
+  See CONFIG_FOLD.txt for the exact VM scope and native evidence.
+- A58C1E63 now uses explicit native relation inputs and executes CE5020/C1CF60
+  semantics, replacing the resource fixture's fixed opponent predicate. Native
+  team/spectator/component50 identity/fallback/group inputs remain declared;
+  no unknown native component is inferred from a missing fixture.356 original relation decisions and
+  57 query-wrapper cases agree with Python. Fourteen source tests cover strict
+  validation/lifetime and ordinary/neutral/overridden relationships. Match now
+  installs a disclosed ordinary-combatant reconstruction rather than claiming
+  the original engine catalog. See ENTITY_HOSTILITY.txt and JUNKRAT_CHARGE.txt.
+- 25ECB55F now executes component76 tag membership and observation ordering.
+  The fixed false-tag adapter is removed. Original DB51F0 matches540 cases
+  without function adapters;50 query-wrapper cases use disclosed engine inputs.
+  Actual0B8B now takes tag2ED alternative admission,3C3 half-charge and11E
+  three-quarter-charge branches, including3C3 precedence. All require declared
+  fixture tag data;native effective inheritance remains open. The Match charge
+  host now reads owned raw tags and exposes explicit live added/removed lists.
+  The complete filter is game VM D0DA20, rather than its condition-only base
+  method1B8D970. See ENTITY_FILTER.txt for the explicit-input entry point.
+- Full-filter prerequisites now include native mask/relationship composition,
+  compiled any/all/excluded tag clauses and candidate-scoped base conditions.
+  They have independent original-function comparisons, but remain separate
+  stages. AC829876 now executes their ordered pipeline with explicit engine
+  inputs. A separately documented actual Match charge bridge is now installed.
+  See ENTITY_FILTER_STAGES.txt; do not substitute condition-only acceptance or
+  zero helper masks for D0DA20's complete ordered checks.
+- Primary ricochet can hit a body behind the shooter for 40 impact plus 80
+  splash. Contiguous and skipped steps agree. The server currently explodes
+  on the third terrain contact or at the flight bound, whichever comes first.
+  Exact native terrain count, velocity retention, fuse, collision-field mapping,
+  muzzle transform and presentation remain open.
+- 096A/8 casts mine0F9B at25 with gravity20. Registered deployment, remote
+  detonation, replacement, falloff, base charge recovery, self-launch and enemy
+  destruction have executable evidence above. Full modifier/status interaction,
+  native surface rules, adversarial timing and replication remain open.
+- 09BA/1 now executes reconstructed placement, target acquisition,80 damage,
+  control/expiry/destruction and the two authored target-flag branches. Complete
+  native shape/tether, modifier/cleanse interactions and replication remain open.
+- 0232's native43DB06B1 placement query remains unimplemented generically.
+  The tire-specific adapter above supplies a partial executable path, including
+  charge spend, movement and explosion. Native placement/actor VM/possession,
+  climbing, transport, complete charge/death/cancel/control interactions and
+  original-client view remain open. A fault-free VM is not full acceptance.
+- 022A contains six Total Mayhem volleys. Reconstructed m_58631C73 permits
+  postmortem reports; the death path flushes them without waiting for input and
+  executes their fuses. Launch scatter, bouncing and presentation remain open.
+  The flag mapping and fuse behavior have no fresh native engine comparison.
+  A fixture death trigger executes six50-damage explosions against all five real
+  NPC bodies (up to300 total), including actual kill attribution/retained corpses.
+- Melee shares0043 and now has headless hit/range/cooldown/occlusion tests;
+  NPC, cross-hero and original-client melee acceptance remain open.
+- The frozen runtime graph bundle SHA256 is
+  54e0ef8e249246137d507b698a4f5750cc1ffbcc9bb310a51b7102645f269e63.
+  It has no entities table. graph.entity_body(0400000000001403) returns None;
+  BotScript construction against that frozen normal pack raises "no statescript
+  data for entity body0400000000001403". The later explicit parent NPC input
+  supplements the five manual bodies for the fixture above; normal production
+  mounting and complete NPC behavior remain open.
+
+Original client, publication and integration
+-------------------------------------------
+NPC geometry correction: the earlier normal38-row mover input omitted all five
+Talon bodies, so prior NPC tests alone did not establish their native dimensions.
+Current revalidation requires the parent-prepared43-row mover input, including
+explicit heights/radii for every species. Two new checks reject generic fallback
+and query actual NPC health before/after primary damage. Flat collision fixtures
+and reconstructed capsules still do not prove model hitboxes or live navigation.
+Health total9B7648C3 now reads live Match pools; Enforcer passes13EB/node18 but
+remains stopped at its separate component43/control gate. Enforcer/Assassin
+incoming attacks and all specials remain OPEN. See HEALTH_QUERY.txt.
+The five associated AI definitions and18 omitted controller graphs now have an
+additive external input extractor. Strict bootstrap stops at142A/C3619A38;
+permissive9134 writes are not accepted AI. No AI controller is yet hosted by
+Match. See NPC_CONTROLLER_INPUTS.txt for provenance and the next control frontier.
+An explicit permissive paired-controller probe reaches Enforcer13EB/24. The
+initial one-pellet gap is now replaced by25 distinct physical trajectories when
+an explicit launch service supplies resolved azimuth and table words. Actual
+pair emission deals50 close damage,200->150. Missing context rejects the volley
+rather than substituting one pellet. Five direct consumer tests cover25-pellet
+damage,misses,walls,friendlies and missing context;they do not accept AI admission.
+Native scalar selection passes669 comparisons,table scaling675 bitwise comparisons
+and full vector reconstruction788 declared-context comparisons within1e-6. Native
+seed lifecycle,strict AI,range/falloff and client transport remain open;see
+LAUNCH_RING.txt. This is still partial NPC combat evidence.
+The current1409-case selected full regression passes with zero skips on the
+existing runtime and explicit43-row movers. A read-only resource follow-up to
+the parent's throttle17/18/19 fix finds relevant0232/0233/0234 modifiers. The
+selected graph/entity-script closure contains14 entities,77 graphs and41 such
+modifier rows;0F9C is missing. Applying/reviewing that shared mover change and
+checking actual activation/end/next-frame behavior was separate next work at that
+checkpoint. The throttle split/sign/clamp is now adopted with120 native-prefix
+comparisons. Four direct original-state consumer checks pass;the identity-path
+negative control fails six subtests as expected. Manual tire control still lacks
+the actual0233 modifier lifecycle and remains unaccepted.039C's own roots are
+0234,0033,004B,25B4;strict bootstrap requires explicit possession/query contexts.
+See JUNKRAT_THROTTLE.txt for the boundary evidence and actual actor-host frontier.
+The component72 query F76C486C now has193 original-flow comparisons and12 source
+methods. A declared pet/controller/current-body context moves strict039C bootstrap
+past0033/node51 to unsupported B591EBFE/node66. No production pet/creator binding
+or tire-control acceptance is inferred. See PET_RELATION.txt.
+The shared canceled-notification markers and ending-state callback defect are
+now corrected. Ability.stop queues outgoing cleanup before arbitration release,
+with native inter-object order still unproven. New actual Junkrat inputs cover
+15 held shots across two automatic reloads and stun during manual reload with
+held-fire recovery. See NOTIFICATION_LIFETIME.txt for negative/positive evidence.
+An additional read-only FirstPerson audit confirms Junkrat body0380 uses standing
+height1.25 and crouched.875;enemy McCree02A3 uses1.425/.9975. Combat now shares
+these offsets between shot origins and player Target.eye. Five actual-input
+geometry methods pass;restoring generic heights produces five expected failing
+subcases. Near NPC mine tests retain120 damage with a full-radius precondition;
+an additional actual5m throw independently verifies authored surface falloff for
+all5species. Range/wall fixtures now use independent matches because remote
+self-launch moves the owner. The22 focused eye/mine methods pass. See
+EYE_HEIGHTS.txt for provenance and limits. Full static acceptance remains incomplete.
+
+Observed an existing Overwatch process/window before any proposed client session.
+No lease acquired, no client controls, startup, screenshots or client acceptance.
+Normal services were not changed. The working source is an isolated clone.
+No root merge or manual push. The mandated publication helper at
+work/sync_orpheus_publication.py is absent; publication verification/sync is open.
+Deliver the focused commit as a patch for parent review; keep M5 and full Junkrat
+acceptance unchecked. Do not deploy this as a fully playable hero implementation.
+
+
+Zarya personal barrier (0244)
+---------------------------
+The static adapter follows the active StatePet phase and uses the model's
+1.5 m sphere, the 0256 200-point pool with ruleset override, and the authored
+0146 energy callback. Projectile collision, splash and melee debit the pool.
+A hit that breaks the barrier consumes its remainder and protects its owner
+for the rest of that hit. A protected mine target also receives no impulse.
+The capsule-centred attachment and whole-hit overkill behavior are
+reconstructed. Deployable barriers, trap admission and native
+presentation remain separate checks.
+
+
+Zarya projected barrier (025C)
+------------------------------
+The authored E ability runs its target queries at states 4 and 7, chooses
+the ally through variable 536 and attaches pet 03DA during state 10.
+The runtime query uses the authored range and angle, capsule visibility,
+and reconstructed ranking by alignment, distance and body ID. An absent
+angle factor uses 1. The attached ally owns the protection and the caster
+receives the authored energy callback. Native weighted query scheduling,
+bone attachment and barrier replication remain open.
+
+
+Winston deployed barrier (00FA/00FC)
+-------------------------------------
+The 00FA creation and PlayScript actions host 00FC at the fixed cast pose.
+The deployed actor uses the 01C3 model's 5 m sphere and the authored
+700-point health and 9-second timer inputs. Sweeps can cross either face
+of the shell. Splash tests body paths from the incoming side of a shell
+contact, including when the same attack destroys the barrier.
+Server identity, pose resolution, crossing and visibility are reconstructed.
+The private actor and its graph remain in the server snapshot.
+
+
+Enforcer manual weapon admission
+--------------------------------
+Prepare a graph bundle using tools/prepare_enforcer_graphs.py with the
+NPC runtime graph bundle and extracted npc-controller-inputs.json. Point
+ORPHEUS_GRAPH_BUNDLE at the resulting separate bundle for the server.
+With this bundle a manual Enforcer spawns its authored 227A controller,
+which supplies the body 13EB gate through a scoped component-43 relation.
+The body reads the controller slot on evaluation using a read-only bridge.
+13EB/24 emits the 25 projectiles using its authored ring, speed and damage.
+Manual targeting, association identity, declared difficulty 195F and the
+fixed spread words are reconstructed. Native AI targeting, manager context,
+special attacks and random-table ownership remain open.
+
+
+Reinhardt directional barrier (0095)
+------------------------------------
+Set ORPHEUS_REINHARDT_COLLISION to the prepared target-build collision mesh.
+The raised 0095 state places that mesh at a reconstructed bind-pose
+attachment. Grenades and splash use mesh intersections and a finite pool. Quick melee
+uses nearby surfaces or a visible shield crossing before a reachable body.
+Releasing the barrier lets the pool regenerate after its delay. The
+attachment, projectile visibility and barrier break consumer are static
+reconstructions; native attachment animation and actor replication remain open.
+
+
+Mei Cryo-Freeze defense (05FE)
+------------------------------
+The static adapter completes the otherwise unhosted startup state 41 so the
+authored duration, cancellation and 9588 trap-exclusion stack can run.
+During state 6, grenade contact ends flight and damage is rejected. The
+trap preserves its charge until the authored exclusion clears. Parked mine
+and RIP-Tire blasts also reject damage during Cryo, and the mine impulse
+is suppressed. Cancelling Cryo restores those interactions. The startup
+service and damage rejection are reconstructed. Cryo healing, ice geometry
+and original-client presentation are separate checks.
+
+
+RIP-Tire wall climb (0234)
+-------------------------
+If 0234 is absent from the graph bundle, ORPHEUS_JUNKRAT_TIRE_CONTROLLER
+can point to the extracted 0234 JSON. Node 23 supplies the 7.5 m/s speed,
+0.75 s cap, 0.25 m probe margin and the -0.5 opposition threshold.
+The static model interprets those fields on the airborne, held-jump
+path. A horizontal chest-height query must meet a near-vertical surface.
+The ordinary swept mover applies the vertical velocity. Release, lost
+contact or reaching the cap consumes the climb until ground contact.
+An already-climbing tire probes the lower face as its chest passes the
+edge. When a floor ahead confirms a ledge, the mover keeps its upward
+velocity long enough to clear it and then lands through ordinary collision.
+The probe placement, airborne/held-jump gate, single-use reset and ledge
+exit are reconstructed. Full 0234 state hosting and native possession
+remain open.
+
+
+RIP-Tire drive and stop selector (0233)
+---------------------------------------
+The tire evaluates the authored node 32 expression and hosts only its movement modifier children.
+Preparation selects the node 23 stop modifiers. At the first drive tick,
+the adapter supplies the preparation-complete value 699 and the authored
+selector installs node 14's drive modifiers. Detonation supplies 2016
+and stops the mover before the explosion is processed. Terminal removal
+supplies entity 478 as a reconstructed actor-local marker. The native
+source and meaning of 478, full possession, and the rest of 0233 remain
+separate checks.
+
+
+RIP-Tire fallback creator retreat (0232)
+----------------------------------------
+Successful near-body placement starts the scoped retreat for the ordinary
+static player, where no native associated companion is hosted. The adapter
+evaluates node 55's destination with node 53's 1.4 m value and uses the
+swept mover. The 0.15 s field is interpreted as travel duration and the
+node 61 2 s window bounds the request. The movement follows world ticks
+and ends on collision, death, stun, root or source retirement. The
+associated-entity query, movement timing and shape-cast filters remain
+reconstructed.
+
+
+Heavy Assault charge (1408)
+---------------------------
+The manual NPC control API accepts action="charge" when aiming at a Heavy
+Assault. It supplies logical input 35 to the authored charge graph.
+Side contact reads the authored damage and impulse and is deduplicated
+per charge. Frontal contact hosts the authored 1407 victim graph on the
+selected body. Wall contact uses the authored query length and damage
+state before release. Static travel, contact queries, capsule transport
+and manual engagement are reconstructed. The authored 15 s cooldown
+rejects new manual requests and requires a fresh request after expiry.
+Attached Zarya barriers absorb charge damage and prevent capture. A Steel
+Trap root interrupts the live charge without disabling ordinary primary fire. Other
+barrier types, autonomous admission, specials and native presentation remain open.
+
+
+Heavy Assault close-range strike (140E)
+---------------------------------------
+Manual action="melee" queues a logical 31 tap for the next world step.
+The 140E windup and cooldown run in the authored body VM. Each release
+uses node 6's 2.5 m search sphere with authored offset and node 5's
+80 damage and impulse parameters. Capsule intersection, team and
+static visibility filtering, and the one-hit consumer are reconstructed.
+Manual stop removes an undispatched request or ends the current windup.
+Autonomous admission and native target/filter semantics remain open.
+
+Sniper manual weapon selection
+  The Sniper body mounts weapon manager 0015 and graphs 1122 (slot 1) and
+  1134 (slot 2). The manual controller selects with authored logical inputs
+  15 and 16, releases fire across the switch, and waits for the manager to
+  publish the new slot before submitting logical 20. At 15 m the actual
+  graph volleys deal 100 and 5 damage respectively. This reconstructs
+  manual admission and static muzzle geometry; native AI slot selection and
+  animated muzzle transforms remain unverified.
+  The NPC console endpoint accepts an optional attack field with key 0.
+  Secondary selects the Sniper's second weapon. Charge and melee select the
+  corresponding Heavy Assault action. Melee also supports Trooper. An omitted
+  field selects primary.
+
+Trooper strike 1422
+  Logical input 31 starts the authored windup and cooldown. Node 5 searches
+  a one-metre sphere with an offset of 1.5 metres up and forward. The VM's
+  own branch enters damage node 4, whose authored amount is 30. Static
+  capsule overlap, terrain visibility, team filtering and health/impulse
+  routing are reconstructed. Native target ranking and autonomous input
+  remain unverified.
+
+Trooper reload 102E
+  Console attack reload releases primary fire and requests logical 14 on
+  the next world step. The authored weapon graph controls refill timing.
+  Stop cancels a request that has not reached the VM.
+
+Steel Trap contact against attached barriers
+  Static reconstruction routes the authored 80 damage to an attached Zarya
+  barrier on contact, consumes the trap and does not apply body damage or root.
+  The target-build 09BB search excludes entity flag 9588. The active barrier
+  probe does not set that flag, and native trigger consumption is unverified.

@@ -1,0 +1,45 @@
+Component43 relation query -- target104319, module RVAs
+
+F7262B36 is an entity-ID config with selector801B298F. RegistrationCFAED0 uses
+factoryD07460, vtable26625D8 and evaluatorCDBDE0. The helperD15520 looks up the
+selected entity and reads component43 (BD4680's bit43 selector). entity_relation.py
+implements the query with explicit Context, Target and decoded Relation inputs.
+The owning engine must supply these inputs; body/controller ownership or the
+SceneWorld reverse primary-possessor catalog is not substituted for component43.
+
+Native order and results
+- CDBDE0 checks its evaluation context and context+30 namespace before evaluating
+  selector+10. Absence returns no output. Selector uses scalar/first-value entity
+  conversion; absent, failed or non-entity values become entity0. There is no
+  valid-entity guard before D15520's lookup, including for0 andFFFFFFFF.
+- D15520 obtains VM through namespace+58 and performs VM+168 entity lookup.
+  A missing target returns no output. CDBDE0 then observes environment kind0 or
+  fallback kind46 when a watcher and dependency hub exist. The caller's prior
+  destination survives; this differs from a successful typed Entity(0).
+- A known missing component43 succeeds with Entity(0), without a component
+  observation. Unknown component data remains unsupported.
+- A present component is captured, observed through1B72C10 at component+18,
+  then read through BD42D0. Replacing the target's component pointer in that
+  observation does not replace the captured component; changing the captured
+  component's relation value does affect the result. The uint32 result is typed
+  Entity even if zero or another invalid identity. No second entity lookup occurs.
+- Context rebinding, owner/instance retirement, target retirement and malformed
+  descriptors abort after callbacks. No persistent VM/snapshot fields are added.
+
+Evidence and remaining scope
+Twelve source tests cover defaults, selector order/conversion, observation and
+captured-component behavior, malformed/unknown services and lifetime checks.
+193 original CDBDE0/D15520 comparisons match output type/value, success/failure
+and ordered selector/lookup/observation traces. Original F64C20 conversion,
+F63740 primitive disposal and F66C80 typed output execute in those comparisons.
+Config callback, context/namespace/VM lookup, encrypted component pointer lookup,
+dependency hubs/subscription registration and BD42D0 decoded relation getter
+are explicit adapters. Native encryption-key generation is not reconstructed.
+Native listings, read-only image and comparison programs/results stay outside
+Git. This proves the query under declared engine inputs, not actual possession.
+
+The eleven Junkrat0B8B resource probes now use this query instead of a fixed
+F7262B36 callback. Their declared BODY->CONTROLLER relation is fixture data.
+Actual Match still installs no component43 query backend. Native lifecycle694/
+700 timing, possession transitions, charge-event emission and full ultimate
+economy remain open. See JUNKRAT_COMBAT.txt for the broader acceptance boundary.

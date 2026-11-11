@@ -1,6 +1,8 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+from math import dist, isfinite
+
+from ow174.game import enforcer, observers
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -8,6 +10,9 @@ from ow174.game.script import expr, graph, runtime
 from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
+DEATH_VOLLEY_GRAPH = 0x2535
+DEATH_VOLLEY_MODE_FLAG = 28300
+ARCHIVES_MODIFIER_FLAGS = (DEATH_VOLLEY_MODE_FLAG, 34924)
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
 FIRING_GRAPH = FIRING & 0xFFFF
 PRACTICE_NAMEPLATE = 0x0D24
@@ -31,12 +36,106 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.match = None  # an optional live Match; detached resource probes keep it absent
+        self.controller_components = controller_components
+        self.manual_target = None
+        self.enforcer_controller = None
+
+    def track_targets(self, state):
+        from ow174.game import assassin, heavy_charge
+
+        targets = assassin.track_lunge(self, state)
+        if targets is not NotImplemented:
+            return targets
+        if (self.match is not None and state.instance.graph.index == DEATH_VOLLEY_GRAPH
+                and state.node.pos == 70):
+            return self.thunderstorm_targets(state)
+        return heavy_charge.trooper_track(self, state)
+
+    def thunderstorm_targets(self, state):
+        source = next((bot for bot in self.match.bots
+                       if bot.entity == state.instance.component.entity), None)
+        if source is None or source.dead:
+            return ()
+        radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
+        offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+        if not isfinite(radius) or radius <= 0 or not isinstance(offset, expr.Vec3):
+            return ()
+        center = tuple(axis + delta for axis, delta in zip(source.position, offset))
+        # Reconstructed search: hostile living player mover origins in the authored sphere.
+        # Obstruction belongs to the graph's later ray.
+        players = {player.body: player for player in self.match.players}
+        return tuple(expr.Entity(target.entity) for target in self.match.combat._enemies(source)
+                     if target.entity in players
+                     and dist(center, players[target.entity].mover.position) <= radius)
+
+    def entity_definition(self, entity: int):
+        if self.match is None:
+            return NotImplemented
+        return self.match.script_body_definition(entity)
+
+    def entity_relation_context(self, entity, *, component=None):
+        controller = self.enforcer_controller
+        if controller is not None and entity == controller.target.entity:
+            return controller.context
+        return super().entity_relation_context(entity, component=component)
+
+    def entity_var_slot(self, entity, var, *, create=False):
+        if entity == runtime.GAME_MODE_ENTITY and var in ARCHIVES_MODIFIER_FLAGS and self.match is not None:
+            host = self.match.scene_host
+            if host is not None:
+                slot = host.world.entity_var_slot(entity, var, create=False)
+                if slot is not NotImplemented:
+                    return slot
+        return super().entity_var_slot(entity, var, create=create)
+
+    def play_compatible_script(self, instance, node) -> bool:
+        if self.match is None or (instance.graph.index, node.pos) != (0x0E62, 117):
+            return False
+        if not any(self.has_archives_modifier(flag) for flag in ARCHIVES_MODIFIER_FLAGS):
+            return False
+        from ow174.game.script.play import resolve_resource
+
+        resource = resolve_resource(instance, node)
+        entity = instance.component.entity
+        if (resource is None or resource.guid != 0x0580000000002535
+                or instance.evaluate(node.field("m_targets")) != expr.Entity(entity)):
+            return False
+        definition = graph.graph(DEATH_VOLLEY_GRAPH)
+        if definition is None:
+            return False
+        instance.component.play_loaded_graph(definition, source=entity, instigator=entity)
+        return True
+
+    def has_archives_modifier(self, flag):
+        mode = runtime.GAME_MODE_ENTITY
+        slot = self.entity_var_slot(mode, flag)
+        # A declared false flag can change while the hosted graph is running.
+        if slot is NotImplemented:
+            return self.entity_var(mode, flag) is not None
+        return slot is not None
+
+    def entity_var(self, entity, var):
+        controller = self.enforcer_controller
+        if controller is not None and entity == controller.host.entity:
+            # The authored startup gate is sampled by the body on evaluation.
+            slot = controller.host.entity_var(var, create=False)
+            return slot.value() if slot is not None else None
+        return super().entity_var(entity, var)
+
+    def weapon_launch_inputs(self, state, number, activation, count):
+        if self.enforcer_controller is not None:
+            return enforcer.launch_inputs(state, count)
+        return None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +143,21 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin
+
+        value = assassin.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        if self.match is not None:
+            from ow174.game import sigma_flux
+            from ow174.game.script import health_query
+
+            value = sigma_flux.flux_effect_native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+            value = health_query.evaluate(self.match, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -72,12 +186,33 @@ class BotWorld(runtime.World):
         return super().native(cfg, instance)
 
 
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, heavy_charge, sigma_flux
+
+        value = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+        if (self.match is not None and state.instance.graph.index == heavy_charge.GRAPH
+                and state.node.pos == heavy_charge.RELEASE_HEALTH
+                and not expr.to_entity(state.evaluate(state.node.field("m_FA3ECC43")))):
+            # Clearing the tracker can wake the authored release wait with no victim left.
+            state.request_finish()
+            return True
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
+
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, match=None,
+        controller_components: tuple[int, ...] | None = None, manual=False,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +221,10 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
+        world.match = match
+        if manual:
+            world.enforcer_controller = enforcer.attach(body, entity, mode, frame)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -126,7 +264,13 @@ class BotScript(ReplicatedBody):
         self.frame = frame
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
+        controller = self.component.world.enforcer_controller
+        if controller is not None:
+            controller.host.run_frame(frame)
         self.component.run_frame(frame)
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -134,9 +278,37 @@ class BotScript(ReplicatedBody):
             self._initial_frame = None
         return snapshot
 
+    def request_trooper_reload(self) -> None:
+        self.component.edges([(14, True), (14, False)])  # Trooper 102E/96
+        for instance in self.component.instances.values():
+            if instance.graph.index != 0x102E:
+                continue
+            selector = instance.states.get(instance.graph.node(1).state)
+            stack = instance.states.get(instance.graph.node(42).state)
+            # At zero ammo an abort can leave the authored selector true with no branch.
+            if selector is not None and selector.active and selector.current and stack is not None and not stack.active:
+                selector.enter()
+
+    def abort_trooper_reload(self) -> None:
+        for instance in tuple(self.component.instances.values()):
+            if instance.graph.index != 0x102E:
+                continue
+            # End the authored waits, animation and reload stack together.
+            states = [instance.states.get(instance.graph.node(position).state)
+                      for position in (47, 48, 23, 42)]
+            for state in states:
+                if state is not None and state.active:
+                    state.end(False)
+            reloading = instance.vars.get(51)
+            if reloading is not None and reloading.value():
+                instance.write((expr.INSTANCE, 51), False)
+
     def die(self, frame: int, params: dict, sender: int) -> Snapshot | None:
         """Deliver 003E.025 and capture the change that happens immediately."""
+        from ow174.game import assassin
+
         component = self.component
+        assassin.bind(component.world, component, None)
         if component.owner_dead:
             return None
         if frame < self.frame:
@@ -147,6 +319,7 @@ class BotScript(ReplicatedBody):
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
         component.owner_dead = True
+        self.abort_trooper_reload()
         if self.behavior is not None:
             component.destroy(self.behavior)
             self.behavior = None

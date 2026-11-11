@@ -33,7 +33,7 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import bodytrace, bots, combat, correction, dva_matrix, heroselect, movelog, notices, pools, stats, world
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -43,7 +43,7 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import JUMP, Command, CommandQueue
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
@@ -279,15 +279,21 @@ class Player:
         flags = CROUCHED if mover.crouched else 0
         return Movement(mover.position, mover.yaw, mover.pitch, mover.velocity, flags)
 
-    def take_commands(self, commands: list[Command]) -> int | None:
-        """Simulate the encodable command prefix and report the first frame needing a new link."""
+    def take_commands(self, commands: list[Command], *, not_after: int | None = None) -> int | None:
+        """Simulate admitted commands; live ingress supplies its authoritative tick.
+
+        Offline simulation callers can advance explicit frames without a network
+        receipt clock. The live Client always supplies not_after before any queue,
+        body-script, movement or combat state changes.
+        """
         collision = self.match.collision_world
         if collision is None:
             return None
         seconds = self.quanta / 1e6
         script = self.body_script
         fresh, boundary = self.commands.before_limit(
-            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
+            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None,
+            not_after=not_after,
         )
         if fresh:
             self.mover.use(mover_data(self.hero.body), collision)
@@ -295,6 +301,20 @@ class Player:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
             if self.has_body:
+                if self.match.combat.junkrat.tire.command(self, command, self.match.tick):
+                    # Tire and recovery input is exclusive. The body clock still advances
+                    # without those controls reaching the hero's abilities.
+                    neutral = Command(command.frame, yaw=self.mover.yaw, pitch=self.mover.pitch)
+                    if not self.match.combat.is_dead(self):
+                        # The scripted fallback retreat advances its own mover.
+                        if self.mover.airborne or (not self.mover.driven and any(self.mover.velocity)):
+                            self._advance_body_gap(self.mover.first_step_frame(neutral.frame))
+                            self.mover.step(neutral, seconds, self.match.tick,
+                                            simulate_pose=self._step_tire_operator_pose)
+                            continue
+                        self.mover.last_command = neutral
+                    self._advance_body_frame(neutral, posed=False)
+                    continue
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
@@ -311,11 +331,17 @@ class Player:
             movelog.snapshots(self)
         return boundary
 
+    def _step_tire_operator_pose(self, command: Command, seconds: float, tick: int) -> None:
+        neutral = Command(command.frame, yaw=self.mover.yaw, pitch=self.mover.pitch)
+        self.mover.step_pose(neutral, seconds, tick)
+        self._advance_body_frame(neutral, posed=False)
+
     def _advance_body_gap(self, first_pose: int) -> None:
         """Release old input and advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
+        dva_matrix.settle_natural_close(script.component, first_pose)
         first_missing = script.frame + 1
         self._advance_body_frame(Command(first_missing), posed=False)
         if first_missing < first_pose - 1:
@@ -326,6 +352,14 @@ class Player:
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        if self.match.combat.junkrat.rooted(self.body, tick):
+            # Restraint freezes movement while preserving aim, weapon/ability
+            # input and their timers. A MoveTo request cannot move out of a trap.
+            self.mover.velocity = (0.0, 0.0, 0.0)
+            movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
+            self.mover.step_pose(movement, seconds, tick)
+            self._advance_body_frame(command)
+            return
         script = self.body_script
         requests = []
         if script is not None and not stunned:
@@ -353,6 +387,9 @@ class Player:
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
+            from ow174.game import sombra_hack
+
+            command = sombra_hack.constrain(self.match.combat, self, command)
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
@@ -600,9 +637,14 @@ class Match:
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            from ow174.game import assassin
+            from ow174.game.npc_control import manual
+
+            components = (0x4B,) if bot.hero == assassin.HERO and manual(bot) else None
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
-                firing_position=bot.position if firing else None,
+                firing_position=bot.position if firing else None, match=self,
+                controller_components=components, manual=manual(bot),
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
@@ -651,7 +693,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.body_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -1056,7 +1098,21 @@ class Match:
         for bot in self.bots:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
+        actor = self.combat.barriers.world.actors.get(entity)
+        if actor is not None:
+            return expr.Vec3(*actor.point)
         return None
+
+    def script_body_definition(self, entity: int, owner: int | None = None) -> int:
+        """Resolve a combat body from the current roster, including its owner's create."""
+        for player in self.players:
+            if (player.body == entity and player.has_body and player.client is not None
+                    and (player.spawned or entity == owner)):
+                return player.hero.body
+        for bot in self.bots:
+            if bot.entity == entity:
+                return bot.body
+        return 0
 
     def _message_player(self, entity: int) -> Player | None:
         shown = (player for player in self.players if player.body == entity and self._shown(player))
@@ -1111,6 +1167,7 @@ class Match:
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
                 match=self,
+                body_definition=player.hero.body,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
@@ -1118,12 +1175,14 @@ class Match:
             return
         script.created(create)
         player.body_script = script
+        self.combat.junkrat.charge.attach(player)
         bodytrace.started(player, script)
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
         script = player.body_script
         if script is not None:
+            player.match.combat.junkrat.charge.detach(player, body=script.entity)
             bodytrace.stopped(player, script)
             initial = script.stream.initial_owner
             if initial is not None and player.client is not None:
@@ -1138,8 +1197,11 @@ class Match:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
         script = player.body_script
+        from ow174.game import sigma_flux
+
         before_hash = bodytrace.before(script)
         try:
+            sigma_flux.sync_flux_airborne(script.component, player.mover)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
@@ -1247,6 +1309,7 @@ class Match:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
+            self.combat.junkrat.charge.prepare_replacement(player, hero)
             self.combat.retire_player_body(player)
             player.new_body(entity)
             self.combat.record_replacement(entity)
@@ -1277,6 +1340,7 @@ class Match:
             return
         self.notices.left(player)
         player.gone = True
+        self.combat.junkrat.charge.forget(player)
         player.client = None
         player.spawned = False
         self.stop_body_script(player)

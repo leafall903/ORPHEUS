@@ -1,0 +1,46 @@
+Native component72 entity query -- target104319
+================================================
+F76C486C compiles to CE2CF0,which calls D1BEE0. The native BD3DF0 mask selects
+bit8 in component word1:component72. Independent F525E0 mapping identifies
+schema2BD49D74/STUPetComponent as72. The query observes component+20 and then
+reads its uint32 entity at+D8. No script/creator/controller relation is inferred
+from the schema name or an entity definition declaring this component.
+
+CE2CF0 first requires its instance context and context+30 namespace. Missing
+either fails without evaluating the selector or writing the destination. With
+both present,it evaluates m_D63CBEC2 through the existing first-value scalar
+interface and F64C20 entity conversion. Failed/absent/nonentity selectors become
+identity0. No valid-ID guard precedes lookup:zero and invalid identities still
+reach the declared registry. The namespace+10/vt70 registry performs lookup.
+
+Every D1BEE0 return path succeeds. A missing target writes typed Entity(0),and
+an observed evaluation subscribes to environment kind0(active) or46(fallback)
+when its dependency hub exists. An existing target without component72 writes
+Entity(0) without environment or component observation. A present component is
+captured before observer registration;the field is read afterwards from that
+captured object. Replacing the target's component slot during observation does
+not replace the captured pointer. Stored zero/invalid values remain Entities.
+
+pet_relation.Context supplies explicit namespace/context availability,lookup,
+environment dependency and component observers. World.pet_relation_context is
+unknown by default. Unknown component data or callbacks stay strict. Context
+and target retirement/rebinding are checked across callbacks. These guards do
+not invent engine lifetime or current creation/possession bindings.
+
+Twelve source methods verify guards,typed missing results,selector conversion,
+observation freshness/captured-pointer behavior,invalid identities and callback
+retirement.193 original CE2CF0/D1BEE0 comparisons pass with declared config/context/
+registry,encrypted component72-pointer lookup and observation adapters. Original
+BD3DF0 mask,F64C20 conversion,F63740 primitive disposal,F66C80 output and the final
+component+D8 read execute unchanged. These are query comparisons,not a complete
+native namespace,component allocator or engine lifetime restoration.
+
+The actual0033/node51 resource evaluates 0AC15F78(F76C486C(self)). A standalone
+039C own-component probe with declared pet->controller->current-body data now
+passes those original query expressions and stops at unsupported state B591EBFE,
+0033/node66,frame0. The earlier zero-only registry is rejected for the live actor,
+rather than treating an unknown live component as absent. The declared pair is
+not verified production actor data or accepted tire control.039C's initial roots
+remain0234,0033,004B,25B4;0234->0233 ownership/lifetimes and control remain open.
+Native programs,generated inputs and results remain outside Git. No client,
+service or shared parent source is changed. See JUNKRAT_THROTTLE.txt for scope.

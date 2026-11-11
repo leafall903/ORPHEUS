@@ -95,9 +95,10 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# Diagnostic ultimate fill, distinct from authored charge economy. Common child 0B8B writes #342e
+# from passive waits and game messages, but its lifecycle/possession/filter services are incomplete.
+# Until that path is integrated, ULT_SECONDS fills charge for diagnostics (0: disable this helper).
+# The ultimate's graph spends #342e; its effective cost #338e comes from the initialized graphs.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -127,6 +128,39 @@ class BodyWorld(runtime.World):
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
 
+    def track_body_ray(self, state):
+        if self.match is None:
+            return NotImplemented
+        from ow174.game import sombra_hack
+
+        return sombra_hack.track_body_ray(self, state)
+
+    def track_targets(self, state):
+        if self.match is not None:
+            from ow174.game import sigma_flux, sombra_hack
+
+            targets = sombra_hack.track_targets(self, state)
+            if targets is not NotImplemented:
+                return targets
+            targets = self.match.combat.barriers.query_targets(state)
+            if targets is not NotImplemented:
+                return targets
+            return sigma_flux.flux_targets(self, state)
+        return NotImplemented
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import sigma_flux, sombra_hack
+
+        result = sombra_hack.emp_modify_health(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        return sigma_flux.flux_modify_health(self, state, elapsed_ms)
+
+    def refresh_compatible_placement(self, state, *, confirm: bool):
+        from ow174.game import sigma_flux
+
+        return sigma_flux.place_flux(self, state, confirm=confirm)
+
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
             position = self.match.script_body_position(entity, self.body)
@@ -134,8 +168,69 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def entity_definition(self, entity: int):
+        if self.match is None:
+            return NotImplemented
+        return self.match.script_body_definition(entity, self.body)
+
+    def _charge_context(self, name):
+        if self.match is None:
+            return NotImplemented
+        return self.match.combat.junkrat.charge.context(self.body, name)
+
+    def entity_hostility_context(self, entity, *, component=None):
+        return self._charge_context('hostility') if entity == self.body else NotImplemented
+
+    def entity_tag_context(self, entity, *, component=None):
+        return self._charge_context('tags') if entity == self.body else NotImplemented
+
+    def entity_filter_context(self, entity, *, component=None):
+        return self._charge_context('filtered') if entity == self.body else NotImplemented
+
+    def entity_relation_context(self, entity, *, component=None):
+        return self._charge_context('relation') if entity == self.body else NotImplemented
+
+    def create_world_entity(self, instance, node):
+        if self.match is not None:
+            return self.match.combat.barriers.world.create(self,instance,node)
+        return NotImplemented
+
     def native(self, cfg: dict, instance):
+        from ow174.game import sombra_hack
+
+        result = sombra_hack.body_condition(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
         cls = cfg.get("$")
+        if (cls == 'STU_8CBDD81C' and self.match is not None and instance is not None
+                and self.hero == 0x02E0000000000009 and instance.graph.index in (0xFA,0xFC)
+                and instance.component.entity == self.body):
+            entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
+            if entity == self.body:
+                return self.position(entity)  # scoped authoritative creation position
+        if self.match is not None:
+            from ow174.game import sigma_flux
+            from ow174.game.script import health_query
+
+            if instance is not None:
+                from ow174.game import dva_matrix
+
+                value = dva_matrix.possession(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
+                value = sigma_flux.flux_effect_native(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
+                value = sigma_flux.flux_position_query(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
+
+            value = health_query.evaluate(self.match, cfg, instance)
+            if value is not NotImplemented:
+                return value
+            value = self.match.combat.junkrat.query(cfg, instance)
+            if value is not NotImplemented:
+                return value
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -164,9 +259,29 @@ class BodyWorld(runtime.World):
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
         if (match is not None and sender == self.body
+                and match.combat.junkrat.message(target, message, sender)):
+            return
+        if (match is not None and sender == self.body
                 and match.queue_body_message(target, message, params, sender)):
             return
         super().send_message(target, message, params, sender)
+
+
+    def play_compatible_script(self, instance, node) -> bool:
+        if self.match is not None:
+            from ow174.game import sombra_hack
+
+            if sombra_hack.play_sombra_script(self, instance, node):
+                return True
+            result = self.match.combat.barriers.world.host(self, instance, node)
+            if result is not NotImplemented:
+                return result
+        from ow174.game import sigma_flux, sigma_grasp
+
+        if self.match is not None and self.hero == sigma_grasp.HERO:
+            return (sigma_flux.play_flux_request(self, instance, node)
+                    or sigma_grasp.grant_shields(self.match.combat, self.body, instance, node))
+        return False
 
 
 @dataclass
@@ -246,6 +361,14 @@ class BodyScript(ReplicatedBody):
     """The statescript of one hero body: `spawn_frames()` once the body exists on the client, then
     `command()` for every new client command frame and `frames()` every server tick."""
 
+    def replicated_vars(self, instance=None):
+        values = super().replicated_vars(instance)
+        if instance is not None and instance.graph.index == 0xFA and self.world.match is not None:
+            # Private static actor38 has no native creation transport yet. Keep it
+            # in the authoritative VM/snapshot, never send a dangling client ID.
+            return ((key,var) for key,var in values if key != 38)
+        return values
+
     def __init__(
         self,
         hero: int,
@@ -257,10 +380,11 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        record = graph.player_body(hero, body_definition)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -280,7 +404,7 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        self._spawn(start_frame, sum(pools.body_pools(hero, body_definition)) if health is None else health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -328,6 +452,8 @@ class BodyScript(ReplicatedBody):
         resetting self.frame would silently keep incompatible timers and client history.
         """
         self.component.ensure_valid()
+        if self.retired:
+            return
         if type(frame) is not int or not 0 <= frame <= FRAME_MASK:
             raise ValueError("command frame must be uint32")
         distance = frame_distance(frame, self.frame)
@@ -344,6 +470,9 @@ class BodyScript(ReplicatedBody):
 
     def _run(self, frame: int, edges: list) -> None:
         self.component.run_frame(frame, edges)
+        from ow174.game import immunity
+
+        immunity.advance_startup(self.component)
         self._report_shots()
         self._charge_ult()
 
@@ -352,7 +481,11 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
+        if self.world.match is not None and self.hero == 0x02E0000000000065:
+            return  # actual Match charge is resource-based and world-clock hosted
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return
+        if self.world.match is not None and self.world.match.combat.junkrat.tire.busy(self.entity):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

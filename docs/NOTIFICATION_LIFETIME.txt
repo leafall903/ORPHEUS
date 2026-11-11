@@ -1,0 +1,58 @@
+Runtime exit notifications and ability handoff -- partial server reconstruction
+=============================================================================
+State.end previously canceled queued CHANGED/CHECK events but retained their
+flags_changed/flags_check coalescing bits. A later activation could therefore
+suppress future notifications. Cleanup also wrote variables while the ending
+state was still active,creating fresh notifications after its queue was canceled.
+
+The lane adopts the reviewed parent's two corrections:clear both existing markers
+after cancellation,and have Component.changed exclude ending states. No new VM
+field or global phase is added. Three minimal regressions fail before the fix
+and pass after it:changed-value reentry,cleanup-time writes,and a canceled join
+CHECK followed by a new partial join after state reentry. The final scenario
+uses the actual existing join helper,not a manually reset CHECK bit.
+The original abort1B70601..1B70617 and finish1B70C91..1B70CA7 boundaries call
+1B912F0 event cancellation,then clear native State+40 mask3000.240 external
+comparisons execute those original prefixes and the original doubly-linked list
+unlink/count updates. Event virtual+10 supplies explicit state indices and the
+component's deallocator records frees;these are the only adapters. Retained
+events,backward/forward links,count and cleared/unrelated flag bits agree with
+the source behavior. This does not compare complete state teardown or CHANGED
+dispatch and does not establish cross-object ability ordering.
+
+Ability.stop now queues its running subgraph exit,on-stop actions and variable
+cleanup before releasing its arbitration link. Otherwise a newly admitted weapon
+could sample old ammo before the outgoing scope's refill,then overwrite that
+refill when saving its spent ammo. This cross-object ordering is an explicit
+server reconstruction;the complete native ordering has not been established.
+There is no refill-specific exception in WeaponVolley or an external ammo setter.
+
+Two actual McCree resource/input consumers verify the shared handoff,without
+claiming Roll physical movement:after one primary leaves5,Roll refills6 and the
+first held primary must leave5. The old order emitted one shot but left4. With
+the notification fix alone,the partial-magazine case still failed4!=5,while the
+input-emptied case passed. Moving cleanup ahead of arbitration makes both pass.
+This separates the handoff defect from notification cancellation. Parent source,
+docs and the original two regression methods were reviewed read-only;all changes
+and evidence are in this private lane.
+
+Actual Junkrat input follow-up
+-Held primary fires15 grenades through two automatic reload handoffs. The real
+022B volley samples5,4,3,2,1 three times and leaves4,3,2,1,0 respectively. Both
+reload intervals exceed ordinary shot intervals;the out-of-line victim takes0.
+-A primary leaves4,manual reload starts,then actual Flashbang interrupts it.
+No primary report occurs during stun. Holding primary resumes one actual volley
+after recovery and its sampled magazine loses exactly one round without stale
+gate/cleanup overwrite. The shared stun/cancel policy remains reconstructed.
+Together with the two handoff and three minimal methods,seven focused checks
+pass. These are partial lifecycle evidence,not every interrupt/defense/native
+phase or original-client acceptance. Full hero and tire actor-host work remain.
+The current1432-case selected full regression passes with zero skips. A separate
+exact-base export plus only the shared lifecycle patch passes its five methods;
+Junkrat-specific input follow-up remains in the full private-lane patch.
+
+Earlier actual022B marker probes explicitly manipulated state scopes/ammo and
+observed retained markers but did not prove a normal-input stale branch. They
+remain distinct from the new minimal failing regressions and input-only checks.
+Before/after logs and external probes stay outside Git. No shared parent source,
+client process,normal service,publication or merge is changed here.

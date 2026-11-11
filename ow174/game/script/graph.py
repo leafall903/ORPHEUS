@@ -312,6 +312,17 @@ def bodies() -> dict[int, dict]:
     return {int(key, 16): record for key, record in _data()["bodies"].items()}
 
 
+def player_body(hero: int, definition: int | None = None) -> dict | None:
+    """Use the selected hero form's authored body data when it is available."""
+    records = bodies()
+    owner = f"0x{hero:016X}"
+    if definition is not None:
+        record = records.get(definition) or entity_body(definition)
+        if record is not None and record.get("hero") in (None, owner):
+            return record
+    return next((item for item in records.values() if int(item["hero"], 16) == hero), None)
+
+
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")

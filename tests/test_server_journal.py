@@ -258,7 +258,11 @@ class ServerJournalTests(unittest.TestCase):
         session, sent = self.make(skin_of=lambda account, hero: skins.get((account, hero), (0, False)))
         peers, players = self.connected(session, sent)
         shooter, victim = players
-        peers[0].commands(shooter.body_script.frame + 1, 60, 1)
+        first = shooter.body_script.frame + 1
+        due = first + 59 - session.server.tick
+        if due > 0:
+            session.tick(101.0, missed=due - 1)  # admit a historical window, not future input
+        peers[0].commands(first, 60, 1)
         fight = victim.match.combat
         self.assertTrue(fight.is_dead(victim))
         old_body = victim.body

@@ -54,6 +54,20 @@ def leave_messages(link):
 
 
 class CommandHandoffTests(unittest.TestCase):
+    def test_future_input_preserves_state_and_due_retransmission_fires(self):
+        _, link, player = self.soldier()
+        frame = player.match.tick + 2
+        before = self.motion(player), player.body_script.snapshot()
+        self.run.send(link, payload=input_window(frame, 1, buttons=FIRE, forward=127))
+        self.run.send(link, payload=input_window(frame + 1000, 30, buttons=FIRE, forward=127))
+        self.assertEqual((self.motion(player), player.body_script.snapshot()), before)
+        self.assertEqual(self.ammo(player), 30)
+        self.run.step(2)
+        self.run.send(link, payload=input_window(frame, 1, buttons=FIRE, forward=127))
+        self.assertEqual(player.body_script.frame, frame)
+        self.assertEqual(self.ammo(player), 29)
+        self.assertIsNone(player.client.leaving_since)
+
     def setUp(self):
         self.run = ProtocolHarness()
         self.addCleanup(self.run.close)
@@ -87,6 +101,7 @@ class CommandHandoffTests(unittest.TestCase):
 
     def test_valid_prefix_fires_then_reliable_leave_and_fresh_handoff(self):
         handoff, link, player = self.soldier(LAST_VALID - 1)
+        player.match.tick = LAST_VALID  # fixture's queue and receipt clocks share the boundary epoch
         script, client = player.body_script, player.client
         combat = player.match.combat
         with patch.object(combat, "_shoot", wraps=combat._shoot) as shoot:

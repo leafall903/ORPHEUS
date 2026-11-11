@@ -248,6 +248,10 @@ class ProtocolHarness:
     def command(self, link, buttons=0, advance=1, ack=None):
         player = self.server.clients[link.conn].player
         frame = max(player.body_script.frame, player.commands.last_frame or 0) + advance
+        # These helpers model due input. Adversarial future datagrams use send()
+        # directly, so they cannot silently advance the authoritative test clock.
+        if frame > self.server.tick:
+            self.step(frame - self.server.tick)
         body = BitWriter()
         body.bits(0, 24)  # latency and key flags
         body.bits(1, 8)

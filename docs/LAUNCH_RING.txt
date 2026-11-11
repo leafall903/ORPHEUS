@@ -1,0 +1,78 @@
+Native ring launch reconstruction -- target104319
+=================================================
+STU_613BDDB0's WeaponVolley launch definition is compiled at D886BF..D888CC.
+The compiled vtable at2674F40 selects vector evaluator D80310 at virtual+30.
+The compiler preserves ordered (radius multiplier,float32;pellet count,int32)
+entries at compiled+38/+40;spread is+28,angular noise+2C,optional azimuth+30.
+The latter field names describe their evaluator use,not recovered engine names.
+
+launch_ring.angles reconstructs only D8035C..D803F0. It walks counts with the
+pellet index,subtracting each preceding count. The last ring retains an excess
+index instead of clamping it. Azimuth is float32(index/count)*float32(2*pi).
+Radial angle is maxss(0,float32((spread-noise)*degrees_to_radians))*radius,
+with each native arithmetic step rounded. MAXSS equality/unordered semantics
+preserve the second operand's signed zero/NaN. Empty tables return zero angles.
+The public helper requires explicit tuples,positive int32 counts and a
+nonnegative int32 index;malformed compiled tables are outside its contract.
+
+Enforcer13EB/24 authors25 projectiles with rings (0,1),(.5,8),(1,16).
+All25 occupy distinct scalar offsets at spread10/noise2. No coincident25-shot
+substitute is accepted. Eleven focused Python methods pass. An external Unicorn
+probe executes the original scalar block against669 cases with no function
+adapters;finite outputs match float32 bits,NaNs match the native NaN result.
+Constants are read from original260FCAC and260FC98. Randomized ring tables,
+boundary/excess indices,empty tables,negative widths and special floats pass.
+
+A separate400-case probe executes the complete original D80310..D808E7 vector
+function,including original random-table sampling,sine/cosine and rotations.
+Explicit context uses a16384-entry table filled with80000000,fixed azimuth0,
+zero noise,aspect1 and a seed callback returning7. The CRT dispatch flag is
+set to0 in emulator memory to select original SSE routines because Unicorn
+does not emulate the captured FMA path. The callback algorithm and engine
+table/seed lifecycle remain unresolved. Unit length and radial angles agree
+for all25 pellets,four spreads and four axes,including the up-axis fallback.
+Those are declared native-function probes,not engine or Match acceptance.
+
+launch_ring.uniform reconstructs184B1F0's uint32-table conversion and float32
+range scaling. Its675 native comparisons pass bitwise without function adapters,
+including table key masking,endpoint rounding,reversed/equal bounds and random
+words. Float rounding permitsFFFFFFFF to reach the upper endpoint. Native table
+creation and per-activation/per-pellet key derivation remain separate services.
+
+launch_ring.direction now reconstructs both angular-noise axes,rotations,up-axis
+fallback and final aspect scaling. Its788 complete native-function comparisons
+cover arbitrary unit vectors,word pairs,azimuth,noise and aspect. Maximum absolute
+component error is3.5762786865234375e-7 against a1e-6 tolerance. Source normalizes
+with a correctly rounded inverse square root;native RSQRTPS/Newton rounding can
+differ by a few ULPs. Original SSE sine/cosine and the declared seed callback are
+retained in the native probe. The aspect stage deliberately does not renormalize.
+
+Combat now consumes authored multi-pellet ring launches when the world's explicit
+weapon_launch_inputs service supplies Inputs(azimuth_radians,noise_words),one
+uint32 pair per authored pellet. The service receives the exact state,shot number,
+activation tuple and count. It owns native azimuth selection and table-key routing.
+There is no invented default seed/table. Unsupported multi-pellet contexts launch
+nothing and report the unsupported path,instead of silently firing one pellet.
+Single-pellet paths retain their existing behavior;other launch types remain open.
+
+Five actual13EB/24 shot-consumer tests use explicit reconstructed words and real
+body variables. They verify25 distinct trajectories at speed80 and damage2 each,
+50 total close damage exactly once,misses,wall occlusion,friendly filtering and
+missing-context rejection. These call the consumer directly,not an AI gate.
+They use the separate43-row NPC mover input and flat geometry/FakeClient. The
+external paired controller/body VM probe also emits all25 through actual13EB/24,
+reducing Junkrat200->150. It retains permissive VMs,declared C361 difficulty,
+association/foreign-variable bridges,manual input and synthetic random words.
+No fixed9134 admission is inserted;its controller graph writes the actual slot.
+
+Physical pellets accumulate travel across world steps and evaluate the authored
+direct-hit falloff at contact. A sixth consumer test fires actual13EB/24 from12m
+and checks the resulting health loss against its8m to15m falloff interval.
+The test retains the declared launch words and uses trajectory length as the
+server distance metric. The original client's distance metric remains open.
+
+Full native seed/table lifecycle,strict production AI,hitbox/muzzle
+fidelity and multi-pellet prediction/transport remain open. Existing _sync rejects
+more than7 predicted pellets,so these25 have authoritative physics without client
+presentation. Full Junkrat,NPC and original-client acceptance remain open. Native
+programs/results and the input image stay outside Git;no client/service is changed.

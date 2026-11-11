@@ -1,0 +1,76 @@
+NPC associated AI inputs -- target104319
+
+The five Talon body definitions declare an associated .003 definition through
+8B9A461F, the same field used by the existing AI weapon-button extractor:
+Trooper1D40->1D41,Enforcer2279->227A,Sniper1E7D->1E7E,
+Assassin1EBD->1EBE,Heavy1EBB->1EBC. This is authored association evidence, not
+proof of native entity creation, possession timing or component inheritance.
+Current manual NPC spawn allocates only the body and does not host these AI
+definitions. Therefore their omitted graphs cannot be treated as executed AI.
+
+tools/extract_npc_controllers.py produces a small additive research input from
+the existing NPC catalog, XML and base graph bundle. It preserves the associated
+definition's own StatescriptComponent and ordered graph/schema rows, including
+null slots. Child entity scripts never become controller initial scripts. A
+controller definition does not inherit a caller's hero identity: hero/name stay
+on the body association. Additional graph closure is extracted only when absent
+from the base; cycles deduplicate, base references are reused and missing assets
+remain explicit. Source hashes and the exact base fingerprint are retained.
+
+Repeat from the source directory with explicit external paths:
+python -B -m tools.extract_npc_controllers --xml <existing XML directory>
+  --owlib <existing OWLib checkout> --npcs <prepared pve_npcs_174.json>
+  --base-graphs <prepared game_graphs_174.json.gz>
+  --output <owned lane>/npc-controller-inputs.json
+The command is one line. Output must stay outside the source repository and
+all input directories;hardlinked output files are rejected. It never rewrites
+or clones a runtime/base graph pack.
+Seven synthetic extraction tests cover definition ownership, order, provenance,
+additive closure, cycles, missing inputs, malformed associations and immutable
+output locations. Three existing pool-extractor regressions also pass.
+
+Actual read-only input result
+Five associated definitions yield18 additive graphs, no reused graph rows and
+no missing new references against the existing668-graph NPC bundle. Initial
+script counts are5,5,6,6,6 in the species order above. All five reference142A;
+the prepared body bundle had omitted these associated controller roots.
+
+An isolated resource/VM probe adds those18 records in process memory only,
+allocates each definition's ordered scripts, then attempts initialization.
+Every strict run stops at common142A on unsupported resource query C3619A38.
+No strict controller reaches accepted AI execution. Permissive probes write9134
+true for Trooper/Enforcer/Heavy through their authored graph stacks, but not for
+Sniper/Assassin. Missing-service defaults in that permissive run are not valid
+evidence to bypass native control gates or to accept attack acquisition.
+
+Enforcer13EB/node1 reads9134 through its F7262B36 relation. These new controller
+graphs now expose actual writers that were absent from the base bundle. Its
+B96D3A98 alternative traces through DA6910 and checks component75 present and
+92 absent; exact relationship resolution and runtime75 presence remain open.
+Original F525E0 maps100 schema-hash branches with a declared type-info callback,
+including DB08D4C1->43,A658CA1C->51,76AF64F0->92. The latter is declared on the
+associated AI definitions. Schema mapping does not establish live components.
+
+Remaining work
+An explicitly reconstructed in-memory Enforcer pair routes F7262B36 through
+component43 to initialized227A controller variables. Its actual9134 writer
+allows body13EB/24 to emit a shot against Junkrat. This probe supplies the
+unverified C3619A38 difficulty195F input and association/foreign-variable
+bindings,uses permissive VMs and retains manual body input. It is not an AI
+host implementation or acceptance. The first probe exposed one projectile in
+place of25. Combat now consumes all25 with an explicit launch-input service;
+a follow-up pair with synthetic uint32 words deals50 close damage,200->150.
+Native seed/table routing and multi-pellet presentation remain open. Five direct
+consumer checks cover count/close damage,miss,wall,team and absent-context paths.
+C3619A38's selector and142A diagnostic compare suggest an AI difficulty asset,
+but that inference has not been verified against its original evaluator.
+Scalar and full vector launch stages are separately verified;see LAUNCH_RING.txt.
+
+Resolve C3619A38 and other strict AI services; host associated AI entities with
+verified body/possessor/foreign-variable bindings, input routing and lifetimes;
+execute manual and autonomous acquisition/attacks without fixed admission;
+verify Enforcer/Assassin incoming paths and every species' specials. Current
+Match execution, complete NPC behavior and full hero acceptance remain open.
+Generated controller input, bootstrap audit, native mapping probes and image
+listings remain outside Git. No normal service, client session or shared source
+tree is changed by this extractor. See JUNKRAT_COMBAT.txt for the full scope.

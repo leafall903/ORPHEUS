@@ -44,6 +44,7 @@ ID = NS + "id"
 NAME = NS + "name"
 
 ROOT_GRAPHS = {
+    0x09BC: "Steel Trap victim status (09BB applies 1F5.053)",
     0x13C1: "Practice Range controller",
     0x0C90: "PvP controller",
     0x288A: "hero select host",

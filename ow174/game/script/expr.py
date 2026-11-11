@@ -444,6 +444,11 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
+        from ow174.game import dva_matrix
+
+        value = dva_matrix.ruleset_expression(ctx, key)
+        if value is not NotImplemented:
+            return value
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault

@@ -2,6 +2,7 @@
 
 import copy
 import dataclasses
+import os
 import sys
 import tempfile
 import types
@@ -16,12 +17,15 @@ import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
 from ow174.game import mover as mover_module
+from ow174.game import npc
+from ow174.game import sigma_grasp
 from ow174.game.collision import StaticCollisionProvider, flat_world
-from ow174.game.content import SOLDIER
+from ow174.game.commands import Command
+from ow174.game.content import SOLDIER, find_hero
 from ow174.game.link import SYN
 from ow174.game.match import Match
 from ow174.game.mover import Mover
-from ow174.game.script import runtime
+from ow174.game.script import graph, runtime
 from ow174.game.script.driver import BodyScript, Snapshot
 from ow174.game.server_journal import RecordingServerSession, ServerJournalError, _ReplaySession
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state, snapshot_digest
@@ -29,6 +33,165 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get("ORPHEUS_REINHARDT_COLLISION"), "prepared Reinhardt collision required")
+    def test_raised_reinhardt_barrier_pool_is_causal(self):
+        session, _, players = self.scene()
+        player, = players
+        self.assertTrue(session.apply("switch_hero", {"account": 1, "hero": find_hero("Reinhardt").guid}))
+        for frame in range(32):
+            session.tick(101.0 + frame * .016)
+            player.take_commands([Command(session.server.tick, buttons=2, extra=0)])
+        system = player.match.combat.barriers.reinhardt
+        shield = system.actors[player.body]
+        self.assertTrue(shield.active)
+        self.assertEqual(shield.health, 1600)
+        first = snapshot_digest(self.capture(session))
+        shield.health -= 30
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+
+    @unittest.skipUnless(os.environ.get("ORPHEUS_ENFORCER_GRAPHS"), "prepared Enforcer controller bundle required")
+    def test_enforcer_controller_gate_is_causal(self):
+        from test_junkrat_npc_combat import clear_graph_cache
+
+        with mock.patch.object(graph, "GRAPHS_PATH", Path(os.environ["ORPHEUS_ENFORCER_GRAPHS"])):
+            clear_graph_cache()
+            try:
+                session, _, players = self.scene()
+                player, = players
+                catalog = npc.load_catalog(Path(os.environ["ORPHEUS_PVE_NPC_DATA"]) / "pve_npcs_174.json")
+                definition = next(row for row in catalog.values() if row.name == "Enforcer")
+                x, y, z = player.mover.position
+                bot = npc.spawn(player.match, definition, (x, y, z + 6), team=1)
+                controller = bot.body_script.component.world.enforcer_controller
+                self.assertIsNotNone(controller)
+                self.assertTrue(controller.host.entity_var(9134, create=False).value())
+                first = snapshot_digest(self.capture(session))
+                controller.host.set(9134, False)
+                self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+            finally:
+                clear_graph_cache()
+
+    @unittest.skipUnless(os.environ.get("ORPHEUS_ENFORCER_GRAPHS"), "prepared NPC bundle required")
+    def test_assassin_route_frontier_is_causal(self):
+        from test_junkrat_npc_combat import clear_graph_cache
+
+        from ow174.game import assassin, npc_navigation
+
+        self.addCleanup(clear_graph_cache)
+        with mock.patch.object(graph, "GRAPHS_PATH", Path(os.environ["ORPHEUS_ENFORCER_GRAPHS"])):
+            clear_graph_cache()
+            session, _, players = self.scene()
+            player, = players
+            match = player.match
+            catalog = npc.load_catalog(Path(os.environ["ORPHEUS_PVE_NPC_DATA"]) / "pve_npcs_174.json")
+            definition = next(row for row in catalog.values() if row.name == "Assassin")
+            x, y, z = player.mover.position
+            bot = npc.spawn(match, definition, (x, y, z + 5), team=1, auto_engage=True)
+            target = next(row for row in match.combat._targets() if row.entity == player.body)
+            world = match.collision_world
+            search = npc_navigation.begin(bot.position, target, 3)
+            bot.pursuit = npc_navigation.Pursuit(world, search)
+            first = snapshot_digest(self.capture(session))
+            data = mover_module.mover_data(bot.body)
+            npc_navigation.advance(search, world, data, 3, 1, lambda *_: True)
+            self.assertTrue(search.visited)
+            after_route = snapshot_digest(self.capture(session))
+            self.assertNotEqual(after_route, first)
+            bot.lunge = assassin.Lunge(player.body, session.server.tick + 16, session.server.tick + 94)
+            after_admission = snapshot_digest(self.capture(session))
+            self.assertNotEqual(after_admission, after_route)
+            bot.lunge.launched = True
+            self.assertNotEqual(snapshot_digest(self.capture(session)), after_admission)
+
+    def test_hosted_winston_barrier_pool_is_causal(self):
+        session, peers, players = self.scene()
+        player, = players
+        peer, = peers
+        self.assertTrue(session.apply("switch_hero", {"account": 1, "hero": find_hero("Winston").guid}))
+        for frame in range(17):
+            session.tick(101.0 + frame * .016)
+            peer.commands(session.server.tick, 1, 16 if frame == 0 else 0)
+        actor, = player.match.combat.barriers.world.actors.values()
+        self.assertEqual(actor.health, 700)
+        first = snapshot_digest(self.capture(session))
+        actor.health -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+
+    def test_zarya_barrier_pool_is_causal(self):
+        session, peers, players = self.scene()
+        player, = players
+        peer, = peers
+        self.assertTrue(session.apply("switch_hero", {"account": 1, "hero": find_hero("Zarya").guid}))
+        session.tick(101.0)
+        peer.commands(session.server.tick, 1, 8)
+        bubble = player.match.combat.barriers.sync(player)
+        self.assertIsNotNone(bubble)
+        first = snapshot_digest(self.capture(session))
+        bubble.health -= 30
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+
+    def test_temporary_shield_pool_and_decay_are_causal(self):
+        session, _, players = self.scene()
+        player, = players
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        vitals = fight.vitals_of(target)
+        vitals.grant_temporary_shields(sigma_grasp.SHIELD_TAG, 72, 400)
+        decay = sigma_grasp.ShieldDecay(103, 100, 5)
+        fight.grasp_shields[player.body] = decay
+        first = snapshot_digest(self.capture(session))
+        decay.starts += .016
+        second = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, second)
+        vitals.decay_temporary_shields(sigma_grasp.SHIELD_TAG, 1)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), second)
+
+    @unittest.skipUnless(os.environ.get("ORPHEUS_JUNKRAT_TIRE_PROFILE"), "tire profile not configured")
+    def test_live_junkrat_actors_and_timers_are_explicit_causal_state(self):
+        session, peers, players = self.scene()
+        player, = players
+        peer, = peers
+        self.assertTrue(session.apply("switch_hero", {"account": 1, "hero": find_hero("Junkrat").guid}))
+
+        def emit(buttons, missed=0):
+            session.tick(101.0, missed=missed)
+            peer.commands(session.server.tick, 1, buttons)
+
+        emit(8)
+        emit(0, missed=29)
+        system = player.match.combat.junkrat
+        mine, = system.mines.values()
+        emit(0x10)
+        emit(0, missed=29)
+        trap, = system.traps.values()
+        player.body_script.set_ult_charge(player.body_script.component.vars[338].value())
+        emit(0x20)
+        tire, = system.tire.actors.values()
+        first = snapshot_digest(self.capture(session))
+        mine.deadline += .016
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+        mine.deadline -= .016
+        trap.release_flag_seen = True
+        self.assertNotEqual(snapshot_digest(self.capture(session)), first)
+        trap.release_flag_seen = False
+        self.assertEqual(snapshot_digest(self.capture(session)), first)
+        trap.duration += .016
+        second = snapshot_digest(self.capture(session))
+        self.assertNotEqual(second, first)
+        tire.arm_tick += 1
+        third = snapshot_digest(self.capture(session))
+        self.assertNotEqual(third, second)
+        tire.controls = dataclasses.replace(tire.controls, yaw=8192)
+        fourth = snapshot_digest(self.capture(session))
+        self.assertNotEqual(fourth, third)
+        tire.jump_pending = True
+        fifth = snapshot_digest(self.capture(session))
+        self.assertNotEqual(fifth, fourth)
+        if tire.climb is not None:
+            tire.climb_ticks += 1
+            tire.climbing = True
+            self.assertNotEqual(snapshot_digest(self.capture(session)), fifth)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()
@@ -216,7 +379,11 @@ class StoredJournalTests(unittest.TestCase):
         players = session.server.matches[0].players
         for peer, player in zip(peers, players, strict=True):
             peer.message(21616, pick(player.entity, SOLDIER), now=100.8)
-        peers[0].commands(players[0].body_script.frame + 1, 60, 1)
+        first = players[0].body_script.frame + 1
+        due = first + 59 - session.server.tick
+        if due > 0:
+            session.tick(101.0, missed=due - 1)  # the firing window is due at receipt
+        peers[0].commands(first, 60, 1)
         self.assertTrue(players[1].match.combat.is_dead(players[1]))
         dead_body = players[1].body
         session.tick(105.0, missed=200)
