@@ -12,6 +12,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Pass 62 focused combat, collision, and StateScript checks, including two
   Barrier tests with the extracted mesh. Broader regression and original-client
   verification remain open.
+- Preserve projectile terminal reasons and Orisa's manual charge policy. Add
+  FilterArray to stored body snapshots for deployed barriers and devices.
+  Verify the live deployable snapshot, the 21 barrier checks, and the scoped
+  passive charge, scatter, and respawn tests.
 
 ### Python scenario integration
 

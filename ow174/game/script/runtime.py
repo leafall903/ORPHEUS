@@ -356,7 +356,14 @@ class InstanceContext(Context):
         self.poll_native(cfg)
         from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = body_owner.evaluate(self, cfg)
+        component = self.instance.component
+        result = NotImplemented
+        if cls == body_owner.CLASS and self.instance.graph.index == 0x0B8B and not component.strict:
+            from ow174.game import orisa_charge
+
+            result = orisa_charge.native(component.world, cfg, self.instance)
+        if result is NotImplemented:
+            result = body_owner.evaluate(self, cfg)
         if result is NotImplemented:
             result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:

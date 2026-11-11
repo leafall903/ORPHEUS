@@ -65,6 +65,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     nodes.TargetEffects: (("children",), ()),
+    nodes.FilterArray: ((), ()),
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
@@ -248,7 +249,7 @@ class _Export:
     def _state(self, obj):
         kind = type(obj)
         if kind not in _STATE_LAYOUTS:
-            raise BodyVMSnapshotError("unknown state class")
+            raise BodyVMSnapshotError(f"unknown state class {_name(kind)}")
         required, optional = _STATE_LAYOUTS[kind]
         fields = _layout(obj, _STATE | set(required), optional)
         _containers(fields, ("watched",), dict, "state")

@@ -138,7 +138,9 @@ class Barriers:
         self.retiring: dict[int, Barrier] = {}
         self.pending = []
 
-    def landed(self, rocket, tick):
+    def landed(self, rocket, tick=None):
+        if tick is None:
+            tick = self.fight.tick
         if (rocket.deploy_body is not None and not rocket.shooter.gone
                 and rocket.shooter.body == rocket.deploy_body):
             due = tick + math.ceil(DEPLOY_DELAY / TICK)

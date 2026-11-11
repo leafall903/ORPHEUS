@@ -870,7 +870,7 @@ def hit_def(state, cfg) -> HitDef | None:
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4),
         knockback=_accretion_knockback(state, modify),
-        projectile_extent=value("m_57DAE1B5", 0.0),
+        projectile_extent=0.0 if graph_index == 0x0BD4 else value("m_57DAE1B5", 0.0),
     )
 
 
@@ -3162,6 +3162,8 @@ class Combat:
         )
         if ability is not None and (best is None or ability[0] < limit):
             distance, actor, manager = ability
+            rocket.ended = "barrier" if manager is self.orisa_barriers else "deployable"
+            rocket.travelled += distance
             contact_time = distance / rocket.speed if rocket.speed else 0.0
             rocket.flown += contact_time
             point = _along(rocket.position, rocket.direction, distance)
@@ -3176,6 +3178,7 @@ class Combat:
 
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
+            rocket.travelled += step
             rocket.flown += duration
             rocket.left -= duration
             if rocket.left <= 0.0:
@@ -3184,6 +3187,7 @@ class Combat:
         t, struck = best
         contact_time = t / rocket.speed if rocket.speed else 0.0
         rocket.flown += contact_time
+        rocket.travelled += t
         if absorption is not None:
             self.rockets.remove(rocket)
             if rocket.shot is not None:
@@ -3217,6 +3221,7 @@ class Combat:
                 return 0.0
             return duration - spent
         point = _along(rocket.position, rocket.direction, t)
+        rocket.ended = "body" if struck is not None else "world"
         if scripted_shield is not None:
             amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
             barriers.damage(self, scripted_shield[1], amount, attacker=_source_entity(rocket.shooter))
@@ -3272,6 +3277,7 @@ class Combat:
                         self._accretion_hit(rocket, struck, before - self.vitals_of(struck).total)
                         self._apply_accretion_impulse(rocket, struck, direct)
         if struck is not None and blast is None and len(rocket.hit_entities) + 1 < rocket.target_limit:
+            rocket.ended = None
             rocket.hit_entities.add(struck.entity)
             rocket.position = point
             rocket.left -= contact_time
