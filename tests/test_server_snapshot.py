@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import combat
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
@@ -29,6 +30,42 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_nano_expiry_is_stored_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(target for target in fight._targets() if target.owner is player)
+        vitals = fight.vitals_of(target)
+        vitals.nano_until = fight.tick + 500
+        before = snapshot_digest(self.capture(session))
+        vitals.nano_until -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_pending_ana_rifle_amount_and_source_are_stored_causal_state(self):
+        session, _, players = self.scene(two=True)
+        source, target = players
+        fight = source.match.combat
+        direct = combat.HitDef(amount=70, ana_rifle=True)
+        dose = combat.AnaRifleDose(source, source.body, target.body, direct, 70, False, 1, fight.tick)
+        fight.ana_rifle_doses.append(dose)
+        initial = snapshot_digest(self.capture(session))
+        dose.applied = 2
+        applied = snapshot_digest(self.capture(session))
+        self.assertNotEqual(applied, initial)
+        dose.source += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), applied)
+
+    def test_temporary_shield_balance_is_stored_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        vitals = fight.vitals_of(target)
+        vitals.add_temporary_shield((2, 3, 4), 24)
+        before = snapshot_digest(self.capture(session))
+        vitals.temporary_shields[(2, 3, 4)].current -= 8
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
     def test_hack_deadline_and_restoration_base_are_stored_causal_state(self):
         from ow174.game.script import graph
 
@@ -46,6 +83,34 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(later, first)
         fight.hack_bases[player.body] = True
         self.assertNotEqual(snapshot_digest(self.capture(session)), later)
+
+    def test_sleep_deadline_and_wake_floor_are_stored_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        fight._hit_effect(target, combat.SLEEP_DART_EFFECT)
+        vitals = fight.vitals_of(target)
+        self.assertTrue(fight.is_stunned(player))
+        first = snapshot_digest(self.capture(session))
+        vitals.sleep_until -= 1
+        changed_deadline = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, changed_deadline)
+        vitals.sleep_wake_floor += 1
+        self.assertNotEqual(changed_deadline, snapshot_digest(self.capture(session)))
+
+    def test_grenade_block_and_boost_deadlines_are_stored_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        vitals = fight.vitals_of(target)
+        first = snapshot_digest(self.capture(session))
+        vitals.healing_block_until = fight.tick + 10
+        blocked = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, blocked)
+        vitals.healing_boost_until = fight.tick + 15
+        self.assertNotEqual(blocked, snapshot_digest(self.capture(session)))
 
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
@@ -81,6 +146,26 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertEqual(actual, instances)
         self.assertFalse(first["restorable"])
 
+    def test_cross_component_variable_watchers_are_explicit_and_causal(self):
+        session, _, players = self.scene(two=True)
+        first, second = (p.body_script.component for p in players)
+        variable = first.entity_var(32000)
+        variable.base = 1
+        watcher = next(s for i in second.instances.values() for s in i.states.values() if s.active)
+        watcher.watch(variable)
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no evaluation")):
+            initial = self.capture(session)
+        self.assertIn("external_vm", str(initial))
+        variable.base = 2
+        self.assertNotEqual(snapshot_digest(initial), snapshot_digest(self.capture(session)))
+
+    def test_a_variable_registered_in_two_component_namespaces_is_rejected(self):
+        session, _, players = self.scene(two=True)
+        first, second = (p.body_script.component for p in players)
+        second.vars[32001] = first.entity_var(32001)
+        with self.assertRaisesRegex(ServerSnapshotError, "multiple Component namespaces"):
+            self.capture(session)
+
     def test_hidden_vm_counter_transport_and_physics_changes_change_digest(self):
         session, _, players = self.scene()
         player, client = players[0], players[0].client
@@ -92,6 +177,10 @@ class ServerSnapshotTests(unittest.TestCase):
         player.match.combat.stuns[player.body] = player.match.tick + 50
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         player.match.combat.stuns.pop(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins[0xC000100F] = player.body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins.clear()
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))

@@ -17,17 +17,44 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barrage_motion,
     bots,
     combat,
     correction,
+    earthshatter,
+    genji_combat,
+    genji_mobility,
+    graviton,
+    health_packs,
     heroselect,
+    hook,
+    knockback,
+    mei,
+    mei_blizzard,
+    mei_wall,
+    moira,
+    moira_biotics,
     notices,
     observers,
+    orisa_barrier,
+    orisa_halt,
+    orisa_supercharger,
+    pharah,
     projectiles,
+    pulse_bomb,
+    reaper_blossom,
+    reinhardt_barrier,
+    reinhardt_charge,
     replay_values,
+    roadhog,
+    shadow_step,
+    sigma_barrier,
     statescript,
     stats,
+    translocators,
+    ultimate_charge,
     voicelines,
+    winston_combat,
     world,
 )
 from ow174.game.bits import BitWriter
@@ -86,16 +113,46 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
+                   "body_script body_script_failed genji_mobility seen shown script mode_script "
+                   "next_countdown select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets hacks hack_bases respawns next_bot now tick "
-        "melee_seen projectiles observers voice stuns"
+        "match vitals history replacement_ticks rockets ana_rifle_doses hacks hack_bases respawns "
+        "next_bot now tick melee_seen projectiles translocators barriers fortifies health_packs "
+        "health_pack_digest ultimate_charge observers voice stuns pins gravitons hooks breathers impulses "
+        "flux_npcs flux_players hammer_swings shatters rein_charges "
+        "tracer_history tracer_recalls pharah_airborne winston_jumps winston_primal winston_punches "
+        "orisa_flights halt superchargers mei walls blizzard blossom shadow coalescence biotics genji"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer temporary_shields "
+                         "sleep_until sleep_wake_floor healing_block_until healing_boost_until nano_until "
+                         "ult_healing_deficit shield_recovery_tick"),
+    graviton.Gravitons: _names("combat fields npc_movers player_pulls"),
+    hook.Hooks: _names("combat flights seen"),
+    orisa_supercharger.Superchargers: _names("fight flights active buffs resources"),
+    mei.MeiCombat: _names("fight hits sources cryos"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    mei_blizzard.Blizzard: _names("fight flights areas"),
+    reaper_blossom.Blossom: _names("fight channels"),
+    shadow_step.ShadowStep: _names("fight previews casts"),
+    moira.Coalescence: _names("fight beams"),
+    moira_biotics.Biotics: _names("fight tails orbs"),
+    genji_combat.Combat: _names("fight dashes swings assists"),
+    orisa_halt.Halt: _names("fight graph_records orbs pulls"),
+    knockback.Impulses: _names("fight live seen launches"),
+    translocators.Translocators: _names(
+        "combat entries recall_poses data_path data_record data_graphs data_digest",
+    ),
+    reinhardt_barrier.Barrier: _names(
+        "owner pet component mesh geometry_digest vitals recipient recipient_body expiry_tick",
+    ),
+    health_packs.HealthPack: _names("entity definition position tags component"),
+    health_packs.PackWorld: _names("hero mode match entity"),
+    ultimate_charge.UltimateCharge: _names(
+        "combat data_path data data_digest hosted_records paused retained"
+    ),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,13 +168,13 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count passive_charge_ms"
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position match"),
+    BotWorld: _names("hero mode weapon_buttons owner_position match controller_components manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,14 +188,29 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "dva_mover dva_buttons dva_frame_offset dva_shell dva_shell_spent"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    BotWorld: _names("dva_controller"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.BodyHack,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.ScrapBurst,
+    combat.BodyHack, pulse_bomb.ImpactFuse, earthshatter.Wave,
+    barrage_motion.LaunchSource, pharah.Concussion, pharah.RocketImpulse,
+    orisa_barrier.Flight, orisa_barrier.Shield, sigma_barrier.Barrier,
+    orisa_halt.Orb, orisa_halt.Pull, orisa_supercharger.Device, mei.CryoCycle,
+    mei_wall.Pillar, mei_wall.Input, mei_blizzard.Flight, mei_blizzard.Area, reaper_blossom.Channel,
+    shadow_step.Preview, shadow_step.Cast,
+    moira.Beam, moira_biotics.Tail, moira_biotics.Orb,
+    reinhardt_charge.Contact, genji_combat.Dash, genji_combat.Swing, genji_mobility.Mobility,
+    graviton.Field, hook.Flight, knockback.Motion, roadhog.Breather,
+    combat.TemporaryShield, combat.AnaRifleDose,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
+    translocators.Translocator, winston_combat.Dome, winston_combat.Jump,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
@@ -347,13 +419,60 @@ class _Graph:
         while index < len(self.objects):
             self.build(index)
             index += 1
-        from ow174.game.body_vm_snapshot import export_component_vm_with_identities
+        from ow174.game.body_vm_snapshot import _STATE_LAYOUTS, export_component_vm_with_identities
+
+        variable_owners, retained_instances = {}, {}
+        for number in self.vm_nodes:
+            component = self.objects[number]
+            instances = list(component.instances.values()) + list(component.destroyed)
+            for extra in self.vm_extra.get(id(component), ()):
+                if type(extra) is runtime.Instance:
+                    instances.append(extra)
+                elif type(extra) in _STATE_LAYOUTS:
+                    instances.append(extra.instance)
+            retained_instances[id(component)] = {id(instance) for instance in instances}
+            variables = list(component.vars.values()) + [v for i in instances for v in i.vars.values()]
+            for variable in variables:
+                previous = variable_owners.get(id(variable))
+                if previous is not None and previous[0] is variable and previous[1] is not component:
+                    _fail("variable registered in multiple Component namespaces")
+                variable_owners[id(variable)] = (variable, component)
+
+        def external_vm(obj, current):
+            kind = type(obj)
+            if kind is runtime.Var:
+                found = variable_owners.get(id(obj))
+                if found is None or found[0] is not obj:
+                    _fail("unregistered variable in server VM namespace")
+                owner = found[1]
+                suffix = ["var", list(obj.key)]
+            elif kind is runtime.Instance:
+                owner, suffix = obj.component, ["instance", obj.id]
+            elif kind in _STATE_LAYOUTS:
+                if obj.instance.states.get(obj.index) is not obj:
+                    _fail("foreign state is not registered in its instance")
+                owner = obj.instance.component
+                suffix = ["state", obj.instance.id, obj.index]
+            else:
+                return NotImplemented
+            if owner is current:
+                return NotImplemented
+            instance = obj if kind is runtime.Instance else (obj.instance if kind in _STATE_LAYOUTS else None)
+            if instance is not None and id(instance) not in retained_instances.get(id(owner), ()):
+                _fail("foreign instance has no registered server VM root")
+            number = self.memo.get(id(owner))
+            if number is None or self.objects[number] is not owner:
+                _fail("foreign VM namespace has no registered server component")
+            return [["ref", number], *suffix]
 
         owners = {}
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
-            document, identities = export_component_vm_with_identities(component, extra_roots=extras)
+            document, identities = export_component_vm_with_identities(
+                component, extra_roots=extras,
+                external_ref=lambda obj, current=component: external_vm(obj, current),
+            )
             bridges = []
             for storage_id, obj, scope in identities:
                 core = self.memo.get(id(obj))

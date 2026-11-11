@@ -121,8 +121,13 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
-        self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.attack_target = None  # sandbox NPC's selected player controller
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.dva_mover = None
+        self.dva_buttons = 0
+        self.dva_shell = False
+        self.dva_shell_spent = False
+        self.dva_frame_offset = 0
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
@@ -161,8 +166,15 @@ class Bot:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
+        from ow174.game import heavy_assault, sniper_special
+
+        if heavy_assault.drive(self, tick, seconds, collision, paused_until):
+            return
+        if sniper_special.drive(self, tick, seconds, collision, paused_until):
+            return
         if not self.route:
-            if tick < paused_until:
+            special_motion = self.hero in (heavy_assault.HERO, sniper_special.HERO) and any(self.velocity)
+            if tick < paused_until or special_motion:
                 self._pause(tick)
                 self.last_tick = tick
             return

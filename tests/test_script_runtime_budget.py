@@ -101,6 +101,13 @@ class RuntimeBudgetTests(unittest.TestCase):
         self.assertTrue(body.component.shots)
         event_node = SimpleNamespace(cls="AuditCount")
         seen = []
+        dispatched = []
+        original_dispatch = runtime.Instance.dispatch
+
+        def dispatch(instance, event):
+            if instance is rifle:
+                dispatched.append(event.kind == runtime.ENTRY and event.node is event_node)
+            return original_dispatch(instance, event)
 
         def count(_instance, _node, _caller):
             seen.append(True)
@@ -109,13 +116,17 @@ class RuntimeBudgetTests(unittest.TestCase):
         with (
             mock.patch.object(runtime, "EVENTS_PER_TIME", 8),
             mock.patch.dict(runtime.HANDLERS, {"AuditCount": count}),
+            mock.patch.object(runtime.Instance, "dispatch", dispatch),
         ):
             for _ in range(10):
                 rifle.post(runtime.Event(body.component.now, 0, runtime.ENTRY, node=event_node))
             with self.assertRaisesRegex(ScriptBudgetError, "event budget 8"):
                 body.command(1002, 0)
         self.assertEqual(body.frame, 1001)  # the driver did not commit the failed command
-        self.assertEqual(len(seen), 8)
+        # Ammo notifications and state events share this limit with our entries.
+        self.assertEqual(len(dispatched), 8)
+        self.assertEqual(len(seen), sum(dispatched))
+        self.assertGreater(len(seen), 0)
         self.assert_failed(body.component)
         for callback in (
             lambda: body.command(1002, 0),

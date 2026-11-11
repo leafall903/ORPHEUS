@@ -8,7 +8,7 @@ from ow174.game import combat, stats
 from ow174.game.collision import World
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
-from ow174.game.script import expr
+from ow174.game.script import expr, nodes
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, SHIELDS_POOL
 
 SOMBRA = 0x02E000000000012E
@@ -60,6 +60,184 @@ class SombraCombatTests(unittest.TestCase):
 
     def hack_applications(self):
         return [i for i in self.b.body_script.component.instances.values() if i.graph.index == 0x0B1F]
+
+    def test_paid_emp_matches_pulse_and_expiry_with_no_player_commands(self):
+        fight = self.run.match.combat
+        owner, target = self.a.body_script, self.b.body_script
+        owner.set_ult_charge(1400)
+        self.press(0x20)
+        cast = self.run.frame
+        emp = next(i for i in owner.component.instances.values() if i.graph.index == 0x0B31)
+        self.assertEqual(owner.component.entity_var(342).value(), 0)
+        self.assertTrue(emp.state(1).flags & nodes.Ability.RUNNING)
+        self.run.match.update((cast + 21) * combat.TICK, cast + 21)
+        self.assertNotIn(self.b.body, fight.hacks)
+        self.run.match.update((cast + 22) * combat.TICK, cast + 22)
+        effect, = fight.hacks[self.b.body]
+        self.assertEqual(effect.until_tick, cast + 334)
+        self.assertEqual(target.frame, cast)
+        self.assertEqual(target.component.entity_var(6396).value(), expr.Entity(self.a.body))
+        self.assertEqual(self.health(self.b), 200)
+
+        self.run.match.update((effect.until_tick - 1) * combat.TICK, effect.until_tick - 1)
+        self.assertIn(self.b.body, fight.hacks)
+        self.assertFalse(emp.state(1).flags & nodes.Ability.RUNNING)
+        self.run.match.update(effect.until_tick * combat.TICK, effect.until_tick)
+        self.assertNotIn(self.b.body, fight.hacks)
+        self.assertEqual(target.frame, cast)
+        self.assertFalse(target.component.entity_var(888).value())
+        self.assertFalse(target.component.entity_var(6396).value())
+        after = effect.until_tick + 1
+        self.run.match.update(after * combat.TICK, after)
+        self.assertFalse(any(i.graph.index in (0x0B32, 0x0B1F)
+                             for i in target.component.instances.values()))
+
+    def test_emp_source_replacement_retires_silence_before_world_gap_helix_input(self):
+        from dataclasses import replace
+
+        from test_game_sombra_grenade import SombraGrenadeTests
+
+        for gap in (False, True):
+            with self.subTest(gap=gap):
+                f = SombraCombatTests()
+                f.setUp()
+                match = f.run.match
+                fight = match.combat
+                match.game_map = replace(match.game_map, free_for_all=False)
+                f.a.team, f.b.team = 0, 1
+                support = SombraGrenadeTests().join_ally(f, SOMBRA, (3, 0, 0))
+                for _ in range(90):
+                    f.press(2)
+                    if f.b.body in fight.hacks:
+                        break
+                old, = fight.hacks[f.b.body]
+                self.assertEqual(old.application.source_entity(), f.a.body)
+                f.press(0, 45)
+                support.body_script.set_ult_charge(1400)
+                f.press(32, shooter=support, target=f.b)
+                cast = f.run.frame
+                if gap:
+                    at = cast + 50
+                    match.update(at * combat.TICK, at)
+                    f.run.frame = at
+                else:
+                    f.press(0, 50)
+                new, = fight.hacks[f.b.body]
+                self.assertTrue(old.application.stopped)
+                self.assertEqual(new.until_tick, cast + 334)
+                self.assertEqual(new.application.source_entity(), support.body)
+                self.assertTrue(match.switch_hero(support, f.b.hero))
+
+                # The authored source check completes at cast + 238 in this fixture.
+                ready = cast + 239
+                yaw, pitch = aim(fight._eye(f.b), (0, 1, 0))
+                if gap:
+                    match.update((ready - 1) * combat.TICK, ready - 1)
+                    self.assertIn(f.b.body, fight.hacks)
+                    match.update(ready * combat.TICK, ready)
+                    f.b.take_commands([Command(ready, yaw=yaw, pitch=pitch, buttons=2)])
+                    f.run.frame = ready
+                else:
+                    f.press(0, ready - f.run.frame - 1)
+                    self.assertIn(f.b.body, fight.hacks)
+                    f.run.step({f.b: (yaw, pitch, 2)})
+                self.assertTrue(new.application.stopped)
+                self.assertNotIn(f.b.body, fight.hacks)
+                self.assertFalse(f.b.body_script.component.entity_var(6396).value())
+                self.assertEqual(len(fight.rockets), 1)
+                f.press(0, 65)
+                self.assertEqual(f.health(f.a), 80)
+
+    def test_emp_target_denies_hack_until_expiry_without_spending_cooldown(self):
+        for gap in (False, True):
+            with self.subTest(gap=gap):
+                f = SombraCombatTests()
+                f.setUp()
+                match = f.run.match
+                fight = match.combat
+                f.a.body_script.set_ult_charge(1400)
+                f.press(32)
+                cast = f.run.frame
+                f.press(0, 75)
+                initial, = fight.hacks[f.b.body]
+                self.assertEqual(initial.until_tick, cast + 334)
+                f.press(2, 100)
+                self.assertEqual(fight.hacks[f.b.body], [initial])
+                self.assertEqual(f.weapon().state(53).remaining(), 0)
+                f.press(0)
+                at = initial.until_tick
+                if gap:
+                    match.update(at * combat.TICK, at)
+                    f.run.frame = at
+                else:
+                    f.press(0, at - f.run.frame)
+                self.assertNotIn(f.b.body, fight.hacks)
+                for _ in range(90):
+                    f.press(2)
+                    if f.b.body in fight.hacks:
+                        break
+                fresh, = fight.hacks[f.b.body]
+                self.assertIsNot(fresh.application, initial.application)
+                self.assertEqual(fresh.application.source_entity(), f.a.body)
+                self.assertEqual(fresh.until_tick, f.run.frame + 313)
+                self.assertGreater(f.weapon().state(53).remaining(), 0)
+
+    def test_hack_initializes_on_contact_without_consuming_recipient_input(self):
+        from test_game_combat import SOLDIER
+
+        def press(f, button, idle):
+            if not idle:
+                f.press(button)
+                return
+            f.run.frame += 1
+            at = f.run.frame
+            match = f.run.match
+            match.update(at * combat.TICK, at)
+            yaw, pitch = aim(match.combat._eye(f.a), (0, 1, 1.5))
+            f.a.take_commands([Command(at, yaw=yaw, pitch=pitch, buttons=button)])
+
+        for switch in (False, True):
+            for idle in (False, True):
+                with self.subTest(switch=switch, idle=idle):
+                    f = SombraCombatTests()
+                    f.setUp()
+                    match = f.run.match
+                    fight = match.combat
+                    script = f.b.body_script
+                    last_owner = script.frame
+                    for _ in range(180):
+                        press(f, 0, idle)
+                    for _ in range(90):
+                        press(f, 2, idle)
+                        if f.b.body in fight.hacks:
+                            break
+                    effect, = fight.hacks[f.b.body]
+                    cast = f.run.frame
+                    self.assertEqual(effect.application.start // script.frame_ms, cast)
+                    self.assertEqual(effect.until_tick, cast + 313)
+                    self.assertEqual(script.component.entity_var(6396).value(), expr.Entity(f.a.body))
+                    self.assertEqual(script.frame, last_owner if idle else cast)
+
+                    if switch:
+                        for _ in range(45):
+                            press(f, 0, idle)
+                        self.assertTrue(match.switch_hero(f.a, heroes()[SOLDIER]))
+                    ready = cast + (234 if switch else 313)
+                    yaw, pitch = aim(fight._eye(f.b), (0, 1, 0))
+                    if idle:
+                        match.update((ready - 1) * combat.TICK, ready - 1)
+                        self.assertIn(f.b.body, fight.hacks)
+                        self.assertEqual(script.frame, last_owner)
+                        match.update(ready * combat.TICK, ready)
+                        f.b.take_commands([Command(ready, yaw=yaw, pitch=pitch, buttons=2)])
+                    else:
+                        f.press(0, ready - f.run.frame - 1)
+                        self.assertIn(f.b.body, fight.hacks)
+                        f.run.step({f.b: (yaw, pitch, 2)})
+                    self.assertNotIn(f.b.body, fight.hacks)
+                    self.assertTrue(effect.application.stopped)
+                    self.assertFalse(script.component.entity_var(6396).value())
+                    self.assertEqual(len(fight.rockets), 1)
 
     def test_hack_channel_queues_authored_application_and_starts_cooldown(self):
         self.press(2, 20)
@@ -243,6 +421,29 @@ class SombraCombatTests(unittest.TestCase):
         self.assertFalse(ability.flags & ability.RUNNING)
         self.assertGreater(ability.remaining(), 0)
 
+    def test_damage_camo_cooldown_uses_original_clock_across_a_long_world_jump(self):
+        timings = []
+        for gap in (False, True):
+            with self.subTest(gap=gap):
+                f = SombraCombatTests()
+                f.setUp()
+                f.press(8)
+                f.press(0, 60)
+                ability = f.camo().state(13)
+                self.assertTrue(ability.flags & ability.RUNNING)
+                f.press(FIRE, shooter=f.b, target=f.a)
+                impact = f.run.frame
+                self.assertEqual(f.health(f.a), 180)
+                if gap:
+                    f.run.frame += 1000
+                    f.run.match.update(f.run.frame * combat.TICK, f.run.frame, frames=False)
+                else:
+                    f.press(0, 450)
+                self.assertFalse(ability.flags & ability.RUNNING)
+                self.assertEqual(ability.remaining(), 0)
+                timings.append(ability.last - impact * f.a.body_script.frame_ms)
+        self.assertEqual(timings[0], timings[1])
+
     def test_authored_excluded_damage_tag_does_not_end_camo(self):
         self.press(8)
         self.press(0, 60)
@@ -289,6 +490,27 @@ class SombraCombatTests(unittest.TestCase):
         self.press(0, 65)
         self.assertLess(self.health(self.a), 200)
         self.assertFalse(self.camo().state(13).flags & self.camo().state(13).RUNNING)
+
+    def test_lethal_in_flight_helix_prevents_paid_emp_during_world_only_update(self):
+        match = self.run.match
+        fight = match.combat
+        script = self.a.body_script
+        script.set_ult_charge(1400)
+        self.assertEqual(self.health(self.a), 200)
+        vitals = fight.vitals[self.a.body]
+        vitals.now[HEALTH_POOL] = 1
+        facing = aim(fight._eye(self.b), (0, 1, 0))
+        self.run.step({self.a: (0, 0, 0x20), self.b: (*facing, 2)})
+        cast = self.run.frame
+        self.assertEqual(script.component.entity_var(342).value(), 0)
+        self.assertTrue(fight.rockets)
+        at = cast + 50
+        match.update(at * combat.TICK, at)
+        self.assertEqual(vitals.death_tick, cast + 2)
+        self.assertEqual(vitals.killer, self.b.body)
+        self.assertNotIn(self.b.body, fight.hacks)
+        self.assertFalse(any(i.graph.index == 0x0B32
+                             for i in self.b.body_script.component.instances.values()))
 
     def test_camo_speed_changes_real_movement_and_cancel_starts_cooldown(self):
         self.press(8)
@@ -352,6 +574,9 @@ class SombraCombatTests(unittest.TestCase):
         self.assertEqual(self.health(self.b), 170)
         self.assertEqual(self.run.match.combat.vitals[self.b.body].now[HEALTH_POOL], 170)
         self.press(MELEE)
+        self.press(0, 45)
+        self.assertEqual(self.health(self.b), 170)  # early short press exceeds the150ms window
+        self.press(MELEE)  # a fresh edge after the original cooldown is ready
         self.press(0, 45)
         self.assertEqual(self.health(self.b), 140)
 

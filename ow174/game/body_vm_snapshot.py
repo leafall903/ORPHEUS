@@ -10,6 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
+from ow174.game.health_packs import PackWorld
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -39,7 +40,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "reports", "report_count", "passive_charge_ms",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -72,8 +73,8 @@ _STATE_LAYOUTS = {
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
-        ("max_shots", "min_shots"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
+        ("max_shots", "min_shots", "shot_cones"),
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
@@ -91,9 +92,19 @@ _STATE_LAYOUTS = {
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()),
     nodes.TrackTargets: (("targets", "selected_at", "target_var"), ()),
-    nodes.ModifyBodyHealth: ((), ()),
+    nodes.TargetEffects: (("children",), ()),
+    nodes.DestinationSearch: ((), ()),
+    nodes.ModifyBodyHealth: (("last_applied",), ("heavy_contacts", "boost_contacts")),
+    nodes.BodyHealthPool: ((), ()),
+    nodes.Pet: (("pet_entity", "pet_var"), ()),
+    nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
+    nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.TrackBodyRay: (("result", "outputs"), ()),
+    nodes.BodyRaycast: (("hit", "hit_var"), ()),
     nodes.Effect: ((), ()),
+    nodes.PlacementProbe: ((), ()),
+    nodes.ReconstructedCastGate: ((), ()),
+    nodes.RecallPlayback: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -142,7 +153,7 @@ def _digest(value) -> str:
 
 
 class _Export:
-    def __init__(self, component):
+    def __init__(self, component, external_ref=None):
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
@@ -152,6 +163,7 @@ class _Export:
         _containers(fields, ("parameter_scopes",), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
+        self.external_ref = external_ref
         self.instances = {}
         self.states = {}
         self.variables = {}
@@ -375,6 +387,10 @@ class _Export:
         kind = type(obj)
         if obj is None or kind in (bool, int, float, str, bytes):
             return obj
+        if self.external_ref is not None:
+            external = self.external_ref(obj)
+            if external is not NotImplemented:
+                return {"external_vm": external}
         if obj is self.component:
             return {"ref": ["component"]}
         if kind is runtime.Instance:
@@ -387,17 +403,21 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, PackWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
+            optional = ("dva_controller",) if kind is BotWorld else ()
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position", "match"))
+                fields.update(("weapon_buttons", "owner_position", "match", "controller_components",
+                               "manual_target"))
+            if kind is PackWorld:
+                fields.update(("entity", "match"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, optional, exclude={"match"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -583,12 +603,12 @@ class _Export:
         return result
 
 
-def _document(component, extra_roots, script=None):
+def _document(component, extra_roots, script=None, external_ref=None):
     if type(extra_roots) not in (tuple, list):
         raise BodyVMSnapshotError("extra_roots must be a tuple or list")
     try:
         source = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
-        exporter = _Export(component)
+        exporter = _Export(component, external_ref=external_ref)
         raw = exporter.capture(extra_roots, script)
         document = {
             "schema": SCHEMA if script is not None else COMPONENT_SCHEMA,
@@ -605,14 +625,14 @@ def export_component_vm(component, *, extra_roots=()) -> dict:
     return _document(component, extra_roots)[0]
 
 
-def export_component_vm_with_identities(component, *, extra_roots=()) -> tuple:
+def export_component_vm_with_identities(component, *, extra_roots=(), external_ref=None) -> tuple:
     """Return one capture plus ephemeral (storage id, original object, scope tag) bindings.
 
     Scope tags are vm, model or vm+model. The sidecar is not serializable replay
     data; an outer adapter can detect unsupported sharing across artifact scopes.
     No identity callback or gameplay function is invoked.
     """
-    return _document(component, extra_roots)
+    return _document(component, extra_roots, external_ref=external_ref)
 
 
 def export_body_vm(script) -> dict:

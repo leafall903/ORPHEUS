@@ -1,0 +1,82 @@
+Manual Assassin pin: partial104319 resource-backed server reconstruction
+
+Scope:
+Manual Assassin01BB bodies declare the sandbox controller context. Primary AI
+slot0 routes to button36 for1157, whose entry sets target536 from
+DB742151(owner).#1650. Its extracted button20 graph13B8 has no damage outlet.
+The scoped DB742151 service supplies a data-only Map containing1650 and the
+current engaged player body. It does not allocate or replicate a native
+controller entity, alias a body as a controller, or resolve every foreign query.
+Owner/current-target9B7648C3 reads authoritative match health. Other services
+and stock placements retain their existing behavior.
+
+Contact and targeting policy:
+The manual contact limit is3m with static line of sight. This limit is an
+explicit reconstruction, not a recovered native acquisition range. The console
+currently spawns5m ahead, so contact pin requires the player to move closer;
+autonomous approach/navigation is still open. A bound target must remain the
+same living enemy player body with an active connection. Rebinding, stopping,
+occlusion, range/team changes, death and removal invalidate the old pin.
+
+Damage clock:
+StateModifyHealth15/25 targets m_FA3ECC43=#536. The1157 graph supplies the
+amounts and phase delay. In the tested base resource configuration, node25 uses
+amount13230=25 and node15 uses11984=100. The reconstructed service applies the
+default mode once at entry; m_95F1FB0B=1 applies amount/second over elapsed VM
+milliseconds. Continuous entry has zero elapsed damage. Repeat frames do not
+repeat damage; the state stores its last-applied time as causal VM state.
+This mode interpretation and clock are not original-server/native comparisons.
+Unsupported health states retain an explicit unknown service in strict mode.
+
+Victim control and lifetime:
+Combat.pins records source body -> victim body separately from timed stuns.
+The authored pin scope23 retains control through the delay between contact and
+continuous damage. Entry releases held input and stops running abilities via
+their existing exit paths, including Deadeye and its owned target effects.
+Controlled player input suppresses movement/actions/attacks while look/gravity
+continue under the existing control policy. This is server control, not a
+complete native pin/camera/QTE/effect implementation. Independent Flashbang
+deadlines survive pin release.
+
+Pin/health scope exit, manual stop, source stun/death/removal, target death/body
+retirement, target/geometry/team loss and script failure release control.
+Retained NPC corpses remain until explicit removal. The frame-end bridge removes
+control when scope23 no longer exists. BotWorld match/target bindings, health
+clock and Combat.pins are included in their enclosing causal snapshots.
+
+In the team sandbox, an allied player who lands a nonlethal quick melee on a
+pinning Assassin releases the victim through the existing manual exit. The
+engagement ends and can be started again explicitly. Actual Sombra input cases
+cover 30 melee damage and immediate rescue, an 8 damage pistol hit that leaves
+the pin active, and a missed melee. The release uses the recovered graph exit
+with the sandbox's explicit engagement policy.
+
+Recovery difference:
+Release Anim31 currently has no resolved animation-asset duration and can retain
+its stack indefinitely. A new explicit manual engagement interrupts that state
+through its authored end plugs before starting the new target. No fabricated
+animation duration is installed. Original release duration, cooldown, animation
+interruptibility and the native pin lifecycle remain open.
+
+Evidence:
+Eight new source tests use a synthetic1157 graph with real Match/vitals/player
+input. They cover elapsed/duplicate-frame damage, one-shot versus continuous
+application, scope exit, independent stuns, Deadeye interruption, source stun
+and death, range/occlusion/team refusal, target body replacement, explicit
+removal and causal clock storage. The server snapshot test also detects changes
+to the pin registry. These fixture tests do not prove native graph equivalence.
+
+A separate actual external-bundle matrix uses console selection/engagement and
+real player commands without target/controller injection or native-query
+overrides. Twelve cases pass stop, restart, removal, source death, actual support
+Flashbang, victim death, body replacement, a real triangle wall, range/team
+changes, pinned input and Deadeye interruption. The continuous phase deals16
+over ten16ms frames. Source/victim death cases use authoritative damage fixtures;
+they are not firing-input acceptance. Transport is an adapter, body VM execution
+is permissive, and original-client acceptance was not run.
+
+Still open:
+Native controller/foreign namespace/wire, health mode/clock/immunity/cleanse,
+complete cooldown and recovery, other teammate counterplay, autonomous
+approach/navigation/acquisition, lunge/pin victim poses, camera/animation/effects/
+audio/HUD/corpse presentation and full cross-hero/static/client acceptance.

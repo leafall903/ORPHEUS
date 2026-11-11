@@ -69,6 +69,40 @@ def array_item(instance, cfg, *, watcher=None):
     return values[index] if isinstance(values, tuple) and 0 <= index < len(values) else None
 
 
+def fold_values(instance, cfg, *, watcher=None):
+    """104319 1B77D80: collect first, then fold under provider1B76A60.
+
+    The seed is evaluated only for nonempty input. Failed seed/step evaluation
+    preserves the accumulator; a missing final config copies it. Provider keys
+    are index000C, count041A, accumulator050D and current item050E (hex).
+    """
+    component = instance.component
+    with component.operation():
+        values = tuple(_iter_values(instance, cfg.get("m_814F8EC3"), watcher=watcher))
+        provider = {0x0C: 0, 0x41A: len(values), 0x50D: None}
+        if values:
+            provider[0x50E] = values[0]
+        with component.parameter_scope(provider):
+            if values:
+                seed = cfg.get("m_418D9D9D")
+                if seed is not None:
+                    provider[0x50D] = evaluate_scalar(instance, seed, initial=None, watcher=watcher)
+                step = cfg.get("m_C239F989")
+                for index, value in enumerate(values):
+                    component.consume_work("config fold iteration")
+                    provider.update({0x0C: index, 0x50E: value})
+                    if step is not None:
+                        provider[0x50D] = evaluate_scalar(instance, step,
+                                                        initial=provider[0x50D], watcher=watcher)
+                # Native increments beyond the final item before the projection.
+                provider[0x0C] = len(values)
+                del provider[0x50E]
+            final = cfg.get("m_8054375D")
+            if final is not None:
+                return evaluate_scalar(instance, final, initial=expr.EVALUATION_FAILED, watcher=watcher)
+            return provider[0x50D]
+
+
 def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 

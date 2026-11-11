@@ -85,7 +85,12 @@ def _graphs(script) -> dict:
 
 
 def full_frame(script, snap: Snapshot):
-    graphs = _graphs(script)
+    live_graphs = _graphs(script)
+    graphs = {}
+    for owner, (index, _) in snap.instances.items():
+        live = live_graphs.get(owner)
+        # The last live baseline can outlive a removed or reused instance.
+        graphs[owner] = live if live is not None and live.index == index else graph.graph(index)
     wires = {
         item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
     }

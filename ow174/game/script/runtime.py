@@ -297,9 +297,11 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
-        if cfg.get("$") == "STU_4BD39CFD":
+        if cfg.get("$") in {"STU_4BD39CFD", "STU_A6B80C63"}:
             from ow174.game.script import play
 
+            if cfg["$"] == "STU_A6B80C63":
+                return play.fold_values(self.instance, cfg, watcher=self.watcher)
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import controller_heroes, entity_queries, entity_team
@@ -363,6 +365,9 @@ class World:
     """What the runtime asks outside its entity: the owner's hero and mode (for ruleset defaults), other
     entities, config vars the server cannot compute, and game messages to other entities. The base
     answers like an empty world."""
+
+    def permissive_state_enter(self, state) -> None:
+        """Optional body-specific reconstruction, never a native class implementation."""
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
@@ -457,8 +462,15 @@ class World:
         """Explicit reconstructed body search, or NotImplemented for unsupported searches."""
         return NotImplemented
 
+    def target_effects(self, state: "State"):
+        return NotImplemented
+
     def track_body_ray(self, state: "State"):
         """Explicit body ray result (visible, point), or NotImplemented."""
+        return NotImplemented
+
+    def body_raycast(self, state: "State"):
+        """Optional host service for an authored state ray."""
         return NotImplemented
 
     def play_body_script(self, instance: "Instance", node: Node) -> None:
@@ -466,6 +478,34 @@ class World:
 
     def body_modify_health(self, state: "State") -> None:
         """Optional explicit body health service; unsupported nodes have no effect."""
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
+    def body_health_pool(self, state: "State") -> None:
+        """Optional authored entity health-pool service."""
+
+    def create_pet(self, state: "State") -> int:
+        if state.instance.component.strict:
+            state.instance.component.unsupported(state.instance, "pet factory", state.node.cls, state.node)
+        return 0
+
+    def retire_pet(self, entity: int) -> None:
+        """Retire a factory-owned Pet when its source state ends."""
+
+    def destroy_body_entity(self, instance: "Instance", node: Node) -> None:
+        """Optional authored entity destruction service."""
+
+    def body_recall_target(self, state: "State"):
+        """Explicit owned-entity placement candidate, or NotImplemented."""
+        return NotImplemented
+
+    def body_recall_move(self, state: "State"):
+        """Apply a declared body recall request, or NotImplemented."""
+        return NotImplemented
 
     def body_ability_allowed(self, state: "State") -> bool:
         """Optional authoritative body status admission policy."""
@@ -692,7 +732,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1269,6 +1309,16 @@ class Instance:
             state = self.state(index)
             if state is not None:
                 state.button(button, pressed)
+        if self.graph.index == 0x00F2 and button == 36:
+            # 00F2/node4's compiled logical-button condition lists the idle
+            # state as its transition owner. The node itself is not a listener.
+            condition = self.graph.node(4)
+            owners = condition.field("m_122DF0CA") if condition is not None else None
+            for index in owners or ():
+                state = self.states.get(index)
+                if state is not None and state.active and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(component.now, 0, CHECK, state=state, button=button, pressed=pressed))
         component.button = NO_BUTTON
 
     def run_deferred(self) -> bool:
@@ -1421,6 +1471,9 @@ class Instance:
                         key = expr.guid_of(item.get("m_B5051BCE")) & 0xFFFF
                         if target is not None:
                             self.write(target, params.get(key))
+                caller = expr.dynamic(node.field("m_B60ABDA4"))
+                if caller is not None and caller[1]:
+                    self.write(caller, expr.Entity(sender))
                 self.follow(node, "m_outPlug", None)
 
 
@@ -1507,6 +1560,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These bits coalesce queued events; cancel just removed those events.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1588,6 +1643,8 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        if not self.instance.component.strict:
+            self.instance.component.world.permissive_state_enter(self)
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""
@@ -1682,18 +1739,23 @@ def message_entries(instance: Instance, message: int) -> list[Node]:
     return found
 
 
-def send_message(component: Component, message: int, params: dict, sender: int) -> int:
-    """Deliver a game message to every instance of the component (at now). Returns how many nodes get it."""
-    return sum(send_instance_message(instance, message, params, sender)
+def send_message(
+    component: Component, message: int, params: dict, sender: int, *, at: int | None = None,
+) -> int:
+    """Queue a game message on every matching entry, at the supplied time or the component clock."""
+    return sum(send_instance_message(instance, message, params, sender, at=at)
                for instance in list(component.instances.values()))
 
 
-def send_instance_message(instance: Instance, message: int, params: dict, sender: int) -> int:
-    """Queue a message at the component clock for only this graph instance."""
+def send_instance_message(
+    instance: Instance, message: int, params: dict, sender: int, *, at: int | None = None,
+) -> int:
+    """Queue a message for only this graph instance."""
     entries = message_entries(instance, message)
+    when = instance.component.now if at is None else at
     for node in entries:
         delivery = (message, dict(params), sender)
-        instance.post(Event(instance.component.now, 0, MESSAGE, node=node, message=delivery))
+        instance.post(Event(when, 0, MESSAGE, node=node, message=delivery))
     return len(entries)
 
 

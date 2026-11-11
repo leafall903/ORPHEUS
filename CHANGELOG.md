@@ -4,7 +4,347 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Sombra server integration handoff
+
+- Consolidate the current Sombra combat implementation, supporting hero and
+  Talon NPC code, and existing regression tests in one lane commit. The
+  original runtime data remains an external input.
+- Preserve the implemented D.Va Matrix, Boosters, Micro Missiles and
+  Self-Destruct timing across omitted input. Three focused Self-Destruct
+  tests passed, covering pilot return, blast timing, Translocator, projected
+  barrier, paid EMP and the five Talon NPC classes.
+- Full static matrix and original-client acceptance are pending. The
+  five-class Self-Destruct test uses continuous input, and cleanup of
+  launched missiles on an explicit pilot hero switch is unverified.
+
+### 2026-11-10
+
+#### Deadeye against Sombra
+
+- Run the original per-target charge and volley using the prepared 01EE graph.
+- Verify directed damage, lethal attribution, Camo and cover gates, and the
+  separate search and volley ranges. Native client acceptance remains open.
+
+#### Automatic NPC targeting of an owned D.Va mech
+
+- Resolve a driven mech through its pilot and aim at the current body.
+- Verify Matrix interception for all four ranged NPCs, Sombra Hack and EMP, lethal hit
+  attribution and reacquisition of the returned pilot. Native client
+  acceptance remains open.
+
 ### 2026-11-09
+
+#### Talon melee against Sombra
+
+- Route Trooper 1422 and Heavy Assault 140E targeting and damage
+  through their authored melee graphs. Use reconstructed capsule LOS
+  and yaw transforms for the authored offsets and radii.
+- Verify melee cooldown, interruption of Sombra's Hack, and melee
+  availability during Hack and EMP.
+- Apply Genji's authored frontal parry to both NPC melee graphs.
+  Thirteen static melee regressions pass. Native client acceptance remains open.
+
+#### Static NPC acquisition against Thermoptic Camo
+
+- Add optional automatic target acquisition to the sandbox NPC spawn API.
+- Reuse the authored Camo proximity scope and actual NPC attack inputs. Verify
+  all five classes, cover, team exclusion, target switching and manual controls
+  in 17 static tests. Native perception and navigation remain open.
+
+#### Opportunist in server match inspection
+
+- Derive separate health-bar and outline eligibility from live enemy
+  pools, team and visibility. Expose both in the Sombra viewer's
+  diagnostic match snapshot. Native HUD delivery remains open.
+
+#### Sombra Hack on placed health packs
+
+- Mount original 0FC2 and 0FC3 placements and the 0046 pickup script
+  from the explicit 104319 health-pack bundle. Sombra's actual cast
+  runs 0B1F on the selected pack and changes the refill value until
+  the authored expiry clears ownership.
+- Test aim, range, line of sight, release, cooldown, and stored
+  state. Selection uses a reconstructed collision volume.
+- Feed player contact into the original 0046 pickup message. The
+  graph applies healing and controls the normal and hacked refill.
+  The host admits the caster and teammates during Hack.
+- Bind the sender to the declared caller output in compatibility
+  game-message entries, after the authored parameter outputs.
+- Resolve the pack tag for the authored half-cooldown branch.
+  Recheck control at acquisition, channel and submission, and
+  replace the previous pack effect after a successful refresh.
+- Include eligible packs in EMP's radial search and preserve the
+  authored 0B32 to 0B1F request and caster ownership.
+
+#### Sombra against Reinhardt's Barrier Field
+
+- Host the actual 011A Pet and its 0096 pool from Reinhardt's raise input.
+  Sombra pistol hits use the recovered barrier mesh at a reconstructed
+  attachment pose. Quick melee reaches the body through the field.
+- Sombra EMP routes the tagged barrier through 0B32's separate damage
+  branch. Enemy selection uses the barrier anchor and static collision.
+- Check the enemy barrier mesh during Hack acquisition and channel.
+  A successful rear Hack lowers the field via its release path.
+- Notify authored variable gates when a linked ability cooldown expires.
+  This lets Barrier Field's graph return to its input branch after EMP
+  breaks the shield and the break lock elapses.
+
+#### Sombra pistol and EMP against Sigma Grasp shields
+
+- Absorbed pistol damage runs the authored 1D02 conversion into the 1D03
+  temporary shield pool. The host projects the pool into health snapshots,
+  spends it first on later damage and applies the authored decay rate.
+- Sombra EMP drains both temporary and base shields while preserving
+  ordinary health and armour. Shield drain is excluded from ultimate gain.
+
+#### Sombra pistol against the D.Va mech
+
+- Selected body definitions now supply their own scripts and health pools.
+  The explicit 0407 form uses its authored entrance wait and Matrix
+  resource graph, with scoped owner and ruleset queries.
+- Sombra pistol rays encounter active Matrix boxes in the defender's aim
+  frame. Tests cover front and rear shots, release, resource exhaustion,
+  melee, Hack and EMP. Mech transitions and native presentation remain open.
+
+#### Sombra quick melee against active guards
+
+- Genji's original melee filter now receives the attack tags, positions
+  and defender aim after the ordinary range and wall checks.
+- Actual inputs cover frontal parry, rear damage, expiry and Hack.
+  Sigma's active Grasp leaves quick melee damage and charge intact.
+
+#### Sombra pistol against Genji and Sigma
+
+- Pistol rays now encounter Genji's Deflect and Sigma's Grasp in their
+  authored guard windows. The host attaches the resource boxes to each
+  defender's eye and aim and orders them against bodies and static cover.
+- Deflect returns the remaining ray along the defender's aim and credits
+  the defender. Grasp delivers nominal damage to the authored absorption
+  accumulator. Temporary shield conversion remains open.
+- Actual input tests cover frontal and rear shots, walls, Hack and EMP.
+
+#### Flashbang flight against Sombra
+
+- The enemy Flashbang now reads its launch lift and gravity from the
+  original ability resources. The server applies gravity before each
+  fixed-step sweep and detonates at the range-derived deadline.
+- Actual throws cover the arc, expiry blast, wall occlusion and
+  Sombra's control interruptions. The sweep order and expiry behavior
+  are server reconstruction choices.
+
+#### Sombra Camo proximity and Hack targeting
+
+- The original Camo search now tracks living hostile bodies inside its
+  authored radius. The server measures distance between body origins.
+  The active search also defines the cloak scope for Hack targeting.
+- Hack skips concealed targets before ranking and checks concealment
+  during the beam. Aimed damage and EMP still interact with the body.
+  Native visibility presentation remains a separate acceptance item.
+
+#### Sombra pistol critical damage
+
+- The original pistol's unbound critical multiplier now uses a reconstructed
+  2x default. The body references a profile with value 2, and the captured
+  initializer leaves a sentinel. Native resolution and skeletal hit volumes
+  remain open. The server uses its existing upper capsule region.
+- Player and five NPC torso and head shots exercise damage, the critical
+  report flag, ammunition and charge. Shield, armour and wall cases check
+  the existing pool and collision paths. Far bursts reconcile ordinary and
+  critical damage separately.
+
+#### Uncommitted Sombra sampled pistol rays
+
+- Review the shared no-decay239B571E normalized spread ramp and add its baked
+  spread_ramp field to the causal WeaponVolley snapshot layout. Original Sombra
+  0B1B uses ramp3 and cone endpoints0.5/2.4 degrees. Actual shots now use the
+  sampled cone instead of a constant crosshair ray. Other hero ray policies
+  and optional between-shot decay are outside this scoped adapter.
+- Reuse generated uniform/float tables and native cone/rotation math. Own probes
+  reproduce every32768 table value and independently execute original ramp,
+  angle, seed, sampler and transform code, including near-vertical aim. The native squared-length threshold fixes the near-pole axis; engine lookup/libm adapters are
+  explicit. Body/instance/node/counter seed identities and uniform-radius mode
+  are declared server reconstructions; native caller binding is unaccepted.
+- Eleven Sombra methods cover actual ramped cones, sampled rays, hits/misses,
+  ammo/pool-loss/charge accounting, walls, repeatability and causal snapshots,
+  including near/far bursts against allfive actual NPCs. Update the NPC tangent
+  test to locate the capsule relative to the sampled ray instead of assuming
+  a bullet always follows the crosshair. No random sampling is disabled.
+- Full regression records remain outside Git. Prior451 results describe the
+  earlier frozen source. Full static acceptance and native client remain open;
+  no partial hero commit or integration readiness.
+
+#### Uncommitted Sombra phase defense and McCree camera checks
+
+- Reuse the reviewed Wraith/Fade adapter from the isolated Mei lane. Actual
+  ability input enters original0020/0F7C graphs; live8440/6604 Stack ownership
+  bounds protection, excluding the longer10467 recovery flag. Only the scoped
+  zero-delay entry is reconstructed; there is no generic unknown-state success.
+- Intangible bodies are excluded from hostile searches, with damage, control
+  and Hack application guards at their service boundaries. Original waits and
+  cooldowns remain authoritative. Direct tests cover pistol/melee/Hack/EMP,
+  mid-channel interruption, rear-player hits, recovery, replacement and cooldown.
+  Phase immunity and intangibility are declared host policies; native parity,
+  cleanse and the full cross-hero defense matrix remain open.
+- Use original McCree first-person offsets1.425/.9975 for shooting and throws.
+  Six actual bidirectional cover/control methods retain the separate existing
+  critical-region descriptor. This does not establish native headshot geometry.
+- These changes supersede the previous433-check source fingerprint. Current
+  frozen regression results are recorded outside Git; no partial hero commit.
+
+#### Uncommitted Sombra notification lifetime and automatic reload
+
+- Reuse only the reviewed canceled-event marker fix: State.end clears pending
+  CHANGED/CHECK bits after cancellation, and Component.changed ignores ending
+  states. Three local before/after tests fail with exact old lane methods and
+  pass after the fix, including real join CHECK reentry. No persistent fields.
+- A real Sombra clip exposed a second gap: the getter reached0 while the reload
+  BooleanSwitch retained false despite its live condition being true. WeaponVolley
+  now publishes spent-ammo changes from its existing reported-shot count. This
+  is an explicit host notification bridge; native phase/timing remains open.
+- Against actual Heavy, the old report path spends60 rounds/480 health then
+  stays empty900 frames; the new path reloads twice by511 frames and reconciles
+  120 rounds/960 health. A fresh shot after the authored reload scope ends
+  spends one round/deals8. Repeated Camo/EMP handoffs preserve ammo and charge;
+  allfive NPCs pass two Camo exits each. Four Sombra methods pass.
+- Parent's1151 checks are provenance only. Its separate Ability.stop arbitration
+  reorder is not imported; selected Sombra accounting passes without it. Full
+  cross-object/native stop order and the complete static matrix remain open.
+  All433 related checks pass (393 combat,40 full snapshot), zero skips, with
+  fixed unchanged source/tests/inputs.55 native fold comparisons pass separately.
+- Preserve the event-budget cap8 and whole-component invalidation checks. Count
+  all eight dispatched events, including ammo notifications/state events, rather
+  than assuming all eight are injected test callbacks. All eight budget tests pass.
+
+#### Uncommitted native config fold in Sombra charge
+
+- Review/reuse the isolated generic A6B80C63 fold patch and remove Sombra's
+  empty-bucket0 shortcut. The native loop collects before pushing its provider,
+  skips the seed for empty input, preserves null accumulator, runs the final
+  projection and unwinds scoped parameters. No new stored-state fields.
+- Independently execute35 original loop and20 provider cases. Engine iterator,
+  config, variant/vector and cookie services remain declared adapters. Nine
+  generic tests and seven Sombra methods pass, including actual pistol empty
+  fold typed null, real0B8B itemized map fixtures, profiles/cap, identifier typing,
+  target/tag refusal, allfive NPC bodies and live passive provider snapshots.
+- Combat still emits an empty excluded-record tuple. The native production and
+  meaning of3EBB records remain open; synthetic itemized messages do not prove
+  native prevented-damage accounting. All433 related frozen checks pass, zero
+  skips;55 native comparisons are separate. Full original static matrix stays open.
+
+#### Uncommitted shared Ability press-buffer correction
+
+- Review and reuse only the parent's original-timestamp fix: inspect a retained
+  press without consuming it while start gates refuse, then consume on admission.
+  Previously can_start replaced the timestamp with now on every refusal, allowing
+  released input to survive beyond the authored early-press window.
+- Reproduce against exact lane HEAD logic: an early released Translocator press
+  creates a new beacon after cooldown; corrected logic leaves none. Six actual
+  Sombra methods cover expiry/fresh press, original timestamps, the20ms window,
+  held input, Camo refusal/recovery and melee's150ms window. Correct a legacy
+  melee test that expected an early released press to survive past its buffer.
+  All410 related checks pass (370 combat,40 full snapshot), zero skips, with
+  unchanged source/tests/inputs. Ruff and diff checks pass. Full static goal open.
+  Parent's1098 checks are provenance only and are not counted as lane evidence.
+
+#### Uncommitted Sombra first-person combat origins
+
+- Use body121C's authored first-person offsets1.3m standing and0.91m crouched
+  in the reconstructed shooter origin. Previously it used generic1.55m/1.15m,
+  allowing level shots over cover above Sombra's camera. Keep the legacy critical
+  region descriptor distinct; camera heights do not establish native hit regions.
+- Six methods pass, including actual stance transitions, both sides of cover,
+  owned Translocator throws and20 cases across allfive actual NPC classes. A
+  before/after probe confirms8 damage through1.4m/1.0m walls becomes0. All410
+  related fixed-source/test/input checks pass, zero skips. Muzzle transforms,
+  animated critical volumes and NPC firing origins remain open.
+- Re-execute the original null critical-config initializer from the existing
+  captured image: it stores-1 without engine stubs. This disproves a native
+  default1 claim but does not recover downstream sentinel resolution. Keep
+  the current critical fallback explicitly unaccepted; no guessed multiplier.
+
+#### Uncommitted Sombra authored ultimate charge integration
+
+- Run original0B8B for matched Sombra with declared external body/tag context.
+  Replace its legacy60s fill with the graph's5-point/1s clock. Route resolved
+  character pool loss through original0012 parameters, tag exclusions, multipliers
+  and caps. Preserve EMP025A/1FD exclusions and the original post-cast5s blocker.
+- Supply scoped player-owner/character/relationship/static-tag/empty-fold services
+  and a002D lifecycle notification. Active-cast suppression is an explicit bridge;
+  native filters, dynamic tags, nonempty damage buckets and lifecycle timing remain open.
+- Keep the explicit natural-charge pause and restore its prior multiplier. Retain
+  Sombra energy through internal same-hero respawn; explicit hero/body selection
+  resets it. Store loaded context, digest, pause and pending respawn state.
+- Add13 actual-data charge methods including all5 NPCs, damage/armor/shields/
+  overkill, miss/LOS/team/received damage, EMP/device exclusions, readiness/spend,
+  natural timing/profile/cap and passive snapshot capture. All398 related checks
+  pass (358 combat,40 full snapshot), zero skips, with fixed source/tests/inputs.
+  Ruff and diff checks pass. Full static acceptance remains open; no hero commit.
+
+#### Sombra actual NPC mover correction and geometry evidence
+
+- Correct an input limitation: runtime-104319's38 mover records omit all five
+  Talon NPC bodies. Earlier NPC geometry used the generic fallback. Those results
+  remain partial graph/combat evidence and do not establish original NPC dimensions.
+- Use the parent's external43-record npc-navigation-runtime as immutable input;
+  retain the separate actual-NPC graph bundle. Require explicit mover records in
+  actual-NPC acceptance fixtures rather than silently accepting the fallback.
+- Add10 actual-data Match methods/85 NPC cases for target dimensions, width/top
+  hit/miss, near/far damage, release/reload/reuse, melee/Hack/EMP surface ranges,
+  full walls and upper-body shots over low cover. Pass385 distinct checks with corrected inputs:
+  345 combat/NPC/script and40 full VM/server snapshots; zero skips.
+  Source/test/input hashes stay fixed across both groups. Ruff/diff pass.
+- Preserve open native hit volumes/hardpoints, aim origin, filters, skeletal and
+  moving-target behavior. The runtime has no prepared real-map collision cache;
+  no original-client deployment or NPC navigation acceptance is claimed.
+- Native research maps candidate4343388F to component0F and finds flag/override
+  pointer consumers. Wrecking Ball also contains it; passive identity and health
+  threshold/range remain unproven. Do not implement Opportunist from this guess.
+
+#### Uncommitted Sombra and actual Assassin pin integration
+
+- Reuse reviewed, hash-pinned parent worktree Assassin/manual-context code only
+  inside this clone. Keep Sombra Hack/EMP, Translocator and causal namespace storage.
+  The data-only controller Map,3m contact and health clock are reconstructions.
+- Preserve damage tags and apply contact damage before forced control so Sombra
+  Hack receives its authored damage-cancel cooldown. Release/reject the pin skill
+  during Hack and produce a fresh input edge at expiry. Preserve corpse/lifecycle
+  cleanup and independent timed stuns; store the pin registry and health clock.
+- Add11 actual1157 Match methods for Sombra bidirectional attacks/skills/control,
+  resources, death, range/LOS/team/body retirement and passive clock/context export.
+  Pass375 distinct fixed-source checks, zero skips, plus Ruff/diff checks. All new
+  hero work remains uncommitted until the complete static goal passes.
+- Correct13C3's supposed hostile health node: it targets itself with a zero amount.
+  Full native/controller/clock/immunity/recovery/escape/autonomy/client acceptance
+  remains open; no graph inspection alone counts as enemy damage evidence.
+
+#### Uncommitted Sombra Translocator entity foundation
+
+- Keep new hero changes uncommitted until the complete static goal passes, as
+  explicitly required. Replay reviewed native input-join2ca9178 only in the clone.
+- Create server-owned entity1575 from actual0C19 volley output; load original0C1A
+  and establish authored5-health pool without an owner lease. Retain source/body
+  identity and original0B75 stop/reset notification. Preserve ordinary NPC/player
+  allocation defaults through an explicit optional resolver/world/source.
+- Reconstruct fixed-step gravity/bounce/settling from authored launch data with
+  documented host coefficients. Verify real enemy destruction, owner/ally exclusion,
+  non-damage to all five actual NPCs, cooldown/rethrow, control/death/expiry/replace
+  cleanup. Full native physics/filter/device interactions and
+  original-client movement/ACK/presentation remain OPEN.
+- Host original0C19 ownership/selection/movement for explicit server recall, with
+  actual mover-capsule placement refusal. Preserve original throw admission and
+  route manual recycle through the beacon's original message graph. Reconstruct
+  instantaneous relocation with zero velocity; native curve/momentum/timing,
+  swept alternative placement and immunity remain open. Set the fall flag rather
+  than the composite air mask so landing remains possible.
+- Pass350 distinct checks with implementation source fixed through both groups:
+  310 combat/NPC/shared-script and40 passive VM/server snapshots,
+  including complete stored replay. Seventeen entity/recall methods include
+  five actual-NPC subcases. Ruff/diff pass; no new hero commit is created.
+- Register entity state and raw definition data in passive server storage. Encode
+  cross-Component VM references explicitly; reject ambiguous Var registration.
+  Standalone VM namespaces retain strict foreign-reference refusal.
 
 #### Sombra damage/control ordering and actual interruption checks
 

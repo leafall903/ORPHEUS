@@ -13,6 +13,14 @@ Eleven further methods in test_game_sombra_emp.py and one five-body NPC pulse
 method now execute the actual EMP cast and application graph chain.
 Eight further methods in test_game_sombra_control.py execute actual Flashbang
 interactions:6 player methods (7 cases), plus2 actual-NPC methods (9 cases).
+Seventeen methods in test_game_sombra_translocator.py cover reconstructed entity,
+flight, health/lifecycle/recall and one five-NPC non-damage recall scenario.
+Eleven methods in test_game_sombra_assassin.py execute actual1157 pin inputs against
+Sombra, bidirectional Hack/EMP and interruption/death/control/lifecycle cases.
+Ten methods/85 cases in test_game_sombra_npc_geometry.py use explicit104319 NPC
+mover records for capsule boundaries, ranges, release/reload and static occlusion.
+Thirteen methods in test_game_sombra_charge.py execute original0B8B charge from
+real Match damage/natural timers/EMP/lifecycle, including all five NPC classes.
 No live client session was acquired for this change. No skill is fully accepted.
 
 Extracted body roots: 0033,004B,0043,0B1A,0B31,0C19,0C9B,08B6.
@@ -23,27 +31,183 @@ the authored bindings, not separately verified in a native client here.
 
 Acceptance matrix
 -----------------
+
+Zarya's authored self-barrier 0244 creates a separate 0256 pool.
+Sombra's pistol and quick melee consume the pool without damage
+spillover, and the bubble blocks Hack until the authored Pet expires.
+The host uses the protected body's capsule as the barrier proxy.
+The absorbed amount reaches 0242 through the 0256 damage and energy
+messages. The 0241 primary beam uses that energy in its authored
+damage expression. Its server ray uses eye origin, player capsules
+and one damage sample per posed command. Projected Barrier 025C
+uses the same pool and energy path with a separate protected ally.
+The host selects an allied capsule in range and in line of sight.
+Sombra's pistol, melee and Hack are intercepted on the recipient,
+energy goes to Zarya and replacing the recipient body retires the
+Pet. Both barrier entities declare target tag 003A. EMP uses the
+covered body's capsule for range and static line of sight and runs
+the 0B32 barrier damage branch before applying the body branch.
+The original engine's pulse order and EMP energy credit remain open.
+Particle Cannon secondary fire uses the 0241 node41 volley, spends 25
+ammunition and delivers 47 base splash damage on a near hit. Damage
+increases with energy earned from the bubble. The server evaluates the
+authored 7389 gravity value (9.8) and sweeps the arc using its fixed-step
+projectile integration. Tests cover wall occlusion, near and out-of-radius
+splash, aim miss and team exclusion. The secondary remains usable during
+Hack and EMP. Incoming secondary impact interrupts an active Hack with
+the short damage cooldown and ends Camo if damage reaches the owner.
+Wall occlusion preserves Camo. A fatal secondary hit during a paid EMP
+windup prevents the pulse, while a nonfatal hit allows it. Native arc
+timing, splash and knockback remain open.
+
+Graviton Surge 025F node1 now uses its authored 7389 gravity with the
+same sweep. Actual ultimate input covers charge admission, debit, cast
+end, direct 5 damage and wall, aim and team exclusions. Hack and EMP
+preserve the charged resource and block launch until silence expires.
+The post-impact 03E2 field uses the isolated 0068 lane's recovered
+0260 duration and radius and 0261 damage and pull data. A wall impact
+can pull and deal 20 damage over four seconds to a visible Sombra
+without input. The host uses capsule range, static LOS and collision
+sweeps at a reconstructed pull speed of 3 m/s. The field and pull
+state are represented in snapshots. A deployed field survives caster
+death and body replacement and retains the cast's original body and team.
+Departure removes the field or in-flight projectile and releases the pull.
+Damage interrupts an
+active Hack and Camo with their damage cooldowns. A nonlethal field
+tick does not prevent an already paid EMP pulse. A player being pulled
+cannot recall an existing Translocator, and can do so on a fresh input
+after release. This is a scoped recall gate. Switching the caster's
+hero during flight destroys the old body's confirmed prediction lease.
+The server projectile continues and credits the original body on hit
+and field creation. Overlapping fields each deal damage, with one pull
+per tick in field creation order. The surviving field keeps recall
+locked when the earlier one expires or its caster leaves. Lethal
+damage from a later field clears an earlier pull in the same tick.
+An allied 0407 Matrix can intercept hostile 03DB and 08CE projectiles
+before they reach Sombra. The current centre sweep compares the
+authored Matrix boxes with the first wall or body impact. Absorption
+retires any prediction lease and prevents damage, splash and field
+creation even when no lease exists. Back-facing and friendly Matrix
+boxes leave the projectile to its ordinary collision path.
+Allied Sigma Grasp uses the same sweep and feeds absorbed secondary
+and Graviton damage into its authored 1D02 accumulator. Conversion
+creates 28.2 or 3 temporary shield from those shots, respectively.
+The nearest eligible absorber resolves first.
+Allied Genji can also return either Zarya projectile. The sweep
+chooses the first eligible guard before wall or body contact. Deflect
+retires the original prediction and transfers the projectile team and
+damage source to Genji. A returned Graviton creates a Genji-owned field
+and leaves his teammate Sombra unaffected.
+Native field hosting, client presentation after
+replacement and input ordering at field entry remain open.
+
 O = offline partial evidence only; C = explicit conditional fixture; - = open/no evidence. Every cell still needs
 original-client acceptance. NPC means the actual named combat actor, not a
 Training Bot relabelled as one.
 
 Feature                      Enemy player Trooper Enforcer Sniper Assassin Heavy
 Machine Pistol body damage        O          O       O       O       O       O
-Machine Pistol ammo/reload        O          -       -       -       -       -
-Machine Pistol range/falloff      O          -       -       -       -       -
-Machine Pistol headshots          -          -       -       -       -       -
+Machine Pistol ammo/reload        O          O       O       O       O       O
+Machine Pistol range/falloff      O          O       O       O       O       O
+Machine Pistol headshots          O          O       O       O       O       O
 Quick melee/repeated activation   O          O       O       O       O       O
-Taking damage/death/dead fire     O          O       O       O       -       O
+Taking damage/death/dead fire     O          O       O       O       O       O
 Hack/channel/interrupt/lockout    O          O       C       O       O       O
-Camo/speed/visibility/reveal      O          -       -       -       -       -
-Translocator/flight/recall        -          -       -       -       -       -
+Camo/speed/visibility/reveal      O          O       O       O       O       O
+Translocator/flight/recall        O          O       O       O       O       O
 EMP/charge/cast/hack/pool effects O          O       O       O       O       O
-Opportunist/passive detection     -          -       -       -       -       -
+Opportunist/passive detection     O          O       O       O       O       O
 Manual NPC corpse persistence   n/a          O       O       O       O       O
 EMP Hack/stun independent clocks O          O       O       O       O       O
 
 NPC Hack cells cover application/ownership/expiry only; they do not establish
 interruption of every NPC attack or special. Enforcer C is explained below.
+NPC Translocator cells cover non-damaging throw/recall for all five bodies.
+Trooper, Enforcer, Sniper and Heavy primary fire also destroy an enemy beacon
+when it intercepts a shot aimed at a player, and leave an allied beacon intact.
+The static firing lane uses Sniper's authored reposition inhibit.
+The hosted Trooper and Heavy melee searches damage the owner and leave a
+beacon at the centre of the search intact. Native melee filter bits remain
+unresolved. Assassin 1157 and Heavy 1408/1407 hold the owner while the
+beacon stays live, block recall during capture, and allow recall after release.
+Enemy player Hack and EMP likewise block recall until the owner status expires.
+The deployed beacon stays at 5 HP inside the tested EMP pulse.
+Device acquisition by NPCs, other special interactions, and native placement
+and movement remain open.
+NPC pistol range cells now cover near/floor damage and body capsule boundary
+hit/miss; native spread/critical volumes and the complete moving-target matrix stay open.
+Headshots use the reconstructed critical volumes in test_game_sombra_critical.
+Opportunist cells cover the authoritative health eligibility view in
+test_game_sombra_opportunist. Camo cells cover proximity entry, exit and cancel
+cleanup on all five actual NPCs in test_game_sombra_visibility. Manual NPC
+weapon engagements in test_game_sombra_npc show Trooper, Enforcer, Sniper and
+Heavy weapon damage ending Camo and starting cooldown. Assassin pin interrupts
+Camo through the separate control path in test_game_sombra_assassin.
+npc.spawn(..., autonomous=True) enables static automatic acquisition using the
+existing sandbox engagement ranges, nearest eligible player, team and LOS.
+The Camo tracker excludes all five from acquisition beyond 2 m while active.
+Moving inside or cancelling Camo admits actual attacks. Manual console spawns
+default to explicit engagement. Native AI perception and navigation remain open.
+
+Corrected actual NPC geometry input
+----------------------------------
+Parent review found that runtime-104319/data/game_movers_174.json has38 records
+and omits all five Talon bodies. Earlier NPC fixtures therefore used Soldier's
+fallback capsule; they do not prove original NPC dimensions. Current acceptance
+requires explicit body records and refuses that old input rather than skipping
+or silently accepting the fallback. Prior350/375 checkpoints remain historical.
+
+Use the external immutable npc-navigation-runtime with43 mover records as the
+general runtime, and npc-runtime as the actual-NPC graph source. Parent's existing
+prepare_npc_navigation_runtime.py extracts body XML through the established mover
+field map. mover-preparation.json pins source hashes and output SHA256. Values:
+Trooper height1.7/radius0.5/speed5.75; Enforcer1.9/0.5/5; Sniper1.75/0.5/4.5;
+Assassin1.5/0.5/14; Heavy2.3/0.7/2.2. The loaded canonical table and actual Match
+Target dimensions must reference these body records, never a shared fallback.
+
+Ten Match methods/85 cases cover width and top hit/miss, near8/far2.4 damage,
+release/no-extra-shot/reload/fresh-fire, full walls against pistol/melee/Hack,
+melee/Hack/EMP capsule-surface boundaries, EMP wall refusal, and upper-body fire
+over low cover. Enforcer positive Hack cases explicitly clear14679 and remain
+conditional. The corrected-input worktree passes385 distinct checks:
+345 combat/NPC/script (482.482s),40 complete VM/server snapshots
+(655.379s), zero skips. Both groups preserve identical source, test and
+runtime-input hashes before/after, including the full stored replay. Ruff/diff pass.
+
+These are mover-derived capsules in static collision fixtures, not decoded
+skeletal hit volumes, critical bones or animated hardpoints. NPC shot origin still
+uses the host's EYE constant. Native aim/filter/defense interactions and moving
+target/native navigation acceptance remain open; loading speed values does not
+prove native movement. The new runtime has no prepared real-map collision cache,
+and its other metadata files are shared read-only hardlinks. Do not write them.
+
+Opportunist eligibility and native research
+--------------------------------
+STU4343388F is an empty8-byte body component mapped by native F525E0 to component
+0F. Presence consumers read an enabled flag at+20 and override pointer at+28;
+the observed getter falls back through the entity's definition data. Wrecking
+Ball200B and other definitions also contain it. This disproves the earlier
+"Sombra-only" inference from a Soldier comparison, but does not establish the
+component's complete meaning. Static artifacts remain outside Git in
+sombra-passive-frontier.json and passive-*.txt.
+
+The server match snapshot reports health-bar and outline eligibility
+separately for a live Sombra viewer. The February 2018 retail notes give
+the threshold rules. A damaged target can expose its health bar under
+static LOS. A live enemy at or below half its total pool can expose an
+outline through a wall. The host uses the same Camo proximity and phase
+exclusions as its target model and applies the rules to the five actual
+NPC definitions. Native range, view-frustum and render/transport bindings
+remain open.
+
+Repeated match inspection produces equal diagnostics and preserves
+the stored VM state of both bodies. A real lethal shot against the
+viewer clears the diagnostic contacts. Actual enemy Hack leaves the
+host's passive eligibility available during the reconstructed silence.
+Actual Machine Pistol damage puts Tracer below half health. Recall removes
+the covered outline for its protected phase. On exit the outline returns
+when Recall restores a wounded history sample and stays absent when Recall
+restores full health.
 
 Additional applicable interactions:
 - O: offensive pistol and melee ignore same-team player in a team mode.
@@ -87,8 +251,58 @@ The tests observe ten8-point body hits and ten rounds spent over30 input frames,
 and one2.4-point hit past35m. The existing linear falloff, capsule hitbox and
 armour half-damage rule are reconstructed and still need retail verification.
 The head critical multiplier in this volley's extracted m_A872C70E is null;
-the current fallback is1.0. A passing body-damage test does not prove headshots.
-Native default/enable-bit semantics must be resolved before accepting head damage.
+the current fallback is1.0 and is NOT a proven native default. A lane-local
+Unicorn probe executes originalD88A9F andD8B52D..D8B548, including scalar helper
+8F6350 without engine stubs, and observes-1 at runtime+64 for null config+98.
+This reproduces the reviewed Genji research on the same immutable104319 capture.
+Downstream sentinel/default resolution, native hit regions and enable bits remain
+OPEN. Neither body-damage checks nor this initialization prove headshots.
+
+Sombra first-person combat origins -- uncommitted partial correction
+------------------------------------------------------------------
+Body121C STUFirstPersonComponent supplies m_E29993A5=1.3 and m_816B830F=0.91.
+Previously the shooter substituted generic1.55/1.15. The reconstructed combat
+origin now uses these authored standing/crouched values; actual gun/throw paths
+consume that origin. It is not a recovered animated muzzle/hardpoint transform.
+Target.eye belongs to the old critical-region heuristic and remains distinct:
+camera height does not prove a critical volume. An initial coupled version made
+enemy Soldier torso shots count as critical and killed Sombra before the EMP
+death fixture's intended windup; that regression was rejected and the heuristic
+descriptor restored. Native critical regions/defaults remain unaccepted.
+
+Six methods verify the original XML hash/values against live shooter stances,
+retained critical-descriptor independence; real crouch/stand changes; actual level pistol hits on both sides
+of cover; and the original Translocator volley creating its owned entity from
+each stance. Allfive actual NPC classes pass20 standing/crouched cover hit/miss
+cases with their explicit43-record mover input. Before/after actual pistol runs
+show the old1.55/1.15 origin inflicting8 damage through1.4/1.0-high cover while
+the corrected1.3/0.91 origin is blocked. All410 related checks pass (370 combat,
+40 full snapshot), zero skips, with identical unchanged source/tests/inputs.
+Other hero origins and NPC muzzle positions retain their existing fallback;
+no skeletal hitbox/critical/native client acceptance follows from these cases.
+
+Shared Ability input buffering -- uncommitted reviewed parent correction
+----------------------------------------------------------------------
+Parent reported a can_start defect also present in this lane: take_press consumed
+an unavailable press and reinsertion replaced its original time with now on every
+check. A released short press could consequently survive until cooldown ended.
+Only the reviewed take_press(retain=True)/consume-after-admission change is reused;
+no unrelated parent Roll/Deadeye/navigation work enters this lane. Parent's1098
+checks are not this lane's evidence. Raw parent source/hash/slice provenance stays
+outside Git in ability-buffer-parent-review.json and reviewed-parent-ability-buffer.txt.
+
+A before/after probe uses the exact old can_start from lane HEAD in an isolated
+process. Actual throw/manual recycle enters the original six-second cooldown;
+an early one-frame throw press then released input creates a beacon at expiry
+with old logic, but none with corrected logic. Six actual Sombra methods verify
+original timestamps, expiry, fresh press, held input and the last20ms authored
+Translocator window, plus Camo early refusal/recovery and melee's150ms window.
+The prior melee test's second short press after0.72s depended on infinite
+refresh; it now verifies expiry before accepting a new ready press. The20ms window spans only
+the last simulation frame here; it is not a generic150ms replacement. Complete
+related frozen regression passes410 checks (370 combat,40 full snapshot), zero
+skips, with identical unchanged source/tests/inputs. EMP and all other skill/control/
+resource-window combinations, native input timing and client parity remain OPEN.
 
 The shared melee fix adds a static ray to the rewound capsule's nearest surface
 along its axis. It uses existing collision geometry, not a fabricated game asset.
@@ -208,6 +422,130 @@ OPEN, as do navigation, difficulty/conditional pools and original-client wire,
 HUD, model, projectile observer and presentation behavior. FakeClient omits NPC
 projectile observer streams and records death callbacks; this is no wire proof.
 
+Ordinary primary fire now has direct silence-window evidence for Trooper,
+Enforcer, Sniper and Heavy Assault. Actual Hack and EMP leave each primary
+available when started after silence begins. A second Sombra can apply the
+same effects during ongoing fire without clearing the held logical input
+or preventing subsequent damage. The Assassin's 1157 pin has a separate
+interruption path. Other NPC attacks still need individual evidence.
+Trooper 1422 and Heavy 140E now run their authored button31 melee
+graphs, including the search and ModifyHealth nodes. The host rotates
+their local search offset by yaw and uses the authored radii against
+visible enemy player capsules. The ordinary fixture deals 30 and 80
+damage respectively. Wall, range, team, stun, cooldown and post-release
+reuse have direct tests. Both swings remain available during Hack and
+EMP and can interrupt Sombra's active Hack. These tests send the NPC
+logical input explicitly. Native hit volumes, autonomous special
+selection remain open.
+
+Sniper 142C now hosts its resolved MoveTo request on the actual NPC
+capsule. Its search state can sample static ground along a forward
+fan and publish a destination through the authored output slots.
+The static policy uses the graph's range, angle and spacing scalars,
+requires both line of sight and capsule clearance, then ranks by
+height and distance. The graph runs both windup waits, moves at its
+configured speed and returns to idle after arrival or static blocking.
+Applied Hack or EMP rejects a pending run or aborts an active move
+through the authored landing and recovery states. With a bound
+living manual enemy, the idle message receiver now reaches the
+search through its original gate and wait. The manual engagement
+entry reevaluates an already idle gate. Stopping engagement aborts
+active movement through its authored recovery, and a fresh manual
+engagement can start another move after the authored cooldown.
+The tests also verify message
+0A45 suppression and ordinary fire after repositioning. The host
+interprets the exact node40 and node46 vector configs as yaw and
+pitch in degrees, and centres its ground fan on the generated
+horizontal direction. The idle fixture verifies the resulting
+off-axis destination and arrival. A blocked search remains active
+when it has an authored direction. Node41's quarter-second wait
+writes another direction through node46, which retries the search.
+Hack and EMP end the pending search and timer. The idle search also
+checks its authored engagement gate before each retry. A lost or
+now-allied target ends the search without publishing a destination.
+Restoring an eligible enemy allows the gate to start a new search.
+The host also revalidates a bound enemy before driving the selected
+destination. Loss during windup clears the pending move, and loss
+in transit stops movement through the authored recovery.
+Native controller discovery, angle
+convention, anchor ranking and silence timing remain open.
+
+Heavy 1408 uses authored button35 to set its instance phase (var59).
+The fixture verifies activation, timeout, recovery cooldown, rejection
+during Hack and EMP, and a fresh press after silence expires. After
+activation, the graph has a separate timed sequence outside the button
+state. Hack and EMP did not stop that sequence in the current host.
+The early exit switches at positions 152 and 169 read outputs from
+authored raycasts. For a manually driven Heavy, the owner-facing
+query now supplies the live yaw to the authored direction selection.
+The test verifies that the selected direction survives a later yaw
+change. Positions 171 and 172 now use the authored raised origin,
+selected direction and two metre reach against the host's static
+mover geometry. The live hit output clears with the state. The
+fixture verifies a wall hit, out-of-range and rear misses, and
+passive VM capture with a live result. With an explicit type 1
+fixture result, the authored early-exit switch holds the phase when
+both casts hit and enters cooldown when only the type 1 cast hits.
+The native filter semantics, type 1 collision provider, in-flight
+silence response, displacement and damage remain open.
+
+The authored 1408 primary TrackTargets node96 now selects a living
+enemy player through its output var562. The static host uses the
+authored offset and radius, latched direction, reconstructed cone
+and player capsule visibility, then evaluates the graph's candidate
+predicate against live body variables. Tests cover contact, wall,
+distance, facing, team and a fixture-driven exclusion flag. The
+secondary search at node32 reuses the static geometry and evaluates
+its own candidate predicate. With another enemy selected as the
+primary, its node35 applies the authored 50 damage to Sombra and
+interrupts her Hack. The host applies it once per target per state
+activation and captures that history in VM snapshots. For primary
+damage, the test starts with a real acquired Sombra, then explicitly
+invokes the authored phase-2 branch. The graph starts node29 with an
+authored amount of 300. It kills the enemy Sombra and credits the
+Heavy, and rejects a target that became allied after acquisition.
+The close-range searches at nodes85 and 100 now evaluate their own
+body-variable predicates. With a fixture-set 961 flag on Sombra,
+the button35 path enters phase 2 through node101 and deals the
+authored 175 damage from node102. An unflagged or out-of-range
+Sombra takes no damage from that branch. The gameplay producer of
+the fixture flag and native search geometry remain open. The node35
+secondary hit now launches surviving players through the capsule mover, away
+from the authored origin expression. The host treats the two raw
+strength fields as horizontal and upward speed. Open-ground and
+behind-target wall tests exercise motion, static blocking and the
+same one-hit lifetime. Native speed units, ring scaling and the
+other knockback states remain open.
+
+During the authored node71 running phase, the manual Heavy now
+advances along the resolved direction and speed using the original
+body's mover dimensions and the static capsule sweep. Tests cover
+stationary windup, travel, wall blocking, real target acquisition
+after approach and velocity retirement. Applied Hack and EMP now
+route an active run through the authored exit and cooldown branch.
+An allied Sombra fixture applies each effect during an active carry,
+checks release and verifies that a wall ahead causes no late damage.
+The in-flight silence mapping is a static host policy. Native slope
+and silence behavior remain open.
+
+An active node158 now runs its authored 1407 graph on the selected
+player for the running phase. The child receives the Heavy body as
+its source and publishes the authored holder variable. The static
+control host blocks input until the capture expires. During target
+refresh, the same Heavy reads below its own 1407 exclusion flag so
+that the live victim is retained. Other sources still see the flag.
+The fixture verifies that Sombra cannot shoot while held and can
+shoot after the child and pin retire. While captured, both capsules
+sweep along the selected direction. The smaller available travel
+sets a shared displacement and preserves their contact offset. Tests
+cover free travel and a wall that the victim reaches first. A blocked
+capsule with static contact now routes to the authored phase-2 damage
+branch with the captured target intact. The fixture verifies death
+attribution, capture release and cooldown start. The host interprets
+the recovery scalar as elapsed seconds and returns to the authored
+idle branch while cooldown continues. Native bone placement,
+collision routing and recovery timing remain open.
+
 Parent dependency originals -> isolated replay commits:
 c2d3ae165e95195b65e86be1bd62360b56eab2c7 -> f9d7b0f9f61e9e649a4af064871fe3ef1a0d3053
 a15d554b14b2a31ee8c6f35a2dd93534d30664c8 -> d8cd513628b7c19c9a8d1e6ce22f870b3017f79e
@@ -223,7 +561,111 @@ cannot recast without another full charge. Insufficient1399 charge rejects.
 A whiff still spends charge, and actual enemy Helix/rifle damage killing the
 caster before the pulse prevents a postmortem hit. Full charge gain from damage/
 healing, native ultimate recovery/control and every interruption remain OPEN.
-The existing timed charge fill remains a reconstructed host behavior.
+That earlier checkpoint still used a reconstructed timed fill; the current
+scoped charge bridge below replaces it for matched Sombra with declared inputs.
+
+Notification lifecycle and repeated weapon scopes -- partial host correction
+--------------------------------------------------------------------------
+State.end previously canceled CHANGED/CHECK events without clearing the bits
+that coalesced them. Component.changed could also enqueue changes during cleanup
+while the state was ending. Only the reviewed parent marker/ending guard is
+imported. Three local regressions use exact old lane methods and fail before
+the fix; change/reentry, cleanup writes and native-join CHECK reentry pass after.
+No persistent VM fields or snapshot whitelist changes are added.
+
+Actual empty Sombra clips revealed a distinct getter-notification gap. Original
+0B1B/node3 reload condition is true at ammo0, but its BooleanSwitch remains false
+because time-derived WeaponVolley ammo changes were never announced. report()
+now uses its existing reported count to publish the changed ammo value. Masked
+top bindings retain their visible value; no new cached cause is hidden. Native
+notification phase/timing and the complete dynamic-binding policy remain OPEN.
+
+An isolated before/after runs exact old report code with the lifetime fix in both
+versions: actual Heavy loses480 from60 rounds, remains at empty ammo900 frames,
+and has live true/cached false reload condition. The corrected path reaches two
+refills by511 frames and loses960 for120 rounds. Refill precedes the authored
+reload scope's end; the test waits for that scope to leave before proving a fresh
+round deals8 and decrements ammo. Repeated actual Camo and paid EMP exits resume
+held primary with exactly one ammo debit/hit; allfive NPC bodies pass two Camo
+handoffs. Four Sombra methods and three generic methods pass. Full related
+regression passes433 checks (393 combat,40 snapshot), zero skips, with identical
+unchanged source/tests/inputs. The parent Ability.stop reorder is NOT imported: selected
+Sombra accounting passes with its current order; native/cross-object ordering
+and complete enemy Roll interactions remain open. No native-client session used.
+
+Authored Sombra ultimate charge -- uncommitted partial integration
+----------------------------------------------------------------
+The body overrides004B cost to1000;01C7/node54 applies the original1.4 multiplier,
+giving1400. The actual0B8B graph contains the missing charge implementation:
+node3 waits1 second; node4 adds5 times the general/natural profile multipliers,
+capped to cost. Original0012/entry0 receives resolved damage as0013.026, target
+body as0015.026, tags as003D.026 and excluded-damage buckets as0624.026. Its
+existing nodes filter targets/tags, subtract excluded buckets, apply gain profile
+and clamp. EMP's authored025A tag is rejected by the original branch, as is1FD.
+0B31/node15 uses its original215=5 second timeout; node17 holds842e for that
+post-cast interval. Damage and natural gain resume only after the blocker leaves.
+
+New UltimateCharge supplies the declared body services needed to execute those
+graphs. It sends002D once at Sombra initialization, letting01C7/node39 produce
+2426 from its existing mode expression; it does not force2426 or charge values.
+F7262B36 resolves the actual controlling player's entity, and exact0B8B character
+filters/relationships and three static-tag predicates are scoped to real bodies.
+Generic A6B80C63 now executes the native fold loop. Empty input skips its seed
+and retains a typed null accumulator;0B8B's final projection also returns null.
+This replaces the earlier scoped empty0 shortcut. Actual resolved pool loss,
+including armour reduction and overkill, is emitted after device exclusion.
+All amounts/intervals/caps and EMP tag exclusions remain authored graph execution.
+
+The character classification, lifecycle emission, active-cast842 base and direct
+body-tag queries are explicit host bridges, not complete decoded native services.
+Dynamic tags/temporary shields, native itemized-record production, full native filter bits,
+custom-mode initialization, healing/charge-transfer policies and original lifecycle
+timing remain OPEN. The source data includes direct tags for43 XML bodies and
+their hashes in external ultimate-context-research.json; no data enters Git.
+The manager retains loaded raw context, path/digest and pause/respawn maps in the
+enclosing passive server snapshot. No module cache hides the causal definitions.
+
+With this context available in a Match, the old60s full-charge timer is disabled
+for Sombra. Positive ult_seconds enables the authored clock; zero keeps the
+existing explicit test/debug pause by temporarily setting the natural profile0
+and later restoring its old base. It does not disable damage charge. Bodies with
+no explicit context retain the legacy path and provide no authored-charge evidence.
+Internal same-hero respawn carries the controller's retained charge into its new
+body; explicit selection/replacement resets it. Pending charge is cleared on leave.
+
+Thirteen methods cover5-per-second timing/cap, real pistol/melee and all5 NPCs,
+post-armour/shield/overkill loss, zero/double gain profiles, miss/wall/ally/received
+damage refusal, EMP shield-drain/tag exclusion, device destruction, post-EMP5s
+lockout, damage filling actual EMP admission/spend, pause/profile restoration,
+death/respawn/selection and passive context/clock/pending-charge capture. Thirteen
+targeted checks pass. Complete related frozen regression passes398 checks:
+358 combat in386.585s and40 full snapshot in482.582s, zero skips, with identical
+unchanged source/test/input hashes. Ruff and diff checks pass. The full original
+static and native-client matrices remain OPEN; no new hero commit.
+
+Native fold in actual0B8B -- partial integration
+---------------------------------------------
+Reviewed patch review-config-fold.patch adds only generic play.fold_values,
+InstanceContext routing, nine tests and CONFIG_FOLD documentation. The Sombra
+world no longer overrides A6B80C63. Original1B77D80/1B76A60 execute independently
+in this lane:35 loop cases and20 provider queries pass with explicit engine
+iterator/config/variant/vector/cookie adapters. No native-client session is used.
+
+The node83 expression is accumulator050D + (current050E.#16056 equals typed
+identifier3EBB ? current050E.#499 :0). Projection reads050D. Seven Sombra methods
+verify real pistol emission stores null for its empty tuple; raw itemized0012
+messages select/sum maps before gain profiles/cap; unmatched/incorrectly typed
+identifiers and missing members retain original expression behavior; original
+EMP/1FD/enemy gates still apply; allfive actual NPC bodies are admitted. Live
+fold-provider snapshots distinguish accumulator mutations without Var.value
+evaluation and restore their digest after restoration. The provider stack unwinds.
+
+Itemized messages are explicit graph/event fixtures and do not inflict weapon
+damage. Combat.damage still sends actual pool loss with an empty0624 tuple;
+the native event producer and meaning of3EBB are unknown. Full engine collection,
+owning-variant behavior and all defense/prevented-damage/charge interactions
+remain OPEN. Full related frozen regression passes433 checks, zero skips;55
+native comparisons are separate. See CONFIG_FOLD.txt.
 
 Node40 uses its authored15m radius with an explicit enemy-body capsule/static-LOS
 search in every direction. The existing transition plug then loads0B32 using the
@@ -252,14 +694,51 @@ Only character node9 is hosted; node3's device/barrier branch is unimplemented.
 Strict scene execution still rejects this unsupported body health service.
 The passive VM model registers the callback state, which has no new data fields.
 
-Assassin boundary inspected this checkpoint
--------------------------------------------
+Historical Assassin boundary before the shared pin bridge
+--------------------------------------------------------
 Actual root13B8/node7 binds logical20 but has no authored output links. It has
 no volley or ModifyHealth node. Therefore primary input alone has no supported
 path to damage, rather than a hidden hitscan report needing consumption. The
-actual damage nodes occur in1157 (button36/target536) and13C3 (message09C6),
-with native AI/dataflow/targeting services still absent. These paths remain OPEN;
-no flat primary damage or synthetic skill activation was added to hide the gap.
+actual hostile damage nodes occur in1157 (button36/target536). The earlier
+classification of13C3's ModifyHealth112 as enemy damage was incorrect: it targets
+the owner, and its amount14584 is set by111's literal-zero expression. Message09C6
+does not by itself prove a hostile attack. Native AI/dataflow/targeting remain open.
+
+Shared manual Assassin bridge -- uncommitted partial integration
+--------------------------------------------------------------
+Reviewed parent worktree files assassin.py/npc_context.py and their foundation
+tests are reused from a lane-local, hash-recorded source snapshot. No shared file
+was edited or committed. Keep the lane's original Hack/EMP/entity/namespace code.
+The manual controller routes Assassin slot0 to1157/button36, supplies a data-only
+Map for DB742151(owner).#1650, and scopes contact to a living enemy player within
+3m/static LOS. This is an explicit manual sandbox policy, not the authored20
+button's meaning or a native controller/namespace/acquisition implementation.
+
+Original1157 supplies the25 contact amount,1s delay and100 continuous amount.
+The inherited service interprets node15's mode1 as damage/second, applies the
+default mode once at entry, and records last_applied for duplicate/gap handling.
+Native health-clock/mode identity is unaccepted. Combat.pins keeps source/victim
+identity independent of timed stuns; input/ability exits and scope retirement
+release control. All existing Translocator and cross-VM snapshot fields remain.
+
+Lane reconciliation preserves authored damage tags and processes contact damage
+before forced input/Ability.stop. Actual Sombra Hack keeps its2s damage-cancel
+cooldown when pinned. A fatal contact cannot recreate control after death cleanup.
+Hack/EMP interrupts the Assassin's LogicalButton-driven skill and suppresses its
+held input until expiry; this also permits a fresh edge and contact after expiry.
+Ordinary primary fire from the other four NPC classes remains available while hacked.
+
+Eleven actual-data methods cover contact/delay/continuous16 damage over10 frames,
+stop/re-engagement, Hack damage cooldown, Camo/EMP interruption, pinned movement/
+ammo/ultimate rejection and recovery, bidirectional Hack/EMP and expiry, actual
+support pistol source kill with corpse retention, Sombra death, passive clock/
+context export, and wall/range/team/body retirement. Parent synthetic-graph tests
+remain foundation evidence only. The full related worktree passes375 distinct checks,
+335 combat/NPC/script (376.93s) and40 VM/server snapshots
+(575.298s), with identical implementation hashes before/after both groups and zero skips.
+Ruff/diff checks pass; all hero work remains uncommitted.
+No native lunge/pose/camera/QTE, teammate escape, immunity/cleanse, release Anim31
+duration/cooldown, autonomous approach or full cross-hero/client acceptance is claimed.
 
 Actual Flashbang / Sombra control checkpoint
 --------------------------------------------
@@ -317,9 +796,9 @@ and38 passive VM/server snapshot checks, including a final source-fixed complete
 stored replay (452.388s for the snapshot group). The83-case targeted suite also
 passes; those repeats are excluded from the total. Ruff and diff checks pass.
 
-Translocator execution frontier
--------------------------------
-Actual command mask10 reaches0C19's cast and volley7. Its definition config
+Historical Translocator frontier before entity hosting
+-------------------------------------------------------
+At the earlier recorded checkpoint, command mask10 reached0C19 cast/volley7. Its definition config
 STU_8556841E already evaluates to Asset(0400000000001575). The verified stop is
 later: m_45271E8C=0 means the projectile is not locally predicted, so no owner
 lease is allocated. Projectiles.fired rejects a player shot without that lease,
@@ -340,10 +819,79 @@ no live health pool. This confirms a second missing entity health service; it is
 not Match combat/physics acceptance. No game archive, shared input or runtime was
 copied or modified to produce this incremental research record.
 
+Translocator server-entity worktree checkpoint -- incomplete
+----------------------------------------------------------
+The reviewed native input-join foundation2ca9178 is replayed only in this clone.
+New hero changes below remain UNCOMMITTED under the explicit requirement to finish
+the full static goal before further hero code commits. They are not merge-ready.
+
+With ORPHEUS_TRANSLOCATOR_DATA pointing to the external additive0C1A record, actual
+0C19/node7 creates one server-owned entity1575 and binds output5875 to its real
+identity. It does not manufacture a player lease or reuse the leased rocket path.
+The original0C1A graph starts and HealthPool/node23 establishes5 health. The common
+body allocator now accepts an explicit definition resolver/world/source, retaining
+existing player/NPC defaults. The beacon's Source remains the caster body.
+
+A fixed16ms host solver consumes speed25 and interprets E1A5B579 scalar20 as
+downward acceleration; that interpretation and integration remain reconstructed.
+Finite-radius collision uses center/six-axis rays; bounce0.5/tangential0.6 and the
+settle rule are explicit reconstruction constants, NOT established native field
+identities or numerical parity. The solver converges to rest at the authored0.2
+radius on a flat floor and agrees across scheduler gaps. The damage volume is
+a reconstructed0.2-radius sphere; native height/filter/hardpoint behavior is open. There is no direct
+beacon damage or implicit Helix explosion. Throws with all five actual NPC classes
+leave their health unchanged. Dynamic bodies/materials and full motion parity OPEN.
+
+Actual enemy rifle destroys the five-health device; owner/ally shots exclude it,
+and it does not award hero damage/death/respawn behavior. Expiry, owner death and
+body replacement retire it. The original0C1A0B75 notification is routed to the
+caster's0C19/entry105 so the authored stop/reset path runs. Re-throw remains refused
+while the observed original6s cooldown is positive, then gets a fresh identity.
+Actual Hack and Flashbang reject throw input until their deadlines. Full lifetime
+sentinel meaning, kill effects and NPC device acquisition remain OPEN.
+
+Sombra watches the beacon's health/death variables across Component namespaces.
+Full server snapshots now encode registered foreign VM variable/state/instance
+references explicitly, retain each owning namespace and reject a Var registered
+in two namespaces. Standalone single-component snapshots still reject foreign
+references. Two new stored-graph cases and an actual beacon capture verify passive
+observation and mutation sensitivity. The manager retains loaded raw definitions,
+input path and SHA256 instead of hiding causal definition data in a global cache.
+
+No native client or live owner/observer presentation is accepted. Basic create/
+destroy records are queued, but movement/script delivery/ACK/prediction still need
+native acceptance.
+
+Scoped ownership/position adapters now let the original0C19 ownership condition
+and selector17 run. The selector publishes original2478/1598 outputs after an
+actual standing/crouched mover-capsule fit query. Original movement18/131 evaluates
+the authored destination and refuses an uninitialized or obstructed fallback.
+Successful server recall teleports the actual mover, clears velocity/spring and
+rebuilds its collision proxy. This is an explicit instantaneous displacement
+reconstruction; native curves, timing, momentum, sweep/alternate-placement filters
+and invulnerability remain OPEN. The original duration field still schedules the
+movement state's finish. The air-mask union must not be set as a flag: setting
+only FELL allows normal ground transitions after recall.
+
+Original button30/manual recycle now sends its authored message to the beacon's
+own component rather than silently dropping a non-player recipient. The original
+destroy/owner-notification/reset/cooldown path runs. Early recall input during
+throw admission is not buffered. New Match checks cover floor/wall-crossing,
+airborne recall, obstructed destination refusal, manual recycle/rethrow, actual
+Flashbang rejection/recovery and non-damage recall across all five NPC classes.
+These are partial static host checks, not full native Translocator acceptance.
+Before Assassin integration, the recall worktree passed350 checks: 310 combat/NPC/shared-script
+checks (327.818s) and40 passive VM/server snapshot checks (598.998s),
+including the complete stored replay. Seventeen Translocator methods include
+five actual-NPC subcases;40 concrete VM State models are registered. Ruff/diff
+checks pass. No hero code commit is created.
+
 Reproduce offline tests (PowerShell, from this lane's source directory)
 --------------------------------------------------------------------
-$env:ORPHEUS_RUNTIME_DIR='D:\overwatch 1.7.4\runtime-104319'
+$env:ORPHEUS_RUNTIME_DIR='D:\overwatch 1.7.4\verification\retribution\npc-navigation-runtime'
 $env:ORPHEUS_NPC_RUNTIME_DIR='D:\overwatch 1.7.4\verification\retribution\npc-runtime'
+$env:ORPHEUS_TRANSLOCATOR_DATA='<external additive0C1A JSON>'
+$env:ORPHEUS_ULTIMATE_DATA=(Resolve-Path '../ultimate-context-mech.json').Path
 $env:PYTHONPATH=(Get-Location).Path+';'+(Join-Path (Get-Location) 'tests')
 & 'D:\overwatch 1.7.4\ORPHEUS\.venv\Scripts\python.exe' -B -m unittest `
   test_game_sombra_combat test_game_sombra_emp test_game_sombra_npc `
@@ -360,3 +908,784 @@ without it those tests skip and do not supply acceptance evidence.
 External runtime data is read-only; cwd and PYTHONPATH must name this clone.
 Do not publish game resources, local graph dumps, captures or logs. Integration
 is by reviewed commit/patch only; no direct root-main edit, merge or manual push.
+
+Partial phase defenses and cross-hero camera follow-up
+----------------------------------------------------
+phase_defenses reconstructs only original Reaper0020/Moira0F7C zero-delay
+entry. The authored8440/6604 live Stack owns immunity;10467 recovery does not.
+Original3000ms/750ms waits and8s/6s cooldowns remain graph-owned. Intangible
+enemy searches, damage/control rejection and Hack application rejection are
+explicit host policies. Actual-input tests cover pistol/melee/Hack/EMP refusal,
+mid-channel loss, a real rear-player hit, expiry, replacement, cooldown and
+reverse melee recovery without delayed damage. The EMP search runs once after
+windup. Entering phase during windup evades that pulse, while leaving phase
+before the pulse permits application. Hack and EMP suppress phase activation
+until silence expires and a fresh input is sent. Engine immunity/tag/cleanse
+semantics and full cross-defense acceptance remain open.
+
+Original McCree02A3 first-person camera1.425/.9975 is used for incoming shots
+and Flashbang. Six methods cover immutable XML, standing/crouched cover,
+both shooting directions and Hack-blocked/recovered actual Flashbang. Target.eye
+retains its separate legacy critical heuristic; no global critical fallback was
+imported. The prior433-check fingerprint is historical after these changes.
+
+Actual sampled machine-pistol rays
+---------------------------------
+Original0B1B's239B571E launch has no23C72C36 decay, ramp3, low0.5/high2.4 degrees.
+The shared normalized ramp and final output are restored, with spread_ramp in
+the causal snapshot layout. Sombra damage rays use sampled directions. Native
+table/seed/cone/rotation arithmetic is independently compared in own external
+probes; all32768 generated table values match the immutable capture. No table
+bytes or capture data are stored in the server source. Generated-table caches
+are pure derived data, with no random cursor or hidden mutable simulation state.
+
+Caller seed identity uses stored body/instance/node/activation-counter values;
+uniform-radius sampling is an explicit reconstructed mode. Native handle/mode
+binding, recoil, muzzle transforms and optional decay remain open. Actual
+player and five-NPC bursts reconcile spent rounds, real hits/misses, pool loss
+and damage charge. NPC width tests place capsules around the actual sampled
+ray, retaining both sides of the tangent without disabling spread. The older
+451-check fingerprint is historical after this integration. Entire static
+acceptance remains open; native comparisons do not prove native client parity.
+
+Sigma Grasp temporary shields
+-----------------------------
+1D02 node34 runs the original 1D03 shield graph with its evaluated parameters.
+The tagged shield query reports the current temporary balance for the authored
+conversion and cap. The host assigns component 51 pool slots and spends
+temporary shields ahead of base shields. The authored 1D02 node70 starts decay
+after its grace period and the host retires an empty pool.
+
+Actual Sombra inputs verify conversion, later pistol damage, decay and EMP.
+EMP removes both shield balances and awards no ultimate charge. Temporary pool
+balances and instance keys are stored in the causal snapshot. Host pool slot
+assignment and network encoding remain outside native-client verification.
+
+Hack and EMP end the live Deflect, Grasp and Defense Matrix states at
+application. Grasp interrupted before conversion creates no temporary shield
+even after absorbing rounds. Hack preserves its base shields and EMP drains
+them. Defense Matrix shuts off with resource remaining and a fresh input after
+silence restores frontal interception. The damage checks wait for Sombra's
+own cast recovery before firing.
+
+Reinhardt Barrier Field
+-----------------------
+Reinhardt's actual secondary input creates 011A and runs 0096 to establish
+the independent pool. Sombra's sampled pistol ray checks the recovered mesh
+at a reconstructed attachment pose. Quick melee still reaches the body.
+Release retires the child and a fresh raise preserves the damaged meter.
+Body replacement and lethal rear shots also retire the child.
+
+Original 011A declares 003A.06C. EMP's reconstructed range and static LOS
+select the enemy field by anchor, then 0B32 node3 handles its damage.
+The owner receives the break message and enforces the authored cooldown.
+Cooldown expiry notifies the BooleanSwitch that reopens the raise branch.
+The stored snapshot includes the live source Pet, child component and
+barrier balance. Hack acquisition and channel use the same reconstructed
+enemy mesh. A rear Hack reaches the holder, drives the authored shield
+release branch and suppresses raising until silence expires. Friendly
+fields leave enemy targets visible. Native attachment, network
+presentation and other barrier definitions remain open.
+
+Orisa Halt
+----------
+The original 0CCB fire and re-press route a single 25 m/s orb into the
+0CCC visibility query and the target's 0CCE control instance. The lane
+uses the target-build graph supplement via ORPHEUS_ORISA_HALT. Static
+collision can detonate the orb before a second press. Target selection
+uses hostile capsules, static cover, barrier meshes and scoped immunity.
+
+The target graph supplies its waits, the 20 m/s MoveTo request and the
+650 ms post-pull slow. World-only updates replay the horizontal pull
+endpoint and retire the control instance. Sombra takes no damage, keeps
+Camo, and can complete Hack or EMP during the pull. A valid Translocator
+recall releases it. Four actual NPCs move, and Heavy Assault takes the
+graph's immunity branch. Genji transfers ownership on reflection. Sigma
+and an owned D.Va mech can consume the airborne orb.
+
+The server supplies root-yaw poses and static sweeps. Native radial
+impulse, full subframe priority and observer transport remain open.
+
+Orisa Supercharger
+------------------
+The 0CF5 windup queries the caster's current health and launches 1CCB.
+The world sweep lands the 174E device. Original 0D00 initializes 200 HP
+and a 15 s lifetime. The target-build model supplies the direct ray
+mesh. The device's aura uses the original radius and status 0D01, with
+authoritative target capsules and a reconstructed eye visibility ray.
+Eligible allies receive a 50% damage increase. The source retains its
+original device identity over a body replacement. Destroying or
+expiring the device retires its statuses.
+
+Sombra's pistol and quick melee damage the enemy device without
+awarding hero damage or ultimate charge. Hack and EMP can interrupt the
+caster's windup. Device 174E carries tags 03A6, 02F1 and 08AB, outside the
+hosted Hack and EMP target branches. A deployed device remains active
+when EMP silences its caster. Actual Fusion Driver hits against Sombra
+and all five NPC bodies feed Orisa's original charge formula. The
+deployed callback blocks charge until the device retires.
+
+The external build-104319 graph, mesh and charge metadata are selected
+by ORPHEUS_ORISA_SUPERCHARGER and ORPHEUS_ORISA_CHARGE. Native aura
+refresh and stacking, projectile attachment and transport remain open.
+
+Mei spray and Cryo-Freeze
+------------------------
+The original 05E6/35 volley carries 99 maximum contacts. The host sweeps
+its projectile through aligned bodies, retaining hit identities across
+ticks. Static cover and blocking shields stop the sweep. Each resolved
+2.75-point spray hit can feed the target's frost state. The host uses
+0B77's recovered progress, source aggregation and freeze timing, with
+authoritative body poses. It applies the slow to movement, locks input
+and aim during the 1300 ms freeze, and clears the state on thaw or
+body retirement.
+
+Sombra can lose Camo to spray damage and cannot recall a deployed
+Translocator while frozen. She can recall with a fresh press after thaw.
+Zarya's Projected Barrier clears accrued frost and blocks new spray.
+One volley can hit Sombra and each of the five actual Talon classes
+in the same line.
+
+Cryo advances the scoped 05FE/64 gate, then the original graph supplies
+its protection duration, cancel and cooldown. The host distributes the
+authored 200 self-healing over that duration. Continuous and skipped
+world frames reach the same healing and expiry. An active Cryo stops
+Sombra pistol and melee damage, excludes Mei from Hack and EMP, and
+blocks four actual NPC weapon profiles and the Assassin pin. A prior
+Hack denies Cryo activation.
+
+The model reconstructs projectile sweeps, movement and healing clocks.
+Native status internals and client presentation remain open.
+
+Mei Ice Wall and Blizzard
+-------------------------
+The 0622 preview uses actual rotation, cancellation and confirmation
+inputs. It places up to five oriented pillars with the original 0636
+400 HP pool, a five-second lifetime and a 12-second cooldown. Invalid
+placement leaves the preview active without starting cooldown.
+The match keeps the pillars separate from the static map asset.
+
+Pillars block movement, pistol, projectiles, Hack and EMP. An enemy
+pillar can take pistol, melee and splash damage. A Helix contact is
+resolved before wall expiry even if the next world update crosses the
+expiry frame. Sombra can recall through a wall to a clear destination.
+A pillar at the destination prevents displacement.
+
+The original 064A release launches the 0946 Blizzard projectile. The
+server sweeps its authored ballistic flight into the first surface or
+active projectile guard. Genji can take ownership, and Sigma or an
+owned D.Va mech can absorb the flight. The landed host uses the
+recovered 065E 200 ms delay, 10 m range, 20 damage per second, 4250 ms
+active duration and frost pulses. Clear exposure yields 85 damage.
+Ice Wall blocks the field across its contact face, and Projected
+Barrier absorbs damage and clears the target's frost.
+
+Placement volume, movement contact, landing and area visibility are
+reconstructed. Native geometry, status clocks and client presentation
+remain separate.
+
+Mei icicle and Blizzard charge
+------------------------------
+The 05E6/40 alternate fire uses projectile 108B. Actual shots deal 75
+body damage and 150 under the scoped critical collision policy.
+Weapon tests cover ammo and reload, cover, range, team, Camo break,
+Hack interruption, firing while hacked, Projected Barrier and owned
+D.Va Matrix.
+
+The static host uses Mei's 0B8B with the original 0012 damage and 0044
+healing messages and original body-tag inputs from the external
+ORPHEUS_ORISA_CHARGE bundle. Damage charge uses actual enemy pool loss,
+and Cryo charge uses actual health restored. The original passive clock
+adds five points per tick. Field damage grants zero charge. A new
+icicle can earn charge after cast recovery while the field remains.
+Direct tests cover all five NPCs and start at zero against an unmodified
+Heavy Assault, earn 1610 with actual icicles and spend it on Blizzard.
+Native critical geometry and engine-side guard collision remain open.
+
+Reaper Hellfire and Death Blossom
+---------------------------------
+The 0019 primary volley resolves its authored 20 pellets, ammo,
+falloff and 100 m reach. The host uses the shared radial sampler and
+a reconstructed server seed mapping. At 1.5 m one body-aimed shell
+hits Sombra for 120 and consumes one round. Cover, aim, team and
+range controls consume one round without body damage.
+
+The 0044 active wait opens the world channel. The host reads its
+duration and its tracker radius of 8 m. The 0045 effect supplies
+34 damage, the five-per-second cadence and the ModifyHealth tags.
+An uninterrupted exposed target takes 15 pulses. Pulse acquisition
+uses a capsule range check and a midpoint visibility ray. Current
+world poses supply the samples for missed ticks. The same sustained
+exposure produces 510 damage in contiguous and world-only updates.
+Ice Wall and mesh barriers can take pulses. One shield protects all
+bodies behind it for the whole pulse that breaks it. Zarya Projected
+Barrier absorbs its recipient's pulses. Deflect, Grasp and owned
+Defense Matrix do not absorb this damage.
+
+Actual pulses trigger Hack damage interruption and Camo exit. Normal
+Hack and EMP can stop the paid channel outside its damage radius,
+with no refund or late pulse. A lethal Sombra pistol hit ends the
+channel and a nonlethal hit leaves it active. The pulse schedule is
+causal snapshot state. Reaping heals 35 percent of actual eligible
+body damage through shared healing policy. With prepared body tags,
+actual Hellfire damage earns original 0B8B charge and a real cast
+spends the full 2100 earned against an unmodified Heavy Assault.
+Death Blossom damage gives zero charge. Native pellet spread, damage
+event equivalence and geometry remain open.
+
+Reaper Shadow Step
+------------------
+Actual ability-two input checks the 00F2 idle transition using the
+compiled logical-button owner list. The selector casts along the
+posed aim for the authored 35 m. The host publishes a walkable point
+with standing-capsule clearance. Primary confirms without firing a
+shot and secondary cancels without cooldown. Cover and occupied
+destinations reject confirmation. The host locks the confirmed point
+and revalidates it when teleporting. All five actual NPC bodies can
+block placement, and clearing the point admits a fresh confirmation.
+
+The graph's cast and windup define the world immunity boundary.
+The cast remains vulnerable for 1 s and teleports at 1.5 s.
+During the final 0.5 s, Sombra pistol, Hack and the actual EMP pulse
+and allied Flashbang or Sleep Dart cannot affect Reaper. The same
+controls interrupt a vulnerable cast. A nonlethal pistol hit leaves
+the cast active. Death and body replacement retire the destination.
+Teleport uses the existing grounded mover reset. The cast position
+and deadlines are included in the causal snapshot.
+
+The original recovery precedes its 10 s cooldown. A missed-input gap
+preserves the authored recovery transition before skipping the idle
+prefix. A first fresh press after a gap longer than the entire
+cooldown opens the selector. Long-gap immunity and landing use the
+current world geometry during catch-up. Native placement adjustment,
+presentation and original-client timing remain separate.
+
+Moira damage Grasp and Coalescence
+---------------------------------
+F76 TrackTargets and the damage service share one posed contact.
+The search reads the authored range, capsule margin, screen term and
+distance term. The static host uses a reconstructed camera projection,
+sampled LOS and Sombra Camo proximity. Grasp deals 50 damage per
+second and heals Moira at 24 per second when it actually damages a body.
+F76/node48 uses the posed step as its callback duration and restores
+three fuel per 16 ms hit, up to the authored cap. A shield or wall can
+take damage without awarding self-heal, hit refill or charge. Releasing
+secondary stops damage. Grasp still works under Hack and can interrupt
+Sombra's Hack when it reaches her.
+
+1007 spends 2800 on a 500 ms startup and eight seconds of Coalescence.
+The world clock integrates the authored enemy, ally and self rates of
+70, 140 and 50. Authored TrackTargets volumes use the C8E660 capsule
+transcription adopted from the Moira lane. The host uses the current
+capsules, accepted aim and 30 and 60 percent LOS samples. Its two
+searches admit targets independently, so the beam can damage enemies
+on both sides of a healed ally. Static cover and Projected Barrier
+block damage. Genji Deflect and owned D.Va Matrix do not intercept the
+beam. Coalescence can damage concealed Sombra and start Camo exit.
+
+A sustained exposed target takes 560 damage in stepped and world-only
+updates. Sombra EMP interrupts the paid windup or active beam with no
+refund. Death retires the beam. Pending timing and aim are causal
+snapshot state. Real Grasp and Coalescence hit all five NPC classes.
+Grasp earns all 2800 from zero against unmodified Heavy Assault via
+original 0B8B with the prepared body tags. Self-healing and the
+ultimate do not add charge in this scoped path. Original-client
+hardpoints, dynamic filters, beam presentation and full support-side
+interactions remain open.
+
+Moira healing spray and Biotic Orb
+----------------------------------
+F76 primary spends original fuel and emits a finite spray packet.
+The host interprets its 0.75 parameter as a capsule sweep margin.
+A packet heals each eligible ally once for 3.5 and refreshes the
+10B4/10B3 trailing effect. The tail starts after 200 ms and restores
+35 over two seconds. An enemy body does not consume the packet.
+Static cover and enemy barrier geometry stop the spray. Effective
+healing contributes original 0B8B charge, and Ana antiheal blocks
+both portions. The original fuel gate refuses an empty press and
+permits new packets after recovery.
+
+The 10E4 selector emits actual 1E60 or 1E61 volleys and shares a
+cooldown. The flight uses the authored 20 m/s speed and 7 s lifetime.
+The healing and damage modes share respective launch budgets of 300
+and 200 across their own recipients, scaled by the original ruleset
+slots. The aura applies 65 healing or 50 damage per second inside the
+reconstructed 5 m or 4 m capsule reach. It slows the orb while a
+tether exists. The host uses capsule-centre visibility and reflects
+the direction off static and Ice Wall surfaces. Shields consume
+effective damage from the budget, and a final fractional budget
+caps loss after armour.
+
+Genji transfers both operations to his body and faction. Sigma and
+owned D.Va Matrix consume the incoming orb before its next aura
+pulse. Damage Orb can hit concealed Sombra and start Camo exit.
+Active Wraith neither receives damage nor slows an orb. Sombra Hack
+cancels the open selector. Released orbs survive EMP and source
+death, preserve release faction until reflected and grant charge
+only through eligible current-body events. Flight, budget, attribution
+and spray tail clocks are causal snapshot state.
+
+Both orb modes and primary spray have execution evidence on all five
+actual NPCs. Static target geometry, bounce and guard contact remain
+reconstructions. Native aura visibility and client visuals remain
+separate.
+
+Genji shuriken, Swift Strike and Dragonblade
+---------------------------------------------
+0304 primary emits its original burst. The fan expands the authored
+three-round spread into three independent projectile rays using the
+D808F0 rotation order. A close body hit with either attack deals
+three times 29. Each projectile uses the current swept shield and
+guard services. Projected Barrier absorbs all three, and Sigma Grasp
+accumulates 87 for an absorbed fan. Scoped critical hits use the
+common reconstructed head region.
+
+01DB's raycast reads the live eye and aim, then lets the original
+MoveTo execute its 15 m destination at 50 m/s. The host sweeps the
+authored 1.5 m target radius and uses visible capsule contact to
+apply 50 once per target. Cover, faction and rear cases reject
+damage. Sombra EMP aborts active movement and prevents resumption.
+The cooldown rejects early reuse. The original elimination receiver
+resets it on a final blow or a recent damage contribution, using a
+declared five-second assist window.
+
+0317 spends 1932 and activates the original weapon transformation.
+0304's two sword windows apply 110 once per eligible target within
+the reconstructed 5 m range and angle. Cover and faction reject
+contact. Deflect can parry the blade without returning damage.
+Grasp does not absorb it. Actual Hack denies a fresh ultimate and
+preserves drawn Blade. Flashbang blocks swing input while the
+transformation clock continues. The original end restores shuriken.
+A 60-tick input gap followed by a fresh posed frame yields the same
+single sword hit as stepped input.
+
+Genji retains the adopted static double-jump and wall-climb policy.
+Double jump works during Hack. A climb opens a shuriken line over
+low cover that blocks the standing burst. The dash victim set,
+swing identities, assist timestamps and mobility state are included
+in the causal snapshot. Actual primary, fan, Strike and Blade reach
+all five NPC classes. Actual primary earns 1932 from zero against
+unmodified Heavy Assault and spends it on a damaging Blade.
+Native pose transforms, wall-climb prediction, exact melee geometry
+and the full cross-hero matrix remain open.
+
+Health-pack Hack resource evidence
+----------------------------------
+Definitions 0FC2 and 0FC3 declare 029C.06C. Their 0216 and 0217 graphs
+call 0046 with 250/75 healing and 15/10 seconds of base refill.
+The lane's external probe runs the authored Hack request and 0B1F
+against each definition's tag set. The branch stores the caster and
+runs for 60 seconds, then retires and clears the caster. While the
+caster is set, 0046 divides the refill value by four. The probe uses
+an explicit unit mode multiplier and verifies both computed values
+return to baseline on expiry.
+
+The external placement bundle joins original binary transforms and
+instance XML for maps 0688 and 0871. The match mounts it when
+ORPHEUS_HEALTH_PACK_DATA is set. Actual Hack input tests against both
+pack definitions in Practice Range verify selection, channel completion,
+release, range, aim and static obstruction. The integration uses an
+explicit spherical selection volume and a unit mode multiplier.
+Player contact now sends 0643 to 0046, whose entry binds the caller as
+the candidate body. Its ModifyHealth node heals and its ChaseVar
+controls normal and hacked refill. The server reconstructs contact
+with a 0.65m foot-distance gate and a static obstruction ray. While
+hacked, the owner and teammates can collect the pack and opponents
+cannot. Tests exercise real movement into a pack, health limits, wall
+rejection, team admission and refill.
+
+The 0B1B pack-tag query at node194 selects node195's half-cooldown
+assignment. The ordinary mode inputs give four seconds on a pack and
+eight on a body. The ownership comparison at node164 uses the pack
+owner's live body and team. The same reconstructed rule guards
+acquisition, the channel and application. On a successful refresh the
+new 0B1F runs before the host retires the previous pack effect.
+Tests verify one effect after self-refresh, ownership surviving the old
+deadline, opposing channel interruption, and enemy takeover after
+expiry. Actual teammate pickup grants no ultimate charge. NPC pickup,
+healing statistics, native presentation and mode-specific multiplier
+lookup remain open.
+
+EMP selects eligible packs in the reconstructed radial search with
+static LOS and the same owner/team predicate. It plays the original
+0B32 on the pack, whose 0B1F request retains the caster. Tests verify
+off-axis capture, wall and range rejection, friendly refresh, opposing
+ownership, and retirement of 0B32 while the pack Hack remains active.
+The pack has no character health pool and the cast leaves Hack
+cooldown available.
+
+Sigma Hyperspheres, Accretion and Gravitic Flux
+
+Actual 187F/45 and /56 use the target-build gravity, contact radii,
+bounce budget, restitution and timed airburst. A pair lands for
+25 + 30 per sphere against Sombra and earns 110 combat charge. The
+blast moves her toward its impact. Static cover reverses the sphere
+and blocks damage. Genji Deflect returns the pair and the resulting
+110 points belong to Genji. The current mover interprets the authored
+impact strengths as velocity contributions.
+
+Actual 1BBB Accretion uses the authored gravity and launch bias.
+Direct impact applies 30 + 40 damage, sends the original tagged
+contact message and evaluates the 224E duration and stack gates.
+Sombra is stunned for 50 ticks and displaced. A fresh press within
+cooldown is refused. Wall splash deals damage without stun. The
+authored owner splash scale permits self damage and movement without
+self charge. A projected bubble absorbs the entire direct hit without
+displacement or stun. Accretion passes Genji Deflect. Sombra Hack
+prevents release from a fresh Accretion input.
+
+The 1E41 cast refuses 1959, spends 1960 on Q and confirms a static
+ground point on primary. The 1DBC body graph delivers 50 on entry
+and half maximum health on landing. Sombra takes 50 + 100. The
+caster and victim both land. Team, static cover and distance exclude
+targets in the fixture. EMP interrupts after confirmation and before
+delivery without a refund. A projected bubble placed during descent
+absorbs Sombra's 100-point slam while the landing still completes.
+
+Actual spheres, rock and Flux reach Trooper, Enforcer, Sniper,
+Assassin and Heavy Assault. The first four take both Flux hits and
+Heavy Assault takes the 50 entry hit without lifting. Actual spheres
+earn 1960 from zero against unmodified 4000 HP Heavy Assault and
+pay for Flux. Sigma's actual quick melee deals and earns 30. Sombra's
+actual pistol and EMP restart the reconstructed 3-second, 30/s base
+shield recovery. Stored state includes projectile motion, impact
+forces, shield recovery and NPC Flux movers.
+
+Evidence is static Match execution with prepared target-build graphs
+and the actual NPC runtime. Native collision, placement, movement
+and client transport remain separate. Remaining cross-hero defense
+combinations are still under audit.
+
+Sigma Experimental Barrier and Flux world-clock playback
+
+The 1B55 owner query now resolves the current Sigma controller and
+spawns the original 2D25 Pet. The host verifies the external C015
+model and its integrity sidecar before loading 120 triangles from
+the dynamic holder. The default static model filter is preserved.
+The 1A2A host reads durability, travel, wall clearance, recall delay
+and recharge from the authored inputs. The Pet's body context keeps
+the 003A tag and delivers Sombra's original EMP application.
+
+Actual Sombra pistol drains the 700-point screen without charging
+EMP or hurting its owner, including the round that breaks it.
+The next round can reach Sigma. Front Hack is occluded. Rear Hack
+parks a travelling screen and silences deployment or recall while
+the parked screen remains present. Quick melee reaches Sigma through the screen and allied
+pistol rounds pass through. In-range EMP breaks the screen and
+drains Sigma's base shields. A screen outside EMP range survives.
+The screen retires with the owner's
+death or replacement. Four actual ranged NPCs contact the screen
+and Assassin's actual close contact reaches the owner through it.
+
+During omitted input, the world advances confirmed Barrier travel
+and recharge. Resuming a confirmed held deployment preserves the
+held secondary. Normal release parks the screen. The authored toggle
+option keeps travel after release until the next press. Scoped stored
+state includes the active mesh, owner, durability and position.
+
+Flux now replays neutral poses for participating bodies across
+omitted input frames. Confirmation, lift, descent and ground
+contact use the original graph clock and the same capsule mover.
+World gaps starting at confirmation, lift or descent settle at
+50 + 100 damage and 0 remaining charge for Sombra, with caster and
+victim both grounded. Five actual NPCs also finish during a world
+gap, including Heavy Assault's 50-point entry-only branch.
+The reconstruction uses a bounded replay window and neutral input
+for frames that never arrived. Native packet prediction, mobility,
+device presentation and remaining interactions remain separate.
+
+Reinhardt Rocket Hammer, Fire Strike and Earthshatter
+
+Actual 0048 primary and quick-melee inputs feed the same authored
+swing. Both sets of active query volumes are mapped into world
+space and each body lifetime is hit once per swing. The first
+swing deals 85 and uses the authored side-impulse origin. Static
+cover, rear and out-of-range targets are rejected. Damage uses
+the existing target pools, status messages and shield routing.
+
+The empty 00E2 marker now completes in the scoped server body.
+The original half-second windup, volley and six-second cooldown
+continue. The 01EA projectile travels at 25 m/s with a reconstructed
+0.85 m spherical sweep and 100 m travel limit. Actual shots deal
+100 to Sombra, penetrate multiple hostile bodies and the active
+Reinhardt mesh, stop at static collision, and deduplicate each
+victim. Genji returns the shot and takes credit. Sigma Grasp and
+D.Va Matrix consume it. Both controls are verified with actual
+target-build inputs. The flight completes across a world gap.
+A released strike also hits after the caster dies, credits that
+body and retains the balance on normal respawn.
+
+The paid 00BE cast refuses 1539 and consumes 1540 at admission.
+It samples the ground and starts the authored 40 m/s, 20 m,
+50-degree wave after the original windup. The scoped wave samples
+terrain, shields and body capsules. It deals 50 and applies
+2.5 seconds of control to Sombra at six metres. The separate
+250-point close contact kills a healthy Sombra with source
+attribution. A wall, allied target or a target beyond reach is
+excluded. Actual Barrier Field stops the wave, and Projected
+Barrier absorbs the impact without applying body control. The
+released wave completes across omitted world ticks.
+
+All three attacks execute against Trooper, Enforcer, Sniper,
+Assassin and Heavy Assault. Actual hammer hits earn all 1540 from
+zero against the original 4000 HP Heavy Assault and pay for
+Earthshatter. Sombra's Hack refuses new Fire Strike while primary
+hammer stays available. Actual EMP cancels both Fire Strike and a
+paid Earthshatter during windup.
+
+Scope is static Match execution. Exact native sweep filters,
+animation, terrain edge and original-client presentation remain
+separate.
+
+Reinhardt Charge
+
+Completing 007D state 37 advances the original 0.6-second windup,
+three-second drive and ten-second cooldown. The host reads the
+authored 0.275 step and steering scalar as 16.5 m/s and 30 degrees
+per second. A swept capsule and static LOS select enemy bodies.
+The broad sweep can cause one 50-point side bump with displacement.
+The narrow forward contact pins a living target and transports it
+using the target's own collision capsule. A blocked carrier or
+passenger takes the original wall-impact path. The impact is 300
+before ordinary pools and mitigation. A healthy Sombra dies to it,
+and Reinhardt earns the actual 200 points of health removed.
+
+Normal expiry releases the target without wall damage. Static
+cover and faction reject capture. A projected bubble absorbs the
+breaking impact without overflow. Fortify and Cryo-Freeze stop
+Charge through the authored counter query. Opposing Reinhardt
+and actual Heavy Assault charges knock down both combatants.
+Sombra Hack or EMP can cancel an active drive, and a lethal third
+party hit releases the passenger. Allied EMP frees a pinned
+Sombra before a wall hit. A saved Translocator allows a recall
+before contact. The pin prevents recall until release. Fresh
+Charge input is refused during silence and the wall cooldown,
+then drives normally on a later press.
+
+Actual input transports and wall-hits all five Talon classes.
+World-only tests start the gap during windup or after capture
+and reach the same stop pose, health loss and death tick as
+contiguous input. Playback assumes neutral omitted input, uses
+a bounded window and stores the active contact record. Native
+sweep admission, trajectory and client presentation remain
+separate.
+
+Winston Tesla Cannon and Barrier
+--------------------------------
+
+Actual 00FE primary input drives the authored 8 m search and 60/s
+health definition. The host resolves hostile capsules through map
+LOS and dynamic surfaces, applies each admitted body hit, and
+damages each shield at most once per frame. Standard body damage
+routes effective loss into 0B8B. The cone interpretation and 0.8
+continuous armour multiplier follow the reviewed Winston lane.
+Actual secondary leaves ammo full, primary consumes it, and the
+original reload restores 100. The player checks exercise Camo,
+Hack interruption, multiple enemies, and obstruction. All five
+original NPC classes take Tesla damage.
+
+The authored 00FA deployment finishes its 50 ms wait and 00FA/26
+allocates a 01C3 sphere using the authored 700 HP and nine-second
+lifetime. The 5 m radius is from 0D02 MSTU. The fixed shell blocks
+hostile entry and exit while allowing contact on the same side.
+Actual pistol and four original ranged NPC attacks hit the sphere.
+Hack loses acquisition across the shell. EMP uses the 003A branch
+to break it and applies Hack to an exposed eligible body. The
+stored snapshot changes with the sphere's health.
+
+Jump Pack, Primal Rage, owner-input gaps for deployment and
+reload, and remaining control interactions are open. Sphere
+replication, Tesla filter equivalence and native-client acceptance
+require separate proof.
+
+Winston Jump Pack and Primal Rage
+---------------------------------
+
+The authored 010A/26 cast start identifies each accepted jump,
+including a re-armed airborne cast. The host reads launch speed
+and elevation bounds, uses the regular collision mover, and
+resolves takeoff and landing once. Takeoff deals one damage.
+A centred collision landing deals 50, with reconstructed
+capsule distance falloff for displaced bodies. The original
+ModifyHealth magnitudes drive the existing impulse service.
+Actual Sombra Hack denies fresh Jump Pack input. A lethal
+Sombra pistol hit in flight clears the contact. The five
+original NPCs take both phases. Stepped and neutral world-only
+replay agree at landing.
+
+The active 0109/4 pool adds 500 and refills to 1000. The server
+removes the temporary maximum on authored expiry without owner
+input and resumes Tesla. A real 1540-point cast resets the normal
+Jump cooldown, then uses a two-second cooldown and permits a
+fresh aerial cast. The 00FE Primal fist windups drive the original
+damage states. Each tested hit deals 40 before pool mitigation,
+knocks back and spends no ammo. Paid Sombra EMP preserves an
+active transform and its punches while blocking a new Jump Pack.
+All five original NPCs take the fist. Tesla alone earns all 1540
+against unmodified Heavy Assault and pays for the transformation.
+
+The host reconstructs the exact capsule and impulse geometry.
+Idle deployment and reload remain measured gaps. The remaining
+surface and control matrix and original-client verification are
+separate outstanding work.
+
+Winston command gaps and damage surfaces
+----------------------------------------
+
+The pending 00FA deployment and 00FE reload gate advance with
+released input on missed owner frames. Those idle timer frames
+do not grant a movement pose or attack. The live owner frame
+remains available for input. The sphere starts and expires at
+the same tick in stepped and idle runs, and death before
+deployment prevents creation. Both manual and empty-magazine
+reload complete without input. A stale press gives no movement,
+ammo spend or damage, and the first fresh press fires normally.
+
+An actual Ice Wall receives Jump Pack takeoff and landing
+damage. The wall shields bodies behind it from the pulse and
+impulse. Primal punches damage the wall or Winston sphere when
+the sweep overlaps. A wall still occludes the body, while a
+punch can reach a body across a barrier shell. These box, mesh
+and sphere contacts use reconstructed collision sampling.
+
+Tracer Blink
+------------
+
+Actual 0024/3 Blink resolves the authored 7.5 m displacement
+through a horizontal capsule sweep. The host uses input throttle
+and falls back to forward when stationary, keeping the authored
+three charges and replenishment. A static wall clips displacement
+while consuming one charge. Both Blink bindings pass through
+Sombra without damaging her, update the current pose and move
+Tracer out of the old pistol line. All five actual Talon NPCs
+pass the same crossing test. Actual Hack and paid EMP refuse
+both bindings without charge loss. Fresh input works after silence.
+
+Recall restoration, Pulse Bomb explosion, Pulse Pistols charge
+and the remaining Tracer interaction matrix are open. Native
+movement and original-client acceptance are separate.
+
+Tracer Recall and Pulse Pistols charge
+--------------------------------------
+
+The original 001A preparation and playback states resolve
+three seconds of server pose and health history. Completion
+restores beneficial health and authored ammo, then keeps the
+original 12-second cooldown. Actual Hack denies a new Recall.
+During the cast, Sombra pistol, Hack and paid EMP cannot acquire
+or damage Tracer. Movement, Blink and weapon inputs are locked.
+All five actual NPC attack scenarios deal damage again after
+protection. Actual Ana antiheal clears on successful completion.
+
+An actual Ice Wall at the earliest rewind point makes Recall
+check later recorded positions using the Translocator capsule
+placement test. Stepped and world-only restores agree. Stored
+state captures phase and history, and body replacement retires
+both. Pulse Pistols feed 0B8B from actual hostile pool loss
+against Sombra and all five original Talon bodies. Actual
+shots on Heavy Assault earn all 1260 and pay for the bomb
+release. Its explosion and broader interaction matrix are open.
+
+Tracer Pulse Bomb
+-----------------
+
+Actual 0034/1 releases projectile 0045 with authored speed,
+gravity, collision radius, lifetime and hit definitions. The
+host interprets the fuse field as one second after impact.
+Contact resolves 5 damage before the fuse. The scoped 015D.130
+default supplies the 350-point explosion with 2 m and 4 m rings.
+Stepped and world-only runs agree through the lethal tick.
+Sombra and all five actual NPCs take both damage phases.
+Cover, team and range govern blast admission, and self damage
+gives no weapon damage credit.
+
+Sombra EMP cancels a paid pre-release windup without refund.
+A released bomb survives late EMP or lethal Sombra pistol.
+Actual Recall detaches a stuck bomb at its last world position.
+Genji returns the projectile and owns the blast. Sigma absorbs
+355 and original 0407 Matrix consumes the projectile. Actual
+Winston Barrier and Ice Wall take the separate contact and
+blast while preserving bodies they cover. This uses reconstructed
+attachment and collision geometry. Remaining defense combinations
+and original-client behavior are open.
+
+The next measured gap is Tracer's 0016/12 two-muzzle volley.
+The first actual report currently traces one ray and deals 6.
+
+Tracer Pulse Pistols (0016/12) now resolve the authored projectile pair as ordered, independent guarded rays. The VM retains the per-report cone across activation changes. Actual input verifies a 12-damage body pair, a 24-damage critical pair, 0/1.16667/2.33333/3.5 degree growth, cap, release recovery and fresh activation. The indexed cone sampling uses reconstructed identities and rays share the available server origin. A real Zarya projected bubble seeded at 2 HP breaks on ray one without spilling damage. Ray two deals 6 to Sombra and earns 6 Tracer charge. Zarya gains 0.4 energy.
+
+Pharah 0027 Jump Jet now applies the authored pose impulse. Actual Sombra Hack denies it without spending cooldown. A fresh cast after expiry launches at 10 m/s horizontally and 20 m/s vertically and early reuse fails. Actual primary credits 120 on the first Sombra hit, nothing on a miss, and only the remaining 80 on lethal contact. All five original NPCs take 120 and award 120. Actual rockets earn 2100 from zero against unmodified Heavy Assault and pay for damaging Barrage. Concussive Blast force, Hover Jets lift and Barrage motion and control remain open.
+
+Pharah Concussive Blast now uses authored 8 m force, horizontal 20 and vertical minimum 5. Actual Sombra and Pharah move on a hit without HP loss, hit notice or charge. Wall, ally, miss and Hack gates pass. Four actual NPCs move and Heavy Assault resists through its active authored modifier. Genji returns the projectile, Sigma and 0407 Matrix consume it, and Projected Barrier shields Sombra at 200 HP. Aim stays present through delayed release in these fixtures. Replay, cooldown reuse, Camo and remaining controls are open.
+
+Pharah Barrage 002B/2 now applies the authored 8-degree spread and both curved motion rows with per-tick chord collision and 100 m path range. Actual first direction and first two offsets match the captured reference. A narrow wall missed by a straight ray intercepts at half a tick. Genji, Sigma, 0407 Matrix and projected barrier pass on the new trajectories. All five actual NPCs take 40 and grant zero. Native reflected restart, broader regression and the full static matrix remain open.
+
+Actual Genji reflection of Pharah Barrage now restarts from the authored sprung eye, restores the 5 s lifetime and 100 m path range, and preserves the sub-tick phase. Live source lookup resamples the original volley; source-body replacement uses raw aim. Returned rockets kill Pharah without damaging rear Sombra. Stored projectile digest includes restart data. Three direct methods pass; the combined Pharah and Pulse Bomb run passes 16, including original five-NPC cases, zero skips. Static matrix remains open.
+
+Pharah actual 0023/8 primary enters the projectile defense path without a projectile entity asset. Genji returns 120 to Pharah. Sigma and actual 0407 Matrix absorb. Sombra behind each stays at 200. The authored half-strength self splash deals 40 without hit marker, hero damage or charge. A projected barrier at 2 HP takes the breaking rocket without overflow or charge. The next rocket deals and credits 120. Actual primary also ends Camo on damage. Nine combined tests including all-five-NPC primary charge and Barrage reflection pass without skips. Primary extent, range, self impulse and remaining lifecycle interactions stay open.
+
+Pharah actual primary 0023/8 now applies its 0.2 m extent to independent capsule and guard queries. Actual Sombra crosses the lateral hit boundary at +/-2 mm and the 100 m flight boundary at +/-4 mm. Distance plus extent orders a grazing contact against static cover. Real Deflect returns at 0.949 m and misses at 0.951 m. The five actual NPCs take both damage contacts and give effective charge on grazing shots. All 13 combined tests passed without skips. Actual Concussive Blast separately displaces Sombra while Camo remains active and HP stays 200. Primary self impulse and remaining lifecycle and native hit shape boundaries stay open.
+
+Pharah primary splash now evaluates original independent impulse rings and 1.875 source multiplier. Actual wall fire produces -7.5 m/s horizontal source recoil, 40 self damage without charge, and separate Sombra damage and force. The source impulse cutoff is verified at +/-2 mm while damage remains on both sides. Ceiling impact projects the source impulse downward. Actual Deflect moves the source impulse to Genji; his replacement body does not inherit it. Five actual NPCs take 120 and four receive (0,6.4,4), with Heavy Assault retaining zero response. The combined regression passed 23 with zero skips. Additional blast geometry, LOS and omitted input are open.
+
+Pharah's released primary, accepted Concussive windup and running Barrage now advance across omitted owner input. Actual primary and concussion match health and positions. Barrage matches 61 reports and live curves at a mid-channel endpoint, and all 76 reports plus channel end over the full interval. Actual lethal tick matches and stale owner input does not create a shot. Paid early EMP cancels a pending concussion; late EMP preserves the in-flight projectile and displacement across a gap. Three dedicated and 34 combined tests pass without skips. Airborne pose/gravity after Barrage and remaining lifecycle combinations are open.
+
+Airborne Pharah Barrage now advances through omitted owner frames and releases into normal gravity after natural end, actual Hack or paid EMP. Contiguous and omitted-input runs match held and falling poses from 2.399 m through landing. Hero replacement and actual lethal Sombra fire retire airborne tracking. The death fixture starts Pharah at 1 HP. Six world-gap tests and 37 combined tests pass with zero skips. Actual Concussive Blast reuse produces no new shot at +61 frames and one at +721 in both input patterns. The airborne replay has a bounded horizon. Other lifecycle combinations and native pose equivalence remain open.
+
+Pharah Concussive Blast now replays genuine presses accepted by its authored cooldown buffer and does not extend a rejected press through recovered mover frames. Actual Sombra EMP during windup leaves the skill ready and suppresses a press one frame before silence expiry. Real input on the expiry frame starts one shot. EMP after release preserves nine seconds of cooldown. A press with about 16 ms remaining starts a buffered windup, and the shot fires at the same world tick with or without owner commands. The aimed shot displaces Sombra to the same position with 200 HP in both runs. The prior Barrage snapshot suite finished with 21 passes.
+
+Pharah Hover Jets lift under both actual bindings. Alternate input exhausts a full tank on frame 126, then the force stops. Missing owner frames now advance the accepted hover pose, release, gravity, contact and authored refuel. Actual Hack and paid EMP stop thrust, with matching world-only descent and refill at aligned ticks. A press one frame before expiry has no effect and a fresh press after expiry lifts in both input patterns. Actual Sombra Machine Pistol kills a hovering Pharah from 200 HP and retires the replay state. The world replay uses bounded pose and refuel windows.
+
+Actual Pharah Barrage projectiles remain in flight after Hack, paid EMP, caster death and replacement. Actual Machine Pistol kills Pharah during Barrage. A posthumous trade uses the original Pharah entity for the death notice and awards one elimination to each player. Actual Translocator recall evades a released rocket. Barrage destroys the exposed hostile beacon and leaves the allied or wall-covered beacon alive. Nonlethal Pharah primary and Barrage hits against Sombra queue damage at the impact world time. With resumed input, Barrage ends Camo at the same frame and with the same cooldown under both schedules. Continued world-only Camo state progression and other damage combinations remain open.
+
+Thermoptic Camo now advances its authored damage reaction and cooldown during world-only updates. In the actual Barrage fixture, the visibility filter drops on processed impact frame 17, the exit blend finishes at frame 63, and six seconds of cooldown then elapse without Sombra input. The world leaves its current frame available to the next real input. All five actual NPC attacks produce matching health and cooldown after the first hit. A Translocator throw already admitted by a real input is kept during Camo replay, with matching flight under the last real aim. Stale fire and an early Camo recast are rejected, and real input after expiry works.
+
+A real Translocator throw now releases at the original cast plus six frames without Camo or additional owner commands. The beacon preserves its flight and authored 999-second lifetime. Early recall is denied while throw admission remains active. Actual airborne recall advances gravity, landing and cleanup during world-only updates. Hard stun before release blocks the throw. A beacon already out of blast range survives, and the existing static EMP path preserves the committed throw. Natural lifetime expiry anchors cooldown to the original deadline, separately from a prior Camo reaction. Fresh input after cooldown creates a new beacon.
+
+Hostile Translocator destruction now uses the actual impact frame for the owner graph's cooldown. Actual Soldier rifle and Pharah primary hits match contiguous and omitted owner input. Actual Trooper, Enforcer, Sniper and Heavy Assault fire can destroy hostile beacons without shortening cooldown. Allied beacons remain. The authored manual recycle uses the beacon's own frame during batched world stepping, and cooldown advances through the rest of the interval. A recall command on the rocket-impact endpoint is denied after destruction.
+
+Accepted EMP now advances the original paid windup during omitted owner input. The pulse remains at cast plus 21 frames. A player recipient can receive and retire the original effect without consuming a command frame. Five actual Talon NPCs receive matching silence deadlines at cast plus 334, with armor and health unchanged. World-only tests cover a placed health pack and an active Zarya bubble. Released Flashbang, lethal Soldier Helix, four actual lethal NPC weapon attacks and a Heavy Assault capture still interrupt before pulse. With original charge tags enabled, continuous input restores five charge by cast plus 415. The original passive clock was initially missing after world-only EMP lockout and has separate follow-up evidence below. Full static and native-client acceptance remain tracked separately.
+
+The authored 0B8B passive clock now continues after EMP during omitted input. Continuous and world-only runs grant five at cast plus 415 and ten at plus 478. Stale fire at the replayed frame is rejected. A fresh pistol hit at the open endpoint adds eight exactly once. From zero, one long jump reaches the natural 1400 cap, and a real subsequent EMP spends it and silences Soldier. Lethal Soldier fire before a due owner frame and same-hero respawn preserve only the previously earned charge. Actual Ana Sleep Dart and Biotic Grenade launched on the EMP press frame now resolve on their original flight clocks during world-only updates. Dart cancels the pulse, a lethal grenade prevents it, and a surviving caster takes damage and antiheal and still pulses.
+
+Actual Shadow Step suppresses Opportunist only during its protected frames. Reaper remains eligible during windup. Landing behind cover restores the outline while the health bar stays blocked. Actual quick melee deals 30 before protection and after landing, with zero damage during protection. Sigma's base shield recovery removes the outline when it lifts health above half, and actual EMP shield drain restores eligibility. All 59 combined checks passed.
+
+Manual Talon Assassin engagement now defers pin input during actual Recall, Cryo-Freeze, Wraith and Fade. The first eligible frame after protection gets the authored 25 point opening hit. Actual allied Sombra quick melee then deals 30 to Assassin and releases the pin with no extra damage to the victim. The combined 27 tests passed. Native acquisition, animation recovery and presentation remain separately tracked.
+
+An actual autonomous Assassin now skips a Cryo-Freeze target before ranking distance. With an eligible Soldier nearby it opens on Soldier for 25 while Mei stays untouched. With no alternate it waits, then opens on Mei for 25 after protection ends. Actual Sombra quick melee rescues either target. An established autonomous pin keeps its still-eligible victim when Sombra moves closer. Breaking the original victim's line of sight releases the pin and selects the unobstructed Sombra. The static sandbox and actual attack graph passed 37 combined tests.
+
+A Heavy Assault charge now advances its authored movement, victim attachment and impact on retained world frames after a jump. In a 90-frame jump from the real special input, open carry and wall impact match contiguous input. Both positions agree within two millimetres and lethal wall contact retains its actual world frame and source. Real Recall, Cryo-Freeze, Wraith and Fade prevent attachment and damage while the Heavy still moves. An early paid EMP interrupts the moving charge. Later EMP loses to capture before pulse in both schedules. Three dedicated tests and 67 combined tests passed with zero skips. Native motion and recovery presentation remain separate.
+
+Actual Heavy Assault secondary contact now preserves an existing launch when Fortify activates midflight. Cryo-Freeze and Fortify block both effects before contact and do not produce delayed damage. Actual Sombra recall retires the launch. Two focused and 92 combined tests passed with zero skips.
+
+The actual Talon Sniper 142C special now advances its committed search, movement and landing during bounded world catch-up. A 24-frame jump reaches the same landing, a 95-frame jump after cover removal resolves the same search and move, and actual paid Sombra EMP during movement stops at the same position with the same silence expiry. The focused test and all 101 combined tests passed with zero skips.
+
+Bounded world replay now advances the authored attacks of already engaged actual Talon NPCs from the first omitted frame. All five classes match contiguous damage or movement, and all five seeded lethal fixtures retain the same death tick and source. Stopping after a real first hit prevents later damage, movement and pin through a 150-frame jump. 110 combined regression tests passed with zero skips.
+
+Actual Wraith and Fade now advance their authored protection, recovery and cooldown across omitted owner frames. Assassin contact, paid EMP timing and fresh melee after protection match contiguous commands. Two focused and 93 combined tests passed with zero skips.
+
+Actual Cryo-Freeze 05FE now advances owner cooldown during omitted commands. Natural expiry, manual cancellation, fresh recast and healing match contiguous commands. Cast plus 998 is denied and plus 999 accepts. Paid EMP applies only after protection. One focused and 94 combined tests passed with zero skips.
+
+Accepted Fortify 0CF4 now advances its authored owner clock during omitted commands. Natural expiry and paid Sombra EMP start cooldown at the same frame as contiguous updates. Stop plus 624 rejects recast and plus 625 accepts. An actual Sleep Dart landing after EMP sleeps Orisa with matching damage and deadlines. One focused and 103 combined tests passed with zero skips.
+
+Accepted Take a Breather 0240 now advances the original owner cooldown through omitted commands. Natural completion and paid Sombra EMP match in cooldown, healing and mitigation. The 499th frame after either stop denies reuse and the 500th accepts. Actual Helix released before the EMP pulse deals 120 after cancellation and 60 during mitigation. One focused and 147 combined tests passed with zero skips.
+
+Paid EMP replaces Hack. Retained world frames now advance the authored source check for player and Talon NPC applications before clearing the silence registry. Three focused tests passed. The broad run passed 125 of 126. Its missing-node dispatch error was fixed and passed a 14-test recheck.
+
+Accepted ordinary Hack initializes the recipient graph and source at contact without consuming a recipient command. Natural expiry, source retirement and opposing paid EMP timing match contiguous updates. Three focused and 127 combined tests passed with zero skips.
+
+Ordinary Hack immediately suppresses Fortify before later same-frame hits. Soldier rifle damage is 7 before and 15 after Hack to Orisa, and 10 before and 20 after to Roadhog. Fortify recast opens on the same world frame with or without owner commands. One focused and 134 combined tests passed with zero skips.
+
+Accepted Deflect and Grasp now finish and cool down through omitted owner frames. Grasp converts 32 absorbed damage to 19.2 temporary shields and decays on schedule. Actual EMP prevents or drains the conversion according to pulse time. Two focused and 111 combined tests passed with zero skips.
+
+Actual direct and Call Mech 0407 Matrix now releases and refills through omitted owner commands. Fuel, absorption, armour loss after release and fresh reactivation match contiguous input. One focused test passed. The combined Matrix, shot guard, Pulse and EMP run passed 65 of 66 with zero skips. The existing rear-hit charge assertion also fails with Matrix replay disabled. The current Sombra charge catalog lacks 0407.
+
+With the existing 44-body ultimate-context-mech.json, two focused Matrix and charge tests and all 85 combined Matrix, shot guard, Pulse, EMP and charge checks passed with zero skips. The direct 0407 and called 0407 both award zero for absorbed fire and four charge for four armour lost. The older 43-body input explains the prior rear-hit failure.
+
+The actual called 0407 launches 18 Micro Missiles for 126 damage in the open, with no damage behind cover. Ordinary Hack prevents launch. Early paid EMP leaves two missiles already in flight, while the first lethal missile prevents a later paid EMP pulse. All three focused tests passed with zero skips. Boosters 047E/4 runs and starts cooldown but leaves the 0407 stationary and Sombra untouched. Motion and contact are open.
+
+Actual direct and called 0407 Boosters now use swept collision, acquire Sombra through 047E/15 and apply one 10-point hit plus authored knockback through 047E/16. Wall, ally, manual cancellation, early and late paid EMP, lethal source and fresh recast have direct evidence. The gap and contiguous paths agree on mech position and damage. Four focused, 64 combat and 45 mover tests passed. The nine initial mover skips passed with the build 104319 collision cache. Native acceleration and response remain separate. Accepted 1128 Micro Missiles freezes after 150 omitted frames. Sombra remains at 200 HP versus 74 HP with a completed volley and cooldown on contiguous input.
+
+Actual direct and called 0407 Micro Missiles preserve all 18 contacts across a 650-frame gap. First contact is cast plus 23 and last cast plus 120, with Sombra at 74 HP and the authored cooldown opening for a fresh cast. Simultaneous paid EMP allows one already released direct missile or two called missiles, with matching contiguous and gap results. A first lethal missile prevents later paid EMP in both schedules. A released missile from the replaced direct mech keeps the original killer body and death frame. Six focused and 70 combined tests passed with zero skips. Explicit called-mech retirement on pilot hero switch remains a separate lifecycle check.
+
+An actual Sombra pistol round destroys the direct or called 0407 after one missile releases. The missile still kills the 7 HP Sombra at cast plus 23 and credits the original mech. Direct hero replacement also retains the source. Six focused tests passed with zero skips. Actual paid called Self-Destruct at 3 m kills at cast plus 187 and retires the shell on contiguous input. A jump immediately after the cast reaches plus 276 with Sombra still at 200 HP and the shell present. A jump from plus 150 records the kill at plus 276 and leaves the shell present.

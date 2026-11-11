@@ -1,0 +1,61 @@
+Native config fold A6B80C63 -- target104319, module RVAs
+
+Junkrat common charge child0B8B node83 uses this config. It is a fold of
+itemized message data, not a world query for a precomputed prevented amount.
+An earlier probe supplied a fixed value for this missing evaluator. The current
+probe supplies actual maps and runs the expression that selects/sums them.
+
+Native route:
+- Schema typeinfo2D6BBA0, evaluator registration1B7BF40, factory1B7EC00,
+  evaluator vtable27AD230, scalar+20 evaluator1B77D80.
+- 1B77E11..1B77EDD collects source+10 through1B803D0/1B7F700 into copied
+  values before pushing a parameter provider on VM+4F8.
+- Provider27AD148 lookup1B76A60 accepts full0A4 keys:000C index,041A count,
+  050D accumulator,050E current item. A missing/exhausted item returns false
+  without writing, so an earlier provider can answer it.
+- Accumulator initially null. Seed+18 is evaluated only for nonempty input,
+  under the provider at index0. Step+20 is evaluated once per collected value,
+  directly into the accumulator; a no-output failure preserves it. Index is
+  incremented after each step, including the last one.
+- Projection+28 is evaluated even for empty input. A missing projection copies
+  the accumulator. A failed projection leaves the caller destination unchanged.
+  The evaluator still returns success. Provider pop and variant cleanup follow.
+
+Implementation:
+play.fold_values uses the existing collecting iterator and scalar interfaces,
+with Component.parameter_scope for scoped bindings. Source evaluation sees the
+outer providers; seed/steps/projection see this fold's provider. Nested folds
+hide only their declared keys and restore the outer stack on return/failure.
+No persistent VM fields or stored-state schema changes are needed. Strict
+unknown source/step/projection queries still fail. Iteration consumes VM work.
+
+Evidence:
+35 offline Unicorn runs of original1B77D80 match Python results for empty,
+singleton/multiple/null/float inputs; missing seed/step/projection; failed
+seed/step/projection; and restored provider-stack length. Twenty separate
+original1B76A60 lookups match success, destination and item bounds for indices
+-1/0/1/2 and all four keys plus an unknown key.
+Config callbacks, collecting iterator, variant copy/disposal, vector copy and
+stack-cookie check are adapters in the fold runs. Provider runs adapt scalar
+variant copy/set. These comparisons prove the original fold loop and provider
+lookup, not complete engine collection, owning variants or combat event source.
+The existing authorized client-image.bin is immutable; code, probe dependencies
+and native-fold-validation.json remain outside Git in this lane.
+
+Actual0B8B expression:
+param050D + (param050E.#16056 == identifier3EBB ? param050E.#499 : 0)
+The final config reads param050D. Input is message012 parameter0624. The charge
+graph subtracts the sum from parameter0013 before its normal multipliers/cap.
+The meaning and native production of record type3EBB are still unresolved.
+Lifecycle694/700, possession/filter/tag services, real Combat event emission,
+armor/overkill accounting and full charge/death/ultimate acceptance remain open.
+
+Lane012E independently replays the35 loop/20 provider cases and runs the
+original0B8B in Sombra's actual Match. The obsolete empty0 world shortcut is
+removed: real pistol damage now stores typed null in16102 for empty input.
+Seven Sombra methods also cover itemized map fixtures, native identifier typing,
+profiles/cap, tag/team refusal, five actual NPC bodies and passive live-provider
+snapshot causality. Synthetic messages do not establish the native record
+producer or3EBB meaning. Current Combat emits empty0624 with resolved pool loss;
+its existing armor/overkill tests remain scoped host evidence. Full static and
+original-client matrices remain open. No hero commit before complete acceptance.

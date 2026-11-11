@@ -274,6 +274,23 @@ class Projectiles:
 
     # --- shots ----------------------------------------------------------------------------------------
 
+    def allocate_seen_entity(self):
+        """Shared server projectile namespace, including persistent owned entities."""
+        for _ in range(SEEN_SPAN):
+            entity = SEEN_FIRST + self.next_seen % SEEN_SPAN
+            self.next_seen += 1
+            manager = getattr(self.combat, "translocators", None)
+            halt = getattr(self.combat, "halt", None)
+            chargers = getattr(self.combat, "superchargers", None)
+            blizzard = getattr(self.combat, "blizzard", None)
+            if ((manager is None or entity not in manager.entries)
+                    and (halt is None or entity not in halt.orbs)
+                    and (chargers is None or entity not in chargers.active)
+                    and (blizzard is None or entity not in blizzard.areas)
+                    and entity not in getattr(self.combat, "barriers", ())):
+                return entity
+        raise RuntimeError("server projectile entity namespace exhausted")
+
     def fired(
         self, player, state, frame: int, definition: int, bound_seconds: float, origin=None, direction=None,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None,
@@ -315,8 +332,7 @@ class Projectiles:
             stream = observers.projectile_stream(viewer, shot.body, npc=npc)
             if stream is None:
                 continue  # the client has no statescript stream for this body
-            entity = SEEN_FIRST + self.next_seen % SEEN_SPAN
-            self.next_seen += 1
+            entity = self.allocate_seen_entity()
             record = ShotRecord(
                 shot.frame,
                 shot.instance,

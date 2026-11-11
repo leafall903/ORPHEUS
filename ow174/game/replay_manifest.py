@@ -37,7 +37,7 @@ _CONFIG_MODULES = (
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
-    "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
+    "ow174.game.projectiles", "ow174.game.props", "ow174.game.reaper_blossom", "ow174.game.replay_values",
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
     "ow174.game.server", "ow174.game.statescript",
     "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world",

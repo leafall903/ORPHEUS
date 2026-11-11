@@ -36,6 +36,54 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   interruption/resource/recovery behavior and independent NPC Hack/stun clocks.
   Fix damage-before-control ordering to preserve Hack's authored2s interruption
   cooldown. Native immunity/cleanse/stacking remains unaccepted.
+  The Translocator foundation binds an actual server entity, authored5HP,
+  reconstructed flight/settling and retirement; real enemy destruction, all-five
+  non-damage and source/control/cooldown checks have direct execution evidence.
+  Original second press now reaches reconstructed server recall with capsule
+  placement refusal; original manual-recycle messaging and cooldown are hosted.
+  Native placement search/curve/momentum/immunity and parity remain open.
+  Further checks bind Reaper Wraith/Moira Fade protection to their
+  actual authored Stack lifetimes and cooldowns, excluding recovery; Sombra
+  attacks, Hack/EMP and rear-target pass-through have direct scenarios. Scoped
+  entry, immunity and intangibility remain declared reconstructions. McCree's
+  original standing/crouched camera offsets now drive bidirectional cover and
+  Flashbang checks without changing the critical-region heuristic. Full static
+  acceptance and all unimplemented defense categories remain open.
+  Actual Sombra pistol rays now use the original no-decay ramp3 and0.5..2.4
+  degree cone with independently validated table/rotation math. Server seed
+  identities and uniform-radius mode are explicit reconstructions. Player and
+  allfive NPC sampled-burst accounting and causal spread snapshots have direct
+  checks; native caller/recoil/muzzle/mode binding remains open.
+  The lane includes reviewed parent manual Assassin pin work. Actual
+  1157/Sombra cases cover contact/continuous damage, resources/control, Camo/EMP/
+  Hack interruption and expiry, support pistol source kill, corpse/target death,
+  LOS/range/team/body retirement and passive clock/context storage. The controller,
+  contact range and health clock remain reconstructed; native recovery/escape/
+  immunity/autonomous navigation and complete combat matrices stay open.
+  Correct the NPC input limitation: the normal38-record mover table omitted all
+  five Talon bodies. Use the parent's immutable43-record runtime and reject
+  fallback geometry in actual-NPC acceptance. Ten methods/85 cases cover explicit
+  capsule hit/miss, ranges, reload/release and static high/low cover. Full native
+  skeletal hit volumes/hardpoints/moving targets and real-map deployment remain open.
+  Sombra now uses body121C's authored1.3/0.91 first-person offsets for its
+  reconstructed standing/crouched combat origin. Keep the legacy critical-region
+  descriptor distinct: camera height does not establish native bones. Six methods
+  cover actual cover/stance/throw paths and20 five-NPC cases; native muzzle and
+  critical volumes remain open. The null critical initializer stores-1, so the
+  host's fallback1 is explicitly unaccepted until downstream resolution is known.
+  The Sombra charge bridge runs original0B8B for the5-point natural
+  clock, resolved damage/tag/profile/cap arithmetic and EMP's5s post-cast blocker.
+  Actual damage can fill EMP; same-hero respawn retains energy. Character/static
+  tag/lifecycle/cast services remain declared reconstructions, with dynamic tags,
+  native filters/custom-mode/healing/transfer policies open. Generic A6B80C63 now
+  replaces the scoped empty0 bridge with the original fold loop:35 native loop
+  and20 provider cases, nine generic and seven actual-Sombra methods pass. Raw
+  itemized0B8B fixtures are distinct from native event production, which stays open.
+  Canceled notification markers/ending-state writes are corrected, with three
+  before/after tests. Reported ammo now notifies the original empty-clip reload
+  condition: actual Heavy two reloads/120 rounds/960 loss reconcile; four Sombra
+  methods cover repeated Camo/EMP/held-primary scopes and two Camo handoffs for
+  allfive NPCs. Native notification phase and cross-object stop order remain open.
   Complete Hack, full Camo, Translocator, full EMP, headshots, dynamic defenses, NPC
   specials/navigation/full bidirectional combat and native acceptance remain open. See
   [Sombra combat restoration](SOMBRA_COMBAT.txt).

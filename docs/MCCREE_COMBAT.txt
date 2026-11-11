@@ -26,10 +26,17 @@ transport and permissive body VM; target is Heavy Assault at8m unless stated):
 - Deadeye's premature exit was traced to the1113EBD5 input-join fallback. After
   the native join fix, actual commands retain the authored six-second window,
   spend explicitly supplied full charge and support repeated secondary cancel
-  without normal ammo consumption. The old ordinary70 fallback-shot observation
-  is superseded: the current frontier fires no ultimate damage and retains six
-  normal rounds. Acquisition, charged damage, release and charge economy remain
-  open. See docs/STATE_INPUT_JOIN.txt for the native evidence and exact limits.
+  without normal ammo consumption. The two live searches use the configured
+  radius and full cone angle, team and Camo policy. Node 26 keeps broad
+  membership under cover, while node 86 requires static capsule visibility.
+  With the prepared external 01EE graph, the per-target effect runs its own
+  charge and reports a directed volley against the locked body. Tests cover
+  partial damage, a lethal shot, cover and Camo release rejection, and the
+  100 m volley reach. The static eye point is reconstructed. Actual volleys use the same
+  static barrier and guard routing as Sombra's pistol. Projected Zarya shield,
+  directional Reinhardt, Deflect, Kinetic Grasp and owned Matrix tests pass.
+  Full charge economy and native client acceptance remain open.
+  See docs/STATE_INPUT_JOIN.txt for the input-join evidence.
 
 Melee geometry policy:
 The existing authored melee reach/sphere and viewed target capsule are retained.

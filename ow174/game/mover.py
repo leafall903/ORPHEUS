@@ -304,7 +304,7 @@ class Mod:
 
     index: int
     op: int
-    value: float
+    value: float | tuple[float, float, float]
     start: int
     end: int | None = None
     priority: float = 0.0
@@ -345,7 +345,7 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
                   GROUND_DECEL: data.ground_gravity_decel, COLLISION_MOD: float(data.character_collision),
                   STEP_DOWN_MOD: 1.0})  # fmt: skip
     for mod in mods:
-        if mod.index in slots:
+        if not isinstance(mod.value, tuple) and mod.index in slots:
             slots[mod.index] = apply_op(mod.op, slots[mod.index], mod.value)
     clamp = {index: max(0.0, slots[index]) for index in (0, 1, 2, 3, 4, 5, 7, 8)}
     speed = clamp[SPEED]
@@ -381,7 +381,7 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     """A value the transitions read through the mods of its index (0x7FF789B42FB0): the jump and crouch
     intents (1 with the button, 0 without) and the landing's speed limit."""
     for mod in mods:
-        if mod.index == index:
+        if not isinstance(mod.value, tuple) and mod.index == index:
             value = apply_op(mod.op, value, mod.value)
     return value
 
@@ -397,12 +397,28 @@ def statescript_mods(component) -> dict:
     """The movement mods of a body's statescript (a script.runtime.Component) that are on now:
     {(instance, state, slot): (index, op, value, priority)}. The client gives the mover each mod of a
     MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end)."""
+    from ow174.game.script.expr import Vec3
+
     found = {}
     for instance in component.instances.values():
         for state in instance.states.values():
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
+                if isinstance(mod, dict) and mod.get("$") == "STU_09F9B1FE":
+                    if mod.get("m_CFEC5F76") != 0:
+                        continue
+                    value = instance.evaluate(mod.get("m_9B7A63EA"))
+                    if isinstance(value, Vec3):
+                        vector = (value.x, value.y, value.z)
+                    elif type(value) in (int, float) and value == 0:
+                        vector = (0., 0., 0.)  # Authored scalar zero uses the native vector default.
+                    else:
+                        continue
+                    if all(math.isfinite(axis) for axis in vector):
+                        priority = _number(instance, mod.get("m_priority"), 0.0)
+                        found[(instance.id, state.index, slot)] = (0, SET, vector, priority)
+                    continue
                 kind = MOD_OPS.get(mod.get("$")) if isinstance(mod, dict) else None
                 if kind is None or mod.get("m_A9561CA0") is None:
                     continue
@@ -498,6 +514,17 @@ class Mover:
             self.world = world
             self.on_map = True
             self.body = None
+
+    def teleport_grounded(self, point) -> None:
+        """Move to a checked destination and rebuild the collision proxy there."""
+        self.position[:] = list(point)
+        self.velocity = (0.0, 0.0, 0.0)
+        self.body = None
+        self.flags_word = self.flags_word & ~IN_AIR | FELL
+        self.air_ticks = 0
+        self.fall = self.spring = self.spring2 = self.spring_speed = 0.0
+        self.spring_steps = (0, 0)
+        self.landed = False
 
     def track_mods(self, active: dict, frame: int) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
@@ -601,11 +628,13 @@ class Mover:
     def step(
         self, command: Command, seconds: float, tick: int = 0,
         *, simulate_pose: Callable[[Command, float, int], None] | None = None,
+        retained_buttons: int = 0, drop_repeated_buttons: int = 0,
     ) -> None:
         """One tick per command frame. Frames that never arrived are run first: the client ran them, most
         likely with the same keys (the last command again, and from the 33rd
         missing one without throttles and buttons). A player with a body script can drive each pose and
-        run its graph on the same frame, including recovered input."""
+        run its graph on the same frame, including recovered input. Buttons in
+        drop_repeated_buttons require real input and do not repeat into those frames."""
         pose = self.step_pose if simulate_pose is None else simulate_pose
         last = self.last_command
         if last is not None:
@@ -613,7 +642,8 @@ class Mover:
                 if frame - last.frame > REPEAT:
                     last = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
                 missing = replace(
-                    last, frame=frame, buttons=last.buttons & ~SUBFRAME, action=0,
+                    last, frame=frame,
+                    buttons=(last.buttons & ~(SUBFRAME | drop_repeated_buttons)) | retained_buttons, action=0,
                     subframe=0xFF, click_yaw=None, click_pitch=None,
                 )
                 pose(missing, seconds, tick)
@@ -623,13 +653,18 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        world_driven: bool = False,
+        horizontal_drive: tuple[float, float] | None = None,
+        external_vertical: bool = False,
+        external_airborne: bool = False,
+        ground_override: Ground | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
             move_to = None  # no fractional world-target progress is kept between poses
-        if self.driven and move_to is None:
+        if self.driven and move_to is None and not world_driven:
             self.velocity = (0.0, 0.0, 0.0)
-        self.driven = move_to is not None
+        self.driven = move_to is not None or world_driven
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
@@ -640,7 +675,8 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
-        jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
+        jump = (not self.driven and horizontal_drive is None and not external_vertical
+                and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5)
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end
         if crouch and not self.crouched and stood_up is not None:
@@ -651,12 +687,18 @@ class Mover:
         self.landed = False
 
         ground, under = self._probe(dt)
+        if ground_override is not None and (ground is None or ground_override.y > ground.y):
+            ground, under = ground_override, False
+        if external_airborne:
+            ground, under = None, False
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
 
         grounded = not self.flags_word & IN_AIR
-        self._spring(f32(dt), ground if grounded and move_to is None else None, start)
+        self._spring(f32(dt), ground if grounded and not self.driven else None, start)
+        if horizontal_drive is not None:
+            right_byte = forward_byte = 0
         self.throttles = (right_byte, forward_byte)
         if right_byte or forward_byte:
             self.input_throttles = self.throttles
@@ -664,19 +706,30 @@ class Mover:
             self.input_frame = frame
 
         outcome = None
-        if move_to is None:
+        if world_driven:
+            pass  # the authoritative field already moved this pose
+        elif move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
             vx, vy, vz = self.velocity
             horizontal = (vx, 0.0, vz)
             angle = self.yaw * TURN
             axes = (math.sin(angle), math.cos(angle))  # forward (x, z); right is (-cos, sin)
-            self._friction(dt, horizontal, vy, grounded)
-            self._accelerate(dt, right, forward, axes, grounded)
-            self._cap(horizontal, axes)
-            if not grounded:
+            if horizontal_drive is None:
+                self._friction(dt, horizontal, vy, grounded)
+                self._accelerate(dt, right, forward, axes, grounded)
+                self._cap(horizontal, axes)
+            else:
+                self.velocity = (horizontal_drive[0], vy, horizontal_drive[1])
+            if external_vertical:
+                vx, _, vz = self.velocity
+                self.velocity = vx, 0.0, vz
+            elif not grounded:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                 self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
+            for mod in active:
+                if mod.index == 0 and mod.op == SET and isinstance(mod.value, tuple):
+                    self.velocity = mod.value
             self._fall_after(self._move(dt, normal))
         else:
             target, speed = move_to
@@ -1066,6 +1119,35 @@ class Mover:
             vy = 0.0
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
+
+    def displace(self, velocity, dt, *, external_airborne=False):
+        """Sweep external velocity separately from ordinary locomotion."""
+        body = self._engine_body()
+        vector = contacts.v3(*velocity)
+        final, planes, touching = body.move(
+            contacts.v3(*(value * f32(dt) for value in vector)), f32(dt), ROUNDS,
+        )
+        before = self.position[1]
+        abyss = self._place(body, final, touching)
+        clipped = tuple(contacts.clip_velocity(vector, planes))
+        if abyss:
+            return clipped[0], 0.0, clipped[2]
+        if vector[1] < 0:
+            ground, _ = self._probe(dt)
+            tolerance = TINY if external_airborne else STEP
+            if ground is not None and self.position[1] - tolerance <= ground.y <= before + tolerance:
+                self.position[1] = quantise(ground.y)
+                x, y, z = self.position
+                body.teleport((x, f32(y + self._lift()), z))
+                self.flags_word &= ~(JUMPED | FELL)
+                self.air_ticks = 0
+                self.fall = 0.0
+                return clipped[0], 0.0, clipped[2]
+        if (self.position[1] > before and (external_airborne or self.position[1] - before > STEP)
+                and not self.airborne):
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        return clipped
 
     def _move_to(self, dt: float, target, speed: float) -> bool | None:
         """Sweep a speed-limited displacement toward a resolved world-space feet position."""

@@ -445,6 +445,27 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
         found = dynamic(key)
+        instance = getattr(ctx, "instance", None)
+        if (found is None and instance is not None and instance.graph.index in (0x047E, 0x0B2F)
+                and instance.component.world.hero == 0x02E000000000007A):
+            selector = (key or {}).get("m_expression") or {}
+            variables = selector.get("m_dynamicVars") or ()
+            slot = 10611 if instance.graph.index == 0x047E else 10640
+            if (selector.get("m_opcodes") == [14, 0, 7, 0, 15, 0] and len(variables) == 1
+                    and dynamic(variables[0]) == (INSTANCE, slot)):
+                value = evaluate(key, ctx)
+                # The owning pilot, mech and shell use the same hero and mode ruleset.
+                return ctx.ruleset(slot) if value is None else to_float(value)
+        if (found is None and instance is not None and instance.graph.index == 0x02CC
+                and instance.component.world.hero == 0x02E000000000007A):
+            # The Matrix selectors use the owning player's ruleset context.
+            # Recover the three authored keys while the foreign lookup is unhosted.
+            selector = (key or {}).get("m_expression") or {}
+            variables = selector.get("m_dynamicVars") or ()
+            if selector.get("m_opcodes") == [14, 0, 7, 0, 15, 0] and len(variables) == 1:
+                slot = dynamic(variables[0])
+                if slot is not None and slot[1] in (9743, 9777, 9778):
+                    return ctx.ruleset(slot[1])
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
