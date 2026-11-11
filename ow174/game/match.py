@@ -388,13 +388,13 @@ class Player:
             movelog.snapshots(self)
         return boundary
 
-    def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0) -> None:
+    def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0, world_idle: bool = False) -> None:
         """Release old input and advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing, buttons=retained_buttons), posed=False)
+        self._advance_body_frame(Command(first_missing, buttons=retained_buttons), posed=False, defer_effects=world_idle)
         if first_pose - first_missing > MAX_GAP:
             from ow174.game import tracer_recall
 
@@ -402,13 +402,13 @@ class Player:
             if checkpoint is None:
                 checkpoint = tracer_recall.exit_frame(self)
             if checkpoint is not None and first_missing < checkpoint < first_pose - MAX_GAP:
-                self._advance_body_frame(Command(checkpoint, buttons=retained_buttons), posed=False)
+                self._advance_body_frame(Command(checkpoint, buttons=retained_buttons), posed=False, defer_effects=world_idle)
         from ow174.game import lucio
 
         frame, end = script.frame, first_pose - 1
         while self.body_script is script and frame < end:
             frame = lucio.effect_gap_frame(script, frame, end)
-            self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False)
+            self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False, defer_effects=world_idle)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
         script = self.body_script
@@ -555,6 +555,7 @@ class Player:
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
         charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
+        defer_effects: bool = False,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         script = self.body_script
@@ -580,7 +581,7 @@ class Player:
             with grasp:
                 self.match.body_command(self, command, movement_end=movement_end, posed=posed)
                 wraith.advance(self)
-                self.match.combat.command(self, command if posed else None)
+                self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
         script = self.body_script
         if script is not None and (pending := getattr(script.world, "pending_ult_credits", ())):
             from ow174.game.script import charge

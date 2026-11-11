@@ -4,6 +4,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Death Blossom clocks and idle Reaper bodies
+
+- Retain0044/0045's34-damage, five-per-second pulses, authored channel duration
+  and radius, per-target acquisition/reentry clocks and terminal activation
+  record. Resolve body/cover contacts before damage so a breaking shield or
+  pillar cannot spill that same pulse into the protected body.
+- Adapt the original shield/device consumers to the combined authoritative
+  Zarya/Winston/Reinhardt, Orisa, Sigma, Photon and Brigitte pools and geometry,
+  existing Mei pillars, unified Baptiste deployables and Supercharger service.
+  Keep body damage/Reaping separate from surface damage and retain the existing
+  outgoing boost/Nano/Supercharger consumers rather than another health pool.
+- Anchor Reaper's body VM to its accepted input/world epoch. Advance closed
+  input windows through the retained gap path without posing the actor or
+  resolving area damage early. Expire actual channel/cooldown scopes while
+  preserving the next arriving input window. End channel clocks on interruption,
+  death and body retirement; preserve pending Recall/Lucio gap handling.
+- The final45-check Blossom/charge/runtime run passed with one optional D.Va
+  input skip. All prior failing charge/channel and no-input VM advancement
+  checks now pass. A live Zarya input probe retained400 body HP while the bubble
+  fell200->30, then admitted later pulses only after the bubble broke. A unified
+  Field probe verified device destruction, no body feedback/Reaping and no
+  stale health recreation. Active-channel server snapshots remained getter-free,
+  repeatable and sensitive to the stored channel deadline.
+- Shadow Step, reflected-shell accounting and the remaining source multi-shield/
+  geometry/other-hero interlocks still need reconciliation. Preserve this
+  implementation without waiting for the full delivery suite; no whole-line or
+  original-client acceptance, new gameplay feature or acceptance matrix claimed.
+
 ### Mount delivered Reaper weapon, Reaping and charge consumers
 
 - Preserve the original Reaper, authored damage-charge context and ring-sampler

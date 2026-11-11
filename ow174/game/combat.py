@@ -1833,6 +1833,7 @@ class Combat:
         self.recalls.retire(player.body)
         self.input_locks.pop(player.body, None)
         self.booster_contacts.pop(player.body, None)
+        self.reaper_blossoms.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2090,6 +2091,7 @@ class Combat:
 
     def _interrupt(self, target: Target) -> None:
         actor = target.owner
+        self._interrupt_reaper(target.entity, actor)
         mover = actor.control_mover if isinstance(actor, bots.Bot) else getattr(actor, "mover", None)
         if mover is not None and (last := mover.last_command) is not None:
             mover.last_command = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
@@ -2108,6 +2110,15 @@ class Combat:
         if script is not None and mover is not None and not isinstance(actor, bots.Bot):
             active = self.movement_mods(actor, statescript_mods(script.component))
             mover.track_mods(active, script.frame)
+
+    def _interrupt_reaper(self, entity, player):
+        reaper.interrupt_blossom(player)
+        channel = self.reaper_blossoms.get(entity)
+        if channel is not None and not channel["ended"]:
+            channel["end"] = min(channel["end"], self.now)
+            channel["ended"] = True
+            channel["targets"].clear()
+        reaper.interrupt_shadow(player)
 
     def interrupt_controlled(self, script, *, actor=None) -> None:
         """Reconstructed input/channel interruption, shared by hosted control effects."""
@@ -2455,13 +2466,16 @@ class Combat:
         except Exception:
             log.exception("[game] %s: %s's combat targets failed", self.match.label(), player.name)
 
-    def command(self, player, command: Command | None) -> None:
+    def command(self, player, command: Command | None, *, defer_effects: bool = False) -> None:
         """Consume the body's reports. Only a frame with a pose can affect targets."""
         if self.match.collision_world is None:
             return
         script = player.body_script
         if script is None:
             return
+        if (reaper.is_reaper(player) and command is not None and command.frame == script.frame
+                and script.world_frame_anchor is not None):
+            script.world_frame_anchor = self.tick, script.frame
         self.barriers.sync(player)
         shots, script.component.shots[:] = list(script.component.shots), []
         self.zenyatta.command(player, command)
@@ -2494,6 +2508,8 @@ class Combat:
         moira.track_clock(self, player, posed=command is not None)
         if self.is_stunned(player):
             return
+        if not defer_effects:
+            self._blossom(player, register=command is not None)
         if command is not None:
             self._advance_protected_phases(script.component)
             self._cleanse_biotic_block(player, self.vitals.get(player.body))
@@ -3219,11 +3235,19 @@ class Combat:
                     self._damage(player, target, amount, False, loadout, command.frame)
 
     def _advance_idle_protection(self, player):
-        """Delivered Soldier body-clock recovery without a new movement pose."""
+        """Admitted Soldier/Reaper body-clock recovery without a new movement pose."""
         from ow174.game import defenses, ultimate
         from ow174.game.script.driver import MAX_GAP
 
         script = player.body_script
+        if (reaper.is_reaper(player) and script is not None and script.world_frame_anchor is not None
+                and not script.retired and not script.component.owner_dead and player.spawned and player.has_body):
+            anchor_tick, anchor_frame = script.world_frame_anchor
+            elapsed_ms = max(0, self.tick - anchor_tick) * round(TICK * 1000)
+            target = min(projectiles.MAX_LEASE_FRAME - 1, anchor_frame + elapsed_ms // script.frame_ms - 1)
+            if target > script.frame:
+                player._advance_body_gap(target + 1, world_idle=True)
+            return
         if (script is None or script.hero != defenses.SOLDIER or script.world_frame_anchor is None
                 or script.retired or script.component.owner_dead or not player.spawned or not player.has_body):
             return
@@ -3354,6 +3378,8 @@ class Combat:
             for player in self.match.players:
                 if player.hero.guid == lucio.HERO:
                     lucio.advance_passive_charge(player, at)
+                if player.body in self.reaper_blossoms:
+                    self._blossom(player)
                 reaper.charge_world(player, self)
             from ow174.game.script import charge as mercy_charge
 
@@ -7366,6 +7392,11 @@ class Combat:
         player = self.match._message_player(actor.source_body) if actor.owner else None
         return player if player is not None and player.entity == actor.owner else None
 
+    def _blossom(self, player, *, register=False) -> None:
+        from ow174.game import reaper_blossom
+
+        reaper_blossom.advance(self, player, register=register)
+
     def _reaping(self, shooter, target: Target, dealt: float) -> None:
         ratio = reaper.reaping_ratio(shooter)
         if (not ratio or target.owner is shooter
@@ -7525,6 +7556,8 @@ class Combat:
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
         """Dispatch notices, authored death, and the respawn."""
         from ow174.game import body_entities
+
+        self._interrupt_reaper(victim.body, victim)
 
         body_entities.retire_source(self.match, victim.entity, victim.body, keep_bombs=True)
         self.sombra_controls.retire(victim.body)
