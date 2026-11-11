@@ -41,7 +41,7 @@ class EntityQueryTests(unittest.TestCase):
     def test_unknown_services_remain_strict_and_legacy_world_is_unchanged(self):
         world = ValueWorld()
         world.bind(OWNER)
-        for cls in (query.EXISTS, query.POSSESSED):
+        for cls in (query.EXISTS, query.POSSESSED, query.LINKED):
             component = runtime.Component(OWNER, world=world, strict=True)
             instance = component.create(graph(), init=False)
             with self.assertRaises(runtime.UnsupportedScriptError) as error:
@@ -58,6 +58,20 @@ class EntityQueryTests(unittest.TestCase):
         self.assertIs(instance.evaluate({'$': query.EXISTS, 'm_entity': {'$': 'Unknown'}},
                                        state, initial=initial), initial)
         self.assertEqual(events, [])
+
+    def test_linked_entity_defaults_selector_and_subscribes_before_lookup(self):
+        _, _, instance, state, context, _, events = setup()
+        context.lookup_linked = lambda entity, selector: (
+            events.append(('linked', entity, selector)) or {0: BODY, 1: OWNER}.get(selector)
+        )
+        cfg = {'$': query.LINKED, 'm_152B6961': {'$': 'Literal', 'value': expr.Entity(OWNER)}}
+        for selector, expected in ((None, BODY), (1, OWNER), (-1, 0)):
+            with self.subTest(selector=selector):
+                cfg['m_A60150E2'] = None if selector is None else {'$': 'Literal', 'value': selector}
+                self.assertEqual(instance.evaluate(cfg, state), expr.Entity(expected))
+                self.assertEqual(events, [('environment', state, 0x20),
+                                          ('linked', OWNER, (selector or 0) & 0xFFFFFFFF)])
+                events.clear()
 
     def test_missing_environment_succeeds_false_without_evaluating_selector(self):
         for watched in (False, True):

@@ -305,6 +305,10 @@ class Context:
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
 
+    def ruleset_key(self, cfg):
+        found = dynamic(cfg)
+        return found[1] if found else to_int(evaluate(cfg, self))
+
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
         return True
 
@@ -444,8 +448,7 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
-        found = dynamic(key)
-        return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
+        return ctx.ruleset(ctx.ruleset_key(key))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
         return value if value is not None else evaluate(cfg.get("m_default"), ctx)
@@ -759,10 +762,14 @@ def run(cfg: dict, ctx: Context, *, max_steps: int = MAX_EXPRESSION_STEPS):
                 stack.append(f32(math.degrees(angle) if op == 49 else angle))
             elif op in (53, 54):
                 b, a = stack.pop(), stack.pop()
-                va = ctx.position(a.id) if isinstance(a, Entity) else _vec(a)
-                vb = ctx.position(b.id) if isinstance(b, Entity) else _vec(b)
-                d = _vec_op(va, vb, lambda x, y: x - y)
-                stack.append(_length(d) if op == 53 else f32(math.hypot(d.x, d.z)))
+                if isinstance(a, (Vec3, Entity)) and isinstance(b, (Vec3, Entity)):
+                    va = ctx.position(a.id) if isinstance(a, Entity) else a
+                    vb = ctx.position(b.id) if isinstance(b, Entity) else b
+                    d = _vec_op(va, vb, lambda x, y: x - y)
+                    stack.append(_length(d) if op == 53 else f32(math.hypot(d.x, d.z)))
+                else:
+                    # 104319 1B83F71 / 1B84182 convert both operands to scalars.
+                    stack.append(abs(f32(to_float(a) - to_float(b))))
             elif op in (55, 56):
                 b, a = _vec(stack.pop()), _vec(stack.pop())
                 if op == 55:

@@ -120,6 +120,19 @@ class BytecodeTests(unittest.TestCase):
         self.assertGreater(len(set(draws)), 1)
         self.assertEqual(ctx.rng.getstate(), reference.rng.getstate())
 
+    def test_distance_opcodes_use_scalar_fallback_for_mixed_operands(self):
+        dynamics = [(1, 0), (2, 0)]
+        for opcode, vector_distance in ((53, 13.), (54, 5.)):
+            with self.subTest(opcode=opcode):
+                code = [8, 0, 8, 1, opcode, 0]
+                self.assertEqual(self.run_code(code, dynamics, ctx=Vars({1: -2., 2: 3.})), 5.)
+                vector = expr.Vec3(3., 12., 4.)
+                self.assertEqual(self.run_code(code, dynamics, ctx=Vars({1: vector, 2: True})), 1.)
+                self.assertEqual(self.run_code(code, dynamics, ctx=Vars({1: vector, 2: False})), 0.)
+                zero = expr.Vec3(0., 0., 0.)
+                distance = self.run_code(code, dynamics, ctx=Vars({1: vector, 2: zero}))
+                self.assertEqual(distance, vector_distance)
+
     def test_round_gives_an_int_and_compares_a_bool(self):
         self.assertEqual(self.run_code([6, 0, 68, 0], floats=[29.5]), 30)
         self.assertIsInstance(self.run_code([6, 0, 68, 0], floats=[29.5]), int)

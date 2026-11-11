@@ -156,6 +156,31 @@ class WorldTests(unittest.TestCase):
         self.assertEqual(reader.pos - start, length)
         self.assertEqual(reader.bit(), 0)  # ch5
 
+    def test_map_placeable_create_can_include_its_current_movement_state(self):
+        index = 1931
+        entity = 0x80000000 | index
+        state = Movement((-64.6845703125, -.3291015625, 53.1904296875), yaw=-5696,
+                         velocity=(0., 8., 0.))
+        payload = world.frame(
+            1234, 1234, (), (),
+            [EntityUpdate(entity, OP_CREATE, lambda origin: world.create_placeable(
+                origin, index, movement=state, frame_back=37,
+            ))],
+        )
+        reader, tick, ack, count = read_frame_start(payload)
+        self.assertEqual((tick, ack, count, reader.entity_id()), (1234, 1234, 1, entity))
+        self.assertEqual([reader.bit() for _ in range(7)], [1, 1, 0, 1, 0, 0, 1])
+        self.assertEqual((reader.bit(), reader.bit(), reader.bits(2)), (0, 1, OP_CREATE))
+        length = reader.bits(14)
+        start = reader.pos
+        self.assertEqual((reader.bit(), reader.bits(32), reader.bit()), (1, index, 1))
+        move = read_movement(reader, world.CREATE_BASE)
+        self.assertEqual((move['position'], move['velocity'], move['yaw'], move['frame']),
+                         (state.position, state.velocity, state.yaw, world.CREATE_BASE - 37))
+        self.assertEqual(reader.bits(8), 0)
+        self.assertEqual(reader.pos - start, length)
+        self.assertEqual(reader.bit(), 0)
+
     def test_component_values_start_on_a_byte_of_the_payload(self):
         payload = world.frame(
             7,

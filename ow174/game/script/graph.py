@@ -39,10 +39,13 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
+import os
 import re
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from pathlib import Path
 
 from ow174.game.script.expr import Asset
 from ow174.paths import DATA_DIR
@@ -283,8 +286,30 @@ def _collect_graphs(value, found: set) -> None:
 
 
 @cache
+def sentry_bundle(path):
+    raw = Path(path).read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != "0595250af9a5c12e7f1d881a21d8e3bd4f7c29cd5f69d40d8685985741fdfadb":
+        raise ValueError("Symmetra summon bundle does not match verified 104319 input")
+    return json.loads(raw), digest
+
+
+def sentry_bundle_fingerprint():
+    path = os.environ.get("ORPHEUS_SYMMETRA_SUMMON_BUNDLE")
+    return sentry_bundle(path)[1] if path else None
+
+
+@cache
 def _data() -> dict:
-    return json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    data = json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    path = os.environ.get("ORPHEUS_SYMMETRA_SUMMON_BUNDLE")
+    if path:
+        supplemental, _ = sentry_bundle(path)
+        known = {row["index"] for row in data["graphs"]}
+        data["graphs"].extend(row for row in supplemental["graphs"] if row["index"] not in known)
+        sentry = "0x0400000000002658"
+        data.setdefault("entities", {}).setdefault(sentry, supplemental["entities"][sentry])
+    return data
 
 
 @cache

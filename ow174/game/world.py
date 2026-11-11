@@ -13,7 +13,7 @@ The entity channel (ch4, reader 0x7FF78969BBC0) takes 2 bits op: 1 create, 2 upd
 create or update carries 14 bits of length and that many bits.
 
 A create (0x7FF78969C360, body 0x7FF78969DAB0):
-    bit from map: 1 -> 32 bits placeable index, 1 bit transform override (0), then the update body
+    bit from map: 1 -> 32 bits placeable index, 1 bit for a movement-state block, then the update body
     else the 003 definition's GUID index, 8 bits flags,
          flags & 0x01: the skin: with 0x40 32 bits of a skin theme (0A6; bit 31 asks for a remap)
          and 1 bit for the theme's second (golden) weapon, else a skin (076) GUID index,
@@ -473,13 +473,18 @@ def create(
     return out
 
 
-def create_placeable(origin: int, index: int) -> RecordWriter:
+def create_placeable(
+    origin: int, index: int, *, movement: Movement | None = None, frame_back: int = 1,
+) -> RecordWriter:
     """A create record for a map placeable the server owns: the client takes the definition and the
-    transform from its map data. The entity id must be 0x80000000 | n."""
+    transform from its map data. An optional movement state gives its current pose.
+    The entity id must be 0x80000000 | n."""
     out = RecordWriter(origin)
     out.bit(1)
     out.bits(index, 32)
-    out.bit(0)  # keep the map's transform
+    out.bit(movement is not None)
+    if movement is not None:
+        write_movement(out, movement, frame_back, CREATE_BASE)
     _write_components(out, {})
     return out
 

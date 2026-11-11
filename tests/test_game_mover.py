@@ -706,6 +706,28 @@ class ModTests(unittest.TestCase):
         self.assertEqual((sprint.accel_ground, sprint.decel_ground_base), (35.0, 15.0))
 
 
+class ThrottleModTests(unittest.TestCase):
+    def test_partial_mods_split_forward_backward_and_keep_lateral_sign(self):
+        from ow174.game.mover import MULTIPLY, modified_throttles
+        mods = [Mod(17, MULTIPLY, .5, 0), Mod(18, MULTIPLY, .25, 0),
+                Mod(19, MULTIPLY, .75, 0)]
+        self.assertEqual(modified_throttles(mods, -.8, .8), (f32(-.6), f32(.4)))
+        self.assertEqual(modified_throttles(mods, .8, -.8), (f32(.6), f32(-.2)))
+
+    def test_raw_command_survives_lock_with_next_frame_start_and_end(self):
+        mover = soldier((0., 1., 0.))
+        mods = {(9, index, 0): (index, SET, 0., 0.) for index in (17, 18, 19)}
+        mover.track_mods(mods, 10)
+        self.assertFalse(any(m.acts(10) for m in mover.mods.values()))
+        mover.step(Command(11, right=-127, forward=-127), TICK)
+        self.assertEqual(mover.throttles, (-127, -127))
+        self.assertEqual(mover.input_throttles, (-127, -127))
+        self.assertEqual(mover.velocity[::2], (0., 0.))
+        mover.track_mods({}, 11)
+        mover.step(Command(12, forward=127), TICK)
+        self.assertGreater(mover.velocity[2], 0.)
+
+
 class SprintTests(unittest.TestCase):
     """Soldier: 76's Sprint, run by the statescript runtime: its MovementMod states put +0.5 on the speed
     scalar and the crouch intent to 0 while it is on."""

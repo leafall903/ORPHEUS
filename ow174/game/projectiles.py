@@ -360,11 +360,10 @@ class Projectiles:
         # Start the delivery window no earlier than this simulation update.
         shot.release_at = max(due, self.match.tick)
 
-    def update(self, tick: int, *, first_tick: int | None = None) -> None:
-        first_tick = tick if first_tick is None else first_tick
+    def update(self, tick: int) -> None:
         for shot in list(self.shots):
             try:
-                self._step(shot, tick, first_tick)
+                self._step(shot, tick)
             except Exception:
                 log.exception("[game] %s: projectile %X failed", self.match.label(), shot.definition & 0xFFFF)
                 for delivery in shot.observers:
@@ -373,7 +372,7 @@ class Projectiles:
                     self.shots.remove(shot)
         self.observed = [delivery for delivery in self.observed if delivery.advance(tick)]
 
-    def _step(self, shot: Shot, tick: int, first_tick: int) -> None:
+    def _step(self, shot: Shot, tick: int) -> None:
         player = shot.player
         script = player.body_script
         alive = player.client is not None and player.has_body and player.body == shot.body
@@ -391,7 +390,7 @@ class Projectiles:
                 shot.reports.append(report)
         shot.seen_reports = script.report_count
         if shot.spawn == FIELD_ENTITY:
-            self._field(shot, tick, first_tick)
+            self._field(shot, tick)
             return
         due = shot.release_at
         if due is None and shot.created_tick is not None:
@@ -454,7 +453,7 @@ class Projectiles:
             viewer = next((player for player in self.match.players if player.slot == slot), None)
             if viewer is not None and viewer.client is not None:
                 viewer.client.queue_entities([EntityUpdate(entity, OP_DESTROY)])
-        client = shot.player.client
+        client = getattr(shot.player, "client", None)
         if client is None or not shot.created:
             return
         updates = []
@@ -467,7 +466,23 @@ class Projectiles:
 
     # --- the Biotic Field -----------------------------------------------------------------------------
 
-    def _field(self, shot: Shot, tick: int, first_tick: int) -> None:
+    def heal_fields(self, first_tick: int, last_tick: int) -> None:
+        """Apply retained healing independently of field delivery and acknowledgements."""
+        pulse = HEAL_PER_SECOND * FRAME_MS / 1000
+        for shot in self.shots:
+            if shot.spawn != FIELD_ENTITY or shot.field_due is None:
+                continue
+            player = shot.player
+            if (player.client is None or not player.has_body or player.body != shot.body
+                    or player.body_script is None):
+                continue
+            first_pulse = max(first_tick, shot.field_due + 1)
+            last_pulse = min(last_tick, shot.field_due + FIELD_TICKS - 1)
+            if first_pulse <= last_pulse:
+                self.combat.heal_area(player, field_centre(shot), HEAL_RADIUS, pulse,
+                                      first_tick=first_pulse, last_tick=last_pulse)
+
+    def _field(self, shot: Shot, tick: int) -> None:
         if shot.field_due is None:
             shot.field_due = tick + FIELD_DELAY
         start = shot.field_due
@@ -479,12 +494,6 @@ class Projectiles:
         if shot.field_tick is None:
             shot.field_tick = start
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
-        # The opening tick has no heal, and the field ends before the expiry tick.
-        # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return

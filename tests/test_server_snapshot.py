@@ -16,6 +16,7 @@ import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
 from ow174.game import mover as mover_module
+from ow174.game.bots import Bot
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
@@ -71,11 +72,38 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         client.expected_in -= 1
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns[player.body] = player.match.tick + 50
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns.pop(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins[0xC000F001] = player.body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        contacts = player.match.combat.heavy_charge_contacts
+        contacts[0xC000F001] = {player.body}
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        contacts.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))
         self.assertNotEqual(changed, initial)
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+
+    def test_pending_manual_npc_button_changes_snapshot_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        spawner = {"hero": f"0x{player.hero.guid:X}", "team": 1, "position": (0., 1., 0.),
+                   "rotation": (0., 0., 0., 1.), "graphs": []}
+        hero = {"name": "Snapshot fixture", "body": f"0x{player.hero.body:X}", "health": 200.}
+        bot = Bot(0xC000F001, spawner, hero, {})
+        player.match.bots.append(bot)
+        baseline = snapshot_digest(self.capture(session))
+        bot.pending_ability = 31
+        self.assertNotEqual(snapshot_digest(self.capture(session)), baseline)
+        bot.pending_ability = None
+        self.assertEqual(snapshot_digest(self.capture(session)), baseline)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()

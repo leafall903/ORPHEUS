@@ -1,5 +1,43 @@
 # Restoration roadmap
 
+Mei now resumes held secondary after Cryo exit priority clears. Actual input
+tests cover natural expiry, cancel and released press expiry. Frontal Genji
+Deflect blocks admitted quick melee contacts under the reconstructed capsule
+and authored angle model. The full static matrix remains open.
+
+Mei world-clock checkpoint: existing body graph timers now advance through
+older no-input windows using a captured world/command anchor. Future/late
+windows cannot fast-forward cooldowns or replay attacks/movement; already
+admitted Blizzard release and defense/projectile chronology are tested. The
+phase-stuck counterexample is repaired under this explicit hosting policy.
+Thirteen clock cases pass;833 scripts/147 shared cases pass. Frozen-source226
+Mei tests PASS865.993s and13 snapshots PASS683.390s. Immediate held secondary
+still retains a rejected
+HELD latch under Cryo exit priority; the full static/client gates remain open.
+
+Mei phase/view checkpoint: resource-bound Wraith/Fade input, protection stacks,
+damage/status/projectile/Blizzard and cooldown cases have executed evidence.
+Mei1.3/.91 and McCree1.425/.9975 FirstPerson heights drive actual stance/cover
+shots and target history. A no-command phase probe remains stuck after250
+world ticks, so complete world/input-clock lifecycle is not accepted. Full
+213 Mei tests PASS650.286s;13 snapshots PASS567.883s. The full-scope matrix
+and real goal remain open despite these current-source passes.
+
+Mei current reconstruction now includes Enforcer25-pellet resource rings and
+actual teammate-spray Assassin pin interruption. Ice Wall rejects off-centre
+static obstruction, unsupported footprints and oriented column overlaps with
+explicit terrain/partial-wall policy. Reviewed notification lifetime/cleanup
+ordering fixes preserve re-entry and fresh weapon recovery after Cryo. Focused
+tests pass; frozen-source200 Mei PASS449.989s and13 snapshots PASS432.868s.
+Complete phase/
+defense/input/native-fidelity and original-client gates remain open.
+
+Mei manual incoming checkpoint: Enforcer13EB/Assassin1157 inputs reach combat;
+stale pin cleanup and Cryo/source-interruption cases pass. Controller/contact/
+clock/recovery remain reconstructed. Enforcer25-pellet count/spread is unhosted.
+Directional mover17/18/19 preserves raw input bytes; related tests pass.
+Full static and original-client gates stay open; no milestone is checked off.
+
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
 | Milestone | Exit criteria | Current evidence |
@@ -29,7 +67,7 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Lobby and match lifecycle.** Verify queues, team assignment, game setup, hero selection, match handoff, joining, leaving, reconnecting and returning to the lobby.
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
-  - [ ] Restore Mei's complete player/five-NPC combat and original-client presentation. Partial offline weapon, melee and incoming damage checks plus shared projectile critical/falloff handling are recorded in [Mei combat lane](MEI_COMBAT.txt). Freeze, Cryo-Freeze, Ice Wall, Blizzard, cross-hero defenses and all five actual NPCs remain open.
+  - [ ] Restore Mei's complete player/five-NPC combat and original-client presentation. Partial weapon/reload, frost/control, Cryo, reconstructed Ice Wall/Blizzard/Zarya shields and actual NPC target/route/three-weapon checks are recorded in [Mei combat lane](MEI_COMBAT.txt). Complete status/defense/ultimate-charge policies, wall/Blizzard/shield geometry, remaining NPC attacks/specials and original-client acceptance remain open.
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.
@@ -48,3 +86,119 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+Mei/Genji checkpoint: scoped authored-window icicle reflection has seven
+real-input tests, including spray exclusion, front/rear/team/static ordering
+and native expiration/cooldown restart. Blizzard/other defense paths remain
+open; full Mei static acceptance is not achieved. See MEI_COMBAT.txt.
+
+Mei Blizzard reflection checkpoint:13 reflection and70 related checks pass.
+Re-evaluate NPC geometry using independent resource-backed Talon mover data;
+prior default-mover fixtures do not prove complete native NPC geometry.
+D.Va matrix graph was located in missing mech data; absorption remains open.
+
+Mei/D.Va Matrix: explicit possessed0407 fixture now runs native02CC input/fuel
+with scoped reconstructed foreign ruleset reads and projectile absorption.
+Full mech possession and defense geometry/controller acceptance remain open.
+Updated tests and preparation command are recorded in MEI_COMBAT.txt.
+
+Mei charge checkpoint: effective combat/Cryo accounting and death/respawn
+retention have executed evidence; passive5/s and credit1:1 remain explicitly
+reconstructed. Resource-backed generation/spawn and freeze settings are now
+identified but still require complete hosting and acceptance. Full goal OPEN.
+
+Mei settings checkpoint: versioned generation/spawn-ready inputs and the
+ultimate-disable input gate have executed evidence. The freeze minimum menu
+value.3 must not replace0B77's.2 fallback without resolving external #392 and
+effect-instance/source lifetime. Complete static matrix remains OPEN.
+
+Mei per-source frost now has independent progress/expiry and explicit stacking
+reconstruction, including declared proxy overrides and stored-state coverage.
+Frozen Deflect no longer resumes after thaw and keeps its native cooldown.
+Native effect merging/proxy binding and the remaining complete static matrix
+are still open; see MEI_COMBAT.txt for versioned execution boundaries.
+
+Mei/Sigma checkpoint: actual Barrier and Grasp inputs now drive scoped
+static combat reconstruction. Eight private-worktree checks cover the
+verified C015 mesh, interception, breaking hit, recall, temporary shield
+decay, airborne Blizzard absorption and passive state capture. Incoming
+Accretion control and full cross-hero acceptance remain open.
+
+Mei/Sigma incoming checkpoint: private-worktree tests exercise
+Accretion damage, stun and impulse, Hypersphere ricochet and expiry,
+Cryo and Ice Wall protection, and Barrier redeployment after cooldown.
+Flux selection and recipient delivery have separate candidate evidence.
+Flux damage and movement phases remain open.
+
+Mei/Sigma Flux checkpoint: actual charge, confirmation, recipient
+selection, lift, landing and cleanup have private-worktree execution.
+Cryo, caster interruption, terrain, Ice Wall and projected barrier have
+direct counterplay evidence. The full-current guarded runs are pending.
+
+Mei/Symmetra Photon Barrier checkpoint
+Actual placement, lifetime, interception and passive capture passed
+four worktree checks. The preceding guarded Mei discovery passed 412
+checks. Its sole skip, Practice Range Ice Wall placement, passed
+separately with the full 104319 collision cache.
+
+Mei/non-unit body size checkpoint
+Focused combat checks compare unit and doubled body sizes for Deflect,
+Matrix and Mei quick melee. The Matrix check uses an explicit mech
+size fixture. Native controller-to-mech scale propagation remains open.
+
+Mei/Symmetra Photon Projector checkpoint
+Actual orb and beam tests now cover damage, sustained charge, release,
+Cryo cover, Ice Wall, projected-barrier ammo refill and interruption
+by Mei freeze. The Photon interruption hook now accepts calls from the
+shared NPC frost and stun paths without assuming a player script.
+
+Mei/Symmetra Sentry checkpoint
+The integrated static host passes the actual Cryo, Ice Wall, icicle,
+recharge and passive capture checks. The Photon Projector binding is
+now scoped to Symmetra's capture fields.
+
+Mei/Symmetra orb defense checkpoint
+Actual orb tests cover direct and splash cover across five deployed
+barriers, nested ice and projected shields, and Genji, D.Va and Sigma
+projectile defenses in the static reconstruction.
+
+Mei/Roadhog Chain Hook checkpoint
+The static host passes actual Hook, Cryo, Ice Wall, cooldown, caster
+freeze, five NPC body and passive capture checks. Contact and pull
+motion are reconstructed.
+
+Mei/Roadhog Take a Breather checkpoint
+Actual E heals its owner and expires without commands. Actual icicle
+critical damage is reduced by half during the channel. Spray freeze
+stops healing and damage reduction, and held E cannot bypass cooldown.
+Landed Blizzard also interrupts the active heal and restores its full
+damage rate on subsequent ticks.
+
+Mei/Roadhog weapon volleys checkpoint
+Static Scrap Gun primary and Whole Hog resolve authored pellet
+counts. Secondary dispatches the authored burst at natural expiry,
+with actual body, Cryo and Ice Wall contacts tested before expiry.
+Whole Hog applies authored force with a reconstructed capped impulse.
+Actual Cryo, Ice Wall, spray freeze, landed Blizzard and commandless
+movement have focused tests.
+
+Roadhog volleys against deployed barriers
+Actual primary, secondary slug and Whole Hog resolve enemy Photon,
+Orisa, Winston, Reinhardt and Sigma barriers before Mei. An earlier
+barrier receives the pellet and prevents damage and impulse behind it.
+Friendly Photon passes all three. Contact priority is reconstructed.
+
+Scrap Gun against active projectile defenses
+The 104319 primary and slug carry 02F9 and omit 0145. Actual Genji
+Deflect returns both to Roadhog and receives the hit notices. Actual
+Defense Matrix and Kinetic Grasp intercept both before Mei. Grasp
+records 165 for the checked full primary volley and 50 for the close
+slug. The reflected child cone is reoriented by reconstructed aim
+geometry. Whole Hog uses a separate hitscan path.
+
+Whole Hog against active defenses
+The 104319 0405 ray carries 0535 and omits 0145. Active Genji
+Deflect returns it with Genji hit attribution and return-direction
+force. Defense Matrix and Kinetic Grasp stop it before the body.
+Earlier static, ice, projected or deployed cover keeps priority.
+Distance, contact priority and the return-ray policy are reconstructed.

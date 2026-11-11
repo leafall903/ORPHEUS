@@ -1,6 +1,797 @@
 Mei combat lane (00DD), build 1.74.0.0.104319 -- OPEN
 ==================================================
 
+Active static acceptance goal
+-----------------------------
+The user requested a full-scope goal on2026-11-08. Its actual tool status is
+active; GOAL_STATUS.json outside Git records the objective and evidence. Every
+weapon, passive, ability, ultimate, cooldown/resource rule and applicable
+player/five-NPC/cross-hero interaction must pass before static completion.
+Client gameplay acceptance is separate and also remains open.
+
+Combination regression coverage
+-------------------------------
+Actual inputs exercise Cryo against an icicle already reflected by Genji and
+held versus released Cryo through a spray freeze. An active Blizzard drops a
+replaced target's old deadline and evaluates the new body at its spawn point.
+Zarya barrier admission is tested in both cast orders. Two capacity fixtures
+exercise projected then personal breakage and restoration of prior status
+bases. These cases document reconstructed 104319 behavior.
+
+Actual Soldier rifle and Mei icicle fire also deplete both full 200-health
+barriers on one Zarya in sequence. Each breaking rifle hit exceeds the
+last 5 barrier HP. The first 20 body damage arrives on a later shot, 98
+ticks after setup. With barriers on separate targets 1.6 metres apart,
+the closer barrier takes the icicle even when created second. Reversing
+the targets' positions reverses contact order. These overlap checks use
+unit-size bodies and the reconstructed sphere policy.
+
+Personal and projected Zarya barriers cast during a damaging Blizzard clear
+existing frost. A blocked damage tick discards that target's area frost
+deadline. After natural barrier expiry the first exposed tick deals 0.32
+damage and starts frost at 0.5, with no ticks replayed from the shield window.
+
+With Deflect and Defense Matrix facing the same launch line, the closer
+defense takes the icicle or airborne Blizzard. The rear-only controls move
+the inactive foreground body aside and keep the original launch aim. These
+cases use an explicit possessed D.Va mech fixture.
+When both real box queries report zero travel from launch, Matrix absorbs
+both projectiles. This records the server's reconstructed tie policy.
+
+Boundary probes evaluate the active 3A3 and 02CC boxes and their 90- and
+180-degree limits. Actual ice projectiles launched 2 cm inside or outside
+the lateral edge exercise reflection, absorption and clean passage.
+Deflect transfers the inside Blizzard to Genji. Matrix consumes the
+inside Blizzard after 3 metres of horizontal travel. The outside casts
+land with Mei as owner. Direct queries sample both sides of the upper,
+lower and lateral faces and the Deflect angle. These checks use the
+server's reconstructed eye-relative transform at unit entity scale.
+
+An active Blizzard checks current teams on every damage tick. Direct team
+changes to either participant in the test stop damage and clear the area
+deadline while they are allies. Existing frost expires on its normal clock.
+Returning to hostile teams resumes with one damage tick and fresh frost.
+
+Reinhardt Barrier Field
+-----------------------
+With the external 104319 model descriptor set by
+ORPHEUS_REINHARDT_COLLISION, actual secondary input raises Reinhardt 0095's
+1600-health shield. The server uses the model triangles and reconstructed
+raised pose. A Mei spray tick consumes 2.75 shield health without frost,
+and an icicle consumes 75. A breaking icicle ends at the shield. A later
+icicle hits Reinhardt's armour for 70 effective damage. Allied shields
+allow icicles through to hostile bodies. Quick melee can damage both
+the shield and the body when its volume overlaps both.
+
+Actual Mei quick melee now checks the rear target and each of five
+deployed shields together. With a hostile Photon, Orisa, Winston,
+Reinhardt or Sigma shield between Mei and a nearby enemy, the shield
+and rear enemy each take 30 damage. With that shield allied to Mei,
+only the rear enemy takes 30. Holding melee through six command
+frames causes one strike. The melee volume and independent contacts
+are reconstructed server policy.
+
+Actual Ice Wall placement on the same firing line exercises both contact
+orders. Mei's wall stops her icicle when it is in front of Barrier Field.
+When the shield is in front, it takes 75 damage. After wall cancellation,
+the next icicle damages the raised shield in either setup.
+
+Repeated raise attempts cannot bypass the five-second break cooldown.
+The host wakes the authored ready gate after cooldown and tracks
+regeneration using the descriptor's two-second delay and 200 HP/s rate.
+Blizzard starts damaging and applying frost while the shield remains up.
+Its freeze lowers the shield without consuming shield health. Barrier
+storage is registered for passive capture, and the descriptor's byte hash
+is included in the replay model configuration. The present contact
+integration covers Mei spray, icicle and melee. Other projectile families,
+native shield attachment and client presentation require separate evidence.
+
+A controlled two-player journal records an actual raise and spray hit.
+Replay matches the network output and stored state at each root. The
+shield ends at 1597.25 health, Reinhardt remains at 500, and no frost is
+applied. The 52 snapshot and replay checks and 19 Mei storage and clock
+checks pass with the Barrier Field descriptor configured.
+
+Ana Biotic Grenade and Cryo-Freeze
+--------------------------------
+Actual Ana ability input launches 0B97 projectile 1426. The extracted
+volley supplies gravity through variable 7389, 50 damage, and a four-metre
+explosion. The 0267/C71/B99/C72 effects supply 100 ally healing, a 1.5
+healing multiplier, enemy healing prevention and a four-second duration.
+The server reconstructs ballistic contact, cover, and effect timing.
+
+An enemy grenade landed before Cryo blocks its healing and the associated
+ultimate charge. At expiry, only newly due healing contributes, including
+after a skipped world-frame span. An active Cryo intercepts a direct
+grenade without taking damage or receiving anti-heal and can cover a body
+behind it. An allied grenade applies its impact healing before the boost
+and only amplifies subsequent Cryo healing. Expiry restores the base rate.
+
+Soldier's actual Biotic Field heals Mei for 35 HP/s at the base rate.
+Ana's grenade denies pulses during anti-heal and multiplies boosted pulses
+by 1.5. Retained world ticks settle damage and healing in order, separately
+from field delivery. Actual input tests compare ordinary stepping and jumps
+across grenade impact and anti-heal expiry. The server uses the latest
+available poses for retained pulses.
+
+Projected Barrier uses the 25D cleanse entry to remove active grenade
+anti-heal in the server reconstruction. Actual projection onto Mei during
+Cryo resumes healing and charge only for new pulses. Projection can also
+restore Soldier's field healing before the original anti-heal deadline and
+preserves an existing allied grenade boost. A projection already in place
+absorbs the hostile grenade without applying anti-heal to Mei. Native
+effect-tag selection remains outside this reconstruction.
+
+Ana Sleep Dart
+--------------
+Actual 0BDD input releases 15E8 for 5 damage. Effect 026F.053 leads
+through 0BDE to 224E with a 5-second duration. The server uses the first
+world tick at or after each deadline. Its reconstruction gates movement,
+weapons and abilities, cancels Ice Wall preview and Blizzard windup, and
+lets a released Blizzard continue. Cryo and an existing Projected Barrier
+reject the effect. A fresh projection clears both sleep deadlines.
+Effective damage shortens sleep to the later of 1.5 seconds after impact
+and 0.5 seconds after the damage, capped by the current deadline. These wake
+rules are reconstructed. Death or body replacement removes sleep state.
+
+Ana Nano Boost
+--------------
+0B9E keeps its charge gate, target lock and release volley. The server
+supplies a scoped allied target search using the graph's 40-metre range,
+10-degree base cone and static/Ice Wall visibility. B9F supplies 250
+healing, 1.5 outgoing damage and 0.5 incoming body damage for 8 seconds.
+Grenade healing modifiers apply to the initial dose. The damage modifiers
+do not modify later healing. Existing barriers intercept damage before
+the target's body reduction.
+
+In this reconstruction, melee and hitscan sample the current outgoing
+modifier. Projectiles and Blizzard capture it at release and resample on
+reflection. A released boost survives Ana's death and stays with the
+selected body until expiry or replacement. Ana's world clock can release
+an admitted cast without another command. Native target ranking, scaling
+rules and client effects remain outside these static checks.
+
+The manual Assassin bridge treats a valid Zarya barrier as a loss of pin
+contact. An actual projection blocks a fresh pin and releases an existing
+pin by the next combat tick. Expiry requires fresh manual engagement before
+damage or control resumes. This is the server's reconstructed policy.
+Actual Wraith and Fade also retire a manual pin attempt. Ending either
+phase leaves the target free until a fresh engagement.
+
+In a controlled GameServer using the extracted 104319 controller bundle,
+Assassin's 13C2/1158 handoff targets Mei and sends button 36 to its body
+without manual engagement. During the resulting pin, two passive server
+captures produce the same digest. Changing the controller frame, stored
+handoff target, held button or active pin independently changes the digest.
+Restoring each field restores the original digest. The probe uses direct
+fixture spawning and exercises storage for the reconstructed controller
+bindings and contact policy.
+
+An autonomous Assassin checks live contact before sending the attack
+button. Cryo and Projected Barrier prevent admission, and the first
+valid contact after protection ends deals the authored 25-point hit.
+An Ice Wall that breaks a pin releases the body input. When the same
+target becomes reachable again, an old controller latch can rearm only
+after the body finishes recovery. A new queued press gets its body tick
+before the server checks for a stale latch. These are reconstructed
+controller admission and recovery rules.
+
+One staged match keeps the same Mei body and all five NPC bodies alive.
+Mei lands a 75-damage icicle on each NPC. Their first attacks deal 20
+(Trooper), 100 (Sniper), 5 (Heavy Assault), 50 (Enforcer), and 25
+(Assassin) damage to Mei, leaving her at 50 health without a reset.
+The first four use their authored primary graphs with manual engagement.
+Assassin pursues and pins through its 104319 controller, then the fixture
+opens distance so Mei can return fire. Teams and positions are staged to
+attribute damage to one pair at a time. The test reads the staged
+game_graphs_174.json.gz through ORPHEUS_ASSASSIN_GRAPH_BUNDLE and the
+five-NPC catalog through ORPHEUS_NPC_DATA_DIR.
+
+Current Cryo exit input and Deflect melee checkpoint (2026-11-09)
+--------------------------------------------------------------
+BodyWorld applies stack-priority admission to Mei 05E6 Ability62 using its
+authored push priority. A rejected start leaves the press's original timestamp
+available to the normal buffer path and leaves the held latch clear. Actual
+input cases cover natural and cancelled Cryo exits, continuous holds, expired
+taps and fresh presses. The first landed icicle consumes 10 ammo and deals 75
+damage. Cryo cooldown remains active. Admission is reconstructed server policy.
+
+Quick melee uses Genji 03A3 state10's authored frontal angle after the normal
+capsule and LOS checks. Actual Mei input blocks frontal damage and delivers
+30 damage from the rear. The block produces no return damage. This follows the
+reviewed Genji lane's directional melee model with the resource angle.
+The activation guard admits only Genji's body script. The five-NPC damage
+fixture verifies that NPC body scripts remain valid melee targets.
+
+Heavy Assault's authored 114F state26 reads 10 seconds from variable 13657.
+Releasing the primary input leaves the admitted state25 volley active until
+state26 ends. The test first measures actual incoming damage, then turns the
+NPC away to preserve Mei's health while measuring the burst. The released
+input produces no second volley. In the manual primary fixture, Mei's spray
+freeze suppresses damage while the admitted volley and its timer continue.
+Damage resumes after thaw within the same activation. A lethal icicle ends
+outgoing reports and damage and produces the NPC death event. The freeze
+behavior is reconstructed server policy. Other interrupts and controller
+behavior remain open. The authored 114F volley subgraph has a separate
+possessor-derived entity Watch at node 63. Node 62 compares its value against
+variable 2172 and can abort node 47. A world-query fixture supplies the typed
+result of A37A910D to the unchanged graph. With a stable result, released
+input leaves the volley active. Changing the result stops the volley and
+its timer in the next frame, before the authored timeout, with no further
+damage or activation. Static 104319 disassembly shows A37A910D evaluating the
+entity operand and an optional integer operand, defaulting the integer to
+zero, before calling a context service at vtable offset 0x238. The service
+and its mapping to live NPC possession changes remain open.
+The server entity-query service accepts an explicit component 46 lookup and
+registers environment dependency 0x20 before evaluating the operands. The
+Heavy regression supplies possession and keyed records at the world boundary.
+Changing selector one leaves the burst running. Changing selector zero
+resolves a new entity and follows the authored cancel into reload. With
+explicit zero ammo, the changed result writes variable 2172 and the graph
+raises reload request 51 without a direct fixture write to that request.
+The refill wait starts after the abort frame, then holds ammo at zero
+through its 1300 ms deadline and restores 150 rounds. Released primary
+does not start another volley through the refill.
+
+Earlier world/input clock checkpoint (2026-11-09)
+-----------------------------------------------
+The prior no-command phase counterexample is now repaired by advancing the
+existing body VM, not a second immunity deadline. BodyScript records a causal
+world_frame_anchor for supported Mei/Reaper/Moira/Genji/DVa/Zarya bodies with a
+Match. The anchor converts16ms world ticks into each body's command epoch and
+frame_ms. Older windows commit zero input; the current input slot is reserved.
+Admission rejects frames beyond that world horizon without poisoning the input
+queue. Late already-committed frames do not run body or movement again. Missing
+pose windows update modifiers/state but do not replay old movement throttles.
+These are scoped server hosting policies, not native transport/rollback parity.
+
+Timers/cooldowns, Cryo healing/effective charge and defense flags now progress
+without packets. A skipped scheduler interval visits chronological world ticks
+so an existing projectile sees defense state at its contact, before later
+expiry. World-filled ordinary shot/melee reports retain the existing no-pose
+discard policy. A previously admitted Blizzard windup is the explicit exception:
+it releases once using the latest known pose and its original activation;
+its flight starts at the logical combat tick and follows existing contact/area
+timers. No missing window synthesizes a new input press or repeat ultimate.
+Original-client behavior of missing-pose attacks remains unproved.
+
+Thirteen clock tests PASS59.072s cover Wraith/Fade expiry and matching step/jump
+cooldowns, Cryo heal/end/charge/cooldown, Genji/DVa/Zarya defense expiry, late and
+future input, queue atomicity, nonzero epoch with20ms quanta, no-pose damage and
+movement, already-admitted Q and stepped/jumped launch/contact/damage equality,
+and passive anchor hash sensitivity. An earlier24-case clock/phase/eye run
+PASS85.393s precedes the shared volley fragment import. Before/after no-command
+probes are retained: old frame1061 stayed active; current frame1310 has ended
+protection and a decreasing authored cooldown after250 world ticks.
+
+Review/import the parent's WeaponVolley no-decay239B571E spread ramp fragment
+and six tests, preserving private Ability press/order fixes. spread_ramp is
+baked on activation and captured by the shared state layout; server snapshot
+uses that layout. This is normalized output only, not a new damage-ray sampler.
+Optional decay/other classes keep their old path.44 spread/storage/manifest
+checks PASS23.058s;833 scripts PASS22.383s;147 shared combat/command epoch/
+handoff/correction/storage checks PASS95.651s. New world_frame_anchor is also
+registered in body/server snapshots. Frozen-source226 Mei tests PASS865.993s
+and13 full snapshots PASS683.390s. Python freeze unchanged; all test handles
+terminal. Ruff/diff checks pass. Counts do not complete the remaining matrix.
+
+An independent transparent-method trace isolates the immediate-held-secondary
+gap:05E6 Ability62 tries to push under05FE's still-active exit Stack3, never
+starts, but retains HELD after arbitration rejection. Continuous input then
+does not retry; release/repress starts and hits. Trace data is outside Git in
+mei-secondary-exit-arbitration-trace.json. Do not mark that interaction fixed
+from the fresh-input tests. Complete static scope stays ACTIVE; no final commit
+or merge-ready state, no shared workspace/client activity.
+
+Earlier Wraith/Fade and FirstPerson checkpoint (2026-11-09)
+---------------------------------------------------------
+Read/review isolated phase helpers as source-only. Private phase_defenses scopes
+Reaper0020/8440 and Moira0F7C/6604 to matching live body/hero and an active
+authored entity Stack;10467 alone includes recovery and is not immunity. The
+permissive54FEB21C entry at node2 has explicit0 delay and no engine-service
+fields. Its scoped continuation now lets the original graph reach its Wait
+and Stack. Those graphs own3s/.75s defense scopes and8s/6s cooldown values.
+Zero-delay continuation, immunity and intangible target policy are reconstructed;
+no generic tag immunity or synthetic second protection timer is introduced.
+
+Phase victims are excluded from attack target selection, so icicles can pass
+through to a real rear training bot. Direct damage/status paths also reject
+active protection. Existing spray slow/source storage clears on actual entry.
+Blizzard drops phase exposure/frost deadlines and resumes only current damage
+after exit, without backfill. Cryo stays solid under its existing separate
+policy. Input-driven wait end, early cooldown rejection, later fresh cast,
+body replacement, freeze preventing phase start and unbound-flag rejection
+are executed.13 new phase/eye tests PASS37.227s (11 phase methods and2 stance/
+cover groups). Initial test fixtures were corrected: rear-hit checks wait for
+the real icicle arrival and keep a pre-hit pool; hero switching resets a pose,
+so the cover target is explicitly placed after the switch.
+
+104319 body08BA XML explicitly gives FirstPerson1.3 standing/.91 crouched;
+body02A3 gives1.425/.9975. Combat.eye_height now serves both shot origins and
+player Target/history eye fields. Existing unknown-body fallbacks remain.
+XML paths/hashes are outside Git in mei-eye-resource-validation.json. Actual
+standing/crouched shots clear cover just below each resource height and stop
+at cover just above it, for both Mei and enemy McCree. Native camera/muzzle
+animation and bone hitbox equality remain unproved; eye-based critical capsule
+thresholds remain a declared reconstruction. No McCree critical-default change
+is imported by this lane.
+
+A separate no-command probe contradicts complete phase lifecycle acceptance:
+250 world ticks advance while the body command frame stays1061 and protection
+remains active. Current phase timers are bounded only when body input clocks
+advance. The complete world/input anchor, stale-command/pose and deferred-effect
+policy must be reviewed; a second immunity timer would conceal this mismatch.
+phase-clock-review-next contains source-only candidates, not imported behavior.
+Full static scope stays ACTIVE. STATIC_ACCEPTANCE_MATRIX.json outside Git maps
+all ten requirement groups to the213 evidence cases and explicit gaps; test
+counts do not automatically complete any group. Frozen-source213 Mei tests
+PASS650.286s;13 full snapshots PASS567.883s;120 shared checks PASS50.681s;
+827 scripts PASS21.386s. Python freeze unchanged; all handles terminal. Ruff
+and diff checks pass. No final commit or merge readiness.
+
+Earlier Enforcer/placement/notification checkpoint (2026-11-09)
+------------------------------------------------------------
+Manual Enforcer13EB/node24 now emits25 independent ballistic pellets from
+authored rings(0,1),(.5,8),(1,16), spread#230=4 and damage#476=2. Near contact
+deals50 while consuming one round. Each pellet uses existing flight, range,
+falloff8..15m/minimum.2, team, static, Ice Wall and shield routing.25-pellet
+SHOTS_ONLY remains distinct from predicted projectile entities. Tangent-degree
+cone, stable basis, even zero phases, eye origin and native jitter/muzzle
+equivalence are reconstructed/unaccepted. Scope is manual Enforcer only.
+Reviewed Roadhog ring helper provenance and original Enforcer fields are saved
+outside Git; no sibling acceptance result is substituted for this lane's tests.
+
+Sixteen incoming tests PASS38.478s before a seventeenth actual teammate-spray
+counterplay check PASS2.802s: freezing Assassin releases its pin; the victim
+survives and can start Cryo. Enforcer cases cover25 distinct directions, ammo,
+close50 damage, misses/allies, static/Ice Wall, projected shield, isolated
+zero-spread per-pellet falloff, authored input release with the VM still
+advancing, and actual spray freeze. Frozen-source192 Mei PASS594.826s,
+13 full snapshots PASS523.350s and109 shared tests PASS48.867s precede the
+subsequent notification/placement changes described below.
+
+Review/import only the parent's notification marker fixes and Ability.stop
+cleanup ordering. State.end clears canceled CHANGED/CHECK coalescing markers;
+Component.changed excludes ending states. Scope cleanup precedes arbitration
+unlink so an incoming weapon cannot sample outgoing pre-refill resources.
+The cross-object order is a server reconstruction, not proven native ordering.
+The existing private original-timestamp press-buffer fix is retained. No new
+persistent VM field is added. Both reviewed tests fail before and pass after;
+a third CHECK cancellation case is added.827 script tests PASS22.450s.
+An input-empty372-frame Mei clip, Cryo natural/cancel exit, authored exit wait
+and fresh primary/secondary input recover damage in four combinations. Early
+continuously held secondary at immediate exit still needs release/repress;
+the same observation exists before/after the shared fixes. Its native/input
+semantics remain unresolved; neither notification causality nor full120-round
+Cryo refill is inferred. Observed four-second regeneration is about60 rounds.
+
+An actual-input static obstacle counterexample previously created5 pillars,
+including one intersecting an off-centre floating box. placement_clear now
+checks nine footprint support points, pillar-local triangle-box SAT using the
+existing contacts primitive, and existing oriented pillar overlaps. The same
+probe creates4 nonintersecting pillars. Seven new checks cover both rotations,
+off-centre obstruction, low ceiling/no cooldown, unsupported footprint, uneven
+support, excessive grade and touching/overlapping existing columns.22 combined
+wall tests PASS56.560s. Reconstruct walkable support within the existing+/-.5m
+tolerance, a.5m terrain foundation band, and omission of individual invalid
+columns. This is not proof of native placement/physics or arbitrary prop parity.
+
+Ice Wall now checks the occupant capsule's upward sweep before accepting an
+otherwise valid column. An overhang outside the pillar can still obstruct a
+body passing beside it. A blocked column is omitted, and a fully rejected
+confirmation keeps the preview with no cooldown. Clear columns still lift
+their occupants. Actual casts exercise standing and crouched players, a
+clear destination reached through an obstruction, and the five Talon NPC
+definitions under clear and obstructed lift paths. The sweep and omission
+rule are reconstructed server policies for static geometry.
+
+Player feet use a 1/1024 m mover grid. The lift admission allows half a
+grid step below the sampled support plane for players so rounding does
+not omit grounded occupants. Actual wall commands lift and release the
+occupant at both tested positions of Volskaya 01DB model 1F39. The
+fixture sets the platform pose before each cast using its authored
+waypoint offset.
+
+Volskaya Assault can load the external volskaya-platform-104319.json.gz
+runtime asset. Match creation admits the authored 3CD8 placeable and
+runs controller 2ABA on the scene clock. The map cache stays immutable
+while the 1F39 collider moves over the extracted route. Initial and late
+viewers receive its current pose, followed by ordinary movement records.
+Tracking, route interpolation, grounded player carry and rearming after
+a completed trip are server reconstructions. The lift sweeps its grounded
+riders against fixed map collision before moving. It pauses short of a
+blocked rider and resumes when that body leaves its support. Actual wall
+input on a controlled floor produces two columns where a rising lift
+blocks three. Columns supported entirely by the moving hull use a
+platform-relative movement parent and move with that hull. A rider on
+the column follows the same vertical step. A swept column blocked by
+fixed geometry pauses the platform until the obstruction clears. The
+normal match tests cover cancellation, a late-viewer create and the
+pause under a low ceiling. Other modes and active-scene replay are open.
+
+Current109 shared tests PASS47.980s and47 mover tests PASS14.935s.
+Frozen-source200 Mei PASS449.989s;13 full snapshots PASS432.868s. Python
+source freeze remains unchanged; all current test handles are terminal. Ruff
+and diff checks pass. These counts do not establish the untested matrix.
+No final goal commit, shared workspace edit, merge, push or client action.
+Full static goal remains ACTIVE. Phase/other-defense, native source/settings,
+remaining geometry and input/controller matrix items stay open.
+
+Historical checkpoints follow; their source boundaries remain explicit.
+
+Latest shield checkpoint:107 Mei tests pass together in265.799s, then a
+supplemental owner-death test passes in1.817s (108 distinct current Mei tests).
+All13 server snapshot checks pass in412.371s on fixed production source.
+The shared script suite passes824 tests including reviewed parent2ca9178's
+native distinct-input joins. Native/presentation limitations below remain
+explicit; this does not establish the full goal.
+
+Earlier control checkpoint:85 combined Mei tests pass in228.632s, adding7
+Flashbang/Mei interaction checks to the earlier78 distinct test set below.
+All13 server snapshot checks pass in449.710s on fixed production source.
+Review/import parent64bf71c retains authored hit effects and reconstructs
+Flashbang's resource0.8s/1.7s mode branch with exclusive world deadlines.
+The composed input path handles independent frost/Flashbang locks; NPC route
+pauses retain world time without catch-up. Ability stop uses authored exits;
+general channel-versus-buff interruption policy remains unaccepted.
+
+Actual enemy Flashbang input verifies25 damage,0.8s stun, movement/fire/skill
+suppression and recovery. Active Cryo rejects damage/control and continues
+its own duration. Flashbang cancels wall preview without leaving fire locked,
+interrupts Blizzard before launch and leaves released Blizzard alive. Death
+and body retirement remove the old deadline. A separate status fixture proves
+Flashbang expiry cannot clear a longer frost lock. This is scoped executed
+evidence, not complete native224E/immunity/cleanse/presentation acceptance.
+
+Read-only104319 Zarya preparation follows244 ->13F4/256 and053/A2 ->25D.
+Personal shield baseline200, duration2s and cooldown10s come from those graphs.
+25D forwards damage, sets8440/7350 and begins cleanse state0DB9E66B. Model
+10D7 header bounds are approximately[-1.5,+1.501] on all axes; render bounds
+do not establish native collision equality. Projected25C targets have radius30
+and tracking expression10*entity9595; exact selector policy is still open.
+The shield consumer below uses these resources; dumps/probes remain outside Git.
+
+Zarya shield interaction
+------------------------
+244/25C retain their actual input,2s ChaseVar and10s/8s cooldown branches.
+The scoped consumer supplies TrackTargets outputs375/1691 before the button
+frame; the authored graph selects536 and creates its Pet state. Target
+selection is reconstructed with ally/range30, aim cone10 plus capsule extent,
+angular/distance ordering and static/Ice Wall LOS. It rejects FFA, enemies,
+dead targets and misses. Native filter/scoring/foreign settings remain open.
+An actual Mei Ice Wall blocks the projected cast without a cooldown.
+Cancelling the wall with Zarya still holding E does not replay the cast.
+A fresh E creates the 200-health shield. An actual icicle removes 75
+shield health, and the next icicle after shield expiry deals 75 to the ally.
+Natural shield expiry starts the authored 8-second projected cooldown.
+
+256 supplies baseline200 shield health. Actual13F4/03DA definitions receive
+health/team/transform creates, movement updates, health changes and removal,
+including late viewers. A sphere of radius1.5 centred one metre above feet
+is an explicit consumer supported by model bounds, not native collision proof.
+It intercepts body misses, blocks piercing spray, takes noncritical icicles
+and absorbs melee, blast and Blizzard. Friendly/outgoing projectiles pass.
+The final shield hit is blocked in full. Blast evaluates protected targets
+before capacity removal; health damage and hit effects are separate so a
+breaking shield cannot leak Flashbang control or Blizzard frost.
+
+Absorbed health loss forwards actual0146 parameters2A/12 into242, preserving
+its authored energy calculation (.2 per absorbed damage, cap100) and timers.
+Energy variable behavior is tested; full Zarya beam/HUD acceptance is not.
+25D's cleanse and8440/7350 flags are reconstructed with saved status bases;
+actual frost slow/freeze and Flashbang clear, and immunity persists while
+protected.0B77's6604/8440/9161 predicate also retires/refuses frost. These
+identifiers alone are not treated as generic health-invulnerability proof.
+Body replacement/removal and owner death retire shield state/replicas. The
+owner-death policy is reconstructed; original-client parity remains open.
+
+The combined107 run includes19 shield checks and15 PvE groups/73 subcases.
+The later owner-death check brings shield checks to20 and all Mei checks to108.
+All five actual NPCs receive shield protection/cleanse; manual actual Trooper,
+Sniper and Heavy attacks spend Mei's projected capacity instead of health.
+NPC observer projectile transport and autonomous behavior are still omitted.
+Passive storage observes shield health, target, generation and saved flags;
+runtime model identity includes numeric constants from all four new consumers.
+
+An actual Blizzard launch against personal and projected bubbles with
+fixture-depleted capacity verifies the shield-break boundary. The breaking
+tick consumes the remaining 0.1 capacity without health damage or frost.
+The next 16 ms tick deals 0.32 damage and starts frost at 0.5.
+The whole-tick absorption rule is reconstructed.
+
+Special damage/tag exceptions, target filters, scaled/overlapping shields,
+native status hosting and complete defense interaction policies remain open.
+Static acceptance can use labeled, verified reconstructions; original-client
+prediction, VFX/audio and HUD are a separate acceptance and do not gate the
+static goal by themselves.
+
+The current working tree adds explicit Mei-only reconstruction of the
+05FE/state41 gate in permissive BodyWorld; strict unknown-State behavior is
+unchanged. The authored ChaseVar/duration/cancel/cooldown branches then run.
+Server healing distributes vars6578e=200 across567i=4 seconds, normalizing the
+float32 ChaseVar endpoint within1ms. It heals only self, never a dead owner,
+stops on cancel/end and does not accumulate capped healing for later damage.
+Damage rejects an actively protected target without hit/kill notices.
+Actual opposing Mei spray, icicle and quick melee, plus Soldier's Helix,
+leave a full-health Cryo target undamaged and without frost or hit notices.
+The attacker still spends spray/icicle ammo, activates quick melee, or starts
+Helix cooldown. Fresh attacks after Cryo cancellation damage the target while
+Cryo cooldown remains active. The second Helix waits for its own six-second
+cooldown and then deals 120 direct-plus-blast damage.
+Authored full-zero throttle mods17..19 now prevent movement while preserving
+ordinary friction/gravity. Individual axis mapping remains unsupported.
+
+76 Mei checks pass together in216.474s after Blizzard and reviewed parent
+source changes. Subsequent11 PvE groups pass58 subcases in55.765s, adding
+actual incoming-weapon coverage. Two targeted incoming/release checks then
+pass in11.418s, bringing the total to78 distinct Mei checks and12 PvE groups/
+60 subcases. These are static server tests with
+external104319 data, not native-client acceptance.
+These include actual
+miss/range rejection, reload delay/refill, icicle ammo10 and death refusing
+fire; Cryo exact200/self-only healing, active protection, cancel/cooldown
+rejection and reuse, death refusal, walking/jump lock/restoration and passive
+VM export, empty-clip automatic reload/resumed damage, insufficient/last-ten
+icicle ammo, and melee cancelling a reload without delayed refill.
+Existing45 mover,28 combat,24 simulation,8 strict and12 Soldier ability checks
+pass. Full Cryo cleansing and cross-hero skill interactions remain open.
+The13 server snapshot tests pass in449.710s at the Flashbang/control checkpoint
+with production source frozen. Wall-specific focused passive-storage checks
+cover preview, health, geometry and expiry; these do not claim a complete
+active-wall journal replay or native-client behavior.
+
+Targeted read-only104319 extraction under this lane found053/0169 ->0B77 ->
+05E7, both graphs absent from the normal runtime. Actual0B77/node31 expression
+fixture yields slow progress.2 on hit1,.2285 on hit2,.998000264 on hit29 and
+1.0 on hit30; actual05E7 sets freeze duration567=1.3. These resource defaults
+now drive an explicit reconstructed production consumer after actual spray
+damage. Its aggregate per-target progress resets after a1s gap; reaching1
+freezes for1.3s, and hits during an active freeze do not extend its deadline.
+Slow caps at70%. Player input/aim and new shots stop during freeze; ordinary
+friction/gravity and already fired projectiles continue. NPC routes pause
+without catch-up. Death/replacement/removal retire status, and Cryo clears
+frost and refuses new hits. Stored state includes progress/deadline/aim.
+
+Actual player spray tests verify damage plus reduced mover speed, freeze and
+recovery, full-charge ultimate refusal/reuse, existing Visor buff retention,
+deadline behavior, expiry, Cryo cleanse and persisted flight. All five NPCs
+freeze under actual spray and their explicit route fixtures pause/resume.
+Additional224E extraction confirms its zero throttle/jump/crouch mods. The
+aggregate/non-refresh scheduler is reconstructed, not native State hosting.
+This profile uses0B77 fallback values; instigator foreign/ruleset overrides
+(including schema2FEA=.3), independent sources, immunity/cleanse tags and full
+defense interactions remain unaccepted. Original dumps/derived graph JSON
+remain outside Git. Complete primary status acceptance remains open.
+Parent NPC commits c2d3ae1/a15d554 and read-only npc-runtime inputs are
+now imported as reviewed source-only changes into this working tree; their
+original commits remain available in the clone. Instance221 is shields,
+never assumed armour. The external NPC catalog/expanded graph pack is read
+directly, without copying/replacing normal runtime data.
+
+The original seven actual-five-NPC groups cover37 subcases: icicle body damage, spray/
+melee damage, corpse retention/death-script callbacks/explicit removal, and
+NPC-source damage before/while Cryo, aligned-target spray penetration versus
+icicle stopping, actual-spray freezing/route pause/recovery, and wall route
+blocking/resumption after explicit NPC damage destroys a column. The incoming-damage group explicitly invokes the
+damage fixture; it is not authored AI or a weapon-volley acceptance. Stock
+NPC lifecycle6 and extraction3 tests also pass. NPC create/death transport is
+an acknowledging in-memory fixture; client rendering remains unaccepted.
+The later11 PvE groups cover58 subcases, adding Blizzard, real static-wall
+melee rejection and incoming authored weapons. Reviewed parent source fixes
+d1286b7/6debff3 mount NPC manager/weapon slots and authored array selection;
+7cd1ed7 adds static capsule-surface melee visibility alongside dynamic walls.
+Manually pressing the extracted primary slot drives actual Trooper, Sniper
+and Heavy Assault weapon graphs against Mei. Emitted volleys damage her;
+Cryo blocks them. This fixture returns no NPC observer projectile stream
+and does not establish transport/rendering or autonomous selection. Enforcer
+and Assassin still emit no successful attack in the inspected input probe.
+Heavy release/cancel remains open:114F wraps a99999-shot volley in a separate
+timer. A failed common immediate-release expectation is not native-policy
+proof; its actual timer/control scope must be verified rather than forcing
+the Trooper/Sniper policy on it. Attacks/specials remain partially accepted.
+The supplemental release test proves Trooper/Sniper input release prevents
+later volleys/damage after allowing their existing burst/flight to settle.
+
+Ice Wall reconstruction
+-----------------------
+0622 supplies five columns of width1.55, half-depth0.5, height4.4, duration5s
+and cooldown12s;0636 supplies400 health and0932 is the actual pillar entity.
+Placement uses a reconstructed35m ray plus ground/headroom centre probes.
+Actual confirmations just beyond 35 m and against a nearer vertical
+face leave preview open with zero cooldown and no weapon ammo spent.
+A fresh confirmation at clear ground within the ray limit creates five
+columns and starts the 12-second cooldown.
+E opens/cancels preview, RMB rotates and LMB confirms. Confirmation/rotation
+cannot leak into weapon ammo or buffered fire; cancel releases the scoped
+VM disable holders. Placed walls keep cooldown when cancelled. Owner death
+keeps existing walls until expiry; body replacement removes them.
+During the same body's cooldown, a preview press held across expiry stays
+inert. A fresh press after release opens preview, and confirmation alone
+starts another 12-second cooldown. A scheduled PvP respawn retires the old
+wall input state and starts the new body's cooldown at zero, even before
+the old deadline. The respawn regression drives the new body's command
+epoch. This body-local reset is the observed server reconstruction.
+With two actual Mei inputs, a second wall aimed at the same footprint
+keeps preview open and spends no cooldown. Rotating the preview 90 degrees
+places the four clear columns and spends cooldown. Cancelling the first
+wall leaves the other owner's four columns intact. This tests reconstructed
+volume overlap on two live walls.
+When both players confirm the same footprint on one server frame, only
+the accepted cast places five columns and starts cooldown. The other
+preview stays open with zero cooldown. After the winner cancels, the
+waiting player can confirm and both cooldowns continue. The server
+reconstructs this confirmation order.
+An actual first wall lifts the second Mei onto its top. A straight-down
+confirmation leaves the second preview open with zero cooldown. Aiming
+from the same elevated position at clear static ground places five
+columns there. The current reconstruction uses static ground for
+placement support and wall tops for standing support.
+Actual wall input in the duel harness uses the 104319 Practice Range
+office collision cache (0688). At the same aim, the map core allows
+three columns. Loading the authored static props leaves only the column
+at x=46.35. Both valid placements spend cooldown. The test compares
+the same map core with and without prop geometry and leaves the cache
+read-only.
+
+Pillars replicate create/current health/removal to existing and late viewers.
+Direct projectiles/hitscan, melee and blast damage reach pillar health;
+friendly/owner shots are blocked but cannot damage it. Explosions use distance
+to the oriented surface, snapshot column visibility before applying damage,
+and do not expose a body behind a column destroyed by the same blast.
+Capsule-expanded swept boxes block players and the five actual NPC route
+fixtures. Creation lifts covered bodies; dynamic ground permits standing and
+jumping, and removal restores falling. No shared static collision is mutated.
+Reinhardt's 104319 mover uses a 0.7 m standing radius. Actual movement stops
+one radius from the intact wall. With the centre column removed through a
+damage fixture, an approach 0.2 m off centre still stops, while a centred
+approach passes through the 1.55 m opening. This verifies reconstructed
+capsule clearance for a large player body.
+Mirrored 45-degree approaches hit the adjacent column, slide along its
+front face and pass through the same opening. Recorded command poses
+inside the wall depth stay within the capsule's lateral clearance.
+Actual manually engaged Trooper, Sniper, Heavy Assault and Enforcer attacks
+damage the centre pillar while Mei stays at full health. Their later fire
+damages Mei after she cancels the wall. Enforcer's second volley uses a
+longer observation window than its first. Ice Wall also blocks Assassin's
+manual contact binding without taking damage. After wall removal, Assassin
+requires fresh engagement to pin and damage Mei. The manual targeting and
+contact policies are reconstructed.
+Enforcer's held primary spends its four-round magazine through actual 13EB
+volleys. At zero ammo, node 32's authored wait evaluates variables 581 and
+6884. Ammo remains zero and no volley begins before its deadline. Node 31
+refills variable 53 from capacity 198 at the deadline. A fifth volley
+consumes one round and deals another 50 damage to Mei. The fixture turns
+the NPC away between the first and fifth volleys so Mei survives the cycle.
+This covers the held-input reload path with reconstructed NPC aim and
+pellet dispersion.
+
+Actual 13EB refire evaluates node 25 after each volley. It adds a sample
+from the authored -0.2 to 0.6 second range to the 1.0 second base.
+Node 4 chases the resulting gate to zero. Early release and re-engage
+preserves the held schedule with the same server RNG seed. Another
+seed changes the schedule. Each volley spends one shell. Actual node 29
+also applies 2, 4, 6 or 8 damage per pellet for explicit difficulty
+indices 0 through 3, yielding 50, 100, 150 or 200 damage at close range.
+Unset input gives the index-zero damage. The difficulty provider, native
+muzzle and native dispersion remain open. RNG and aim are reconstructed.
+
+For a sandbox mode declaring difficulty 0 through 3, graph 143A uses
+the actual body definition and activates its authored conditional pools.
+The server adds these amounts once at NPC spawn alongside the base
+pools from 0E62. Addition and spawn-only lifetime are reconstructed.
+Without a declared level, the sandbox uses the extracted base pools.
+Four levels across the five Talon definitions were tested with actual
+ice damage, NPC return attacks, lethal credit and removal.
+The mode value is pinned by the external graph-bundle fingerprint.
+Releasing primary or pressing it again during the wait preserves the same
+refill deadline. A release with no fresh press stays idle after the refill.
+An actual allied Flashbang also clears held primary without cancelling the
+wait or advancing its deadline. After stun ends, the refilled weapon remains
+idle until a fresh press, which again produces a damaging fifth volley.
+On a lethal Mei icicle during reload, the retained Enforcer corpse used to
+finish the weapon timer and refill its ammo. The server now aborts 13EB's
+pending reload at death while retaining its corpse and death event. Explicit
+manual removal destroys the weapon instance. Both paths keep ammo at zero
+and emit no new volley through the original deadline.
+Trooper 102E/state18 reproduced the same corpse refill, from zero to 30.
+The death abort now covers that authored wait as well. The regression
+starts with a one-round fixture, confirms actual incoming fire and an
+empty magazine, then kills the Trooper with an actual icicle before the
+refill. The corpse and death event survive, and its ammo stays zero past
+the deadline. This is a scoped server death policy.
+In the extracted Sniper 1122/1134 and Heavy 114F primary volleys, the
+ammo output field is absent. A one-round probe reports multiple shots
+while variable 53 stays at one. In an explicit resource-gate fixture,
+setting 1122 ammo to zero activates the Sniper's 910 ms refill wait.
+Heavy 114F stays idle at zero ammo until an explicit variable 51 reload
+request starts its 1300 ms wait. The live paths restore 20 and 150 rounds
+respectively at their deadlines. Lethal icicle before each deadline now
+aborts the pending wait through the scoped death policy. Live Heavy
+request routing remains open.
+Sniper's authored 0015 selector accepts logical button 16 and changes
+entity variable 31 from 1 to 2. Actual primary input then fires 1134 and
+damages Mei without activating 1122. With explicit zero ammo, the selected
+1134 weapon refills to 20 at its 910 ms deadline. A lethal icicle before
+that deadline now aborts the alternate wait as well. The zero-ammo case
+supplies a graph input directly because this volley has no ammo output.
+Preview, geometry, health and expiry have passive-storage digest checks.
+An actual enemy quick melee lowers the centre pillar from 400 to 370 and
+emits one hit notice for it. The same attack from an ally leaves the centre
+pillar at 400 with no notice. The two outer pillars stay at full health.
+
+15 wall tests and five NPC subcases pass in the combined58 run. This is an
+explicit server reconstruction. Native preview/growth/mesh, client prediction,
+full-volume placement/uneven terrain/ceiling edge cases, moving platforms,
+multi-wall intersections, large-capsule geometry and complete control/defense
+interactions remain open. The current35m ray is not measured native placement.
+
+Blizzard reconstruction
+-----------------------
+Read-only104319 inspection follows064A/state3's0946 projectile to initial
+graph065E, absent from normal runtime.064A supplies0.5s windup,20m/s speed,
+9.8 gravity and60s lifetime.065E supplies radius10, a0.2s activation wait,
+4.25s active ChaseVar and20/s ModifyHealth withD5 loadout. Its073C status
+host follows0B77's area branch: fallback initial.5,+.040000003 per0.2s, with
+05E7's1.3s freeze. Spray's .2/.0285 per-hit profile is kept separate.
+
+The scoped server consumer sweeps fixed16ms ballistic chords against static
+geometry and reconstructed Ice Wall boxes; it passes through bodies without
+direct damage. First contact anchors an area. Empty-space lifetime expiry
+creates no area. Full exposure integrates85 damage, with teams, dead targets,
+Cryo, capsule range and static/dynamic LOS checked before damage/status.
+Actual launches verify 85 damage and frost on an exposed target at 9.9 metres
+from the area centre. A target at 10.6 metres and a 9.9-metre target behind
+an actual static triangle wall receive neither. The wall is installed after
+floor landing to isolate the area LOS check from projectile contact.
+When a launch hits a static wall or the underside of a ceiling, the area
+keeps the exact impact point. Static LOS starts on the impact side using
+the stored contact normal. This prevents an area starting on a triangle
+from affecting a target through that triangle. Actual wall and ceiling
+cases deal the full 85 damage only on the impact side.
+Landing/activation, continuous damage integration, aggregate frost, first
+contact anchoring and body-replacement retirement are explicit reconstructions.
+Released Blizzard persists after owner death. In a landed-area regression, an
+enemy rifle killed Mei after the first damage tick. The area retained its
+original 4.25-second active interval, dealt 85 total damage to the exposed
+enemy and emitted one removal. Frost cleared without further damage.
+Death or freeze during windup
+prevents launch; no client/native cancellation equivalence is claimed.
+
+Actual Q input tests establish1610 cost, insufficient-charge refusal, the
+authored windup/charge spend, no weapon ammo cost, spam not bypassing resources,
+and the existing configurable passive charge model. They do not establish
+native passive rate or damage/healing ultimate credit. The shared Ability
+buffer now preserves the original press timestamp rather than extending a
+released press forever; Mei and Soldier tests cover expiry and a fresh press.
+
+14 Blizzard checks pass in43.682s. Nine actual-NPC groups pass47 subcases in
+41.338s, including full Blizzard damage/freeze and lethal corpse retention
+for every actual NPC definition/pool. Complete NPC authored attacks/specials remain
+open. Passive storage covers flight velocity/time, area geometry/lifetime,
+damage accounting cursor and per-target frost deadlines. Actual0946 area
+creates/removals are sent, but native contact messages, graph hosting,
+presentation, exact client prediction and complete defense policies remain
+open. Original dumps/derived graphs/probes remain outside source/Git.
+Trooper/Sniper/Heavy now have executed incoming weapon evidence above;
+Enforcer/Assassin and complete native attack/special/cancel policies remain open.
+
+Spray'sB4454CD7=99 is now explicitly interpreted as a target limit only for
+Mei05E6/state13. Sweeps retain unique hit entities, pass through bodies once,
+stop at static geometry/range/lifetime, and leave other weapons at one target.
+This field interpretation is reconstructed, not native proof. Existing37
+projectile and28 combat tests pass; a focused stored-server test verifies
+cumulative healing, target limit and the hit-entity set affect the digest.
+The latest13-snapshot suite includes the registered penetration fields. Width,
+barrier/reflect/absorb behavior and original-client flight/VFX remain open.
+
+Automatic reload is a Mei-only reconstruction supplying logical button14;
+authored reload conditions/timer/writers remain unchanged. Dry clips or fewer
+than10 rounds requested for an icicle initiate reload; a valid icicle windup
+is never interrupted by this helper. Dead/frozen/protected owners do not
+auto reload. This does not claim native engine input-selection timing.
+
+Earlier weapon checkpoint and baseline findings
+----------------------------------------------
 Scope and isolation
 -------------------
 Hero02E00000000000DD; private main clone based on100c66c. External runtime
@@ -17,6 +808,35 @@ critical multiplier1. Icicle's multiplier is absent in the dump. This lane
 reconstructs2x ONLY for graph05E6/state16, not as a global native default.
 Retail's multiplier still requires target-build client acceptance.
 
+Actual primary input in the flat collision fixture spends ammo against an
+exposed enemy, an ally and an enemy behind a triangle wall. Only the exposed
+enemy receives hit notices, frost and 2.75 damage per contact. Damage, hit
+notices and ammo settle after release in all three cases. Actual secondary
+input costs 10 ammo on an aimed miss. An aimed body shot at 99 metres deals
+75 damage, and at 101 metres it expires without a hit. These cases exercise
+the authored 100-metre range with the reconstructed capsule and sweep.
+The icicle static LOS case uses an actual double-sided triangle wall.
+
+One spray command spends one round at both tested distances. The target at
+9.9 m takes 2.75 damage and the target at 10.75 m stays untouched. Distances
+are measured to the target centre in the reconstructed projectile sweep.
+The 05E6 manual reload refill wait is 900 ms. Repeated reload presses
+preserve the original activation and do not advance or delay the refill.
+
+Cryo entry, Ice Wall preview and a melee whiff each cancel an admitted
+icicle windup before a projectile exists. Wall preview and melee preserve
+the fractional ammo already spent. Ammo reaches 120 while Cryo is active.
+After cancellation or recovery, a fresh secondary press consumes 10 ammo
+and deals 75 damage. This records the server's graph and input ordering.
+
+Actual Mei quick melee deals 30 noncritical damage with one hit notice at
+2.5 metres in the flat collision fixture. A same-team target at that
+distance, an enemy at 3.1 metres, and an enemy behind the attack direction
+receive no damage or notice. The first press produces one hit, release
+settles without a delayed hit, and a fresh press produces a second hit.
+This exercises the authored melee sphere and damage with the reconstructed
+aim and capsule admission.
+
 Combat._fly formerly discarded direct critical and falloff fields. It now
 uses the swept impact point for the same capsule-head heuristic as hitscan,
 and total flown distance for falloff. Splash is unchanged. Capsule hitboxes,
@@ -26,7 +846,7 @@ semantics; these are not newly measured native behavior.
 12 real-Match offline regressions exercise authoritative health and notices:
 body75/head150 icicles, noncritical spray damage, enemy rifle -> Mei damage,
 team filtering, lethal notices, shield/armour/health order, whole-flight
-falloff (synthetic HitDef), quick melee, static blocking (mock collision),
+falloff (synthetic HitDef), quick melee, static blocking (triangle collision),
 training NPC retained corpse after deadline, and NPC -> Mei projectile damage
 (explicit injected flight, NOT authored AI). They do not establish any of the
 five requested NPC's actual attacks/specials or rendering.
@@ -36,22 +856,23 @@ Acceptance matrix
 P = partial offline player-path proof; O = open; no row is client-accepted.
 NPC columns: T Trooper; E Enforcer; S Sniper; A Assassin; H Heavy Assault.
 Action / mechanic                    Player   T E S A H
-Take enemy weapon/ability damage       P       O O O O O
-Primary spray damage                  P       O O O O O
-Primary slow/freeze/penetration        O       O O O O O
-Secondary body/head icicle             P       O O O O O
-Quick melee                           P       O O O O O
-Reload, ammo and cancellation          O       O O O O O
-Cryo-Freeze self heal/invulnerability   O       O O O O O
+Take enemy weapon/ability damage       P       P O P O P
+Primary spray damage                  P       P P P P P
+Primary slow/freeze/penetration        P       P P P P P
+Secondary body/head icicle             P       P P P P P
+Quick melee                           P       P P P P P
+Reload, ammo and cancellation          P       O O O O O
+Cryo-Freeze self heal/invulnerability   P       P O P O P
 Cryo cleanse/cancel/cooldown            O       O O O O O
-Ice Wall placement/rotation/cancel     O       O O O O O
-Ice Wall collision/pillars/damage      O       O O O O O
-Blizzard launch/flight/area            O       O O O O O
-Blizzard damage/slow/freeze/LOS        O       O O O O O
+Ice Wall placement/rotation/cancel     P       O O O O O
+Ice Wall collision/pillars/damage      P       P P P P P
+Blizzard launch/flight/area            P       P P P P P
+Blizzard damage/slow/freeze/LOS        P       P P P P P
 Status movement/input/expiry/stacking  O       O O O O O
-Barrier/shield/reflect/absorb          O       O O O O O
+Zarya shield capacity/cleanse/expiry   P       P P P P P
+Other barrier/reflect/absorb           O       O O O O O
 Invulnerability/cleanse/immunity       O       O O O O O
-Kill/death/corpse semantics            P       O O O O O
+Kill/death/corpse semantics            P       P P P P P
 Client weapon/VFX/audio/HUD feedback  O       O O O O O
 
 Allies must remain immune to offensive abilities. Cryo is self-only healing,
@@ -65,18 +886,24 @@ Concrete engine gaps and next work
 ----------------------------------
 1. Spray metadata includes fieldB4454CD7=99 and freeze-related payloads,
    but their field meaning, per-target hit history, thickness, barrier policy
-   and status consumers have not been proven. Current flight stops once.
-2. Cryo05FE reaches unknown State54FEB21C. The body driver is permissive;
+   and status consumers have not been proven. A reconstructed99-target body
+   penetration path now passes an aligned-two-NPC test; the full matrix stays open.
+2. At the earlier checkpoint Cryo05FE reached unknown State54FEB21C. The body driver is permissive;
    reaching/remaining in this State does not invoke native services. Healing
-   ModifyHealth/state13 and the protection/cleanse consumers are absent.
-3. Wall0622 needs placement raycasts, five dynamic pillar entities, collision,
-   damage/expiry and replicated lifetimes; no such production service exists
-   in the baseline. Do not merely toggle its visual graph.
-4. Blizzard064A has a gravity-bearing projectile0946; the current rocket
-   flight is linear, and landing does not spawn its authoritative area.
-5. Mount actual five NPC definitions and parent-owned manual spawn/control
-   API before the five NPC rows can be tested. Training-bot tests are explicitly
-   narrower. Preserve retain_corpse and dead-target exclusion.
+   ModifyHealth/state13 and protection had no consumers. The current explicit
+   reconstruction above covers healing/protection/duration/cancel/cooldown;
+   cleansing and complete native/client parity remain open.
+3. Wall0622 now has an explicit reconstructed production service described
+   above. Full-volume/native placement, growth/client collision prediction,
+   complex geometry and complete defense/control interactions remain open.
+4. Blizzard064A now has the scoped reconstructed flight/area consumer above.
+   Native contact/status hosting, geometry/target policy, foreign overrides,
+   native ultimate charge accounting and complete defense interactions remain open.
+5. Actual five NPC definitions and reviewed weapon components are mounted.
+   Complete Enforcer/Assassin attacks, Heavy timer/release/cancel, all special
+   interactions and the parent-owned controller API. Keep manual fixture
+   input separate from native autonomous behavior. Preserve retain_corpse
+   and dead-target exclusion.
 6. After authoritative behaviors work, acquire client-lease.json exclusively,
    verify owner/PID/window, run isolated ports with own cwd/PYTHONPATH and
    external runtime, record each player/NPC interaction and release only own
@@ -94,3 +921,949 @@ Deliver focused commit/patch through lane STATUS.txt; parent reviews shared
 combat.py edits and integrates them. No direct root merge or manual push.
 The project publication helper is absent from this workspace; do not publish
 an unaccepted hero lane as a finished restoration.
+
+Genji reflection checkpoint (104319, static only)
+------------------------------------------------
+Actual Genji E activates3A3/state10 for2s and enters native8s cooldown.
+Scoped genji_deflect reads authored three boxes and90-degree incoming limit.
+08BE spray carries excluded0145 tag;108B icicle carries02F9 only. Current
+consumer admits108B only; no claim for generic projectile-tag evaluation.
+Eye-relative yaw-only boxes and aim-directed authority/team/damage credit
+transfer are reconstructed. Same-frame return legs are swept (eight maximum),
+retaining speed, damage, falloff clock and lifetime. Native projectile lease,
+output plugs and reflected client presentation remain unaccepted.
+Seven real-input tests cover icicle return and Genji credit, spray health/
+frost, rear hits, team pass-through, static wall ordering, native expiration,
+cooldown refusal and eventual restart. Blizzard reflection, melee deflection,
+D.Va absorption, full death/control/cancel and scaled boxes remain OPEN.
+Latest final-source run:7 deflect+28 shared combat+15 manifest tests PASS
+(50 in23.312s). Earlier7 deflect+21 Mei combat PASS (28 in34.430s).
+Full snapshot suite last passed before this stateless consumer was added;
+repeat snapshot acceptance is still pending. Full Mei static goal ACTIVE.
+
+Airborne Blizzard reflection checkpoint (104319)
+------------------------------------------------
+0946's actual target tags0412/06B2/07D4 contain no excluded0145. Scoped
+Genji3A3/state10 reflection now intercepts each16ms ballistic chord before
+static/wall contact when nearer, transfers Flight owner/body, re-aims current
+speed and sweeps the same-frame remainder under gravity. Landed Area inherits
+reflector ownership; native client lease/output-plug ownership remains open.
+The coordinate transform and aim-directed reflection are reconstructions.
+Executed13 reflection tests (17.868s) cover previous7 cases plus airborne
+front/rear,85 damage and frozen original caster, ally immunity, Ice Wall first
+contact, reflector death persistence and original/reflector body-switch
+retirement. Final-source related run70 tests PASS in89.421s (13 reflection,
+14 Blizzard,28 shared combat,15 manifest). Full snapshot rerun was started
+on frozen source; record its terminal result before claiming that gate.
+
+D.Va discovery: normal runtime has pilot040A only (150 base health). The actual
+mech0407 references seven absent transitive graphs. Extracted evidence lives
+outsideGit in lane/dva-mech-supplemental.json with input SHA256; no base data
+modified. Matrix is02CC/state3, native logical29, excluded0145, box roughly
+low expression(-1.25,-1,.8) and high constants[0,10.25], incoming180
+ degrees. Exact evaluated geometry remains open. Explicit mech fixture
+and actual RMB still fail to activate it: #4993 start stack/fuel hosting needs
+tracing. No matrix absorption claimed. Other reflection/control/melee paths
+remain open.
+
+NPC geometry correction from parent: previous base runtime has no five Talon
+mover rows; generic defaults cannot prove native geometry. Independent input
+verification/retribution/npc-navigation-runtime adds resource-derived movers:
+Trooper1.7/.5/5.75,Enforcer1.9/.5/5,Sniper1.75/.5/4.5,
+Assassin1.5/.5/14,Heavy2.3/.7/2.2 (height/radius/run speed).
+All15 MeiPve groups are being rerun with that independent runtime and existing
+NPC graph catalog. Previous passing counts retain their fixture limit; full
+NPC geometry/controller acceptance remains open until explicit evidence.
+
+Terminal verification for the airborne reflection checkpoint:
+- Full13 server snapshot tests PASS in548.573s on frozen production source.
+- All15 PvE groups PASS in94.353s with npc-navigation-runtime movers and
+  npc-runtime graph catalog. Separate executed dimension assertions confirm
+  each target height/radius and Bot.speed equal the five resource rows above.
+  Logs: blizzard-deflect-snapshot.log, pve-real-mover-regression.log,
+  pve-real-mover-dimensions.txt (outsideGit). No claim for difficulty-scaled
+  hitboxes, actual map cache, Enforcer/Assassin attacks or full AI/controller.
+- Ruff changed modules and git diff checks pass. All test handles terminal.
+Full goal remains ACTIVE; static_acceptance_complete=false, merge_ready=false.
+
+D.Va Matrix checkpoint (104319, explicit possessed-mech static fixture)
+------------------------------------------------------------------------
+Normal runtime still exposes pilot040A, not native possession of mech0407.
+Tests use extracted actual0407 body/graphs and explicitly end0276/state30's
+unpossessed startup lock after its one-second startup window. Matrix itself
+starts with actual RMB/logical29; no direct activation of02CC/state3.
+Native mech spawning/possession/ejection and normal D.Va selection are OPEN.
+
+The permissive BodyWorld bridge maps only02CC's exact owner/possessor member
+selectors9743/9777/9778 to D.Va ruleset keys260F/2631/2632. Defaults are enabled,
+recovery scalar1 and capacity scalar1. Entity overrides are retained. Generic
+foreign entity/ruleset semantics and strict VM behavior are not substituted.
+Actual02CC graph supplies100 capacity,50/s drain,0.75s recharge delay,16/s
+recovery and release/cooldown/threshold control. The bridge and possessed-mech
+fixture are explicit reconstructions, not original-client evidence.
+
+Scoped matrix contact deletes actual108B icicle and airborne0946 Blizzard;
+08BE spray's excluded0145 tag leaves damage/frost effective. Nativeboxes and
+angle are read from state3; eye-relative yaw transform, owner-to-contact LOS,
+contact ordering and deletion are reconstructed. Static terrain/Ice Wall LOS
+prevents a long matrix box from consuming projectiles through occlusion.
+No reflected damage or hit marker is generated; swallowed Blizzard spends its
+ultimate without an area/refund. Already-landed Blizzard and melee still hit.
+In the possessed-mech fixture, actual Q into a placed Ice Wall lands on the
+Mei-facing side while the opposing Matrix remains active. The area keeps
+Mei as owner, the wall columns stay undamaged, and the mech gains no frost
+or damage while occluded. Actual wall cancellation exposes the mech to the
+same area even as Matrix remains active. This verifies reconstructed
+contact ordering and area occlusion with both defenses present.
+Actual spray freeze stops this registered channel via Ability.stop, preserving
+unrelated buffs. NPC scripts without a player hero field safely bypass it.
+The initial NPC regression caught that missing-field issue; it was corrected
+and all15 actual-mover PvE groups then PASS in79.029s.
+
+Preparation is reproducible (immutable inputs, output outside repo):
+  ORPHEUS_RUNTIME_DIR=D:\overwatch 1.7.4\runtime-104319
+  python -B -m tools.extract_dva_mech --xml <104319 XML folder>
+    --owlib <OWLib root> --output <outside repo>/dva-mech-supplemental.json
+  ORPHEUS_DVA_MECH_DATA=<that output> python -B -m unittest test_mei_matrix
+The reproduced body, seven graph records and source SHA256 all match the
+original lane supplement. No normal runtime data or parent source was changed.
+
+Evidence so far:10 matrix tests PASS64.355s;12 matrix+13 reflection+14Blizzard+
+9 frost+7 control PASS55 in169.533s;824 shared script checks PASS20.432s;
+28 shared combat+15 manifest+23 body-VM storage PASS66 in31.393s. A later
+recovery test exposed missing9777 resolution; its final13-test matrix rerun
+and final38 manifest/body-VM rerun must have terminal results recorded below.
+Last full server snapshot pass548.573s predates this matrix iteration; it is
+not claimed as a full current-source gate. Native output plugs/achievements,
+scaled geometry, all defense interactions and full static goal remain OPEN.
+
+Final matrix checkpoint terminal results:
+- All13 Matrix tests PASS80.189s after9777 recovery bridge and NPC guard fix.
+- Final15 model-manifest+23 body-VM storage PASS38 in17.752s.
+- Ruff changed Python and diff checks pass; every current test handle terminal.
+- Full goal ACTIVE. Remaining defense geometry/foreign status/melee/passive,
+  wall placement/Blizzard and five-NPC controller gaps still prevent final
+  static acceptance. No original-client, native mech possession/ejection or
+  full current-source server snapshot pass is inferred from these tests.
+
+Mei effective ultimate-charge checkpoint (partial static acceptance)
+------------------------------------------------------------------
+Actual104319 graph338 cost is1610;064A node8 clears342 on Q start. The lane
+now credits only effective enemy body damage (including innate health/shield/
+armour pools), and effective Cryo self-healing. Overkill, overheal, no-hit,
+allies, barriers, reflected ownership and Blizzard's own damage do not credit
+Mei. Health damage/self-healing coefficients1:1 and passive5 points/s are
+explicit reconstructions; their original104319 component coefficients remain
+unproven. NPC character eligibility is reconstructed/tested, not a generic
+statement that every non-player deployable should grant charge.
+
+The default Mei BodyScript now stores322s fill time (1610/5), with explicit
+ult_seconds overrides preserved for replay/fixtures. Other hero defaults stay
+60s. Zero disables passive only. Passive stops for dead bodies and while the
+authored ultimate Ability runs. Same-hero combat respawn retains current342;
+explicit hero changes reset it. After the cast ability ends, an actual body
+icicle earns 75 charge during the active Blizzard area. The area's own damage
+earns none. An icicle dealing 75 damage to an opposing Ice Wall pillar earns
+zero; after wall cancellation a body icicle earns 75. These are reconstructed
+charge-routing rules. A launched icicle also survives Mei's death to an
+actual rifle hit and deals 75 at 40 metres. Her dead body retains its
+pre-death 100 charge without gaining credit from that impact. Native
+active-area charge, original-client posthumous charge and remaining custom
+ruleset policy remain unaccepted.
+Replacing the living shooter's body before the same 40-metre shot hits
+retires the combat projectile immediately. On the next simulation update,
+the leased shot and observer delivery finish without an explosion. The
+target takes no damage, and the replacement body gets no hit or charge.
+This covers server retirement timing in the FakeClient harness.
+When the target body is replaced during the same flight, the icicle
+keeps sweeping current collision. A replacement still on the path takes
+75 and its new body ID appears in the hit notice. A replacement moved
+off the path stays at full health and gives no charge. Neither branch
+restores the retired body's vitals.
+Team-mode fixtures change either the shooter's or target's team after
+launch without replacing either body. The icicle checks the current
+relationship on contact. Newly allied targets take no damage and give
+no charge. Newly hostile targets take 75 and grant 75 charge. The tests
+drive the team change directly and verify server projectile attribution.
+
+Ten new executed tests PASS in7.273s before the added critical subcase. They
+exercise actual primary/secondary/melee effective damage, shield/reflection
+exclusion, Cryo effective50 healing versus overheal, Blizzard85 damage versus
+no income, cap1610 and Q spend, passive cap, dead pause/respawn carry/reset.
+Five additional actual NPC target subcases now check effective damage credit.
+All824 shared script tests PASS14.361s;83 shared combat/manifest/body-VM/native
+replay tests PASS30.974s. All-Mei and full server snapshot reruns started with
+production source frozen; record terminal results separately below.
+
+Historical primary source cross-check: Blizzard's July19,2016 patch states
+self-healing abilities generate ultimate charge. This supports direction of
+Cryo accounting only; it does not prove104319 coefficients or full policy.
+https://overwatch.blizzard.com/en-us/news/patch-notes/live/2016/07/
+The November15,2016 general change excludes non-player deployables such as
+Torbjorn turret and Symmetra teleporter; character/NPC eligibility still needs
+explicit classification, not an all-entity inference.
+https://overwatch.blizzard.com/en-us/news/patch-notes/live/2016/11/
+
+Fresh immutable104319 schemas07/11/1B/3A/22 and localized labels have34
+settings/defaults validated against rulesets.py. OutsideGit evidence is
+mei-ruleset-evidence.json with input SHA256 and mei-ruleset-labels.txt:
+253C Ultimate Generation default1;32DE Combat default1;3276 Passive default1;
+32E0 Spawn With Ultimate Ready false;253A Ultimate Ability true.
+These identified custom-generation/spawn knobs are NOT connected by this
+checkpoint. Also confirms2FEA Weapon Freeze Minimum=.3,2FE6 Freeze Rate
+Scalar1,300D Freeze Duration Scalar1 and301F Freeze Stacking false. Existing
+aggregate fallback.2 does not establish stock.3 acceptance; foreign/source
+settings and independent freeze policies remain OPEN. Keep full goal ACTIVE.
+
+Frozen-source full Mei run:145 tests PASS in348.283s, including13 Matrix,
+13 reflection,16 actual-mover PvE groups (78 NPC subcases),10 charge tests
+and the other weapon/frost/Cryo/wall/Blizzard/shield/control cases. Explicit
+NPC graph/mover and mech supplemental input environments were supplied;
+this count does not reduce the still-open full acceptance matrix.
+
+Current-source terminal verification:
+-145 combined Mei tests PASS348.283s;16 PvE groups/78 NPC subcases.
+-13 full server snapshot tests PASS396.537s with source frozen.
+-824 shared script tests PASS14.361s;83 shared combat/manifest/body-VM/native
+ replay tests PASS30.974s. All changed Python Ruff and diff checks pass.
+-All test sessions terminal. WIP patch refreshed; full goal ACTIVE,
+ static_acceptance_complete=false, merge_ready=false. No final commit,
+ normal runtime mutation, original-client action or shared merge/push.
+
+104319 ultimate settings and enable-gate checkpoint
+--------------------------------------------------
+Resource schema07 names/bounds/defaults now drive scoped Mei consumers:
+253C total generation(.1..5,default1),32DE combat(0..5,default1),
+3276 passive(0..5,default1),32E0 spawn-ready(false),253A ability enabled(true).
+Reads prefer an explicitly stored body entity variable, then the hero/mode
+ruleset default. Composition total*specialized, boundary clamping, spawn-ready
+precedence over retained respawn points and trigger gating are reconstructed
+hosting policies; base5/s and1:1 coefficients remain explicitly reconstructed.
+
+Effective damage and Cryo healing share combat scaling; passive is independent.
+Settings may change live; cap1610 remains authored. Spawn-ready only acts on
+body initialization, not every frame or cast. A real disabled253A/full-charge
+Q probe initially launched one Blizzard and spent charge anyway. The scoped
+server gate now rejects37 presses/buffers and releases a previously held37
+once. Disabling before release stops the authored ultimate Ability and gives
+no refund; released flight/area continues. Re-enable requires a fresh press.
+Generation remains separately controlled by its own three settings.
+
+Final-source evidence:125 combined ultimate/Blizzard/Cryo/shared combat/model/
+body-VM/native replay tests PASS149.693s, including21 charge/settings tests.
+824 script tests PASS16.960s;16 actual-mover PvE groups PASS79.230s.
+Standalone21 charge/settings tests PASS18.712s before the no-redundant-release
+edge refinement; final125 run includes that refinement. No full current-source
+server snapshot or all156 current Mei tests is claimed; the preceding145/
+13-snapshot checkpoint remains historical evidence from before these changes.
+
+Frost-source audit correction: schema22's2FEA default.3 is not automatically
+the active normal-mode minimum. Actual0B77/node31 reads member12266 from an
+external #392 and explicitly falls back to.2 when absent (rate12262 falls
+back to1). Node5 writes max(#2427e,#499); optional stacking node36 adds them.
+The current aggregate model has no per-instigator effect-instance lifetime.
+A two-Mei explicit-contact probe with10 hits each gives.74150008 versus the
+per-instance10-hit fallback.45649993. This flags a possible non-stacking/source
+mismatch; native effect instance merging and #392 routing remain unproven.
+Do not replace.2 with.3 or declare source independence accepted from the menu
+label alone. OutsideGit: mei-frost-source-aggregation.txt,
+mei-frost-multisource-probe.txt, mei-frost-entry-routing.txt.
+Full goal stays ACTIVE with all earlier geometry/controller/defense gaps.
+
+Per-source frost and channel interruption checkpoint (104319)
+------------------------------------------------------------
+Combat.frost_sources now preserves each(instigator body,channel) sample and
+application-time stacking flag. Spray uses channel0; Blizzard uses its area
+entity identity. Unknown-source explicit fixtures use source0. Node5's maximum
+and node36's addition guide the consumer: maximum of non-stacking entries plus
+the sum of stacking entries, capped1. Mixed-policy ordering, effect grouping,
+area separation and post-thaw reset are explicit reconstructions, not native
+instance-merge proof. Missing declared proxy slots retain.2/1 fallbacks.
+
+Explicit source entity fields2FEA/2FE6/300D/301F model declared external#392
+settings. Min0..1,rate0..5,duration.2..5 are resource bounds. The normal-mode
+proxy routing remains unaccepted; no menu.3 substitution is inferred. Actual
+two-Mei simultaneous spray inputs now retain two independent progress tracks
+and take the strongest. Explicit stacking produces a freeze with the same
+inputs. Each track expires after its own one-second gap; weaker fresh slow
+survives expiry of a stronger source. Active aggregate freeze stays finite and
+non-refreshing; all old tracks clear on thaw. A replaced instigator body starts
+its own track while prior application fades; victim replacement, death/Cryo,
+Zarya cleanse and explicit NPC removal retire victim source storage.
+
+Actual spray into an active Blizzard from the same Mei retains two channel
+keys. With both tracks below one and their sum above one, stacking disabled
+keeps only the greater progress and does not freeze the victim. Enabling the
+declared stacking setting freezes for 1300 ms. Further actual damage during
+the lock leaves its deadline fixed.
+
+New source data is registered in server_snapshot. Passive capture distinguishes
+progress, stacking flag and channel identity. Explicit NPC removal now pops
+frost_sources too, preventing an orphan when frost_hits was already removed.
+Eleven source tests PASS25.393s, including source-body identity, mixed flags,
+min/rate/duration override,zero-rate health damage,Cryo/shield cleanup and hash
+sensitivity. Existing16 frost/control tests PASS13.822s.
+
+Frozen production-source run:168 combined Mei tests PASS508.761s and all13
+server snapshots PASS509.212s, with real NPC movers/graphs and mech supplement.
+112 shared combat/model/body-VM/native replay/NPC script tests PASS42.255s.
+These passes precede the final small Genji channel hook described below.
+
+A subsequent probe found Genji resumed Deflect after thaw with no new E:
+masking contact while frozen left3A3/state0 running. Freeze now ends only the
+registered Genji channel via its authored Ability.stop path, as Matrix already
+does.3A3 Wait node7 follows its original on-end plugs and cooldown path; no
+server timer is synthesized. Buffered presses clear. Actual spray completes
+an early freeze, later icicle reaches health, early E stays refused and later
+E succeeds after native cooldown. Existing Visor preservation remains tested.
+
+Final-source55 frost/source/control/Matrix/reflection tests PASS144.596s,
+including15 reflection tests (two new interruption/cooldown checks). Final23
+actual-mover PvE/NPC lifecycle tests PASS84.950s (17 PvE groups/83 subcases,
+plus6 NPC lifecycle checks). All handles terminal; Ruff/diff checks pass.
+No all170/current full snapshot rerun is claimed after that last hook; prior
+168/13 evidence is scoped as above. Full goal remains ACTIVE. Native #392/
+effect merging, remaining status/defense/melee/geometry/ultimate policies and
+Enforcer/Assassin/Heavy controller gaps remain open. No original-client action,
+normal runtime mutation, final goal commit, shared merge or push occurred.
+
+Parent shared press-buffer audit follow-up
+-----------------------------------------
+Read-only review of parent's uncommitted nodes.py retain=True approach:
+private Ability.pop_press already returns the original(time,button,activation)
+and can_start reinserts that unchanged tuple on a failed gate. It does not
+replace its timestamp with now. Keep this existing private fix; no parent
+source/commit was imported by this follow-up and no parent workspace mutated.
+
+Actual Mei input checks now exercise both resource-specific window policies:
+05FE Cryo declares no m_246438AD, modeled as0ms: an early released Shift and a
+released Shift around100ms before the12s cooldown ends both expire; holding
+Shift crosses readiness and starts one Cryo; a fresh Shift after cooldown also
+starts.064A explicitly declares0.15s: a released Q followed by readiness64ms
+later remains buffered; readiness after320ms does not auto-cast. Holding Q
+past its early window starts once on readiness; a fresh ready Q starts once.
+Q tests vary charge readiness, not an invented Q cooldown timer. These are
+static executed resource/model semantics; the PS4/native equivalence boundary
+in shared Ability remains unchanged.26 audit/ultimate tests PASS48.248s
+(25 ultimate cases plus one Cryo group/four input subcases).
+
+Current175 distinct Mei tests are present; no all175 pass is inferred from the
+prior168 run and supplemental checks. Final production source is unchanged
+since the55/23 channel regression; this follow-up adds tests/docs only.
+All current test handles terminal. Full static goal ACTIVE, not merge-ready.
+
+Manual incoming combat and throttle checkpoint
+---------------------------------------------
+Review parent uncommitted npc_context.py/assassin.py source-only; frozen copies
+and SHA256 provenance remain outside Git. No parent acceptance or native
+controller allocation is claimed. Scope Enforcer13EB health/controller gates
+to declared manual NPCs (4B present/5C absent). Assassin01BB manual primary36
+uses actual1157 and data-only possessor target1650. npc.engage is explicit
+input, not autonomous acquisition or pursuit. Sync body #253 to actual pools.
+
+ModifyHealth services1157 nodes15/25: authored100/s and25 entry damage, with
+a reconstructed elapsed-state clock. Combat routing preserves Cryo/shields.
+Pin storage interrupts victim input. Stop, source stun/freeze/death, victim
+retirement, removal and target range/LOS/team/disconnect/Cryo loss retire it.
+Manual3m contact, static/Ice Wall visibility and abort/re-entry policy are
+reconstructed. An actual allied McCree Flashbang deals 25 damage to Assassin,
+releases Mei's pin and rejects a manual re-engagement while the source is
+stunned. After the stun expires, the old binding stays retired and Mei takes
+no further damage until an explicit engagement reapplies the pin and damage.
+Full pin acquisition, native cooldown/recovery, clock equivalence and release
+Anim31 duration remain unaccepted.
+
+Actual inputs now damage Mei from both previously silent NPCs. Seven incoming
+tests cover damage, stop, invalidation, preexisting Cryo, source Flashbang,
+death/removal and invalid API input. An eighth checks clock/target storage
+without Var evaluation. Correct the initial Cryo fixture to start protection
+before Assassin's immediate input-edge pin; pinned Cryo casting is not claimed.
+Enforcer13EB/node24 requests25 projectiles/shot; current combat emits one.
+Its single2-damage hit is partial evidence, not accepted shotgun behavior.
+Pellet count, spread and full timing remain OPEN.
+
+Port the reviewed parent modified_throttles arithmetic privately: native
+C33960..C33A85 splits forward/back magnitudes17/18 and unsigned lateral19,
+restores lateral sign and clamps acceleration inputs. Preserve raw command
+throttles/input_throttles in existing snapshots. Cryo zeroes acceleration with
+normal friction/gravity, retaining raw walking input and cancel recovery.
+Two new mover checks cover partial directional factors and next-frame mod
+start/end. Parent offline scalar-mod lookup was stubbed; no broader native
+equivalence is inferred from that evidence.
+
+Partial verification:26 related tests PASS127.345s; clock storage PASS12.507s;
+824 scripts PASS20.985s;114 shared NPC/body-script/mover/body-VM/manifest tests
+complete20.126s (105 pass,9 unavailable-fixture skips). Ruff/diff pass.
+Frozen-source183 Mei PASS612.767s;13 server snapshots PASS525.883s.
+All47 mover tests PASS14.015s using existing base runtime, covering the9
+previous collision skips.76 shared combat/projectile/Flashbang/melee tests
+PASS40.295s. Python freeze unchanged; all handles terminal.
+Full static goal remains ACTIVE; no original-client action or final commit.
+
+Heavy Assault charge against Mei
+
+The 104319 Heavy Assault body runs graph 1408 through manual logical input 35.
+Each manual command supplies one press and release. An early cooldown press
+retires without replay, and a fresh press after cooldown starts a new charge.
+Its 0.8 s windup, forward multiplier 15, 2 m wall ray, hit magnitudes and
+cooldown come from the extracted graph. The host reconstructs horizontal
+movement, the static and Ice Wall collision mapping, and target selection.
+Side contact uses node 35 for 50 damage once per target body in a drive.
+An accepted, nonlethal player hit projects the authored horizontal 30 and
+vertical 10 magnitudes as a radial mover impulse. Cryo and projected
+barriers block both damage and displacement. NPC impulse hosting remains
+open.
+Frontal contact runs the actual 1407 victim graph. The host projects the
+unavailable animated bone onto the two capsules and blocks victim input
+during transport. Cryo and projected barriers deny frontal capture. A
+projected barrier applied after capture releases the victim.
+
+The host dispatches 300 bound-victim damage through node 29 before wall
+exit. Close contact runs the phase-2 node 102 for 175 damage and maps the
+node 189 duration override to two seconds of server control after damage
+reaches health. Cryo blocks the hit and control. A projected barrier
+absorbs it without control or spill. The phase-2 branch also resolves a
+distinct bound victim through node 29. Animated attachment, native
+knockback direction, and other impact-control branches remain open.
+
+Heavy's 1408 tracker 134 and the active Reinhardt 007D search with
+entity variable 596 support a separate opposing-charge interaction. The
+host reconstructs capsule range, cone, line of sight and opposing facing.
+Actions 132 and 140 supply two seconds of control for both bodies.
+The counter does no damage and ends the active Heavy charge. Action 188
+resolves a 0.65 s control resource, but the actual node has no target
+configuration and the restored 104319 request builder submits nothing.
+The release-position ray and placement chain remain open.
+Active Orisa Fortify supplies entity variable 9161 through graph 0CF4.
+The reconstructed Heavy tracker uses the live flag to take 1408's
+alternate stop branch. The actual Fortify input stays active when it
+stops a charge without capture, damage, or mutual control.
+In a three-body scene, Fortify also releases an already bound Mei without
+damage or stun. Mei can use Cryo on the next frame. This verifies release
+from the current transported pose in open terrain. The alternate authored
+ray-based release placement still needs a hosted position query.
+
+Heavy Assault melee runs the actual 140E graph through logical input 31.
+The host consumes its 80 damage at the ModifyHealth entry and reconstructs
+contact from the authored radius and offset, current facing and line of
+sight. An actual Ice Wall takes damage when it intercepts the strike.
+Trooper 1422 also uses input 31 and sets damage variable 476 to 30 at
+node 11. Input waits for the authored startup state. After the 0.2 s
+windup, the host supplies capsule contacts to tracker 5 and reconstructs
+the 1.5 m distance branch before the authored health node runs.
+
+Enforcer associated controller
+
+Include entity 227A when extracting the external NPC graph bundle, using
+`tools/extract_game_graphs.py --entity 227A` along with the NPC bodies.
+Manual Enforcer body 2279 then reserves a distinct controller identity
+and initializes its five original graphs before the weapon body. Graph
+13EA supplies entity variable 9134, and 13EB reads it through the
+associated-controller query. Legacy bundles without 227A keep their
+previous manual predicate path.
+
+The two components have independent VM snapshots. The full server
+snapshot stores both and their relationship. Controller retirement clears
+the foreign read and destroys its instances. Association, allocation and
+clock scheduling are reconstructed. The 13EA slot-zero query uses the
+current hostile body selected by the manual command. An allied body is
+excluded, and a replacement body requires a new selection. The host
+reconstructs behavior selection, live position polling, and eye-line
+visibility. The original 13EA graph owns its 15/16 m thresholds and
+writes controller variable 12299. Body graph 13EF applies its authored
+0.4 multiplier to route speed. Autonomous selection remains open.
+
+The 1506 animation-motion listener reads controller variable 14175.
+The restored ownership query supplies the associated controller to its
+gate, while a body-local value does not qualify. An explicit diagnostic
+value of 2 closes the listener and 0 reopens it. A diagnostic payload at
+node 12's output reaches node 9 and enters the authored animation scope.
+In the current server VM, node 14 immediately aborts that scope. The
+separate two-second Wait11 finishes and the listener stays available.
+Enforcer body 2279 uses blend set 08A3.021. Its 35AE table lists eight
+aliases (057D through 0584). The clip headers and compiled data agree:
+0580 lasts one second and the other seven last about 1.1333334 seconds.
+The regression injects candidate 0581. Native ingress, candidate selection,
+and the native reason for allowing or aborting playback remain open.
+
+Sniper retreat
+
+Manual retreat uses the actual 142C MoveTo state with speed 20. The
+host reconstructs a four-metre grounded destination away from a hostile
+body within three metres, using current static and Ice Wall visibility.
+In the actual 142C graph, receiver 98 runs the idle search while waiting
+for A45. A diagnostic A45 delivered to that receiver closes the search
+without starting MoveTo. The sender and the native anchor query remain
+open. The six-second re-entry delay is a reconstructed Rialto policy. The host
+uses collision-backed movement and retires it on arrival, cancellation,
+death or control. Actual Mei Ice Wall blocks admission and spray freeze
+interrupts an active retreat without catch-up. Explicit cancellation
+publishes the retired animation state to observers immediately.
+A wall raised during retreat stops the moving capsule on its near side.
+An actual lethal icicle and explicit NPC removal both retire the active
+MoveTo. The full server snapshot includes the retreat mover, and its
+digest changes when only that mover's velocity changes.
+
+Assassin release timing
+
+Explicit manual stop retires the active 1157 pin and enters its release
+branch immediately. The idle body keeps advancing authored Wait37 for
+two seconds, then drops its node 36 animation category stack. No damage
+or control resumes during the wait. A fresh manual engagement can apply
+the 25 entry damage again. Anim31 uses the 104319 clip 508A.006 duration
+of 1.4666667 seconds. Body 1EBD's blend tree set 07C3.021 maps alias
+0561 to tree 0640.020, whose category 0082 selects that clip. Timing the
+server state from the clip header is reconstructed. Direct logical-button
+edges in 1157 cannot reapply the pin during Anim31 and do not replay when
+it ends. A fresh edge can pin after Anim31 while Wait37 is still active.
+Manual engagement follows this gate. Switching an active pin to another
+target releases the first pin immediately and requires a fresh request
+after Anim31. Autonomous target acquisition remains open.
+
+Quick melee under Flashbang
+
+The 0043 damage state hits for 30 on the input frame while node 20's
+0.2-second wait is active. Actual McCree Flashbang lands within that
+window. Repeated melee presses during the stun produce no extra hit,
+damage or activation on thaw. A fresh press after thaw hits once.
+The 0043 cooldown uses the authored one-second value in variable 472.
+Alternating early presses and releases leaves the same per-frame
+countdown as neutral input. Both cases admit the next 30-damage hit
+in the first 16 ms frame that crosses the cooldown boundary.
+
+Icicle under Flashbang
+
+Actual McCree Flashbang retires 05E6 node 63 before its icicle is released.
+The partial ammunition spend remains, and no projectile or hit appears
+on thaw. A fresh cast spends ten ammo and deals 75. An icicle that was
+already airborne at stun onset hits a separate training bot for 75
+while Mei is still stunned, with one hit notice credited to Mei.
+
+Primary spray under Flashbang
+
+Held primary input during actual Flashbang stun creates no new spray
+packets and spends no ammo. The server continues packets admitted before
+the stun. In the test, one hits for 2.75 and increases existing frost
+before the others expire. After that flight drains, no damage is
+replayed on thaw. Fresh input resumes damage, ammo use and frost.
+
+Cryo-Freeze and projected barrier
+
+Actual Cryo-Freeze and Zarya projection can overlap in either cast order.
+The reconstructed collision and damage routing sends a 75-damage icicle
+to the outer barrier and credits the hit to its entity. Cancelling Cryo
+leaves the active barrier available to absorb another icicle. Expiring
+the barrier while Cryo remains active leaves Mei protected and grants
+no hit notice for an icicle. Once both effects end, an icicle reaches
+Mei's health for 75.
+
+Ice Wall and Cryo-Freeze input ordering
+
+With a wall preview active, same-frame Cryo and primary confirmation
+enters Cryo and clears the preview. No pillar, wall cooldown, shot or
+ammo spend results. Cryo's exit wait still suppresses preview after
+protection ends. An early wall press is discarded. After the exit wait,
+a fresh preview and confirmation place five pillars and start the
+12-second cooldown. Entering Cryo with
+a placed wall leaves its pillars intact. The wall button can remove
+those pillars during Cryo and the existing cooldown keeps counting
+down. This is the reconstructed server input ordering.
+
+Blizzard contact with Ice Wall
+
+A horizontal Blizzard cast into an existing Ice Wall ends its flight at
+the near face of the centre pillar and creates its area at that contact.
+The pillars take no damage. An enemy behind the wall takes no area damage
+or frost until the wall is removed. The same area then affects the enemy.
+Flight sweep and area line of sight are reconstructed server geometry.
+
+Ice Wall and independent spray frost
+
+Two actual Mei sprays build separate frost samples on one target. An
+Ice Wall placed between the target and only one shooter leaves that
+shooter's sample unchanged. The unoccluded spray keeps raising its
+sample and the target's effective frost. Removing the wall restores
+frost application from the previously occluded shooter. Per-source
+composition and wall admission are reconstructed server policies.
+
+Heavy Assault release placement diagnostics
+
+The 1408 release branch casts at owner position plus one and two metres.
+Node 112 sets range to half its native query result. With an explicit
+query result of six, the actual graph casts three metres. A single hit
+uses the corresponding hit point, subtracts the ray height, and backs
+off 0.25 metres. Two misses choose the origin plus the cast range. The
+diagnostic intercepts the position action before moving the victim.
+With both rays hitting, 1408's bytecode compares the lower ray origin
+vector to the upper hit distance, then calls distance on the lower hit
+vector and the comparison boolean. The 104319 interpreter handles these
+mixed distance operands as scalars (1B83F71 and 1B84182). The server now
+uses that fallback for both distance opcodes. A nearer upper hit at
+0.1 metres still selects node 103. A zero-distance upper hit instead
+selects node 110 in the diagnostic.
+
+The 104319 F7FD94F9 evaluator at CEEAD0 calls D17470. It selects mover
+radius at 434 (standing) or 440 (crouching) and multiplies it by a
+context scalar floored at 0.35. For the manual Heavy's standing capsule
+at unit scale, the hosted query returns the authored 1EBB radius of
+0.7 metres. Actual 1408 then requests 0.35-metre rays.
+
+Nodes 106 and 107 now use the live bot position and horizontal facing.
+Their server collision provider selects the nearest static triangle
+or Ice Wall hit. This reconstructs the authored filter. With diagnostic
+entry at node 109, real low and high panels, open space, and an actual
+Ice Wall drive the three placement branches. The test records the
+placement action's target and position without moving the victim.
+
+Actual Orisa Fortify contact sets instance 559 and releases a bound
+Mei. The 1408 gate then reaches node 111 with the original victim in
+536, both rays missed, and the position 0.35 metres ahead of Heavy.
+The server consumes that action before removing the attachment and
+applies the point to the same bound body. The reconstructed placement
+sweeps the victim capsule against map geometry and Ice Wall. An
+obstructed destination or a stale binding leaves the victim unmoved.
+Mei receives no damage or stun and can enter Cryo after release.
+
+Heavy release recovery clock (309)
+The 1408 release wait and Ability82 cooldown advance even when the Heavy
+has no active charge, firing, or movement work. Recovery does not count
+as a charge for collision or button routing. The Fortify fixture verifies
+one placement, a completed release wait, idle cooldown expiration, and
+no queued charge when an input arrives early. A separate re-entry probe
+receives a fresh button 35 after cooldown, but Ability82 m_150F0D92
+remains false. The follow-up charge and latch reset remain open.
+
+Heavy post-Fortify re-entry (311)
+Heavy body 1EBB uses blend set 07C0.021. Its slots 47 and 53 map
+aliases 0064 and 0066 to tree 006E.020. Graph 1254 uses category
+0245 for both, selecting the compiled durations 0.6666667 and
+1.0666667 seconds. The server reconstructs animation completion
+from these durations. The authored Anim46, Wait47, Anim44 chain
+then releases the priority-20 stack lock before Ability82 is ready.
+The actual Fortify test sends early input during cooldown, confirms
+no replay, then sends a fresh charge and verifies Mei is pinned again,
+the old release latch is cleared, and node111 only runs once.
+
+Manual NPC primary stop
+Stopping a manually engaged Trooper or Heavy Assault consumes the primary
+button-up and ends its committed prefire or volley through the 102E or
+114F state exits. This sandbox policy prevents delayed shots from being
+applied on re-engagement. After a committed burst, the existing graph
+gates still determine when the next burst can start. Raw Heavy primary
+release still lets the admitted volley run through the authored 10-second
+wait. The manual stop policy is reconstructed.
+
+Winston Barrier Projector
+An actual E press enters the 00FA deployment wait and invokes 00FC on
+entity 01C3. The child graph supplies 700 health and a 9-second lifetime.
+The 00FA cooldown is 13 seconds and continues after the shell expires.
+The D02 collision resource supplies the 5-metre radius. The server
+reconstructs the shell crossing, team pass-through, fixed placement,
+health settlement and matching owner-slot cleanup. Mei's spray and
+icicle stop at the first shell, including on the breaking hit. Static
+cover can intercept the shot earlier. Quick melee can damage a visible
+shell in reach. The child graph and pool are part of read-only storage.
+
+Blizzard uses a separate flight and area path. The 064A volley selects
+ray profile 002A, which the 01C3 dome receiver lists in a null-result
+override. The 065E target tracker carries an exclusion of target tag
+003A in its secondary visibility filter. The 01C3 dome carries 003A.
+Actual Q input crosses the shell in flight when landing inside. A cast
+that lands outside freezes Winston across the shell. Neither cast spends
+the dome's pool. This is the server's resource-backed reconstruction.
+The full native physics query and original-client replication remain
+separate evidence.
+
+Orisa Fortify
+The live 0CF4 CombatModFilter supplies the authored -0.4 damage modifier.
+The server applies it before armour and uses reconstructed critical
+immunity for direct hits during that filter. A body or head icicle hits
+for about 40 through armour while Fortify is live. The unfortified head
+hit returns to 145. The existing authored 9161 flag refuses spray and
+Blizzard frost while Fortify still takes mitigated damage. Blizzard
+starts a fresh frost schedule on renewed exposure after immunity ends.
+The owner body clock finishes the authored Fortify window without new
+commands. Native damage ordering and original-client presentation
+remain separate evidence.
+
+Orisa Protective Barrier
+An actual 0BD7 cast throws 1846 at 25 m/s with 9.8 m/s squared gravity.
+The landed 14A1 actor runs 0BD8. Its 600-point pool stops blocking at the
+20-second deadline. The authored teardown tail then retires the actor.
+The collision mesh is prepared from the 104319 model 4062 and selected
+with ORPHEUS_ORISA_COLLISION. Its SHA-256 is part of replay identity.
+
+The server reconstructs eye origin, ground landing, bounce, orientation
+and damage settlement. Mei's spray and icicle hit the mesh before bodies
+behind it. The breaking hit stops at the mesh. A nearer Ice Wall stops
+the shot first. Quick melee damages a visible mesh in reach. Actual
+Blizzard still freezes Orisa across the mesh, which carries 003A and
+uses ray receiver 002A. The landed barrier keeps its deadline after
+the source body is replaced. Native physics filters and client
+presentation remain separate evidence.
+
+Sigma Experimental Barrier and Kinetic Grasp
+Actual secondary input runs 1B55, allocates Pet slot 512 and requests 1A2A.
+The server reconstructs the child actor from the authored phase, movement,
+health and recharge values. It loads the external 104319 C015 model via
+ORPHEUS_SIGMA_BARRIER_MODEL. The sidecar verifies build, GUID, byte count
+and SHA-256. Replay identity includes the model hash.
+
+Mei's spray and icicle stop on the enemy mesh. The breaking icicle
+leaves Sigma untouched, and the next shot reaches him. A nearer Ice Wall
+wins. A visible mesh in melee reach takes 30 damage. Landed Blizzard can
+freeze Sigma across the mesh without spending its 700-point pool. A
+passive snapshot captures the active Pet and pose.
+
+Actual Grasp input enables the 1D02 State. The server reconstructs the
+eye-relative interception transform using the State's authored box.
+A frontal icicle adds 75 to the graph accumulator. Its end request
+grants 45 temporary shields, then the authored delay and 5/s decay
+remove them without consuming the base shield pool. Rear icicles and
+spray deal damage. A nearer static wall wins. Airborne Blizzard is
+consumed with zero damage credit and creates no landed area. Native
+physics, shield presentation and original-client replication remain
+separate acceptance. The incoming Sigma Accretion trajectory and
+control are pending.
+
+Incoming Sigma Accretion and Hyperspheres
+Accretion uses the 1BBB launch bias and gravity of 18 m/s squared. A
+direct contact delivers the authored damage message to the Sigma graph.
+Its 224E request drives the reconstructed control clock. A real hit
+deals 70 combined damage and stuns Mei for 50 frames, cancelling an
+unreleased icicle. The direct and splash knockback rows feed the mover
+so externally supplied momentum persists during that control window.
+Splash alone deals damage and moves Mei without the direct-hit stun.
+Cryo, Ice Wall and a nearer static wall protect her in the tested scenes.
+
+The two 187F Hyperspheres consume the authored radii, bounce counts and
+response coefficients. The server reconstructs collision and expiry.
+A real pair hits Mei directly for 110 total, airbursts for 60 in the
+tested offset position, or ricochets off a static wall to hit behind
+Sigma. Cryo and Ice Wall protect Mei in the tested arrangements.
+
+Barrier recharge and its linked cooldown are separate. The 1B55 host
+reports timed cooldown getter changes to the graph watchers. Actual
+repeated commands during cooldown leave the barrier recalled. A later
+fresh command parks the barrier and it intercepts Mei's icicle.
+Original-client acceptance and the full incoming Sigma matrix remain open.
+
+Incoming Sigma Gravitic Flux
+The real 1E41 charge spends 1960 and requires ground confirmation.
+Static placement and the target volume reject invalid sky, allies,
+out-of-range bodies, static cover and Ice Wall. The scoped server host
+delivers the authored 1DBC request to selected player bodies and applies
+its velocity rows in the mover. The effect deals 50 on entry and 50% of
+maximum health on ground impact. Mei takes 125 on landing. Missing input
+does not stop the controlled physics or repeat a hit. The terminal
+action retires the effect.
+
+Cryo active at target selection prevents a lift. Mei freeze or caster
+death before committed descent retires the received effect. Actual
+projected barriers absorb either damage event while the lift continues.
+Geometry admission, movement and the health/cleanup hosts are server
+reconstructions. Original-client behavior remains a separate acceptance.
+
+104319 frost setting writer audit
+The examined compiled graph bundle has one caller of 1132. Yeti Hunter
+mode 0029 runs 112A. Node 240 attaches 1132 to Mei body 08BA and the
+four stacks supply rate .6, minimum 0, duration scalar 1 and stacking
+enabled. Both 0B77 entry messages bind parameter 0012 to instance 392.
+The extracted data establishes that writer and entry binding. Runtime
+parameter sender identity and native effect-instance grouping remain
+open. Standard static combat retains the authored ValueOrDefault path.
+
+Symmetra Photon Barrier
+Actual 156B confirmation spends 1680 charge and spawns the 4000 HP actor
+with graph 156C. A sky aim leaves charge available for a later valid
+confirmation. The placed plane has a 12-second lifetime and persists
+after owner death. ORPHEUS_SYMMETRA_COLLISION provides the verified
+104319 geometry. ORPHEUS_PHOTON_ENTITY_BUNDLE can supply actor 26B0
+when absent from the base bundle. Replay inputs pin the external data.
+
+The reconstructed world collision uses the widest authored plane with
+team filtering. It intercepts Mei spray, icicles and quick melee. A
+nearer Ice Wall takes priority and the hit that breaks the barrier stops
+there. Actual airborne Blizzard passes through the live mesh and lands on the far
+side. Landed Blizzard leaves the barrier pool intact. Four private
+worktree checks cover placement, rotated retry, lifetime, weapon
+contacts and passive capture. Native landed-area filtering and original-client acceptance are separate.
+
+Non-unit body size
+Common body graph 01C7 node 159 applies movement modifier 12 from
+entity value 31210. The static host scales mover dimensions and eye
+height and resolves its self size query from the live mover. Genji
+Deflect and D.Va Defense Matrix apply that value in their own box
+expressions. A real off-axis icicle misses both unit-width defenses
+and is intercepted by each at twice its unit width. Quick melee gains
+reach at twice Mei's unit size and the mover returns to unit dimensions
+when the override clears. A separate actual Blizzard flight passed both
+unit defenses at an off-axis aim. At twice the size, Deflect transferred
+area ownership and Matrix prevented an area. The D.Va fixture injects the size after
+ending the native controller-owner binding. Native owner-to-mech scale
+propagation and the original client are separate acceptance cases.
+
+Incoming Symmetra Photon Projector orb
+The 157C release gate now reads the owned body's current health.
+The existing authored volley launches entity 26F1 on a charged release.
+At four metres its direct and splash hits deal 120 combined to exposed
+Mei. Cryo active at contact blocks the orb without a hit notice. With
+Ice Wall in the path, the centre pillar takes 120 and its two neighbours
+take splash. Their hit notices identify the pillars and Mei stays at
+250 health.
+
+Incoming Symmetra Photon Projector beam
+The server hosts 157C's primary TrackRay outputs and damage using the
+recorded mover pose, static collision, the two authored ray radii and
+the active defense services. Sustained real input deals 60, 120 and
+180 damage per second at the authored charge transitions. Release
+stops damage and the rate decays. Range, aim miss, allied bodies and
+static cover have direct controls. Mei can freeze the attacker to
+stop the beam and fresh input resumes damage after thaw.
+
+Cryo blocks the beam when Mei is allied with or hostile to the
+attacker, protecting a rear body in either case. Ice Wall takes the
+contact on its centre pillar. Zarya's projected barrier protects Mei
+and admits the graph's tag 003A ammo-refill state. Ice Wall's 0932
+definition does not carry that tag. Capture includes the live beam
+barrier binding. The ray geometry, held-barrier binding and beam
+armour scalar are static server reconstructions.
+
+Cryo's capsule also intercepts an orb from either team. Splash rays
+check Cryo between impact and victim. In an actual four-player match,
+the rear target keeps 200 health while a visible flank takes about 56.
+The orb contact and splash occlusion are reconstructed geometry.
+
+Incoming Symmetra Sentry Turret
+The 157E volley launches actor 2658 at speed 15. The 157F attachment
+delay, 1590 beam rate of 40 and 01E7 slow of 20% drive combat. The actor
+starts with 30 health. ORPHEUS_SYMMETRA_SUMMON_BUNDLE selects the
+verified 104319 input and its hash is pinned by replay.
+
+Cryo clears the slow and stops the beam. The turret reacquires after
+Cryo exits. An actual icicle destroys the turret and clears the slow.
+Ice Wall can catch a launch and removing the support removes the turret.
+The authored three-charge weapon rejects a fourth launch until recharge.
+A fresh launch then replaces the oldest turret. Flight, contact capsules
+and target rays are static reconstructions.
+
+Symmetra orb against allied defenses
+Actual 26F1 launches deal 60 direct damage to hostile Photon, Orisa,
+Winston, Reinhardt and Sigma barriers, with Mei protected behind them.
+A friendly Photon plane allows the orb through. Explosion visibility
+is sampled before damage, so a breaking orb can reach an exposed
+approach-side body while the plane protects a rear body, an Ice Wall
+pillar or a projected shield. Body impact on the approach side uses
+the same cover rules. The traces are static reconstructions.
+
+The same authored projectile can reflect back from Genji or be
+absorbed by active Matrix or Grasp. Grasp counts 60 and grants 36
+temporary shields. The Matrix check uses the explicit 104319 mech
+fixture and an actual RMB command.
+
+Roadhog Chain Hook
+The 01C8 launch has speed 60 and range 20. A body hit deals 30 before
+normal pool rules. The 01C9 parameters drive pull speed, separation
+and recovery. The checked player pull ends at 3 metres. A 45-tick
+commandless update matches stepped play. Contact and forced movement
+are static reconstructions.
+
+Cryo stops a flying hook and protects rear bodies. Canceling before
+contact lets the same hook latch. An active pull suppresses Cryo
+input. An ice pillar takes 30 and ends flight. Early retry fails
+until cooldown recovers. World geometry and teams gate contact.
+Mei spray freezing Roadhog releases an attached target, and target
+replacement clears the old link. All five Talon bodies were exercised.
+Passive capture includes the active flight and its target binding.
+
+Roadhog Take a Breather
+The 104319 E input starts graph 0240. Position 18 supplies a self target,
+300 health and a one-second interval. The static host distributes the
+healing over that interval and clips it to missing health. The active
+8243 stack halves incoming damage before it enters the health pools.
+These consumers and the freeze interruption policy are reconstructions.
+Actual spray freeze ends the channel through its authored stop path
+and preserves the cooldown. Commandless advancement and continuous
+input both finish the same heal and expire the reduction.
+Landed Blizzard also interrupts the active heal and restores its full
+damage rate on subsequent ticks.
+
+Roadhog Scrap Gun and Whole Hog volleys
+The actual 01C6 graph launches 25 primary projectiles and 16 hitscan
+rays per Whole Hog volley. Secondary launches one 60 m/s slug and
+the embedded callback supplies a 25-pellet cone. The host dispatches
+the callback on natural expiry at approximately 9 m. Earlier body,
+Cryo or Ice Wall contact terminates the slug. Cone basis, phases,
+fallback headshot multiplier and expiry-only dispatch are static
+reconstructions.
+
+Whole Hog evaluates horizontal force 14, cap 10, lift 1.8 and
+lift cap 14 with distance rings at 5, 20 and 100 metres. The host
+applies one impulse per damaging volley and target through the normal
+capsule mover. Ring interpolation and the capped velocity policy are
+static reconstructions. Actual Cryo and Ice Wall prevent both damage
+and force. Spray and landed Blizzard freeze stop the active ultimate
+through graph 01EF. Knockback also moves Mei with command delivery
+suppressed.
+
+Roadhog volleys against deployed barriers
+Actual primary, secondary slug and Whole Hog resolve enemy Photon,
+Orisa, Winston, Reinhardt and Sigma barriers before Mei. An earlier
+barrier receives the pellet and prevents damage and impulse behind it.
+Friendly Photon passes all three. Contact priority is reconstructed.
+
+Scrap Gun against active projectile defenses
+The 104319 primary and slug carry 02F9 and omit 0145. Actual Genji
+Deflect returns both to Roadhog and receives the hit notices. Actual
+Defense Matrix and Kinetic Grasp intercept both before Mei. Grasp
+records 165 for the checked full primary volley and 50 for the close
+slug. The reflected child cone is reoriented by reconstructed aim
+geometry. Whole Hog uses a separate hitscan path.
+
+Whole Hog against active defenses
+The 104319 0405 ray carries 0535 and omits 0145. Active Genji
+Deflect returns it with Genji hit attribution and return-direction
+force. Defense Matrix and Kinetic Grasp stop it before the body.
+Earlier static, ice, projected or deployed cover keeps priority.
+Distance, contact priority and the return-ray policy are reconstructed.
+
+Enforcer sampled ring dispersion
+Manual Enforcer graph 13EB uses the captured 104319 sampling table when
+ORPHEUS_ENFORCER_DISPERSION_TABLE names the external 65,536-byte little-endian
+table. Extract bytes 0x32419D0 through 0x32519CF from the mapped 104319 image
+used for the native verification. The expected SHA-256 is
+4f99ff210621528fff6737582c39f0ed5464cdf1c9980f03d503dcf311b356f6.
+Replay manifests bind this table fingerprint when configured.
+The resource supplies the ring counts, spread, secondary perturbation and
+optional fixed phase. The server reconstructs the initial seed from the
+admitted NPC entity and activation, then uses the volley shot ordinal.
+Muzzle pose and native encounter seed parity remain open.
+Without the external table the existing zero-phase reconstruction applies.
+
+Sombra Hack interrupted by Mei freeze
+The server records an interrupted held right click when freeze begins.
+Only a release in an accepted player command rearms Hack. World ticks
+and simulated input gaps do not release it. The optional latch is
+included in passive Body VM capture while armed. This is reconstructed
+server input policy around the 104319 Hack and frost graphs.
+
+Ice Wall support under lifted NPCs
+A wall-lifted NPC keeps its support while a column remains under its feet.
+When the support disappears, the server advances vertical velocity and
+sweeps the fall to the highest encountered floor or remaining column.
+Landing retires the lift marker. This is reconstructed NPC motion
+around the 104319 wall geometry and shared movement gravity values.
+
+Native Deflect and Defense Matrix candidate classification
+The 104319 owner accessor at 18262E0 returns the address of the 32-bit
+entity ID at offset B0 of the decoded owner. DA56C0 buckets on the low
+12 bits and compares the full ID. Seven offline native lookup cases
+cover exact matches, a same-bucket miss and an empty-bucket miss.
+B34380 tests E0000000 on that ID. Sixteen offline native cases cover
+all eight high-bit combinations and both record marker values. With
+the fixture counters set, zero high bits take the direct path. Nonzero
+high bits take the temporary path, which adopts the selected record only
+when its marker is set. The captured Genji 03A3 node 18 marker is zero
+and the D.Va mech 02CC node 9 marker is one.
+These probes use constructed IDs, owner storage and geometry results.
+The actual Mei attack owner IDs and complete contact path remain open.

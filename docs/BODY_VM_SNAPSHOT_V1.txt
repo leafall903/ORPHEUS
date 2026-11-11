@@ -99,7 +99,12 @@ part of the representation.
 BodyScript fields covered by the VM adapter:
 
   hero entity record frame_ms world component frame buttons retired server_only
-  ult_seconds ultimates
+  ult_seconds ultimates world_frame_anchor
+
+world_frame_anchor is None for unclocked/direct fixtures, or a causal
+(world_tick,command_frame) pair for explicitly supported world-clock bodies.
+It controls input horizons and no-input timer advancement, so it is not transport
+state and must affect the VM/server digest.
 
 record identifies the body definition covered by the source/data signature.
 ultimates is an ordered list of State references: future charge updates depend
@@ -170,7 +175,7 @@ The exact runtime.World representation, when accepted by export_component_vm, ha
 hero and mode. A custom World subclass with additional behavior or hidden storage
 is not equivalent to either supported World type.
 
-The entire known BodyScript field set consists of its twelve covered fields and
+The entire known BodyScript field set consists of its thirteen covered fields and
 five named transport exclusions above. Required/unknown-field checking still
 applies to the known object layout even though transport storage is not emitted.
 
@@ -193,7 +198,7 @@ present-with-None must remain distinct.
   WaitForServerFrames      none
   WaitFrames               target
   ChaseVar                 cur reached remaining last var interrupted
-  WeaponVolley             offset volleys per_shot ammo0 rate spread0 links reported
+  WeaponVolley             offset volleys per_shot ammo0 rate spread0 spread_ramp links reported
                            max_shots min_shots
   Anim                     none
   Ability                  flags presses cur cooldown_rate last var stack_var

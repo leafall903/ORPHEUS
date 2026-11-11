@@ -152,6 +152,21 @@ class CooldownTests(unittest.TestCase):
 
 
 class UltimateTests(unittest.TestCase):
+    def test_released_early_press_expires_instead_of_auto_casting_after_late_charge(self):
+        session = Session(ult_seconds=0)
+        visor = session.ability(VISOR, 0)
+        cost = session.body.component.entity_var(338).value()
+        session.body.set_ult_charge(cost - 1.0)
+        session.run(1, Q)
+        session.run(20, 0)
+        session.body.set_ult_charge(cost)
+        session.run(3, 0)
+        self.assertEqual(visor.flags & RUNNING, 0)
+        self.assertEqual(session.body.component.entity_var(342).value(), cost)
+        session.run(1, Q)
+        self.assertTrue(visor.flags & RUNNING)
+        self.assertEqual(session.body.component.entity_var(342).value(), 0.0)
+
     def test_the_charge_fills_by_itself(self):
         session = Session(ult_seconds=2.0)
         body = session.body

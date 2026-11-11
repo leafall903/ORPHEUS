@@ -278,6 +278,10 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def ruleset_key(self, cfg):
+        key = self.instance.component.world.ruleset_key(cfg, self.instance)
+        return super().ruleset_key(cfg) if key is None else key
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
@@ -297,6 +301,10 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
+        if cfg.get("$") == "STU_4BD39CFD":
+            from ow174.game.script import play
+
+            return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import controller_heroes, entity_queries, entity_team
 
@@ -360,6 +368,12 @@ class World:
     entities, config vars the server cannot compute, and game messages to other entities. The base
     answers like an empty world."""
 
+    def ability_start_allowed(self, state) -> bool:
+        return True
+
+    def permissive_state_enter(self, state) -> None:
+        """Optional body-specific reconstruction; never a native class implementation."""
+
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
@@ -370,6 +384,9 @@ class World:
         from ow174.game.script import rulesets
 
         return rulesets.default(key, self.hero, self.mode)
+
+    def ruleset_key(self, cfg, instance):
+        return None
 
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
@@ -387,6 +404,12 @@ class World:
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -666,7 +689,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -782,6 +805,7 @@ class Component:
         instance.stopped = True
         instance.initialization_pending = False
         instance.queue.clear()
+        instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
 
@@ -937,6 +961,8 @@ class Instance:
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
+        self.join_inputs: list[tuple[int, int, str]] = []  # target, producer, output plug path
+        self.plug_source: tuple[int, str] | None = None  # current native input traversal
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -1285,8 +1311,50 @@ class Instance:
                 if state is not None:
                     taken = state.plug_enter(input_path) or taken
                 continue
-            taken = self.run_node(target, None if target.is_action else caller) or taken
+            previous = self.plug_source
+            self.plug_source = (node.pos, path)
+            try:
+                taken = self.run_node(target, None if target.is_action else caller) or taken
+            finally:
+                self.plug_source = previous
         return taken
+
+    def join(self, node: Node, caller: "State | None") -> bool:
+        """104319 1B6EED0/1B73BC0: join distinct input edges before following output."""
+        if self.plug_source is None:
+            self.component.unsupported(self, "join input origin", node.cls, node)
+        arrival = (node.pos, *self.plug_source)
+        if arrival in self.join_inputs:
+            return False
+        previous = sum(row[0] == node.pos for row in self.join_inputs)
+        self.join_inputs.append(arrival)
+        indexes = node.field("m_122DF0CA") or ()
+        if previous == 0:
+            for index in indexes:
+                self.component.consume_work("join completion check")
+                state = self.states.get(index)
+                if state is not None and state.active and state is not caller and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(self.component.now, 0, CHECK, state=state))
+            return False
+        if previous != expr.to_int(node.field("m_B24D1794")) - 1:
+            return False
+        # 1B700F0 removes this target's registrations by swapping with the tail.
+        index = 0
+        while index < len(self.join_inputs):
+            if self.join_inputs[index][0] == node.pos:
+                self.join_inputs[index] = self.join_inputs[-1]
+                self.join_inputs.pop()
+            else:
+                index += 1
+        if not self.follow(node, "m_outPlug", caller):
+            return False
+        for index in indexes:
+            self.component.consume_work("join state abort")
+            state = self.states.get(index)
+            if state is not None and state.active:
+                state.request(ABORT)
+        return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
         """The states a subgraph plug lists (m_FF3DAF1E)."""
@@ -1436,6 +1504,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Canceled notifications no longer own their coalescing markers.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1517,6 +1587,10 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        # Only permissive body owners may provide explicit reconstruction adapters.
+        # Strict components still reject unknown classes before making a State.
+        if not self.instance.component.strict:
+            self.instance.component.world.permissive_state_enter(self)
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""

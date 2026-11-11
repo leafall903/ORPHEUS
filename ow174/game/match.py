@@ -32,7 +32,21 @@ import math
 from collections import deque
 from copy import deepcopy
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    sigma_flux,
+    sombra_hack,
+    stats,
+    volskaya,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -42,14 +56,14 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import FRAME_HALF, Command, CommandQueue, frame_distance
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import MAX_GAP, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -285,15 +299,23 @@ class Player:
             return None
         seconds = self.quanta / 1e6
         script = self.body_script
+        horizon = None
+        if script is not None and script.world_frame_anchor is not None:
+            at, frame = script.world_frame_anchor
+            horizon = min(MAX_LEASE_FRAME, frame + max(0, self.match.tick - at) * 16 // script.frame_ms)
         fresh, boundary = self.commands.before_limit(
-            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
+            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None, horizon=horizon,
         )
+        if horizon is not None:
+            fresh = [c for c in fresh if 0 < frame_distance(c.frame, script.frame) < FRAME_HALF]
         if fresh:
             self.mover.use(mover_data(self.hero.body), collision)
         if movelog.ENABLED:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
             if self.has_body:
+                command = sombra_hack.filter_held_hack(self.body_script, command)
+                command = self.match.combat.control_command(self, command)
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
@@ -310,18 +332,55 @@ class Player:
             movelog.snapshots(self)
         return boundary
 
-    def _advance_body_gap(self, first_pose: int) -> None:
-        """Release old input and advance timers across frames without a movement pose."""
+    def _advance_body_gap(self, first_pose: int, *, world_idle: bool = False) -> None:
+        """Advance script timers across frames without a movement pose."""
+        from ow174.game.sigma_barrier import barrier_gap_buttons
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing), posed=False)
+        yaw, pitch = (self.mover.yaw, self.mover.pitch) if world_idle else (0, 0)
+        buttons = barrier_gap_buttons(script)
+        if buttons and (self.match.combat.frozen(self) or self.match.combat.is_stunned(self)):
+            buttons = 0
+        if world_idle and sigma_flux.forces_motion(self) and not self.match.combat.is_dead(self):
+            for frame in range(first_missing, first_pose):
+                command = Command(frame, yaw=yaw, pitch=pitch, buttons=buttons)
+                self._step_body_pose(command, self.quanta / 1e6, self.match.combat.tick, world_idle=True)
+            self.mover.last_command = Command(first_pose - 1, yaw=yaw, pitch=pitch)
+            return
+        self._advance_body_frame(Command(first_missing, yaw=yaw, pitch=pitch, buttons=buttons),
+                                 posed=False, defer_effects=world_idle)
+        if world_idle:
+            for frame in range(first_missing + MAX_GAP, first_pose - 1, MAX_GAP):
+                self._advance_body_frame(Command(frame, yaw=yaw, pitch=pitch, buttons=buttons),
+                                         posed=False, defer_effects=True)
         if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1), posed=False)
+            self._advance_body_frame(Command(first_pose - 1, yaw=yaw, pitch=pitch, buttons=buttons),
+                                     posed=False, defer_effects=world_idle)
+        if world_idle and self.mover.last_command is not None:
+            # These windows committed no pose/input. Do not replay their old
+            # throttles later when a fresh command arrives after a short gap.
+            self.mover.last_command = Command(first_pose - 1, yaw=yaw, pitch=pitch)
 
-    def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+    def _step_body_pose(
+        self, command: Command, seconds: float, tick: int, *, world_idle: bool = False,
+    ) -> None:
+        if self.match.combat.hooks.controlled(self.body):
+            command = Command(command.frame, yaw=self.mover.yaw, pitch=self.mover.pitch)
+            self.mover.last_command = command
+            self._advance_body_frame(command, posed=False, defer_effects=world_idle)
+            return
+        before = tuple(self.mover.position)
+        command = self.match.combat.control_command(self, command)
+        stunned = self.match.combat.is_stunned(self, tick=tick)
+        if stunned and not self.mover.external_impulse:
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
+        if (stunned or self.match.combat.frost(self) is not None
+                or any(isinstance(key, tuple) and key and key[0] == -1 for key in self.mover.mods)):
+            active = statescript_mods(script.component) if script else {}
+            self.mover.track_mods(self.match.combat.movement_mods(self, active), command.frame - 1)
         requests = []
         if script is not None:
             requests = [
@@ -332,27 +391,42 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        dynamic_ground = self.match.combat.walls.ground(self)
+        ground_args = {"ground_override": dynamic_ground} if dynamic_ground is not None else {}
+        flight = None if stunned or self.match.combat.frozen(self) else sigma_flux.flux_flight_data(self)
+        if self.match.combat.frozen(self) or stunned:
+            for state, _movement in requests:
+                state.request(runtime.ABORT)
+            self.mover.step_pose(command, seconds, tick, **ground_args)
+        elif flight is not None:
+            self.mover.step_pose(command, seconds, tick, flight=flight, **ground_args)
+        elif len(requests) == 1 and not self.mover.external_impulse:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
-                command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
+                command, seconds, tick, move_to=((target.x, target.y, target.z), speed), **ground_args,
             )
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
-        self._advance_body_frame(command, movement_end=movement_end)
+            self.mover.step_pose(command, seconds, tick, **ground_args)
+        self.match.combat.walls.move_player(self, before)
+        self._advance_body_frame(command, movement_end=movement_end,
+                                 posed=not world_idle, defer_effects=world_idle)
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        defer_effects: bool = False,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
+        command = self.match.combat.control_command(self, command)
         if self.body_script is not None:
+            self.match.combat.shields.prepare(self, command)
             self.match.body_command(self, command, movement_end=movement_end)
-            self.match.combat.command(self, command if posed else None)
+            self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        active = statescript_mods(script.component) if script else {}
+        self.mover.track_mods(self.match.combat.movement_mods(self, active), command.frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -403,6 +477,7 @@ class Match:
             self.environment.randbits(63, callsite="match.id.low"),
             self.environment.randbits(63, callsite="match.id.high"),
         )
+        game_map, scene_host_factory = volskaya.select(game_map, scene_host_factory)
         self.game_map = game_map
         self.card = card  # the queue card it was made for; 0 = none (the Practice Range)
         # (account, hero GUID) -> (skin theme, golden weapon) the player has equipped, from the lobby.
@@ -575,6 +650,13 @@ class Match:
             EntityUpdate(entity, OP_CREATE, lambda origin, index=index: world.create_placeable(origin, index))
             for entity, index in zip(self.placeable_ids(), self.game_map.placeables, strict=True)
         ]
+        if isinstance(self.scene_host, volskaya.LiftHost):
+            movement = self.scene_host.lift.movement()
+            for record in updates:
+                if record.entity == volskaya.ENTITY:
+                    record.build = lambda origin: world.create_placeable(origin, volskaya.FLAT, movement=movement)
+                    viewer.seen[record.entity] = False
+                    break
         if viewer.has_body:
             updates += self.own_body_updates(viewer)
         updates.append(
@@ -590,15 +672,26 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context, npc_melee
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {'controller_components': components}
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_entity=bot.spawner.get("controller_entity"),
+                **context,
             )
+            manual_melee = bot.body in npc_melee.SPECS and bot.spawner.get('manual_spawn') is True
+            if components is not None or manual_melee:
+                bot.body_script.component.world.match = self
+            if bot.spawner.get("controller_entity") is not None:
+                bot.body_script.controller.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -779,6 +872,8 @@ class Match:
                 for bot in self.bots
                 if client.bot_create_acked(bot.entity) and bot.record_due(self.tick, SEND_EVERY)
             ]
+        if isinstance(self.scene_host, volskaya.LiftHost) and viewer.seen.get(volskaya.ENTITY):
+            updates.append(EntityUpdate(volskaya.ENTITY, movement=self.scene_host.lift.movement(self.tick)))
         own = correction.own_record(viewer, self.tick)
         if own is not None:
             updates.append(own)
@@ -905,7 +1000,7 @@ class Match:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world)
+                self.combat.move_bot(bot, tick, RETAIL_QUANTA / 1e6, self.collision_world)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1138,7 +1233,9 @@ class Match:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
+            sigma_flux.sync_flux_airborne(script.component, player.mover)
             script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+            sigma_flux.release_phased_target(player)
         except Exception as error:
             bodytrace.failed(script, error)
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)
@@ -1241,6 +1338,9 @@ class Match:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
+            if old_hero != hero.guid:
+                self.combat.sentries.retire_owner(player)
+            self.combat.sentries.release_target(old)
             self.combat.retire_player_body(player)
             player.new_body(entity)
             self.combat.record_replacement(entity)
@@ -1270,6 +1370,8 @@ class Match:
         if player.gone:
             return
         self.notices.left(player)
+        self.combat.sentries.retire_owner(player)
+        self.combat.sentries.release_target(player.body)
         player.gone = True
         player.client = None
         player.spawned = False

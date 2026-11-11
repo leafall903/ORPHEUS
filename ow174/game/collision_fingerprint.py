@@ -284,6 +284,18 @@ def _engine(engine):
 
 
 def _record(world):
+    if type(world) is collision.LayeredWorld:
+        fields = _fields(world, collision.LayeredWorld, {'base', 'moving', 'engine', 'lowest'})
+        base, moving, engine = fields['base'], fields['moving'], fields['engine']
+        if type(base) is not collision.World or type(moving) is not collision.World or base is moving:
+            _fail("invalid collision layers")
+        parts = _fields(engine, collision.LayeredEngine, {'base', 'moving'})
+        if (parts['base'] is not base.engine or parts['moving'] is not moving.engine
+                or fields['lowest'] != min(base.lowest, moving.lowest)):
+            _fail("inconsistent layered collision engine")
+        if {id(shape) for shape in base.engine.shapes} & {id(shape) for shape in moving.engine.shapes}:
+            _fail("collision layers share shape identities")
+        return {"layers": [_record(base), _record(moving)], "lowest": fields['lowest']}
     record = _fields(world, collision.World, WORLD_FIELDS)
     if type(world.name) is not str:
         _fail("collision world name must be text")

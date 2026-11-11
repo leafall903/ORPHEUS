@@ -167,6 +167,7 @@ IN_AIR = 0x80000C
 ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
+BODY_SIZE_MOD = 12
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
@@ -340,7 +341,8 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
     if not mods:
         return data
     slots = dict.fromkeys(range(10), 1.0)
-    slots.update({JUMP_SPEED_MOD: data.jump_speed, GRAVITY_MOD: 1.0, TERMINAL: data.terminal_velocity,
+    slots.update({JUMP_SPEED_MOD: data.jump_speed, GRAVITY_MOD: 1.0, BODY_SIZE_MOD: 1.0,
+                  TERMINAL: data.terminal_velocity,
                   TERMINAL_UP: data.terminal_velocity_up, GROUND_ACCEL: data.ground_gravity_accel,
                   GROUND_DECEL: data.ground_gravity_decel, COLLISION_MOD: float(data.character_collision),
                   STEP_DOWN_MOD: 1.0})  # fmt: skip
@@ -349,6 +351,20 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
             slots[mod.index] = apply_op(mod.op, slots[mod.index], mod.value)
     clamp = {index: max(0.0, slots[index]) for index in (0, 1, 2, 3, 4, 5, 7, 8)}
     speed = clamp[SPEED]
+    size = slots[BODY_SIZE_MOD]
+    if not math.isfinite(size) or size <= 0:
+        size = 1.0
+    if size != 1.0:
+        data = replace(
+            data,
+            stand_height=f32(data.stand_height * size),
+            stand_radius=f32(data.stand_radius * size),
+            stand_pogo=f32(data.stand_pogo * size),
+            crouch_height=f32(data.crouch_height * size),
+            crouch_radius=f32(data.crouch_radius * size),
+            crouch_pogo=f32(data.crouch_pogo * size),
+            ground_circle_radius=f32(data.ground_circle_radius * max(CIRCLE_SCALE, size)),
+        )
     return replace(
         data,
         run_forward=f32(data.run_forward * speed),
@@ -384,6 +400,21 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
         if mod.index == index:
             value = apply_op(mod.op, value, mod.value)
     return value
+
+
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
+
+
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
 
 
 def _number(instance, cfg, default: float) -> float:
@@ -454,6 +485,7 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.external_impulse = False
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -487,6 +519,10 @@ class Mover:
         lowest = max(data.stand_height + data.stand_pogo, data.crouch_height + data.crouch_pogo)
         self.spring_low = f32(-lowest)
         self.spring_high = f32(2.0 * data.step_down)
+
+    @property
+    def body_scale(self) -> float:
+        return f32(self.values.stand_height / self.data.stand_height)
 
     def use(self, data: MoverData | None = None, world: World | None = None) -> None:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
@@ -623,6 +659,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        ground_override: Ground | None = None, flight: MoverData | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -633,7 +670,7 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
-        self.values = data = modded(self.data, active)
+        self.values = data = modded(self.data if flight is None else flight, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
         if held:
@@ -642,6 +679,13 @@ class Mover:
         forward, forward_byte = throttle_byte(command.forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
+        if flight is not None:
+            vx, _, vz = self.velocity
+            vertical = int(bool(command.buttons & JUMP)) - int(crouch)
+            self.velocity = (vx, vertical * data.run_forward, vz)
+            if vertical > 0:
+                self.flags_word |= FELL
+            jump = crouch = False
         stood_up = self.crouch_end
         if crouch and not self.crouched and stood_up is not None:
             crouch = (frame - stood_up) * dt >= CROUCH_AGAIN
@@ -651,6 +695,8 @@ class Mover:
         self.landed = False
 
         ground, under = self._probe(dt)
+        if ground_override is not None and (ground is None or ground_override.y > ground.y):
+            ground, under = ground_override, False
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -663,6 +709,7 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        right, forward = modified_throttles(active, right, forward)
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
@@ -682,7 +729,17 @@ class Mover:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne:
+            self.external_impulse = False
         return outcome
+
+    def add_external_impulse(self, impulse) -> None:
+        """Pass impact momentum through the normal movement solver."""
+        self.velocity = tuple(f32(v + delta) for v, delta in zip(self.velocity, impulse, strict=True))
+        self.driven = False
+        self.external_impulse = True
+        if self.velocity[1] > 0.0:
+            self.flags_word |= FELL
 
     def _fall_after(self, vertical: float) -> None:
         """The state's +832 after the move (0x7FF789B4F530): gravity's part of the velocity, added up in the

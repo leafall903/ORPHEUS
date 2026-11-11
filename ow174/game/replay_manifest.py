@@ -35,6 +35,14 @@ _RUNTIME_FIELDS = {
 _CONFIG_MODULES = (
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
+    "ow174.game.mei", "ow174.game.mei_wall", "ow174.game.mei_blizzard", "ow174.game.zarya_shields",
+    "ow174.game.ana_grenade",
+    "ow174.game.genji_deflect",
+    "ow174.game.dva_matrix",
+    "ow174.game.mei_ultimate",
+    "ow174.game.mei_frost",
+    "ow174.game.npc_context", "ow174.game.assassin", "ow174.game.enforcer", "ow174.game.phase_defenses",
+    "ow174.game.heavy_charge", "ow174.game.npc_melee", "ow174.game.sniper_reposition",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
     "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
@@ -201,6 +209,27 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
     if type(quanta_us) is not int or quanta_us <= 0 or type(run_options) is not dict:
         raise ManifestError("explicit positive quanta_us and run_options mapping are required")
     values = {"run.quanta_us": quanta_us, "run.options": run_options}
+    from ow174.game.enforcer import dispersion_fingerprint
+    from ow174.game.orisa_barrier import descriptor_sha256
+    from ow174.game.photon_barrier import replay_inputs as photon_inputs
+    from ow174.game.reinhardt_barrier import configured_geometry
+    from ow174.game.sigma_barrier import configured_geometry as sigma_geometry
+
+    barrier = configured_geometry()
+    if barrier is not None:
+        values["ow174.game.reinhardt_barrier.descriptor_sha256"] = barrier.fingerprint
+    if (orisa_descriptor := descriptor_sha256()) is not None:
+        values["ow174.game.orisa_barrier.descriptor_sha256"] = orisa_descriptor
+    if (sigma := sigma_geometry()) is not None:
+        values["ow174.game.sigma_barrier.model_sha256"] = sigma[0]
+    from ow174.game.script import graph as graph_catalog
+
+    summon_hash = graph_catalog.sentry_bundle_fingerprint()
+    if summon_hash is not None:
+        values["ow174.game.symmetra_sentry.bundle_sha256"] = summon_hash
+    values.update(photon_inputs())
+    if (enforcer_table := dispersion_fingerprint()) is not None:
+        values["ow174.game.enforcer.dispersion_table_sha256"] = enforcer_table
     for name in _CONFIG_MODULES:
         module = importlib.import_module(name)
         required = _REQUIRED_CONFIG.get(name, set())
@@ -246,6 +275,9 @@ def capture_manifest(
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
     files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    platform_data = "volskaya-platform-104319.json.gz"
+    if (data_dir / platform_data).exists():
+        files.append(_file(data_dir, platform_data, f"data/{platform_data}"))
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

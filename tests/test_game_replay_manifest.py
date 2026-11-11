@@ -14,7 +14,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import correction, match, mei_blizzard, zarya_shields
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
 from ow174.paths import DATA_DIR, ROOT
@@ -28,6 +28,19 @@ DEPENDENCIES = {"cryptography": "50.0.0", "protobuf": "6.33.6", "websockets": "1
 
 
 class ReplayManifestTests(unittest.TestCase):
+    def test_mei_and_shield_live_parameters_are_part_of_model_identity(self):
+        first = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        self.assertEqual(first['ow174.game.zarya_shields.CAPACITY'], 200.)
+        self.assertEqual(first['ow174.game.mei_blizzard.DURATION_MS'], 4250)
+        with mock.patch.object(zarya_shields, 'CAPACITY', 201.), \
+             mock.patch.object(mei_blizzard, 'DURATION_MS', 4251):
+            second = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        paths = {row['path'] for row in manifest.compare_manifests(
+            self.capture(configuration=first), self.capture(configuration=second),
+        )}
+        self.assertEqual(paths, {'configuration/ow174.game.zarya_shields.CAPACITY',
+                                 'configuration/ow174.game.mei_blizzard.DURATION_MS'})
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -65,6 +78,18 @@ class ReplayManifestTests(unittest.TestCase):
         manifest.assert_compatible(captured, self.capture())
         self.assertNotIn(str(self.root), json.dumps(captured))
         self.assertNotIn(str(self.data), json.dumps(captured))
+
+    def test_optional_volskaya_platform_input_is_pinned_when_installed(self):
+        before = self.capture()
+        platform = self.data / 'volskaya-platform-104319.json.gz'
+        platform.write_bytes(b'first platform payload')
+        installed = self.capture()
+        logical = 'files/data/volskaya-platform-104319.json.gz'
+        self.assertEqual(manifest.compare_manifests(before, installed),
+                         [{'path': logical, 'kind': 'added'}])
+        platform.write_bytes(b'other platform payload')
+        self.assertEqual(manifest.compare_manifests(installed, self.capture()),
+                         [{'path': logical, 'kind': 'changed'}])
 
     def test_relocation_mtime_map_and_set_order_do_not_change_identity(self):
         first = self.capture()

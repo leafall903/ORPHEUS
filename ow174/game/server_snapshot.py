@@ -12,6 +12,7 @@ import math
 import random
 import struct
 import types
+import uuid
 import weakref
 from collections import deque
 from pathlib import Path
@@ -21,24 +22,38 @@ from ow174.game import (
     combat,
     correction,
     heroselect,
+    hook,
+    mei,
+    mei_blizzard,
+    mei_wall,
     notices,
     observers,
+    orisa_barrier,
+    photon_barrier,
     projectiles,
+    reinhardt_barrier,
     replay_values,
+    sigma_barrier,
+    sigma_grasp,
+    sigma_hypersphere,
     statescript,
     stats,
+    symmetra_sentry,
     voicelines,
+    volskaya,
+    winston_barrier,
     world,
+    zarya_shields,
 )
 from ow174.game.bits import BitWriter
-from ow174.game.collision import LoadState, World
+from ow174.game.collision import LayeredWorld, LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.commands import CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import driver, expr, graph as script_graph, runtime, scene, scene_host, startup
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -92,10 +107,29 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen cryo_samples "
+        "frost_hits frost_sources walls blizzard stuns shields pins heavy_charge_contacts heavy_charge_pins "
+        "sniper_repositions "
+        "projectiles observers voice reinhardt_barriers winston_barriers orisa_barriers "
+        "sigma_barriers grasp_shields grasp_grants photon_barriers sentries hooks"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer "
+                          "temporary_shields "
+                          "healing_block_until healing_boost_until sleep_until sleep_wake_floor nano_until"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    mei_blizzard.Blizzard: _names("combat flights areas"),
+    zarya_shields.Shields: _names("combat bubbles flags"),
+    reinhardt_barrier.Barriers: _names("fight geometry states"),
+    winston_barrier.Barriers: _names("fight actors pending"),
+    winston_barrier.DomeWorld: _names("hero mode manager actor"),
+    sigma_barrier.Barriers: _names("fight actors"),
+    hook.Hooks: _names("combat flights seen"),
+    symmetra_sentry.Turrets: _names("combat sentries"),
+    photon_barrier.Barriers: _names("fight geometry actors"),
+    photon_barrier.Geometry: _names("world triangles source"),
+    photon_barrier.BarrierWorld: _names("hero mode actor"),
+    orisa_barrier.Barriers: _names("fight geometry flights actors"),
+    orisa_barrier.BarrierWorld: _names("hero mode actor"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,14 +145,26 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count world_frame_anchor"
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior controller"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names(
+        "hero mode weapon_buttons owner_position controller_components match manual_target controller "
+        "enforcer_selected body_definition"
+    ),
     runtime.World: _names("hero mode"),
+    volskaya.LiftScene: volskaya.SCENE_FIELDS,
+    volskaya.LiftHost: _names("world frame_ms seed graph_loader units frame prepared closed error "
+                              "play_requests_configured lift"),
+    volskaya.Lift: _names("match base origin position scale rotation models offsets route_length "
+                          "segment velocity blocked_riders attached_walls collider"),
+    startup.ComponentStartup: _names("component definition instance_data graph_loader created"),
+    script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
+                               "states entries remote_nodes sync_vars _owner _remote _presence"),
+    script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -131,13 +177,29 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target pending_ability"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    bots.Bot: _names("wall_lifted"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    volskaya.LiftFactory, scene.Placement, scene.SceneEntity, scene_host.Unit, script_graph.SyncVar,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.ScrapBurst,
+    mei_wall.Pillar, mei_wall.Input,
+    mei.CryoHealing,
+    mei_blizzard.Flight, mei_blizzard.Area,
+    zarya_shields.Bubble,
+    reinhardt_barrier.Geometry, reinhardt_barrier.Barrier, winston_barrier.Bubble,
+    sigma_hypersphere.Motion,
+    combat.TemporaryShield, sigma_grasp.ShieldDecay,
+    hook.Flight,
+    symmetra_sentry.Sentry,
+    photon_barrier.Shield,
+    sigma_barrier.Barrier,
+    orisa_barrier.Flight, orisa_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -174,6 +236,8 @@ class _Graph:
             _fail("stored graph value budget exhausted")
         if obj is None or type(obj) in (bool, int, float, str, bytes):
             return replay_values.encode(obj)
+        if type(obj) is uuid.UUID:
+            return ["uuid", obj.hex]
         boundary = self.boundaries.get(id(obj))
         if boundary is not None and boundary[0] is obj:
             return ["boundary", boundary[1]]
@@ -299,7 +363,13 @@ class _Graph:
             data = {"self": self.value(obj.__self__), "function": self.value(obj.__func__)}
         elif kind is types.FunctionType:
             data = self._function(obj)
-        elif kind is World:
+        elif kind is types.BuiltinMethodType:
+            owner = obj.__self__
+            if (obj.__name__ != "get" or type(owner) is not dict or set(owner) != {volskaya.CONTROLLER}
+                    or type(owner[volskaya.CONTROLLER]) is not script_graph.Graph):
+                _fail("unregistered stored builtin method")
+            data = {"self": self.value(owner), "name": "get"}
+        elif kind in (World, LayeredWorld):
             data = {"asset": self._asset(obj)}
         elif kind is Mover:
             from ow174.game.commands import Command
@@ -334,7 +404,10 @@ class _Graph:
             data = {"fields": self._fields(obj, frozenset(("gauss_next",))),
                     "rng_state": replay_values.encode(random.Random.getstate(obj))}
         elif kind in FIELDS:
-            data = self._fields(obj, FIELDS[kind], OPTIONAL_FIELDS.get(kind, frozenset()))
+            required = FIELDS[kind]
+            if kind is driver.BodyWorld and obj.hero == 0x02E0000000000016:
+                required |= {"beam_barrier"}
+            data = self._fields(obj, required, OPTIONAL_FIELDS.get(kind, frozenset()))
         elif kind in DATACLASSES:
             fields = frozenset(field.name for field in dataclasses.fields(kind))
             data = self._fields(obj, fields)
@@ -405,7 +478,9 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     for match in matches:
         if type(match) is not Match:
             _fail("unregistered archived match type")
-        if match.scene_host_factory is not None:
+        if match.scene_host_factory is not None and type(match.scene_host_factory) is not volskaya.LiftFactory:
+            _fail('shared scene script runtime storage is not implemented')
+        if match.scene_host is not None and type(match.scene_host) is not volskaya.LiftHost:
             _fail('shared scene script runtime storage is not implemented')
         if match.environment is not server.environment or match.skin_of is not server.skin_of:
             _fail("match external boundaries differ from its controlled server")
