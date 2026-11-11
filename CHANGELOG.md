@@ -5,6 +5,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Moira delivery history integration
+
+- Merge delivery df51065e. Keep its complete Moira implementation with the
+  combined source_entity/hit_tags receiver names, unified barrier managers and
+  explicit healing-tag forwarding. Every delivered Python runtime module is
+  present; preserve the combined generic projectile defense, temporary-pool,
+  graph health-modifier, entity-host and linked-query implementations when
+  resolving shared-file conflicts.
+- The existing seven-module selection ran 84 checks. Its five failure and
+  thirty error identities exactly match the pre-change intake baseline.
+  Remaining fixtures include old Cryo actor and temporary-shield layouts,
+  old health/deadline helpers, grenade-50 assumptions and control interactions.
+  Preserve the implementation and tests without withholding the merge for
+  unfinished acceptance; no native/client or all-hero completion is claimed.
+- This merge changes documentation only and retains the already integrated
+  runtime adaptations rather than replacing shared files with older hosts.
+
+
+
 ### Ana delivery history integration
 
 - Merge delivery 14f691f6 after mounting missing healing-credit, owner-dead
