@@ -1075,6 +1075,7 @@ class Rocket:
     fuse_left: float | None = None
     attached_entity: int | None = None
     attached_offset: tuple = (0.0, 0.0, 0.0)
+    damage_charge: tuple | None = None  # Captured Mercy launch body and authored health tags.
     source_body: int | None = None  # Health-event charge belongs to the emitting body.
     target_limit: int = 1
     spawn: int | None = None
@@ -2587,6 +2588,9 @@ class Combat:
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
+            from ow174.game.script import charge
+
+            charge_context = charge.damage_context(script, state, modify)
             origin, direction = self._eye(player), aim(*command.aim())
             ring = knockback.quick_melee_ring(state) if player.hero.guid == lucio.HERO else None
             centre = _along(origin, direction, reach)
@@ -2605,7 +2609,8 @@ class Combat:
                             or self._genji_deflects(target, aim(*command.aim()))):
                         continue
                     landed = self._damage(player, target, amount, False, loadout, command.frame,
-                                          hit_reaction=player.hero.guid == mccree.HERO)
+                                          hit_reaction=player.hero.guid == mccree.HERO,
+                                          damage_charge=charge_context)
                     if landed and ring is not None and not self.orisa._immune(target.owner):
                         impulse = knockback.quick_melee_impulse(ring, origin, shown, direction)
                         self.knockbacks.apply(target, impulse, impact_frame=command.frame)
@@ -3651,6 +3656,20 @@ class Combat:
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
         direct = self._support_hit(shooter, hit_def(state, node.field("m_6396149F")))
+        charge_context = None
+        if (not npc and direct is not None and direct.loadout == 0x0B9000000000003E
+                and shooter.hero.guid == regeneration.MERCY
+                and state.instance.graph.index == 0x006D and node.pos == 10):
+            from ow174.game.script import charge
+
+            hit = node.field("m_6396149F")
+            if (hit.get("m_A872C70E") is None
+                    and expr.to_int(state.evaluate(hit.get("m_66D29548"), watch=False)) == 2):
+                # Delivered mode-2 policy for this volley; native animated
+                # head-hitbox/default multiplier parity remains unverified.
+                direct = replace(direct, critical=2.0, projectile_headshot=True)
+            charge_context = charge.damage_context(shooter.body_script, state, hit.get("m_modifyHealth") or {})
+
         entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
         asset = state.evaluate(entity_def, watch=False) if entity_def is not None else None
         definition = asset.guid if isinstance(asset, expr.Asset) else None
@@ -3797,6 +3816,7 @@ class Combat:
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split, sticky_delay=1.0 if sticky else None,
                         source_body=_source_entity(shooter) if server_ability or not npc else None,
+                        damage_charge=charge_context,
                         target_limit=target_limit,
                         spawn=spawn, source_graph=source_graph, source_state=state if server_ability else None,
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
@@ -4510,6 +4530,7 @@ class Combat:
                     rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
                     world_tick=self.tick, hit_tags=direct.tags,
                     broken_particle_barriers=broken_particle_barriers, source_body=rocket.source_body,
+                    damage_charge=rocket.damage_charge,
                 )
                 if landed:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
@@ -5856,7 +5877,7 @@ class Combat:
         award_ult: bool = True, deadeye: bool = False, hit_reaction: bool = False,
         hit_tags: tuple[int, ...] = (), armour_scalar: float | None = None,
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
-        source_scaled: bool = False,
+        source_scaled: bool = False, damage_charge=None,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         vitals = self.vitals_of(target)
@@ -5955,10 +5976,15 @@ class Combat:
             script = getattr(shooter, "body_script", None)
             hero = shooter.hero.guid
             current_source = source_body is None or source_body == shooter.body
+            if award_ult and enemy and current_source and hero == regeneration.MERCY:
+                from ow174.game.script import charge
+
+                charge.damaged(script, target.entity, dealt, damage_charge, frame=frame)
+
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source
-                    and hero not in (0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 script.gain_ult_charge(points)

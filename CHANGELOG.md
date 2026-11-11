@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy projectile and melee damage charge integration
+
+- Capture the original Mercy health tags and emitting body on blaster launch
+  and quick melee. Deliver actual capped damage into the authored 0B8B award
+  instead of the generic credit fallback. Keep future impact credit unavailable
+  to older ultimate input, and retire projectiles with their emitting body.
+- Mount the delivered scoped mode-2 critical policy for 006D/node10 in the
+  existing capsule projectile solver. Preserve its authored projectile extent;
+  the original range test's 100.6 m point is a contact edge in this host, so
+  use 100.8 m for the entirely out-of-range assertion without shrinking the
+  collision shape to satisfy the old test fixture.
+- Eight delivered damage-award checks passed, including actual hits on all five
+  prepared Talon bodies. Three blaster critical/wall/range checks, 33 core combat
+  checks and the Mercy server-storage check passed. Original-client critical
+  geometry acceptance, source boost-credit attribution, other NPC interactions
+  and remaining line integration are pending. Existing boost damage is retained.
+
 ### Mercy Valkyrie integration
 
 - Mount the delivered original-language Valkyrie movement hook and embedded
