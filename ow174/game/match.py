@@ -1209,7 +1209,11 @@ class Match:
                     npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
                                         plan_budget=budgets.get(bot.entity, 0))
                     continue
-                mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
+                script = bot.body_script
+                mods = statescript_mods(script.component) if script is not None else {}
+                pull_mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
+                if pull_mods:
+                    mods.update(pull_mods)
                 self.combat.knockbacks.step_npc(
                     bot, tick, RETAIL_QUANTA / 1e6, self.collision_world,
                     paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars,

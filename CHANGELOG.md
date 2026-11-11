@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Lucio NPC speed integration
+
+- Consume the delivered Crossfade movement modifiers on existing NPC routes
+  alongside Orisa's pull modifiers. All three route-speed tests passed,
+  covering normal and amplified speed on all five manual NPC archetypes,
+  leaving the aura, and enemy exclusion.
+
 ### Lucio ultimate charge integration
 
 - Route Lucio's charge through the authored 0B8B gates and health events.
