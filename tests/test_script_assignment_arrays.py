@@ -106,6 +106,27 @@ def pair(var, cfg):
 
 
 class MultiAssignmentArrayTests(unittest.TestCase):
+    def test_constant_index_expression_outputs_preserve_other_elements_and_pair_order(self):
+        def indexed(index):
+            return {'$': 'STU_919FD47C', 'm_expression': {
+                'm_opcodes': [8, 0, 6, 0, 17, 0], 'm_dynamicVars': [dynamic(7)], 'm_D99EF254': [index],
+            }}
+
+        _, instance = setup_many({'m_out_Var': indexed(0), 'm_value': indexed(1)},
+                                 {'m_out_Var': indexed(1), 'm_value': integer(7)})
+        instance.write((0, 7), (1, 2))
+        run(instance)
+        self.assertEqual(instance.find_var(0, 7).value(), (2, 7))
+        self.assertEqual(instance.find_var(0, 20).value(), 17)
+
+    def test_constant_index_expression_can_initialize_a_missing_position_array(self):
+        target = {'$': 'STU_919FD47C', 'm_expression': {
+            'm_opcodes': [8, 0, 6, 0, 17, 0], 'm_dynamicVars': [dynamic(7)], 'm_D99EF254': [1],
+        }}
+        _, instance = setup_many({'m_out_Var': target, 'm_value': integer(7)})
+        run(instance)
+        self.assertEqual(instance.find_var(0, 7).value(), (None, 7))
+
     def test_each_array_value_is_collected_and_later_pairs_read_earlier_writes(self):
         _, instance = setup_many(pair(7, array(integer(3), integer(5))),
                                  pair(8, array(dynamic(7), integer(7))), pair(9, dynamic(8)))

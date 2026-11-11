@@ -136,6 +136,20 @@ class SharedSceneTests(unittest.TestCase):
         self.assertEqual(receiver.find_var(0, 7).value(), 23)
         self.assertEqual(receiver.find_var(0, 9).value(), (17,))
 
+    def test_foreign_message_reaches_external_body_at_its_clock(self):
+        world = make_world()
+        _, sender = component(world, A, sender_model())
+        target, receiver = component(make_world(), B, message_model())
+        target.now = 400
+        world.set_foreign_message_receiver(B, lambda: target)
+        sender.run_node(sender.graph.node(0), None)
+        self.assertEqual(receiver.queue[0].time, 400)
+        target.run_now()
+        self.assertEqual(receiver.find_var(0, 7).value(), 23)
+        self.assertEqual(receiver.find_var(0, 9).value(), (17,))
+        world.unbind(B)
+        self.assertNotIn(B, world.foreign_message_receivers)
+
     def test_unknown_message_transport_stops_before_following_success(self):
         source = runtime.Component(A, world=runtime.World(), strict=True)
         sender = source.create(sender_model(), init=False)

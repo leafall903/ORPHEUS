@@ -1,0 +1,106 @@
+Wrecking Ball manual NPC incoming bridge -- partial104319 static evidence
+
+Enforcer follow-up. One 13EB report now produces 25 distinct physical projectiles.
+The ring data supplies counts 1/8/16 and radius fractions 0/.5/1. Even spacing,
+fixed phase and the existing body-eye origin are server reconstruction choices.
+Direct damage uses swept flight distance and the shared falloff interpolation.
+Actual inputs check 50 shield damage at 1.5 m, 34 at 6 m, attenuation at 15 m,
+and stop and wall interception after launch. Controlled Enforcer input also
+destroys an armed 50 HP mine at 3 m without triggering it. The earlier two-point
+observation in this file refers to the historical single-projectile backend.
+Native phase, muzzle and per-pellet observer transport remain open.
+
+The private lane reviewed and adapted parent npc_context/assassin services,
+without importing its navigation subsystem or changing the parent workspace.
+This is declared server reconstruction, not native controller allocation.
+
+Manual Enforcer01CE and Assassin01BB declare components(4B), excluding5C.
+Only13EB self B96D3A98 uses that declaration. Original CC9F61/182C470 checks
+4B present and5C absent; the lane's509-case native tail probe uses explicit
+controller/state adapters. It proves the predicate tail, not the allocator or
+why a real encounter would have those components. Stock bodies stay unchanged.
+The existing owner-only9B7648C3 reads authoritative f32 aggregate health; missing
+health remains unknown, foreign health does not silently alias self. Spawn now
+synchronizes the full aggregate after health/armour/shield pools are created.
+
+Assassin extracted primary20 graph13B8 has no damage outlet. The declared manual
+context routes slot0 to1157/button36 and gives DB742151(owner) a data-only Map
+with1650=current engaged body. No fake controller entity or borrowed namespace
+is replicated. Only self/current-target health is available to scoped1157.
+Contact requires static visibility and3m reconstructed range. Actual resources
+provide node25 amount25 and node15 amount100. Mode0 applies once at entry;
+mode1 applies amount/second for elapsed VM milliseconds, with no entry/duplicate
+frame damage. Mode/clock interpretation remains reconstructed. last_applied is
+causal VM state. Unsupported health states still fail in strict mode.
+
+Combat.pins holds source body -> controlled victim body separately from timed
+stuns. Entry interrupts held inputs and running abilities using existing exits;
+Ball's attached grapple/contact channel is canceled. Ordinary controlled-player
+input suppresses actions and movement while the existing look/gravity policy
+continues. Manual stop, source stun/death/removal/failure, victim death/body
+retirement, range/team/visibility/target loss release control. Timed Flashbang
+deadlines survive pin release. Context/target bindings, pin table and health
+clock are represented in causal snapshots. Release Anim31 lacks asset duration:
+new contact engagement interrupts it through authored exits. Recovery timing,
+native cooldown and native animation interruptibility remain unproved.
+
+Repeatable tests:
+test_npc_context: component scope/button routing, missing/foreign services,
+causal snapshots, Match preparation and aggregate spawn synchronization.
+test_assassin_pin: eight reviewed synthetic1157 graph tests for elapsed clock,
+one-shot/scope, independent stun, Deadeye interruption, source stun/death,
+target replacement, range/team/visibility and explicit removal.
+test_wrecking_ball_npc_incoming: eight actual-data tests, no query overrides or
+injected health damage. Each of five actual NPC bodies attacks Ball, damages
+Adaptive Shield (first observed20/2/100/25/5 for Trooper/Enforcer/Sniper/
+Assassin/Heavy) and stops. A real triangle wall suppresses all five, removal
+restores attacks. Assassin continuous phase deals16 over ten16ms frames;
+stopping/reengagement, pinned real full-throttle/button inputs, range/wall/team
+loss, explicit removal/victim replacement, attached-grapple interruption and
+actual support-rifle killing the source all pass. Collision uses authored
+capsules and explicit static geometry; transport is in-memory/permissive VM.
+An added ninth actual-data case uses friendly McCree's real E projectile to
+stun the pin source: Assassin loses25 from aggregate health/shields, Ball is
+released, and no more pin damage occurs before source stun expiry. Its first
+assertion omitted source shields; corrected aggregate assertion passes8.557s.
+The separate new snapshot check detects pin-registry/manual-target changes and
+restores the original digest when each input is restored.
+
+Verification checkpoint:835 scripts PASS19.691s,531 combat/movement/NPC/VM
+PASS465.146s,13 complete server snapshot/replay PASS511.834s.385 Python hashes
+unchanged throughout those runs. Subsequent edits only affect two test files;
+17/18 post-run cases passed before the new Flashbang aggregate assertion was
+corrected and its one affected case rerun successfully. No new whole18-run
+green result is claimed. Whole-source Ruff and git diff checks pass.
+
+These are selected full-goal matrix rows. Complete NPC AI/navigation/specials,
+native controller/possession/wire, animation/camera/QTE/audio, teammate rescue,
+immunity/cleanse/reflect/absorb/barrier and complete cross-hero matrices remain
+open. No original client was launched. No full static acceptance or merge-ready
+commit is claimed.
+
+Actual manual 1157 and a deployed mine: the Assassin pins Ball with an
+armed mine nearby. The manual context remains bound to Ball's body and
+the mine remains armed, untriggered and at 50 health. Moving the NPC
+fixture into the trigger radius during its live pin lets the mine deal
+130 damage and lift the Assassin. The resulting displacement exits the
+manual pin range and releases Ball. Autonomous mine eligibility remains open.
+
+The controlled graph test bypasses manual acquisition and provides the same
+50-HP mine to 1157 directly. Node 15 activates with the mine as its evaluated
+target. The server pin service deals no damage and binds no victim. Restoring
+manual input and engaging Ball produces a live pin.
+
+An allied Ana can hit the actual Assassin with Sleep Dart and release a
+live pin. The dart deals five damage to the Assassin, and pin damage
+stays stopped for the sleep deadline. Manual engagement pins and damages
+Ball again after the Assassin wakes.
+
+Sleep Dart also hits the four actual ranged NPC bodies while each is
+attacking Ball. Their manual weapon input stops through the sleep
+deadline and damage resumes after it. Already-launched Enforcer pellets
+remain independent of the source. The test checks that sleeping produces
+no new projectiles and that Ball takes no further damage once the
+nearby projectiles pass. A separate configured Trooper route pauses
+through the same deadline and resumes afterward. Autonomous route
+selection and special attacks remain open.

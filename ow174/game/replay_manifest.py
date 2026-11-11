@@ -28,6 +28,7 @@ DATA_FILES = (
     "schemas_174.json", "statescript_codecs_174.json",
 )
 DEPENDENCIES = ("cryptography", "protobuf", "websockets")
+OPTIONAL_DATA_FILES = ("barrier_geometry_174.json",)
 _RUNTIME_FIELDS = {
     "implementation", "version", "implementation_version", "cache_tag",
     "pointer_bits", "machine", "byteorder", "system",
@@ -201,6 +202,9 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
     if type(quanta_us) is not int or quanta_us <= 0 or type(run_options) is not dict:
         raise ManifestError("explicit positive quanta_us and run_options mapping are required")
     values = {"run.quanta_us": quanta_us, "run.options": run_options}
+    from ow174.game import scalar_math
+
+    values['math.rsqrtss'] = scalar_math.profile()
     for name in _CONFIG_MODULES:
         module = importlib.import_module(name)
         required = _REQUIRED_CONFIG.get(name, set())
@@ -246,6 +250,8 @@ def capture_manifest(
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
     files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    files.extend(_file(data_dir, name, f"data/{name}") for name in OPTIONAL_DATA_FILES
+                 if (data_dir / name).exists())
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

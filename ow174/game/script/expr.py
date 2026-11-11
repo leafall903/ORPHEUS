@@ -295,7 +295,7 @@ class Context:
         return None
 
     def member(self, entity: int, var: int):
-        """`entity.#var`: another entity's entity-scope variable."""
+        """`entity.#var`; note source only after entity and script resolve."""
         return None
 
     def position(self, entity: int) -> Vec3:
@@ -304,6 +304,18 @@ class Context:
     def ruleset(self, key: int):
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
+
+    def reset_ruleset_source(self):
+        self._ruleset_source = 0
+
+    def note_ruleset_source(self, entity: int):
+        self._ruleset_source = entity & 0xFFFFFFFF
+
+    def ruleset_source(self):
+        return getattr(self, '_ruleset_source', 0)
+
+    def ruleset_default(self, key: int, source: int):
+        return self.ruleset(key)
 
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
         return True
@@ -443,9 +455,7 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_B5A0CAF0":  # GetOwner
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
-        key = cfg.get("m_value")
-        found = dynamic(key)
-        return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
+        return ruleset_value(cfg, ctx)
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
         return value if value is not None else evaluate(cfg.get("m_default"), ctx)
@@ -468,6 +478,35 @@ def evaluate(cfg, ctx: Context, *, initial=None):
                 return Asset(guid_of(value))
     result = ctx.native(cfg)
     return initial if result is EVALUATION_FAILED else result
+
+
+def ruleset_value(cfg: dict, ctx: Context):
+    """104319 CCFAC0: successful nonnull input first, then identifier defaults.
+
+    Expression fallback examines its first dynamic reference, independent of
+    expression bytecode. Instance references require a valid member-source
+    entity; a direct Dynamic fallback requires entity scope.
+    """
+    ctx.reset_ruleset_source()
+    child = cfg.get('m_value')
+    value = evaluate(child, ctx, initial=EVALUATION_FAILED)
+    if value is not EVALUATION_FAILED and value is not None:
+        return value
+    reference = dynamic(child)
+    if reference is not None:
+        if reference[0] != ENTITY:
+            return 0
+    elif isinstance(child, dict) and child.get('$') in EXPRESSIONS:
+        expression = child.get('m_expression') or {}
+        references = expression.get('m_dynamicVars') or []
+        reference = dynamic(references[0]) if references else None
+        if reference is None or (reference[0] != ENTITY and not valid_entity(ctx.ruleset_source())):
+            return 0
+    else:
+        return 0
+    source = ctx.ruleset_source()
+    result = ctx.ruleset_default(reference[1] & 0xFFFF, source if valid_entity(source) else 0)
+    return 0 if result is None else result
 
 
 def cooldown_duration(cfg: dict, ctx: Context) -> float:
@@ -511,6 +550,28 @@ def lvalue(cfg) -> tuple[int, int] | None:
         if len(code) >= 2 and code[0] in (8, 9) and (len(code) == 2 or code[2] == 0):
             return dynamic(dynamics[code[1]])
     return None
+
+
+def indexed_lvalue(cfg):
+    """Bounded variable[constant] output, used by 160A's two-position history.
+
+    This is the exact PUSH_VAR, PUSH_FLOAT, INDEX, END form; other computed
+    destinations still need the native lvalue backend and are not guessed.
+    """
+    if not isinstance(cfg, dict) or cfg.get('$') not in EXPRESSIONS:
+        return None
+    code, dynamics, floats = _parts(cfg)
+    if len(code) != 6 or code[0] not in (8, 9) or code[2] != 6 or code[4:] != [17, 0]:
+        return None
+    if type(code[1]) is not int or type(code[3]) is not int:
+        return None
+    if not 0 <= code[1] < len(dynamics) or not 0 <= code[3] < len(floats):
+        return None
+    index = floats[code[3]]
+    if type(index) not in (int, float) or not math.isfinite(index) or not 0 <= index < MAX_EXPRESSION_STEPS:
+        return None
+    target = dynamic(dynamics[code[1]])
+    return (target, int(index)) if target is not None and int(index) == index else None
 
 
 # --- the bytecode --------------------------------------------------------------------------------
@@ -559,7 +620,9 @@ def _index(obj, index):
 def _member(obj, key: int, ctx: Context):
     if isinstance(obj, Entity) or (isinstance(obj, tuple) and obj and isinstance(obj[0], Entity)):
         entity = to_entity(obj)
-        return ctx.member(entity, key) if valid_entity(entity) else None
+        if not valid_entity(entity):
+            return None
+        return ctx.member(entity, key)
     if isinstance(obj, Map):
         return obj.get(key)
     return None

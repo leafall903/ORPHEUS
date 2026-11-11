@@ -317,6 +317,17 @@ def entity_body(body: int) -> dict | None:
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
 
 
+DVA = 0x02E000000000007A
+DVA_MECH = 0x0400000000000407
+
+
+def player_body(hero: int, definition: int | None = None) -> dict | None:
+    """Resolve the canonical hero body or the explicitly selected D.Va mech."""
+    if hero == DVA and definition == DVA_MECH:
+        return entity_body(definition)
+    return next((record for record in bodies().values() if int(record["hero"], 16) == hero), None)
+
+
 def entity_script_component(definition: int):
     """Actual entity component dict, known absence None, or unknown old/missing data.
 

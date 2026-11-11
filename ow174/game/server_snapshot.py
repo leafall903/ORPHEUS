@@ -17,6 +17,9 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    ball,
+    ball_mines,
+    barriers,
     bots,
     combat,
     correction,
@@ -93,9 +96,16 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns sleeps pins npc_impulses ball_grapples grapple_seen "
+        "ball_contacts mines barriers next_barrier pile_air_locks rifle_doses"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer temporary_shields "
+                             "temporary_maximum temporary_registered adaptive_activation adaptive_until "
+                             "grasp_activation grasp_decay "
+                         "healing_block healing_boost nano_until"),
+    barriers.Barrier: _names("entity parent parent_body source instance state activation component "
+                             "mesh geometry_digest vitals retired "
+                             "recipient recipient_body recipient_component centre expires"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -117,8 +127,12 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target "
+                     "assassin_body assassin_handoff"),
     runtime.World: _names("hero mode"),
+    ball_mines.MineWorld: _names("hero mode mine"),
+    ball_mines.MineScript: _names("frame death_frame component server_only latest_live"),
+    ball_mines.Minefield: _names("combat entities next_entity seen"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -131,13 +145,22 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch airborne"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    bots.Bot: _names("target_controller"),
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    driver.BodyScript: _names(
+        "emp_effect_deadlines emp_previous_windows emp_shield_pulse emp_suppressed_buttons emp_window "
+        "grapple_interrupt_frame "
+        "timed_control_commands"
+    ),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, ball.Grapple,
+    ball_mines.Mine, combat.RifleDose,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

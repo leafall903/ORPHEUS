@@ -10,6 +10,15 @@ from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, cre
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
 FIRING_GRAPH = FIRING & 0xFFFF
+ASSASSIN_ACQUISITION = 0x13C2
+ASSASSIN_HANDOFF = 0x02400000000009C6
+# graph, target gate, latch scope/slot, additional body gate
+ACQUISITION_GRAPHS = {
+    0x02E00000000001CE: (0x13E9, 7, (runtime.INSTANCE_SCOPE, 536), None),
+    0x02E00000000001AC: (0x11E3, 20, (runtime.ENTITY_SCOPE, 1650), None),
+    0x02E00000000001B8: (0x1138, 21, (runtime.ENTITY_SCOPE, 1650), 25),
+    0x02E00000000001BA: (0x1251, 21, (runtime.ENTITY_SCOPE, 1650), 21),
+}
 PRACTICE_NAMEPLATE = 0x0D24
 PRACTICE_NAMEPLATE_PARENT = 0x0C18
 PRACTICE_BOT_HEROES = frozenset(range(0x02E000000000016B, 0x02E000000000016F))
@@ -31,12 +40,20 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
+        self.assassin_body = 0
+        self.assassin_handoff = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +61,41 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_context
+
+        value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        acquisition = ACQUISITION_GRAPHS.get(self.hero)
+        if instance is not None and acquisition is not None and instance.graph.index == acquisition[0]:
+            query = cfg.get('$')
+            if query in ('STU_0AC15F78', 'STU_00707E1E'):
+                return expr.Entity(instance.component.entity)
+            if query == 'STU_783B4CF0':
+                return instance.component.entity_var(OWNER_HEALTH).value()
+            if query == 'STU_D379F515':
+                target = instance.evaluate(cfg.get('m_target'))
+                return self.manual_target is not None and target == expr.Entity(self.manual_target)
+            if query == 'STU_47077281':
+                return expr.EVALUATION_FAILED
+        if self.assassin_body and instance is not None and instance.graph.index == ASSASSIN_ACQUISITION:
+            if (cfg.get('$') == 'STU_0AC15F78'
+                    and instance.evaluate(cfg.get('m_entity')) == expr.Entity(instance.component.entity)):
+                return expr.Entity(self.assassin_body)
+            if cfg.get('$') == 'STU_AC829876':
+                target = instance.evaluate(cfg.get('m_entity'))
+                return self.assassin_target_allowed(instance, target, cfg.get('m_filter'))
+        if cfg.get('$') == 'STU_9B7648C3':
+            target = instance.evaluate(cfg.get('m_entity'))
+            if target == expr.Entity(instance.component.entity):
+                # Bound the native health-service query to this body. Its
+                # authoritative aggregate is set before graph initialization
+                # and refreshed by combat; foreign lookup remains unsupported.
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                return expr.f32(value) if value is not None else None
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,6 +123,75 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def animation_seconds(self, state: runtime.State) -> float | None:
+        from ow174.game import assassin
+
+        if not assassin.scoped(self, state.instance) or state.node.pos != 31:
+            return None
+        alias = state.node.field("m_11E0A658") or {}
+        category = state.node.field("m_22326315") or {}
+        if (graph.guid(alias.get("m_animAlias")) == 0x0C80000000000561
+                and graph.guid(category.get("m_category")) == 0x0280000000000082):
+            # Alias 0561 and category 0082 resolve to the 508A.006 clip.
+            return 1.4666666984558105
+        return None
+
+    def entity_var(self, entity, var):
+        if self.assassin_body and self.match is not None:
+            actors = ()
+            if entity == self.assassin_body and var in (13605, 13372):
+                actors = (bot for bot in self.match.bots if bot.entity == entity)
+            elif entity == self.manual_target and var == 14695:
+                actors = (p for p in self.match.players if p.body == entity and p.has_body)
+            for actor in actors:
+                script = actor.body_script
+                if script is not None and script.component.fault is None:
+                    slot = script.component.entity_var(var, create=False)
+                    return slot.value() if slot is not None else None
+        return super().entity_var(entity, var)
+
+    def assassin_target_allowed(self, instance, target, config):
+        if self.manual_target is None or target != expr.Entity(self.manual_target):
+            return False
+        condition = (config or {}).get('m_condition')
+        with instance.component.parameter_scope({8: target}):
+            return condition is None or expr.truthy(instance.evaluate(condition))
+
+    def send_message(self, target, message, params, sender):
+        if self.assassin_body and target == self.assassin_body and message == ASSASSIN_HANDOFF:
+            bot = next((b for b in self.match.bots if b.entity == target and not b.dead), None)
+            controller = getattr(bot, 'target_controller', None)
+            if controller is not None and controller.world is self and controller.entity == sender:
+                slot = controller.entity_var(1650, create=False)
+                if (self.manual_target is not None and slot is not None
+                        and slot.value() == expr.Entity(self.manual_target)):
+                    self.assassin_handoff = self.manual_target
+            return
+        super().send_message(target, message, params, sender)
+
+    def track_targets(self, state):
+        instance = state.instance
+        if self.assassin_body and instance.graph.index == ASSASSIN_ACQUISITION and state.node.pos == 4:
+            target = expr.Entity(self.manual_target or 0)
+            if self.assassin_target_allowed(instance, target, state.node.field('m_filter')):
+                instance.write(expr.lvalue(state.node.field('m_8A2905A0')), (target,))
+                state.try_complete()
+            return True
+        from ow174.game import npc_melee
+
+        return npc_melee.track_targets(self, state)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, npc_melee
+
+        value = npc_melee.modify_health(self, state, elapsed_ms)
+        return assassin.modify_health(self, state, elapsed_ms) if value is NotImplemented else value
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +199,7 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +208,7 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -128,6 +250,9 @@ class BotScript(ReplicatedBody):
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
         self._report_shots()
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         snapshot = self._changed_snapshot()
         if snapshot is not None:
             self.latest_live = snapshot
@@ -139,6 +264,9 @@ class BotScript(ReplicatedBody):
         component = self.component
         if component.owner_dead:
             return None
+        from ow174.game import assassin
+
+        assassin.bind(component.world, component, None)
         if frame < self.frame:
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.

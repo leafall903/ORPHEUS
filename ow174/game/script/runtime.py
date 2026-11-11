@@ -38,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -251,7 +251,12 @@ class InstanceContext(Context):
     def member(self, entity: int, var: int):
         component = self.instance.component
         if entity == component.entity:
+            self.note_ruleset_source(entity)
             return self._read(component.entity_var(var, create=self.watcher is not None))
+        if component.world.has_script_entity(entity):
+            # Native MEMBER1B80D97 writes +230 after both entity and script
+            # resolution, even when the requested variable has no slot/value.
+            self.note_ruleset_source(entity)
         slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
         if slot is not NotImplemented:
             return self._read(slot)
@@ -278,6 +283,26 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def reset_ruleset_source(self):
+        self.instance.ruleset_source_entity = 0
+
+    def note_ruleset_source(self, entity: int):
+        self.instance.ruleset_source_entity = entity & 0xFFFFFFFF
+
+    def ruleset_source(self):
+        return self.instance.ruleset_source_entity
+
+    def ruleset_default(self, key: int, source: int):
+        world = self.instance.component.world
+        if not source or source == self.instance.component.entity:
+            return world.ruleset(key)
+        result = world.ruleset_for_entity(source, key)
+        if result is NotImplemented:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(self.instance, 'ruleset source entity', f'{source:08X}')
+            return None
+        return result
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
@@ -302,13 +327,15 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import controller_heroes, entity_queries, entity_team, npc_queries
 
         result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = npc_queries.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -366,6 +393,36 @@ class World:
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
+    def animation_seconds(self, state: "State") -> float | None:
+        return None
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> None:
+        pass
+
+    def track_targets(self, state: "State") -> bool:
+        """Optional world search. Return true to refresh on subsequent ticks."""
+        return False
+
+    def create_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def destroy_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def create_pet(self, state: "State") -> int:
+        if state.instance.component.strict:
+            state.instance.component.unsupported(state.instance, "pet factory", state.node.cls, state.node)
+        return 0
+
+    def retire_pet(self, entity: int) -> None:
+        """Retire a factory-owned pet with its source state."""
+
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
@@ -374,6 +431,14 @@ class World:
         from ow174.game.script import rulesets
 
         return rulesets.default(key, self.hero, self.mode)
+
+    def ruleset_for_entity(self, entity: int, key: int):
+        """Known referenced actor defaults, known missing actor, or unsupported source service."""
+        return NotImplemented
+
+    def has_script_entity(self, entity: int) -> bool:
+        """Whether both the foreign entity and its script component are known."""
+        return entity == GAME_MODE_ENTITY and bool(self.mode)
 
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
@@ -429,6 +494,22 @@ class World:
 
     def data_flow_context(self, entity: int):
         """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def distance_constraint_registry(self, entity: int):
+        """Explicit native component 88 registration service for an actor."""
+        return NotImplemented
+
+    def possession_request_registry(self, entity: int):
+        """Component 70 request service for a selected body."""
+        return NotImplemented
+
+    def npc_query_context(self, entity: int):
+        """Explicit engine callbacks for NPC queries owned by this entity."""
+        return NotImplemented
+
+    def component76_keys(self, entity: int):
+        """Explicit component 76 keys, known absence or unknown service."""
         return NotImplemented
 
     def entity_query_context(self, entity: int):
@@ -650,10 +731,10 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, force: bool = False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
-        changed = not expr.same(before, after)
+        changed = force or not expr.same(before, after)
         above_source = None
         if stack_source is not None:
             # A Stack value change can only affect the inputs of entries above it.
@@ -670,7 +751,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -939,6 +1020,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_source_entity = 0  # Native Instance+230, reset by each ruleset-value evaluation.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -993,8 +1075,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, force: bool = False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, force=force)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1229,6 +1311,8 @@ class Instance:
         elif event.kind == ASSIGN:
             scope, identifier, value = event.assignment
             self.write((scope, identifier), value)
+        elif event.kind == STOP:
+            self.component.destroy(self)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1485,6 +1569,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These markers describe the queued CHANGED/CHECK events just canceled.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1626,10 +1712,13 @@ class State:
 
     def unlink(self, var: Var, bake: bool = False) -> None:
         before = var.value()
+        linked = any(item.state is self for item in var.links)
         if bake:
             var.base = self.output(0)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        # Native1BA4550 forces invalidation via1BA6E40 after removing an output
+        # binding, even when its time-derived value already equals the baked one.
+        self.instance.changed(var, before, force=linked)
         for state in var.stack_states():
             state.stack_changed(var)
 

@@ -454,7 +454,22 @@ class BodyTests(unittest.TestCase):
                         apply_instance_list(client, update)
                     body.stream.arrived(update.chunk_last)
 
-        with without_payloads("STU_691BFA55"):
+        def historical_unlink(state, var, bake=False):
+            # This byte-for-byte crash fixture reconstructs the old server's
+            # value-only invalidation as well as its missing Effect payload.
+            # Current native-backed structural invalidation changes that trace.
+            before = var.value()
+            if bake:
+                var.base = state.output(0)
+            var.links = [item for item in var.links if item.state is not state]
+            state.instance.changed(var, before)
+            for linked in var.stack_states():
+                linked.stack_changed(var)
+
+        with (
+            without_payloads("STU_691BFA55"),
+            mock.patch.object(runtime.State, 'unlink', historical_unlink),
+        ):
             update, client = frame_at_4094()
         bits, size = chunk_payload(update)
         self.assertEqual((size, bits >> 832 & (1 << 64) - 1), (977, 0x2098989898989898))

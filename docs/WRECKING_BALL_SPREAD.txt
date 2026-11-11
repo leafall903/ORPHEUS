@@ -1,0 +1,63 @@
+Wrecking Ball104319 cannon spread -- partial static acceptance
+
+Authored1514/node24 is STU_239B571E,23C72C36 null,AC20B1C1=20.
+Variables229/230 evaluate0/2degrees;231 is normalized spread. OriginalD80A50
+computes min(1, initial + max(completed shots+1,0)/ramp); ramp<1e-7 yields1.
+The D5F979 output caller adds one to its completed-shot index. D5EAA0 converts
+the interpolated degrees to radians. spread_ramp is baked on params/re-entry
+and stored in VM/server causal snapshots; on_end retains its final output.
+The authored graph recovers231 after release. Other launch classes and optional
+native decay retain previous behavior. They are not silently treated as this
+no-decay model.
+
+weapon_spread generates16384 uint32 values with the original uniform generator
+and16384 f32 signed table values using the captured seed-derived xorshift
+generator. All generated outputs match complete capture fingerprints; no game
+table asset is bundled. D5EB70 seed-base and D5F8D0 index arithmetic are shared.
+Circular aspect1 transform uses D80090/884090 math. Native basis fallback tests
+squared length against25E1860=0x03C80000; generic1e-7 length epsilon incorrectly
+flips horizontal signs near vertical aim. The current helper uses the original
+threshold. Its ideal normalization/libm rotation are bounded comparisons, not
+a bit-exact full native math backend.
+
+Actual Combat rays now call Ball.cannon_direction only for current owned1514
+node24, with event shot number/time/activation. Seed identity mapping uses
+body/script-instance/node/counter, uniform radial mode, aspect1 and the current
+eye origin. These are declared server policies. Native handles, counter/muzzle
+selection, actual sampling-mode source, animation/recoil and client prediction
+are unresolved. Other heroes and NPC rays do not adopt this scoped policy.
+The generators are deterministic/pure; regenerating caches does not change
+event vectors. No mutable RNG or wall clock controls the spread event.
+
+Evidence:
+test_script_volley_spread: six source-state checks for ramp, f32 rounding,
+activation bake/re-entry, terminal value, unsupported decay and causal storage.
+test_weapon_spread: full-table fingerprints, cold-cache repeatability, cone
+geometry including exact poles, and the original near-pole failing vector.
+test_wrecking_ball_spread: actual80round/20shot ramp, differing damage vectors,
+duplicate command rejection/ammo0/automatic reload; release/recovery/new volley;
+near real damage and far living target misses. Actual data graph, ordinary
+input, capsule/static geometry and in-memory transport fixtures are explicit.
+The combined33 related/all-five-NPC checks pass88.348s. Current36 single-shot
+player/all-five hit/falloff/floor/range/wall/miss matrix passes ammo/earned-charge.
+All841 script tests pass23.942s,546 combat/movement/NPC/VM tests pass600.195s,
+and13 complete server snapshot/replay tests pass550.088s.389 Python hashes
+remain unchanged throughout; Ruff/diff pass, source freeze released.
+
+Offline native probes in the lane: ball-spread-native-validation.json contains
+224 normalized and25 angle comparisons; config lookup/type services are explicit
+adapters. ball-transform-native-validation.json compares140 original vectors,
+including poles/tiny transverse components, max error7.33e-8. Only scalar f32
+sin/cos/atan2/sqrt are adapted; original table/index/cross/rotation code executes
+in Unicorn. Native caller identity/mode/muzzle equivalence is not established.
+
+Full static matrix remains open: complete reload/status/death/filter interactions,
+barrier/reflect/absorb/invulnerability and full bidirectional NPC/specials matrix;
+native hit regions/critical sentinel/falloff precision and original client are
+unproved. No completion commit or merge-ready patch is claimed.
+
+The31-row full acceptance audit separately finds Enforcer13EB/node24 declares
+25 projectiles with613BDDB0 pattern data while the current Combat path emits
+one. Existing2-point incoming damage is only one center-path observation,
+not complete NPC damage correctness. See lane enforcer-pellet-frontier.json;
+full count/pattern handling must be restored and executed before acceptance.

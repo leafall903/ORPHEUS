@@ -224,6 +224,7 @@ class Shot:
     observers: list = field(default_factory=list)  # per-viewer launches of this projectile
     field_due: int | None = None
     field_tick: int | None = None
+    field_healed_through: int = -1
     faded: bool = False
     arrivals: list = field(default_factory=list)  # the field entities whose create arrived
 
@@ -479,12 +480,7 @@ class Projectiles:
         if shot.field_tick is None:
             shot.field_tick = start
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
-        # The opening tick has no heal, and the field ends before the expiry tick.
-        # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+        self._heal_field(shot, start, tick, first_tick)
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return
@@ -494,6 +490,29 @@ class Projectiles:
             for arrival in shot.arrivals:
                 arrival.send()
         self._deliver_field(shot)
+
+    def heal_admitted_fields(self, tick: int) -> None:
+        """Settle one catch-up tick for canisters with a scheduled opening."""
+        for shot in self.shots:
+            start = shot.field_due
+            if start is None or tick <= start:
+                continue
+            player = shot.player
+            if player.client is None or not player.has_body or player.body != shot.body:
+                continue
+            if player.body_script is not None:
+                self._heal_field(shot, start, tick, tick)
+
+    def _heal_field(self, shot: Shot, start: int, tick: int, first_tick: int) -> None:
+        # The opening and expiry ticks do not heal. Catch-up uses the latest body poses.
+        since = max(first_tick - 1, start, shot.field_healed_through)
+        until = min(tick, start + FIELD_TICKS - 1)
+        if until <= since:
+            return
+        amount = HEAL_PER_SECOND * FRAME_MS / 1000 * (until - since)
+        interval = (since * FRAME_MS / 1000, until * FRAME_MS / 1000)
+        self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount, interval=interval)
+        shot.field_healed_through = until
 
     def _deliver_field(self, shot: Shot) -> None:
         """Create each field once. Owner copies wait for their canister parent to arrive."""

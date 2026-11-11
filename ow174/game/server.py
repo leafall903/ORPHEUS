@@ -698,6 +698,8 @@ class Client:
         match = self.player.match
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
         if bot is None:
+            bot = match.combat.mines.entities.get(entity)
+        if bot is None:
             if not any(player.has_body and player.body == entity for player in match.players):
                 return
             self._player_body_reuse_after[entity] = None

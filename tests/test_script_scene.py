@@ -6,7 +6,15 @@ import unittest
 import uuid
 from unittest import mock
 
-from ow174.game.script import expr, play, runtime, scene
+from ow174.game.script import (
+    distance_constraints,
+    expr,
+    npc_queries,
+    play,
+    possession_requests,
+    runtime,
+    scene,
+)
 from tests.test_script_for_code import KEY, make, row
 from tests.test_script_play_resource import array, inline, integer, requesting, with_schema
 from tests.test_script_play_resource import row as schema_row
@@ -43,6 +51,75 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_enforcer_possession_request_preserves_configured_float_order(self):
+        world = scene.SceneWorld()
+        owner, target = 123, 456
+        world.bind(owner)
+        world.bind(target, ALPHA)
+        requests = possession_requests.Registry(lambda state: possession_requests.Inputs(owner, 1234))
+        world.set_possession_requests(target, requests)
+        component = runtime.Component(owner, world=world, strict=True)
+        authored = graph([node(
+            0, 'STU_473549CA', state=0, m_00D49978=reference(),
+            m_49EEBB65={'$': 'STUConfigVarFloat', 'm_value': 1.25},
+            m_FD4D6C19={'$': 'STUConfigVarFloat', 'm_value': 2.5},
+        )])
+        instance = component.create(authored, init=False)
+        instance.state(0).begin()
+        self.assertEqual(requests.requests, (
+            possession_requests.Request(owner, 1234, kind=1, payload=(1.25, 2.5)),
+        ))
+        component.destroy(instance)
+        self.assertFalse(requests.requests)
+
+    def test_possession_request_cleanup_leaves_other_requests_intact(self):
+        world = scene.SceneWorld()
+        owner, target = 123, 456
+        world.bind(owner)
+        world.bind(target, ALPHA)
+        requests = possession_requests.Registry(lambda state: possession_requests.Inputs(owner, 1234))
+        world.set_possession_requests(target, requests)
+        old = possession_requests.Request(345, 23)
+        top = possession_requests.Request(678, 45, above_equal=True)
+        requests.insert(old)
+        component = runtime.Component(owner, world=world, strict=True)
+        definition = graph([node(0, 'STU_CF8C7CC5', state=0, m_00D49978=reference())])
+        active = component.create(definition, init=False)
+        state = active.state(0)
+        state.begin()
+        request = possession_requests.Request(owner, 1234)
+        requests.insert(top)
+        self.assertEqual(requests.requests, (top, old, request))
+        state.end(False)
+        self.assertEqual(requests.requests, (top, old))
+        state.begin()
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'fixture failure', 'Fixture')
+        self.assertEqual(requests.requests, (top, old))
+        world.unbind(target)
+        self.assertFalse(requests.requests)
+
+    def test_distance_constraint_registry_orders_equal_priority_and_cleans_up_on_failure(self):
+        world = scene.SceneWorld()
+        world.bind(123)
+        registry = distance_constraints.Registry()
+        world.set_distance_constraints(123, registry)
+        old = registry.register(object(), priority=1.5)
+        newest = registry.register(object(), priority=1.5, above_equal=True)
+        low = registry.register(object(), priority=-1)
+        component = runtime.Component(123, world=world, strict=True)
+        active = component.create(graph([node(0, 'STU_B61E6681', state=0)]), init=False)
+        state = active.state(0)
+        state.begin()
+        added = state.registration[1]
+        self.assertEqual(registry.entries, (newest, old, added, low))
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'fixture failure', 'Fixture')
+        self.assertEqual(registry.entries, (newest, old, low))
+        world.unbind(123)
+        self.assertFalse(registry.entries)
+        self.assertIs(world.distance_constraint_registry(123), NotImplemented)
+
     def test_client_id_namespace_is_independent_of_local_and_flat_indexes(self):
         data = manifest(placement(0, client_id=55))
         world = scene.SceneWorld.from_map(data, entity_start=419)
@@ -167,6 +244,107 @@ class SceneIdentityTests(unittest.TestCase):
 
 
 class NativeFailureTests(unittest.TestCase):
+    def test_npc_query_context_forwards_typed_arguments_and_retires_on_unbind(self):
+        world = scene.SceneWorld()
+        world.bind(123, ALPHA)
+        world.bind(456, BETA)
+        calls = []
+        world.set_npc_query_context(123, npc_queries.Context(
+            lambda owner, selector: calls.append((owner, selector)) or 456,
+            lambda owner, target: calls.append((owner, target)) or True,
+        ))
+        active = caller(world)
+        entity = {'$': npc_queries.ENTITY_QUERY, 'm_152B6961': reference(),
+                  'm_A60150E2': {'$': 'STUConfigVarInt', 'm_value': 4}}
+        pair = {'$': npc_queries.PAIR_QUERY, 'm_7826B991': reference(), 'm_target': reference(BETA)}
+        self.assertEqual(active.evaluate(entity), expr.Entity(456))
+        self.assertIs(active.evaluate(pair), True)
+        self.assertEqual(calls, [(123, 4), (123, 456)])
+        world.unbind(123)
+        world.bind(123, ALPHA)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            active.evaluate(entity)
+
+    def test_foreign_script_reader_exposes_live_values_without_allocating_a_slot(self):
+        world = scene.SceneWorld()
+        body = 456
+        world.bind(body)
+        foreign = runtime.Component(body)
+
+        def read_variable(var):
+            slot = foreign.entity_var(var, create=False)
+            return slot.value() if slot is not None else None
+
+        world.set_foreign_script_reader(body, read_variable)
+        self.assertIsNone(world.entity_var(body, 888))
+        self.assertIs(world.entity_var_slot(body, 888, create=True), NotImplemented)
+        self.assertIsNone(foreign.entity_var(888, create=False))
+        foreign.set(888, True)
+        self.assertIs(world.entity_var(body, 888), True)
+        world.unbind(body)
+        world.bind(body)
+        self.assertIs(world.entity_var(body, 888), NotImplemented)
+
+    def test_enforcer_inherited_queries_preserve_the_callers_output(self):
+        world = scene.SceneWorld()
+        authored = graph()
+        authored.index = 0x0C83
+        active = runtime.Component(123, world=world, strict=True).create(authored, init=False)
+        initial = expr.Asset(17)
+        for cls in ('STU_4FC9D3E1', 'STU_7DCA538E'):
+            cfg = {'$': cls, 'm_00903303': {'$': 'STU_B5A0CAF0'}}
+            self.assertIs(active.evaluate(cfg, initial=initial), initial)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            caller(world).evaluate(cfg, initial=initial)
+
+    def test_health_query_reads_live_provider_and_rejects_an_unbound_replacement(self):
+        world = scene.SceneWorld()
+        target = 456
+        world.bind(target, ALPHA)
+        active = caller(world)
+        cfg = {'$': 'STU_783B4CF0', 'm_7BE02F89': None, 'm_entity': reference(),
+               'm_7E8B666C': {'$': 'STU_297E1A30', 'm_7E8B666C': 0}}
+        total = 350
+        world.set_health_pool_reader(target, lambda: total)
+        self.assertEqual(active.evaluate(cfg), 350.0)
+        total = 345
+        self.assertEqual(active.evaluate(cfg), 345.0)
+        world.set_health_pool_reader(target, None)
+        self.assertEqual(active.evaluate(cfg), 0.0)
+        world.unbind(target)
+        self.assertEqual(active.evaluate(cfg), 0.0)
+        world.bind(target, ALPHA)
+        with self.assertRaises(runtime.UnsupportedScriptError) as error:
+            active.evaluate(cfg)
+        self.assertEqual(error.exception.diagnostic['class'], 'STU_783B4CF0')
+
+    def test_npc_difficulty_reads_the_bound_possessor_and_retires_with_it(self):
+        world = scene.SceneWorld()
+        body, owner = 123, 456
+        for entity in (body, owner):
+            world.bind(entity)
+        world.set_possessions(possessors=(owner,), primary=((body, owner),))
+        normal = expr.Asset(0x0D8000000000195F)
+        hard = expr.Asset(0x0D800000000026DF)
+        world.set_npc_difficulty(body, hard)
+        world.set_npc_difficulty(owner, normal)
+        authored = graph()
+        authored.index = 0x143A
+        active = runtime.Component(body, world=world, strict=True).create(authored, init=False)
+        cfg = {'$': 'STU_C3619A38', 'm_resourceKey': None, 'm_F52607FF': {
+            '$': 'STU_DB742151', 'm_entity': {'$': 'STU_B5A0CAF0'},
+        }}
+        self.assertEqual(active.evaluate(cfg), normal)
+        world.set_npc_difficulty(owner, None)
+        self.assertIs(active.evaluate(cfg, initial=hard), hard)
+
+        world.unbind(owner)
+        world.bind(owner)
+        world.set_possessions(possessors=(owner,), primary=((body, owner),))
+        with self.assertRaises(runtime.UnsupportedScriptError) as error:
+            active.evaluate(cfg)
+        self.assertEqual(error.exception.diagnostic['class'], 'STU_C3619A38')
+
     def test_failed_reference_preserves_destination_but_successful_null_overwrites_it(self):
         active = caller(scene.SceneWorld())
         initial = expr.Asset(17)

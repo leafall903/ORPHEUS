@@ -46,7 +46,7 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.mover import FELL, GRAVITY_SCALE, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -120,8 +120,9 @@ class Bot:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
+        self.airborne = False  # explicit combat impulse motion temporarily owns the NPC pose
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
-        self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.attack_target = None  # the NPC's selected player controller
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
@@ -159,7 +160,7 @@ class Bot:
 
     def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if self.dead:
+        if self.dead or self.airborne:
             return
         if not self.route:
             if tick < paused_until:
@@ -295,9 +296,13 @@ class Bot:
 
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
+        from ow174.game import npc_control
+
+        npc_control.retire_acquisition(self)
         self.dead = True
         self.attack_target = None
         self.attack_input = False
+        self.airborne = False
         self.keys = False
         self.held = (0, 0)
         self._stand()
@@ -337,7 +342,7 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else (FELL if self.airborne else 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,

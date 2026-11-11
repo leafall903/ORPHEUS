@@ -11,12 +11,14 @@ import copy
 import math
 import struct
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from ow174.game.script import (
     animation_alias,
     controller_heroes,
     data_flow,
+    distance_constraints,
     effect_routing,
     entity_control,
     entity_queries,
@@ -28,8 +30,10 @@ from ow174.game.script import (
     message_state,
     model_look,
     modifiers,
+    npc_queries,
     play,
     play_queue,
+    possession_requests,
     runtime,
     scopes,
     voice_stimulus,
@@ -85,6 +89,7 @@ class SceneEntity:
     reference: uuid.UUID
     position: expr.Vec3 | None
     placement: Placement | None = None
+    forward: expr.Vec3 | None = None
 
 
 class SceneWorld(runtime.World):
@@ -106,6 +111,10 @@ class SceneWorld(runtime.World):
         self.definitions: dict[int, dict] = {}
         self.possessors: set[int] | None = None  # None means component availability is unknown.
         self.primary_possessors: dict[int, int] = {}
+        self.npc_difficulties: dict[int, expr.Asset | None] = {}
+        self.health_pool_readers: dict[int, Callable[[], float] | None] = {}
+        self.distance_constraints: dict[int, distance_constraints.Registry] = {}
+        self.possession_requests: dict[int, possession_requests.Registry] = {}
         self.modifier_components: dict[int, modifiers.NumericModifiers | None] = {}
         self.scope_components: dict[int, scopes.Registry | None] = {}
         self.effect_contexts: dict[int, effect_routing.Context | None] = {}
@@ -115,15 +124,19 @@ class SceneWorld(runtime.World):
         self.look_contexts: dict[int, model_look.Context] = {}
         self.data_flow_contexts: dict[int, data_flow.Context] = {}
         self.script_components: dict[int, runtime.Component | None] = {}
+        self.foreign_message_receivers: dict[int, Callable[[], runtime.Component | None]] = {}
+        self.foreign_script_readers: dict[int, Callable[[int], object]] = {}
         self.play_queues: dict[int, play_queue.Queue] = {}
         self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
+        self.npc_query_contexts: dict[int, npc_queries.Context] = {}
+        self.component76_records: dict[int, entity_queries.Component76Keys | None] = {}
         self.hero_contexts: dict[int, controller_heroes.Context] = {}
         self.team_contexts: dict[int, entity_team.Context] = {}
         self.message_contexts: dict[int, message_state.Context] = {}
 
     def bind(self, entity: int, reference=None, position=None,
-             *, placement: Placement | None = None) -> SceneEntity:
+             *, placement: Placement | None = None, forward=None) -> SceneEntity:
         """Bind an entity that the world owner has created; never allocate its ID."""
         if (type(entity) is not int or not 0 <= entity <= 0xFFFFFFFF
                 or not expr.valid_entity(entity)):
@@ -134,7 +147,8 @@ class SceneWorld(runtime.World):
         if reference.int and reference in self.references:
             raise ValueError("scene entity UUID is already bound")
         resolved_position = _position(position) if position is not None else None
-        record = SceneEntity(entity, reference, resolved_position, placement)
+        resolved_forward = _position(forward) if forward is not None else None
+        record = SceneEntity(entity, reference, resolved_position, placement, resolved_forward)
         self.entities[entity] = record
         if reference.int:
             self.references[reference] = entity
@@ -145,6 +159,17 @@ class SceneWorld(runtime.World):
         self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
+        self.npc_difficulties.pop(entity, None)
+        self.health_pool_readers.pop(entity, None)
+        self.component76_records.pop(entity, None)
+        self.foreign_script_readers.pop(entity, None)
+        self.foreign_message_receivers.pop(entity, None)
+        constraints = self.distance_constraints.pop(entity, None)
+        if constraints is not None:
+            constraints.clear()
+        requests = self.possession_requests.pop(entity, None)
+        if requests is not None:
+            requests.clear()
         self.modifier_components.pop(entity, None)
         self._retire_control_contexts(entity=entity)
         aliases = self.alias_components.pop(entity, None)
@@ -173,6 +198,40 @@ class SceneWorld(runtime.World):
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
 
+    def set_npc_difficulty(self, entity: int, difficulty: expr.Asset | None) -> None:
+        """Declare the actor's difficulty or a known no-output selector."""
+        self._bound_entity(entity)
+        if difficulty is not None and (not isinstance(difficulty, expr.Asset)
+                                       or difficulty.guid >> 48 != 0x0D80):
+            raise ValueError("NPC difficulty must be a difficulty asset")
+        self.npc_difficulties[entity] = difficulty
+
+    def set_health_pool_reader(self, entity: int, read_total: Callable[[], float] | None) -> None:
+        """Bind live total health, or declare component 51 absent."""
+        self._bound_entity(entity)
+        if read_total is not None and not callable(read_total):
+            raise ValueError("health pool reader must be callable")
+        self.health_pool_readers[entity] = read_total
+
+    def set_distance_constraints(self, entity: int, registry: distance_constraints.Registry) -> None:
+        self._bound_entity(entity)
+        if entity in self.distance_constraints:
+            raise ValueError("distance constraint registry is already bound")
+        self.distance_constraints[entity] = registry
+
+    def distance_constraint_registry(self, entity: int):
+        return self.distance_constraints.get(entity, NotImplemented)
+
+    def set_possession_requests(self, entity: int, registry: possession_requests.Registry) -> None:
+        self._bound_entity(entity)
+        if (type(registry) is not possession_requests.Registry or entity in self.possession_requests
+                or registry in self.possession_requests.values()):
+            raise ValueError("possession requests need an unbound registry")
+        self.possession_requests[entity] = registry
+
+    def possession_request_registry(self, entity: int):
+        return self.possession_requests.get(entity, NotImplemented)
+
     def bind_script_component(self, entity: int, component: runtime.Component | None) -> None:
         """Publish the actual component, or explicitly declare component absence."""
         self._bound_entity(entity)
@@ -184,6 +243,22 @@ class SceneWorld(runtime.World):
         if entity in self.script_components and self.script_components[entity] is not component:
             raise ValueError('detach the existing script component before replacement')
         self.script_components[entity] = component
+
+    def set_foreign_script_reader(self, entity: int, read_variable: Callable[[int], object]) -> None:
+        """Expose values from an externally hosted VM without granting write access."""
+        self._bound_entity(entity)
+        if not callable(read_variable):
+            raise ValueError('foreign script reader must be callable')
+        self.foreign_script_readers[entity] = read_variable
+
+    def set_foreign_message_receiver(
+        self, entity: int, resolve: Callable[[], runtime.Component | None],
+    ) -> None:
+        """Read the current body component in another world without changing either world."""
+        self._bound_entity(entity)
+        if not callable(resolve):
+            raise ValueError('foreign message receiver must be callable')
+        self.foreign_message_receivers[entity] = resolve
 
     def _notify_script_retired(self, component):
         for instance in component.instances.values():
@@ -205,6 +280,7 @@ class SceneWorld(runtime.World):
         if component is not None and self.script_components.get(entity) is not component:
             raise ValueError('script component binding belongs to another lifecycle')
         previous = self.script_components.pop(entity, None)
+        self.npc_query_contexts.pop(entity, None)
         messages = self.message_contexts.pop(entity, None)
         if messages is not None:
             messages.retire()
@@ -287,16 +363,34 @@ class SceneWorld(runtime.World):
 
     def send_game_message_packet(self, instance, node, target, packet):
         source = self._game_message_component(instance, node)
-        if target not in self.entities:
+        record = self.entities.get(target)
+        if record is None:
             return
         receiver = self.script_components.get(target, NotImplemented)
+        resolve = self.foreign_message_receivers.get(target) if receiver is NotImplemented else None
+        if resolve is not None:
+            receiver = resolve()
+            self._game_message_component(instance, node)
+            if (self.entities.get(target) is not record or target in self.script_components
+                    or self.foreign_message_receivers.get(target) is not resolve
+                    or (receiver is not None and (not isinstance(receiver, runtime.Component)
+                                                  or receiver.entity != target or receiver.world is self))):
+                source.unsupported(instance, 'scene foreign message receiver lifecycle', node.cls, node)
         if receiver is None:
             return
         if receiver is NotImplemented or receiver.fault is not None:
             source.unsupported(instance, 'scene message target component', node.cls, node)
         message_receive.deliver(receiver, packet)
         self._game_message_component(instance, node)
-        if self.script_components.get(target) is not receiver or receiver.fault is not None:
+        if resolve is None:
+            bound = self.script_components.get(target)
+        else:
+            bound = resolve()
+            self._game_message_component(instance, node)
+            if (self.entities.get(target) is not record or target in self.script_components
+                    or self.foreign_message_receivers.get(target) is not resolve):
+                bound = None
+        if bound is not receiver or receiver.fault is not None:
             source.unsupported(instance, 'scene message target lifecycle', node.cls, node)
 
     def game_message_subject(self, instance, node, instigator):
@@ -533,6 +627,26 @@ class SceneWorld(runtime.World):
     def entity_query_context(self, entity: int):
         return self.query_contexts.get(entity, NotImplemented)
 
+    def set_npc_query_context(self, entity: int, context: npc_queries.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not npc_queries.Context:
+            raise ValueError('invalid NPC query context')
+        self.npc_query_contexts[entity] = context
+
+    def npc_query_context(self, entity: int):
+        return self.npc_query_contexts.get(entity, NotImplemented)
+
+    def set_component76_keys(self, entity: int, keys: entity_queries.Component76Keys | None) -> None:
+        self._bound_entity(entity)
+        if keys is not None and type(keys) is not entity_queries.Component76Keys:
+            raise ValueError('expected explicit component 76 keys or known absence')
+        self.component76_records[entity] = keys
+
+    def component76_keys(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.component76_records.get(entity, NotImplemented)
+
     def set_controller_hero_context(self, entity: int, context: controller_heroes.Context) -> None:
         self._bound_entity(entity)
         if type(context) is not controller_heroes.Context or context.owner != entity or context.retired:
@@ -590,6 +704,8 @@ class SceneWorld(runtime.World):
                                if key != entity and (target is None or target.owner != entity)}
 
     def script_failed(self, component: runtime.Component) -> None:
+        if self.script_components.get(component.entity) is component:
+            self.npc_query_contexts.pop(component.entity, None)
         actual = self.script_components.get(component.entity, NotImplemented)
         if actual is not NotImplemented and actual is not component:
             return  # A stale source cannot retire its replacement's engine services.
@@ -696,10 +812,21 @@ class SceneWorld(runtime.World):
         record = self.entities.get(entity)
         return record.position if record is not None else None
 
+    def body_forward(self, entity: int) -> expr.Vec3 | None:
+        record = self.entities.get(entity)
+        return record.forward if record is not None else None
+
     def entity_var(self, entity: int, var: int):
         slot = self.entity_var_slot(entity, var)
         if slot is not NotImplemented:
             return slot.value() if slot is not None else None
+        if entity not in self.script_components and entity in self.foreign_script_readers:
+            read_variable = self.foreign_script_readers[entity]
+            value = read_variable(var)
+            if (self.foreign_script_readers.get(entity) is read_variable
+                    and entity not in self.script_components):
+                return value
+            return NotImplemented
         if (entity == runtime.GAME_MODE_ENTITY and entity not in self.script_components
                 and runtime.mode_variables(self.mode) is not None):
             return super().entity_var(entity, var)
@@ -707,6 +834,44 @@ class SceneWorld(runtime.World):
         return NotImplemented
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if instance is not None and instance.graph.index == 0x102F:
+            query = cfg.get("$")
+            if query in ("STU_71A87E92", "STU_021D01CD"):
+                entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
+                # CCDD80 returns the forward axis of the entity transform.
+                value = self.position(entity) if query == "STU_71A87E92" else self.body_forward(entity)
+                if value is not None:
+                    return value
+        if (instance is not None and instance.graph.index in (0x1138, 0x1172, 0x11E3, 0x13E9)
+                and cfg.get("$") == "STU_47077281"):
+            # The authored query resolves to the inherited no-output evaluator in 104319.
+            return expr.EVALUATION_FAILED
+        if (instance is not None and instance.graph.index == 0x0C83
+                and cfg.get("$") in ("STU_4FC9D3E1", "STU_7DCA538E")
+                and (cfg.get("m_00903303") or {}).get("$") == "STU_B5A0CAF0"):
+            # Both serialized configs use the 104319 inherited no-output evaluator.
+            return expr.EVALUATION_FAILED
+        if (cfg.get("$") == "STU_783B4CF0" and instance is not None and cfg.get("m_7BE02F89") is None
+                and (cfg.get("m_7E8B666C") or {}).get("m_7E8B666C") == 0):
+            target = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
+            if not expr.valid_entity(target):
+                return 0.0
+            if target in self.health_pool_readers:
+                read_total = self.health_pool_readers[target]
+                if read_total is None:
+                    return 0.0
+                total = read_total()
+                instance.component.ensure_valid()
+                if (self.health_pool_readers.get(target) is not read_total
+                        or type(total) not in (int, float) or not 0 <= total <= 3.4028234663852886e38):
+                    instance.component.unsupported(instance, "live total health provider", cfg["$"])
+                return expr.f32(total)
+        if (cfg.get("$") == "STU_C3619A38" and instance is not None
+                and instance.graph.index in (0x142A, 0x143A) and cfg.get("m_resourceKey") is None):
+            target = expr.to_entity(instance.evaluate(cfg.get("m_F52607FF")))
+            if target in self.npc_difficulties:
+                difficulty = self.npc_difficulties[target]
+                return expr.EVALUATION_FAILED if difficulty is None else difficulty
         if cfg.get("$") == "STU_DB742151" and self.possessors is not None:
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
             return expr.Entity(self.primary_possessor(expr.to_entity(value)))

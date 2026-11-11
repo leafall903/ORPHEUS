@@ -14,7 +14,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import correction, match, scalar_math
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
 from ow174.paths import DATA_DIR, ROOT
@@ -28,6 +28,15 @@ DEPENDENCIES = {"cryptography": "50.0.0", "protobuf": "6.33.6", "websockets": "1
 
 
 class ReplayManifestTests(unittest.TestCase):
+    def test_host_math_profile_is_recorded_and_mismatch_rejects_replay(self):
+        configuration = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        self.assertEqual(configuration['math.rsqrtss'], scalar_math.profile())
+        first = self.capture(configuration=configuration)
+        configuration['math.rsqrtss'] = {**configuration['math.rsqrtss'], 'probe_sha256': '0' * 64}
+        changed = self.capture(configuration=configuration)
+        with self.assertRaises(manifest.ManifestMismatch):
+            manifest.assert_compatible(first, changed)
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -76,6 +85,18 @@ class ReplayManifestTests(unittest.TestCase):
         configuration = {"ratio": -0.0, "quanta": 16000, "HEROES": {1, 3}, "HEALTH": None}
         second = self.capture(root=other, configuration=configuration)
         self.assertEqual(first, second)
+
+    def test_optional_barrier_geometry_bytes_are_sealed(self):
+        absent = self.capture()
+        geometry = self.data / "barrier_geometry_174.json"
+        geometry.write_bytes(b"mesh A")
+        present = self.capture()
+        path = "files/data/barrier_geometry_174.json"
+        self.assertEqual(manifest.compare_manifests(absent, present), [{"path": path, "kind": "added"}])
+        geometry.write_bytes(b"mesh B")
+        self.assertEqual(
+            manifest.compare_manifests(present, self.capture()), [{"path": path, "kind": "changed"}],
+        )
 
     def test_changes_to_same_length_source_and_data_bytes_are_diagnosed(self):
         first = self.capture()

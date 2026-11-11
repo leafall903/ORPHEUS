@@ -6,19 +6,41 @@ Scene bindings and the reverse primary-possessor catalog do not imply these inpu
 
 from dataclasses import dataclass
 
-from ow174.game.script import expr, play
+from ow174.game.script import expr, graph, play
 
 EXISTS = 'STU_E72F6348'
 POSSESSED = 'STU_0AC15F78'
+CONTROLLED_BODY = 'STU_00707E1E'
+COMPONENT76_KEY = 'STU_25ECB55F'
+
+
+@dataclass(frozen=True)
+class Component76Keys:
+    primary: frozenset[int] = frozenset()
+    fallback: frozenset[int] = frozenset()
+    suppressed: frozenset[int] = frozenset()
+
+    def __post_init__(self):
+        for entries in (self.primary, self.fallback, self.suppressed):
+            if type(entries) is not frozenset or any(
+                    type(key) is not int or not 0 <= key <= 0xFFFFFFFF for key in entries):
+                raise ValueError('component 76 keys must be uint32 sets')
+
+    def contains(self, key: int) -> bool:
+        return key not in self.suppressed if key in self.primary else key in self.fallback
 
 
 @dataclass
 class Possession:
     current: int
+    controlled_body: int | None = None  # Component 44 +D0. Current possession uses +D8.
 
     def __post_init__(self):
         if type(self.current) is not int or not 0 <= self.current <= 0xFFFFFFFF:
             raise ValueError('current possession must be a native uint32 identity')
+        if (self.controlled_body is not None
+                and (type(self.controlled_body) is not int or not 0 <= self.controlled_body <= 0xFFFFFFFF)):
+            raise ValueError('controlled body must be a native uint32 identity')
 
 
 @dataclass(frozen=True)
@@ -60,7 +82,29 @@ class Context:
 def evaluate(evaluation, cfg):
     """Return NotImplemented only when this world has not installed the service."""
     cls = cfg.get('$')
-    if cls not in (EXISTS, POSSESSED):
+    if cls == COMPONENT76_KEY:
+        instance = evaluation.instance
+        component = instance.component
+        resource = cfg.get('m_88B0050A')
+        key = 0 if resource is None else graph.guid(resource)
+        if key is None:
+            component.unsupported(instance, 'component 76 resource key', cls)
+        value = play.evaluate_scalar(
+            instance, cfg.get('m_entity'), initial=expr.Entity(0), watcher=evaluation.watcher,
+        )
+        record = component.world.component76_keys(expr.to_entity(value))
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, 'component 76 query owner retired', cls)
+        if record is NotImplemented:
+            return NotImplemented
+        if record is None:
+            return False
+        if type(record) is not Component76Keys:
+            component.unsupported(instance, 'component 76 keys', cls)
+        return record.contains(key & 0xFFFFFFFF)
+    if cls not in (EXISTS, POSSESSED, CONTROLLED_BODY):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher
     component = instance.component
@@ -106,7 +150,8 @@ def evaluate(evaluation, cfg):
 
     # Native +20 selection uses the first config of 06610EBC, then F64C20
     # unwraps only the first member of nested arrays. Failure/non-entity => 0.
-    value = play.evaluate_scalar(instance, cfg.get('m_entity'), initial=expr.Entity(0), watcher=watcher)
+    selector = 'm_00903303' if cls == CONTROLLED_BODY else 'm_entity'
+    value = play.evaluate_scalar(instance, cfg.get(selector), initial=expr.Entity(0), watcher=watcher)
     check()
     identifier = expr.to_entity(value) & 0xFFFFFFFF
     if cls == EXISTS and not expr.valid_entity(identifier):
@@ -116,6 +161,8 @@ def evaluate(evaluation, cfg):
         unsupported('entity query lookup result')
     if cls == EXISTS:
         return target is not None
+    if cls == CONTROLLED_BODY and (target is None or target.possession is None):
+        unsupported('controlled body fallback context')
     if target is None:
         watch_environment(0 if context.environment_present else 46)
         return expr.EVALUATION_FAILED
@@ -125,6 +172,8 @@ def evaluate(evaluation, cfg):
         unsupported('entity query current possession')
     if watcher is not None:
         call(context.watch_possession, 'entity query possession subscription', watcher, target)
-    if type(target.possession.current) is not int or not 0 <= target.possession.current <= 0xFFFFFFFF:
-        unsupported('entity query current possession')
-    return expr.Entity(target.possession.current)
+    result = target.possession.controlled_body if cls == CONTROLLED_BODY else target.possession.current
+    if type(result) is not int or not 0 <= result <= 0xFFFFFFFF:
+        field = 'controlled body' if cls == CONTROLLED_BODY else 'current possession'
+        unsupported(f'entity query {field}')
+    return expr.Entity(result)

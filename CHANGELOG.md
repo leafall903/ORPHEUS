@@ -4,7 +4,981 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+#### Wrecking Ball server integration handoff
+
+- Deliver the current 104319 server implementation and its shared combat, NPC,
+  StateScript and snapshot dependencies for integration. The focused 72-test
+  run passed, including manual five-NPC combat and lethal Quick Melee that
+  releases an allied player from an active Assassin pin. Ruff and the staged
+  diff check passed. Full static coverage and original-client play remain open.
+
+- Probed all five authored PvE controllers in strict mode. Their
+  shared startup stops at the difficulty query in 142A, then at
+  142A node 26 when the probe supplies normal difficulty alone.
+  The live manual bodies stay idle until explicitly engaged.
+  The scene host now resolves declared NPC difficulty for 142A
+  and 143A. All five controllers with a matching mode difficulty
+  reach the distance constraint at 142A node 3. The binding
+  retires with its entity.
+  Component 88 now registers and removes both isolated authored
+  constraints, including node 2's priority asset. Their 104319
+  runtime classes share the registration and removal callbacks.
+  Native lookup also resolves nodes 7 and 12 to the plain State.
+  The strict controller starts both constraints when given an
+  explicit persistent-message fixture. Startup then stops at
+  the node 25 entity-existence query and removes both entries.
+  A possession fixture now resolves node 25 against the real
+  Match NPC body registry. Present bodies enter node 24. Removed
+  bodies skip it even with the former identity still selected.
+  A native node 24 probe verifies component 70 selection and
+  request insertion and removal, including equal-priority order
+  and repeated cleanup.
+  The strict scene runtime now submits the default node 24
+  request to an explicit component 70 registry on the selected
+  NPC body. Strict failure and target unbind retire the request.
+  Native lookup resolves three serialized states in four species
+  controller graphs to the plain State. Strict startup advances
+  to their next species-specific state.
+  Two more species states use the same verified fallback. All
+  five then reach the component 51 health query. An explicit
+  scene binding reads the Match body's current vitals and
+  advances each graph. A real Ball cannon hit lowers the next
+  read by five on each of the five bodies.
+  Two Enforcer queries in 0C83 now preserve the caller's value
+  using their 104319 inherited evaluator behavior. The strict
+  Enforcer probe advances through 13E9 node 19 allocation to
+  node 0. Isolated node 19 inserts its authored component 70
+  request with kind 1 and payload (3, 3), then removes it on abort.
+  Native lookup resolves node 0 to the plain State. The shared
+  00707E1E query now reads the explicitly bound component 44
+  D0 body identity separately from the current possession at D8.
+  Scene controller probes can now read variables from explicitly
+  bound external body VMs. Isolated 0E62 node 66 changes the
+  body variable 888 read from empty to true for four species.
+  Three more authored Sniper and Heavy Assault states use the
+  verified plain-State mapping. Native probes also verify the
+  Trooper entity and Assassin predicate query interfaces.
+  Heavy Assault's 632B74B9 also uses the plain State and
+  advances to the same entity query as Trooper.
+  The scene host now exposes explicit typed callbacks for the
+  two species queries. Controller graphs pass the authored
+  owner, selector and target through the verified argument order.
+  Trooper's 274FF373 reuses the native registered-state lifecycle.
+  Sniper and Heavy Assault pass the plain State 7E9A32C0.
+  Authored kind-1 requests register and retire on all five bodies,
+  including Assassin's explicit priority asset.
+  Trooper reads live Ball variables 13393 and 13395 through a read-only fixture.
+  Native lookup maps D2E53215 to plain State. The strict controller then enters
+  graph 102F and reaches world query 71A87E92. With Match position snapshots
+  bound to the scene, Trooper reads its controlled body pose and runs 51 strict
+  frames in each mode. A separate fixture runs authored assignment node 146 and
+  delivers message 07A5. Both modes then read the target and controlled body
+  poses before reaching world query 021D01CD. Binding the upright forward axis
+  lets the facing case submit 07A5 at node 28, where the target component is
+  unbound. The away case skips the send and completes 51 strict frames. With an
+  explicit cross-world route, the live body VM receives 07A5 once per mode. No
+  loaded body entry matches, and the controller completes 51 strict frames.
+  The authored 07D0 receiver stores parameter 0442 and clamps its resulting
+  value to zero for negative and omitted inputs in both modes on Trooper,
+  Sniper, Assassin, and Heavy Assault. Enforcer now runs 066B4605 with an
+  explicit selector table. The matching case registers and cleans up a
+  request. With an explicit empty target and native plain State 55F72184,
+  Enforcer completes 375 strict frames in each mode. Its 13EA receiver also
+  passes the six injected 07D0 cases. An explicit 0079 target fixture runs
+  the authored Enforcer gate into the actual Match weapon path. Rejection
+  and cover each prevent damage for 90 frames. Open and reopened gates
+  each precede a 25-point weapon hit. Opt-in Enforcer acquisition now runs
+  in the normal Match weapon tick with a prepared 13E9 graph. It excludes an
+  ally, stops under cover, reacquires Ball, and retires on stop or removal.
+  The same opt-in path now hosts the Trooper, Sniper, and Heavy Assault target
+  gates. Heavy Assault also moves and hits Ball with a live charge. Assassin
+  now uses 13C2 tracking, its authored wait, and the 09C6 handoff to the live
+  1157 pin path. Ally, distance, cover, and stop cases run in both modes.
+  Actual rifle kills during Piledriver windup and descent suppress landing.
+  The replacement body can land a fresh Piledriver for 100 damage.
+- Verify Quick Melee recovery and charge under ordinary Hack and EMP.
+- Verify both same-tick command orders for lethal Ball Quick Melee and Soldier rifle.
+- Route Minefield through the authored search-to-blast transitions. All 85 Minefield tests pass.
+- Resolve Minefield damage from the second search output consumed by the blast state.
+- Run both Minefield filter expressions and read the live Cryo-Freeze exclusion stack.
+- Execute the authored Minefield target-filter expression with staged queries.
+- Verify nearby allied and EMP-disabled enemy mines remain independent
+  across explosions and EMP expiry.
+- Verify lethal and nonlethal hostile Minefield during both reload modes.
+- Verify hostile Fireball impact through both reload modes and refill phases.
+- Verify overlapping Sleep Dart and Flashbang across both reload modes and
+  refill phases. The held cannon fires once on the first eligible frame.
+- Verify one Piledriver landing against five targets with different protections.
+- Verify Fade against Piledriver and Fireball on the world-clock deadline.
+  Fireball requires current overlap at expiry and deals 50 once.
+- Return a typed owner entity from the scoped Ball passive eligibility query.
+  The authored graph test covers live, gone and replacement ownership.
+- Verified partial Minefield death through a fresh cast on the replacement
+  body. Default passive generation fills all 1540 points from zero, and
+  the fresh cast creates 15 mines. The targeted integration test passed.
+- Verified lethal acquisition, respawn reacquisition, and Ball weapon kills
+  against all five autonomous NPCs in both PvE modes. Added Adaptive Shield
+  coverage for the first hit, world-clock expiry, and the next hit.
+  Sniper and Assassin complete 375 strict frames with an explicit empty target.
+  Heavy Assault completes 51 strict frames with declared component 76 lists
+  that exercise primary suppression and fallback on its authored queries.
+
+- Verified that allied Transcendence restores 15 missing armor on
+  Ball while all five NPC opening attacks and both NPC melees still
+  spend Adaptive Shield. The aura leaves spent shield unchanged,
+  and the Assassin still pins Ball.
+  Heavy Assault's charge spends a staged 125 shield and deals 45
+  armor damage. Transcendence heals 4.8 on the hit tick while active.
+  A charge one tick before expiry receives 9.6 total healing,
+  including the final interval settled at expiry. A charge at
+  expiry receives none, even with the caster's commands frozen.
+
+- Verified cannon routing with Kinetic Grasp and either Reinhardt's
+  raised shield or Zarya's projected barrier. Grasp competes with
+  the shield mesh on the ray and with the projected recipient's
+  body contact. Each shot spends only the defense it reaches first.
+  Winston's dome and Grasp follow the same contact ordering,
+  including when the shooter and Grasp are both inside the dome.
+  After enemy Deflect, allied dome and Grasp also compete on
+  the return path while letting Ball's outgoing round pass.
+  Zarya's projected recipient and Grasp also share the return
+  path, with energy or absorption credited only once per round.
+  Projected Genji reflects frontal cannon fire during Deflect.
+  Rear fire and fire after Deflect spend the projected barrier.
+  The handoff also occurs on the exact world deadline when
+  Genji sends no commands.
+  When Deflect and projection expire together, the cannon hits
+  Genji on that frame and after both defenders' late inputs.
+
+- Verified cannon interception with Defense Matrix and Kinetic
+  Grasp active on the same shot path. The nearest contact
+  consumes the round. Moving that defender aside lets the
+  second defense consume the next round.
+  The same order applies after Genji reflects the cannon.
+  Ball's allied defenses only intercept the return.
+  Held Matrix now drains through missing command frames. A
+  late hold no longer restores interception after depletion.
+  When Grasp expires first, Matrix takes the next cannon round.
+  Late Sigma input does not repeat the shield grant.
+  When both defenses end on the same frame, the cannon reaches
+  the mech's armor on that frame and after late defender input.
+  A rear Sleep Dart also interrupts held Matrix during a command gap.
+  A fresh hold after waking can intercept again.
+
+- Verified Piledriver during manual and automatic reload. An
+  airborne cast cancels the wait before refill and preserves the
+  exit after refill. Held fire waits through the landing and
+  recovery, and an empty magazine starts a fresh automatic reload.
+  A grounded press leaves the current reload and cooldown intact.
+  Quick melee also cancels the wait before refill and preserves the
+  exit after refill. Pressing primary on the melee frame spends no
+  ammo. Held primary waits through recovery and any remaining reload.
+  A quick melee input on the scheduled refill frame preempts the
+  refill. One frame later, it leaves the full magazine intact.
+  Adaptive Shield can activate on the refill frame while the same
+  reload continues. Held primary still waits for the reload to exit.
+  Grapple launch cancels the wait before refill and preserves the
+  exit after refill. Primary waits through the return to gun form
+  after an in-flight retract or release from a static anchor.
+  An enemy Piledriver hit preserves either reload phase. A
+  reloading Ball can resume primary while airborne if the reload
+  ends during the air-steering lock.
+  Heavy Assault's charge also preserves manual and automatic
+  reload before and after refill. Its damage does not allow the
+  cannon to fire early.
+  The four ranged PvE openers and the Trooper and Heavy Assault
+  melee attacks also preserve both reload phases.
+  All five PvE enemies can kill Ball in either reload phase.
+  The replacement weapon starts with a full magazine and no
+  pending reload or replay of primary pressed during death.
+  Lethal Heavy Assault charge follows the same weapon retirement
+  and respawn behavior in both reload modes.
+
+- Transcendence immunity ends on the authored six-second world
+  deadline even without Zenyatta commands. The final healing
+  interval settles before new damage on the expiry tick.
+
+- Defense Matrix cannot intercept past the depletion deadline implied
+  by its last simulated resource and authored drain rate. Full and
+  partially charged activations use different deadlines.
+
+- Sigma's Kinetic Grasp stops intercepting and converts absorbed
+  damage into shields at its world deadline. A cannon round on that
+  tick can spend the new shields, and delayed Sigma commands do not
+  grant them again.
+  The temporary pool also decays on world time after its authored
+  three-second delay. Delayed commands do not repeat the decay.
+
+- Genji's Deflect stops reflecting cannon rounds and blocking quick
+  melee at its authored two-second deadline, even without Genji input.
+
+- A late Winston dome deployment now advances its independent
+  timer before the next shot can hit it. A dome still within its
+  lifetime keeps the original expiry. An expired dome retires
+  immediately.
+
+- Zarya's personal and projected barriers now expire on the authored
+  world deadline when the caster sends no commands. A mine still
+  spends shield health on the preceding tick, then hits the body on
+  the expiry tick. A late projection cannot create an expired pool.
+
+- Verified that Adaptive Shield counts enemies in Wraith Form, Fade,
+  Cryo-Freeze and Transcendence together. A roster change and an early
+  repeat press leave the damaged pool intact. A ready cast samples
+  the new roster.
+  The server removes the pool at the authored deadline even without
+  Ball commands. A late E cannot restore an expired pool.
+  First hits from all five PvE NPCs, both NPC melee attacks and
+  Heavy Assault charge spend Adaptive Shield one tick before expiry.
+  At expiry they hit armor. A retained hit in a skipped update
+  still spends the shield on its original tick.
+  Replacing Ball's body retires a damaged Adaptive Shield and its
+  cooldown. An ongoing NPC engagement can hit the replacement's armor,
+  and a fresh cast creates a separate pool that absorbs later damage.
+  Enforcer pellets launched before Ball's replacement keep flying.
+  They hit the replacement only if it is in the volley path. In the
+  tested close volley, the replacement's startup gate delays held E
+  until after impact and a later volley spends its new shield.
+  Fired NPC pellets keep their impact timing during retained catch-up
+  after their source dies. Enforcer pellets can still deal damage
+  and retain the dead attacker's kill attribution. Explicitly removing
+  the source before impact clears the volley.
+  Deflect changes projectile damage ownership without changing the
+  NPC launch clock. Twice-reflected Enforcer pellets keep their
+  retained impact timing after explicit removal of the original NPC.
+  A twice-reflected volley spanning Nano expiry applies the reduction
+  only to early pellets. Damage into Adaptive Shield gives no charge.
+  A reflected volley spanning projected barrier expiry spends barrier
+  health and grants Zarya energy only before the deadline. Later
+  pellets use Ball's armor or Adaptive Shield.
+  When Adaptive Shield expires during the reflected volley, pellets
+  switch from shield to armor on the expiry frame. If both shields
+  expire together, the earlier pellets spend only the projected
+  barrier. Armor damage credits the final Genji.
+  Active Nano on Ball halves the armor damage and the resulting
+  Genji charge after both shields expire. Earlier barrier damage
+  and Zarya energy use the full incoming amount.
+  During a scheduler gap, Minefield resolves at the endpoint after
+  earlier rifle pulses. A late mine blast cannot spend or expire
+  Adaptive Shield ahead of those pulses.
+
+- Verified an armed mine across Reinhardt's raised shield mesh. The
+  blast leaves the shield at 1600 HP and damages and lifts the target.
+  With Zarya's projected barrier on the same target, the blast instead
+  spends 130 barrier HP, grants 26 energy and prevents displacement.
+
+- Verified Minefield counterplay with actual PvE graphs. An armed mine
+  interrupts Heavy Assault's charge. With EMP active on the mine, the
+  charge crosses it and hits Ball. The same mine can trigger after it
+  rearms. The Assassin's pin impact rejects a mine supplied as its
+  target in a controlled graph test.
+
+- Ana's scoped and unscoped Biotic Rifle now treat allied Ball over
+  the 0.6-second treatment window. Healing amplification and denial
+  apply to each elapsed part of the treatment.
+  Enemy rifle hits now deliver their damage over the same window.
+  Projection can intercept the entire shot or clear its remaining
+  damage, and a lethal dose retains the firing body's identity.
+  Defense Matrix and Kinetic Grasp consume hostile rifle fire in
+  either mode. Genji can return either mode as a timed damage dose.
+  Bound rifle doses settle on their original ticks across scheduler
+  gaps, preserving Nano expiry and lethal damage timing.
+  Active Transcendence and scheduled Biotic Fields heal after each
+  replayed rifle tick. A canister already admitted by the server
+  starts healing on the tick after its scheduled opening, including
+  when that tick falls inside a scheduler gap.
+
+- Ana's authored Nano Boost release now heals and buffs Ball. It heals
+  250 permanent HP, or 375 with an active allied grenade boost. Enemy
+  healing denial blocks the heal while the eight-second damage modifiers
+  still apply.
+  With Nano active on both Balls, projected barriers take the boosted
+  cannon and Piledriver damage before the recipient's reduction applies.
+  Actual cannon and grenade returns now have Nano coverage for reflector
+  damage, recipient reduction and charge, including expiry during Deflect.
+  Actual Minefield tests cover Nano before and after deployment, damage
+  to boosted recipients and their projected barriers, and target selection.
+  Actual PvE attacks into a Nano Ball cover all five enemy bodies,
+  including Assassin pin ticks, Trooper and Heavy Assault melee, and
+  Heavy Assault charge.
+  Actual Nano also covers Ball's cannon, melee, Piledriver and Fireball
+  against those five bodies, including lethal Piledriver and expiry.
+  Lifecycle tests cover caster death after release, refresh by another
+  Ana, and recipient replacement before and after release.
+
+- Ana's Biotic Grenade now changes healing received by Ball. An enemy hit
+  blocks healing for four seconds and a friendly hit restores up to 100
+  permanent HP before applying a 50% healing boost. Transcendence and
+  Biotic Field apply these modifiers across retained healing intervals.
+  Adaptive Shield stays separate from healing.
+  Defense Matrix and Kinetic Grasp can consume the 1426 projectile before
+  it bursts. Deflect transfers the explosion and both healing effects to
+  the reflector's team and damage attribution.
+  Zarya's projected barrier clears existing Biotic Grenade healing
+  denial on activation, preserving allied healing amplification.
+  The grenade now uses its authored downward acceleration. Retained
+  world ticks preserve its arc and impact timing across scheduler gaps.
+  Its 300 m travel limit clips the final collision segment independently
+  of the 60-second lifetime. A reflection carries the distance already spent.
+
+- Verified the current projected-barrier interaction with an already
+  sleeping Ball. An absorbed rifle hit preserves sleep and Minefield
+  stays locked until wake. Native sleep removal on projection remains
+  unresolved.
+
+- Flashbang's authored 037D projectile now uses flight interception.
+  Matrix and Grasp consume the grenade before it explodes. Grasp grants
+  15 temporary shields, and Genji earns damage and charge from a returned
+  explosion while its stun applies to the target.
+
+- Defense Matrix, Kinetic Grasp and Deflect now intercept Ana's authored
+  15E8 Sleep Dart in flight. Matrix protects Ball's shield and ability
+  input, Grasp converts the dart to 3 temporary shields, and a returned
+  dart deals 5 and applies sleep to Ana with Genji's damage credit.
+  Enemy Genji's returned dart also sleeps Ball, cancels an attached
+  Grapple and locks Minefield until wake. Damage to Adaptive Shield earns
+  Genji zero charge.
+
+- Defense Matrix now intercepts the Enforcer's authored 23F0 pellets
+  in flight. Facing the volley protects an allied Ball. Turning away
+  or releasing Matrix lets the pellets reach him.
+  Kinetic Grasp now intercepts the same volley and converts 50 absorbed
+  damage into 30 temporary shields. A nearer wall takes precedence.
+  Genji's Deflect now returns those pellets in flight, using the remaining
+  lifetime and assigning damage, charge and eliminations to Genji.
+  Replacing the reflector's body retires its pellets still in flight.
+  Return-path tests cover static walls and the reflector's team filter.
+  Opposing Kinetic Grasp and Defense Matrix also intercept those returned
+  pellets before they damage the defender or the Enforcer.
+  A second opposing Deflect preserves the pellet's flight budget and
+  assigns damage to the last reflector. Overlapping Deflect volumes
+  exercise the server's eight-reflection limit.
+
+- Controlled Trooper, Enforcer, Sniper and Heavy Assault weapon tests
+  destroy EMP-disabled mines before the disable expires. Retirement
+  clears the effect and prevents a late blast near the former mine.
+
+- Switching the manual target to an EMP-disabled mine cancels
+  Trooper and Heavy Assault melee windups or a moving Heavy Assault
+  charge. The cooldown persists and the mine keeps its health.
+  With manual cancellation bypassed, both melee graphs still
+  return an empty target list for a disabled mine in reach.
+  The charge query likewise ignores a visible disabled mine.
+  Restoring Ball as the target lets the same charge hit.
+
+- Fireball tests cover static side-wall occlusion, lateral misses and
+  repeat contacts against all five PvE enemies. A target that exits the
+  outer contact range can take a second hit during the same swing.
+
+- Sleep Dart and Flashbang still suppress movement and attacks when a
+  delayed input belongs to a controlled frame. The server keeps those
+  intervals until the body simulates past them. Sleep uses its shortened
+  deadline when damage wakes the target early.
+  A delayed Minefield cast from before impact can spend its charge and
+  deploy mines due before impact. Catch-up interrupts the cast at impact
+  and uses the last simulated pose for reports due during a pose gap.
+  Actual Sleep Dart tests cover delayed Piledriver windup and descent.
+  A pre-impact Grapple command received after Sleep Dart or Flashbang
+  runs its launch graph and settles cooldown at impact without
+  creating a world hook. A fresh press after cooldown attaches again.
+  A live tether also starts cooldown at the impact frame when Sleep
+  Dart or Flashbang lands during a command gap. An overlapping EMP
+  does not restart that cooldown.
+  Actual rifle kills after Sleep Dart or EMP verify that death clears
+  the pending Grapple interruption before command replay and respawn.
+
+- Overlapping Hack and EMP on Ball now retire their graph instances on
+  separate impact-based deadlines, even while Ball sends no commands.
+  Ability input stays locked until the last effect expires. A held
+  Minefield input still needs a release and fresh press. Body and server
+  snapshots record the live instance deadlines.
+  Actual Hack and EMP casts verify that Ball can finish a manual or
+  automatic reload and resume primary fire during the ability lock.
+  Held primary still waits for reload exit, and Minefield stays locked.
+  Separate locks also retain any earlier interval Ball has yet to
+  simulate. Delayed Minefield presses inside either interval are
+  rejected, and Roll still works in the gap.
+  EMP's character-shield branch drains active Adaptive Shield without
+  touching armor or base health. Ordinary Hack preserves the pool.
+  Shield drain now follows the pulse without waiting for Ball's next
+  command. A delayed pre-pulse cast cannot restore the drained shield
+  after the EMP graph retires.
+  Zarya's projected barrier blocks ordinary Hack or interrupts its
+  channel. EMP breaks a visible projected barrier while silencing Ball.
+  A completed ordinary Hack releases an attached Grapple and starts
+  its cooldown. An aborted channel preserves the tether. After the
+  lock and cooldown end, Grapple needs a fresh press to attach again.
+  Hack and EMP also release the tether at impact when Ball sends no
+  commands. The cooldown starts on the impact frame when the body
+  catches up, and synthetic input does not release a held Grapple.
+  A delayed launch from before Hack or EMP still runs its Grapple graph
+  but cannot create a tether after the interrupt has already landed.
+
+- Confirmed manual Assassin pins now start the authored 1177 victim
+  graph on Ball and enter its hold animation. A live release immediately
+  restores control and plays the one-second exit before graph retirement.
+  Overlapping pins share one hold animation. If its source leaves first,
+  the same victim instance follows the surviving source. Removal or
+  death of the last source and victim body retirement clear it immediately.
+  The first pin and final release bound the command-frame lock. A delayed
+  Minefield press from inside that lock stays rejected after release.
+  When the victim's command clock is behind, 1177 starts as that clock
+  reaches the pin frame. A delayed pre-pin Minefield preserves only the
+  mines released before contact, including while the world pin is active.
+  A live tether breaks on contact even with the victim's input frozen.
+  Delayed pre-pin Grapple inputs cannot recreate a tether, and the
+  cooldown starts on the pin frame. A fresh secondary press after
+  release and cooldown can attach again.
+  Delayed Piledriver windup and descent also end on the pin frame
+  without landing damage or charge. A retry during cooldown rejects,
+  and the ready attack deals 100 to the Assassin and earns 100 charge.
+  Overlapping Sleep Dart and Assassin pin keep their own input locks.
+  Pin damage can wake Ball early, but delayed movement and Minefield
+  remain blocked through whichever control ends last.
+  The victim graph displaces the pre-fill reload stack. Manual reload
+  retains its rounds, empty automatic reload restarts, and post-fill
+  reload retains its exit wait.
+
+- Trooper melee, Heavy Assault melee and Heavy Assault charge now apply
+  damage to Zarya's projected barrier before damaging the protected Ball.
+  The barrier also prevents the melee impulse.
+
+- A nearby Ball can trigger the Sniper's authored 142C retreat during
+  manual engagement. The Sniper pauses fire while moving, resumes fire
+  after arrival, and ends the move on obstruction, stop, or death.
+  Actual Sleep Dart and Piledriver also interrupt a moving retreat. The
+  rifle resumes afterward, and sleep preserves the retreat's reuse delay.
+  An armed mine in the retreat path deals 130 and launches the Sniper
+  out of the move. Losing line of sight, range, or hostile team eligibility
+  also ends a moving retreat. In these cases the rifle resumes without
+  restarting the retreat and spends 100 Adaptive Shield.
+  Destination selection and the six-second reuse delay are sandbox rules.
+
+- Manual Heavy Assault engagements can select the authored charge and
+  drive it through the capsule mover. Static Ball tests verify its 175
+  damage, armor and Adaptive Shield, a low wall, a lateral miss, a
+  teammate blocking the lane, and stop and reuse across cooldown.
+  Minefield, allied Piledriver, allied Fireball and Ana Sleep Dart cancel
+  a moving charge. The Fireball test covers 50 damage and 50 charge while
+  the targeted Ball keeps all 600 HP through the interruption.
+  Losing line of sight, range, or hostile team eligibility also cancels
+  a moving charge. A teammate entering the lane stops it before contact.
+  A lethal Soldier rifle shot on Ball cancels the charge before respawn.
+  Charge cooldown survives these interruptions and only primary fire
+  resumes in the existing engagement while charge remains unavailable.
+  A nonlethal charge leaves Ball's attached tether in place. A lethal
+  charge clears it with NPC kill attribution. Grapple reattaches after
+  its normal cooldown or after the replacement body is ready.
+  Killing the attacker clears the charge phase before its death frame.
+
+- The authored Trooper and Heavy Assault melee graphs now resolve the
+  engaged player's capsule and apply damage and impulse. Manual NPC
+  engagement selects a ready melee in reach while grounded and suppresses
+  primary fire during the swing. Tests cover Ball's armor and Adaptive Shield, stop
+  during windup, cooldown and reuse, and cancellation on wall or team loss.
+  Heavy melee moves a tethered Ball with or without Adaptive Shield and
+  keeps his hook attached. Projected Barrier takes the hit and prevents
+  displacement while the same hook remains attached.
+  Allied Piledriver interrupts the Trooper and Heavy Assault melee
+  windups. Both retain cooldown and can land a fresh melee after recovery.
+
 ### 2026-11-09
+
+- Fireball contact leaves armed enemy mines to their proximity search.
+  An actual high-speed swing now triggers the mine and takes damage
+  instead of clearing the mine before it can explode.
+
+- A real rifle kill after the first Minefield report leaves that mine
+  active and stops the remaining reports. The already spent charge
+  stays at zero, and the surviving mine arms while Ball is dead.
+
+- Actual Sleep Dart inputs cover Minefield interruption before the first
+  deployment report, after one report and after all three. Charge stays
+  spent, further reports stop, and deployed mines can arm and hit while
+  Ball remains asleep. A separate actual rifle kill verifies that deployed
+  mines remain live and can hit before Ball respawns.
+
+- Actual Ana Sleep Dart tests cover Piledriver interruption during windup
+  and descent. Neither produces a late landing hit. The windup case also
+  verifies preserved cooldown, rejected early retry and successful reuse.
+
+- Piledriver now applies a half-second air-steering lock to launched player
+  bodies. It suppresses forward and lateral movement input while airborne,
+  preserving the impulse and weapon input. The world-tick deadline is
+  cleared on body replacement and recorded in combat snapshots.
+
+- Piledriver no longer lifts Mei while her Cryo-Freeze protection state
+  is active. Actual input verifies that damage, lift and charge return
+  after Cryo-Freeze is cancelled. Piledriver also evaluates the authored
+  distance-based inward impulse alongside the existing lift.
+
+- Actual inputs verify that Winston's dome consumes Ana Sleep Dart and
+  protects Ball. Projected Zarya barrier now also has actual Fireball and
+  Minefield coverage for shield damage, caster energy and impulse exclusion.
+
+- Winston's 00FA creates a 01C3 barrier and starts the 00FC health and
+  lifetime graph. Ball cannon hits the shell from outside and can hit a
+  body within the same shell when fired from inside. The server uses the
+  resource's five-meter radius and a fixed center at cast. Entity-destroy
+  actions now dispatch by host so the dome and Ball's mines can both retire
+  through their authored exits.
+
+- Ball's Piledriver, Fireball contact and Minefield explosion route damage
+  into active Zarya barriers. A consumed hit leaves the protected body
+  undamaged and skips its impulse. Tests cover all three attacks against
+  personal barrier and Piledriver against projected barrier, including
+  caster energy and Ball charge exclusion.
+
+- NPC scripted route movement now uses the same timed-control deadline
+  as weapon input, so Ana's Sleep Dart pauses both. Actual Trooper
+  route and weapon recovery checks use a configured test route.
+
+- Actual PvE inputs now cover an allied Ana releasing Ball from the
+  Assassin's pin with Sleep Dart, and a manual Assassin pin with an
+  armed Ball mine nearby. The mine retains 50 health until triggered.
+  The explosion lifts the Assassin out of manual pin range. The Assassin
+  can resume attacking after Sleep Dart expires. Autonomous deployable
+  selection remains open.
+
+- Ana's Sleep Dart resolves a nearer dynamic barrier before applying body
+  damage or sleep. Reinhardt's barrier consumes the dart and Zarya's
+  projected barrier spends shield health and credits its caster's energy.
+  A nearer wall takes priority. The projectile sweep reuses the existing
+  server shield geometry and protected-body boundary.
+
+- Ana's physical Sleep Dart applies the 0BDE/224E sleep profile on impact.
+  It interrupts Ball's Grappling Claw and suppresses input through the
+  world-clock deadline. Damage in the first half-second leaves the normal
+  deadline intact. Later damage starts the half-second wake window without
+  extending it on subsequent hits. Sleep deadlines are included in
+  snapshots. Native status stacking and transport remain open.
+
+- Zenyatta's Transcendence keeps his body in cannon collision while
+  rejecting damage, and Ball's Piledriver can still lift him. Mei's
+  Cryo-Freeze creates the 090B Pet with child graph 0623 and blocks cannon
+  fire with an upright capsule at Mei's current feet. The ice and
+  immunity end at four seconds of world time, including during command
+  gaps. The self-heal spends its authored 200 budget over 3.9 seconds.
+  Cannon and Minefield can damage Mei on the ice expiry tick.
+  Other immunity, healing and control combinations remain open.
+
+- Reaper Wraith Form and Moira Fade complete their scoped zero-timing entry
+  gates and expose their active protection states to combat. Attack searches
+  skip phased bodies, so cannon fire can reach another target, and contact
+  and area attacks can skip damage and control together. The server uses
+  the live phase state at resolution. An armed mine skips both phased
+  bodies even when a nearby enemy triggers it. Fade and Wraith Form
+  stop protecting against cannon and Minefield on their authored
+  world deadlines, including during command gaps. Native phase history and the
+  remaining protection hosts are open.
+
+- Zarya's personal barrier uses the 0244 Pet, 13F4 entity and independent
+  0256 health pool. Body-directed cannon and quick melee hits spend barrier
+  health and send effective shield loss through the authored 0256 and 0242
+  energy graphs. The server uses the protected body's hit boundary for these
+  two attacks. The projected 025C barrier creates a separate 03DA Pet,
+  binds the pool to a visible ally and credits its caster for shield loss.
+  Target selection uses current aim, an allied body capsule and static
+  line of sight. Other Ball attacks, control immunity and native barrier
+  geometry remain open.
+
+- Reinhardt's 0095 Pet creates an independent 011A barrier with the 0096
+  health pool. Ball cannon rounds test the prepared shield mesh before the
+  body, spend ammo, and damage the shield without hero hit credit. Actual
+  input covers retained damage after lowering and raising, wall occlusion,
+  rear fire, melee, and break lockout. Ability cooldown expiry now notifies
+  states watching the linked cooldown output. Reinhardt can re-raise with
+  partially regenerated shield health once the lockout ends. Hero replacement
+  retires the shield, and the next torso shot hits the new body. The mesh uses a
+  reconstructed attachment on the current owner pose. Other barrier consumers
+  remain open.
+
+- Ball's tagged cannon rounds can be intercepted by the active Sigma Grasp
+  volume. Each intercepted round runs the authored accumulation plug. On skill
+  end the server consumes the self-only shield request's amount and cap and
+  hosts the result in the existing temporary shield pool. The active authored
+  decay state supplies the rate per second. Grant activation identity is
+  captured in snapshots. This uses an eye-relative box and a single aggregate
+  temporary pool as server reconstruction policies. Sigma's 2.1 m standing
+  and 1.75 m crouched eye heights come from body 2AB1. Actual input checks
+  include a 5-point absorption, 3-point grant, delayed decay, and two charge
+  points on a follow-up round that spends three temporary shields. The 841
+  script, 60 combat, eight snapshot and final focused checks pass.
+
+- Ball uses the authored general, passive and combat generation settings.
+  The server multiplies the general factor by the category factor and pauses
+  generation on death, retirement and during the ultimate. Actual inputs
+  verify distinct damage and passive factors plus death and respawn behavior.
+  The passive baseline still uses the 60-second reconstruction.
+- Ball cannon rounds tagged 003BF can reflect from active Genji Deflect
+  boxes, using current eye-relative box geometry and Genji's aim after contact.
+  Actual commands verify the frontal reflection, rear and expired direct
+  hits, wall occlusion, ammo, shield loss and charge. Genji's active zero
+  melee scalar blocks matching frontal quick melee. Native interception
+  ordering, time rewind of Deflect boxes, reflected charge credit to Genji and
+  other defenses remain open. The 841 script and 71 combat checks passed.
+
+- Enforcer 13EB now expands each firing report into the resource's 25 physical
+  projectiles. The server uses evenly spaced 1/8/16 rings at fixed phase.
+  Direct projectiles apply existing falloff to swept flight distance.
+  Actual inputs verify 50 shield damage at 1.5 m, 34 at 6 m, attenuation at
+  15 m, stop and wall interception after launch, and destruction of an armed
+  50 HP mine at 3 m. The final focused checks and Ruff pass. Native ring
+  phase, muzzle placement and per-pellet observer transport remain open.
+
+#### Ball cannon spread state and actual damage rays (partial static acceptance)
+
+- Review the shared native no-decay WeaponVolley ramp. Bake spread_ramp into
+  causal VM state and preserve the terminal normalized output. Original104319
+  D80A50 uses completed shots+1; Ball1514/node24 has ramp20, low/high229/230
+  of0/2degrees and output231. Six shared state tests pass; optional native
+  decay and other launch classes retain their existing behavior.
+- Generate both16384-entry native tables from algorithms/seeds, storing no
+  captured asset table. Complete table fingerprints match the authorized
+  capture. Reuse circular-cone math with explicit body/script/node/counter seed
+  identities, uniform radius/aspect1 and the current eye origin. These caller/
+  muzzle/mode policies remain reconstruction, not native firing parity.
+- Apply the scoped1514/node24 cone to actual Ball damage rays. Real80-shot
+  input checks normalized growth/cap, varied vectors, exact ammo, duplicate
+  input rejection, release/re-entry recovery and automatic reload. Near targets
+  take real damage; a living far crosshair target is no longer guaranteed a hit.
+- Expanded originalD80090/884090 comparison exposes a near-pole basis flip
+  caused by generic1e-7 length epsilon. Use D8025A's squared-length threshold
+  25E1860=0x03C80000 instead. Native140-vector comparison then passes with
+  max error7.33e-8 under explicit scalar-libm adapters. Normalized/angle probes
+  pass224/25 cases, including ramp20. This is bounded numerical comparison.
+- Focused33 script/math/Ball/all-five-NPC tests pass88.348s. Current spread
+  single-shot matrix also passes36 player/all-five hit/miss/wall/range/falloff
+  cases with actual ammo and earned charge. All841 script regressions pass
+  23.942s;546 combat/movement/NPC/VM tests pass600.195s;13 complete server
+  snapshot/replay tests pass550.088s. All389 frozen Python hashes remain
+  unchanged; whole-source Ruff/diff pass. Source freeze is released.
+- The full31-row acceptance audit also exposes a substantive remaining gap:
+  Enforcer13EB/node24 authors25 projectiles and613BDDB0 ring data, while
+  Combat currently processes one projectile per report. Earlier2-point shield
+  damage proves only that center path, not full Enforcer weapon values. This
+  count/pattern correction is now a priority; do not mark all-five incoming
+  damage complete. Original-client gameplay and full static matrix remain open;
+  no completion commit or merge-ready patch.
+
+#### Manual Enforcer and Assassin incoming combat (partial static acceptance)
+
+- Review and adapt the parent's declared manual controller/pin services in this
+  private lane. Manual Enforcer and Assassin contexts contain4B and omit5C;
+  only Enforcer13EB self B96D3A98 queries use that predicate. The original
+  CC9F61/182C470 tail has bounded instruction evidence; choosing/allocating this
+  sandbox context is reconstructed. Foreign/stock/unknown services stay unknown.
+  Preserve the existing owner-health adapter, including unknown missing health.
+- Route manual Assassin slot0 to1157/button36. Resolve its DB742151 owner query
+  with a data-only1650 target map. Its authored ModifyHealth25/15 supplies25
+  contact damage and100/second in the tested resource configuration. Contact3m,
+  elapsed health modes and victim control are declared server policies. New
+  explicit engagement interrupts unresolved release Anim31; no duration invented.
+- Separate pin ownership from timed stuns, interrupt existing ability/input
+  channels (including attached Ball grapple), and retire pins on stop, geometry/
+  team/target loss, source death/removal/failure and victim body retirement.
+  Snapshot the target/context, pin registry and last-applied health clock.
+- Synchronize NPC aggregate health after all spawn pools are created. Eight
+  context tests pass1.760s; eight reviewed synthetic pin-clock/lifetime tests
+  and three pre-existing owner-health tests also pass in the17-test first
+  focused run2.853s (before two extra context checks were added).
+- Eight actual external-bundle Ball tests pass14.948s: all five incoming attacks
+  into Adaptive Shield and stop; all-five actual wall suppression/recovery;
+  Assassin contact/continuous damage, stop/reengagement, pinned real inputs,
+  range/team/wall loss, removal/body replacement, attached-grapple interruption
+  and actual support-rifle source death. Capsule/transport fixtures remain
+  explicit; no query overrides or injected damage in these actual tests.
+- All835 script regressions pass19.691s;531 combat/movement/NPC/VM tests
+  pass465.146s;13 complete server snapshot/replay tests pass511.834s.
+  All385 frozen Python hashes remain unchanged through those runs.
+- After replay, only two test files change: pin-registry/manual-target digest
+  sensitivity, full pinned input mask and an actual support Flashbang rescue.
+  The18-test post-run first passes17 and exposes one new fixture assertion
+  that counted Assassin base health without its shields. Correct the assertion
+  to aggregate all pools; the affected Flashbang test passes8.557s. No new
+  wholly green18-test run is claimed. Whole-source Ruff/diff pass. The natural
+  passive-to-Q probe also creates15 mines without charge injection, but proves
+  only the declared60s placeholder clock, not the original passive rate.
+  Full hero acceptance, native
+  controller/AI/specials/clock/camera fidelity and original-client acceptance
+  remain open; no completion commit or merge-ready patch.
+
+#### Authored Ball eye offsets and Roll reload return (partial combat work)
+
+- Verify the pinned104319 body200B FirstPerson fields: standing1.83m,
+  crouched1.5m. Use a shared eye_height query for both shot origins and player
+  target descriptors. Also verify enemy McCree body02A3 fields1.425/.9975m
+  against its XML, matching the reviewed parent fix in this private source.
+- Actual low-cover shots pass above/below the authored eye for standing Ball
+  and standing/crouched McCree (one test, six input scenarios,3.436s).
+  Ball's current graph rejects grounded crouch: its crouch offset is only a
+  data check, not a crouched-fire acceptance claim. Animated camera/muzzle,
+  native bone hit regions and exact critical thresholds remain unproved.
+- Add three actual Roll reload return paths: direct transformation and manual
+  reload interrupted after20/80frames. Each refills80 while rolled and resumes
+  actual5damage/79ammo after primary exits Roll; the new regression passes.
+- Correct native hit-interface base to2610570 (2610578 was a method slot).
+  Follow D75500 +108 B34970 ->B28D70 ->+78 B2BDF0 ->B30110 impact-record
+  construction. This does not prove critical-sentinel or final falloff math.
+- Broad507-test run initially exposed3failed/2error old-eye fixture assumptions:
+  near Heavy body ray, short-NPC crosshair acquisition and two Ball head rays.
+  Adjust physical aim points and retain their original damage/critical checks.
+  All18 affected-module tests pass51.045s, including actual shot counts for both
+  cover outcomes. The other489 cases passed the broad run; this is not a new
+  wholly green507-test run. All13 full snapshot/replay tests pass500.819s on
+  unchanged380-file Python hashes; only test aim/assertion edits follow that run.
+  Ruff and diff checks pass. Full static acceptance remains open; no completion
+  commit, merge-ready patch or original-client gameplay acceptance.
+
+#### Automatic cannon reload and output-binding invalidation (partial combat work)
+
+- Trace original WeaponVolley end D5F310 through its output writers1B74790/
+  1B74610 and unlink1BA4550 ->1BA6E40. Output unlink forces environment
+  invalidation even when the current time-derived value equals the baked one.
+  Nine original instruction cases pass with explicit storage/removal/context/
+  environment adapters; native allocation and global scheduling remain open.
+- Force dependency invalidation when an existing output link is removed.
+  Actual Ball ammo0 now activates its authored automatic-reload branch without
+  a synthetic R input or replacement timer. Preserve the separate magazine-fill
+  and reload-exit Wait20 phases; held fire cannot bypass the latter.
+- Review the parent notification-lifetime fix: clear canceled CHANGED/CHECK
+  coalescing markers at State.end and skip notifications for ending states.
+  Two minimal lifetime checks cover re-entry and cleanup writes. No persistent
+  VM fields or global arbitration phase is added. The parent's separately
+  reconstructed Ability.stop ordering change is not imported here.
+- Four reload checks pass (12.209s), including held/released primary, repeated
+  automatic cycles and the minimal equal-value ammo-bake dependency case.
+  The initial broad run exposed a historical977-bit crash reproduction that
+  depended on the old value-only invalidation. Preserve its original byte/bit
+  assertions with an explicit historical unlink fixture, and separately decode
+  the current runtime trace. Six targeted lifetime/reload/historical checks
+  passed before the repeated-cycle addition (5.960s). Frozen835 script checks
+  (18.033s),505 combat/movement/hero/NPC/VM/manifest checks (450.286s), and all13
+  server snapshot/replay checks (566.939s) pass. All379 Python hashes remain
+  unchanged; Ruff/diff pass. Full static goal remains open.
+- Additional actual-input probes cover Roll-only refill and manual reload
+  interrupted by Roll before/after magazine fill. All three regain80 rounds
+  while transformed and resume real5-damage primary fire25 frames after the
+  return command, spending one round. These bounded probes do not establish
+  every native cancellation/timing interaction or the full reload matrix.
+
+#### Piledriver movement-input restrictions (partial combat work)
+
+- Apply movement-modifier properties17/18/19 to forward, backward magnitude
+  and unsigned lateral input before acceleration, restoring lateral sign and
+  clamping the result. Preserve raw command throttle/history fields and the
+  existing next-frame modifier lifetime. Review the parent shared fix read-only;
+  all changes and checks here use the private lane source.
+- Reproduce ordinary grounded movement during Piledriver's restricted landing
+  recovery in all four directions before the fix. Actual inputs now remain
+  blocked during that scope and move normally after recovery. Five checks cover
+  those directions, next-frame entry/end, actual enemy Flashbang interruption,
+  body replacement and timed death/respawn (12.523s).
+- Respect the authored split: Ability24 owns movement state20, while landing
+  recovery14 is outside its subgraph and retains its own timer after a stop.
+  Correct an initial test's overstrict immediate-removal assumption from this
+  resource evidence; do not prematurely destroy the external recovery state.
+- Run120 original C33960..C33A8D comparisons against this private helper, with
+  scalar modifier lookup explicitly adapted. Field selection, forward/back
+  split, lateral sign and clamp execute in original code. Full native mover,
+  Piledriver trajectory/control policy and original-client acceptance remain
+  open. Frozen51 movement checks (52.294s),453 combat/hero/NPC/VM/manifest/math
+  checks (414.752s) and all13 server snapshot/replay checks (519.190s) pass.
+  All377 Python file hashes remain unchanged; Ruff/diff pass.
+- A new actual held-fire probe reaches empty ammo after80 reports but does not
+  refill automatically through400 frames; released manualR restores80. The
+  active automatic-reload switch retains false while the same expression
+  freshly evaluates true, despite an ammo-variable subscription. Trace the
+  shared clock-dependent output/change-notification path next; do not add an
+  artificial reload timer or input edge. Full cannon acceptance remains open.
+
+#### Finite Ball early-press buffers (shared Ability fix, partial combat work)
+
+- Review the parent-reported shared timestamp-refresh defect against private
+  build104319 Ball resources. Preserve a pending press's original timestamp
+  while startup gates reject it; consume it only after all start gates pass.
+  A stale released press can no longer become a later automatic activation.
+- Actual Roll exit/re-entry inputs cover expired presses, fresh ready presses,
+  the authored0.15s buffer and held-input latching. Adaptive Shield's absent
+  early-press window rejects both early and near-ready released presses while
+  held input starts when ready. No cooldown or press timestamp is injected.
+- Actual cannon damage supplies the last5 ultimate points after an early Q:
+  an expired Q stays rejected, a fresh Q works, a within-window Q buffers, and
+  held Q deploys exactly15 mines. Starting charge is an explicit fixture; passive
+  charge remains disabled for these earned-charge checks.
+- Five cooldown checks pass (21.467s) and three ultimate-buffer checks pass
+  (3.927s). Both expired-Roll/Q tests reject the old base can_start in isolated
+  negative controls. Frozen833 script checks (34.586s),448 combat/hero/NPC/
+  VM/manifest/math checks (466.859s), and all13 server snapshot/replay checks
+  (668.001s) pass. All376 Python file hashes remain unchanged; Ruff/diff pass.
+- Execute36 single-shot hit/falloff/range/wall/miss scenarios against a player
+  and all five actual NPCs, including ammo and earned-charge checks. Nine native
+  critical-field compiler cases expose an absent/failed default of-1; its later
+  sentinel consumer remains open, so the final2x rule is still reconstructed.
+  Parent-reported movement-input properties17/18/19 are present in Piledriver's
+  authored/scheduled windup and recovery states; acceleration integration and
+  actual directional-restriction/recovery checks remain the next shared fix.
+  Native PC start-check fidelity, full hero/NPC/cross-hero matrix and original
+  client acceptance remain open. No completion commit or patch is claimed.
+
+#### NPC owner-health gate adapter (partial incoming-attack work)
+
+- Bind self-targeted9B7648C3 NPC queries to the authoritative OWNER_HEALTH input,
+  rounded to float32. It is set before graph initialization and refreshed by
+  combat. Missing values stay null; foreign-entity lookup remains unsupported.
+- Trace original CEB6C0/D177C0: the config evaluates its entity, delegates to
+  the actor-health service and writes its successful float result. This adapter
+  does not claim the complete native health-component/foreign-service contract.
+- The actual Enforcer13EB health>0 gate now enters its next state. Primary still
+  does not fire: the following predicate reads F7262B36 members7681/9134 and
+  B96D3A98, which remain unsupported. Assassin incoming damage is also still
+  absent at1.5/6m. Do not force the predicate or substitute damage.
+- Three owner-health tests pass, followed by338 frozen combat/hero/NPC/VM/
+  manifest/math checks (292.585s) and all13 server snapshot/replay checks
+  (509.455s). All375 Python hashes remain unchanged; Ruff/diff checks pass.
+- Trace F7262B36 to CDBDE0/D15520: successful output is an EntityID, whose
+  script members must be resolved on that entity. B96D3A98's original post-lookup
+  predicate passes509 isolated cases with the state service explicitly supplied:
+  it requires bit75 and rejects bit92. Entity/component lookup, state meanings
+  and production remain open; no fixed-true replacement or incoming-damage
+  acceptance follows from these probes.
+
+#### Host scalar distance precision and replay identity
+
+- Replace the known emulator-only reciprocal-square-root seed with an explicit
+  Windows x64 RSQRTSS backend. The generated own-process code consists solely
+  of scalar math/control-read instructions; memory is written once, protected
+  read/execute and released on shutdown with calls/cleanup serialized. No game
+  code, client process, compiler or external binary asset is used.
+- Reject unsupported platforms and nondefault MXCSR control modes explicitly
+  rather than substituting ideal sqrt. Record261 primitive outputs and floating
+  control bits in the strict replay configuration; differing profiles reject
+  replay. Sticky status flags do not perturb that identity.
+- Bind only RSQRTSS and MXCSR to the actual host while executing the original
+  captured distance/clipping instruction streams in isolation. All1005 distance
+  and2700 clipping cases match the production helper on this host. This resolves
+  the previously measured309 output mismatches for the qualified profile; the
+  original-client floating environment and other platforms remain unaccepted.
+- Preserve archived emulator golden fixtures with an explicit fixture primitive,
+  and add backend lifecycle/control-mode/manifest mismatch coverage. Pass25
+  focused checks,335 frozen combat/hero/NPC/VM/manifest/math checks (259.869s)
+  and all13 server snapshot/replay checks (427.858s). All374 Python file hashes
+  remain unchanged through verification; Ruff/diff checks pass.
+- Actual Enforcer/Assassin manual-primary probes at1.5m and6m select the enemy
+  and hold logical20 but cause no damage in200 frames. Their incoming attack
+  acceptance remains open; other NPC results do not close those rows. The
+  full hero goal remains active without a completion commit or patch.
+
+#### Minefield flight lifetime and travel clipping
+
+- Read the authored projectile lifetime999 separately from the impact-started
+  mine graph lifetime18-20. Store the world birth tick independently of the
+  reported command frame, and include both new fields in causal snapshots.
+- Replace early range deletion with D72C80 strict boundary checks, float32
+  position/velocity interpolation and float32 travel accumulation. Sweep only
+  the clipped segment, so a wall beyond the remaining budget cannot land/arm
+  the mine. Zero-distance steps avoid division; landed mines retain graph timers.
+- Characterize original5E2610 squared-distance/RSQRT/Newton arithmetic in1005
+  cases and match the characterized static-emulator primitive in Python. Match
+  all2700 original D72C80 clipping cases, plus the .1m decimal-boundary fixture.
+  The hardware RSQRT primitive is still unqualified; exact live engine clocks,
+  collision/settling and native terminal namespace side effects remain open.
+  The existing body-removal policy is not claimed as native retirement parity.
+- Confirm all numeric fields of this lane's five XML-extracted NPC movers equal
+  the parent's43-entry navigation runtime. Existing actual-NPC fixtures inject
+  these authored movers and reject missing definitions; no default-mover or
+  original-client/navigation deployment acceptance is inferred.
+- Final frozen source passes315 combat/hero/NPC/VM checks (340.106s) and all13
+  server snapshot/replay checks (516.146s). All372 Python hashes remain unchanged
+  through verification; Ruff/diff checks pass. Two initial fixture assertions
+  were corrected using explicit baseline reset and original decimal-boundary data.
+- A generated own-process scalar RSQRTSS probe confirms a current mismatch:
+  all1004 nonzero seeds differ from static emulation;309 final distances differ
+  by at most3 ULP. This contradicts full host-native distance equivalence and
+  remains an explicit next fix. No game process/code was launched by that probe.
+  The complete hero goal remains active, without a completion commit, patch
+  or publication.
+
+#### Minefield source resolution and native float motion
+
+- Resolve the selected creator script before returning its EntityID or reading
+  its variables/defaults. Missing or replaced bodies return the native invalid
+  EntityID and cannot borrow the same player's replacement-body settings.
+  Actual151A creator expressions test absence, replacement and restoration.
+- Execute90 captured D6E590 source-initialization cases and55 complete2B2E2F6D
+  query/selector/typed-return cases with explicit input/namespace/component
+  service adapters. Live launch-context production and source persistence remain
+  open; these probes do not accept the engine namespace or decryption adapters.
+- Replace binary64 mine gravity/position arithmetic with the original separate
+  float32 operations for ungated gravity and normal-dt/unit-scale translation.
+  Execute960 original gravity/RTTI cases and108 original position cases without
+  adapters; Python matches480 applicable gravity and36 unit-scale position cases.
+  Preserve native zero/negative gravity and skip normalization of a zero movement
+  vector. Actual Q tests cover0/-5/625 gravity; captured100-step numeric fixtures
+  detect cumulative float rounding differences.
+- Final frozen source passes309 combat/hero/NPC/VM regressions (319.892s),
+  including the actual Client mine create/arming/causal snapshot case. Three
+  targeted source/flight tests pass; all372 Python file hashes remain unchanged
+  through verification. Ruff and diff checks pass. Earlier306/13 frozen results
+  below predate these changes. Clock/scale
+  production, alternate motion flags, shape/sweep/collision/settling/bounce,
+  full source inheritance, cross-hero and original-client gates remain open.
+
+#### Value-first ruleset fallback and Minefield creator settings
+
+- Preserve successful nonnull3832D36C child values, including false, zero and
+  fractions. Use identifier defaults only after failed/null evaluation, with
+  native direct-dynamic scope and first expression-reference selection.
+  Captured104319 CCFAC0 agrees on37 offline wrapper cases with explicit child,
+  type and world service adapters. Member-source emitter parity remains open.
+- Replace MineWorld's three-key value/key adapter with creator member reads
+  and source-aware defaults. Store the source entity in causal VM snapshots.
+  Actual151A tests cover lifetime0/0.5/2, infinite lifetime and live creator
+  knockback0/0.5/1 while preserving130 damage.
+- Pass831 script regressions,43 ruleset/mine/VM checks and the three added
+  creator-setting cases. Frozen-source revalidation passes304 combat/hero/NPC/VM regressions
+  (238.866s) and all13 server snapshot/replay checks (379.716s). Ruff and
+  diff checks pass; previous238/13 results below predate this change.
+- Trace native MEMBER opcode15 to1B80C30. Match20 source-write branches:
+  only resolved entity+script records provenance, including missing variables.
+  Preserve the last source on unresolved reads; the ruleset wrapper resets it.
+  Native F66C80 emits EntityID tag0A in12 unadapted setter cases. Narrow
+  MineWorld to the authored mode0/self query; other selector modes stay open.
+  Pass833 script regressions and eight ruleset tests after this correction.
+  Frozen final source passes306 combat/hero/NPC/VM checks (288.340s) and
+  all13 server snapshot/replay checks (529.966s). All372 Python file hashes
+  remain unchanged through verification; Ruff/diff checks pass.
+- This remains partial hero work. Native creator selection and component resolution,
+  mine motion/filters/persistence, full cross-hero interactions and original
+  client acceptance remain open. No completion commit or publication.
+
+#### Wrecking Ball Minefield entity bridge (partial hero lane)
+
+- Expand actual1517 Q volley reports into1/6/8 server-owned mine entities with
+  authored speed10/11/12, cone24/48 and gravity input30. Run selected external
+  151A/261E body graphs:50 health,1.5m search,1.5s post-contact preparation,
+  130 damage and18-20s randomized lifetime followed by native fade/destruction.
+- Connect actor capsule/LOS proximity to the actual explosion state. Enemy
+  player and all five actual NPCs take damage/control; allies reject it.
+  Trooper/Sniper/Heavy controlled primary input destroys mines. Deployables
+  cannot earn hero damage/ultimate charge, take critical damage, heal from
+  actor healing areas or count toward Adaptive Shield's enemy count.
+- Reuse client create/observer delivery, health updates and causal snapshots.
+  Track replacement-client generations and creation-time rewind boundaries.
+  Server-owned flight uses world time, retaining the distinct command report
+  frame; overdue native timer chains preserve their deadlines across tick gaps.
+- Provide an explicit external mine graph preparation tool with input hashes.
+  The normal runtime and game client remain untouched. Review shared2ca9178
+  state-input joins and retain all private changes and backup stashes.
+- Pass238 combined combat/hero/Minefield/NPC/projectile/VM/join regressions
+  and all13 frozen-source server snapshot/replay checks (325.545s). Dedicated
+  in-memory Client coverage advances actual mine creates through landing and
+  preparation and captures live causal state. Ruff and diff checks pass.
+- World-up formation, point/first-contact settling,0.23m target approximation,
+  creator-source bridge, server-owned IDs, pet replacement/retirement and
+  capsule/LOS filters are reconstruction policies. Native bounce/prediction,
+  collision/filter/control/chain/persistent ownership, complete cross-hero and
+  original-client presentation acceptance remain open. Full hero goal stays active.
 
 #### Native state-input joins and Deadeye timing
 
@@ -29,6 +1003,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   an external bundle. Normal runtime data/services and original working changes
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
+
+#### Wrecking Ball fireball contacts and control interruption (partial hero lane)
+
+- Connect1203's actual high-speed search to capsule/cone/static-visibility
+  contacts. Read authored50 damage,3m hit/5m proximity radii,70-degree aperture
+  and22/5 horizontal/vertical impulse values. Real Grapple swings damage and
+  physically move enemy players and all five actual NPCs. Respect authored
+  knockback scalar zero/half and award only actual remaining-health damage.
+- Retain one contact until the target leaves outer proximity; clear contact
+  state on death/retirement/removal and register it in causal snapshots. Test
+  low-speed/miss/range/behind/LOS/allies/dead targets, lethal contact, duplicate
+  consumption and leave/re-entry. NPCs physically land without repeated damage.
+- Review shared64bf71c Flashbang control in the private lane. Actual enemy
+  Flashbang input releases grounded tether and high-speed contacts, rejects
+  attacks during control and later permits cannon damage. Existing Adaptive
+  Shield absorbs25 and still expires on time while stun blocks new attacks.
+- Pass151 combined combat/hero/PvE/control regressions and all13 frozen-source
+  server snapshot/replay tests (453.545s). Ruff and diff checks pass. Resource
+  research additionally pins the missing mine151A graph and actual1/6/8 Q
+  volley reports; no mine entities exist yet, so Minefield acceptance stays open.
+- Cone orientation/capsule angular overlap, additive horizontal impulse and
+  outer-proximity rehit latch are explicit reconstruction policies. Exact native
+  target/rehit/control immunity, Roll speed/sphere shape, Minefield, complete
+  cross-hero combat and original-client presentation remain open. No completion
+  commit or parent integration is claimed.
 
 #### Resource-backed Flashbang control reconstruction
 
@@ -70,6 +1069,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
   five-NPC AI/navigation/specials and original-client combat remain open. Normal
   inputs/services and original working changes are preserved; no hero lane merged.
+
+#### Wrecking Ball Grappling Claw bridge (partial hero lane)
+
+- Bridge actual RMB/14E4 launch to command aim, static collision, authored
+  22.2 m reach and 200 m/s travel, then enter its native hit branch. Reconstruct
+  a collision-swept tether using body gravity/drag/air acceleration; preserve
+  airborne momentum on release and cancel on death, retirement, primary,
+  Piledriver and excessive displacement. Store tether state in domain snapshots.
+- Pass eight real-input/collision tests and 89 combined Ball/combat/assignment
+  regressions. Primary cancellation resumes actual cannon damage and consumes
+  ammo after the existing Roll graph's transition waits.
+- Eye origin, static-only attachment, rope constraint and full five-second
+  miss/early-release cooldown are reconstruction policies. Native retract,
+  steering, lifetime, fireball contacts, wire presentation and the full combat
+  matrix remain open. No original-client acceptance or completion commit.
+- Review and fast-forward shared NPC-control, weapon-root, array-selection and
+  melee-occlusion dependencies through7cd1ed7 into this isolated lane. Retain
+  both manual input and airborne NPC snapshot fields. Five actual NPCs pass
+  ten visible/wall melee cases; manual Trooper20, Sniper100 and Heavy Assault5
+  attacks consume Ball temporary shields, and stop prevents further damage.
+  The test transport omits projectile observers; native presentation remains open.
+- Bound Ball's default velocity query to its authoritative mover. A ninth
+  Grapple test drives the existing Roll graph through6/9/15 speed tiers during
+  a real collision-swept swing and verifies the high-speed search gate ends
+  after deceleration. Contact damage and native query/rehit semantics remain open.
 
 ### 2026-11-08
 
@@ -179,6 +1203,65 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Wrecking Ball Adaptive Shield combat pool (partial hero lane)
+
+- Back authored graph 1566 state 6 with a separate temporary shield pool. Sample
+  live enemy capsules once per activation using the graph's 8 m radius, 100 base
+  shield and 75 per enemy. Consume it before permanent pools, exclude it from
+  healing, retire it when the authored state ends and update owner HUD totals.
+- Nineteen Ball server tests cover real player/training-NPC cannon and melee
+  damage, incoming rifle damage, shield absorption/count/expiry/HUD, repeated
+  input and 15-second cooldown rejection/reuse, death and body retirement.
+  The existing 28 combat, six health and 22 NPC script/transport tests pass.
+  Register the new Vitals fields in stored snapshots; shield digest tests and
+  the targeted two-player damage/death/respawn/hero-change replay regression pass.
+- Add five external-data PvE tests across actual Trooper, Enforcer, Sniper,
+  Assassin and Heavy Assault bodies: cannon/melee damage, ally rejection,
+  Adaptive Shield count and retained corpses. Controlled authored Trooper and
+  Heavy Assault weapon input damages Ball's shield. Extract each NPC's authored
+  mover/capsule with source hashes into an external fixture, avoiding the normal
+  runtime's missing-mover fallback. Flat collision, adapter transport, permissive
+  body VMs and absent AI selection remain explicit limits.
+- Restore Ball's earned ultimate points from actual ordinary damage, capped at
+  authored cost 1540. Reconstruct one point per health lost, excluding Adaptive
+  Shield loss, Minefield damage and overkill; reject gain during death/running
+  ultimate. Tests execute earned cannon/melee points, misses/allies, shield and
+  armour loss, cap, rejected early cast, cost consumption and end of deployment.
+  The global 60-second passive-charge placeholder remains unaccepted; mine
+  entities, triggers, damage/destruction and presentation are still open.
+- Connect Piledriver's authored readiness, 0.75-second windup, landing and
+  ten-second cooldown to authoritative movement/collision feedback. Evaluate its
+  actual distance-damage expression and apply the authored 11m/s upward impulse
+  to enemy players and all five actual NPCs. NPC impulses own collision motion
+  until landing; route walking pauses, explicit removal clears motion and dead
+  bodies cannot be pushed. Register new combat/NPC fields in stored snapshots.
+- Fix the exact variable[constant] output form used by Piledriver's two-position
+  history. Sequential multi-assignment now preserves the other array slot,
+  preventing a false stuck-descent completion. Keep other computed destinations
+  outside this bounded implementation.
+- Pass six Piledriver tests and seven actual-NPC tests, including ground/height
+  rejection, hover/descent/landing, once-only damage, distance/range/static LOS,
+  allies, physical knockup/landing, cooldown rejection/reuse and windup death.
+  An 81-case hero/combat/NPC/assignment combination, 56 bot/physics/health checks
+  and a frozen-source 13-case full stored-replay run pass. Descent acceleration/cap,
+  physics-input identifiers and capsule/filter
+  interpretation remain explicitly reconstructed. Barriers, control immunity,
+  invulnerability, exact retail trajectory and client presentation remain open.
+- Preserve Roll's discrete critical-hit immunity in retained view-time poses.
+  Shift uses the actual 1203 transform lifetime, held input cannot repeat and
+  rapid toggle edges respect its authored0.5s cooldown. Primary input exits Roll
+  and resumes cannon damage. Reconstruct Ball's missing bullet critical scalar
+  as the build's common2x rule, while explicit hit scalars retain precedence.
+  Six new real-input/shot tests and a66-case hero/PvE/combat combination pass.
+  Ball's native critical default, sphere hurtbox, rolling movement, grappling
+  physics, fireball contacts and cross-hero blocking policies remain unaccepted.
+- This is a bounded server reconstruction, not a general native TrackTargets or
+  HealthPool backend. Exact target filters, wire pool/state correspondence and
+  original-client presentation remain unaccepted. Grapple/fireball, Roll,
+  Piledriver, Minefield, all five PvE NPCs and the cross-hero interaction matrix
+  remain open. The complete static acceptance goal remains active; no merge or
+  publication is claimed. See docs/WRECKING_BALL_COMBAT.txt.
 
 #### Optional persistent NPC corpses
 

@@ -95,11 +95,13 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# Charge #342e is server data and the ultimate graph consumes it on start.
+# Cost #338e comes from the Entries. ULT_SECONDS is diagnostic fill for legacy bodies.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
+ULT_GENERATION, ULT_COMBAT_GENERATION, ULT_PASSIVE_GENERATION = 0x253C, 0x32DE, 0x3276
+BALL_PASSIVE_GRAPH = 0x0B8B
+PASSIVE_ENABLED, PASSIVE_GENERAL_FACTOR, PASSIVE_CATEGORY_FACTOR = 2426, 9532, 12918
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -134,8 +136,138 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def play_compatible_script(self, instance, node) -> None:
+        from ow174.game import barriers, deflection, sombra_emp
+
+        if self.hero == deflection.SIGMA and self.match is not None:
+            deflection.grant_grasp(self.match.combat, instance, node)
+        elif self.hero in (barriers.REINHARDT, barriers.ZARYA, barriers.MEI, barriers.WINSTON):
+            barriers.play_script(self, instance, node)
+        else:
+            sombra_emp.route(self, instance, node)
+
+    def track_targets(self, state):
+        from ow174.game import barriers, sombra_emp, sombra_hack
+
+        if (self.hero == 0x02E000000000013B and state.instance.graph.index == 0x0B9E
+                and state.node.pos in (8, 14) and self.match is not None):
+            self.match.combat.track_nano_target(self.body, state)
+            return True
+        barriers.track_projected_target(self, state)
+        sombra_emp.track_targets(self, state)
+        return sombra_hack.track_targets(self, state)
+
+    def end_health(self, state):
+        from ow174.game import sombra_emp
+
+        sombra_emp.end_health(self, state)
+
+    def create_pet(self, state):
+        from ow174.game import barriers
+
+        if state.instance.component.strict:
+            return super().create_pet(state)
+        return barriers.create(self, state)
+
+    def create_entity(self, instance, node):
+        from ow174.game import barriers
+
+        if instance.component.strict:
+            return NotImplemented
+        return barriers.create_dome(self, instance, node)
+
+    def destroy_entity(self, instance, node):
+        from ow174.game import barriers
+
+        if instance.component.strict:
+            return NotImplemented
+        return barriers.destroy_dome(self, instance, node)
+
+    def retire_pet(self, entity):
+        from ow174.game import barriers
+
+        if self.match is not None:
+            barriers.retire(self.match.combat, entity)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import barriers, deflection, sombra_emp
+
+        result = sombra_emp.modify_health(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        if self.hero == deflection.SIGMA and self.match is not None:
+            return deflection.decay_grasp(state)
+        signature = self.hero, state.instance.graph.index, state.node.pos
+        if self.match is not None and signature == (barriers.MEI, 0x5FE, 27):
+            return True  # The combat clock applies Cryo-Freeze's continuous self-heal.
+        return NotImplemented
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if self.hero == 0x02E0000000000068 and cls == "STU_25ECB55F":
+            from ow174.game import sombra_emp
+
+            result = sombra_emp.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if (cls == "STU_9B7648C3" and instance is not None and instance.graph.index == 0x1177
+                and instance.component.entity == self.body
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            health = instance.component.entity_var(OWNER_HEALTH, create=False)
+            return f32(health.value()) if health is not None else 0.0
+        if self.hero in (0x02E000000000012E, 0x02E00000000001CA) and cls in ("STU_AC829876", "STU_E72F6348"):
+            from ow174.game import sombra_hack
+
+            value = sombra_hack.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if (self.hero == graph.DVA and self.match is not None and instance is not None
+                and instance.graph.index == 0x0276 and cls == "STU_F7262B36"
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"):
+            owner = next((p for p in self.match.players
+                          if p.has_body and p.body == self.body and not p.gone), None)
+            if owner is not None:
+                return Entity(owner.entity)
+        if (self.hero == graph.DVA and self.match is not None and instance is not None
+                and instance.graph.index == 0x02CC and cls in ("STU_0AC15F78", "STU_E72F6348")):
+            owner = cfg.get("m_entity") or {}
+            subject = owner.get("m_801B298F") or {}
+            if (owner.get("$") == "STU_F7262B36" and subject.get("$") == "STU_B5A0CAF0"
+                    and any(p.has_body and p.body == self.body and not p.gone for p in self.match.players)):
+                return Entity(self.body) if cls == "STU_0AC15F78" else True
+        if self.hero == 0x02E0000000000007 and instance is not None:
+            if cls == "STU_295F1CDE" and instance.graph.index in (0x95, 0x96):
+                return 1.0  # reconstructed normal-mode health scale
+            if cls == "STU_783B4CF0":
+                from ow174.game import barriers
+
+                value = barriers.health_query(self, instance, cfg)
+                if value is not NotImplemented:
+                    return value
+        if (self.hero == 0x02E00000000001CA and self.match is not None and instance is not None
+                and instance.graph.index == BALL_PASSIVE_GRAPH and cls == "STU_F7262B36"
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"
+                and instance.component.entity == self.body):
+            # Use the entity result shape of CDBDE0 for this scoped ownership lookup.
+            owner = next((p for p in self.match.players
+                          if p.has_body and p.body == self.body and not p.gone), None)
+            return Entity(owner.entity) if owner is not None else None
+        if (self.hero == 0x02E00000000001CA and cls == "STU_309B0570"
+                and cfg.get("m_5B94EDB8") is None and self.match is not None
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            # Bounded Ball reconstruction of the default velocity query. Captured
+            # CF28B0/D1FD80 reads a component vector via C63D60; alternate flag,
+            # parented entities and native component correspondence remain open.
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                return Vec3(*player.mover.velocity)
+        if self.hero == 0x02E00000000001CA and cls in {"STU_8CBDD81C", "STU_71A87E92"}:
+            # Bounded Ball reconstruction: character/entity position queries use
+            # the authoritative match feet. Stale/missing entities do not become origin.
+            entity = instance.evaluate(cfg.get("m_entity"))
+            if isinstance(entity, Entity) and self.match is not None:
+                return self.match.script_body_position(entity.id, self.body)
+            return None
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -161,7 +293,27 @@ class BodyWorld(runtime.World):
             return False
         return super().native(cfg, instance)
 
+    def ruleset_for_entity(self, entity: int, key: int):
+        if self.match is not None:
+            for actor in (*self.match.players, *self.match.bots):
+                script = actor.body_script
+                if script is not None and script.component.entity == entity:
+                    return script.component.world.ruleset(key)
+        return None
+
+    def has_script_entity(self, entity: int) -> bool:
+        if self.match is not None:
+            for actor in (*self.match.players, *self.match.bots):
+                script = actor.body_script
+                if script is not None and script.component.entity == entity:
+                    return True
+        return super().has_script_entity(entity)
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        from ow174.game import barriers
+
+        if barriers.relay_bubble_energy(self, target, message, params, sender):
+            return
         match = self.match
         if (match is not None and sender == self.body
                 and match.queue_body_message(target, message, params, sender)):
@@ -254,13 +406,14 @@ class BodyScript(ReplicatedBody):
         quanta: int = 16000,
         mode: int = PRACTICE_RANGE_MODE,
         health: float | None = None,
-        ult_seconds: float = ULT_SECONDS,
+        ult_seconds: float | None = None,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        record = graph.player_body(hero, body_definition)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -276,11 +429,19 @@ class BodyScript(ReplicatedBody):
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
+        # The normal Ball match uses 0B8B. Numeric values explicitly select
+        # diagnostic fill, including zero to isolate combat-earned points.
+        if ult_seconds is None and (hero != 0x02E00000000001CA or match is None):
+            ult_seconds = ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        self._spawn(start_frame, sum(pools.body_pools(hero, body_definition)) if health is None else health)
+        if self.ult_seconds is None and not any(
+            instance.graph.index == BALL_PASSIVE_GRAPH for instance in self.component.instances.values()
+        ):
+            self.ult_seconds = ULT_SECONDS
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -314,6 +475,8 @@ class BodyScript(ReplicatedBody):
         super().set_health(health, most)
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
+        if health <= 0 and self.ult_seconds is None:
+            self.component.set(PASSIVE_ENABLED, False)
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
 
     # --- running -----------------------------------------------------------------------------------
@@ -343,6 +506,14 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        if self.hero == 0x02E00000000001CA and self.world.match is not None:
+            enabled = self.ult_seconds is None and not self.retired and not self.component.owner_dead
+            gate = self.component.entity_var(PASSIVE_ENABLED, create=False)
+            if enabled or (gate is not None and expr.truthy(gate.value())):
+                self.component.set(PASSIVE_ENABLED, enabled)
+            if enabled:
+                self.component.set(PASSIVE_GENERAL_FACTOR, self._generation_factor(ULT_GENERATION))
+                self.component.set(PASSIVE_CATEGORY_FACTOR, self._generation_factor(ULT_PASSIVE_GENERATION))
         self.component.run_frame(frame, edges)
         self._report_shots()
         self._charge_ult()
@@ -351,14 +522,50 @@ class BodyScript(ReplicatedBody):
         """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
         self.component.set(ULT_CHARGE, f32(points))
 
+    def add_ult_charge(self, points: float) -> float:
+        """Apply earned points up to the authored cost, outside death/running ultimate.
+
+        Callers decide which damage/healing events award charge. Passive
+        generation runs separately through 0B8B or diagnostic fill.
+        """
+        if self.retired or self.component.owner_dead or any(
+            state.flags & nodes.Ability.RUNNING for state in self.ultimates
+        ):
+            return 0.0
+        points *= self._ult_generation(ULT_COMBAT_GENERATION)
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if not 0 < points < float('inf') or cost <= charge:
+            return 0.0
+        target = min(cost, f32(charge + points))
+        self.set_ult_charge(target)
+        return target - charge
+
     def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+        if self.retired or self.component.owner_dead or not self.ult_seconds or self.ult_seconds < 0 or any(
+            state.flags & nodes.Ability.RUNNING for state in self.ultimates
+        ):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if cost > 0 and charge < cost:
-            step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-            self.set_ult_charge(min(cost, f32(charge + step)))
+            step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds)
+                       * self._ult_generation(ULT_PASSIVE_GENERATION))
+            if step > 0:
+                self.set_ult_charge(min(cost, f32(charge + step)))
+
+    def _ult_generation(self, category: int) -> float:
+        """Combine Ball's authored general and category settings as server policy."""
+        if self.hero != 0x02E00000000001CA:
+            return 1.0
+        return self._generation_factor(ULT_GENERATION) * self._generation_factor(category)
+
+    def _generation_factor(self, key: int) -> float:
+        value = self.world.ruleset(key)
+        if value is None:
+            return 1.0
+        factor = expr.to_float(value)
+        return factor if 0 <= factor < float("inf") else 0.0
 
     # --- what the client gets ----------------------------------------------------------------------
 

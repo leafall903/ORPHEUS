@@ -38,6 +38,39 @@ def setup():
 
 
 class EntityQueryTests(unittest.TestCase):
+    def test_component76_primary_suppression_and_fallback_remain_distinct(self):
+        world, _, instance, _, _, _, _ = setup()
+        world.bind(BODY)
+        world.set_component76_keys(BODY, query.Component76Keys(
+            primary=frozenset({0x100}), fallback=frozenset({0x100, 0x41}),
+            suppressed=frozenset({0x100, 0x41}),
+        ))
+        cfg = config(query.COMPONENT76_KEY, expr.Entity(BODY))
+        self.assertIs(instance.evaluate({**cfg, 'm_88B0050A': '0x0D60000000000100'}), False)
+        self.assertIs(instance.evaluate({**cfg, 'm_88B0050A': '0x0D60000000000041'}), True)
+        world.set_component76_keys(BODY, None)
+        self.assertIs(instance.evaluate(cfg), False)
+        world.unbind(BODY)
+        world.bind(BODY)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            instance.evaluate(cfg)
+
+    def test_controlled_body_query_keeps_d0_distinct_from_current_possession(self):
+        _, _, instance, state, _, targets, events = setup()
+        slot = query.Possession(BODY + 1, controlled_body=BODY)
+        targets[OWNER] = query.Target(OWNER, slot)
+        cfg = {'$': query.CONTROLLED_BODY, 'm_00903303': {'$': 'Literal', 'value': expr.Entity(OWNER)}}
+        self.assertEqual(instance.evaluate(cfg, state), expr.Entity(BODY))
+        self.assertEqual(events, [('lookup', OWNER), ('possession', state, targets[OWNER])])
+        current = instance.evaluate(config(query.POSSESSED, expr.Entity(OWNER)))
+        self.assertEqual(current, expr.Entity(BODY + 1))
+        slot.controlled_body = 0
+        self.assertEqual(instance.evaluate(cfg), expr.Entity(0))
+        slot.controlled_body = None
+        with self.assertRaises(runtime.UnsupportedScriptError) as error:
+            instance.evaluate(cfg)
+        self.assertEqual(error.exception.diagnostic['feature'], 'entity query controlled body')
+
     def test_unknown_services_remain_strict_and_legacy_world_is_unchanged(self):
         world = ValueWorld()
         world.bind(OWNER)

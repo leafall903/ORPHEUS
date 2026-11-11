@@ -9,7 +9,7 @@ import hashlib
 import json
 import random
 
-from ow174.game import replay_values
+from ow174.game import ball_mines, replay_values
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -28,8 +28,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
-    "initialized_frame",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_source_entity",
+    "auto_retire", "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
@@ -41,6 +41,10 @@ _SCRIPT = frozenset((
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
     "reports", "report_count",
 ))
+_SCRIPT_OPTIONAL = (
+    "emp_effect_deadlines", "emp_previous_windows", "emp_shield_pulse",
+    "emp_suppressed_buttons", "emp_window", "grapple_interrupt_frame", "timed_control_commands",
+)
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
@@ -50,6 +54,8 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.PossessionRequest: (("request_registration",), ()),
+    nodes.PossessionSelectionRequest: (("request_registration",), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -68,16 +74,18 @@ _STATE_LAYOUTS = {
     nodes.AIBehavior: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
+    nodes.Pet: (("pet_entity", "pet_var"), ()),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
@@ -189,6 +197,9 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        source = fields['ruleset_source_entity']
+        if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance ruleset source entity')
         frame = fields['initialized_frame']
         if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance initialization frame')
@@ -383,17 +394,20 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, ball_mines.MineWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "match", "manual_target", "assassin_body", "assassin_handoff"))
+            if kind is ball_mines.MineWorld:
+                fields.add("mine")
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "mine"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -545,7 +559,7 @@ class _Export:
         }
         if script is not None:
             result["body_script_fields_identity"] = self.identity(vars(script))
-            result["body_script"] = self.fields(script, _SCRIPT, exclude=TRANSPORT_FIELDS)
+            result["body_script"] = self.fields(script, _SCRIPT, _SCRIPT_OPTIONAL, exclude=TRANSPORT_FIELDS)
         cursor = 0
         while cursor < len(self.pending):
             kind, obj = self.pending[cursor]
@@ -614,7 +628,7 @@ def export_component_vm_with_identities(component, *, extra_roots=()) -> tuple:
 def export_body_vm(script) -> dict:
     if type(script) is not BodyScript:
         raise BodyVMSnapshotError("unknown body script class")
-    data = _layout(script, _SCRIPT)
+    data = _layout(script, _SCRIPT, _SCRIPT_OPTIONAL)
     if data["world"] is not data["component"].world or data["entity"] != data["component"].entity:
         raise BodyVMSnapshotError("body script component/world identity mismatch")
     return _document(data["component"], data["ultimates"], script)[0]

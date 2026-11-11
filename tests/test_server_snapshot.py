@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import combat
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
@@ -75,11 +76,49 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         player.match.combat.stuns.pop(player.body)
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        fight = player.match.combat
+        vitals = fight.vitals_of(next(target for target in fight._targets() if target.owner is player))
+        before_heal_status = snapshot_digest(self.capture(session))
+        for allied, attr in ((False, "healing_block"), (True, "healing_boost")):
+            vitals.apply_biotic_grenade(fight.tick, allied=allied)
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before_heal_status)
+            setattr(vitals, attr, ())
+            self.assertEqual(snapshot_digest(self.capture(session)), before_heal_status)
+        vitals.nano_until = fight.tick + 500
+        nano = snapshot_digest(self.capture(session))
+        self.assertNotEqual(nano, before_heal_status)
+        vitals.nano_until += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), nano)
+        vitals.nano_until = 0
+        self.assertEqual(snapshot_digest(self.capture(session)), before_heal_status)
+        player.body_script.timed_control_commands = {combat.FLASHBANG_EFFECT: ((10, 60),)}
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        del player.body_script.timed_control_commands
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))
         self.assertNotEqual(changed, initial)
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+
+    def test_emp_timing_fields_are_causal(self):
+        session, _, players = self.scene()
+        script = players[0].body_script
+        script.emp_window = (160, 5160)
+        script.emp_suppressed_buttons = 16
+        before = snapshot_digest(self.capture(session))
+        script.emp_shield_pulse = (165, 10000.0)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        del script.emp_shield_pulse
+        self.assertEqual(snapshot_digest(self.capture(session)), before)
+        script.emp_effect_deadlines = {31: 5160}
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        del script.emp_effect_deadlines
+        script.grapple_interrupt_frame = 10
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        del script.grapple_interrupt_frame
+        self.assertEqual(snapshot_digest(self.capture(session)), before)
+        script.emp_previous_windows = ((0, 150),)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()
