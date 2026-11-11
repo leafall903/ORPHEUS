@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered optional status-resource loading
+
+- Restore the original validated external status bundle reader and .053
+  definition lookup. Resolve otherwise absent graph records from that explicit
+  bundle while retaining the combined graph/entity supplement inputs.
+- Keep status loading separate from existing gameplay hosts and retain the
+  original build/format/identity rejection checks. All11 status/graph-analysis
+  checks passed. Original-client acceptance remains pending.
+
+
 ### Restore delivered Lucio moving-recipient world clock
 
 - Mount the delivered moving-NPC aura predicate through the combined graph
