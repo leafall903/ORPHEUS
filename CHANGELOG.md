@@ -5,6 +5,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### McCree delivery snapshot fixture reconciliation
+
+- Supply the existing snapshot graph's explicit definition-digest registry in
+  the delivered Flashbang projectile storage fixture. Preserve every original
+  assertion that gravity, velocity, expiry and source-body changes affect the
+  causal digest; no gameplay behavior or acceptance scope is added.
+- In the existing eight-module selection, 53 checks passed and this one fixture
+  failed to initialize. After adapting its constructor call, the unchanged
+  causal-storage check passed. Client acceptance remains separate.
+
+
+
 ### Moira delivery history integration
 
 - Merge delivery df51065e. Keep its complete Moira implementation with the

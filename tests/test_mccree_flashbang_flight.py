@@ -88,7 +88,7 @@ class FlashbangFlightTests(unittest.TestCase):
         rocket = combat.Rocket(shooter, 0, (0, 1, 0), (0, 0, 1), 30, 7/30, None, None)
 
         def digest():
-            graph = _Graph({'shooter': shooter}, {})
+            graph = _Graph({'shooter': shooter}, {}, {})
             root = graph.value(rocket)
             return snapshot_digest({'schema': SCHEMA, 'scope': SCOPE, 'restorable': False,
                                     'roots': {'projectile': root}, 'nodes': graph.finish(), 'assets': {}})
