@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Baptiste delivery history integration
+
+- Merge delivery 6f0bdcc4 after restoring its target-cleanup and throttle
+  interfaces. The Baptiste module retains every delivered implementation and
+  the combined Sombra lock check. Keep the expanded scene/controller-aware NPC
+  weapon loop instead of its older private bot predicate.
+- Retain generalized TemporaryPool health hosting, timed ModifyHealth service,
+  collection_index and modeled condition handlers. These supersede the older
+  shield-only record, enter hooks and array/fallback helpers. Resolve shared
+  conflicts to the reconciled combined implementations. Discard the automatic
+  merge's duplicate cast_sphere method, already identical in the host.
+- This history merge changes documentation only. The preceding entry records
+  validation and baseline interaction failures; implementations are preserved
+  without requiring completion of the acceptance suite or client checks.
+
+
+
 ### Baptiste delivery interface reconciliation
 
 - Restore the delivered TrackTargets cleanup callback to its existing optional
