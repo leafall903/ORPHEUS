@@ -867,6 +867,8 @@ class Match:
             updates.append(EntityUpdate(other.body, movement=other.movement()))
         shown = self.bots_shown.get(viewer.slot)
         client = viewer.client
+        if client is not None and self.scene_host is not None:
+            updates.extend(self.scene_host.spawned_entity_movements(viewer))
         if client is not None and shown is not None and self.tick - shown >= BOT_RECORD_DELAY:
             for bot in self.bots:
                 if not client.bot_create_acked(bot.entity) or not bot.record_due(self.tick, SEND_EVERY):
@@ -1250,6 +1252,9 @@ class Match:
                 spray_unlocks=spray_unlocks,
                 voice_effects=voice_effects,
             )
+            mount_intro = getattr(self.scene_host, "mount_player_intro_receiver", None)
+            if mount_intro is not None:
+                mount_intro(script)
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
@@ -1439,9 +1444,10 @@ class Match:
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
+        player.hero = hero
+        if old is not None:
             player.new_body(entity)
             self.combat.record_replacement(entity)
-        player.hero = hero
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:

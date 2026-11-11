@@ -4,7 +4,7 @@ import hashlib
 import json
 import math
 from collections import deque
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from functools import cache, partial
 
 from ow174.game import (
@@ -23,6 +23,7 @@ from ow174.game import (
 from ow174.game import world as wire
 from ow174.game.match import PLAYER_FILTER, TEAM_BIT, Player, _rotation
 from ow174.game.script import (
+    controller_heroes,
     entity_control,
     expr,
     graph,
@@ -35,6 +36,7 @@ from ow174.game.script import (
     scene_host,
     scopes,
 )
+from ow174.game.script.driver import WheelCallout
 from ow174.paths import DATA_DIR
 
 MODE_ENTITY = 0x04000000000016B2
@@ -52,6 +54,10 @@ WAVE_RECEIVER_NODE = 22
 COMMON_CORPSE_GRACE_MS = 8000
 SUMMONER_BARRIER = 0x04000000000026B0
 VENGEFUL_GHOST = 0x0400000000003C53
+# The blue team's available-heroes list in 104319 ruleset 011D.0C0.
+MYSTERY_SWAP_HEROES = tuple(0x02E0000000000000 | index for index in (
+    0x13B, 0x200, 0x005, 0x042, 0x020, 0x221, 0x006, 0x195, 0x06E, 0x029, 0x003, 0x00A,
+))
 SUMMONER_BARRIER_MESH_SHA256 = 'd11a09fc7224c2b73819a06a40f9dbb1cb35ff681c373aa1891a987de6eedfe8'
 
 
@@ -87,10 +93,10 @@ class PhotonBarrier:
 
 
 @dataclass
-class VengefulGhost:
-    entity: int
+class VengefulGhost(combat.SceneHazard):
     position: tuple[float, float, float]
     yaw: int = 0
+    actions: list[WheelCallout] = field(default_factory=list)
 
 
 @dataclass
@@ -116,9 +122,15 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         self.ghost: VengefulGhost | None = None
         self.messages = message_state.Host(notify=message_receiver.notify)
         self.world.queue_mode_action = self._queue_mode_action
+        self.world.queue_ghost_action = self._queue_ghost_action
+        self.world.queue_mystery_swap = self._queue_mystery_swap
+        self.pending_mystery_swaps: dict[int, int] = {}
         self.world.create_summoner_barrier = self._create_summoner_barrier
         self.world.create_vengeful_ghost = self._create_vengeful_ghost
         self.world.retire_vengeful_ghost = self._retire_vengeful_ghost
+        self.world.update_vengeful_ghost = self._update_vengeful_ghost
+        self.world.ghost_targets = self._ghost_targets
+        self.world.ghost_contact_damage = self._ghost_contact_damage
 
     def _create_vengeful_ghost(self, definition, position):
         resource = graph.junkenstein_entity(definition)
@@ -127,7 +139,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         fight = self.match.combat
         entity = fight.next_bot
         fight.next_bot += 1
-        ghost = VengefulGhost(entity, tuple(position))
+        ghost = VengefulGhost(entity, 1, 'Vengeful Ghost', tuple(position))
         world = self.world
         binding = world.bind(entity, definition=definition, target_tags=resource['target_tags'],
                              position_reader=lambda: ghost.position, rotation_reader=lambda: _rotation(ghost.yaw))
@@ -146,8 +158,69 @@ class JunkensteinSceneHost(scene_host.SceneHost):
     def _retire_vengeful_ghost(self, entity):
         if self.ghost is None or self.ghost.entity != entity:
             return False
+        published = self.spawn_projection(entity) is not None
         self.retire_entity(entity)
         self.ghost = None
+        if published and not self.closed:
+            for client in self._spawned_entity_viewers():
+                client.queue_bot_destroy(entity)
+        return True
+
+    def _update_vengeful_ghost(self, entity, position, yaw):
+        ghost = self.ghost
+        if (ghost is None or ghost.entity != entity or not isinstance(position, expr.Vec3)
+                or not all(math.isfinite(axis) for axis in position)
+                or not isinstance(yaw, (int, float)) or not math.isfinite(yaw)):
+            return NotImplemented
+        ghost.position = tuple(position)
+        ghost.yaw = (round(yaw * 65536 / 360) + 32768) % 65536 - 32768
+        return True
+
+    def _ghost_targets(self, state):
+        instance, node = state.instance, state.node
+        ghost = self.ghost
+        if ghost is None or ghost.entity != instance.component.entity:
+            return NotImplemented
+        radius = state.evaluate(node.field('m_radius'), watch=False)
+        anchor = state.evaluate(node.field('m_8DCA77B6'), watch=False)
+        if (anchor != expr.Entity(ghost.entity) or radius not in (2.5, 8)
+                or expr.guid_of(node.field('m_762A56C0.m_hardPoint')) != 0x0DC0000000000004):
+            return NotImplemented
+        fight = self.match.combat
+        # The 3AF3 model places the search hardpoint at the entity root.
+        targets = []
+        for target in fight._enemies(ghost):
+            if not isinstance(target.owner, Player) or target.owner.gone:
+                continue
+            match = self.world._filter_entity(instance, target.entity, node.field('m_filter'))
+            if match is NotImplemented:
+                return NotImplemented
+            if match and math.dist(ghost.position, target.feet) <= radius:
+                targets.append(target.entity)
+        return targets
+
+    def _ghost_contact_damage(self, state, elapsed_ms):
+        instance, node = state.instance, state.node
+        ghost = self.ghost
+        config = node.field('m_modifyHealth') or {}
+        if (ghost is None or ghost.entity != instance.component.entity or config.get('m_93CDFD2F') != 1
+                or state.evaluate(config.get('m_instigator'), watch=False) != expr.Entity(ghost.entity)
+                or state.evaluate(node.field('m_95F1FB0B'), watch=False) != 1):
+            return NotImplemented
+        if not elapsed_ms:
+            return True
+        victims = state.evaluate(node.field('m_FA3ECC43'), watch=False)
+        if not isinstance(victims, tuple):
+            return NotImplemented
+        hit = combat.hit_def(state, {'m_modifyHealth': config})
+        damage = expr.f32(hit.amount * elapsed_ms / 1000)
+        fight = self.match.combat
+        frame = instance.component.frame
+        for target in fight._enemies(ghost):
+            if (expr.Entity(target.entity) in victims and isinstance(target.owner, Player)
+                    and not target.owner.gone and math.dist(ghost.position, target.feet) <= 2.5):
+                fight._damage(ghost, target, damage, False, hit.loadout, frame,
+                              world_tick=frame, hit_tags=hit.tags)
         return True
 
     def _create_summoner_barrier(self, state):
@@ -209,12 +282,12 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 published = self.spawn_projection(entity) is not None
                 self.retire_entity(entity)
                 if published and not self.closed:
-                    for client in self._barrier_viewers():
+                    for client in self._spawned_entity_viewers():
                         client.queue_bot_destroy(entity)
 
         return retire
 
-    def _barrier_viewers(self):
+    def _spawned_entity_viewers(self):
         return (player.client for player in self.match.players
                 if player.spawned and not player.gone and player.client is not None)
 
@@ -224,23 +297,46 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         return wire.EntityUpdate(barrier.entity, wire.OP_CREATE, lambda origin: wire.create(
             origin, SUMMONER_BARRIER, components, position=barrier.position, rotation=_rotation(barrier.yaw)))
 
-    def spawned_entity_updates(self):
-        return (self._barrier_create(barrier) for barrier in self.barriers.values()
-                if barrier.health > 0 and self.spawn_projection(barrier.entity) is not None)
+    @staticmethod
+    def _ghost_create(ghost):
+        position, rotation = ghost.position, _rotation(ghost.yaw)
+        return wire.EntityUpdate(ghost.entity, wire.OP_CREATE, lambda origin: wire.create(
+            origin, VENGEFUL_GHOST, {}, position=position, rotation=rotation))
 
-    def _publish_barrier_script(self, entity, snapshot, _dead):
-        for client in self._barrier_viewers():
+    def spawned_entity_updates(self):
+        for barrier in self.barriers.values():
+            if barrier.health > 0 and self.spawn_projection(barrier.entity) is not None:
+                yield self._barrier_create(barrier)
+        ghost = self.ghost
+        if ghost is not None and self.spawn_projection(ghost.entity) is not None:
+            yield self._ghost_create(ghost)
+
+    def spawned_entity_movements(self, viewer):
+        ghost = self.ghost
+        if (ghost is not None and self.spawn_projection(ghost.entity) is not None
+                and viewer.client is not None and viewer.client.bot_create_acked(ghost.entity)):
+            # 3C53 has STU_E272A026, native component 28 consumed by channel 3.
+            pose = wire.Movement(ghost.position, yaw=ghost.yaw, input_frame=wire.NO_INPUT)
+            yield wire.EntityUpdate(ghost.entity, movement=pose)
+
+    def _publish_spawned_script(self, entity, snapshot, _dead):
+        for client in self._spawned_entity_viewers():
             client.queue_bot_live(entity, snapshot)
 
-    def _publish_new_barriers(self):
-        for entity, barrier in self.barriers.items():
+    def _publish_new_spawned_entities(self):
+        spawned = [(barrier, self._barrier_create) for barrier in self.barriers.values()]
+        if self.ghost is not None:
+            spawned.append((self.ghost, self._ghost_create))
+        for actor, make_create in spawned:
+            entity = actor.entity
             if entity in self.body_projections:
                 continue
-            # Complete the pet's initial PlayScript requests before taking its first snapshot.
-            projection = observers.SceneBody(self.units[entity].component)
-            self.body_projections[entity] = projection, partial(self._publish_barrier_script, entity)
-            for client in self._barrier_viewers():
-                client.queue_entities([self._barrier_create(barrier)])
+            # Complete initial PlayScript requests before taking the first snapshot.
+            actions = (lambda ghost=actor: ghost.actions) if actor is self.ghost else None
+            projection = observers.SceneBody(self.units[entity].component, actions=actions)
+            self.body_projections[entity] = projection, partial(self._publish_spawned_script, entity)
+            for client in self._spawned_entity_viewers():
+                client.queue_entities([make_create(actor)])
 
     def trace_barrier(self, shooter, origin, direction, length):
         nearest = None
@@ -260,7 +356,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         self.units[barrier.entity].component.set(combat.OWNER_HEALTH, barrier.health)
         if self.spawn_projection(barrier.entity) is not None:
             components = wire.health(barrier.health, barrier.maximum)
-            for client in self._barrier_viewers():
+            for client in self._spawned_entity_viewers():
                 client.queue_body_health(barrier.entity, components)
         if barrier.health == 0:
             barrier.state.request(runtime.ABORT)
@@ -277,6 +373,31 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 if player.spawned and not player.gone and player.client is not None:
                     self.mode_actions.setdefault(player.client, deque()).append((instance.id, node.pos))
 
+    def _queue_ghost_action(self, instance, node):
+        ghost = self.ghost
+        component = instance.component
+        if (ghost is None or ghost.entity != component.entity or instance.graph.index != 0x2B72
+                or node.pos not in (68, 93) or not node.is_networked or node.remote < 0
+                or component.instances.get(instance.id) is not instance or instance.stopped):
+            component.unsupported(instance, 'ghost presentation action', node.cls, node)
+        if self.replicate_mode:
+            ghost.actions.append(WheelCallout(len(ghost.actions) + 1, instance.id, instance.start,
+                                             node.pos, component.now, None, ()))
+
+    def _queue_mystery_swap(self, instance, hero):
+        component = instance.component
+        binding = self.player_bindings.get(component.entity)
+        if (self.match.card != content.JUNKENSTEIN_MYSTERY_SWAP or binding is None
+                or binding.controller is not component or instance.parent is not None):
+            component.unsupported(instance, 'Mystery Swap controller', instance.graph.node(26).cls,
+                                  instance.graph.node(26))
+        if not binding.player.has_body or binding.player.gone:
+            return
+        if not isinstance(hero, expr.Asset) or hero.guid not in MYSTERY_SWAP_HEROES:
+            component.unsupported(instance, 'Mystery Swap hero assignment', instance.graph.node(26).cls,
+                                  instance.graph.node(26))
+        self.pending_mystery_swaps[component.entity] = hero.guid
+
     @property
     def client_ready(self):
         return self.mode_projection is not None and not self.closed and self.error is None
@@ -284,6 +405,14 @@ class JunkensteinSceneHost(scene_host.SceneHost):
     def advance(self, frame):
         if not super().advance(frame, allow_skipped_frames=True):
             return False
+        for controller, hero_id in tuple(self.pending_mystery_swaps.items()):
+            binding = self.player_bindings.get(controller)
+            if binding is None:
+                del self.pending_mystery_swaps[controller]
+                continue
+            player = binding.player
+            if player.gone or player.hero.guid == hero_id or self.match.switch_hero(player, content.heroes()[hero_id]):
+                del self.pending_mystery_swaps[controller]
         self._apply_spawn_facing(frame)
         for actor, _ in tuple(self.combatants.values()):
             component = self.combatant_component(actor)
@@ -295,13 +424,17 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         if not self.replicate_mode:
             return True
 
-        self._publish_new_barriers()
+        self._publish_new_spawned_entities()
         owner = self.units[runtime.GAME_MODE_ENTITY].component
         if self.mode_projection is None:
             projection = observers.SceneBody(owner)
             if not any(item.graph.index == pve.MODE_UI for item in owner.instances.values()):
                 raise ValueError('Junkenstein mode has not started its authored common UI')
             observers.full_frame(projection, projection.latest_live)  # validate before opening the entrance
+            gate = 0x80000000 | content.JUNKENSTEIN_GATE
+            if gate in self.units and self.world.entities[gate].definition == 0x04000000000016F6:
+                gate_projection = observers.SceneBody(self.units[gate].component)
+                self.body_projections[gate] = gate_projection, partial(self._publish_spawned_script, gate)
             self.mode_projection = projection
 
         clients = [player.client for player in self.match.players
@@ -818,6 +951,13 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         instance.initialized = True
         return instance
 
+    def mount_player_intro_receiver(self, script):
+        instance = self._player_graph(script.component, TEAM_BODY_GRAPH)
+        # The boss body's 0CE0/21 sends 06AB to defenders on clients.
+        # Mount the authored camera receiver in the local player's owner VM.
+        instance.node_state(instance.graph.node(33)).request(runtime.BEGIN)
+        script.component.run_now()
+
     def before_units(self):
         world = self.world
         for entity, binding in tuple(self.player_bindings.items()):
@@ -838,6 +978,17 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 wave = self._player_graph(controller, TEAM_CONTROLLER_GRAPH)
                 wave.node_state(wave.graph.node(WAVE_RECEIVER_NODE)).request(runtime.BEGIN)
                 binding = self.player_bindings[player.entity] = PlayerBinding(player, controller)
+                if self.match.card == content.JUNKENSTEIN_MYSTERY_SWAP:
+                    owner = controller_heroes.Controller(player.entity)
+                    world.set_controller_hero_context(player.entity, controller_heroes.Context(
+                        owner.entity, True, True,
+                        lookup=lambda entity, owner=owner: owner if entity == owner.entity else None,
+                        catalog=lambda: MYSTERY_SWAP_HEROES,
+                        available=lambda hero, _owner: hero in content.heroes(),
+                        watch_environment=None,
+                    ))
+                    world.set_subgraph_scopes(player.entity, scopes.ForwardHost(controller))
+                    wave.node_state(wave.graph.node(15)).request(runtime.BEGIN)
             if not player.has_body or binding.body == player.body:
                 continue
             world.bind(player.body, definition=player.hero.body, hero=player.hero.guid,
@@ -914,6 +1065,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         self.barriers.clear()
         self.ghost = None
         self.player_bindings.clear()
+        self.pending_mystery_swaps.clear()
         self.mode_views.clear()
         self.mode_actions.clear()
         self.mode_projection = None

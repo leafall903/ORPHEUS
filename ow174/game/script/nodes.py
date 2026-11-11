@@ -2090,11 +2090,16 @@ class ChaseVar(State):
 
     def tick(self) -> None:
         dt = self.now - self.last
-        if dt <= 0 or self.reached:
-            self.last = self.now
+        self.last = self.now
+        if dt <= 0:
+            return
+        if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):
+            return
+        dest = self.destination()
+        # This persistent chase must restart if the selected defender moves.
+        if self.reached and dest == self.cur:
             return
         before = self.var.value() if self.var else None
-        dest = self.destination()
         if self.remaining is not None:
             if self.remaining <= dt:
                 self.cur = dest
@@ -2108,7 +2113,6 @@ class ChaseVar(State):
             if rate > 0:
                 step = f32(f32(f32(rate * MS) * dt) + EPSILON)
                 self.cur, self.reached = self._step(self.cur, dest, step)
-        self.last = self.now
         if self.var is not None:
             self.instance.changed(self.var, before)
         if self.reached:
@@ -2806,7 +2810,7 @@ class PhaseScriptList(State):
 
     def on_enter(self) -> None:
         component = self.instance.component
-        if (self.instance.graph.index, self.node.pos) != (0x180A, 42):
+        if (self.instance.graph.index, self.node.pos) not in ((0x180A, 42), (0x0CA2, 40)):
             component.unsupported(self.instance, "script list state", self.node.cls, self.node)
         self.refresh()
 
@@ -2896,6 +2900,18 @@ class PhaseScript(State):
         if self.child is not None:
             self.instance.component.destroy(self.child)
             self.child = None
+
+
+@state_class("STU_026ED8D3", strict_only=True)
+class MysterySwapRosterState(State):
+    def on_enter(self):
+        instance = self.instance
+        component = instance.component
+        if ((instance.graph.index, self.node.pos) != (0x0CA2, 39)
+                or component.world.queue_mystery_swap is None or instance.parent is None):
+            component.unsupported(instance, "hero roster state", self.node.cls, self.node)
+        # The native state installs a client roster override. The authored
+        # assignment at node 26 owns the server's body replacement.
 
 
 @state_class("STU_37D754C8")
@@ -3199,6 +3215,67 @@ class TrackTargets(State):
 
     def payload(self) -> dict:
         return {"targets": tuple((entity, 0) for entity in self.targets)}  # age policy unverified
+
+
+@state_class("STU_550D0C5C", strict_only=True)
+class GhostTargetPresentation(State):
+    def on_enter(self):
+        instance, node = self.instance, self.node
+        if instance.graph.index != 0x2B72 or node.pos not in (59, 63, 70, 72, 82):
+            instance.component.unsupported(instance, 'target presentation host', node.cls, node)
+        # D50530 requires a recipient script host to create target-local scopes.
+        # These ghost scopes only emit effects and vibration. The authority has
+        # no target-local presentation host, so leave their output plug dormant.
+
+
+@state_class("STU_FA98335E", strict_only=True)
+class GhostTransform(State):
+    def on_enter(self):
+        self.tick()
+        self.ticks()
+
+    def tick(self):
+        instance, node = self.instance, self.node
+        component = instance.component
+        if (instance.graph.index, node.pos) != (0x2B72, 3):
+            component.unsupported(instance, 'entity transform state', node.cls, node)
+        live = component.world.ghost_chase_target_is_live(instance)
+        if live is False:
+            # Exit through the authored retry phase if the chased body dies or is replaced.
+            instance.run_node(instance.graph.node(17), None)
+            return
+        if live is not True:
+            component.unsupported(instance, 'ghost chase target lifecycle', node.cls, node)
+        target = expr.to_entity(self.evaluate(node.field('m_target'), watch=False))
+        position = self.evaluate(node.field('m_BD2A95EE'), watch=False)
+        yaw = self.evaluate(node.field('m_E3779CD0'), watch=False)
+        if component.world.set_ghost_transform(component, target, position, yaw) is not True:
+            component.unsupported(instance, 'ghost transform', node.cls, node)
+
+
+@state_class("STU_E5ACB014", strict_only=True)
+class GhostTurn(State):
+    def on_enter(self):
+        instance, node = self.instance, self.node
+        if (instance.graph.index, node.pos) != (0x2B72, 95):
+            instance.component.unsupported(instance, 'entity turn state', node.cls, node)
+        self.last = self.now
+        self.ticks()
+
+    def tick(self):
+        elapsed = (self.now - self.last) / 1000
+        self.last = self.now
+        output = self.node.field('m_13886528')
+        current = self.evaluate(output, watch=False)
+        desired = self.evaluate(self.node.field('m_C475CE97'), watch=False)
+        if not isinstance(current, Vec3) or not isinstance(desired, Vec3) or not (desired.x or desired.z):
+            return
+        yaw = math.atan2(current.x, current.z)
+        delta = (math.atan2(desired.x, desired.z) - yaw + math.pi) % math.tau - math.pi
+        field = 'm_CFD61148' if delta >= 0 else 'm_AE9E36F8'
+        limit = math.radians(to_float(self.evaluate(self.node.field(field), watch=False))) * elapsed
+        yaw += max(-limit, min(limit, delta))
+        self.instance.write(lvalue(output), Vec3(f32(math.sin(yaw)), 0, f32(math.cos(yaw))))
 
 
 @state_class("STUStatescriptStatePhysicsExplosion", strict_only=True)
@@ -3760,6 +3837,8 @@ def set_var(instance: Instance, node, caller) -> bool:
         else:
             value = play.evaluate_value(instance, config, initial=0)
         store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
+        if (instance.graph.index, node.pos) == (0x0CA2, 26) and component.world.queue_mystery_swap is not None:
+            component.world.queue_mystery_swap(instance, value)
     instance.follow(node, "m_outPlug", None)
     return True
 
@@ -4004,7 +4083,8 @@ def stop_gate_animation(instance: Instance, node, caller) -> bool:
 def retire_junkenstein_corpse(instance: Instance, node, caller) -> bool:
     component = instance.component
     if (component.strict and component.entity == GAME_MODE_ENTITY
-            and (instance.graph.index, node.pos) == (0x0C8C, 327)):
+            and instance.graph.index == 0x0C8C and node.pos in (311, 327)
+            and expr.dynamic(node.field('m_entity')) == (expr.INSTANCE, 32557)):
         retire = getattr(component.world, 'retire_vengeful_ghost', None)
         entity = play.evaluate_scalar(instance, node.field('m_entity'))
         if retire is not None and isinstance(entity, Entity) and retire(entity.id):
@@ -4300,12 +4380,29 @@ def ultimate_base_action(instance: Instance, node, caller) -> bool:
 
 @handler("STU_7106C356", "STUStatescriptActionEffect")
 def wheel_presentation_action(instance: Instance, node, caller) -> bool:
+    if (instance.graph.index, node.pos) == (0x2B72, 68):
+        publish = instance.component.world.queue_ghost_action
+        if publish is not None:
+            publish(instance, node)
     if (node.cls == "STU_7106C356"
             or (instance.graph.index, node.pos) in (
                 (0x02CF, 3), (0x02CF, 8), (0x05AD, 14),
                 (0x0686, 14), (0x0686, 15), (0x0686, 40), (0x0686, 41),
             )):
         instance.component.world.replicate_wheel_event(instance, node)
+    return no_op(instance, node, caller)
+
+
+@handler("STU_680F6816")
+def ghost_model_action(instance: Instance, node, caller) -> bool:
+    if (instance.graph.index, node.pos) != (0x2B72, 93):
+        return NotImplemented
+    world = instance.component.world
+    entity = expr.to_entity(instance.evaluate(node.field('m_entity')))
+    if world.ghost_model_action(instance.component, entity) is not True:
+        return NotImplemented
+    if world.queue_ghost_action is not None:
+        world.queue_ghost_action(instance, node)
     return no_op(instance, node, caller)
 
 

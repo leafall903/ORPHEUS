@@ -459,7 +459,10 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls in EXPRESSIONS:
         return run(cfg, ctx)
     if cls == "STU_45EDF12D" and cfg.get("m_key") is None:
-        container = evaluate(cfg.get("m_814F8EC3"), ctx)
+        source = cfg.get("m_814F8EC3")
+        if isinstance(source, dict) and source.get("$") == "STU_06610EBC":
+            return ctx.native(cfg)  # A config group needs the host's collecting interface.
+        container = evaluate(source, ctx)
         value = evaluate(cfg.get("m_value"), ctx)
         return contains_value(container, value)
     if cls in RESOURCES:

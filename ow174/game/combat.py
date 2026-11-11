@@ -501,9 +501,18 @@ def hit_def(state, cfg) -> HitDef | None:
 # --- who can be hit -------------------------------------------------------------------------------------
 
 
+@dataclass
+class SceneHazard:
+    """A damage source with a scene entity and no player or combatant body."""
+
+    entity: int
+    team: int
+    name: str
+
+
 def _source_entity(actor) -> int:
     """The combat actor's live entity ID."""
-    return actor.entity if isinstance(actor, bots.Bot) else actor.body
+    return actor.entity if isinstance(actor, (bots.Bot, SceneHazard)) else actor.body
 
 
 @dataclass
@@ -1470,7 +1479,7 @@ class Combat:
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)
-        if not isinstance(shooter, bots.Bot):
+        if not isinstance(shooter, (bots.Bot, SceneHazard)):
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
@@ -1523,7 +1532,7 @@ class Combat:
         client = getattr(viewer, "client", None)
         if client is None:
             return
-        if not isinstance(actor, bots.Bot) and actor.body == entity:
+        if not isinstance(actor, (bots.Bot, SceneHazard)) and actor.body == entity:
             self.match.ensure_remote_body(viewer, actor)
         client.queue_combat_notice(entity, msg_id, value)
 
@@ -1632,9 +1641,9 @@ class Combat:
         label = self.match.label()
         log.info("[game] %s: %s killed %s", label, killer.name, victim.name)
         victim.stats.add(stats.DEATHS)
-        bot_killer = isinstance(killer, bots.Bot)
+        player_killer = not isinstance(killer, (bots.Bot, SceneHazard))
         source = _source_entity(killer)
-        if killer is not victim and not bot_killer:
+        if killer is not victim and player_killer:
             killer.stats.add(stats.ELIMINATIONS)
             self._kill_notice(killer, victim)
         if victim.client is not None:
