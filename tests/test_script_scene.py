@@ -6,7 +6,7 @@ import unittest
 import uuid
 from unittest import mock
 
-from ow174.game.script import expr, play, runtime, scene
+from ow174.game.script import component86, expr, health_queries, play, runtime, scene
 from tests.test_script_for_code import KEY, make, row
 from tests.test_script_play_resource import array, inline, integer, requesting, with_schema
 from tests.test_script_play_resource import row as schema_row
@@ -40,6 +40,92 @@ def manifest(*placements):
 
 def caller(world):
     return runtime.Component(123, world=world, strict=True).create(graph(), init=False)
+
+
+class ControllerStartupTests(unittest.TestCase):
+    def test_factory_miss_requires_the_exact_graph_position_and_class(self):
+        state_class = "STU_724DFBC6"
+        definition = graph(nodes=[node(0, state_class, state=0)])
+        for misses, skipped in (
+            (((definition.index, 0, state_class),), True),
+            (((definition.index + 1, 0, state_class),), False),
+            (((definition.index, 1, state_class),), False),
+            (((definition.index, 0, "STU_531AA630"),), False),
+            ((), False),
+        ):
+            with self.subTest(misses=misses):
+                world = scene.SceneWorld(native_state_misses=misses)
+                component = runtime.Component(123, world=world, strict=True)
+                instance = component.create(definition, init=False)
+                if skipped:
+                    self.assertIsNone(instance.state(0))
+                    self.assertNotIn(0, instance.states)
+                    self.assertIsNone(component.fault)
+                else:
+                    with self.assertRaisesRegex(runtime.UnsupportedScriptError, state_class):
+                        instance.state(0)
+
+    def test_body_field_and_health_queries_track_explicit_scene_lifetimes(self):
+        world = scene.SceneWorld()
+        world.bind(123)
+        world.bind(124)
+        world.set_possessions(possessors=(123,), primary={124: 123})
+        instance = caller(world)
+        body = {"$": "STU_00707E1E", "m_00903303": {"$": "STU_B5A0CAF0"}}
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_00707E1E"):
+            instance.evaluate(body)
+
+        instance = caller(world)
+        world.set_component44_body_id(123, 124)
+        self.assertEqual(instance.evaluate(body), expr.Entity(124))
+        snapshot = health_queries.Pools((240, 25, 70), 350, 400)
+        world.set_health_pool_source(124, lambda: snapshot)
+        current = {"$": health_queries.CURRENT, "m_entity": body}
+        maximum = {"$": health_queries.MAXIMUM, "m_entity": body}
+        shield = {"$": health_queries.FILTERED_CURRENT, "m_entity": body,
+                  "m_7E8B666C": {"$": "STU_297E1A30", "m_7E8B666C": 2}}
+        self.assertEqual([instance.evaluate(cfg) for cfg in (current, maximum, shield)], [350, 400, 70])
+        snapshot = health_queries.Pools((230, 15, 30), 285, 400)
+        self.assertEqual([instance.evaluate(cfg) for cfg in (current, maximum, shield)], [285, 400, 30])
+
+        world.set_possessor(123, False)
+        self.assertEqual(instance.evaluate(body), expr.Entity(0))
+        self.assertEqual(instance.evaluate(current), 0.0)
+        world.set_possessor(123, True)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_00707E1E"):
+            instance.evaluate(body)
+        world.unbind(124)
+        self.assertIs(world.body_health(124), NotImplemented)
+
+    def test_component86_removes_only_the_detached_sources_records(self):
+        world = scene.SceneWorld()
+        target = 125
+        world.bind(target)
+        registry = component86.Registry()
+        world.set_component86(target, registry)
+        sources = []
+        for entity in (123, 124):
+            world.bind(entity)
+            component = runtime.Component(entity, world=world, strict=True)
+            world.bind_script_component(entity, component)
+            state_node = node(0, "STU_CF8C7CC5", state=0,
+                              m_00D49978={"$": "STUConfigVarDynamic", "m_identifier": 7, "m_60DB8F99": 0})
+            instance = component.create(graph(nodes=[state_node]))
+            instance.write((expr.INSTANCE, 7), expr.Entity(target))
+            state = instance.state(0)
+            state.request(runtime.BEGIN)
+            component.run_frame(1)
+            sources.append((component, state))
+
+        first, second = sources
+        self.assertEqual([entry.source for entry in registry.entries], [123, 124])
+        world.unbind_script_component(first[0].entity, first[0])
+        self.assertEqual([entry.source for entry in registry.entries], [124])
+        second[1].request(runtime.ABORT)
+        second[0].run_frame(2)
+        self.assertEqual(registry.entries, [])
+        world.unbind(target)
+        self.assertIs(world.component86(target), NotImplemented)
 
 
 class SceneIdentityTests(unittest.TestCase):

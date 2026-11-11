@@ -21,13 +21,23 @@ from ow174.game import (
     combat,
     correction,
     heroselect,
+    moira_orbs,
     notices,
     observers,
+    photon_barrier,
     projectiles,
+    reinhardt_barrier,
     replay_values,
+    sigma,
     statescript,
     stats,
+    symmetra_sentry,
+    torbjorn_turret,
+    molten_core,
     voicelines,
+    winston_barrier,
+    winston_jump,
+    winston_primal,
     world,
 )
 from ow174.game.bits import BitWriter
@@ -93,9 +103,17 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns sleeps biotic pins grasp_shields grasp_grants barriers halt_pulls halt_slows "
+        "frost_sources frost_hits "
+        "genji_strikes genji_blades booster_contacts tesla_frames winston_jump winston_primal "
+        "sentries moira_orbs torbjorn_turrets molten_pools molten_burns"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    winston_jump.JumpPack: _names("combat seen flights"),
+    winston_primal.PrimalRage: _names("combat seen frames bonus expiries"),
+    combat.Vitals: _names(
+        "entity most now ids changed died_at death_tick killer temporary_shields "
+        "shield_recovery_tick particle_barriers"
+    ),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -117,7 +135,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,13 +149,24 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "effect_mover"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    bots.Bot: _names("assassin_controller"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    combat.TemporaryShield, sigma.ShieldDecay, sigma.Barrier,
+    photon_barrier.Wall,
+    moira_orbs.Orb,
+    symmetra_sentry.Sentry,
+    torbjorn_turret.Turret,
+    molten_core.Pool,
+    reinhardt_barrier.Geometry, reinhardt_barrier.BarrierField, winston_barrier.Bubble,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

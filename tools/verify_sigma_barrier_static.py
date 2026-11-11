@@ -7,6 +7,7 @@ never a substitute for an executed protection result. Reports stay external.
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -42,9 +43,14 @@ def diagnostic(instance):
     pet = instance.vars.get(512) or instance.component.entity_var(512, create=False)
     pet = pet.value() if pet else None
     current = instance.vars.get(586)
+    match = instance.component.world.match
+    actor = match.combat.barriers.get(pet.id) if match is not None and isinstance(pet, expr.Entity) else None
     return {"pet_state_active": bool(state and state.active),
             "pet_entity_output": pet.id if isinstance(pet, expr.Entity) else None,
             "pet_health_query": current.value() if current else None,
+            "actor": {"active": actor.active, "phase": actor.phase, "position": actor.position,
+                      "health": actor.vitals.total, "child_request_seen": actor.child_request_seen,
+                      "geometry": actor.geometry.name} if actor else None,
             "owner_exists_gate": repr(instance.evaluate(instance.graph.node(64).field("m_condition"))),
             "resource_data_only": {
                 "barrier_maximum": instance.vars[587].value(),
@@ -97,15 +103,23 @@ def recalled():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--model", type=Path,
+                        help="manifest-verified external C015 model with integrity sidecar")
     args = parser.parse_args()
+    if args.model is not None:
+        os.environ["ORPHEUS_SIGMA_BARRIER_MODEL"] = str(args.model.resolve())
     if args.output.resolve().is_relative_to(ROOT):
         parser.error("report must stay outside the source repository")
     rows = [attacked(kind) for kind in ("rifle", "helix", "hyperspheres")]
     rows.append(recalled())
     result = {"hero": "Sigma", "source_path": str(ROOT), "static_acceptance_complete": False,
               "scope": "Actual commands/body graphs; flat collision, fake transport, permissive VM.",
-              "results": rows, "remaining": ["Pet factory and component43 owner/existence services",
-                "Barrier interception, movement, stop/recall, health/regen/break and replication",
+              "model_input": os.environ.get("ORPHEUS_SIGMA_BARRIER_MODEL"),
+              "implementation": ("Reconstructed authoritative Pet actor using verified external C015 mesh; "
+                                 "no native Pet/1A2A service or client replication claim."),
+              "results": rows,
+              "remaining": ["Native Pet/component43/1A2A services and receiver filter semantics",
+                "Native Barrier health/ruleset services, full range/attack eligibility and replication",
                 "Full cross-hero/player/five-NPC matrix and original-client acceptance"]}
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     for row in rows:

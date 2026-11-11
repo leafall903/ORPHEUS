@@ -3,6 +3,7 @@
 import math
 import struct
 import unittest
+from dataclasses import replace
 
 import test_sigma_grasp as grasp_tests
 from test_game_combat import KANEZAKA_DM, Run, aim
@@ -13,8 +14,8 @@ from ow174.game.content import SOLDIER, heroes
 
 
 class SigmaShieldTests(unittest.TestCase):
-    def granted(self):
-        run, player, enemy, vitals, instance = grasp_tests.SigmaGraspTests().arena()
+    def granted(self, *, close=False):
+        run, player, enemy, vitals, instance = grasp_tests.SigmaGraspTests().arena(close=close)
         for frame in range(160):
             run.step({enemy: (-32768, 0, FIRE if frame < 20 else 0)})
         self.assertEqual(instance.vars[21312].value(), 60)
@@ -51,6 +52,87 @@ class SigmaShieldTests(unittest.TestCase):
         run.match.combat.heal_area(player, run.match.combat._eye(player), 10, 1000)
         self.assertEqual(vitals.total, 416)
         self.assertEqual(vitals.temporary_shields[sigma.SHIELD_TAG].now, 16)
+
+    def test_hypersphere_self_damage_spends_grasp_shields_and_restarts_ordinary_recovery(self):
+        run, player, enemy, vitals = self.granted(close=True)
+        fight = run.match.combat
+        target = next(entry for entry in fight._targets() if entry.owner is enemy)
+        enemy_health = fight.vitals_of(target)
+        shield = combat.SHIELDS_POOL
+        vitals.now[shield] = 80
+        x, y, z = player.mover.position
+        reply = aim(fight._eye(enemy), (x, y + 0.8, z))
+        run.step({enemy: (*reply, FIRE)})
+        self.assertEqual(vitals.temporary_shields[sigma.SHIELD_TAG].now, 16)
+        rifle_deadline = vitals.shield_recovery_tick
+        script = player.body_script
+        script.ult_seconds = 0
+        script.set_ult_charge(0)
+        yaw, pitch = aim(fight._eye(player), fight._eye(enemy))
+        last_hit = None
+        for frame in range(60):
+            before = vitals.total
+            run.step({player: (yaw, pitch, FIRE if frame == 0 else 0)})
+            if vitals.total < before:
+                self.assertEqual(before - vitals.total, 7.5)
+                last_hit = run.frame
+        self.assertIsNotNone(last_hit)
+        self.assertEqual(vitals.temporary_shields[sigma.SHIELD_TAG].now, 1)
+        self.assertGreater(vitals.shield_recovery_tick, rifle_deadline)
+        self.assertEqual(vitals.now[shield], 80)
+        self.assertEqual(vitals.now[combat.HEALTH_POOL], 300)
+        self.assertEqual(enemy_health.total, 90)
+        self.assertEqual(script.component.entity_var(342).value(), 110)
+        while run.frame < last_hit + 187:
+            run.step({})
+            self.assertEqual(vitals.now[shield], 80)
+        run.step({})
+        self.assertAlmostEqual(vitals.now[shield], 80.24)
+        self.assertEqual(script.component.entity_var(342).value(), 110)
+
+    def test_allied_biotic_field_heals_base_pools_but_not_spent_grasp_shields(self):
+        run = Run(KANEZAKA_DM, ("Sigma", "Enemy", "Healer"))
+        run.match.bots.clear()
+        run.match._pending_bot_scripts.clear()
+        run.match.game_map = replace(run.match.game_map, free_for_all=False)
+        player, enemy, healer = run.players
+        player.team = healer.team = 0
+        enemy.team = 1
+        run.match.switch_hero(player, heroes()[sigma.HERO])
+        x, y, z = player.mover.position
+        enemy.mover.position = [x, y, z + 6]
+        healer.mover.position = [x + 2, y, z]
+        fight = run.match.combat
+        target = next(target for target in fight._targets() if target.owner is player)
+        vitals = fight.vitals_of(target)
+        run.step({player: (0, 0, 0x08)})
+        for frame in range(160):
+            run.step({enemy: (-32768, 0, FIRE if frame < 20 else 0)})
+        self.assertEqual(vitals.temporary_shields[sigma.SHIELD_TAG].now, 36)
+        health, shields = combat.HEALTH_POOL, combat.SHIELDS_POOL
+        vitals.now[health], vitals.now[shields] = 280, 90
+        yaw, pitch = aim(fight._eye(enemy), (x, y + 0.8, z))
+        run.step({enemy: (yaw, pitch, FIRE), healer: (0, 0, 0x10)})
+        hit_tick = run.frame
+        self.assertEqual(vitals.temporary_shields[sigma.SHIELD_TAG].now, 16)
+        self.assertEqual((vitals.now[health], vitals.now[shields]), (280, 90))
+        for _ in range(150):
+            run.step({})
+            self.assertEqual(vitals.temporary_shields[sigma.SHIELD_TAG].now, 16)
+            if vitals.now[shields] > 90:
+                self.assertEqual(vitals.now[health], 300)
+            if vitals.now[shields] == 100:
+                break
+        self.assertEqual((vitals.now[health], vitals.now[shields]), (300, 100))
+        self.assertLess(run.frame - hit_tick, 188)
+        self.assertAlmostEqual(healer.stats.value(stats.HEALING), 30)
+        for _ in range(200):
+            run.step({})
+            if vitals.temporary_shields[sigma.SHIELD_TAG].now < 16:
+                break
+        self.assertLess(vitals.temporary_shields[sigma.SHIELD_TAG].now, 16)
+        self.assertTrue(any(shot.field_tick is not None for shot in fight.projectiles.shots))
+        self.assertAlmostEqual(healer.stats.value(stats.HEALING), 30)
 
     def test_three_second_grace_then_five_per_second_decay_and_zero_record(self):
         run, player, enemy, vitals = self.granted()

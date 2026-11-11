@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -121,10 +122,12 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
-        self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.assassin_controller = None  # optional authored combat controller owned by this body
+        self.attack_target = None  # the selected player controller
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.effect_mover: Mover | None = None
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
         self.name = hero["name"]
@@ -161,6 +164,9 @@ class Bot:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
+        if self.effect_mover is not None:
+            self._step_effect_mover(tick, seconds, collision)
+            return
         if not self.route:
             if tick < paused_until:
                 self._pause(tick)
@@ -175,6 +181,30 @@ class Bot:
                 self._pause(at)
             else:
                 self._tick(at, seconds, collision)
+
+    def _step_effect_mover(self, tick: int, seconds: float, collision) -> None:
+        """Advance external airborne motion without resuming the route mid-flight."""
+        mover = self.effect_mover
+        first = tick if self.last_tick is None else max(self.last_tick + 1, tick - CATCH_UP + 1)
+        if collision is not None:
+            mover.use(world=collision)
+        active = statescript_mods(self.body_script.component) if self.body_script is not None else {}
+        for at in range(first, tick + 1):
+            mover.track_mods(active, at - 1)
+            mover.step_pose(Command(at, yaw=s16(round(self.yaw)), pitch=s16(round(self.pitch))), seconds, at)
+            self.position = tuple(mover.position)
+            self.velocity = mover.velocity
+            self.last_tick = self.moved_tick = at
+            if not mover.airborne:
+                self.effect_mover = None
+                break
+
+    def ensure_effect_mover(self, world, category: int, tick: int) -> Mover:
+        if self.effect_mover is None:
+            self.effect_mover = Mover(self.position, round(self.yaw), world, mover_data(self.body), category)
+            self.effect_mover.velocity = self.velocity
+            self.last_tick = tick
+        return self.effect_mover
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -296,6 +326,10 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        if self.assassin_controller is not None:
+            self.assassin_controller.retire()
+            self.assassin_controller = None
+        self.effect_mover = None
         self.attack_target = None
         self.attack_input = False
         self.keys = False
@@ -332,15 +366,18 @@ class Bot:
             input_frame = None
         else:
             input_frame = self.input_tick
+        mover = self.effect_mover
+        flags = mover.flags if mover is not None else 0
         return Movement(
             self.position,
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else flags,
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
+            air_ticks=mover.air_ticks if mover is not None else 0,
             gravity=GRAVITY_SCALE,
         )
 

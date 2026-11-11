@@ -101,13 +101,24 @@ class EventSequence:
         return f"EventSequence(next_value={self._next_value})"
 
 
-def state_class(*names: str):
+def state_class(*names: str, strict_only: bool = False):
     def register(cls):
+        cls.strict_only = strict_only
         for name in names:
             STATE_CLASSES[name] = cls
         return cls
 
     return register
+
+
+def state_type(node: Node, graph_index: int, *, strict: bool):
+    model = STATE_CLASSES.get(node.cls, State)
+    if not strict and getattr(model, "strict_only", False):
+        return State
+    scope = getattr(model, "state_scope", None)
+    if scope is not None and (graph_index != scope[0] or node.pos not in scope[1]):
+        return State
+    return model
 
 
 def handler(*names: str):
@@ -251,7 +262,14 @@ class InstanceContext(Context):
     def member(self, entity: int, var: int):
         component = self.instance.component
         if entity == component.entity:
-            return self._read(component.entity_var(var, create=self.watcher is not None))
+            value = self._read(component.entity_var(var, create=self.watcher is not None))
+            if value is None and self.instance.graph.index in (0x02CC, 0x047E):
+                from ow174.game import dva_matrix
+
+                fallback = dva_matrix.ruleset_member(self.instance, entity, var)
+                if fallback is not NotImplemented:
+                    return fallback
+            return value
         slot = component.world.entity_var_slot(entity, var, create=self.watcher is not None)
         if slot is not NotImplemented:
             return self._read(slot)
@@ -302,13 +320,21 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import controller_heroes, controller_queries, entity_filter, entity_hostility, entity_queries, entity_team, health_queries
 
         result = entity_queries.evaluate(self, cfg)
+        if result is NotImplemented and self.instance.component.strict:
+            result = entity_filter.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_hostility.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = health_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = controller_queries.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -392,6 +418,18 @@ class World:
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
+    def body_raycast(self, state: "State"):
+        return NotImplemented
+
+    def destination_search(self, state: "State") -> None:
+        pass
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
@@ -445,6 +483,42 @@ class World:
 
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
+
+    def native_state_factory_miss(self, graph_index: int, node: Node) -> bool:
+        """An explicit empty state slot in the selected build factory."""
+        return False
+
+    def entity_filter_record(self, entity: int):
+        return NotImplemented
+
+    def target_record_scalar(self, owner: int, target: int):
+        return NotImplemented
+
+    def assassin_movement_sample(self, entity: int):
+        """Explicit 1158 movement sample, known absence, or an unknown service."""
+        return NotImplemented
+
+    def hosts_assassin_pursuit_callbacks(self, entity: int):
+        """Whether the owner has a 1158 callback host, or an unknown service."""
+        return NotImplemented
+
+    def controller_record(self, entity: int):
+        return NotImplemented
+
+    def model_gate_consumer(self, entity: int):
+        return NotImplemented
+
+    def body_health(self, entity: int):
+        return NotImplemented
+
+    def filtered_body_health(self, entity: int, kind: int, tag: int):
+        return NotImplemented
+
+    def component86(self, entity: int):
+        return NotImplemented
+
+    def b61_registry(self, entity: int):
+        return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
@@ -500,6 +574,28 @@ class World:
         """Optional explicit reconstructed body service; legacy unknown calls stay inert."""
         return False
 
+    def tracked_targets(self, state: "State"):
+        """Explicit target-query host; unknown searches retain their empty fallback."""
+        return NotImplemented
+
+    def create_compatible_pet(self, state: "State"):
+        return NotImplemented
+
+    def retire_compatible_pet(self, state: "State", entity: int) -> None:
+        pass
+
+    def refresh_compatible_placement(self, state: "State", *, confirm: bool):
+        """Explicit host placement service; NotImplemented preserves an unknown State."""
+        return NotImplemented
+
+    def entity_filter_context(self, owner: int, *, component=None):
+        """Explicit namespace/cache/filter services; no implicit candidate binding."""
+        return NotImplemented
+
+    def entity_hostility_context(self, owner: int, *, component=None):
+        """Explicit native team/relation/group services, without inferred actor defaults."""
+        return NotImplemented
+
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
 
@@ -525,6 +621,10 @@ class World:
         A concrete mission owner must implement this service.
         """
         instance.component.unsupported(instance, "native PlayScript request", node.cls, node)
+
+    def managed_script_resource(self, instance: "Instance", node: Node, resource):
+        """Resolve a state-owned, local graph through the world's loader."""
+        instance.component.unsupported(instance, "managed script loader", node.cls, node)
 
     def code_changed(self, component: "Component", token: int) -> None:
         """Deliver an explicitly registered native-service notification."""
@@ -674,7 +774,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1011,9 +1111,12 @@ class Instance:
                 if self.component.strict:
                     self.component.unsupported(self, "state reference", str(index))
                 return None
-            if self.component.strict and node.cls not in STATE_CLASSES and node.cls != "STUStatescriptState":
+            model = state_type(node, self.graph.index, strict=self.component.strict)
+            if self.component.strict and model is State and node.cls != "STUStatescriptState":
+                if self.component.world.native_state_factory_miss(self.graph.index, node):
+                    return None
                 self.component.unsupported(self, "state", node.cls, node)
-            found = self.states[index] = STATE_CLASSES.get(node.cls, State)(self, node, index)
+            found = self.states[index] = model(self, node, index)
             found.on_created()
         return found
 
@@ -1031,6 +1134,10 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # These flags coalesce queued notifications. A cancelled notification
+        # must not suppress the next activation's dependency/completion check.
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""

@@ -40,7 +40,7 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
+heroes whose statescript the server does not run, velocity mods (STU_FF3471E9
 states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
 other bodies.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
@@ -168,7 +168,9 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
+HORIZONTAL_SPEED_MOD = 33
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
 # m_9B7A63EA value): class -> (op, value of an empty config var) (0x7FF789C4C1E0, by their type objects).
@@ -386,6 +388,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -454,6 +468,7 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.external_impulse = False
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -600,18 +615,19 @@ class Mover:
 
     def step(
         self, command: Command, seconds: float, tick: int = 0,
-        *, simulate_pose: Callable[[Command, float, int], None] | None = None,
+        *, simulate_pose: Callable[[Command, float, int], None] | None = None, retained_buttons: int = 0,
     ) -> None:
         """One tick per command frame. Frames that never arrived are run first: the client ran them, most
         likely with the same keys (the last command again, and from the 33rd
         missing one without throttles and buttons). A player with a body script can drive each pose and
-        run its graph on the same frame, including recovered input."""
+        run its graph on the same frame, including recovered input. A caller can confirm a
+        continuously held button across the gap."""
         pose = self.step_pose if simulate_pose is None else simulate_pose
         last = self.last_command
         if last is not None:
             for frame in range(self.first_step_frame(command.frame), command.frame):
                 if frame - last.frame > REPEAT:
-                    last = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
+                    last = Command(last.frame, yaw=last.yaw, pitch=last.pitch, buttons=retained_buttons)
                 missing = replace(
                     last, frame=frame, buttons=last.buttons & ~SUBFRAME, action=0,
                     subframe=0xFF, click_yaw=None, click_pitch=None,
@@ -623,6 +639,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        flight: MoverData | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -633,7 +650,7 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
-        self.values = data = modded(self.data, active)
+        self.values = data = modded(self.data if flight is None else flight, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
         if held:
@@ -642,6 +659,14 @@ class Mover:
         forward, forward_byte = throttle_byte(command.forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
+        if flight is not None:
+            # The scoped host uses jump and crouch for vertical flight input.
+            vx, _, vz = self.velocity
+            vertical = int(bool(command.buttons & JUMP)) - int(crouch)
+            self.velocity = (vx, vertical * data.run_forward, vz)
+            if vertical > 0:
+                self.flags_word |= FELL
+            jump = crouch = False
         stood_up = self.crouch_end
         if crouch and not self.crouched and stood_up is not None:
             crouch = (frame - stood_up) * dt >= CROUCH_AGAIN
@@ -663,6 +688,8 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        right, forward = modified_throttles(active, right, forward)
+
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
@@ -673,6 +700,7 @@ class Mover:
             self._friction(dt, horizontal, vy, grounded)
             self._accelerate(dt, right, forward, axes, grounded)
             self._cap(horizontal, axes)
+            self._modify_horizontal_speed(active)
             if not grounded:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
@@ -682,7 +710,17 @@ class Mover:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne:
+            self.external_impulse = False
         return outcome
+
+    def add_external_impulse(self, impulse) -> None:
+        """Keep externally supplied momentum in the normal collision solver."""
+        self.velocity = tuple(f32(v + delta) for v, delta in zip(self.velocity, impulse, strict=True))
+        self.driven = False
+        self.external_impulse = True
+        if self.velocity[1] > 0.0:
+            self.flags_word |= FELL
 
     def _fall_after(self, vertical: float) -> None:
         """The state's +832 after the move (0x7FF789B4F530): gravity's part of the velocity, added up in the
@@ -1035,6 +1073,17 @@ class Mover:
         allowed = min(speed, max(cap, before))
         if abs(speed - allowed) > LAND_LIMIT and squared >= EPSILON:
             self.velocity = (vx / speed * allowed, vy, vz / speed * allowed)
+
+    def _modify_horizontal_speed(self, active: list[Mod]) -> None:
+        """Resolve field 33 on the XZ magnitude before collision, preserving Y (C31A72)."""
+        if not any(mod.index == HORIZONTAL_SPEED_MOD for mod in active):
+            return
+        vx, vy, vz = self.velocity
+        length = f32(math.hypot(vx, vz))
+        if length <= CAP_TINY:
+            return
+        scale = f32(intent(active, HORIZONTAL_SPEED_MOD, length) / length)
+        self.velocity = (f32(vx * scale), vy, f32(vz * scale))
 
     # ---- 8. the move
 

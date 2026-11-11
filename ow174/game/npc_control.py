@@ -1,18 +1,18 @@
 """Manual NPC attack selection and input policy, reconstructed for the sandbox.
 
-Slot0 comes from each body's extracted AI definition. This is manual targeting,
-not restored native autonomous acquisition, navigation or enemy special behavior.
+Slot0 comes from each body's extracted AI definition. Manual targeting also
+selects supported close attacks, Heavy Assault charge, and Sniper retreat.
 """
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, heavy_assault, sniper
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
 
 def manual(bot):
-    return bot.spawner.get('manual_spawn') is True
+    return bot.spawner.get('manual_spawn') is True and bot.assassin_controller is None
 
 
 def button(bot):
@@ -55,6 +55,9 @@ def start(match, player):
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
     button(bot)  # validate before changing policy
+    if bot.attack_target is not None and bot.attack_target != player.entity:
+        heavy_assault.stop(bot.body_script.component, bot)
+        sniper.stop(bot)
     bot.attack_target = player.entity
     bot.firing = True
     return bot.entity
@@ -70,6 +73,9 @@ def stop(match):
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
+            heavy_assault.stop(component, bot)
+            sniper.stop(bot)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
@@ -81,6 +87,7 @@ def stop(match):
                 match.combat.projectiles._end(shot, match.tick, False)
         match.combat.rockets[:] = [r for r in match.combat.rockets if r.shooter is not bot]
         count += 1
+    heavy_assault.sync_captures(match.combat)
     return count
 
 
@@ -96,7 +103,10 @@ def update_input(fight, bot):
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
+        if bot.hero == assassin.HERO and bot.effect_mover is not None and bot.effect_mover.airborne:
+            enabled = False
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -106,6 +116,12 @@ def update_input(fight, bot):
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    if heavy_assault.update(bot, component, enabled, target) or sniper.update(fight, bot, enabled):
+        enabled = False
+    desired = target.body if enabled else None
+    if (bot.hero == assassin.HERO and component.world.manual_target != desired):
+        assassin.bind(component.world, component, desired)
+        bot.attack_input = False
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

@@ -50,6 +50,7 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.CreateEntity: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -72,12 +73,15 @@ _STATE_LAYOUTS = {
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
-        ("max_shots", "min_shots"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
+        ("max_shots", "min_shots", "shot_spread"),
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
-    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
+    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "cooldown_observed",
+                     "last", "var", "stack_var"), ()),
+    nodes.CompatiblePet: (("pet_entity",), ()),
+    nodes.CompatiblePlacement: ((), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
@@ -89,7 +93,11 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed"), ()),
+    nodes.Effect: ((), ()),
+    nodes.BodyRaycast: (("hit", "hit_var"), ()),
+    nodes.DestinationSearch: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ("charge_contacts",)),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -221,7 +229,7 @@ class _Export:
         if (type(fields["node"]) is not graph.Node or not 0 <= index < len(owner.graph.states)
                 or owner.graph.states[index] is not fields["node"]):
             raise BodyVMSnapshotError("state node does not match its graph slot")
-        if kind is not runtime.STATE_CLASSES.get(fields["node"].cls, runtime.State):
+        if kind is not runtime.state_type(fields["node"], owner.graph.index, strict=owner.component.strict):
             raise BodyVMSnapshotError("state class does not match its registered node model")
         key = (owner.id, index)
         if key not in self.states:
@@ -390,7 +398,8 @@ class _Export:
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "match", "manual_target"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}

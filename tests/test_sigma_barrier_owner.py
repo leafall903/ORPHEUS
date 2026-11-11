@@ -1,6 +1,8 @@
 """A scoped Barrier factory prerequisite, explicitly not Barrier combat acceptance."""
 
+import os
 import unittest
+from unittest.mock import patch
 
 import test_sigma_combat as fixtures
 
@@ -11,7 +13,11 @@ from ow174.game.script import expr, runtime
 
 class BarrierOwnerTests(unittest.TestCase):
     def owner(self):
-        run, player, _enemy, _vitals = fixtures.SigmaCombatTests().arena()
+        # This prerequisite fixture deliberately declares no model input. Full
+        # actor/protection scenarios use the separately verified external model.
+        with patch.dict(os.environ):
+            os.environ.pop("ORPHEUS_SIGMA_BARRIER_MODEL", None)
+            run, player, _enemy, _vitals = fixtures.SigmaCombatTests().arena()
         instance = next(i for i in player.body_script.component.instances.values() if i.graph.index == 0x1B55)
         gate = instance.graph.node(64).field("m_condition")
         return run, player, instance, gate

@@ -136,9 +136,7 @@ def valid_entity(entity_id: int) -> bool:
     return entity_id != INVALID_ENTITY and (entity_id & 0x1FFFFFFF) != 0x1FFFFFFF
 
 
-def truthy(value) -> bool:
-    if value is None:
-        return False
+def truthy(value, *, default: bool = False) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
@@ -154,10 +152,10 @@ def truthy(value) -> bool:
     if isinstance(value, Entity):
         return valid_entity(value.id)
     if isinstance(value, tuple):
-        return truthy(value[0]) if value else False
+        return truthy(value[0], default=default) if value else default
     if isinstance(value, Map):
         return bool(value.items)
-    return False
+    return default
 
 
 def to_float(value, default: float = 0.0) -> float:
@@ -368,6 +366,7 @@ def _number(cfg: dict, convert):
 
 CONSTANTS = {
     "STUConfigVarBool": lambda cfg: bool(cfg.get("m_value")),
+    "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),  # Health-pool kind, native 1B860F0.
     "STUConfigVarInt": lambda cfg: _number(cfg, i32),
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
@@ -429,6 +428,15 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return CONSTANTS[cls](cfg)
     if cls in EXPRESSIONS:
         return run(cfg, ctx)
+    if cls == "STU_6DF07EE5":
+        definition = cfg.get("m_36F7B64C")
+        if (isinstance(definition, dict) and not definition.get("m_17BB822A")
+                and not definition.get("m_CB2634D7")):
+            # CD05B0/D05A80 with no override rows returns a single asset in an array.
+            value = evaluate(definition.get("m_C974E369"), ctx)
+            while isinstance(value, tuple) and value:
+                value = value[0]
+            return (value,) if isinstance(value, Asset) and value.guid else initial
     if cls == "STU_45EDF12D" and cfg.get("m_key") is None:
         container = evaluate(cfg.get("m_814F8EC3"), ctx)
         value = evaluate(cfg.get("m_value"), ctx)
@@ -444,6 +452,11 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
+        from ow174.game import dva_matrix
+
+        value = dva_matrix.ruleset_expression(ctx, key)
+        if value is not NotImplemented:
+            return value
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
@@ -510,6 +523,19 @@ def lvalue(cfg) -> tuple[int, int] | None:
         code, dynamics, _ = _parts(cfg)
         if len(code) >= 2 and code[0] in (8, 9) and (len(code) == 2 or code[2] == 0):
             return dynamic(dynamics[code[1]])
+    return None
+
+
+def indexed_lvalue(cfg) -> tuple[tuple[int, int], int] | None:
+    """Resolve a direct variable followed by a constant array index."""
+    if not isinstance(cfg, dict) or cfg.get("$") not in EXPRESSIONS:
+        return None
+    code, dynamics, constants = _parts(cfg)
+    if (len(code) == 6 and code[0] in (8, 9) and code[2] == 6 and code[4:] == [17, 0]
+            and 0 <= code[1] < len(dynamics) and 0 <= code[3] < len(constants)):
+        target = dynamic(dynamics[code[1]])
+        if target is not None:
+            return target, to_int(constants[code[3]])
     return None
 
 

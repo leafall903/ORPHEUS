@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import pools, winston_primal
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -95,9 +95,9 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# The ultimate graph resets server charge #342e and reads its authored cost #338e.
+# The sandbox passive clock fills in ULT_SECONDS (0 disables it). Scoped combat
+# awards share the cap and do not credit a running ultimate.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -135,12 +135,59 @@ class BodyWorld(runtime.World):
         return super().position(entity)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import sigma
+        from ow174.game import dva_matrix, genji, photon_barrier, reinhardt_barrier, sigma, symmetra_beam
 
+        wall_query = photon_barrier.native(self, cfg, instance)
+        if wall_query is not NotImplemented:
+            return wall_query
+
+        projector_query = symmetra_beam.target_query(self, cfg, instance)
+        if projector_query is not NotImplemented:
+            return projector_query
+
+        shield_query = reinhardt_barrier.native(self, cfg, instance)
+        if shield_query is not NotImplemented:
+            return shield_query
+
+        possession = dva_matrix.possession(self, cfg, instance)
+        if possession is not NotImplemented:
+            return possession
+
+        strike_query = genji.strike_query(self, cfg, instance)
+        if strike_query is not NotImplemented:
+            return strike_query
+
+        halt_query = sigma.halt_native(self, cfg, instance)
+        if halt_query is not NotImplemented:
+            return halt_query
+        rock_query = sigma.accretion_native(self, cfg, instance)
+        if rock_query is not NotImplemented:
+            return rock_query
+        caster_query = sigma.flux_caster_native(self, cfg, instance)
+        if caster_query is not NotImplemented:
+            return caster_query
+        effect_query = sigma.flux_effect_native(self, cfg, instance)
+        if effect_query is not NotImplemented:
+            return effect_query
         owner_query = sigma.barrier_owner_query(self, cfg, instance)
         if owner_query is not sigma.NOT_HANDLED:
             return owner_query
+        health_query = sigma.barrier_health_query(self, cfg, instance)
+        if health_query is not sigma.NOT_HANDLED:
+            return health_query
+        placed_position = sigma.flux_position_query(self, cfg, instance)
+        if placed_position is not sigma.NOT_HANDLED:
+            return placed_position
+        actor_point = sigma.flux_actor_point_query(self, cfg, instance)
+        if actor_point is not sigma.NOT_HANDLED:
+            return actor_point
         cls = cfg.get("$")
+        if (cls == "STU_32E6E4D8" and self.hero == symmetra_beam.HERO
+                and instance.graph.index == symmetra_beam.WEAPON and not instance.component.strict
+                and instance.component.entity == self.body
+                and cfg in instance.graph.node(93).field("m_condition")["m_configVars"]
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            return instance.component.entity_var(OWNER_HEALTH).value()
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -166,6 +213,22 @@ class BodyWorld(runtime.World):
             return False
         return super().native(cfg, instance)
 
+    def raycast(self, request):
+        from ow174.game import genji
+
+        cfg = request.filter_config or {}
+        resource = cfg.get("m_C1903771") or {}
+        if (self.hero != genji.HERO or self.match is None or self.match.collision_world is None
+                or resource.get("m_C1903771") != "0x0690000000000029"
+                or request.ignored_entities != (self.body,)):
+            return None
+        hit = self.match.collision_world.cast_ray(
+            tuple(request.origin), tuple(request.direction), request.length,
+        )
+        if hit is None:
+            return runtime.RaycastResult(False, None, None, None)
+        return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
         if (match is not None and sender == self.body
@@ -173,12 +236,60 @@ class BodyWorld(runtime.World):
             return
         super().send_message(target, message, params, sender)
 
+    def tracked_targets(self, state):
+        from ow174.game import moira_beams, sigma
+
+        result = moira_beams.tracked_targets(self, state)
+        if result is not NotImplemented:
+            return result
+        result = sigma.projected_barrier_targets(self, state)
+        return sigma.flux_targets(self, state) if result is NotImplemented else result
+
     def play_compatible_script(self, instance, node) -> bool:
         from ow174.game import sigma
 
         if self.match is not None and self.hero == sigma.HERO:
+            if sigma.play_accretion_control(self, instance, node):
+                return True
+            if sigma.play_flux_request(self, instance, node):
+                return True
+            if sigma.play_barrier_request(self.match.combat, self.body, instance, node):
+                return True
             return sigma.grant_shields(self.match.combat, self.body, instance, node)
         return False
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import sigma
+
+        return sigma.flux_modify_health(self, state, elapsed_ms)
+
+    def create_compatible_pet(self, state):
+        from ow174.game import photon_barrier, sigma
+
+        if self.match is not None:
+            wall = photon_barrier.create(self, state)
+            if wall is not NotImplemented:
+                return wall
+            return sigma.create_barrier(self.match.combat, self, state)
+        return NotImplemented
+
+    def retire_compatible_pet(self, state, entity: int) -> None:
+        if self.match is not None:
+            from ow174.game import photon_barrier
+
+            barriers = self.match.combat.barriers
+            if not isinstance(barriers.get(entity), photon_barrier.Wall):
+                barriers.pop(entity, None)
+
+    def refresh_compatible_placement(self, state, *, confirm: bool):
+        from ow174.game import photon_barrier, sigma
+
+        if self.match is not None:
+            wall = photon_barrier.placement(self, state, confirm=confirm)
+            if wall is not NotImplemented:
+                return wall
+            return sigma.place_flux(self, state, confirm=confirm)
+        return NotImplemented
 
 
 @dataclass
@@ -360,11 +471,25 @@ class BodyScript(ReplicatedBody):
         self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
-        """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
+        """Write ultimate charge (#342e) for the host clock or a GM command."""
         self.component.set(ULT_CHARGE, f32(points))
 
+    def award_ult_charge(self, points: float) -> None:
+        """Credit an eligible combat event without charging a running ultimate."""
+        if points <= 0 or self.component.owner_dead or self._ultimate_running():
+            return
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost > 0 and charge < cost:
+            self.set_ult_charge(min(cost, f32(charge + points)))
+
+    def _ultimate_running(self) -> bool:
+        return winston_primal.active(self) or any(
+            state.flags & nodes.Ability.RUNNING for state in self.ultimates
+        )
+
     def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+        if self.ult_seconds <= 0 or self._ultimate_running():
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

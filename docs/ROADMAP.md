@@ -20,12 +20,236 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   checks pass. Grasp intercepts classified rifle/Helix/spheres with authored
   accounting. Reconstructed temporary shields cover cap, damage/healing order,
   decay, replay rejection and lifecycle; native pool behavior remains open.
-  Trooper/Heavy bullets pass absorption/conversion fixtures. Barrier's reconstructed
-  owner predicate reaches Pet State, but the factory/entity is missing and four
-  functional baselines fail. Full Barrier/Flux effects, control, cross-hero interactions,
+  Trooper/Heavy bullets pass absorption/conversion fixtures. An explicit external
+  model enables Barrier's reconstructed Pet actor with actual dynamic physics
+  mesh, input-driven travel/stop/recall,700HP, interception, break and lifecycle
+  checks. Its four prior functional failures now pass. Native hosting, range,
+  full attack eligibility and replication remain open.
+  A 119.1 m static deployment still intercepts rifle fire. Continuous secondary
+  survives both command gap recovery paths, and explicit release and recall work.
+  Recalled regeneration, cap, owner rate override, interrupted delay and
+  broken-shield redeploy pass reconstructed input-driven checks.
+  Opposing Flashbang interrupts Grasp, Flux and Accretion windup.
+  Grasp and Barrier prevent its impact status in front-facing fixtures.
+  Flux static placement and confirmation pass seven actual-input checks.
+  Later input-driven effects tests cover lift and slam on player bodies
+  and all five NPC bodies under the reconstructed targeting service.
+  The target graph now executes its timed vertical limit and descent
+  sampling from live mover state on players and liftable NPCs.
+  Offline original-code position/volume prerequisites retain explicit adapters.
+  Native filter/lookup/tag/hostility kernels have independent comparisons;
+  actual body category/status/ownership and reader/inheritance bindings remain
+  open. A failing actual create-input audit retains the raw category gap.
+  Original field decoding, attachment, callback and owner refresh
+  preserve separate body and controller masks in 44 lifecycle cases.
+  The tested body routes still supply no category bit 1.
+  Sixteen original status predicates and 27 owner updates verify the
+  component-driven exclusion and registry writes with declared storage and
+  health inputs. Twenty-four component57 cases also verify resource and
+  descriptor precedence with declared records. Concrete native component51
+  methods read the nine outgoing pool records in another 27 updates. Actual
+  component loading, native actor states and category admission remain open.
+  Another 540 original mask-writer cases exclude the observed team and
+  bit-29 routes as sources of the missing body category bit. Derived-mask
+  construction, copying, transform sync and callback registrations now
+  have original-code replays. The registered component51 entry now
+  passes 108 direct notification cases and 18 attachments. Live delivery
+  and the body category source remain open. The 000E controller's category
+  source is now verified in 36 session-builder cases. Another 126 native
+  field writes cover the 0123 literal and team-only mask rewrite. All 17
+  traced authored definitions use enum zero. Twenty-seven original
+  field-default cases pass, with runtime enum use still open. The native
+  component importer passes 204 cases. All 143 dependency closures, 34
+  dependency-backed imports and three controls pass. Body maps request
+  component25 through health. Seventy-two native create descriptor cases
+  establish slot22 and the resulting slot26 request. Packet parsing,
+  actual component allocation and body category initialization remain open.
+  An isolated native factory replay verifies 18 allocation/attachment sequences
+  for slots22/25/26/97 and the corresponding mask callback. The native component
+  visitor passes 132 actor cases and 256 byte masks. Outer update dispatch
+  passes 432 complete body component lists. Create framing, live delivery
+  and the upstream category source remain open. Native before/after field
+  dispatch passes 1404 pairs with declared callback registrations. The
+  native constructor and registration slots now reproduce those 108
+  dispatches from empty maps. The production subscriber now populates
+  the after-field and owner attach entries through the original world
+  interface. Native attach delivery passes 36 cases and 108 updates deliver
+  1404 after-field calls. The native create tail now consumes actual Match
+  body fields before owner attach in 56 cases. All retain the incoming
+  category. Another 56 optional guard mismatches reject before attach.
+  A separate native create prefix matches the GUID, flags, transform
+  and field cursor for all 56 records. The same native frame now reaches
+  slot 22 after original definition import in 112 authored-map cases and
+  112 controls with declared resource/type services. Native allocation,
+  world indexing, handle publication and four component factories pass
+  for 56 records. Post-allocation configuration on the resource-miss
+  branch sets an entity flag and leaves both category masks unwritten.
+  Resource hits, the remaining components and body category
+  initialization remain open. World service insertion, listener
+  registration and both create-time dispatches pass with declared
+  listeners. Native component registration and dirty-vector flush
+  reach first field decode with the packet cursor intact. The native
+  health and hero factories complete decode and attach for 56 Match
+  body records. Attach propagates the wire mask, which lacks bit 0x1.
+  The captured factory banks and native per-world lookup now resolve
+  the factories for components 1, 4 and 24. Production subscriber
+  effects and the category source remain open. Native model scalar
+  configuration, physical mask propagation and empty-root cleanup
+  now pass for 56 records. Original MDLC conversion and world bounds
+  match, and declared transform readiness and category 0x1 drive native
+  first-root insertion and removal. Production cache binding, readiness
+  and category sources remain open. The original aggregate-to-candidate
+  path now traverses these roots and returns the actual body ID under
+  declared readiness and category inputs. The original evaluator also
+  applies node 37's primary masks to these indexed owners in self and
+  excluded-status controls. The original TrackTargets output slice also
+  matches 96 merge, limit and write controls using those body IDs and a
+  declared VM registry for variable 375. Live delta generation, ranking
+  and authored delivery into 1DBC remain open.
+  A follow-up executes 72 native candidate-delta and output controls,
+  including refresh removal, duplicate IDs from separate pointers and
+  the missing-owner secondary branch. Candidate vectors and host
+  bindings are declared.
+  One charged cast in the reconstructed Match delivers 1DBC to an enemy
+  player and all five NPC types together, with separate slam and Heavy
+  branches. In-range ally and distant enemy controls remain untouched.
+  Explicit first-root spatial traversal/sphere preparation/leaf gates now
+  match1081 original-code cases; no actual root membership or production
+  TrackTargets binding is inferred. Second-root traversal/history matches512
+  integrated original-code cases with declared relationship data; the history
+  selector independently matches4708 cases. Actual actor/history population and
+  actual second-root component bindings remain open. Query preparation/collection
+  matches384 original cases; actor-present context matches320 with declared
+  decoded component24/25 pointers. Root/member lifecycle is still unavailable.
+  Temporal relation decisions match233 original-code cases;512 integrated
+  tree/relation/history cases retain explicit component/fallback data. Ending
+  states no longer enqueue variable notifications during cleanup; native
+  cross-object Ability exit/arbitration ordering remains unproven.
+  304 Sigma/runtime/combat regressions pass after the shared lifetime fixes;
+  seconds-to-microseconds conversion matches1062 original entry cases, while
+  actual query clock/actor context remains open.
+  Sigma FirstPerson2.1/1.75 and McCree1.425/.9975 now drive player shooter/target
+  heights, with actual low-cover and explicit-aim regressions;307 related tests
+  pass after the correction. Category publication/route2048+2048 and outer
+  change/removal1024 original-code cases retain physical/root storage adapters.
+  Actual actor/filter-bit initialization and member storage remain open.
+  Existing member index/update/removal wrappers match2560 original-code cases;
+  new insertion and delegated tree/hash storage operations remain open. Full-ID
+  equality is preserved, with no controller/body or generation-bit alias.
+  Key insertion/erase1536 and real-erase integration1920 native cases now match;
+  second-root new-member wrapper384 and geometry getter657 retain explicit
+  allocator/component services. Actual actor/filter initialization stays open.
+  Shared no-decay normalized volley spread and causal spread_ramp snapshots are
+  ported; Sigma Accretion uses that branch, primary retains its distinct launch
+  class. Actual shot-angle sampling and optional decay remain unaccepted.
+  After this shared-state port,316 hero/runtime and15 strict server/Sigma
+  snapshot methods pass;133 filter/storage helpers pass. Actual Flux remains0/2,
+  so the full goal is open. Scoped Match target hosting now writes actual body
+  arrays before the authored hit/miss branch; eight focused tests cover player
+  capsules, walls, teams/lifetime, five NPC definitions and causal VM storage.
+  139 related methods plus the added miss method pass. Actual Flux effects
+  now pass two reconstructed player lift, ground slam and retirement cases.
+  Child1DBC applies the authored 50 entry hit to five NPCs. Four lift, land
+  and take a ground slam. Heavy Assault exits at its authored gate.
+  Reconstructed caster flight passes input, timeout and Flashbang checks.
+  Native trajectory, full control and immunity remain required.
+  Native actor/filter/index/tag/LOS fidelity
+  is separate from this explicitly reconstructed Match admission policy.
+  Original press age now survives start-gate waits; expired Sigma short presses
+  no longer auto-cast later, with legal near-expiry/held/new input verified.
+  Accretion uses its authored launch bias and gravity in the server sweep.
+  The scoped 224E duration override drives direct-hit control in player and
+  five-NPC fixtures. Reconstructed knockback uses authored strength and
+  ring inputs, with player collision, Barrier and NPC landing checks.
+  Native force mapping and the full target graph remain open.
+  The scoped Accretion host now reads the target immunity and stack gates.
+  Actual Fortify and equal-deadline interruptions have executed coverage.
+  Actual Genji input verifies front Hypersphere reflection, rear/wall
+  outcomes, Accretion passing through, reflected hit and kill credit,
+  body replacement and Grasp absorption. Native Deflect eligibility
+  and reflected transport remain open. Sigma's reconstructed damage
+  economy credits actual base-pool loss and verifies the cap, Flux
+  consumption and running gate. Helix tests verify the same impact
+  tick and ordinary shield recovery after both continuous updates and
+  a scheduler gap. Native conversion, passive charge and
+  base shield recovery still require evidence.
+  Actual primary holds and repeated presses match the authored 0.2-second
+  pair delay and 1.3-second recovery with or without reload input. An
+  actual rifle kill and respawn also verify that ordinary shield
+  recovery belongs to the current body in the reconstructed Match.
+  Hyperspheres now sweep a reconstructed radius and bounce from static
+  surfaces. The ricochet and grazing-hit checks use actual attacks.
+  The native owner impulse gate and real close or ricochet blasts agree
+  that the two authored zero multipliers yield no owner impulse.
+  Original 104319 query arguments confirm the two Hypersphere radii and
+  Accretion's 0.9/0.3 values. Accretion uses these for grazing and wall
+  sweeps with cover checks to the real capsule. Native contact policy
+  and self-damage routing remain open.
+  The original alternate contact branch compares hit distance plus radius.
+  Authored health bytes reach the owner qualification gate in 56 Match
+  body creates with declared resource lookup and scene inputs.
+  Original normal refinement preserves the selected normal for stock
+  Hyperspheres, Accretion and Fire Strike. An enabled control exercises
+  center and offset rays with declared scene inputs.
+  Original Hypersphere bounce normalizes the response. The scoped
+  server wall sweep follows the native default motion multiplier
+  of 1.0 and splits gravity at contact. Native scene arbitration and
+  motion overrides remain open.
+  Original world, owner-contact and expiry dispatch runs 160 cases.
+  The scoped wall sweep retires Hyperspheres at the contact limit
+  with no explosion.
+  Original explosion presentation de-duplicates the event counter.
+  The owner impulse path uses a strict ring boundary and a fallback
+  ray with declared inputs. Splash damage routing remains open.
+  The native explosion-record conversion proves a 1.0 default for
+  absent ring multipliers. Actual Hypersphere airbursts distinguish
+  the corrected default from an explicit zero.
+  Symmetra's primary bypasses Grasp and feeds its authored level and ammo
+  states on Experimental Barrier. Accretion interrupts the live beam.
+  Her charged orb releases through the authored health gate. Actual
+  inputs verify Grasp conversion, Barrier interception and charge interruption.
+  Her sentry crosses Grasp and Experimental Barrier in flight. The
+  deployed beam is occluded by Barrier and its slow clears on Accretion destruction.
+  Her Photon Barrier intercepts Sigma's hostile weapon hits. Accretion
+  can interrupt its confirmed windup, and Flux still lifts its owner.
+  Moira's damage grasp is blocked by Experimental Barrier. Coalescence
+  crosses both Sigma defenses and ends on Accretion stun.
+  Her orb crosses Experimental Barrier, and Kinetic Grasp consumes
+  hostile orbs using the emitted nominal value.
+  Orb kills retain their launch or Deflect body through replacement.
+  Static evidence includes the Practice Range respawn timer and
+  hero switches. Retired-body client presentation remains open.
+  Full Flux effects, control, cross-hero interactions,
   five-NPC specials/bidirectional attacks and original-client acceptance remain
   open. Five actual base-pool NPC bodies pass limited outgoing damage and
-  retained-corpse fixtures; three NPC manual primary-input paths still fail. See
+  retained-corpse fixtures. Sniper's actual projectile and timed Grasp pass;
+  her retreat follows its authored windup, recovery and 10-second cooldown.
+  Barrier and Grasp also pass against the first post-retreat projectile.
+  Blocked landing queries retry through the authored 250 ms loop.
+  Team, line-of-sight and range changes cancel pending searches.
+  The static landing sampler consumes the graph direction, spacing
+  and cone. Both a clear heading and an alternate around cover pass.
+  Enforcer manual incoming/Grasp now pass with a declared controller context;
+  Assassin contact/Grasp interrupt now pass through the declared manual bridge.
+  Heavy Assault separates the flagged 175-damage charge from unflagged
+  1407 carry, 300 wall impact and 50 secondary launch. Actual Grasp
+  interruption, manual release and release on source death pass.
+  Allied Accretion frees a carried Sigma on its hit frame. Projected
+  Barrier blocks capture while active, and lethal and nonlethal wall
+  impacts both honor the authored two-second recovery.
+  Low-only terrain probes end the charge and release a captive.
+  Tall walls keep the early exit closed until capsule collision.
+  Trooper and Heavy Assault swings populate their contact arrays.
+  Multi-target, cover, projected barrier and Wraith Form cases pass.
+  Sigma's lethal quick melee cancels either windup.
+  Active frontal Genji Deflect also blocks Sigma's quick melee
+  and the NPC swings for Genji, while a nearby Sigma still takes the hit.
+  The combined manual NPC audit passes all 143 cases, including the
+  Enforcer volley launched during a scheduler gap. Native controllers/clocks/immunity,
+  autonomous approach and full combat/presentation remain open. The
+  player Flux tests now cover both Winston's 1000 Primal maximum and the
+  restored 500 maximum when owner input stops and Primal expires during
+  lift. See
   [Sigma combat lane](SIGMA_COMBAT.txt). No hero-complete claim is made.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

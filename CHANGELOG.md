@@ -4,7 +4,1213 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Sigma server integration handoff
+
+- Preserve the current Sigma combat implementation, shared server dependencies,
+  tests, and verification tools on lane 023B. The implementation includes
+  the current Barrier, Grasp, Accretion, Flux, and NPC interactions, as well
+  as the Ana Sleep Dart and Biotic Grenade interactions.
+- Pass 22 focused server regressions with the prepared 104319 runtime inputs.
+  Parse all 123 changed Python files and check the staged diff.
+- Full static combat acceptance and original-client acceptance remain open.
+  Roadhog Chain Hook has only been traced to its authored graphs.
+
+### 2026-11-10
+
+#### Sigma projectile query radii
+
+- Run 77 native projectile selection cases and 22 owner qualification
+  controls with declared contacts. Verify radius-adjusted order,
+  ties, initial-hit bypass and component 0x33/0x39 gates.
+- Trace the authored health byte into projectile qualification
+  after 56 native Match body creates, with 448 qualification checks.
+- Verify stock Hypersphere, Accretion and Fire Strike contact normals
+  stay unchanged by refinement. Run 22 original normal cases and
+  114 ray calls using declared scene results.
+- Run 36 original Hypersphere bounce cases across both authored
+  volleys. Verify normalized response, the separate displacement
+  scalar and the 101st-contact finish branch with declared inputs.
+  Apply the normalized response in the scoped server wall sweep.
+  Verify ten gravity substeps and split the gravity update at contact.
+  Adjust the Winston windup fixture for the expanded Accretion sweep.
+- Replay 160 original world, owner-contact and expiry dispatch cases.
+  Retire exhausted Hyperspheres after the final wall bounce with
+  no explosion. Verify both authored shots through real input.
+- Replay 80 original explosion presentation cases. Verify the
+  duplicate gate, maximum ring radius and forwarded effect position.
+- Replay 252 owner impulse cases with original rings and declared
+  distances and cover. Verify the strict ring boundary and fallback ray.
+- Verify 20 mixed player and NPC Hypersphere airburst scenarios.
+  Pass the expanded 163-case NPC audit and all 405 Sigma regression tests.
+- Verify lethal return attacks, death attribution, input release and
+  fresh Sigma body re-engagement for all five NPCs. Pass 168 NPC scenarios.
+- Verify that cover, range and team changes pause and resume actual
+  attacks for each of the five NPCs while retaining manual engagement.
+- Replay 22 original direct-hit conversion and query-radius cases.
+  Use the authored 0.9/0.3 Accretion radii in the reconstructed
+  sweeps. Exercise grazing, a wall edge, and cover behind a close
+  wall or Experimental Barrier.
+- Adjust the Sniper retreat, airborne Flux miss and covered
+  self-splash fixtures for the larger sweep.
+- Pass the 143-case combined manual NPC audit and all 42 focused
+  player projectile and defense tests.
+
+#### Sigma explosion ring default
+
+- Match the 104319 default of 1.0 when an explosion ring multiplier
+  is missing. Preserve an explicit zero. Actual Hypersphere input
+  verifies 60 airburst damage with an omitted inner multiplier and
+  zero with an explicit zero in otherwise identical fixtures.
+- Replay 23 native explosion record cases. Check the two Sigma
+  weapons, absent and explicit inputs, and two stock no-health cases.
+  Native damage dispatch remains open.
+- Pass 108 Sigma, Reinhardt and shared combat regression methods.
+
+#### Sigma primary recovery and ordinary shield lifetime
+
+- Exercise held and repeated primary presses with and without reload
+  edges. Match all six pairs against authored volley identity and
+  recovery timing. Reload alone emits no projectile.
+- Kill a full-health Sigma with actual rifle input and verify ordinary
+  shields stay depleted until respawn. A later hit starts recovery on
+  the new body. Native 05C recovery data remains unresolved.
+- Pass all 82 Sigma combat and ultimate-economy regression methods.
+
+#### Flux owner category inputs (work in progress)
+
+- Replay 96 native TrackTargets output controls across eight origins.
+  Original code applies declared add/remove vectors, preserves order
+  with ranking disabled, and resolves and writes variable 375 through
+  a declared VM registry. Host notification delivery remains open.
+- Replay 72 native candidate-delta controls and feed the observed
+  add/remove vectors to the verified output slice. Cover duplicate
+  IDs, refresh removal and the native secondary missing-owner branch
+  with declared inputs.
+- Execute a single charged Flux against an enemy player and all five
+  NPC types in the reconstructed Match. Verify the six body IDs,
+  individual damage and cleanup, and ally/range exclusions. The
+  30-case Flux target suite passed. The expanded wall regression
+  separately passes with confirmed input and no target effect.
+- Run 392 original Flux category scans on native first roots containing
+  Match body owners. The original collector and fallback candidate path
+  preserve body identity, apply native capsule/volume checks and
+  deduplicate accepted transform pointers. The authored node 37 mask
+  follow-up runs 448 scans with native primary evaluation, including
+  self and excluded-status rejection.
+- Convert all seven authored MDLC model headers with original code and
+  verify native world bounds on 56 actual Match owners. An explicit
+  transform-ready operation and bit 0x1 control exercise 112 native
+  first-root insertions and 112 erasures.
+- Load authored model flags through the original model type layout in
+  56 body creates with physical components 1 and 4. Attach propagates
+  the wire mask to component 1 and executes native spatial category
+  cleanup against an empty category manager. Mesh and look resolution
+  remain separate inputs.
+- Recover 118 component factories from the captured registration list.
+  The native bank builder, per-world initializer and factory lookup
+  agree across 418 slots in three controls. These include the factories
+  for transform component 1 and physical components 4 and 24.
+- Use the original health and hero factories to complete native
+  field decode and owner attach for 56 unmodified Match body records.
+  All 80 health pools and both player hero IDs match the wire. Native
+  attach copies the decoded category mask into component 25, with
+  bit 0x1 absent for every record under the declared world inputs.
+- Replay 56 unmodified Match create records from entry to first field
+  decode. The original world code registers 224 component pointers,
+  sorts the touched vectors and clears their dirty bits. Neither
+  category mask changes in this stage with the declared listeners
+  and four available factories.
+- Continue 56 native body creates through world service insertion,
+  listener startup registration and both notification passes. Declared
+  listeners produce 392 deliveries with global-first order, preserved
+  duplicates and exclusion of absent component kinds. Production
+  listener effects and subsequent activation remain open.
+- Continue 56 Match body creates through original entity allocation,
+  world indexing, handle publication, four component factories, and
+  configuration. The resource-miss control sets entity flag +0xB4 bit 0
+  and leaves both component category masks unwritten. Resource hits and
+  the remaining factories require separate evidence.
+- Continue original body create records from entry through definition
+  import and slot 22 registration. All 112 authored-map cases and 112
+  mirrored-type removal controls match the independent descriptor replay.
+  The fixture supplies resource lookup and component type metadata.
+- Replay 56 original body create prefixes from the first record bit
+  to definition loading. The original reader decodes the GUID, flags
+  and transform and reaches the same field cursor and record hash as
+  the create-tail replay. The world entity index starts empty.
+- Run the native create tail on 56 unmodified Match body records across
+  all eight bit offsets. Fields decode before attach. All seven bodies
+  retain the wire category mask, with bit 0x1 absent. With the optional
+  32-bit guard enabled, 56 mismatches return 0x40137 and skip attach.
+- Replay the production subscriber and encoded world-interface accessors
+  from empty native maps. The original registration selects callbacks
+  for components 26, 51 and 57 and registers owner attach. The native
+  attach dispatcher invokes 36 owner callbacks, and 108 body updates
+  deliver 1404 after-field calls with matching per-packet results.
+  World startup is split into isolated calls with explicit backing.
+- Construct both field notification maps with native 786FB0 and populate
+  them through its before/after registration slots. All 108 dispatches
+  reproduce 1404 callback pairs and the same per-packet results.
+  The harness supplies callback selection and allocator backing.
+- Replay native component field decoding, attachment and owner
+  refresh from actual Match create masks. Verify 44 lifecycle
+  cases, eight inventory cases and four mask mutations.
+- The tested routes keep body and controller bits separate.
+  Body category initialization and native Flux admission remain open.
+- Replay 16 native Flux status predicates and 27 owner updates
+  with declared component inputs. Check the inclusive component 51
+  threshold and native status registry insertion and removal.
+- Replay 24 component 57 descriptor cases through both native resource
+  lookup formats. Verify row-byte precedence and descriptor bit 2.
+- Execute the concrete component 51 max/current getters over actual body
+  pool records. Pass four pool cases and 27 owner updates with declared
+  component storage. Complete native loading and category admission remain open.
+- Pass 540 native owner-mask writer cases. The observed team and
+  bit-29 inputs preserve category 0x1 and do not create it.
+  Upstream initialization and native Flux admission remain open.
+- Verify 32 derived-mask constructors, 50 copies, 100 transform
+  syncs and five native callback registration calls. These paths
+  establish where the mask is initialized or copied. Actor callback
+  delivery and the source of category 0x1 remain open.
+- Pass 108 direct native health callback notifications and 18 owner
+  attachments. Verify armed/missing guards, repeated registry updates
+  and the derived component prerequisite. Live dispatch remains open.
+- Pass 36 native controller initialization cases and 126 session
+  field writes. Trace category 0x1 to the controller-specific literal
+  and verify that the tested body peer receives no write.
+- Trace enum zero in 17 actor and referenced definitions. Verify 27
+  native default-field cases. Runtime enum use remains open.
+- Pass 204 native definition imports and rebuild all 143 captured
+  dependency closures. The 34 dependency-backed imports and three
+  controls trace slot 25 to body health and leave slot 26's runtime
+  insertion open.
+- Pass 72 native create descriptor cases. Mirrored resources
+  request slot 22 during import, and the packet path supplies it
+  when missing. The captured dependencies request slot 26.
+- Verify 143 factory dependency rows and 18 native allocation, owner
+  attachment and mask callback sequences for the slot22 group.
+- Verify 132 masked visitor cases and 256 wire value masks. Pass 432
+  native body update dispatches with the full component lists and
+  explicit health callbacks. Create framing and live delivery remain open.
+- Verify 1404 native before/after callback pairs in 108 body updates
+  with declared registrations. Record the transient initial health status.
+
+#### Genji melee Deflect against Sigma and Talon NPCs (work in progress)
+
+- Evaluate the live 03A3 melee tag and directional modifier for
+  Sigma's quick melee and the authored Trooper and Heavy Assault swings.
+- Verify front, rear and expired Deflect. In a multi-target swing
+  the parry suppresses damage and knockback only for Genji.
+- Pass 77 combat and Deflect tests and all 143 manual NPC regressions.
+
+#### Trooper and Heavy Assault melee contact lists (work in progress)
+
+- Populate the authored swing arrays with each eligible player
+  capsule at contact. Verify team, cover, projected barrier and
+  Wraith Form gates for both NPCs.
+- Verify Sigma's lethal quick melee cancels either windup and
+  that a one-health survivor still lands its strike.
+- Pass 143 manual NPC scenarios and 78 shared regressions.
+
+#### Sniper retreat against Sigma (work in progress)
+
+- Sample the authored direction and spacing within the configured
+  cone and reach. Reject obstructed candidates with the shared
+  capsule mover and verify arrival at a lateral alternate.
+- Run the active 142C gate and destination query through the authored
+  250 ms retry loop. Verify blocked paths, team, sight and range
+  cancellation, and primary fire while the search waits.
+- Feed the static landing point into 142C's authored windup and
+  landing recovery. Restore the 10-second cooldown observed in
+  the graph and verify four manual re-engagements cannot bypass it.
+- Verify actual Barrier and Grasp against the first post-retreat
+  projectile, along with windup cancellation, Accretion and Flux.
+- Pass 131 manual NPC scenarios and 78 combat and script regressions.
+- Native landing candidate scoring, controller allocation and client
+  acceptance remain open.
+
+#### Heavy Assault charge against Sigma (work in progress)
+
+- Host the active low and raised terrain probe outputs in 1408.
+  Verify low-only early exit both with and without a captive,
+  tall-wall capsule contact, output cleanup and cooldown.
+- Pass 121 manual NPC scenarios and 125 combat, VM and raycast
+  regressions after the terrain change.
+- Verify that a teammate's actual Accretion interrupts an active carry
+  on the damage frame. Projected Barrier prevents capture while active
+  and absorbs the separate 50-damage contact.
+- Route wall impact recovery through the authored two-second exit,
+  including when the impact kills its victim.
+- Evaluate 1408's authored target predicates and preserve the 175-damage
+  path for flagged targets. Mark the existing flagged test fixtures.
+- Host unflagged capture with the 1407 victim graph, collision-limited
+  carry, 300 wall damage and 50 secondary damage. Verify interruption
+  of Grasp, cancellation and release when an ally kills the carrier.
+- Pass all 118 combined manual NPC scenarios and 50 Assassin,
+  NPC context and body VM snapshot regressions.
+- Native steering, terrain transitions and original-client presentation
+  remain open.
+
+#### Moira Biotic Orb against Sigma (work in progress)
+
+- Host the actual 10E4 orb volleys with external aura graphs,
+  wall bounce, tether budgets and world-clock expiry.
+- Verify Grasp's nominal 100/0 conversion input, Experimental
+  Barrier traversal, allied healing, Deflect transfer, posthumous
+  damage and stored snapshot state.
+- Keep the launch or Deflect body as the orb's damage source across
+  respawn and hero switches while crediting the elimination to the
+  player. Retired-body client presentation remains open.
+- Pass 13 dedicated orb and snapshot checks and 75 shared combat,
+  ultimate economy and Deflect regressions after the attribution change.
+
+#### Moira's damage grasp and Coalescence against Sigma (work in progress)
+
+- Host the authored beam states, target geometry, healing and grasp
+  fuel recovery. Verify the separate Barrier and Kinetic Grasp
+  outcomes, Accretion interruption and return fire during Flux.
+- Pass eight dedicated beam tests and 65 shared regressions.
+
+#### Photon Barrier against Sigma (work in progress)
+
+- Host 156B's placement, rotation, cast and lifetime through the
+  shared shield service. Verify projectile and melee damage,
+  Accretion interruption, Grasp return fire, Flux and owner respawn.
+- Verify deployed wall geometry and expiry in the read-only snapshot.
+  Native placement geometry, replication and client prediction remain open.
+- Pass 13 dedicated Photon Barrier checks and 60 shared regressions.
+
+#### Flux targeting with an active enemy sentry (work in progress)
+
+- Verify actual Flux entry, lift and slam on Symmetra while her
+  in-range sentry stays attached and deals return damage. Capture
+  outgoing body filter fields in flight and after attachment.
+- Pass 40 sentry and Flux target regressions.
+- The raw category prerequisite remains unresolved.
+
+#### Sentry respawns before the retained combat window (work in progress)
+
+- Run omitted player respawn and retry timers on their scheduled ticks.
+  Verify owner attribution, Sigma reacquisition and the 64-tick damage
+  limit with actual sentry and lethal Accretion inputs.
+- Pass 27 focused combat, snapshot, economy and NPC tests.
+
+#### Sentry damage and retained respawn timing (work in progress)
+
+- Process player respawns after the sentry contacts on each retained
+  tick. Verify owner attribution before and after replacement, a
+  body allocation retry, and Sigma aura cleanup and reacquisition.
+- Pass 27 focused combat, snapshot, economy and NPC tests.
+
+#### Symmetra Sentry Turret against Sigma (work in progress)
+
+- Load the read-only summon shard and host the authored turret launch,
+  attachment, damage and slow through the existing Match combat paths.
+- Verify that Grasp and Experimental Barrier allow the launch to cross.
+  Experimental Barrier occludes the deployed beam. Accretion and owner
+  hero switch retire the summon and remove the slow.
+- Store the summon and its flight clock in the strict server snapshot.
+  Native deployable filters and client replication remain open.
+- Pass nine sentry/snapshot checks and twelve manual NPC regressions.
+
+#### Symmetra's charged orb against Sigma (work in progress)
+
+- Supply the scoped owner-health query for 157C's authored orb
+  release. Exercise partial and full charge, range and cover,
+  front and rear Grasp, Barrier break, lethal cleanup and
+  Accretion interruption with actual player inputs.
+
+#### Symmetra's primary against Sigma (work in progress)
+
+- Host 157C's primary ray with the authored eye offsets, level ramp
+  and ammo routes. Verify Grasp bypass, Experimental Barrier damage,
+  refill, break and fractional recall, and Accretion interruption.
+- Pass 115 Sigma combat and Barrier tests and 126 shared combat and
+  cross-hero regressions.
+- Native beam timing remains open.
+
+#### Sigma ordinary shields during projectile catch-up (work in progress)
+
+- Replay already advancing projectiles within the retained combat
+  window and settle ordinary shield recovery before damage on each
+  replayed tick. Verify identical Helix damage and recovery deadlines
+  with and without a scheduler gap, including command-free recovery
+  to the cap.
+- Extend the manual Enforcer audit to a gap beginning before its
+  authored volley. Both clock paths record 22 hits at the same tick,
+  12.24 ordinary shields after damage and the same recovery deadline.
+- Record Accretion self damage separately from NPC return attacks.
+  Start the manual Sniper return case on the lift so its charged
+  projectile is observed before the slam.
+
+#### Accretion self splash (work in progress)
+
+- Apply the 0.5 self-damage value and the native default 1.0 owner
+  impulse value independently. Verify walls, Projected Barrier,
+  direct enemy control, effective charge and lethal self contact.
+- Native damage routing and full impulse geometry remain open.
+
+#### Experimental Barrier deployment across command gaps (work in progress)
+
+- Preserve secondary when the received commands on both ends of a
+  gap confirm continuous deployment. Verify both recovery paths,
+  explicit release and subsequent recall.
+- Verify an actual deployment stops 0.9 m before a wall 120 m away
+  and intercepts rifle fire before recall. Native range remains open.
+- Exercise the toggle option with real commands after enabling its
+  graph variable. Verify parking, recall and the two-second cooldown.
+
+#### Hypersphere owner impulse (work in progress)
+
+- Trace the owner impulse gate in the captured 104319 code. Both
+  authored zero multipliers bypass it independently of self damage.
+- Verify no owner impulse on close impacts or wall returns, and
+  hostile impulse on direct blasts and Genji's reflected pair.
+
+#### D.Va Boosters contact against Sigma (work in progress)
+
+- Consume the mech's authored contact states for damage, knockback and
+  effective-damage charge. Exercise Grasp, Barrier, static cover and
+  Accretion interruption through real commands. Verify Flux stops an
+  active boost and blocks a new cast until landing.
+- Recheck Genji's late Dragonblade, dash and Deflect windows against
+  the updated Flux descent timing. Native contact ordering remains open.
+
+#### Gravitic Flux airborne target branch (work in progress)
+
+- Feed the live mover's airborne flag and positions into the authored
+  target graph. A real jump starts the 0.4-second vertical limit, and
+  periodic height samples hold slam damage until landing.
+- Native movement scheduling and original-client lift height remain open.
+
+#### Primal Rage expiry during Gravitic Flux (work in progress)
+
+- Advance Winston's authored exit at the elapsed deadline during owner
+  input silence. Verify 500 maximum health before input resumes and a
+  245-damage Flux slam after armour when Primal expires during the lift.
+- Route Primal interruption only to player bodies so Accretion stun and
+  lethal contact can finish against the Assassin's NPC graph.
+- Original-client timing and presentation remain open.
+
+#### Hypersphere self damage (work in progress)
+
+- Apply the extracted 0.25 explosion multiplier to Sigma's own nearby
+  blasts without awarding charge or a hit marker for self damage.
+
+#### Experimental Barrier deployment next to cover (work in progress)
+
+- Check the initial deployment path against static collision so the
+  barrier cannot start beyond a nearby wall.
+
 ### 2026-11-09
+
+#### Grasp shield cleanup on death (work in progress)
+
+- Clear Grasp decay and grant records on the death frame. Verify lethal
+  Flux entry and slam, plus clean respawns in both cases.
+
+#### Deflected Hypersphere charge ownership (work in progress)
+
+- Credit Genji for effective base-pool damage from reflected Hyperspheres.
+  Verify the full return, overkill limit and Grasp absorption.
+
+#### Gravitic Flux and Assassin pin (work in progress)
+
+- Release a pinned ally on the Flux lift frame and gate new Assassin
+  contact during flight. Verify a fresh pin can follow landing.
+
+#### Experimental Barrier during Assassin pin (work in progress)
+
+- Verify a deployed Barrier stays protective during a pin,
+  and a fresh recall works after release.
+- Retire Barrier collision and its Pet binding on lethal pin damage.
+  Verify the respawned body deploys a fresh Barrier with 700 durability.
+
+#### Assassin pin and interrupted Kinetic Grasp (work in progress)
+
+- Compare natural completion against a pin after real Enforcer
+  absorption. Verify the interrupted cast does not grant shields.
+- Verify lethal pin drops the pending shield grant and respawn
+  keeps unspent ultimate charge with a fresh Grasp.
+- Verify in-flight Accretion can release a pin, with reengagement
+  after stun and cleanup on lethal rock contact.
+
+#### Ranged NPC recovery from Accretion (work in progress)
+
+- Verify recovery of four NPC primaries after Accretion and Heavy
+  Assault charge selection after knockback.
+
+#### Kinetic Grasp recast against Enforcer (work in progress)
+
+- Verify cooldown denial and absorption after a legal second cast.
+- Follow the same fight through undercharge rejection, Accretion
+  credit to cap, and Flux spend without self-credit.
+- Verify lethal Enforcer fire cancels the unconfirmed preview
+  without a target effect, delayed damage or refund.
+
+#### Experimental Barrier and Grasp ordering (work in progress)
+
+- Verify both defense orderings against Enforcer and Grasp
+  interception after Barrier breaks within a volley.
+- Verify the broken Barrier rejects early deployment, then
+  redeploys with partial durability and stops a second volley.
+
+#### Sigma shield accounting against Enforcer (work in progress)
+
+- Verify fractional shield records, recovery timing, charge
+  isolation and spill from temporary to ordinary shields.
+
+#### Genji Deflect and shuriken against Sigma Flux (work in progress)
+
+- Verify Deflect before entry and during lift or descent, and
+  verify both shuriken patterns can hit the caster from the air.
+
+#### Genji Dragonblade against Sigma (work in progress)
+
+- Resolve authored sword target windows and verify defense,
+  charge admission, expiry and Accretion control interactions.
+- Verify Dragonblade contact during Flux and lethal swings on both
+  sides of the descent boundary.
+
+#### Genji Swift Strike against Sigma (work in progress)
+
+- Run the authored 01DB dash through static collision and resolve
+  per-activation contact along actual movement. Verify Barrier,
+  Grasp, walls, allies, early repeat, and Accretion interruption.
+- Deliver the authored cooldown reset on lethal dash contact and
+  verify reactivation, normal cooldown, and read-only snapshot
+  capture of the current activation's victim set.
+- Clear Swift Strike's hit record when Flux ends its movement state.
+  Verify airborne input denial, interrupted dash cleanup and
+  post-landing cooldown behavior.
+
+#### Genji shuriken against Sigma (work in progress)
+
+- Resolve the two outer projectiles of the authored three-projectile
+  fan on the server. Verify primary and alternate input against
+  Sigma's body, Experimental Barrier, Grasp and static cover.
+
+#### NPC cooldown re-engagement against Sigma (work in progress)
+
+- Verify Trooper and Heavy Assault melee, Heavy Assault charge,
+  and Sniper retreat deny early reactivation and execute again
+  after their cooldowns expire.
+
+#### Enforcer projectile volley against Sigma (work in progress)
+
+- Expand the authored 25-pellet 13EB volley for authoritative
+  collision. Verify Barrier, Grasp, static cover, stop and
+  Accretion interruption followed by recovery.
+- Evaluate Enforcer pellet falloff at travelled distance. Verify
+  near, middle and minimum damage, range expiry, and impacts from
+  projectiles emitted before Accretion interrupts the attacker.
+
+#### Sniper retreat against Sigma (work in progress)
+
+- Route close manual engagement to the authored 142C fixed-target
+  movement with a collision-checked retreat. Verify resumed fire,
+  repeat gating, manual stop, obstruction, and Accretion stun or death.
+
+#### Trooper close attack against Sigma (work in progress)
+
+- Reuse the manual NPC melee adapter for Trooper's 1422 graph.
+  Verify close contact against Barrier and Grasp, ranged primary
+  selection, and interruption by cover, manual stop, or Accretion.
+
+#### Heavy Assault charge against Sigma (work in progress)
+
+- Resolve 1408 movement through the collision mover, supply its
+  contact query, and preserve cooldown after an interrupted charge.
+- Verify the 175-damage contact, Barrier crossing, active Grasp,
+  manual stop, static obstruction, and Accretion interruption.
+
+#### Heavy Assault close attack against Sigma (work in progress)
+
+- Reuse the manual sandbox's 140E close-attack query and impact.
+  Verify knockback, the Grasp and Experimental Barrier interactions,
+  and stopping during windup.
+
+#### Flux interruption and NPC return attacks (work in progress)
+
+- Release Flux targets on caster interruption or death before descent
+  and preserve the slam once descent has begun.
+- Verify manual primary attacks from three lifted NPCs and grounded
+  Heavy Assault, plus Assassin contact during selection and denial during lift.
+
+#### Experimental Barrier against Retribution NPCs (work in progress)
+
+- Verify actual Trooper, Enforcer, Sniper and Heavy Assault primary
+  contacts spend barrier health. Verify Assassin contact bypasses the
+  barrier and releases control when the manual attack stops.
+
+#### Sigma against Orisa Fortify (work in progress)
+
+- Evaluate the active Fortify combat filter for damage and suppress
+  projectile impulse and stun. Verify reduced Accretion charge,
+  grounded Flux entry and release when Fortify starts during lift.
+- Verify Orisa's real Fusion Driver burst against Sigma, static
+  cover, Experimental Barrier and Grasp activated during flight.
+- Reconstruct Halt!'s flight, manual activation, and bounded pull.
+  Verify Grasp consumption without shields and Barrier occlusion
+  of the pull while the orb itself can cross the mesh.
+- Verify automatic wall activation and apply the authored Halt!
+  slow through the mover until its scoped expiry.
+
+#### Sigma against Zarya's Particle Barrier (work in progress)
+
+- Route hits to the active personal bubble's authored 200-point pool.
+  Verify protected Accretion contact and a breaking Hypersphere impact
+  without body damage, control or Sigma charge. Feed actual pool loss
+  to Zarya's authored energy receiver and verify the charged beam back
+  against Sigma. Native geometry and message dispatch remain open.
+- Resolve Projected Barrier's allied target query and bind shield
+  damage to that body and energy to Zarya. Verify hostile rejection
+  and target replacement.
+- Retain separate health for overlapping personal and projected
+  barriers so switching contact cannot restore a damaged pool.
+- Verify Flux lift continues through either bubble while entry and
+  slam damage are absorbed when a bubble covers the corresponding hit.
+
+#### Sigma against Zarya's primary beam (work in progress)
+
+- Host the beam from Zarya's active ray and damage states. Verify
+  damage through Grasp, no temporary shield conversion, and interception
+  by Experimental Barrier and world cover.
+- Apply the stock particle grenade's authored acceleration. Verify
+  47 splash damage, Grasp's conversion to 28.2 shields, and Barrier's
+  interception without splash damage to Sigma.
+
+#### Sigma charge through death (work in progress)
+
+- Carry unspent Flux charge on scheduled same-hero respawn. Verify
+  that a lethal rifle shot during Flux does not refund the cast and
+  that voluntary hero selection resets charge.
+
+#### Sigma passive Flux charge (work in progress)
+
+- Use a 392-second passive fill for Sigma's stock 1960-point ultimate
+  in Match, based on the historical five-point-per-second OW1 rate.
+- Verify that passive charge combines with landed shots, stops at the
+  authored cap, enables Flux only at the cap and pauses during Flux.
+  Native rate and eligibility remain open.
+
+#### Sigma against Wraith Form and Fade (work in progress)
+
+- Recognize the live Reaper and Moira protection stacks. Phase bodies
+  are skipped during hostile combat contact selection.
+- Verify that Hyperspheres hit a target behind either phased hero,
+  Accretion hits and stuns a target behind Reaper, and charged Flux
+  excludes Reaper and Moira during their phase. The collision policy and
+  entry gate handoff are server reconstructions.
+- If Wraith Form or Fade begins after Flux's entry hit, retire the
+  target lift and slam instance while preserving current momentum.
+  Verify the two phase escapes and the authored Cryo-Freeze case.
+
+#### Sigma against Cryo-Freeze (work in progress)
+
+- Use Mei's live Cryo-Freeze graph stack to suppress damage, impulse
+  and control, and to exclude her from Gravitic Flux selection.
+- Advance the unconfigured Cryo-Freeze entry gate in the server host
+  so its authored duration and cancel path can run.
+- Verify protected Hypersphere, Accretion, quick melee and Flux
+  outcomes from player input. Native ice collision and class semantics
+  remain open.
+
+#### Sigma base shield recovery (work in progress)
+
+- Restore ordinary shields on a body-local combat clock after three
+  damage-free seconds. Use 30 shields per second and restart the delay
+  when damage reaches the body's pools.
+- Verify the delay, rate, interruption and cap with enemy rifle fire.
+  Timing uses a historical OW1 player report and awaits target-build
+  confirmation.
+
+#### Hypersphere gravity and world bounce (work in progress)
+
+- Bind the two authored 187F launches for projectile definition 2D35 to gravity and
+  sphere sweeps. Use the stock contact scalars as body and world radii
+  and the 3FE1A93B scalars as a bounce budget and restitution factors
+  in the reconstructed host.
+- Bounce at world contact and preserve the unused substep and remaining
+  lifetime. Body contact and expiry still resolve one explosion. A
+  reflected Hypersphere updates its accelerated velocity to Genji's aim.
+- Actual shots verify a wall ricochet hit behind Sigma and direct contact
+  on a target that the centre ray misses. Native field mapping, surface
+  rules, self effects and lease behavior remain open.
+- 92 combat and projectile regression methods and 50 limited NPC
+  scenarios pass.
+- Apply the separate authored explosion impulse scales to exposed enemies
+  in the reconstructed host. Verify inward pull and lift on all five NPCs.
+- Retire unleased Hyperspheres on owner body replacement. Deflect transfers
+  the body binding to Genji. Native owner lifetime remains open.
+
+#### Sigma damage-based Flux charge (work in progress)
+
+- Credit eligible actual enemy base-pool loss from Hyperspheres,
+  Accretion and quick melee to the current Sigma body. Use the authored
+  cost as the charge cap. Temporary pool loss, overkill, Barrier damage,
+  Grasp grants and Flux damage do not add charge under this host policy.
+- Actual combat can reach the 1960 cap and spend it through the Flux
+  entry. A delayed Hypersphere hit during Flux does not refill the meter.
+  The NPC audit checks damage awards and zero-charge misses, allies and
+  blocked impacts across all five bodies.
+- The damage conversion and existing passive clock are server
+  reconstructions. Native charge scaling and base shield recovery remain
+  open. The 000D.05C reference also occurs on bodies without base shields.
+- 125 regression methods and the separate earned-charge body replacement
+  check pass. The five NPC audit passes all 50 limited cases.
+
+#### Sigma projectile Deflect interaction (work in progress)
+
+- Query the actual active Genji 03A3 Deflect boxes during Hypersphere
+  projectile sweeps. Static walls, nearer bodies, Barrier and Grasp still
+  participate in contact ordering. Transfer the surviving projectile to
+  the current Genji body, use his view direction and retain the remaining
+  lifetime. Retire the incoming lease before the reflected leg.
+- Actual inputs cover front reflection, rear contact, wall occlusion,
+  Genji hit and lethal credit, and Accretion passing through and interrupting
+  Deflect. Sigma can absorb both reflected balls for 66 temporary shields.
+  A reflected ball retires when the deflector's body changes.
+- The box transform, front restriction, eligibility and return direction
+  are scoped server policies. Native filter bits, lease/presentation and
+  other Deflect attack classes remain open.
+- 118 combat and projectile regression methods pass with the external
+  Genji fixture. The additional lethal reflection case passes separately.
+
+#### Accretion target control admission (work in progress)
+
+- Evaluate 224E's authored node 4 immunity and node 122 stack conditions
+  against the actual victim's body variables. Accretion requires a current
+  target VM and only interrupts again if the request extends the host
+  control deadline.
+- Actual Fortify rejects control until its scope ends, after which the
+  next rock applies 50 ticks. Two simultaneous rocks produce one control
+  interruption. A competing priority link rejects admission in the
+  focused stack fixture. Native node 9 tags/masks and 224E lifetime remain open.
+- 84 related regression methods and 50 limited NPC scenarios pass. The
+  private Genji graph extract also verifies Deflect state activation and
+  expiry through actual input. Projectile reflection remains open.
+
+#### Accretion collision knockback (work in progress)
+
+- Evaluate direct and splash strengths and rings at launch. The server
+  interprets the strength fields as planar and upward impulses, using
+  the projectile heading for direct contact and the impact point for splash.
+- Preserve external momentum while the target's stun suppresses its input.
+  Route movement through the existing capsule solver, share the temporary
+  manual NPC mover with Flux, and include impulse ownership in snapshots.
+- Actual checks cover a direct push, a radial splash push, static wall
+  clipping and Barrier interception. Five manual NPCs move, land, and
+  preserve the existing damage and control timing. Native force mapping,
+  immunity and the complete 224E target graph remain open.
+- 155 combat, projectile, Flux and physics regression methods pass, plus
+  the separate Barrier contact check. The NPC audit passes 50 limited cases.
+
+#### Accretion projectile motion and direct control (work in progress)
+
+- Read 1BBB's authored launch speed, upward bias and gravity. Sweep the
+  resulting accelerated projectile in fixed world steps through the
+  existing collision and interception path. Store launch-body identity
+  independently of the optional projectile lease.
+- Route actual direct damage with the authored tags to 1BBB's damage
+  entry and resolve its 224E request. Use the 0.8-second schema override
+  for the scoped server control clock. Wall splash does not use this
+  direct-control branch. Native 224E behavior and knockback remain open.
+- Source replacement retires an unleased rock. The five NPC audit passes
+  all 50 limited scenarios, including damage and control timing for each
+  Accretion contact.
+- 94 combat and projectile regression methods pass, including interruption
+  of an opposing Sigma's Grasp. The unleased source-replacement case passes
+  separately.
+
+#### Flux caster flight (work in progress)
+
+- Connect 1E41's launch and release velocity actions to the player mover.
+  Use the active flight node's zero-gravity modifier and known horizontal
+  tuning fields. Preserve ordinary collision for the caster throughout.
+- The server uses upright body up for the launch query and maps jump and
+  crouch to vertical velocity at the authored 7.15 speed. Native query,
+  vertical input and velocity-action semantics remain unverified.
+- Actual inputs cover takeoff, hover, ascent, descent, forward movement,
+  timeout and Flashbang interruption. The confirmed player cases still
+  deliver both damage events and return both bodies to the floor.
+- The regression run passed 110 methods and skipped nine map-dependent
+  cases requiring collision caches. Both flat-floor end-to-end cases pass.
+
+#### Flux manual NPC target lift and slam (work in progress)
+
+- Run Flux's target velocity rows on a temporary collision mover for manual
+  NPCs. Advance it on the world tick, use live graph movement modifiers, and
+  expose airborne movement records. Release it on ground contact or death.
+- Trooper, Enforcer, Sniper and Assassin take the entry hit, lift, land and
+  receive the half-maximum-health slam. Heavy Assault takes the entry hit
+  and exits through its authored gate without lifting. Source replacement
+  retires the effect and lets an airborne Trooper land without slam damage.
+- Include the temporary mover in server snapshots. Native motion fidelity,
+  caster flight and the remaining interaction matrix are still open.
+- 108 focused Flux and runtime tests plus 112 NPC and snapshot regressions
+  pass. The stored server hash changes with NPC mover velocity and returns
+  to its prior value when the temporary mover is removed.
+
+#### Flux player target lift and slam (work in progress)
+
+- Route 1DBC velocity rows to the selected player's existing collision mover.
+  Apply the authored reset and vector rows before the next pose. The host
+  interprets the node 41 scalar as a vertical clamp. Other graphs keep their
+  existing action fallback.
+- Resolve the 1DBC maximum-health expression through current body pools.
+  Apply the slam on ground contact and finish the health state through its
+  authored output. Soldier and Sigma take 50 entry damage and 100 or 200
+  slam damage. Both land and retire the target script.
+- The flat-floor reconstruction peaks at 29.84 metres. A low ceiling limits
+  the lift in a separate collision check. Native trajectory and action
+  semantics, caster flight, NPC lift/slam and control interactions remain open.
+
+#### Flux target effect entry (work in progress)
+
+- Route the authored 1E41 node 38 request to 1DBC on the selected body's
+  existing script component. Reuse resource and parameter resolution, schema
+  initialization, and the authored instance policy. Bind Match access for all
+  five manual NPC bodies independently of their controller components.
+- Apply the authored node 12 entry hit through Combat, with one application
+  per activation. Retire the scoped effect at its terminal plugs, on lethal
+  entry damage, or when its source body disappears. The source existence query
+  uses the current Match body. A dead source can persist until body replacement.
+- The two full-effect prerequisite scenarios still fail with zero lift.
+  Each now records 50 entry damage and an active target instance. Velocity
+  actions, slam, immunity and native request transport remain open.
+- 103 focused combat, script and VM tests pass. All five manual NPC bodies
+  take 50 entry damage, and Heavy Assault's authored gate retires its effect
+  immediately. Player cases cover timer retirement, source replacement and
+  lethal entry damage with correct attribution.
+
+#### Flux scoped Match target hosting (work in progress)
+
+- Connect 1E41/node37 to current hostile living player/NPC body capsules, the
+  native-backed volume kernel and static nearest-capsule visibility. Authored
+  position, depth and aperture drive the query; upright axes, Match admission,
+  distance/ID ordering and LOS are explicit reconstructed server policies.
+- Reuse the parent's generic TrackTargets world bridge and register its targets
+  and managed fields in read-only VM/server snapshots. Output375 is baked before
+  the authored transition; empty searches replace previous results. Unknown
+  searches keep their empty fallback and strict native mode excludes this host.
+- Eight focused tests cover actual charged hit/miss branches, capsule boundaries,
+  static walls, FFA/team/death/replacement, five actual NPC definitions, strict
+  exclusion and causal VM storage. The initial seven pass with 132 related
+  runtime/VM regressions (139 total); the additional miss test passes separately.
+  Two strict Sigma server snapshot methods pass; Ruff and diff checks pass.
+- Actual Soldier/Sigma Flux effects remain0/2: both targets are selected, but
+  damage and lift remain zero. Child1DBC hosting, health/control/movement,
+  native filter/index/tag/LOS fidelity, full interactions and original-client
+  acceptance remain open. No complete-hero commit or integration export.
+
+#### Flux new member storage and shared volley state (work in progress)
+
+- Recover C72B30/C73780 index insertion/erase in1536 original operations,
+  including initial reservation, collision-chain prepend, stale value retention
+  and free-slot reuse.1920 integrated member-wrapper cases now execute original
+  key erasure;2560 prior lookup/update/removal comparisons remain matched.
+- Recover C76980 new second-root member writes and real key binding in384
+  original cases with explicit tree/growth/component services. Payload span
+  gates both logical counts; the mask count may shrink to the new span. Complete
+  tree insertion/balancing and physical actor/filter initialization remain open.
+  C743E0 geometry getter matches657 cases: current-X validity selects a distinct
+  opaque broadphase envelope; it is not the payload's current bounds.
+- Privately port parent's WeaponVolley normalized no-decay spread state and
+  causal spread_ramp snapshot field. Sigma's1BBB/node9 uses that239B571E branch;
+  the two187F primary nodes use613BDDB0 and retain existing output. Actual Sigma
+  launch-class/output and snapshot tests pass; Combat shot-angle sampling and
+  optional decay remain open. Helper/filter regressions:133 pass1.984s; related
+  hero/runtime316 pass320.167s and strict server/Sigma snapshots15 pass724.183s,
+  without skips. NPC limited50/50 and actual aimed Flux0/2 remain. No complete
+  static acceptance, new hero commit/export or original-client session is claimed.
+
+#### Flux member index and existing-member operations (work in progress)
+
+- Recover full uint32 entity-ID hash/collision-chain lookup independently of
+  category-root hashing. Explicit target_index storage keeps the first matching
+  duplicate and preserves the selected value cell across key removal. Existing
+  C76D60/C76980 paths write the full mask before delegated geometry update;
+  C75B20 reads its saved node-index location after the key-removal callback.
+- 2560 native comparisons pass:732 existing updates,732 matched removals and548
+  update misses observed before insertion. Misses remain unhandled and require
+  the separate insertion path. Tree geometry, key erase and node removal are
+  declared services; actual allocator/rebalance/member lifecycle is open.
+- 121 related helper/filter tests pass1.831s; three final focused methods pass
+  after uint32 bucket-count validation. Ruff/diff pass. Sigma definition field
+  x001C5783 is an enum symbol for0, not a usable filter bitmask; no actor bit1
+  or controller alias is invented. Actual Flux target effects remain unaccepted;
+  no new complete-hero commit/export or original-client claim is made.
+
+#### Sigma view heights and category publication (work in progress)
+
+- Use Sigma2AB1 XML FirstPerson standing2.1/crouched1.75 instead of generic
+  1.55/1.15, through the shared eye_height helper for shooter and player target
+  pose. Include parent's McCree02A3 values1.425/.9975. Three old horizontal
+  Soldier hit fixtures failed at the corrected height; explicitly aimed direct
+  and Accretion fixtures retain110/70 damage and cooldown assertions. New actual
+  stand/crouch low-wall and opposing McCree counterfactual tests pass. Camera,
+  muzzle animation and native bone hit zones remain unverified.
+- Recover C762F0 publication gates in2048 original-code cases and integrated
+  C768C0 manager65/first-second ensure/update routing in2048 cases. Recover
+  C75000 change plus C75A20 removal routing in1024 cases: publish first with
+  revision check off, then remove absent categories, including combined150041
+  only when no category matches. Geometry, decoded physical bindings, root
+  allocation and member storage remain explicit services; actor/filter-bit
+  initialization and production TrackTargets are still open.
+- 307 Sigma/runtime/combat tests pass208.432s;118 helper/filter tests pass2.697s,
+  plus nine membership tests after null-pointer handling. Ruff/diff pass. NPC
+  limited audit remains50/50; actual aimed Flux remains0/2. Full unbudgeted goal
+  stays active, with no new commit/export or hero-complete claim.
+
+#### Flux query aggregation and temporal context (work in progress)
+
+- Recover original C778A0 query preparation and C77840 collection in384 native
+  comparisons: clear output count, copy sphere/opaque fields/three inline lists,
+  sign-extend category into the OR mask, scan first then second, ignore null and
+  preserve duplicates/order. Declared output-growth success/failure confirms a
+  failed append does not terminate either scan. Root emitters, memcpy and growth
+  remain explicit services; allocations beyond32 query rows remain open.
+- Recover C75C10 actor-present context in320 original-code comparisons with
+  declared decoded component24/25 bindings:24 supplies the ownership record;
+  component25 dword58 masked07800000 supplies history flags. Source requires
+  explicit flags/owner and seconds; unknown inputs are not zero defaults. This
+  does not prove physical decoding, actual actor data or a full root-to-leaf run.
+- 109 related helper/filter regressions pass1.902s; Ruff/diff pass. Actual
+  category/member/history lifecycle and production TrackTargets/1DBC remain
+  open. No new hero-complete commit/export or client acceptance is claimed.
+
+#### Flux temporal relationship and notification lifetime (work in progress)
+
+- Recover DAB910/D6E070 temporal relationship decisions in233 original-code
+  comparisons. Explicit component50 fields and fallback-record selection remain
+  adapters. Self, null subject, count/override validity and fallback pointer
+  identity are distinct from team hostility or equal network IDs.512 integrated
+  original tree/relation/history comparisons also pass with2628 history calls
+  and877 known-empty histories; no actual actor population is inferred.
+- Parent notification regressions reproduce one cleanup-write failure in this
+  lane. Instance.cancel already cleared queued-notification markers; now
+  Component.changed also excludes ending states. Port parent Ability.stop
+  cleanup-before-arbitration-release ordering, explicitly a server reconstruction
+  whose native inter-object fidelity is open. No persistent VM fields are added.
+- 103 helper/filter regressions pass1.667s after the runtime port; five-NPC
+  limited audit remains50/50 and actual aimed Flux remains0/2. Full Sigma static
+  acceptance is open; no new hero commit/export or client session is claimed.
+- Final shared-fix regression:304 Sigma/runtime/combat methods pass212.222s;
+  after adding the clock helper,104 filter/scan methods pass2.307s. C75C10's
+  original two seconds-to-microseconds conversions match1062 cases, including
+  signed/uint64 boundaries and CVTT sentinel behavior. The clock probe stops
+  before actor processing; full query context and actual clock mapping are open.
+
+#### Flux second spatial tree and sphere history (work in progress)
+
+- Recover C72220/C73000 second-root traversal: candidate masks and its separate
+  payload AABB gate precede relationship/time/history services.512 original-code
+  cases match with declared services;2515 history calls include839 known-false
+  returns that still forward candidates to later filtering. Unknown services
+  remain errors. The history bool controls a time floor; do not call it an
+  interpolation toggle.
+- Recover complete BD1BC0/BD1CB0 sphere history from explicit newest-first
+  samples:4708 original-code cases pass without function replacements, including
+  independent full-ring wraps, uint32 high frames, floors, generation changes,
+  float32 interpolation and maximum endpoint radius.512 integrated original
+  second-tree/history cases also pass, with2520 history calls/857 known-empty
+  histories. Only relationship, visitor and cookie remain adapted there.
+- All99 helper/filter tests pass1.747s; Ruff/diff pass. Prior first-root1081
+  comparisons still pass after shared traversal refactoring. Actual roots,
+  actor/history population, relationship semantics, C75C10 context construction,
+  production TrackTargets and Flux damage/lift/slam remain open. No hero-complete
+  commit/export or original-client acceptance is claimed.
+
+#### Flux first spatial tree semantics (work in progress)
+
+- Recover original C76220/C6FE50 sphere-query preparation, C724B0 tree traversal
+  and C73160 leaf masks/strict sphere overlap. The explicit-data model matches
+  1081 original-client-code cases:512 tree queries,512 sphere wrappers and57
+  boundaries, including sign-bit negative zero and float32 squared overflow.
+  Right-before-left order and repeated/null payloads are preserved; no final
+  actor acceptance is implied. Six focused tests and91 related helper/filter
+  regressions pass; Ruff/diff pass. Actual roots/members, second-root temporal
+  queries, production TrackTargets and Flux target effects remain open. No
+  new commit/export or original-client session is claimed.
+
+#### Sigma input buffering, movement scopes and category roots (work in progress)
+
+- Port the parent's movement throttle17/18/19 applicator privately. Original
+  Flux/shared lock nodes block all four input directions and restore at the next
+  command frame after end; an explicit023A dynamic input scales and restores
+  speed. Three focused methods pass; bypassing the applicator causes21 expected
+  subcase failures.106 related regressions pass105.142s without skips; Ruff and
+  diff checks pass. Tests enter resource nodes directly on flat collision:
+  Flux target delivery, actor ownership, lift and native/client fidelity remain
+  open. Parent already owns this shared fix; no complete-hero export exists.
+
+- Apply the parent's shared Ability press-lifetime fix privately: retain the
+  original timestamp/counter while start gates fail, then consume on success.
+  Actual Grasp, Accretion and Flux tests reproduce the old late-auto-cast bug;
+  five Sigma methods now cover expiry/new input, near-expiry buffering, hold,
+  charge gating and actual Barrier deployment. A separate-process restoration
+  of the old logic causes exactly three expected subcase failures. Parent/private
+  method ASTs match; dependency provenance stays outside Git.
+- Add explicit category RootMap lookup and pass1792 original wrapper/hash-map
+  comparisons, plus18 category/filter-bit tests. Known-null roots stop search;
+  unknown/malformed descriptors fail. Manager and spatial consumers remain
+  explicit. Correct the earlier C75000 label: it gates physical filter updates;
+  category registration is not established by that guard alone. Complete
+  actor inventory, Flux effects and full static acceptance remain open.
+- All309 related regressions pass without skips after the input fix; limited
+  NPC audit remains50/50. Actual Flux effects remain0/2. Ruff/diff pass. No new
+  hero commit/export or client session is claimed.
+
+#### Flux fast candidate and preparation evidence (work in progress)
+
+- Execute original CA7940 fast and fallback branches in432 declared-service
+  cases: entity identity, transform-pointer dedup and call order match. Execute
+  original CA7F20 in72 separate tag/qualification/cache-consumer cases, including
+  original component/source decoding. Actual leaf service semantics and scan
+  inventory remain explicit open boundaries.
+- Rehash existing read-only entity captures and pass10 original membership
+  cases. The sample controller lacks1/4/24 and the body has them; C75000's
+  physical filter update guard requires4 or24. Captures omit the filter payload,
+  so no category value or controller alias is fabricated. Raw body0/7 and
+  actual Flux effects0/2 remain failed. No complete hero claim, commit/export
+  or client session; full static scope stays active.
+
+#### Flux candidate identity and scan category (work in progress)
+
+- Replay original CABB20/18262E0 candidate identity/order/dedup in144 declared
+  service cases. Filters and result IDs use the transform component owner;
+  no controller/body remap occurs at this stage. Actual scan component sources
+  and ownership remain open; geometry/filter/secondary services are explicit.
+- Add C72D50 category choice in target_scan.py. All1298 original-function
+  comparisons and13 helper/filter-bit tests pass. Actual Flux selects category1;
+  category0 retains the general scan path. The helper supplies no actor bits,
+  memberships or complete filter/physics host. Ruff/diff pass. Raw body0/7 and
+  actual Flux effects0/2 remain failed, with full static goal and commit/export
+  gates open.
+
+#### Assassin contact and Sigma control interactions (work in progress)
+
+- Privately reuse the parent's Assassin module, eight synthetic pin tests and
+  ModifyHealth state block unchanged. Selectively port manual target/input36,
+  health/control services, shared interrupt and lifecycle cleanup; retain
+  exact provenance outside Git. Navigation and Deadeye WIP are not ported.
+- Actual1157 at2m now deals contact/continuous health damage. Its Grasp case
+  verifies no absorption, skill interruption and control release on stop.
+  Five actual external-graph Sigma methods pass, including Flux/no refund,
+  Accretion/no delayed rock, death/removal/replacement and range/wall/team
+  cleanup. The limited five-NPC audit reaches50/50; this does not complete the
+  full static goal. Contact/control/health clocks remain reconstructed and
+  native equivalence, immunity/counterplay and original presentation stay open.
+- Ninety-nine related regressions,163 combat/VM regressions and11 body/server
+  snapshot checks pass. Register pin/manual-target/health clock state in strict
+  snapshots and extend the full-server causal mutation test. Actual Flux
+  effects remain0/2 with no damage/lift. Ruff/diff pass; full static/client/
+  commit/export gates remain open.
+
+#### Enforcer incoming combat against Sigma (work in progress)
+
+- Privately reuse the parent's uncommitted npc_context module/tests unchanged
+  and selectively port manual context preparation, scoped predicate/owner
+  health query, initial aggregate health sync and snapshot field registration.
+  Record exact dependency hashes outside Git. Controller4B-present/5C-absent
+  remains a declared sandbox policy; native controller allocation is open.
+- The original predicate tail matches8 cases. Actual Enforcer13EB attacks
+  now deal4 damage to Sigma; Grasp absorbs2 and converts1.2 temporary shields
+  without base-pool damage during its active window. Preserve aimed yaw/pitch
+  on Grasp activation before public manual engagement.
+- Five-NPC audit improves from46/50 to48/50; Assassin incoming/Grasp remain
+  failed. Ninety-one related tests pass without skips, plus a full-server
+  context-hash mutation/read-only/fail-closed test and8 existing server snapshot
+  regressions. Ruff/diff pass. Full static
+  acceptance, client acceptance and commit/export gates remain open.
+
+#### Complete native filter-bit update replay (Sigma work in progress)
+
+- Execute B8B020 through its return in544 cases, with optional components
+  absent or a declared component1 transform. Results match the established
+  current/replicated selection and explicit10-status recomputation. Original
+  transform update copies low48 bits and preserves high16; no category is
+  added on these paths. Pointer salt, status, observers and queue inputs are
+  explicit; actual actor lifecycle and other present components remain open.
+- Retain the body/controller distinction: controller000E's definition does
+  not establish a transform binding for D1A410. Keep actual Flux target effects
+  and body filter prerequisites failed, with no guessed body category and no
+  new hero commit/export. Full Sigma scope remains active.
+
+#### Native component26 scalar and presence reading (Sigma work in progress)
+
+- Replay the original scalar reader with actual field metadata:792 valid
+  byte-mask encodings overwrite the previous value exactly;5 truncated
+  payloads report failure. Another80 original metadata/presence traversal
+  cases verify present overwrite and absent preservation. Total877/877 pass.
+- Preserve explicit byte/mask storage, captured type caches with a declared
+  TLS epoch and absent observer callbacks; no native function implementation
+  is replaced. Packet allocation/dispatch/rollback and later definition or
+  category lifecycle remain open. Raw body category0/7 and Flux effects0/2
+  remain failed; no guessed flag, completed hero claim, commit or export.
+
+#### Native component26 default construction (Sigma work in progress)
+
+- Identify component26's indexed wrapper, constructor and recursive metadata
+  default initializer in the canonical captured client. All32 native replay
+  cases clear the sole copied field at object+90 to zero, with only tracking
+  bitset initialization adapted. Default construction does not supply the
+  missing body category bit. Record the trace outside Git and keep packet
+  reading, definition overrides and later category/routing semantics open.
+- Preserve failing body input0/7 and actual Flux effects0/2. No body flag is
+  guessed, no completed static acceptance is claimed and no new hero commit
+  or export is made.
+
+#### Prepared NPC geometry cross-check (Sigma work in progress)
+
+- Add an optional read-only prepared mover table to the five-NPC verifier.
+  Require every NPC row to match the existing body XML extraction and record
+  effective fields and input hashes in the external report. Existing audits
+  already extracted these XML movers; they did not rely on generic defaults.
+- Recheck against the parent's isolated43-row NPC runtime:46/50 scenarios pass.
+  Missing rows and a wrong radius reject before scenario execution. Ruff/diff
+  pass. Enforcer/Assassin incoming and Grasp rows remain failed; flat collision
+  does not establish real-map geometry, native NPC movement or client acceptance.
+- Trace native B8B020 callers and the derived component25 constructor in the
+  canonical capture. Base construction clears+58; the derived factory changes
+  its vtable/activation fields. Component26 decode and later initialization
+  remain open, so no inferred body category bit is added. Full static goal
+  remains active; no new Sigma commit or integration export.
+
+#### Native hostility composition and body filter-input audit (Sigma work in progress)
+
+- Reuse0065 hostility code/tests unchanged in the private tree and register its
+  guarded VM query through a required World context. Keep component50, teams,
+  spectator/group and ownership services explicit; do not replace C1CF60 with
+  team inequality or infer the separate C1C690 spectator policy.
+- Rerun the original probes using this lane's canonical captured BASE/DATA:
+  356 relation and57 query-wrapper comparisons pass. Seven coupled actual-Flux
+  config tests and144 related tests pass; Ruff/diff pass. No actual Match actor
+  catalog, native engine-storage or complete target-selection claim is made.
+- Audit actual create arguments for two player bodies and five NPC bodies.
+  Outgoing component26 does not explicitly carry required category bit1; raw
+  prerequisites remain0/7 and the tool returns exit1. Controller40001 records
+  are diagnostic only. Native reader/default/inheritance/routing semantics
+  remain to be verified before changing packet flags. No guessed category or
+  status input is installed. Full static acceptance remains active; no new
+  Sigma commit/export, other-lane/shared-main edit or client session is claimed.
+
+#### Entity-filter lookup, cache and owner lifetime (Sigma work in progress)
+
+- Add the explicit-target D0DA20 lookup boundary through a required World
+  context. Preserve direct/cache selection, full-key ordered bucket searches,
+  null cache entries, environment fallback and missing-target subscriptions.
+  Keep cache acquisition explicit and release using the saved pre-acquisition
+  flag. Owner retirement/replacement and unavailable required services fault.
+- Correct resolved-stage ordering: subscribe the target before resolving the
+  source component. A target callback can change the later source pointer.
+  Add an original callback-mutation comparison and two behavior methods.
+- Match512/512 original lookup/cache results, traces and lease words, with
+  explicit lookup/hub/acquisition/resolved-predicate adapters. Match769/769
+  resolved-stage cases. Pass17 context/cache methods,18 pipeline methods and
+  160 related tests; Ruff/diff pass. Native thread contention/storage and
+  actual body category/status/tag/registry bindings remain unverified.
+- Do not infer D25690's implicit subject or create a BodyWorld context from
+  defaults. Production TrackTargets and1DBC effects remain incomplete; full
+  static acceptance stays active. No new Sigma commit/export, shared-main or
+  other-lane modification, publication or original-client session is claimed.
+
+#### Resolved entity-filter pipeline (Sigma work in progress)
+
+- Preserve D0DA20's resolved-target stage order: component97 guard, zero-mask
+  bypass, target/source subscriptions and bit predicate, candidate condition,
+  tags, registry veto and lazy inventory qualification. Keep source pointer
+  identity distinct from entity-number equality, and observe inventory count
+  changes during callbacks. Unknown services raise instead of accepting targets.
+- Reuse0200 bit/condition modules and tests unchanged only in this private tree;
+  retain external path/hash provenance for parent serial reconciliation. Rerun
+  their original probes here:4572 bit/relation and132 condition/provider cases
+  pass. No other lane/shared-main file is modified.
+- Match768/768 original resolved-stage results and service traces with declared
+  component/relationship/condition/tag/registry/scalar/inventory adapters. Pass16
+  pipeline methods and114 related tests; final missing-filter precedence change
+  additionally passes the16-method suite and768-case oracle. Ruff/diff pass.
+- Initial namespace/cache lookup, missing-target observers and actual actor
+  category/status/tag/registry/lifecycle bindings remain open. No production
+  TrackTargets or Flux damage/lift acceptance is inferred; full static goal
+  remains active and no new Sigma commit/export or client session is claimed.
+
+#### Native tag-filter membership and resource collection (Sigma work in progress)
+
+- Restore DB4E70/DB5030 and resolved DB2FD0 tag predicates over explicit storage.
+  Preserve base/add/remove precedence, low32-bit membership, any/all/excluded
+  requirements and known missing versus unknown component availability.
+- Reuse the owned config iterator for D0EC70's three tag inputs. Preserve
+  DB2C10/F65540 nonzero asset conversion, full-GUID deduplication and order.
+  Register all three input dependencies before predicate failure; strict
+  unknown queries still fault.
+- Match6144/6144 original membership/predicate cases and256/256 original value
+  collection cases with declared storage/iterator/copy/cookie adapters. Pass14
+  behavior methods and88 related regressions, Ruff and diff checks. Native
+  image/oracle material remains external. No original allocation-growth,
+  lookup/dependency engine or actor-tag-lifecycle acceptance is inferred.
+- Actual Flux exclusion tags are tested with declared storage; full status,
+  category, relationship, registry, LOS and production TrackTargets services
+  remain open. Full static acceptance is incomplete; no new Sigma commit/export,
+  shared-main/other-lane edit or client session is claimed.
+
+#### Sigma Flux candidate point query (work in progress)
+
+- Correct21A13145's interpretation from the captured evaluator: it returns
+  Vec3, not an entity-ID mapping. Original D1A410/C5E3C0 actor computation
+  matches eight declared absent/rotated actor cases with explicit lookup,
+  quaternion/position/height and context/stack adapters. Native storage and
+  non-actor fallback remain open.
+- Bind only1E41/node37's exact candidate92 query to the existing upright body
+  pose/eye host inputs. Six tests cover current position, actual crouch,
+  missing/retired targets, selector/strict guards and health/team separation.
+  Pass63 related regressions with the external Barrier model and no skips;
+  the additional health/team boundary passes in the full query suite. Ruff
+  and diff checks pass. Both aimed Flux target-effect cases remain failing.
+- Inspect existing0200 filter research read only rather than duplicate its
+  bit/condition primitives. Full filter/LOS/TrackTargets/target effects remain
+  open; no other lane/shared-main edits, new Sigma commit/export or client
+  session is claimed. The full static goal stays active.
+
+#### Native target-volume capsule predicate (Sigma work in progress)
+
+- Transcribe C8E660/DC8720/DC8B30 float32 geometry into a standalone numerical
+  module: capsule surfaces, spherical near/far bounds, forward half-space,
+  parallel/conical inner and outer apertures, flattened height and margin.
+  Native comparison corrected parallel interpolation to use both surface
+  points and margin to expand the target capsule.
+- Match3552/3552 captured original-operator cases, including480 Flux inputs
+  and3072 deterministic synthetic volumes/capsules. Boolean results agree;
+  distance tolerance is0.0001m. Eleven behavior tests and Ruff pass. Native
+  images/oracle scripts/reports stay external. Normalization uses sqrt/division;
+  rsqrt bit parity and all boundary cases remain unproven.
+- Candidate enumeration/filter/LOS and the production TrackTargets host remain
+  open. Both aimed Flux target-effect cases still fail. The full static goal
+  remains active; no new Sigma commit/export or shared-main change is made.
+
+#### Sigma Flux static placement and native volume prerequisites (work in progress)
+
+- Reconstruct only1E41/node23's static-ground placement host with the authored
+  35m range, current view ray and actual confirmation plugs. Seven real-input
+  tests cover preview, confirmation/retry, range, nearer walls, exact absent-
+  entity selector guards and strict refusal. Register the placement State in
+  read-only VM snapshots. Native prediction, dynamic surfaces and full native
+  placement geometry/filter services remain open.
+- Review and privately reuse parent2ca9178 input-join dependency. Pass387
+  combined regressions and13 separate shared snapshot checks. The limited NPC
+  audit remains46/50 and Barrier verifier4/4. Both aimed Flux positive target
+  cases still fail with zero damage/lift, but now retain a valid point and one
+  TrackTargets activation. Keep exit1 and the full static goal open.
+- Execute captured original code offline for8/8 absent-object position cases,
+  five volume-parameter cases and480 capsule-operator samples, with nine
+  asserted stock boundaries. Explicit value/lookup/trigonometry/cookie adapters
+  and all image/disassembly/oracle material stay outside Git. Stock transverse
+  slots are about7.5, not the15m depth. Candidate filters/LOS, target hosting and
+  child1DBC effects remain unimplemented. No new Sigma commit/export, shared
+  main edits, client session, push or publication sync is claimed.
 
 #### Native state-input joins and Deadeye timing
 
@@ -30,6 +1236,37 @@ This log records tested changes and their acceptance status. Entries are grouped
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
 
+#### Sigma Barrier recovery, opposing control and stored state (work in progress)
+
+- Reconstruct1A2A's recalled2-second wait and80HP/s with the owner's declared591A
+  ruleset override/default. Actual rifle damage stays while deployed, then
+  restores after recall, caps at700 and pauses on redeploy. A later recall
+  restarts the wait. Broken shields recover during their authored5s cooldown and
+  can redeploy with partial health. Fifteen Barrier methods pass with an
+  explicitly manifest-verified external model; native actor/receiver/range and
+  client replication remain open.
+- Review and privately reuse parent manual-NPC/control dependencies without
+  changing shared main. Five real opposing Flashbang cases pass: interruption
+  of Grasp/Flux/Accretion windup, front Grasp absorption25 ->15 shields, and
+  Barrier blocking damage/status. Accretion's own hit config has no Flashbang
+  resource; its outgoing control still needs the actual tag/knockback service.
+- Register all new actor/pool/decay/grant/Pet/cooldown state in strict read-only
+  snapshot adapters. Thirteen shared snapshot tests and two real-Sigma stored
+  state tests pass; capture never runs the VM or evaluates variables.
+- Move the five-NPC audit onto public crosshair engagement, authored slot0 and
+  ordinary VM/combat clocks. It remains46/50; Enforcer/Assassin have four actual
+  attack/Grasp failures. No AI/special/native-client acceptance is inferred.
+- Add two charged aimed-Flux positive cases: Soldier/Sigma both fail with zero
+  target damage/lift and absent selection/targets. Retain the authored1DBC
+  expressions as diagnostics and exit1. Passive shield03B is manifest-verified,
+  but the referenced05C is absent from the asset catalog; regeneration stays
+  unproven. Full static goal remains active, new Sigma work stays uncommitted.
+- Pass369 combined regressions and13 separate server-snapshot tests. A final
+  recovery-clock case additionally verifies skipped/duplicate/older timestamps;
+  the15-method Barrier suite passes. Ruff and diff checks pass. All inputs and
+  generated native/resource evidence stay outside Git; no original-client
+  session, shared-main merge, push or publication sync is claimed.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
@@ -54,6 +1291,33 @@ This log records tested changes and their acceptance status. Entries are grouped
   replication/HUD/animation/audio and original-client acceptance remain open.
   Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
   lane merged. Normal runtime/services and original working changes preserved.
+
+#### Reconstructed Sigma Barrier actor and cooldown dependency recovery (work in progress)
+
+- Mount only the permissive1B55/state4 Pet through an explicit verified external
+  C015 model. Write the actual actor output and require its authored child request.
+  Use the model's62-vertex/120-triangle dynamic physics mesh; retain static-only
+  defaults elsewhere. No game assets or shape fallback are bundled in Git.
+- Reconstruct700HP, owner-phase travel/stop/recall, wall probe and retirement.
+  Resolve nearer body/wall/Grasp ordering, hostile hitscan/projectile interception,
+  ally passage and shield-blocked explosion rays, including the breaking impact.
+  The native Pet/1A2A engine host and client shield replication remain absent.
+- Recover conditions watching a cooldown as time elapses, and clear cancelled
+  event coalescing flags so a re-entered State can receive future notifications.
+  The actual recall/cooldown/redeploy sequence exposed both scheduler defects.
+- Pass11 Barrier methods and2 cooldown dependency methods; the fixed tree passed
+  288 focused combat/NPC/PlayScript/runtime/prop regressions before newly reviewed
+  parent dependencies and319 after their private integration. The four former
+  Barrier verifier failures now pass with
+  the explicit external model. Range/regen, receiver filters, the full matrix,
+  Flux/control and all original-client acceptance remain open. Full static goal
+  remains active; this work is uncommitted pending complete static acceptance.
+- Reuse reviewed parent NPC weapon-root, native array-selection and melee-wall
+  commits only in the private branch, retaining original authorship. Extend the
+  real NPC audit observation beyond Sniper's2s first-shot delay and use25 actual
+  precharge frames for its Grasp case. Three100-damage shots and100 absorbed
+  ->60 bonus execute; the limited audit improves to46/50. Enforcer/Assassin emit
+  no attacks and retain four failures. No NPC AI or original-client pass is inferred.
 
 #### McCree melee static-wall occlusion
 

@@ -30,6 +30,7 @@ How a player gets into the world:
 import logging
 import math
 from collections import deque
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import replace
 
@@ -43,14 +44,14 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import SECONDARY, Command, CommandQueue
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
-from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
+from ow174.game.mover import ADD, CROUCHED, GRAVITY_SCALE, MULTIPLY, SPEED, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import ULT_SECONDS, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -281,6 +282,8 @@ class Player:
 
     def take_commands(self, commands: list[Command]) -> int | None:
         """Simulate the encodable command prefix and report the first frame needing a new link."""
+        from ow174.game import sigma
+
         collision = self.match.collision_world
         if collision is None:
             return None
@@ -297,11 +300,15 @@ class Player:
             if self.has_body:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
-                self._advance_body_gap(first_pose)
+                retained_buttons = 0
+                script = self.body_script
+                if not dead and script is not None and command.frame > script.frame + 1:
+                    retained_buttons = sigma.barrier_gap_buttons(script, command.buttons)
+                self._advance_body_gap(first_pose, retained_buttons=retained_buttons)
                 if not dead and self.body_script is not None:
                     self.mover.step(
                         command, seconds, self.match.tick,
-                        simulate_pose=self._step_body_pose,
+                        simulate_pose=self._step_body_pose, retained_buttons=retained_buttons,
                     )
                 else:
                     if not dead:  # a dead body lies where it fell
@@ -311,24 +318,31 @@ class Player:
             movelog.snapshots(self)
         return boundary
 
-    def _advance_body_gap(self, first_pose: int) -> None:
-        """Release old input and advance timers across frames without a movement pose."""
+    def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0) -> None:
+        """Advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing), posed=False)
+        self._advance_body_frame(Command(first_missing, buttons=retained_buttons), posed=False)
         if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1), posed=False)
+            self._advance_body_frame(Command(first_pose - 1, buttons=retained_buttons), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
-        stunned = self.match.combat.is_stunned(self, tick=tick)
+        from ow174.game import genji, sigma
+
+        fight = self.match.combat
+        frost = fight.frost(self, tick=tick)
+        stunned = fight.is_stunned(self, tick=tick)
+        if frost is not None and frost[2]:
+            command = replace(command, yaw=frost[3], pitch=frost[4])
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
-            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+            if not self.mover.external_impulse:
+                self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
-        if script is not None and not stunned:
+        if script is not None and not stunned and not self.mover.external_impulse:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -337,11 +351,22 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        flight = sigma.flux_flight_data(self) if not stunned else None
+        pull = self.match.combat.halt_pulls.get(self.body)
+        if pull is not None and sigma.fortify(self) is None and not sigma.body_protection(self):
+            outcome = self.mover.step_pose(command, seconds, tick, move_to=(pull[0], 20.0))
+            if outcome is not None:
+                self.match.combat.halt_pulls.pop(self.body, None)
+        elif flight is not None:
+            self.mover.step_pose(command, seconds, tick, flight=flight)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
+            previous = tuple(self.mover.position)
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
             )
+            if state.instance.graph.index == genji.STRIKE:
+                self.match.combat.genji_strike(self, state, previous, command, outcome is not None)
             if outcome is not None:
                 movement_end = state, outcome
         else:
@@ -352,12 +377,30 @@ class Player:
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
+        from ow174.game import moira_beams, sigma
+
         if self.body_script is not None:
-            self.match.body_command(self, command, movement_end=movement_end)
-            self.match.combat.command(self, command if posed else None)
+            grasp = (moira_beams.grasp_command(self.match.combat, self, command)
+                     if posed and self.hero.guid == moira_beams.HERO and command.buttons & SECONDARY
+                     else nullcontext())
+            with grasp:
+                self.match.body_command(self, command, movement_end=movement_end)
+                self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        mods = statescript_mods(script.component) if script else {}
+        fight = self.match.combat
+        frost = fight.frost(self)
+        if frost is not None:
+            mods[(-1, 1, 0)] = (SPEED, MULTIPLY, max(0.3, 1.0 - frost[0]), 99.0)
+        slow = fight.halt_slows.get(self.body)
+        if slow is not None:
+            if sigma.fortify(self) is not None or sigma.body_protection(self):
+                fight.halt_pulls.pop(self.body, None)
+                fight.halt_slows.pop(self.body, None)
+            elif slow[0] <= self.match.tick + 1 < slow[1]:
+                mods[(-1, 0, 0)] = (SPEED, ADD, -0.65, 0.0)
+        self.mover.track_mods(mods, command.frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -595,15 +638,22 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {"controller_components": components}
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                **context,
             )
+            if bot.spawner.get("manual_spawn") is True:
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -1099,9 +1149,12 @@ class Match:
     def start_body_script(self, player: Player, create: EntityUpdate) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
+        from ow174.game import sigma
+
         self.stop_body_script(player)
         if BODY_SCRIPT_HEROES is not None and player.hero.guid not in BODY_SCRIPT_HEROES:
             return
+        ult_seconds = sigma.PASSIVE_FULL_CHARGE_SECONDS if player.hero.guid == sigma.HERO else ULT_SECONDS
         try:
             script = BodyScript(
                 player.hero.guid,
@@ -1110,6 +1163,7 @@ class Match:
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
+                ult_seconds=ult_seconds,
                 match=self,
             )
         except Exception as error:
@@ -1137,14 +1191,18 @@ class Match:
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
+        from ow174.game import sigma
+
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            sigma.sync_flux_airborne(script.component, player.mover)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
             script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+            sigma.release_phased_flux_target(player)
         except Exception as error:
             bodytrace.failed(script, error)
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)

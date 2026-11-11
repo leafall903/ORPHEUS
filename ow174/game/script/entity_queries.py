@@ -60,6 +60,23 @@ class Context:
 def evaluate(evaluation, cfg):
     """Return NotImplemented only when this world has not installed the service."""
     cls = cfg.get('$')
+    if cls == "STU_D379F515":
+        instance, watcher = evaluation.instance, evaluation.watcher
+        component = instance.component
+        target = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_target"), watcher=watcher))
+        owner = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_7826B991"), watcher=watcher))
+        component.ensure_valid()
+        value = component.world.target_record_scalar(owner, target)
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, "target record owner retired", cls)
+        if value is NotImplemented:
+            return NotImplemented
+        if value is None:
+            return expr.EVALUATION_FAILED
+        if type(value) not in (float, int):
+            component.unsupported(instance, "target record scalar", cls)
+        return expr.f32(value)
     if cls not in (EXISTS, POSSESSED):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher
