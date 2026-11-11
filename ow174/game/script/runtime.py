@@ -2273,6 +2273,8 @@ class State:
 
     def dependency_changed(self) -> None:
         """A watched variable changed (vt+0xC8)."""
+        if self.instance.graph.index == 0x073A and self.node.pos == 30:
+            self.try_complete()
 
     def native_dependency(self, cfg) -> None:
         """1B72AD0: a native evaluator marked this dependency epoch as used."""

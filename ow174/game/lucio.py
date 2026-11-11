@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass
 
 from ow174.game import actors
+from ow174.game.mover import IN_AIR
 from ow174.game.script import expr, graph, runtime
 
 HERO = 0x02E0000000000079
@@ -205,6 +206,23 @@ def charge_healing(shooter, target, given, tags):
             0x41: tuple(expr.Asset(tag) for tag in tags),
         }
         _charge_event(shooter, 0x0240000000000044, params)
+
+
+def barrier_owner_filter(world, cfg, instance):
+    """Narrow reconstructed slam gate; not a generic native filter decoder."""
+    if instance is None or instance.graph.index != 0x073A or world.match is None:
+        return NotImplemented
+    target = cfg.get("m_entity") or {}
+    nonzero = {key: value for key, value in (cfg.get("m_filter") or {}).items() if value not in (None, 0)}
+    if (target.get("$") != "STU_B5A0CAF0"
+            or nonzero != {"$": "STUConfigVarFilter", "m_84065FD1": 0x3FFFFFFF, "m_4EA686DB": 16}):
+        return NotImplemented
+    if graph.graph(0x073B) is None:
+        return False
+    owner = next((p for p in world.match.players if p.has_body and p.body == world.body), None)
+    # The mover's air age starts at zero on the first airborne pose.
+    return (owner is not None and not (owner.mover.flags_word & IN_AIR)
+            and not world.match.combat.is_dead(owner))
 
 
 @dataclass

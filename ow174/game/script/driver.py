@@ -1136,6 +1136,11 @@ class BodyWorld(runtime.World):
                     return any(p.has_body and p.body == target.id for p in self.match.players) or any(
                         b.entity == target.id for b in self.match.bots
                     )
+            from ow174.game.lucio import barrier_owner_filter
+
+            result = barrier_owner_filter(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)

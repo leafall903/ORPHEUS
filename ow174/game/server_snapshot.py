@@ -137,7 +137,7 @@ FIELDS = {
     tracer_recall.Recalls: _names("fight history phases"),
     breather.Breathers: _names("fight channels"),
     sombra_control.Controls: _names("fight locks held device_receivers"),
-    sound_barrier.SoundBarriers: _names("fight landings waves shielded"),
+    sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
     knockback.Knockbacks: _names("combat serial active"),
     support_effects.Effects: _names("match attachments boost_frames"),
@@ -253,7 +253,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
-    support_effects.Attachment, combat.Soundwave, sombra_control.Lock, sound_barrier.Shield, sound_barrier.Landing, sound_barrier.Wave, lucio.Lease,
+    support_effects.Attachment, combat.Soundwave, sombra_control.Lock, sound_barrier.Shield, sound_barrier.Landing, sound_barrier.Wave, sound_barrier.Grant, lucio.Lease,
     driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.RangedContact, combat.MeleeContact, combat.PendingAttack, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley, combat.TimedHit,

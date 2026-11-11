@@ -2160,8 +2160,7 @@ class Combat:
         reinhardt_barrier.sync(self, player)
         self.brigitte.passive_command(player, script)
         self.breathers.observe(player)
-        if command is not None:
-            self.sound_barriers.observe(player)
+        self.sound_barriers.observe(player)
         if player.hero.guid == lucio.HERO and (command is not None or self.lucio_auras.leases):
             self.lucio_auras.refresh(script.frame)
         self._sync_adaptive_shield(player)
@@ -2935,6 +2934,7 @@ class Combat:
             self.timed_hits or self.recalls.phases or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
+            or self.sound_barriers.pending
             or self.lucio_auras.healing or self.soundwaves
             or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
             or any(player.body_script is not None and player.body_script.world_frame_anchor is not None

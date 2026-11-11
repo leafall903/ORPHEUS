@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Integrate delivered Sound Barrier slam and deferred grants
+
+- Mount the authored grounded-owner predicate and its watched/polled073A
+  transition. Observe the actual slam counter during posed and retained body
+  frames; keep future grants at their original world tick and cast origin.
+- Publish due grants inside the retained combat interval so earlier projectiles
+  can still kill the caster before the slam. Preserve the combined receiver,
+  pool, cover, wave and retirement services, and use float32 shield amounts.
+- Register pending grants/counters and wave origins in the inert server codec.
+  Preserve the remaining11 original Lucio verification modules, adapting the
+  Sound Barrier fixture to the combined pool/module/queue interfaces.
+- All seven original focused slam/sparse/airborne/death/charge/replay/team-cover
+  checks passed. Changing a pending grant deadline changes the stored server
+  snapshot digest. The broader shared suite is still running; unrelated older
+  cross-service fixtures remain open and do not withhold this implementation.
+  Original-client acceptance and complete Lucio line integration remain open.
+
+
 ### Preserve delivered optional status-resource loading
 
 - Restore the original validated external status bundle reader and .053
