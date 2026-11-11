@@ -34,17 +34,21 @@ all selected queued records. OP/chunk/ch2 records enter the existing ACK/resend
 bookkeeping; pure movement/no-op records are consumed without reliable retransmit.
 The former op-or-chunk-only consumption omitted ch2-only projectile shot events.
 
-An individual oldest message/entity that cannot fit requires verified fragmentation
-support. This repair does not invent that encoding, drop it silently or send an
-oversized datagram. It logs a deduplicated explicit rejection and retains queues,
-sequence and in-flight state without a send. Known ValueError/OverflowError/
-struct.error encoding failures are isolated to that client, so later clients in
-the same tick can still send. Such a rejected queue can remain blocked until its
-cause is corrected; full fragment support and recovery remain open work.
+Full mode statescript frames can span datagrams. Each part shares the frame
+range and carries a zero-based part index and final flag (104319 RVA 996450).
+The receiver waits for every part through the final index before concatenating
+them in index order (RVA A0FE30). The sender retries each missing part through
+the normal entity-record queue and advances delivery only after every part is
+acknowledged. The latest newer mode frame waits until that point.
 
-tests/test_game_packet_budget.py covers nine scenarios with actual frame encoding
+Other individual records that exceed the budget still receive a deduplicated
+rejection. Their queues, sequence and in-flight state remain intact. Known
+ValueError/OverflowError/struct.error encoding failures are isolated to that
+client, so later clients in the same tick can still send.
+
+tests/test_game_packet_budget.py uses actual frame encoding
 and AES-GCM decryption through an in-memory socket. It verifies byte limits,
 original record ACK identity, FIFO deferral, failed sends and nonce sequence,
 prospective/committed corrections, stale tokens, seen gates, ch2/movement queue
-consumption,127-record limits and per-client rejection. This is not proof of all
-client fragment/event semantics or the complete prediction-recovery contract.
+consumption, 127-record limits, per-client rejection, and recovery after losing
+the first part of an oversized mode frame.

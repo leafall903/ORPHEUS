@@ -98,6 +98,49 @@ PRACTICE_RANGE = GameMap(
     team_sizes=(1, 0),
 )
 
+# Build 104319: the 0C8C mission looks up this server-owned gate by tag 030E.
+JUNKENSTEIN_MAP = 0x08000000000006C9
+JUNKENSTEIN_MODES = (0x0230000000000003, 0x023000000000002A)
+JUNKENSTEIN_GATE = 50  # flat placement index, definition 16F6
+JUNKENSTEIN_THREE_THEY_WERE = 0x063000000000016E
+JUNKENSTEIN_MYSTERY_SWAP = 0x063000000000016F
+JUNKENSTEIN_SHOCKING_SURPRISE = 0x0630000000000170
+
+# Difficulty identifiers from each 104319 Arcade card's m_13E9E420.
+_JUNKENSTEIN_CARD_DIFFICULTIES = {
+    0x3C: 0x195E, 0x3D: 0x195F, 0x4A: 0x26DF, 0x3E: 0x1960,
+    0x43: 0x195E, 0x44: 0x195F, 0x49: 0x26DF, 0x45: 0x1960,
+    **dict.fromkeys(range(0x16B, 0x171), 0x26DF),
+}
+
+# Each challenge has its own .0C0 ruleset, 0119 through 011E.
+_JUNKENSTEIN_CHALLENGE_FLAGS = dict(zip(
+    range(0x16B, 0x171), (0x7D53, 0x7D54, 0x7D60, 0x7D61, 0x7D62, 0x7D63), strict=True,
+))
+
+
+def junkenstein_card_difficulty(card: int) -> int | None:
+    """Resolve a full Arcade card GUID to its authored difficulty identifier."""
+    if card >> 48 == 0x0630:
+        identifier = _JUNKENSTEIN_CARD_DIFFICULTIES.get(card & 0xFFFFFFFFFFFF)
+        if identifier is not None:
+            return 0x0D80000000000000 | identifier
+    return None
+
+
+def junkenstein_card_mode_values(card: int) -> dict[int, bool | float]:
+    """The challenge ruleset's mode-level overrides, separate from team settings."""
+    if card >> 48 != 0x0630:
+        return {}
+    index = card & 0xFFFFFFFFFFFF
+    flag = _JUNKENSTEIN_CHALLENGE_FLAGS.get(index)
+    if flag is None:
+        return {}
+    values: dict[int, bool | float] = {flag: True}
+    if index == 0x16F:
+        values[0x7E0F] = 1.0
+    return values
+
 
 @cache
 def _map_entries() -> dict[int, dict]:
@@ -168,6 +211,9 @@ def game_map(
         return None
     by_mode = {int(mode, 16): indexes for mode, indexes in (entry.get("placeables_by_mode") or {}).items()}
     placeables = by_mode.get(mode_guid, entry.get("placeables", []))
+    if (map_guid == JUNKENSTEIN_MAP and mode_guid in JUNKENSTEIN_MODES
+            and JUNKENSTEIN_GATE in entry.get("mirrored", ()) and JUNKENSTEIN_GATE not in placeables):
+        placeables = sorted([*placeables, JUNKENSTEIN_GATE])
     spawns = _first_round_spawns(entry, free_for_all)
     if not spawns:
         return None

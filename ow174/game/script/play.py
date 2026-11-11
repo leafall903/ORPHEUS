@@ -15,6 +15,9 @@ GRAPH_KEY = 0x4065
 IDENTIFIER_TYPE = 0x0D80000000000000
 _FAILED = object()
 MAX_CONFIG_DEPTH = 64
+MODE_SCORE_THRESHOLDS = "STU_0C37A184"
+SESSION_ENTITIES = "STU_BD2D717B"
+AUTHORED_ARRAY = "STU_45B0D2B2"
 AUTHORED_PAIRS = "STU_7757D403"
 
 
@@ -52,6 +55,16 @@ def evaluate_value(instance, cfg, *, initial=0, watcher=None):
     with instance.component.operation():
         if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
             return tuple(_iter_values(instance, cfg, watcher=watcher))
+        if isinstance(cfg, dict) and cfg.get("$") == MODE_SCORE_THRESHOLDS:
+            return mode_score_thresholds(instance, cfg, watcher=watcher)
+        if isinstance(cfg, dict) and cfg.get("$") == SESSION_ENTITIES:
+            return session_entities(instance, cfg, watcher=watcher)
+        if isinstance(cfg, dict) and cfg.get("$") == AUTHORED_ARRAY:
+            values = []
+            for child in cfg.get('m_configVars') or ():
+                instance.component.consume_work('authored array item')
+                values.append(evaluate_value(instance, child, watcher=watcher) if child is not None else 0)
+            return tuple(values)
         if isinstance(cfg, dict) and cfg.get("$") == AUTHORED_PAIRS:
             return _authored_pairs(instance, cfg, watcher=watcher)
         result = controller_heroes.collect(instance.context(watcher), cfg)
@@ -102,6 +115,29 @@ def _iter_values(instance, cfg, *, _depth=0, watcher=None):
         iterator.close()
 
 
+def fold_array(instance, cfg, *, watcher=None):
+    """1B77D80 and 1B76A60: fold a materialized iterator in its parameter scope."""
+    component = instance.component
+    values = tuple(_iter_values(instance, cfg.get("m_814F8EC3"), watcher=watcher))
+    params = {12: 0, 1050: len(values), 1293: None}
+    with component.parameter_scope(params):
+        if values:
+            params[1294] = values[0]
+            params[1293] = evaluate_scalar(instance, cfg.get("m_418D9D9D"), watcher=watcher)
+        for index, item in enumerate(values):
+            component.consume_work("array fold item")
+            params[12], params[1294] = index, item
+            params[1293] = evaluate_scalar(
+                instance, cfg.get("m_C239F989"), initial=params[1293], watcher=watcher,
+            )
+        params[12] = len(values)
+        params.pop(1294, None)
+        result = cfg.get("m_8054375D")
+        if result is not None:
+            return evaluate_scalar(instance, result, watcher=watcher)
+    return params[1293]
+
+
 def _iter_pairs(instance, cfg, *, _depth=0, watcher=None):
     """The supported generic iterators' key/value rows, before value projection."""
     instance.component.consume_work("played graph config iteration")
@@ -112,6 +148,14 @@ def _iter_pairs(instance, cfg, *, _depth=0, watcher=None):
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         for child in cfg.get("m_configVars") or ():
             yield from _iter_pairs(instance, child, _depth=_depth + 1, watcher=watcher)
+        return
+    if isinstance(cfg, dict) and cfg.get("$") == MODE_SCORE_THRESHOLDS:
+        for value in mode_score_thresholds(instance, cfg, watcher=watcher):
+            yield 0, value
+        return
+    if isinstance(cfg, dict) and cfg.get("$") == SESSION_ENTITIES:
+        for value in session_entities(instance, cfg, watcher=watcher):
+            yield 0, value
         return
     iterator = controller_heroes.values(instance.context(watcher), cfg)
     if iterator is not NotImplemented:
@@ -172,7 +216,8 @@ def _key(instance, node, key) -> int:
         instance.component.unsupported(instance, "played graph map key", str(type(key)), node)
     key &= 0xFFFFFFFF
     if key & 0x80000000:
-        instance.component.unsupported(instance, "played graph negative map key", node.cls, node)
+        cls = node.cls if node is not None else "STU_7042F028"
+        instance.component.unsupported(instance, "played graph negative map key", cls, node)
     return key
 
 
@@ -192,6 +237,22 @@ def _inline(instance, node, cfg):
         key = _key(instance, node, expr.guid_of(row.get("m_0D09D2D9")))
         buckets = _insert(buckets, key, value, work)
     return expr.Map(tuple(row for row in buckets if row is not None))
+
+
+def authored_map(instance, cfg, *, watcher=None):
+    """104319 1B78C00: create a map from authored identifier/value pairs."""
+    component = instance.component
+    with component.operation():
+        buckets = []
+        for row in cfg.get('m_92829780') or ():
+            component.consume_work('authored map row')
+            if not isinstance(row, dict):
+                component.unsupported(instance, 'authored map row', cfg['$'])
+            child = row.get('m_value')
+            value = evaluate_value(instance, child, watcher=watcher) if child is not None else 0
+            key = _key(instance, None, expr.guid_of(row.get('m_identifier')))
+            buckets = _insert(buckets, key, value, component.consume_work)
+        return expr.Map(tuple(row for row in buckets if row is not None))
 
 
 def _mapped(instance, node, rows):
@@ -296,11 +357,67 @@ def evaluate_scalar_result(instance, cfg, *, initial=None, watcher=None, _depth=
             configs = cfg.get('m_configVars') or ()
             return (evaluate_scalar_result(instance, configs[0], initial=initial, watcher=watcher,
                                            _depth=_depth+1) if configs else (initial, False))
+        if isinstance(cfg, dict) and cfg.get('$') == MODE_SCORE_THRESHOLDS:
+            values = mode_score_thresholds(instance, cfg, watcher=watcher)
+            return (values[0], True) if values else (0, False)
+        if isinstance(cfg, dict) and cfg.get('$') == AUTHORED_ARRAY:
+            configs = cfg.get('m_configVars') or ()
+            if not configs:
+                return 0, False
+            child = configs[0]
+            return (evaluate_value(instance, child, watcher=watcher) if child is not None else 0), True
         result = controller_heroes.scalar_result(instance.context(watcher), cfg)
         if result is not NotImplemented:
             return result
         value = instance.evaluate(cfg, watcher, initial=_FAILED)
         return (initial, False) if value is _FAILED else (value, True)
+
+
+def session_entities(instance, cfg, *, watcher=None) -> tuple[expr.Entity, ...]:
+    """CE2E40 selector zero collects the resolved session entities in order."""
+    component = instance.component
+    with component.operation():
+        instance.context(watcher).poll_native(cfg)
+        entities = (component.world.session_script_entities(instance)
+                    if cfg.get('m_B257A3A4', 0) == 0 else NotImplemented)
+        if type(entities) is not tuple:
+            component.unsupported(instance, 'session entity enumeration', SESSION_ENTITIES)
+        for entity in entities:
+            component.consume_work('session entity enumeration')
+            if type(entity) is not expr.Entity or not expr.valid_entity(entity.id):
+                component.unsupported(instance, 'session entity identity', SESSION_ENTITIES)
+        return entities
+
+
+def mode_score_thresholds(instance, cfg, *, watcher=None) -> tuple[float, ...]:
+    """104319 CD5740/D9BF20: mode score targets, masked by difficulty."""
+    with instance.component.operation():
+        selector, success = evaluate_scalar_result(instance, cfg.get('m_5B9DD0CB'), watcher=watcher)
+        row = instance.component.world.mode_score_threshold_row()
+        if row is NotImplemented:
+            instance.component.unsupported(instance, 'mode score threshold table', MODE_SCORE_THRESHOLDS)
+        thresholds, limits = row
+        limit = limits.get(_asset(selector) if success else 0, len(thresholds))
+        values = []
+        for index, threshold in enumerate(thresholds):
+            instance.component.consume_work('mode score threshold iteration')
+            values.append(expr.f32(threshold) if index < limit else -1.0)
+        return tuple(values)
+
+
+def minimum_value(instance, cfg, *, watcher=None) -> float:
+    """104319 1B76C90: evaluate the default, then reduce the flattened candidates."""
+    with instance.component.operation():
+        value, success = evaluate_scalar_result(instance, cfg.get('m_A53100D5'), watcher=watcher)
+        default = expr.f32(expr.to_float(value)) if success else 0.0
+        minimum = 3.4028234663852886e38
+        found = False
+        for value in _iter_values(instance, cfg.get('m_814F8EC3'), watcher=watcher):
+            found = True
+            candidate = expr.f32(expr.to_float(value, default))
+            if candidate < minimum:
+                minimum = candidate
+        return minimum if found else default
 
 
 def resolve_request(instance, node, resource: Resource, *, context_provider) -> Request | None:

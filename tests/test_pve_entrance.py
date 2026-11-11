@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from test_game_graph_analysis import make_graph, node
 
-from ow174.game import combat, pve, statescript
+from ow174.game import combat, content, pve, statescript
 from ow174.game.script import decode, graph
 
 MODE, MAP = 0x023000000000FFFE, 0x080000000000FFFE
@@ -26,6 +26,19 @@ def entrance_graph(index=ROOT, *, ready=True, remote=True, duplicate=False):
 
 
 class PVEEntranceTests(unittest.TestCase):
+    def test_junkenstein_gate_is_created_once_in_both_modes(self):
+        map_guid = 0x08000000000006C9
+        modes = (0x0230000000000003, 0x023000000000002A)
+        entry = {'name': 'Junkenstein', 'modes': [f'{mode:X}' for mode in modes],
+                 'placeables': [41, 65], 'placeables_by_mode': {f'{modes[1]:X}': [41, 50, 65]},
+                 'mirrored': [37, 50], 'spawns': [{'team': 0, 'position': (0, 0, 0)}]}
+        with (patch.object(content, '_map_entries', return_value={map_guid: entry}),
+              patch.object(pve, 'entrance', return_value=True)):
+            for mode in modes:
+                with self.subTest(mode=mode):
+                    self.assertEqual(content.game_map(map_guid, mode).placeables, (41, 50, 65))
+        self.assertEqual(entry['placeables'], [41, 65])
+
     def setUp(self):
         self.mode = {"pve": True, "graph": f"0x058000000000{ROOT:04X}", "scripted_loading": True}
         self.source = entrance_graph()

@@ -318,7 +318,7 @@ class Collection:
         record["+0x79"] = True
         return value
 
-    def hero_catalog(self, profile: Profile) -> dict:
+    def hero_catalog(self, profile: Profile, *, include_npcs: bool = True) -> dict:
         """24900: every hero with the items it owns and its loadout."""
         value = clone(self.hero_template)
         for hero_record in value["+0x80"]:
@@ -326,7 +326,20 @@ class Collection:
             owned = self.owned_for_hero(profile, hero)
             hero_record["+0x0"] = [{"+0x0": guid, "+0x8": True} for guid in owned]
             hero_record.update(self.loadout(profile, hero))
+        if include_npcs:
+            self._add_gallery_npcs(value)
         return value
+
+    def _add_gallery_npcs(self, catalog: dict) -> None:
+        for hero in sorted(self.items.npc_heroes):
+            if hero in self.default_loadouts:
+                continue
+            catalog["+0x80"].append({
+                "+0x0": [], "+0x18": [], "+0x30": hero,
+                "+0x38": 0, "+0x40": 0, "+0x48": 0, "+0x50": 0,
+                "+0x58": [], "+0x70": [], "+0x88": [],
+            })
+            catalog["+0x98"].append({"+0x0": [], "+0x18": hero})
 
     def unlock_granted(self, guid: int) -> tuple:
         """Adds a given unlock to the owned list and shows it as new: 24901 {hero, unlock, new} for a

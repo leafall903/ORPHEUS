@@ -1,0 +1,597 @@
+Manual NPC navigation: partial104319 collision-aware pursuit
+
+An explicitly engaged manual NPC now pursues its selected living enemy player.
+Assassin plans toward2.5m contact; the other enemies use an8m manual standoff.
+These distances are server policies, not recovered native AI parameters.
+Stopped, dead, controlled, disconnected/retired-target, ended-match and
+collision-unavailable actors stop pursuing. A pinning Assassin holds position.
+Automatic target selection and original perception/memory remain open.
+
+Routing and movement:
+Bounded A* uses1m floor samples with height bins,2048 expanded nodes and32m
+local coordinate limits. Distant targets use24m reachable prefixes and replan.
+Runtime search retains its frontier. Manual NPCs share up to4 heap pops per
+match update, including stale entries. Extra slots rotate among engaged living
+actors with pending searches or new navigation. Rotation follows actual updates
+so a repeated server tick skip cannot strand one actor. An actor with an existing
+navigator can start a new search and receive its first slice on the next update.
+One eligible search gets all4 slots. Catch-up ticks do not multiply that budget.
+ObjectiveApproach retains its own budget. The synchronous plan helper is for
+offline probes only.
+
+In a 120-update simulated-transport replay with all five manual enemy types on
+Rialto 079F collision, peak granted pops fell from20 to4 and all five expanded
+nodes. Mean search time fell from36.8ms to16.4ms. Search time exceeded16ms in
+27 updates, down from113. Mean full update time fell from57.5ms to35.5ms, with
+a search outlier of150.0ms in the new run. The shared cap bounds heap work.
+Simultaneous long-path pursuit in the original client still needs verification.
+
+A separate 900-update simulated-transport probe started all five actors along
+z=-102, with x spaced1.6m west from -82.2715. McCree started at
+(-32.2715, 1.75, -95) with extra health to keep the target alive. Allocating
+only to pending searches kept the4-pop cap and improved the closest range for
+Enforcer from19.24m to9.17m and Sniper from52.05m to40.75m. Trooper and Enforcer
+dealt damage. Sniper, Assassin and Heavy Assault dealt no damage in that group
+take. Isolated runs from the same starting points yielded damage
+from Enforcer, Sniper and Assassin. Heavy Assault closed to34.20m in isolation
+without dealing damage. The group and isolated results are recorded in the
+local rialto-group-planning-east-convergence-demand and east-isolated JSONs.
+
+An incremental route now uses live teammate occupancy only on edges that
+start within the first2m of route cost. The mover still checks teammate
+clearance at each step, and Assassin still needs a clear final pin lane.
+In the same east corridor with this policy, four types dealt damage within
+900 updates and Heavy Assault first dealt5 damage at update1477, after
+closing from56.83m to20.24m. All five damaged the same stationary McCree.
+The cap remained4 heap pops per update. This used actual Rialto geometry
+and enemy graphs with simulated transport, staged actor positions and extra
+player health. Local trace: rialto-group-planning-east-local-lanes-endurance.json.
+
+Original client 104319 match 8522 repeated the east group fixture in a
+1280 x 720 window. McCree observed from (-34.4, 1.6, -95) for a clear spawn
+ray at the client default heading and received 20,000 extra health after
+the first engagement. Physical =, 1 through 5, and 0 selected all five before
+each actor was moved to its staged corridor origin. All five reached within
+8m and damaged the same McCree. Heavy Assault first hit 23.2s after selection.
+The client showed the Assassin pin, forced perspective and STUNNED overlay.
+Physical { stopped all five and released the pin, with no later damage during
+the 5.1s observation window. Physical - removed all five. The shifted brace
+also started McCree's Roll cooldown. Local evidence is
+native-rialto-8522-east-group.json and native-rialto-8522-east-group-stopped.jpg.
+Stop/death/control/body/world invalidation clears a pending search. A pending
+search samples the target pose until it completes, avoiding repeated restarts;
+a moving target is resampled afterward. This can delay moving-target pursuit
+and is not native perception or full moving-target combat acceptance.
+Edges require supported floor, slope, headroom and capsule-width static rays.
+The planning step-up bound is the existing manual bot0.6m policy; actual poses
+are advanced through the shared Mover and CharacterBody contact/sweep engine.
+The old bot floor-following route alone has no lateral wall sweep and is not
+used as the manual physical controller. Missing floor is not a walkable bridge.
+
+Each body uses its loaded mover dimensions/speeds, acceleration and turn policy.
+Routes are revalidated, world/body changes rebuild the physical mover, and
+duplicate frames do not move again. Catch-up retains the existing bot625-tick
+maximum. Paused ticks do not replay their movement on recovery. Stop/death clears
+path and movement; explicit removal releases the navigator while keeping the
+existing retained-corpse policy until that removal. Movement records preserve
+input direction against the final weapon-aim yaw. Navigator/mover/path/target/
+planning time and progress, including the open frontier, costs/parents/visited
+nodes and sampled target, are explicit causal server snapshot inputs.
+
+Required NPC movement inputs:
+The original prepared runtime's38-entry mover table omits all five Talon bodies.
+Its generic fallback is not evidence of their actual dimensions or speed. The
+separate local preparation script verification/retribution/
+prepare_npc_navigation_runtime.py reads the existing104319 body XML through the
+project's mover field parser and prepares an external43-entry table. Normal
+runtime inputs remain unchanged; no game assets/data belong in this repo.
+
+The extracted height/radius/run-forward values are:
+Trooper1.7/0.5/5.75; Enforcer1.9/0.5/5.0; Sniper1.75/0.5/4.5;
+Assassin1.5/0.5/14.0; Heavy Assault2.3/0.7/2.2. Source XML and output hashes
+are recorded in the local runtime's mover-preparation.json. Its other static
+metadata are hardlinks to existing inputs and must not be written. Use this
+prepared directory via ORPHEUS_RUNTIME_DIR for the NPC sandbox; ordinary
+38-entry inputs still retain the generic mover fallback. This is not accepted
+Talon physics configuration without the additional mover records.
+
+The assembled local Rialto PvE runtime now includes the 079F movement
+cache. Its SHA-256 matches the original prepared runtime cache. Map/mode
+fixtures load it through the normal collision provider. The isolated
+movement probes still read the original prepared cache directly.
+
+Evidence:
+Thirteen source movement tests cover contact approach, finite-wall detours,
+disconnected floors/low ceilings, pause/duplicate/catch-up behavior, replacement/
+missing collision, multi-horizon pursuit, corpse retirement and final aiming/
+locomotion agreement, exact contact boundaries, incremental/offline equivalence,
+pending cancellation and per-update budget despite duplicate/catch-up frames.
+A server snapshot mutation checks navigator, path and pending frontier data.
+The snapshot also distinguishes approach from release, airborne time,
+and a live actor from a retained corpse. These snapshots compare replay
+state; the server does not load them as checkpoints.
+
+With actual mover records, all five real body definitions pass default console
+5m spawn/engage/incoming damage, McCree primary damage, stop, corpse retention
+and removal fixtures. Incoming first hits are20/2/100/25/5 respectively. Death
+is an authoritative fixture after an actual primary hit; projectile observer
+transport is explicitly adapted. All five also advance within their resource
+speed limits in a separate chase/stop fixture. An actual Assassin detour case
+reaches contact in61 frames with capsule clearance; a closed enclosure prevents
+movement and damage. Finite walls can be routed around; obstruction-only tests
+use closed geometry. Range/body loss releases the old pin immediately, while
+pursuit may later create a legitimate new engagement.
+
+The real079F movement-cache spawn-area probe uses original Rialto geometry and
+actual Assassin mover data: five metres to contact/25 damage in10 frames.
+It is an isolated Practice Range-rule Match using the Rialto movement world,
+not full Rialto PvE loading/rules or native-client acceptance.
+
+A wider original079F regional matrix passes105/105 forward/reverse routes with
+all five actual mover records and the loaded McCree target capsule, reaching
+up to60m from the sampled spawn. One incompatible standing target is skipped.
+Fix arrival tolerance and final-waypoint retirement so the path cannot end just
+outside the controller's contact radius. These are movement-only fixtures,
+not PvE rule loading, full-map connectivity or native-client acceptance.
+
+An eastern diagnostic found a3.37-second synchronous search, without proving
+its target unreachable. With incremental planning,120 updates of that same
+actual Heavy/world fixture expand at most4 nodes each, with13.6ms maximum and
+5.46ms mean measured update time; stop clears the pending frontier immediately.
+These timings are one local run, not a frame-rate guarantee. The broader100-frame
+eastern sample reaches3/16; the other cases exceed that diagnostic's simulation
+budget and are not classified as unreachable or accepted routes.
+
+The extended eastern movement probe gives each take up to 3,000 updates
+and covers 22 forward and return routes for the Assassin and Heavy
+Assault. Sixteen reach range with visibility, including both directions
+of the sampled 50 m stretch. Six forward takes fail, over three target
+positions. At each blocked pair, widening the offline search to 48 m
+on each axis and 8,192 nodes still finds no walkable route in either
+direction. The northeast approach reaches a lower floor about 1.13 m
+below the target. Finer 0.75 m and 0.5 m samples and extra diagonal probes
+fail to connect the far portal pair inside their local bounds. Direct
+collision samples show a wall and missing floor at that pair and a wall
+at the middle pair. These probes do not prove whole-map isolation or
+establish an authored jump, door or other connection.
+
+The `--east-long` Rialto map/mode fixture uses `=`, a catalog digit and
+crosshair `0` before staging McCree 50 m from the enemy's spawn. The
+stationary target has an extra 2,000 fixture HP for ranged hits during
+the approach. Trooper, Enforcer, Sniper and Heavy Assault reach the
+8 m standoff and deal damage. Assassin starts the authored pin through
+the server bridge and deals 25 damage. Arrival occurs at 523, 593, 740, 258 and 1,285
+updates respectively in catalog order. All five stop without further
+damage for 100 updates and clear with `-`. This uses simulated
+transport and does not establish native-client presentation on that
+50 m stretch.
+The companion `--east-long-observer` fixture keeps McCree at the east
+endpoint and stages the selected enemy at the west end after `0`.
+All five pass the same approach, damage, stop and removal checks, with
+McCree alive at arrival. This setup supports a stationary native camera.
+The first native take F16D rejected the spawn on geometry before pursuit.
+The aligned observer uses a different yaw, verified in the map/mode
+fixture. Native match 1D3D puts McCree at the correct coordinates but
+reports command yaw -180 degrees instead of the fixture's -80 degrees.
+The screenshot shows a wall ahead, and the spawn ray hits at 2.02 m.
+The offline fixture now sends its configured yaw in its idle commands.
+The `--east-long-south` variant keeps the actual native yaw and uses
+McCree at (-32.2715, 1.75, -95) with the staged enemy at
+(-82.2715, 1.75, -102). All five server cases complete that route.
+Original-client match 1CD3 in a 1280 x 720 window confirms each enemy
+crosses 40, 24, 12 and 8 m, deals damage, and has no additional damage
+for at least 1.75 seconds after `{`. The dashboard invokes the console
+actions. The diagnostic stages the enemy after crosshair selection and
+gives McCree 2,000 bonus health. Trooper, Enforcer and Sniper appear
+near the left edge at the 8 m crossing. The 1CD3 Assassin repeat shows
+a fade down, black samples from +0.26 to +0.51 seconds after the first
+hit, and the pin camera returning before stop. Rechecking the saved
+7457 and B976 frames shows the same fade at the earlier camera site.
+The 57C1 owner-state comparison isolates the fade to authored victim
+scope 1177/53. The Heavy's near-stop pose is outside the 1CD3 camera.
+
+The Heavy-only follow-up puts McCree at (-39.2715, 1.0684, -91)
+facing south, with the enemy staged at (-88.7715, 1.75, -102).
+The server fixture reaches 8 m at about 32 degrees from the crosshair.
+Windowed match 6802 shows the Heavy at close range after the first
+take switches from the miniguns into charge. A second take waits for
+the miniguns to resume after the charge. The client acknowledges
+114F/28 and /47 before `{` and acknowledges both inactive 104 ms
+after the request. McCree stays at 1,830 test HP for 1.86 seconds.
+The view clips part of the Heavy after the charge displaces McCree.
+The captured muzzle glow is visible at +165 ms and absent at +613 ms.
+Match 53B1 repeats the western view and stops during the first volley,
+before the 8 m crossing and before charge displacement. The Heavy and
+its gun are visible beyond the near wall. Five hits deal 25 total
+damage. The client acknowledges 114F/28 and /47 inactive 171 ms after
+`{`. No further damage occurs for 1.95 seconds. A muzzle flash and
+tracers still appear in the +696 ms window sample. The +1.341 s sample
+shows the Heavy standing without a flash. The exact lifetime and
+client-side retirement of this firing effect remain open.
+
+A read-only repeat in 53B1 follows native effect slots for 114F/38,
+/44, /46 and /49. The client acknowledges /28 and /47 inactive at
++79 ms. At +99 ms, all four graph effect handles are cleared and
+the volley sound objects 21BC and 226E are gone. The detached 22DF
+windup object still exists at +99 ms and is first sampled gone at
++275 ms. The window still shows barrel glow at +166 ms. No glow or
+tracer appears in the sampled +471 ms frame. This take does not
+reproduce the first volley's +696 ms flash. The four manifest-verified
+assets show particles and lights in 22DF, and sound components with
+hardpoint references in 20D1, 21BC and 226E.
+
+A second read-only repeat records the capture source clock as well as
+the callback clock. The client acknowledges /28 and /47 inactive at
++36 ms. At +47 ms the graph has no active handles and only detached
+22DF remains. It is first observed gone at +352 ms. The +82 ms frame
+has a short tracer and the +173 ms frame still shows barrel glow.
+From +298 ms onward the sampled red-pixel count remains at the idle
+range. Around stop, adjacent retained capture frames are 29–62 ms
+apart in the source clock, and the callbacks follow their source
+timestamps by about 0–21 ms. The two read-only repeats do not reproduce
+the +696 ms flash. The first capture has no source-clock record for
+that frame, so its longer tail remains unexplained.
+
+At the eastern opening near (-30.27, 1.75, -102), the four cardinal
+probes can all fail while the diagonal to (-29.27, 1.75, -101) fits
+the Assassin capsule. The planner now tests collision-validated
+diagonals when a sample has no clear cardinal exit. Ordinary open
+floor still uses cardinal steps and each update keeps its four-pop
+limit. The real-map `--east-portal` and `--east-portal-camera` cases
+use normal crosshair engagement and the actual mover, reach the
+McCree target, apply 25 pin damage and stop without a subsequent hit.
+Match B976 shows the same diagonal approach, pin camera, and release
+at 200 HP in a 1280 x 720 window. This take used the exploratory build
+that tried diagonals beside blocked cardinal directions too. The final
+no-cardinal fallback produces the same four-waypoint route in the
+real-map server fixture and in native match 7457 at 1280 x 720 windowed.
+Match 7457 also shows the pin camera and release at 200 HP after `{`.
+Other eastern targets still lack a proven route.
+
+An exhausted search with no sampled teammate blockage is retained as
+a failure for the same actor position, target body, target location,
+and collision world. A 0.25 m target displacement, body or world
+replacement, or manual reselection invalidates the failure. An exhausted
+search that sampled a blocked teammate edge retries on the ordinary
+30-tick schedule. The frontier records whether it sampled such an edge
+in causal snapshots.
+The real-map `--east-exhaustion` fixture selects the Assassin with `0`
+and then stages McCree at the distant east point. It exhausts one search
+in 421 frames and starts none during 180 further stationary frames.
+After the fixture moves McCree back to the reachable point, it starts
+a new search on the next update and deals 25 damage through the pin.
+
+Real capsule dimensions also exposed Deadeye's generic eye point above a short
+Assassin. Its reconstructed hardpoint now stays inside the target's upper
+capsule segment; the real-mover15-scenario ultimate matrix passes. Original
+animated hardpoint, hitbox and bone equivalence remain open.
+
+Rialto lower platform:
+The host enables one directed connection for map 079F. The floor search
+approaches the southern railing opening by supported walking. The NPC mover
+drives toward the departure at 4 m/s, then applies its normal gravity until
+landing and resumes floor pursuit. This connection is a server-authored
+reconstruction sampled against the map collision and the five mover records.
+It covers one descent and carries no reverse edge.
+
+A route completed for a moving target now gets a movement interval before
+ordinary distance-based resampling. Target-body changes and stuck recovery
+still invalidate the route immediately. Floor edges reject the movement
+cache's NOT_GROUND surfaces. Fifteen source tests and all five cases of
+the real Rialto lower-platform probe pass with these changes.
+Before starting the drop, the navigator now confirms that its target
+still belongs to the lower platform and discards a stale approach. An
+already released drop can finish after target loss or the stop command.
+Stop clears the attack and route planning while preserving only the
+active fall. The real-map `--drop-stop-airborne` probe covers all five
+bodies, checks that they land and that no damage occurs after stop.
+The bot movement record now carries the navigator's airborne bits and
+air ticks. The same probe decodes the outgoing record during descent
+and after landing, verifying FELL and downward velocity followed by
+zero airborne bits and ticks.
+A retained corpse can finish an already committed ledge drop. Its
+movement record combines DEAD and FELL until landing, then retains only
+DEAD. The `--drop-kill-airborne` fixture presets one point of NPC health
+and fires McCree's primary weapon during the drop to exercise the normal
+death transition.
+
+The `--drop-observer-position` fixture places McCree on the lower
+platform at (-141.5, -2.25, -97.0) and stages the enemy at the upper
+ledge with McCree assigned as its target. All five bodies land at
+y = -2.25 after the stop command, deal zero subsequent damage, and have
+a clear static ray from McCree's eye to their landing positions.
+This fixture isolates the descent from crosshair acquisition and the
+client's own locomotion.
+Original client match A5CA repeats this fixture in a 1280 x 720 window.
+All five models are visible during descent and after landing. Each has
+FELL and negative vertical velocity before the console stop, and lands
+43 ticks after the first falling sample with FELL cleared and firing off.
+The damage trace shows no hit after the stop in any of the five takes.
+The capture validates the descent and landing at this authored connection.
+It does not establish all weapon effect retirement times or other map routes.
+
+Still open:
+Full-map/multi-level/long-obstruction coverage, jumps/climbs/off-mesh links,
+general dynamic blockers, native navigation/perception/tactics,
+all specials and immunity/cooldowns, deployment with the complete mode collision
+inputs, full McCree/cross-hero static acceptance and original-client locomotion/
+animation/audio/camera/corpse presentation. No full hero or PvE goal is complete.
+
+Ordinary pursuit now checks the clearance of living manual teammates
+while planning and before each step. It can take a short supported
+sidestep and requests a new route if blocked. The real-map
+`--group-pursuit` case passed a stationary Trooper without overlap,
+maintaining 1.066 m between centers for two 0.5 m radii. The moving pair
+reaches firing distance in 52 frames with 1.067 m minimum separation.
+Heavy Assault checks the next charge step for teammates. The real-map
+`--heavy-charge-teammate` fixture places a stationary Trooper 1.30 m in
+front of the charging Heavy and observes immediate cancellation without
+overlap or damage. In `--sniper-teammate`, a stationary Trooper inserted
+1.10 m ahead of the retreating Sniper cancels its movement. The Sniper
+keeps its target and hits for 100 when the player backs out to a clear
+firing position. The `--sniper-teammate-pre` case puts the teammate on
+the preferred retreat lane before movement begins. The Sniper rejects
+that lane and completes a 4 m diagonal retreat. Larger crowds and other
+special movement remain open.
+
+When a different player uses `0` to engage an already active NPC, the
+server discards pending presses and ends the previous Heavy Assault charge
+or close attack before replacing the target. Repeated `0` from the current
+target leaves the attack running. Automatic reacquisition also discards
+queued presses from the previous target. In the real-map
+`--heavy-charge-retarget` fixture, the first McCree reselected during active
+charge motion and the second then took over. The charge ended immediately,
+the authored 15-second cooldown began, and neither player took damage in
+the transition. This fixture uses original collision, movers and body graphs
+with simulated transport. A two-client presentation check remains open.
+
+The Enforcer and Sniper now release their held primary input when the
+target changes, then issue a new press for the replacement. Enforcer
+also aborts the old windup. Sniper previously retired the aim scope
+but did not start another while the old button remained held. In the
+real-map `--sniper-retarget` and `--sniper-reacquire` probes, both new
+targets take 100 damage after 127 updates, with zero damage to the
+original target. The Enforcer's equivalent pair is documented in
+ENFORCER_MANUAL_CONTEXT.txt. These four probes use simulated transport.
+
+Manual acquisition, route arrival and weapon aiming now share a static
+ray test to the target capsule. They prefer eye height and can aim at
+exposed lower or lateral points under partial cover. The ray ends at capsule contact,
+so static geometry behind that surface cannot suppress a valid shot.
+
+The refreshed 079F east matrix reproduces 16 of 22 successful walking
+routes. The level pair at (-30.2715, 1.75, -101) and
+(-15.2715, 1.75, -102) also received a separate 0.5 m eight-direction
+probe using the actual Assassin mover and the identical runtime cache.
+It visited 2,558 supported samples within X -42 to -4 and Z -125 to
+-78. The target passed the local floor and headroom check. The closest
+reachable sample was 8.016 m from the target, beyond pin contact.
+Direct mover rays at lower and upper capsule heights both hit the
+west-facing wall at X -23.25. Direct samples also miss floor between
+10.5 and 13.0 m from the start, with floor sampled from Y 3.25 to -5.
+This rules out a local fix through grid refinement alone for this
+bounded probe. A route beyond those bounds or an authored connection
+remains open. Local evidence is npc-navigation-east-same-level-geometry.json.
+
+The wider two-sided probe used the same 079F movement cache as the
+normal Rialto runtime, with mode 0230000000000025 selecting identifier
+0D80000000002F4A in both cases. The two cache copies have the same
+SHA-256. The half-metre search found 52,169 western and 1,244 eastern
+samples with no shared address. It checked all 239 sampled pairs within
+2.5 m without finding a supported join. The closest pair was about
+1.41 m apart with a 1 m height difference and a wall across the ray.
+The western search reached the eastern X bound, so these checks are
+bounded evidence and leave a wider detour or authored traversal open.
+The movement-only probe loads the cache directly, while the normal
+provider also attempts to load optional expanded ray geometry.
+Local evidence is npc-navigation-east-two-sided-expanded.json and
+npc-navigation-east-local-bridges.json.
+
+The other two eastern matrix targets were checked with the normal
+mode collision loader, real Assassin and Heavy Assault dimensions,
+and all eight grid directions. Neither the 1 m nor the 0.5 m search
+found a valid attack position for either NPC within X -100 to 0 and
+Z -138 to -60. At (-55.27, 2.25, -82), the closest sampled position
+was 2.55 m away. At (-15.27, 0.88, -82), a sample got within 1.80 m
+on a floor 1 m lower, where neither the pin contact nor the firing
+visibility check passed. The current probe leaves smaller local steps,
+wider routes and authored traversal open. Local evidence is
+npc-navigation-east-northeast-grid.json.
+
+A 0.25 m search within 9 m in each horizontal axis of those targets
+started at each NPC's closest reachable half-metre sample. It found
+no attack position in any of the four cases. Direct ground samples
+remained supported, while mover and weapon rays at heights 0.5, 1.0
+and 1.5 m all hit a surface about 0.20 or 0.28 m from the source.
+Loading the map without the mode identifier gave identical mover hits
+in all 12 rays. These surfaces are present in the base map collision
+cache. Local evidence is npc-navigation-east-northeast-local-quarter-grid.json.
+
+The extracted 104319 Rialto map chunk 00120000079F.0BC contains a
+STU_3BC32A6E AI cell table and a separate STU_5AE64839 tactical table.
+The build's DUTS data decoded 244 cell descriptors and 228 tactical
+volumes. All volume IDs match their array indices. The decoded
+neighbor lists contain 496 in-bounds directed references. From
+volume 18 near the matrix spawn, 167 volumes are reachable. The
+nearest volumes to the two northeastern targets are 36 and 48,
+about 6.66 and 6.47 m away. The route to 36 is 18, 25, 32, 36.
+The route to 48 is 18, 26, 33, 37, 40, 44, 48. The nearest volume
+to the remaining target is 195, about 3.98 m away, outside the
+reachable set. These are tactical references. Locomotion edges and
+exact target occupancy still require decoding and mover validation.
+The reader did not populate cell-byte or choke arrays. Local evidence
+is rialto-authored-ai-map-chunk.json and rialto-authored-tactical-volumes.json.
+
+The raw DUTS cell-byte array contains one payload for each of the 244
+cell descriptors. The payloads occupy consecutive ranges through the
+start of the tactical section. Each payload has a 160-byte header with
+17 ordered in-bounds offsets and 24 trailing header bytes. Payload sizes
+are 4,992 to 66,720 bytes. The internal movement data is still undecoded.
+Local evidence is rialto-authored-ai-cell-layout.json.
+
+The normal mode collision loader and both NPC mover profiles validated
+every planned segment to within 1.25 m of the projected floor under
+volumes 36 and 48. The subsequent search found no valid attack position
+for either NPC against either exact target. Local planner evidence is
+rialto-authored-tactical-mover-check.json.
+
+A staged server mover replay traversed both routes with the Assassin
+and the volume 36 route with Heavy Assault. On the volume 48 route,
+Heavy Assault recovered one corner through a replan, then lost its next
+edge after a collision lifted its capsule 0.35 m above the floor. The
+floor search exhausted at its origin until the mover advanced without
+directional input. In the staged replay this allowed Heavy Assault to
+complete the route to volume 48. Local evidence is
+rialto-authored-tactical-mover-replay.json and
+rialto-authored-tactical-heavy-settle.json.
+
+Ordinary manual pursuit now lets the capsule settle when it is airborne
+with a pending goal and no remaining walking route. The next search
+starts from the landing position. In the 079F reproduction, Heavy
+Assault landed at Y -1.25 after 15 frames and the search visited four
+nodes in frame 16. All 31 navigation and 23 NPC control tests passed.
+Local evidence is rialto-authored-heavy-airborne-recovery.json. The
+staged volume route and this recovery probe use server movement. Final
+attack positions and original-client presentation remain open.
+
+The tactical table also contains two packed occupancy arrays per
+volume. Both lengths match the decoded dimensions in all 228 volumes,
+with zero padding bits and the second mask a subset of the first. In
+Z-X-Y bit order, every volume center falls within its own primary XZ
+footprint. The decoded primary masks cover 22,573 distinct cells. The
+authored layer index need not equal the floor of the center's Y value.
+
+All 16 passing east matrix rows target a column in the tactical
+component reachable from the spawn. Four failing rows target two
+columns outside all decoded footprints. The other two target volume
+176, which lies outside the spawn component even when all references
+are treated as bidirectional. A separate Heavy Assault probe checked
+visible firing positions out to the 100 m sandbox engagement limit
+on the 1 m grid within X -100 to 0 and Z -138 to -60. None of the
+three failing targets had a firing angle in that sampled area. These
+observations constrain the missing routes. The tactical masks alone
+do not specify which movement transitions the original AI can use.
+Local evidence is rialto-authored-tactical-masks.json and
+npc-navigation-east-heavy-firing-angles.json.
+
+The ordinary airborne recovery also covers a manual stop or retained
+death. Both retire horizontal input immediately and preserve vertical
+velocity. The movement record carries FELL during descent, with DEAD
+also present for a corpse. After landing, only DEAD remains for the
+corpse. The east collision fixture reproduced both cases with Heavy
+Assault and observed landing on tick 14 followed by 60 stable frames.
+The separate committed ledge death probe landed at Y -2.25, recorded
+zero subsequent damage, and removed the retained corpse on command.
+All 32 navigation and 23 NPC control tests passed. Local evidence is
+rialto-heavy-stopped-airborne-landing.json.
+
+Native match 8FEE ran the ordinary airborne fixture in a 1280 x 720
+window. It staged Heavy Assault 2.5 m above the floor at stop or lethal
+damage. A physical 0 and left bracket engaged and stopped the live
+Heavy Assault. Two separate physical Flashbang presses killed fresh
+one-health fixture actors. All three landed at Y -2.25 after 33 ticks.
+The movement records carried FELL while airborne and retained DEAD
+after both deaths. The client showed the idle model after stop and the
+grounded corpses after the kills, each explicitly removed with minus.
+The still frames do not cover the entire descent animation. Local
+evidence is native-rialto-8FEE-ordinary-airborne-windowed.json.
+
+A straight edge back into an explored route no longer suppresses an
+oblique exit. The planner tries diagonals when no straight neighbor
+improves the frontier. The two cases at (-141.5, -1.90, -103.5) and
+(-41.0, 3.77, -92.5) used actual 079F collision and Assassin mover
+dimensions. The prior search exhausted at two and eight nodes without
+finding the exact destination. The updated search found both two-step
+routes in three nodes. A staged server mover replay using ordinary
+pursuit acceleration and waypoint tolerances reached both endpoints
+in 12 ticks, within 1 cm. The east route matrix retained all 16
+previously passing cases out of 22. The 120-update pending search
+still used at most four pops per update and stopped immediately on
+cancellation. All 33 navigation and 23 NPC control tests passed.
+These new corner routes still need original-client locomotion checks.
+Local evidence is npc-navigation-rialto-oblique-exits.json,
+npc-navigation-rialto-route-east-oblique-exit.json and
+npc-navigation-oblique-exit-budget.json.
+
+The western corner also affects Assassin combat through the normal
+console and body graph. The A/B used the actual mode collision, one
+manual Assassin, one McCree and simulated transport. It staged the
+Assassin at (-142.5, -1.90, -103.5) after normal crosshair selection.
+The previous planner never moved or damaged the victim in 120 frames
+for each of 12 target poses. The revised planner moved and delivered
+the 25-damage pin in 36 to 48 frames in all 12 cases. In two cases
+the Assassin crossed the oblique leg before pinning. The other cases
+reached contact before completing that leg. Stop released the pin
+and prevented further damage for 90 frames in every case.
+Native windowed match 4A84 rejected the initial fixture's spawn angle
+against map geometry. The revised native fixture uses the farther
+target at (-142.5, -2.25, -101.5) from the A/B and still needs
+an original-client take. Local evidence is
+npc-navigation-oblique-pin-combat-ab.json.
+
+The farther western target passed in the original client's 1280 x 720
+windowed match 37B3. The client reported yaw -32768 at the fixture
+spawn, opposite the server's tested spawn direction. Match 3D52 had
+rejected the unadjusted spawn against map geometry. For the 37B3
+diagnostic, the console used a temporary fixed yaw for the spawn and
+aimed at the selected Assassin during engagement, restoring the
+player's live input immediately afterward. The Assassin's starting
+position was staged after selection, as in the simulated A/B.
+Normal pursuit then published 15 movement samples, crossing the
+oblique leg to (-140.374, -2.25, -102.074). The client capture shows
+the approach, the pin camera and STUNNED, health dropping from 225
+to 200 and the HUD returning after stop. The trace records a single
+25-damage hit, no follow-up damage and explicit removal. The live
+capture verifies this staged locomotion and pin case. The initial
+player view direction and natural crosshair setup for this exact
+position still need a separate check. Local evidence is in
+west-oblique-pin-37B3.json and west-oblique-pin-37B3.png.
+
+The natural-aim diagnostic used the nearby southwest player position
+(-143.5, -2.25, -102) and kept the client's actual -180-degree
+heading and zero pitch through spawn and selection. The normal spawn
+search placed the Assassin five metres down the lane. Only the
+Assassin's pursuit start was staged after selection. Native 1280 x
+720 match 8947 crossed the diagonal, displayed the pin camera and
+STUNNED and took 25 HP off McCree. Stop returned the HUD and held
+health at 200; removal cleared the Assassin. The second take used
+physical =, 4, 0, { and minus. Both stop and removal reported one
+NPC and the display stayed at 4 HP across those actions. Shift in
+the literal { chord also triggered Combat Roll; the existing
+unshifted [ alias avoids this interaction. The native launch sends
+the configured body pose but still reported -180 degrees at the
+earlier west spawn. This test used a clear lane for that observed
+view and leaves the original facing discrepancy unresolved.
+Local evidence is west-oblique-natural-8947.json and
+west-oblique-natural-8947.png.
+
+An ordinary fall now also continues when a stun or loss of the target
+cancels pursuit. The NPC discards its route and horizontal input while
+the mover preserves vertical speed and advances gravity. The regression
+covers both interruption paths and resumed pursuit after the stun.
+The real 079F combat probe used McCree's authored Flashbang launch
+against an engaged Heavy Assault and staged a 1 m fall at impact.
+Flashbang dealt 25 at tick 1040. The first movement state retained FELL
+and changed vertical speed from -2.0 to -2.278 m/s. The Heavy landed
+at tick 1056 with FELL cleared while still stunned, with no horizontal
+drift or damage to McCree. It dealt 5 damage after the stun expired.
+The stop action then kept McCree's health stable for 90 frames.
+The full-match evidence uses simulated transport. The airborne
+Flashbang animation still needs a windowed original-client take.
+Local evidence is rialto-heavy-flashbang-airborne.json.
+
+Native match 6729 repeated the airborne interruption in a 1280 x 720
+window at the normal player spawn. Physical =, 5, 0 and E opened the
+console, spawned and engaged Heavy Assault and cast Flashbang. The
+Heavy's close attack dealt 80 before the grenade landed. The fixture
+staged the 1 m fall on the actual 25-damage impact at tick 9297.
+The client visibly rendered the airborne recoil, the landed stun
+and the resumed minigun. The mover landed at tick 9313 with FELL
+cleared and horizontal position unchanged. The stun expired at
+tick 9404, and the next enemy hit dealt 5 at tick 9435. No enemy
+damage occurred between Flashbang and expiry. Dashboard stop and
+removal then left McCree at 140/225. The capture has 17 source frames
+across the fall and early landing with a maximum gap of 36.6 ms.
+The take verifies the displayed phases of the staged fall.
+Local evidence is native-rialto-6729-airborne-flashbang.json
+and native-rialto-6729-airborne-flashbang.png.

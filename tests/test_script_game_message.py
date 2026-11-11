@@ -3,6 +3,7 @@
 import unittest
 from unittest import mock
 
+from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.script import controller_heroes, expr, play, runtime, scene
 from tests.test_script_runtime_budget import graph, node, plug, setter
 
@@ -49,7 +50,7 @@ class RecordingWorld(scene.SceneWorld):
         self.requests.append(request)
 
 
-def setup(**fields):
+def setup(*, action_class='STUStatescriptActionSendGameMessage', **fields):
     world = RecordingWorld()
     world.bind(OWNER)
     component = runtime.Component(OWNER, world=world, strict=True)
@@ -57,7 +58,7 @@ def setup(**fields):
     config = {'m_gameMessage': literal(expr.Asset(MESSAGE), 'message'),
               'm_targets': literal(expr.Entity(OWNER), 'target'), 'm_params': []}
     config.update(fields)
-    model = graph([node(0, 'STUStatescriptActionSendGameMessage',
+    model = graph([node(0, action_class,
                         m_outPlug=plug((1, 'm_inPlug')), **config), setter(1, 31)])
     instance = component.create(model, init=False)
     instance.initialized = True
@@ -69,6 +70,50 @@ def execute(instance, action):
 
 
 class GameMessageTests(unittest.TestCase):
+    def test_junkenstein_wave_message_reaches_the_mode_owners_receiver(self):
+        owner = runtime.GAME_MODE_ENTITY
+        message = 0x02400000000006CD
+        config = {'$': 'STUConfigVarGameMessage', 'm_gameMessage': f'0x{message:016X}'}
+        world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[0])
+        world.bind(owner)
+        component = runtime.Component(owner, world=world, strict=True)
+        world.bind_script_component(owner, component)
+        sender = graph([node(71, 'STU_57692020', m_gameMessage=config)])
+        sender.index = 0x0CB3
+        source = component.create(sender, init=False)
+        source.initialized = True
+        action = sender.node(71)
+        self.assertIs(world.routed_game_message_targets(source, action, message), NotImplemented)
+
+        listener = graph([node(0, 'STUStatescriptEntryGameMessage', m_gameMessage=config,
+                               m_outPlug=plug((1, 'm_inPlug'))), setter(1, 31)], entries=[0])
+        listener.index = 0x0CBD
+        receiver = component.create(listener, init=False)
+        receiver.initialized = True
+        source.run_node(action, None)
+        component.run_frame(0)
+        self.assertEqual(receiver.find_var(0, 7).value(), 31)
+        self.assertIs(world.routed_game_message_targets(source, action, MESSAGE), NotImplemented)
+
+    def test_routed_action_uses_explicit_host_recipients(self):
+        world, _, instance, action = setup(action_class='STU_57692020',
+                                           m_targets={'$': 'Unknown'},
+                                           m_params=[parameter(literal(23))])
+        execute_route = mock.Mock(return_value=(expr.Entity(OTHER), expr.Entity(OWNER)))
+        world.mission_message_route = execute_route
+        execute(instance, action)
+        execute_route.assert_called_once_with(instance.graph.index, 0, MESSAGE)
+        request, = world.requests
+        self.assertEqual((request.targets, request.self_target, request.params),
+                         ((OTHER,), True, ((KEY, (23,)),)))
+        self.assertEqual(instance.find_var(0, 7).value(), 31)
+
+    def test_routed_action_requires_an_explicit_route(self):
+        world, _, instance, action = setup(action_class='STU_57692020')
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'routed game message targets'):
+            execute(instance, action)
+        self.assertFalse(world.requests)
+
     def test_missing_failed_null_nonasset_and_zero_message_skip_all_later_inputs(self):
         for cfg in (None, literal(expr.EVALUATION_FAILED), literal(None), literal(17),
                     literal(expr.Entity(MESSAGE)), literal(expr.Asset(0))):

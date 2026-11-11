@@ -22,6 +22,7 @@ The file is gzip JSON:
   (graph index and schema overrides m_1EB5A024) and its weapon component's manager and weapon scripts.
 - "entities" (optional): additional body records with the same graph fields. An "ai_weapon_buttons" map
   can link decimal fire-control slots to logical buttons from the associated AI definition.
+- "junkenstein" (optional): encounter-specific entity records and their hero/body/controller pairings.
 - "mode_variables" (optional): per 0C5 mode GUID, its explicit mode entity values by 01C identifier index.
 - "mode_scripts" (optional): per 0C5 mode GUID, its primary/shared graphs, loading flag and team scripts.
 - "mission_scripts" (optional): per map and mode GUID, a configured mission graph with its mode graph,
@@ -317,17 +318,34 @@ def entity_body(body: int) -> dict | None:
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
 
 
-def entity_script_component(definition: int):
+def junkenstein_enemy(hero: int) -> dict | None:
+    """Return the encounter's authored body and controller pair for a hero resource."""
+    return _data().get('junkenstein', {}).get('pairs', {}).get(f'0x{hero:016X}')
+
+
+def junkenstein_entity(definition: int) -> dict | None:
+    """Read one encounter-specific body or controller record."""
+    return _data().get('junkenstein', {}).get('entities', {}).get(f'0x{definition:016X}')
+
+
+def junkenstein_player_tags(body: int) -> list[int] | None:
+    """Return authored tags for the player body, or unknown for older bundles."""
+    return _data().get('junkenstein', {}).get('player_target_tags', {}).get(f'0x{body:016X}')
+
+
+def entity_script_component(definition: int, *, junkenstein: bool = False):
     """Actual entity component dict, known absence None, or unknown old/missing data.
 
-    Both selected non-player entities and hero bodies use the same preserved
-    field. A legacy flattened graph list cannot declare component absence.
+    The encounter uses its own catalog so a boss can use different startup
+    data from the playable hero. A legacy flattened list cannot declare absence.
     """
     if (type(definition) is not int or not 0 < definition < 1 << 64
             or definition >> 48 != 0x0400 or not definition & 0xFFFFFFFFFFFF):
         raise ValueError('script component definition must be a nonzero .003 entity resource')
     key = f'0x{definition:016X}'
-    sections = (_data().get('bodies', {}), _data().get('entities', {}))
+    data = _data()
+    sections = ((data.get('junkenstein', {}).get('entities', {}),) if junkenstein
+                else (data.get('bodies', {}), data.get('entities', {})))
     if any(not isinstance(section, dict) for section in sections):
         raise ValueError('invalid entity script component catalog')
     records = [section[key] for section in sections if key in section]

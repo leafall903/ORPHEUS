@@ -37,11 +37,23 @@ class ManualNpcTests(unittest.TestCase):
         self.assertEqual(self.match.combat.replacement_ticks[bot.entity], self.match.tick)
         self.assertTrue(any(u.entity == bot.entity and u.op == world.OP_CREATE
                             for u in self.player.client.entities))
+        bot.firing = True
+        bot.attack_target = self.player.entity
         self.match.combat._damage(self.player, target, 1000, False, None, self.match.tick)
         self.assertTrue(bot.dead)
+        self.assertFalse(bot.firing)
+        self.assertIsNone(bot.attack_target)
         self.assertIn(bot, self.match.bots)
         self.assertFalse(any(who is bot for _, who in self.match.combat.respawns))
         self.assertEqual(npc.remove_spawned(self.match), (bot.entity,))
+
+    def test_spawn_syncs_script_health_after_all_authoritative_pools_exist(self):
+        script = Mock()
+        with patch.object(self.match, '_prepare_bot_script',
+                          side_effect=lambda bot: setattr(bot, 'body_script', script)):
+            bot = self.create()
+        self.assertEqual(self.match.combat.vitals[bot.entity].total, 450)
+        script.set_health.assert_called_once_with(450, 450)
 
     def test_remove_cancels_attacks_and_keeps_training_bots_and_player(self):
         original = list(self.match.bots)

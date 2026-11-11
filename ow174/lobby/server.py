@@ -275,6 +275,9 @@ class LobbyServer:
     def game_joined(self, player) -> None:
         """A player's game connected to its match: its client gets the match lobby (handlers/leaving.py)."""
         with self.state_lock:
+            session = self.session_of(player.account_lo)
+            if session is not None:
+                session.npc_menu_open = False
             leaving.game_joined(self, player)
 
     def game_left(self, player) -> None:

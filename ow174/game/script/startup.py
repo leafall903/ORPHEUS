@@ -2,18 +2,22 @@
 
 The owner supplies native authority, actual entity creation and world services.
 This does not select Match policy, allocate network entities, load resources or
-replicate instances. Component-level schemas and graph flags remain gated.
+replicate instances. Component-level schemas support authored float literals.
 """
+
+import math
 
 from ow174.game.script import expr, graph, play, runtime
 
 
-def _rows(schema):
+def _rows(schema, *, graph_id=None):
     if schema is None:
         return ()
-    if (not isinstance(schema, dict)
-            or schema.get('$') not in ('STUStatescriptSchema', 'STU_77990ED7')
-            or schema.get('m_89EAAC40') is not None):
+    if not isinstance(schema, dict) or schema.get('$') not in ('STUStatescriptSchema', 'STU_77990ED7'):
+        raise ValueError('unsupported component startup schema')
+    reference = schema.get('m_89EAAC40')
+    if reference is not None and (graph_id is None or schema['$'] != 'STU_77990ED7'
+                                  or expr.guid_of(reference) != graph_id):
         raise ValueError('unsupported component startup schema')
     rows = schema.get('m_entries') or ()
     if not isinstance(rows, (list, tuple)):
@@ -61,6 +65,25 @@ def _queue_rows(instance, rows):
                                          assignment=(graph.INSTANCE, key & 0xFFFF, value)))
 
 
+def _component_values(component, schema):
+    """BE98C0 queues owner variables independently of any graph instance."""
+    values = []
+    for row in _rows(schema):
+        component.consume_work('component startup entity schema')
+        if not isinstance(row, dict):
+            raise ValueError('invalid component startup entity schema row')
+        config = row.get('m_value')
+        if config is None:
+            continue
+        value = config.get('m_value') if isinstance(config, dict) else None
+        if (type(value) not in (float, int) or config.get('$') != 'STUConfigVarFloat'
+                or abs(value) > 3.402823466e38 or not math.isfinite(value)):
+            raise ValueError('unsupported component startup entity value')
+        key = expr.guid_of(row.get('m_0D09D2D9')) & 0xFFFF
+        values.append((key, expr.f32(value)))
+    return values
+
+
 class ComponentStartup:
     """One owner-selected startup of a fresh component, with loaded graph data.
 
@@ -100,8 +123,8 @@ class ComponentStartup:
                                    or placed.get('$') != 'STUStatescriptComponentInstanceData'):
             raise ValueError('invalid component startup instance data')
         placed = placed or {}
-        if _rows(definition.get('m_2D9815BA')) or _rows(placed.get('m_2D9815BA')):
-            raise ValueError('nonempty component startup schemas are not implemented')
+        values = _component_values(component, definition.get('m_2D9815BA'))
+        values.extend(_component_values(component, placed.get('m_2D9815BA')))
         defaults = _graphs(definition, 'm_B634821A', component.consume_work)
         overrides = _graphs(placed, 'm_6D10093E', component.consume_work)
         additional = _graphs(placed, 'm_84D0983B', component.consume_work)
@@ -114,7 +137,7 @@ class ComponentStartup:
                 model = self.graph_loader(guid & 0xFFFFFFFFFFFF)
                 if not isinstance(model, graph.Graph) or model.index != guid & 0xFFFFFFFFFFFF:
                     raise ValueError(f'component startup graph {guid:016X} is not loaded')
-                _rows(model.fields.get('m_publicSchema'))
+                _rows(model.fields.get('m_publicSchema'), graph_id=guid)
                 loaded[guid] = model
         created = []
 
@@ -124,7 +147,7 @@ class ComponentStartup:
             component.consume_work('component startup graph allocation')
             instance = component.create(loaded[guid], init=False)
             created.append(instance)
-            _queue_rows(instance, _rows(instance.graph.fields.get('m_publicSchema')))
+            _queue_rows(instance, _rows(instance.graph.fields.get('m_publicSchema'), graph_id=guid))
             _queue_rows(instance, rows)
 
         with component.operation():
@@ -144,5 +167,6 @@ class ComponentStartup:
             # update clock. No entry or assignment executes during startup.
             for instance in created:
                 instance.initialization_pending = True
+            component.startup_entity_values.extend(values)
             self.created = tuple(created)
         return self.created

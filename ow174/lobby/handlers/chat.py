@@ -1,8 +1,9 @@
 """Chat channels and whispers, and the commands a player types in any chat while in a match:
-.hero <name> plays another hero, .leave goes back to the menu."""
+.hero <name> plays another hero, .leave goes back to the menu, and .npc opens the sandbox console."""
 
 from ow174.accounts.registry import Account
 from ow174.game.content import find_hero
+from ow174.game.npc_console import configured_catalog
 from ow174.jam.groups import CHAT_IN, CHAT_OUT, FRIENDS, FRIENDS_OUT
 from ow174.lobby.router import Router
 from ow174.lobby.session import Session
@@ -10,6 +11,7 @@ from ow174.lobby.session import Session
 routes = Router()
 
 BOT_REPLY = "{name}, I hear you: {text}"
+NPC_CONSOLE_KEYS = frozenset(('=', '-', '0', '{', 'Escape', *'123456789'))
 
 
 @routes.on(CHAT_OUT, 21700)
@@ -19,6 +21,12 @@ def chat(session: Session, value: dict) -> None:
     text = value.get("+0x90") or ""
     if text.startswith(".") and _match_command(session, channel, text):
         return
+    if session.local and session.npc_menu_open is True and text in NPC_CONSOLE_KEYS:
+        game = session.server.game
+        if game is not None and game.in_match(session.account.account_lo):
+            _private_reply(session, channel, text, _npc_command(session, game, text))
+            return
+        session.npc_menu_open = False
     message = social.chat_message(channel, session.account, text, value.get("+0xB8", 0))
     members = social.channel_members(channel)
     _deliver(session.server, members, message)
@@ -34,7 +42,7 @@ def _match_command(session: Session, channel: dict, text: str) -> bool:
     game = session.server.game
     command, _, rest = text[1:].partition(" ")
     command = command.lower()
-    if command not in ("hero", "leave") or game is None:
+    if command not in ("hero", "leave", "npc") or game is None:
         return False
     if command == "hero":
         hero = find_hero(rest.strip())
@@ -44,14 +52,74 @@ def _match_command(session: Session, channel: dict, text: str) -> bool:
             reply = f"You play {hero.name} now."
         else:
             reply = "You are not in a match."
-    else:
+    elif command == "leave":
         reply = (
             "Back to the menu." if game.send_home(session.account.account_lo) else "You are not in a match."
         )
+    else:
+        reply = _npc_command(session, game, rest.strip() or "=")
+    _private_reply(session, channel, text, reply)
+    return True
+
+
+def _private_reply(session, channel, text, reply):
     session.log(f"[chat] {text} -> {reply}")
     bot = session.server.social.accounts.bot
     session.send(CHAT_IN, 20400, session.server.social.chat_message(channel, bot, reply))
-    return True
+
+
+def npc_hotkey(server, pid: int, key: str, connection_owner) -> None:
+    """Route a foreground key to the local match session owned by that client."""
+    if key not in NPC_CONSOLE_KEYS or server.game is None:
+        return
+    with server.state_lock:
+        for session in server.social.sessions.values():
+            if not session.local or not session.logged_in or session.account is None:
+                continue
+            if key not in ("=", "0", "{", "-") and not session.npc_menu_open:
+                continue
+            account = session.account
+            channel = server.social.match_chat_of(account)
+            if channel is None or not server.game.in_match(account.account_lo):
+                continue
+            try:
+                peer_port = session.sock.getpeername()[1]
+                local_port = session.sock.getsockname()[1]
+            except OSError:
+                continue
+            if connection_owner(peer_port, local_port) == pid:
+                reply = _npc_command(session, server.game, key, hotkey=True)
+                _private_reply(session, channel, key, reply)
+                return
+
+
+def _npc_command(session, game, key: str, *, hotkey=False) -> str:
+    if not session.local:
+        return "The NPC console is only available from the local client."
+    try:
+        result = game.npc_key(session.account.account_lo, key, configured_catalog(),
+                              menu_open=session.npc_menu_open)
+    except ValueError as error:
+        return str(error)
+    if not result["handled"]:
+        return "Open the spawn menu with .npc = before selecting an enemy."
+    action = result["action"]
+    if action in ("menu", "close_menu"):
+        session.npc_menu_open = result["menu_open"]
+    if action == "menu":
+        choices = ", ".join(f'{entry["key"]} {entry["name"]}' for entry in result["choices"])
+        instructions = "Press a key." if hotkey else "Submit a key in chat."
+        stop_hint = "{ stops ([ without Shift also stops)" if hotkey else "{ stops"
+        return f"NPC spawn menu: {choices}. {instructions} 0 attacks, {stop_hint}, - removes, Escape closes."
+    if action == "spawn":
+        return f'Spawned {result["name"]}.'
+    if action == "start":
+        return "Targeted NPC attacks."
+    if action == "stop":
+        return f'Stopped {result["count"]} NPCs.'
+    if action == "remove":
+        return f'Removed {len(result["entities"])} NPCs.'
+    return "NPC spawn menu closed."
 
 
 def _deliver(server, members: list[Account], message: dict) -> None:

@@ -84,10 +84,66 @@ class StartupTests(unittest.TestCase):
         self.assertEqual(self.observe(component), [(1, 10, None)])
         self.assertEqual(instance.find_var(0, 9).value(), expr.Entity(component.entity))
 
+    def test_public_schema_accepts_its_own_graph_reference(self):
+        for index in (1, 2):
+            with self.subTest(index=index):
+                source = model(1, row(7, value(10)))
+                source.fields['m_publicSchema'].update(
+                    {'$': 'STU_77990ED7', 'm_89EAAC40': spec(index)['m_graph']},
+                )
+                component, boot = self.boot(definition(spec(1, row(7, value(20)))), models={1: source})
+                if index == 1:
+                    boot.start()
+                    self.assertEqual(self.observe(component), [(1, 20, None)])
+                else:
+                    with self.assertRaisesRegex(ValueError, 'unsupported component startup schema'):
+                        boot.start()
+                    self.assertFalse(component.instances)
+
+    def test_mid_frame_component_entries_observe_queued_startup_values(self):
+        component, boot = self.boot(definition(spec(1)), models={1: model(1, row(7, value(200)))})
+        component.frame = 20
+        component.now = 20 * component.frame_ms + 4
+        instance, = boot.start()
+        seen = []
+
+        def record(instance, *_):
+            seen.append((component.now, instance.find_var(runtime.INSTANCE, 7).value()))
+            return True
+
+        with mock.patch.dict(runtime.HANDLERS, ObserveComponentStart=record):
+            component.run_frame(20)
+        self.assertEqual(seen, [(324, 200)])
+        self.assertEqual(instance.start, 324)
+        self.assertEqual(component.now, 335)
+
     def test_empty_override_preserves_definition_values(self):
         component, boot = self.boot(definition(spec(1, row(7, value(99)))), placed(spec(1)))
         boot.start()
         self.assertEqual(self.observe(component), [(1, 99, None)])
+
+    def test_component_float_schemas_write_entity_values_before_ordinary_entries(self):
+        key = 0x1A55
+
+        def config(number):
+            return {'$': 'STUConfigVarFloat', 'm_value': number}
+
+        dynamic = {'$': 'STUConfigVarDynamic', 'm_identifier': key, 'm_60DB8F99': 1}
+        component, boot = self.boot(
+            definition(spec(1), m_2D9815BA=schema(row(key, config(0.85)))),
+            placed(m_2D9815BA=schema(row(key, config(0.5)))),
+            models={1: model(1, row(7, dynamic))},
+        )
+        instance, = boot.start()
+        self.assertIsNone(component.entity_var(key, create=False))
+        seen = []
+        with mock.patch.dict(runtime.HANDLERS, ObserveComponentStart=lambda *_: (
+            seen.append(component.entity_var(key).value()) or True
+        )):
+            component.run_now()
+        self.assertEqual(seen, [0.5])
+        self.assertIsNone(instance.find_var(runtime.INSTANCE, 7).value())
+        self.assertFalse(component.startup_entity_values)
 
     def test_duplicate_graph_overrides_only_the_first_instance_without_reapplying_defaults(self):
         component, boot = self.boot(definition(spec(1, row(7, value(10))), spec(1, row(7, value(20)))),

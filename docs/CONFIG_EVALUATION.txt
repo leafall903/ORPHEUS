@@ -1,6 +1,26 @@
 Native config evaluation — verified scoped paths
 Target: original Overwatch 1.74.0.0.104319. Addresses below are module RVAs.
 
+Junkenstein config trace:
+- 00CB/22 resolves 40AC5AE4 through evaluator table 26609F8. CC8200 calls
+  D1C220. The movement branch reads signed pitch at +42 through C61F70
+  and converts angle units to radians and then degrees at D1C972. The
+  host takes the same signed pitch from the live movement snapshot.
+- 00CB/31 and 00CB/32 use 383710EE for the POTG delta. Its descriptor
+  3028E20 resolves typeinfo 2D778F0 through 2D6CAB8 to base 2D6B1E0.
+  Neither derived type has a registration in the executable image.
+- Mercy body 0071/39 uses D3685C04. Record 2F884D8 selects constructor
+  D08D50 and evaluator vtable 2663230. The world +528 subsystem's +40
+  call supplies local input. CCA232 uses the same result's signed byte
+  axes at +0F and +10 with scale 1/127. CE5450 tests bit 15 of +14 and
+  writes false successfully when the local input record is absent.
+  The headless Junkenstein Witch has no local input record.
+- 0071/24, /35 and /94 use B3E67A36. Record 2F86DA0 selects CD3910.
+  CD3BFF applies the compiled filter and returns the first match. CD3FEA
+  writes the typed invalid entity when there is no match. The authored
+  masks require friendly relation and exclude self. The radius predicate
+  evaluates with the candidate Entity in temporary parameter 0008.
+
 The authored Retribution 100B node 322 assigns entity variable 6751 from an
 STU_7BD2CA19 with no resource key. This class has no additional fields beyond
 STUConfigVarResource. A null destination and an unsuccessful evaluator must be

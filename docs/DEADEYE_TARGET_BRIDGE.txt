@@ -1,0 +1,157 @@
+Deadeye target bridge: partial server reconstruction for104319
+
+Scope and input:
+McCree0042 root022F nodes26/86 query the match's living enemies. They write
+authored entity arrays2551/5874. The external bundle must include target effect
+01EE, resolved by manifest-verified read-only extraction of053/0056. Missing
+01EE warns and leaves these searches empty. Normal runtime inputs are unchanged;
+no game resources, dumps, captures or probe outputs are included in this repo.
+
+Reconstructed geometry:
+The authored radius200 and scalar105 are used as range and full cone angle.
+Query26 supplies broad lifetime membership; query86 additionally requires the
+existing static capsule-visibility test. This split follows01EE's broad-member
+and visible-charge conditions. It is resource-based reconstruction, not native
+filter/cone/occlusion equivalence. Effect-manager flags, target immunity,
+barriers, reflect/absorb, dynamic cover and native aging rules remain open.
+
+Authored per-target effects:
+Root431F3FCC state11 owns one01EE instance per broad target on the caster's
+component. Message000F maps parameter92 to instance variable536, identifying the
+enemy. The bridge supplies the caster as source and re-applies this message
+while the scope is active.01EE performs its own waits, charging, gates and
+WeaponVolley14. No replacement damage formula is installed. Its native health
+getter9B7648C3 is reconstructed from the target's authoritative health pools.
+Authored shared2256 gates warmup,5874 membership pauses charging when hidden,
+and2504 selects the target to fire. Target536 directs that volley toward the
+target's upper capsule/eye point instead of the caster command's crosshair.
+Actual short NPC dimensions clamp a generic eye above the body into the upper
+capsule segment. This is reconstructed hardpoint geometry, not recovered bones. Normal physical
+hitscan, authored100m volley range and nearer-body interception still apply.
+Dead/stale/unselected/newly occluded targets cannot fall back to crosshair fire.
+
+Lifetime and observations:
+Target effects retire on broad target loss, death/removal, effect scope exit,
+invalid owner or body retirement. Leaving and reentering creates a new instance.
+TrackTargets ending retains the authored arrays because022F iterates the baked
+arrays after stopping its query states; the authored ability exit resets them.
+Target lists and owned child IDs are included in causal VM snapshots. Wire
+payloads encode entity IDs with age0; native age/HUD semantics remain unverified.
+
+Evidence:
+Ten source tests cover living/enemy/cone/range queries, visible versus broad
+membership, directed aim and stale/occluded refusal, target lifetime, body
+retirement, missing external data, wire roundtrip and causal snapshots. Their
+inert effect fixture tests bridge ownership/lifetime only, not charging damage.
+
+The separate actual-input external-bundle matrix runs real Q/primary and01EE
+without injecting target arrays or effect instances. Starting charge is filled
+explicitly. Fifteen scenarios cover simultaneous five-Talon damage, off-axis
+and enemy-player targets, allies/rear/search-range exclusions,100m volley range,
+visibility loss/charge pause/recovery, target reentry, stun/cancel/death/body
+replacement/removal. The simultaneous volley kills three NPCs and retains their
+corpses; other two receive441.12652587890625 each under that probe's timing.
+Collision visibility adapters are explicit. This is not original-client combat,
+charge economy or full Deadeye acceptance; full McCree static acceptance is open.
+
+The real Rialto collision fixture `--deadeye-group` spawns two Troopers
+with one about 22.5 degrees off the caster's aim. With charge preset, the
+first Q creates two target instances and the second Q kills both. Both
+corpses remain, two rounds are spent and both target instances retire.
+
+In manual Rialto combat, McCree earns one ultimate point per actual point
+of health, armor or shield lost by a spawned NPC. This is a sandbox
+reconstruction. It excludes overkill and damage from Deadeye itself.
+The real-map `--deadeye-earned` fixture disables further passive charge
+without filling the meter, earns the authored 1680-point cost through
+primary fire, then releases Deadeye with Q. The target dies and the meter
+returns to zero. Original-client charge presentation remains unverified.
+
+Owner recovery diagnostic:
+In original-client Rialto match A87C, the second Q fired a lethal 01EE/14
+volley. The first-person arm pose and ability-disabled HUD stayed on,
+although a subsequent Flashbang executed and began cooldown. The offline
+Rialto probe compares primary and second-Q release with the same Trooper.
+Both end 022F nodes 24, 79, 80, 99, 123 and 131 and remove the 01EE
+target effect. An encoded owner correction from the charging baseline
+decodes with all six states off and the target instance marked gone.
+The real-map second-Q fixture also spawns a fresh NPC after the
+415-frame observation period. Against each of the five NPC types,
+primary fire then deals 70 and consumes a round, and Flashbang deals
+25 and applies stun. This verifies server input recovery at that point.
+The `--skills-fast-recovery --deadeye-release-q` fixture starts the
+same follow-up at frame 40 and checks the same owner correction from the
+charging baseline. All five NPC cases pass; primary release also passes
+the frame-40 Trooper case. Native first-person recovery is a separate check.
+The fast fixture now discards the frame-40 correction, advances one
+frame, and decodes its replacement. The retry carries all six off states
+and the target-effect removal. Acknowledging it clears the pending
+correction keys. The follow-up inputs in this loss test start at frame 41.
+This isolates the remaining investigation to live owner delivery or
+client presentation. The native probe logs sends and transport ACKs
+for those nodes. In match E9BB, the diagnostic preset 1680 points once,
+then window input used Q to activate and release. The original client
+ACKed all six off states in owner chunk 712. The HUD returned to normal,
+the revolver showed 5/6 rounds, and the Trooper ragdoll was visible after
+the 200-damage kill. This run confirms successful recovery in one session.
+The earlier persistent presentation state remains unexplained.
+
+The native trace now records every changed 022F state and activation counter,
+plus the 01EE instance list on send and acknowledgement. It distinguishes a
+present but inactive state record from an active state. The Trooper fast
+second-Q real-map probe still passes its correction-loss and follow-up damage
+checks. A native failing run killed the Trooper for 432.33 damage but still
+rendered the Deadeye tint, arms and disabled icons seven seconds after release.
+The owner acknowledged 01EE removal in chunk 1299, the main 022F teardown
+in chunk 1306, and later 49, 90 and 37 exits in chunks 1310 and 1312.
+The 022F resource routes Wait 49 completion to Effect 48 (030/062A).
+An off-state acknowledgement does not establish that this completion ran
+on the client. The native trace now includes the root's pending timers to
+compare successful and failed presentation with their scheduled events.
+Wait 64 starts the 0.33-second exit animation 65 (0C8/019F) separately
+from Wait 49. The owner decoder verifies its activation counter and timer
+on second-Q release for all five NPCs and on primary release for Trooper.
+The same probes decode removal of the 022F stack bindings for player variables
+2575, 842, 7316 and 13395. With the first owner correction dropped, all five
+second-Q probes decoded the same restored values and binding removals in
+the retry, together with the state exits and effect removal. Native Trooper
+chunk 1302 acknowledged activation
+of 65 and the Wait 49 timer. The tint cleared in that run, while the arms
+and disabled icons persisted and Flashbang still executed.
+An isolated native run lengthened server Wait 64 from 300 to 360 ms.
+Owner chunk 540 acknowledged the Anim 65 timer at 69987 ms and Wait 64
+at 70017 ms. Chunk 547 acknowledged their exit. Six seconds after the
+Trooper kill, the tint had cleared and the arm pose and disabled icons
+still persisted. This rules out the 30 ms early server exit as a sufficient
+explanation. The timing override remains confined to the diagnostic host.
+The isolated explicit-false experiment initialized player variables 2575,
+842 and 7316 to false. Owner chunk 1466 acknowledged false values and empty
+binding lists for all three after a lethal shot. The tint cleared, but the
+first-person pose and disabled ability icons still persisted. Explicit false
+in place of the normal null fallback did not restore presentation.
+The isolated keep-lethal-effect experiment killed a Trooper for 405.93
+damage. Owner chunk 435 acknowledged Anim 65 with 01EE still present, then
+chunk 440 acknowledged its removal with the main scope. The tint, arms and
+disabled icons still persisted at 6.5 seconds. Matching the nonlethal
+target-effect lifetime did not restore presentation.
+With the manual NPC elimination notice suppressed on an isolated host,
+two lethal Trooper shots in one native session both restored the normal
+camera, weapon pose and ability icons. Both NPCs still left rendered
+corpses. The notice is a candidate for an ordering fix that preserves it.
+Waiting for acknowledged exit of nodes 17, 37, 49 and 90 restored normal
+presentation while still showing ELIMINATED and the Trooper corpse. The
+isolated host sent the notice 48 ticks after the kill, with the ACK
+predicate satisfied. This is one successful native trial.
+
+The production combat path passed native 104319 acceptance with no
+ordering override. Deadeye killed a 350 HP Enforcer, the client showed
+ELIMINATED over its corpse, and tint, weapon pose and both ability icons
+returned to normal. After removing the corpse and spawning a Trooper,
+the same player used Flashbang for 25 damage and saw its 10-second cooldown.
+
+The trace also showed repeated off-state corrections after the first
+positive ACK. Pending copies equal to the current acknowledged state no
+longer cause that state to be copied into another correction. Pending
+divergent values and keys from known losses still trigger cumulative
+recovery. Owner-loss and bot statescript suites pass. The change has not
+yet been measured with the retail client.

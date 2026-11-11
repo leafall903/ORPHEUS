@@ -13,6 +13,7 @@ from pathlib import Path
 from ow174.launcher import LaunchError
 from ow174.launcher.connections import connection_owner
 from ow174.launcher.game import inject_relay, start_game
+from ow174.launcher.npc_hotkeys import watch
 
 log = logging.getLogger("ow174.launcher")
 
@@ -24,7 +25,8 @@ SECOND_GAME_ARGUMENTS = ("--tank_NoFullScreen=1",)
 
 class RetailGames:
     def __init__(
-        self, game: Path, relay: Path, locale: str, timeout: float, bnet_port: int = DEFAULT_BNET_PORT
+        self, game: Path, relay: Path, locale: str, timeout: float, bnet_port: int = DEFAULT_BNET_PORT,
+        *, npc_hotkeys=None,
     ) -> None:
         if not 1 <= bnet_port <= 65535:
             raise ValueError("Battle.net port must be between 1 and 65535")
@@ -33,6 +35,7 @@ class RetailGames:
         self._locale = locale
         self._timeout = timeout
         self._bnet_port = bnet_port
+        self._npc_hotkeys = npc_hotkeys
         self._lock = threading.Lock()
         self._second: dict[int, tuple[subprocess.Popen, str]] = {}  # PID -> (game, account name)
 
@@ -53,6 +56,9 @@ class RetailGames:
             raise
         playing = f" for {account}" if account else ""
         log.info("[+] Relay loaded into Overwatch (PID %d) at 0x%X%s.", process.pid, base, playing)
+        if self._npc_hotkeys is not None:
+            threading.Thread(target=watch, args=(process, self._npc_hotkeys),
+                             daemon=True, name=f"npc-hotkeys-{process.pid}").start()
         return process
 
     def account_of(self, peer_port: int, server_port: int) -> str | None:

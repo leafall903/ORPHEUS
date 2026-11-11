@@ -17,6 +17,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <string>
+#include "gallery_roster.h"
 #pragma comment(lib,"ws2_32.lib")
 typedef uint64_t u64; typedef uint32_t u32; typedef uint16_t u16; typedef uint8_t u8; typedef int64_t i64;
 
@@ -175,7 +176,18 @@ static DWORD WINAPI worker(LPVOID){
     IMAGE_DOS_HEADER* dos=(IMAGE_DOS_HEADER*)g_base;IMAGE_NT_HEADERS* nt=(IMAGE_NT_HEADERS*)(g_base+dos->e_lfanew);g_imgHi=g_base+nt->OptionalHeader.SizeOfImage;
     g_bsVA=g_base+BS_VT;
     L("==== owwfd_relay (plaintext pipe -> 127.0.0.1:%u) base=%016llX bsVt=%016llX ====",SRV_PORT,(unsigned long long)g_base,(unsigned long long)g_bsVA);
-    for(int loop=0;;loop++){ scan(); if((loop%80)==0)L("[poll] loop=%d swaps=%ld send=%ld recv=%ld stateCalls=%ld relays=%d err=%ld",loop,g_swaps,g_send,g_recv,g_stateCalls,g_nRelays,g_relayErr); Sleep(8);}
+    auto gallery = gallery_roster::Install::waiting;
+    for(int loop=0;;loop++){
+        if (gallery == gallery_roster::Install::waiting && loop % 20 == 0) {
+            gallery = gallery_roster::install(g_base, g_imgHi);
+            if (gallery != gallery_roster::Install::waiting)
+                L("[gallery] NPC roster extension %s",
+                  gallery == gallery_roster::Install::installed ? "installed" : "failed");
+        }
+        scan();
+        if((loop%80)==0)L("[poll] loop=%d swaps=%ld send=%ld recv=%ld stateCalls=%ld relays=%d err=%ld",loop,g_swaps,g_send,g_recv,g_stateCalls,g_nRelays,g_relayErr);
+        Sleep(8);
+    }
     return 0;
 }
 BOOL WINAPI DllMain(HINSTANCE h,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH){g_module=h;DisableThreadLibraryCalls(h);HANDLE t=CreateThread(nullptr,0,worker,nullptr,0,nullptr);if(t)CloseHandle(t);}return TRUE;}

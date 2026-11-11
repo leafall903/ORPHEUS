@@ -798,7 +798,7 @@ Source paths for the remaining actions
   includes an entity, the parameter blob, the message GUID and an
   instance index. The separate 21614 builder in 90988C carries its
   message GUID in the blob. Both call 1BA7D30. The existing logs verify
-  21616 for hero selection.
+  21616 for hero selection. The radial selection's transport remains open.
   The only direct authored send of 02A3 in the extracted graph set is
   0028 raw node 69, which writes integer zero to 08FC to clear the selection.
   In the raw 05AD asset, presenter 99's event 8D60 targets a plug owned by

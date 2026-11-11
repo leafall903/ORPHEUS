@@ -11,6 +11,7 @@ from pathlib import Path
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 PROCESS_INJECT = 0x0002 | 0x0008 | 0x0010 | 0x0020 | 0x0400
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+SYNCHRONIZE = 0x00100000
 MEM_COMMIT_RESERVE, MEM_RELEASE, PAGE_READWRITE = 0x3000, 0x8000, 0x04
 WAIT_OBJECT_0, WAIT_TIMEOUT = 0, 258
 INVALID_HANDLE = ctypes.c_void_p(-1).value
@@ -149,6 +150,17 @@ def image_path(pid):
         return (
             buffer.value if k32.QueryFullProcessImageNameW(process, 0, buffer, ctypes.byref(size)) else None
         )
+    finally:
+        k32.CloseHandle(process)
+
+
+def process_exited(pid):
+    """Confirm exit when Windows still lists the PID and a handle can be opened."""
+    process = k32.OpenProcess(SYNCHRONIZE, False, pid)
+    if not process:
+        return False
+    try:
+        return k32.WaitForSingleObject(process, 0) == WAIT_OBJECT_0
     finally:
         k32.CloseHandle(process)
 

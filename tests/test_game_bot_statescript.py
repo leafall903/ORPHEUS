@@ -2,7 +2,8 @@
 
 import struct
 import unittest
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from test_game_combat import Run
 from test_game_graph_analysis import make_graph, node, output
@@ -10,7 +11,7 @@ from test_game_packet_budget import connection, decoded
 from test_game_projectiles import ABILITY_2
 from test_game_repeated_lifecycles import wire_frame
 
-from ow174.game import bodytrace, bots, combat, movelog, observers, projectiles, statescript, world
+from ow174.game import bodytrace, bots, combat, heavy_assault, movelog, observers, projectiles, statescript, world
 from ow174.game.body_vm_snapshot import export_component_vm
 from ow174.game.content import PRACTICE_RANGE_MODE, SOLDIER
 from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
@@ -28,6 +29,50 @@ NAMEPLATE, DEATH_VOICE, BOT_WEAPON = 0x0D24, 0x0C17, 0x0BA3
 
 
 class AIFireWeaponTests(unittest.TestCase):
+    def test_manual_rialto_heavy_skips_only_the_intro_animation(self):
+        startup = make_graph(0x14EB, [
+            node(4, "STUStatescriptEntry", fields={
+                "m_outPlug": output([14, "m_beginPlug"], [23, "m_beginPlug"]),
+            }),
+            node(14, "STUStatescriptState", state=0),
+            node(23, "STUStatescriptStateAnim", state=1, remote=0, fields={
+                "m_86701C3E": {"$": "STUConfigVarInt", "m_value": 10},
+            }),
+        ], states=[14, 23], remote=[23], entries=[4])
+        record = {"graphs": [{"graph": startup.index}], "manager": None}
+        args = (0x0400000000001EBB, heavy_assault.HERO, bots.BOT_ENTITY, 100, 0, 4000)
+        with (
+            patch.object(graph, "entity_body", return_value=record),
+            patch.object(graph, "graph", return_value=startup),
+        ):
+            manual = BotScript(*args, manual_rialto_spawn=True)
+            normal = BotScript(*args)
+        self.assertTrue(manual.component.instances[1].states[0].active)
+        self.assertNotIn(1, manual.component.instances[1].states)
+        self.assertTrue(normal.component.instances[1].states[1].active)
+        self.assertEqual(manual.latest_live.instances, normal.latest_live.instances)
+        self.assertEqual(startup.node(4).links("m_outPlug"),
+                         [(14, "m_beginPlug"), (23, "m_beginPlug")])
+
+    def test_manual_rialto_heavy_sends_one_charge_bark_per_authored_activation(self):
+        charge = make_graph(0x1408, [node(155, "STU_40E05F6B", state=0)], states=[155])
+        body = bots.BOT_ENTITY
+        bot = SimpleNamespace(entity=body, firing=True, dead=False)
+        viewer = SimpleNamespace(spawned=True, gone=False, body=0xA0000101, client=Mock())
+        bot_world = BotWorld(heavy_assault.HERO, 0, {}, manual_nameplate=True)
+        bot_world.match = SimpleNamespace(players=[viewer], bots=[bot])
+        component = runtime.Component(body, world=bot_world)
+        voice = component.create(charge).state(0)
+        voice.begin()
+        component.run_frame(1)
+        calls = viewer.client.queue_combat_notice.call_args_list
+        self.assertEqual(len(calls), 1)
+        entity, message, fields = calls[0].args
+        self.assertEqual((entity, message), (body, 27500))
+        self.assertEqual(fields["+0x78"], {"+0x0": body})
+        self.assertEqual(fields["+0x7C"], {"+0x0": viewer.body})
+        self.assertEqual((fields["+0x88"], fields["+0x90"]), (0x0EE00000000009F0, 0x076000000000AE7B))
+
     def test_body_weapon_component_mounts_slot_one_and_fires_without_placement_behavior(self):
         weapon = make_graph(GRAPH, [
             node(0, "STUStatescriptEntry", fields={"m_outPlug": output([1, "m_beginPlug"])}),
@@ -605,6 +650,30 @@ class BotStatescriptTests(unittest.TestCase):
         self.assertEqual(child.parent, (1, 3))
         self.assertEqual(child.vars[14680], (False, ()))
         self.assertEqual(child.states[76], (True, {}))
+
+    def test_late_viewer_gets_retained_death_after_baseline_without_old_kill_feed(self):
+        self.bot.retain_corpse = True
+        self.bot.died(self.tick)
+        source = self.bot.body_script
+        source.terminal_snapshot = source.snapshot(1, self.tick, live=0.0)
+        late = self.add_observer(3).client
+        late.player.mode_script.delivered = 1
+        late.queue_entities([self.match._bot_create_update(self.bot)])
+        delivery = late._bot_scripts[self.bot.entity]
+        self.assertTrue(delivery.historical_death)
+        self.assertEqual(list(delivery.death_frames), [source.terminal_snapshot])
+        stream = delivery.stream
+        self.assertIsNone(stream.base)
+        self.assertEqual(len(stream.pending), 1)
+        stream.arrived(stream.full_update.chunk_last)
+        with (patch.object(self.match.combat, "kill_feed_allowed", return_value=True) as feed,
+              patch.dict("ow174.game.script.driver.KILL_FEED_PULSERS", {GRAPH: PULSE_KEY[1]})):
+            late._flush_bot_frames(delivery)
+        feed.assert_not_called()
+        self.assertFalse(delivery.death_frames)
+        terminal, _ = stream.pending[stream.last]
+        self.assertEqual(terminal.vars, source.terminal_snapshot.vars)
+        self.assertEqual(terminal.states[PULSE_KEY], stream.base.states[PULSE_KEY])
 
     def test_nameplate_waits_for_each_mode_ack_without_delaying_damage_or_death_frames(self):
         living = self.install_nameplate_bots()

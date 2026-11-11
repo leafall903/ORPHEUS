@@ -91,6 +91,10 @@ def _advance(state):
 
 def notify(state):
     """Host notification adapter: queue dirtiness at the receiving VM's clock."""
+    if state.instance.teardown:
+        # Sender cleanup can notify a receiver in the same retiring graph.
+        # The receiver will unregister during teardown and cannot run again.
+        return
     _context(state)
     if state.active and not state.ending and not state.flags_changed:
         state.flags_changed = True

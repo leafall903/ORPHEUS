@@ -51,11 +51,14 @@ SAMPLES = {
     "message": [{"stacked": True}, {"stacked": False}],
     "send": [{}],
     "link": [{}],
+    "linked_target": [{"link": None}],
     "hits": [{"flag": True}, {"flag": False}],
     "flags13": [{"value": 0}, {"value": 63}, {"value": 64}, {"value": 8191}],
     "frames": [{"target": 9199}],
     "counter2": [{"counter": 0}, {"counter": 3}, {"counter": 6}],
     "pulser": [{"fresh": False, "count": 0}, {"fresh": True, "count": 300}],
+    "two_bits": [{"a": True}, {"a": False, "b": True}, {"a": False, "b": False}],
+    "value_slot": [{"which": True, "value": 4005}, {"which": False, "value": 0xFFFFFFFF}],
 }
 
 
@@ -71,6 +74,8 @@ def expected(kind: str, payload: dict) -> dict:
         return SPRAY_FIELDS
     if kind == "switch":
         return {"current": get("current", False)}
+    if kind == "two_bits":
+        return {"a": 1} if get("a") else {"a": 0, "b": int(get("b", False))}
     if kind == "stack":
         return {"top": get("top", False), "under": get("under", False)}
     if kind in ("button", "anim", "counter2", "volley"):
@@ -105,6 +110,8 @@ def expected(kind: str, payload: dict) -> dict:
         return {"hits": (), "flag": get("flag", False)}
     if kind == "flags13":
         return {"value": get("value", 0)}
+    if kind == "value_slot":
+        return {"which": int(payload["which"]), "value": payload["value"]}
     if kind == "frames":
         return {"target": get("target", 0)}
     if kind == "pulser":
@@ -203,6 +210,42 @@ class EncoderTests(unittest.TestCase):
                 checked[kind] += 1
         self.assertEqual(set(checked), set(statescript.WRITERS))
 
+    def test_delayed_switch_remote_payload_keeps_all_three_branches(self):
+        cls = "STU_B591EBFE"
+        for full in (False, True):
+            for payload in SAMPLES["two_bits"]:
+                with self.subTest(full=full, payload=payload):
+                    out = BitWriter()
+                    statescript.write_remote_payload(out, cls, payload, full)
+                    reader = BitReader(out.getvalue())
+                    decoded = codecs.read(reader, codecs.codec(cls).layout, False, full)
+                    self.assertEqual(decoded, expected("two_bits", payload))
+                    self.assertEqual(reader.pos, out.count)
+
+    def test_cinematic_time_scale_remote_payload_selects_both_boundaries(self):
+        cls = "STU_2F07848F"
+        for full in (False, True):
+            for payload in SAMPLES["value_slot"]:
+                with self.subTest(full=full, payload=payload):
+                    out = BitWriter()
+                    statescript.write_remote_payload(out, cls, payload, full)
+                    reader = BitReader(out.getvalue())
+                    decoded = codecs.read(reader, codecs.codec(cls).layout, False, full)
+                    self.assertEqual(decoded, expected("value_slot", payload))
+                    self.assertEqual(reader.pos, out.count)
+
+    def test_movement_flags_remote_payload_round_trips_both_bit_groups(self):
+        cls = "STU_96F1DBCF"
+        for full in (False, True):
+            for payload in SAMPLES["flags13"]:
+                with self.subTest(full=full, payload=payload):
+                    out = BitWriter()
+                    statescript.write_remote_payload(out, cls, payload, full)
+                    reader = BitReader(out.getvalue())
+                    result = decode.read_payload(reader, cls, FRAME_TIME, FRAME_MS, owner=False, full=full)
+                    self.assertEqual(result, payload)
+                    self.assertEqual(reader.pos, out.count)
+
     def test_visor_target_list_survives_an_owner_delta(self):
         visor = graphs.graph(0x0259)
         cls = visor.state(7).cls
@@ -238,18 +281,16 @@ class EncoderTests(unittest.TestCase):
                 )
                 self.assertEqual(reader.pos, out.count)
 
-    def test_unwritable_classes_are_never_sent_on(self):
-        self.assertFalse(statescript.sendable("STU_9935FBC8", True))
+    def test_state_payload_writers_cover_active_and_inactive_cases(self):
+        self.assertTrue(statescript.sendable("STU_9935FBC8", True))
         self.assertTrue(statescript.sendable("STU_9935FBC8", False))
-        self.assertFalse(
-            statescript.sendable("STU_2F07848F", False)
-        )  # StEC: its payload goes with X even off
+        self.assertTrue(statescript.sendable("STU_2F07848F", False))  # StEC: still sends its payload off.
         self.assertTrue(statescript.sendable("STU_691BFA55", True))
 
     def test_coverage_report(self):
         rows = {row.cls: row for row in coverage.missing("soldier")}
-        self.assertEqual(set(rows), {"STU_9935FBC8"})
-        self.assertIn("1 state classes the encoder cannot write", coverage.report(0x02E000000000006E))
+        self.assertEqual(rows, {})
+        self.assertIn("0 state classes the encoder cannot write", coverage.report(0x02E000000000006E))
         for record in graphs.bodies().values():
             for row in coverage.missing(int(record["hero"], 16)):
                 self.assertEqual(statescript.family(row.cls), "unknown")

@@ -36,12 +36,23 @@ from dataclasses import dataclass, field
 from ow174.game import bots, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_MASK
+from ow174.game.script import expr
 from ow174.game.script import graph as graphs_data
 from ow174.game.script.driver import OwnerReport, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, Stream, remote_full_frame
 from ow174.game.world import OP_CREATE, OP_DESTROY, WITH_SCALE, WITH_TRANSFORM, EntityUpdate
 
 log = logging.getLogger("ow174.game")
+
+
+def unconditional_gravity(state) -> float | None:
+    """Resolve one unconditional E1A5B579 motion from the firing volley."""
+    motions = state.node.field('m_projectileMotions') or ()
+    if (len(motions) != 1 or motions[0].get('$') != 'STU_E1A5B579'
+            or motions[0].get('m_D0C4CF49') is not None):
+        return None
+    cfg = motions[0].get('m_599AB8D7')
+    return expr.f32(expr.to_float(state.evaluate(cfg, watch=False))) if cfg is not None else None
 
 NO_BASELINE = 0xFFFFFFFF  # the state's baseline frame: none, a blank state (0x7FF789A348DD)
 RELEASE_AHEAD = 4096  # frames: the release's frame, far past the rocket's own
@@ -119,6 +130,7 @@ RELEASE_MARGIN = (
     6  # frames after the server's rocket ended before the release (unverified: the client's flies the same)
 )
 CREATE_AT = (0.0, -1000.0, 0.0)  # an id the client did not shoot becomes an unflown entity here
+TALON_SNIPER_ROUND = 0x0400000000001E80
 FIELD_ENTITY = 0x04000000000003DC  # 03DC.003, the Biotic Field (0257 st1's m_projectileSpawn)
 FIELD_GRAPH = 0x0258  # its initial graph
 FIELD_FIRST, FIELD_SPAN = 0xA0080000, 0x00040000  # the field entities' ids
@@ -349,8 +361,13 @@ class Projectiles:
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
         if isinstance(shot.player, bots.Bot):
+            # The remote launch can arrive after this short round has already hit.
+            # Give the client's own flight and attached effects time to reach the impact.
+            visual_ticks = (
+                math.ceil(seconds * 1000 / FRAME_MS) if shot.definition == TALON_SNIPER_ROUND else 0
+            )
             for delivery in shot.observers:
-                delivery.finish(self.match.tick, False, drain=True)
+                delivery.finish(self.match.tick, False, drain=True, visual_ticks=visual_ticks)
             return
         if shot.spawn is not None or shot.release_at is not None:
             return
@@ -359,6 +376,20 @@ class Projectiles:
         # A delayed scheduler can finish a flight after its input-frame deadline.
         # Start the delivery window no earlier than this simulation update.
         shot.release_at = max(due, self.match.tick)
+
+    def cancel_npc(self, bot: bots.Bot, tick: int) -> None:
+        """Retire a stopped NPC's client deliveries, including shots still draining."""
+        for shot in list(self.shots):
+            if shot.player is bot:
+                self._end(shot, tick, False)
+        remaining = []
+        for delivery in self.observed:
+            if delivery.npc and delivery.launch.entity == bot.entity:
+                delivery.finish(tick, False)
+                delivery.advance(tick)
+            else:
+                remaining.append(delivery)
+        self.observed = remaining
 
     def update(self, tick: int, *, first_tick: int | None = None) -> None:
         first_tick = tick if first_tick is None else first_tick
@@ -685,12 +716,15 @@ class _ObservedProjectile:
     creation: _ProjectileArrival = field(default_factory=_ProjectileArrival)
     launch_arrival: _ProjectileArrival = field(default_factory=_ProjectileArrival)
     launch_queued: bool = False
+    launch_ack_tick: int | None = None
     finished: bool = False
     explode: bool = False
+    visual_ticks: int = 0
 
-    def finish(self, tick: int, explode: bool, *, drain: bool = False) -> None:
+    def finish(self, tick: int, explode: bool, *, drain: bool = False, visual_ticks: int = 0) -> None:
         self.finished = True
         self.explode = explode
+        self.visual_ticks = visual_ticks
         grace = DELIVERY_GRACE_TICKS if explode or drain else 0
         self.deadline = min(self.deadline, tick + grace)
 
@@ -702,7 +736,10 @@ class _ObservedProjectile:
         current = observers.projectile_stream(self.viewer, self.launch.entity, npc=self.npc)
         source_live = current is self.stream
         launched = self.launch_arrival.received
-        if not source_live or tick >= self.deadline or (self.finished and launched):
+        if launched and self.launch_ack_tick is None:
+            self.launch_ack_tick = tick
+        visual_done = self.launch_ack_tick is not None and tick >= self.launch_ack_tick + self.visual_ticks
+        if not source_live or tick >= self.deadline or (self.finished and visual_done):
             if self.launch_queued and not launched:
                 self.client.cancel_entity_record(self.launch)
             self._release_volley()

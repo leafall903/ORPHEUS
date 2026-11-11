@@ -8,12 +8,14 @@ from unittest.mock import patch
 from test_game_packet_budget import connection, decoded, large_messages
 from test_game_repeated_lifecycles import wire_frame
 
-from ow174.game import bodytrace, bots, combat, heroselect, movelog, world
-from ow174.game.content import PRACTICE_RANGE, SOLDIER, heroes
+from ow174.game import bodytrace, bots, combat, heroselect, junkenstein_ai, movelog, npc, world
+from ow174.game.content import JUNKENSTEIN_MAP, JUNKENSTEIN_MODES, PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
 from ow174.game.match import BOT_RECORD_DELAY, COUNTDOWN
-from ow174.game.script import decode, graph
+from ow174.game.script import decode, graph, scene, scene_host
+from ow174.game.script.driver import OWNER_HEALTH
 from ow174.game.server import SILENCE_SECONDS, TICK_SECONDS, Client
+from tests.test_script_startup import definition, spec
 
 
 class BotNoticeTests(unittest.TestCase):
@@ -92,6 +94,10 @@ class BotNoticeTests(unittest.TestCase):
         ids, records = wire_frame(packet)
         self.assertEqual((wire_tick, ids, len(records)), (tick, [number for _, number, _ in reliable], count))
         self.health = self.bot_health(records)
+        self.body_chunks = [
+            (record.chunk.getvalue(), record.chunk.count)
+            for record, _ in records if record.entity == self.entity and record.chunk is not None
+        ]
         self.mode_chunks = [
             (record.chunk.getvalue(), record.chunk.count)
             for record, _ in records if record.entity == world.GAME_MODE_ENTITY and record.chunk is not None
@@ -118,6 +124,21 @@ class BotNoticeTests(unittest.TestCase):
 
     def kill_bot(self):
         self.damage_bot(self.target.owner.health, 101)
+
+    def test_delayed_hit_notice_keeps_the_native_hit_ring_in_frame_order(self):
+        self.prepare()
+        ready = next(target for target in self.match.combat._targets()
+                     if target.team != self.player.team and target.entity != self.entity)
+        self.client._ack_entity_create(ready.entity)
+        self.assertFalse(self.client.bot_create_acked(self.entity))
+
+        self.damage_bot(20, 101)
+        self.match.combat._damage(self.player, ready, 25, False, None, 105)
+        self.client._ack_entity_create(self.entity)
+
+        notices = [value for msg_id, value in self.notices(self.send(106)[0]) if msg_id == combat.HIT]
+        self.assertEqual([(hit['+0x78']['+0x0']['+0x0'], hit['+0x78']['+0x4'], hit['+0x84'])
+                          for hit in notices], [(ready.entity, 25, 105), (self.entity, 20, 105)])
 
     @staticmethod
     def notices(reliable):
@@ -624,6 +645,95 @@ class BotNoticeTests(unittest.TestCase):
     def test_movement_waits_for_the_lost_initial_bot_create(self):
         self.prepare(single=True)
         self.assert_movement_waits_for_create_ack(self.target.owner, 100)
+
+    def prepare_scene_enemy(self, body_graph=None):
+        self.connect()
+        self.player.spawned = True
+        self.assume_mode_ready(self.client)
+        self.window, self.seq = ReceiveWindow(), 0
+        mode = JUNKENSTEIN_MODES[0]
+        self.match.game_map = replace(self.match.game_map, map_guid=JUNKENSTEIN_MAP, mode_guid=mode)
+        self.match.tick = 100
+        scene_world = scene.SceneWorld(mode=mode)
+        scene_world.map_guid = JUNKENSTEIN_MAP
+        scene_world.set_possessions()
+        host = self.match.scene_host = scene_host.SceneHost(scene_world)
+        if body_graph is not None:
+            host.graph_loader = {body_graph: graph.graph(body_graph)}.get
+        hero, body_def, control_def = 0x02E0000000000175, 0x04000000000016BE, 0x04000000000016C0
+        hero_key, body_key, control_key = (f'0x{value:016X}' for value in (hero, body_def, control_def))
+        body_script = definition(spec(body_graph)) if body_graph is not None else definition()
+        bundle = {'junkenstein': {
+            'pairs': {hero_key: {'body': body_key, 'controller': control_key}},
+            'entities': {body_key: {'script_component': body_script, 'target_tags': []},
+                         control_key: {'script_component': definition(), 'ai_weapon_identifiers': {}}},
+        }}
+        profile = npc.Definition(hero, body_def, 'Zomnic', 200)
+        junkenstein_ai.install_enemy_creator(self.match, host, (profile,), lambda _: None)
+        self.assertTrue(host.advance(100), host.error)
+        with patch.object(graph, '_data', return_value=bundle):
+            body = scene_world.hero_creator(hero, (0, 1, 4), 1, 90, (True, False))
+        self.entity = body.id
+        return host, host.combatants[body.id][0], scene_world.linked_controllers[body.id]
+
+    def test_scene_enemy_body_create_health_movement_and_destroy_over_the_link(self):
+        host, bot, controller = self.prepare_scene_enemy()
+        baseline, = (record for record in self.client.entities if record.entity == bot.entity)
+        encoded = baseline.build(0).getvalue()
+        bot.position = (1, 1, 4)
+        self.assertEqual(baseline.build(0).getvalue(), encoded)
+        self.assert_movement_waits_for_create_ack(bot, 100)
+
+        fight = self.match.combat
+        target = next(target for target in fight._targets() if target.owner is bot)
+        tick = self.match.tick + 3
+        fight._damage(bot, target, 200, False, None, tick, world_tick=tick)
+        fight._send_health()
+        self.send(tick)
+        self.assertIn((world.OP_UPDATE, 0.0), self.health)
+        self.ack()
+        host.retire_entity(bot.entity)
+        host.retire_entity(controller)
+        _, retired = self.send(tick + 3)
+        self.assertIn((bot.entity, world.OP_DESTROY), retired)
+        self.assertNotIn((bot.entity, 0), retired)
+        self.assertFalse(any(entity == controller for entity, _ in retired))
+        self.assertNotIn(bot.entity, fight.replacement_ticks)
+
+    def test_scene_enemy_script_baseline_and_terminal_delta_over_the_link(self):
+        host, bot, controller = self.prepare_scene_enemy(0x0CB6)
+        self.body_chunks = []
+        self.send(100)
+        self.assertFalse(self.body_chunks)
+        self.ack()
+        self.assertTrue(host.advance(101), host.error)
+        self.send(101)
+        chunk, = self.body_chunks
+        baseline = decode.read_chunk(*chunk)
+        self.assertTrue(baseline.full)
+        self.assertEqual({item.graph for item in baseline.instances.values()}, {0x0CB6})
+        self.assertNotIn(OWNER_HEALTH, baseline.entity_vars)
+        self.ack()
+        self.assertTrue(host.advance(102), host.error)
+        self.send(102)
+        self.ack()
+
+        fight = self.match.combat
+        target = next(target for target in fight._targets() if target.owner is bot)
+        fight._damage(bot, target, 200, False, None, 103, world_tick=103)
+        host.combatant_component(bot).set(8450, 0.0)
+        self.assertTrue(host.advance(103), host.error)
+        host.retire_entity(bot.entity)
+        host.retire_entity(controller)
+        _, records = self.send(103)
+        self.assertNotIn((bot.entity, world.OP_DESTROY), records)
+        chunk, = self.body_chunks
+        known = {item.id: item.graph for item in baseline.instances.values()}
+        terminal = decode.read_chunk(*chunk, known=known)
+        self.assertFalse(terminal.full)
+        self.assertEqual(terminal.entity_vars[8450], (0.0, ()))
+        self.ack()
+        self.assertIn((bot.entity, world.OP_DESTROY), self.send(106)[1])
 
     def test_respawned_bot_movement_waits_for_its_own_create(self):
         self.prepare(single=True)

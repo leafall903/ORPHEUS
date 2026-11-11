@@ -133,7 +133,44 @@ class LocaleTests(TempDirTest):
             self.assertIsNone(game.game_locale(exe, "none"))
 
 
+    def launch_command(self, exe, arguments=(), locale="enUS"):
+        with (
+            patch.object(game, "GAME_LOG_FILE", self.root / "logs" / "game.log"),
+            patch.object(game.subprocess, "Popen") as popen,
+        ):
+            game.start_game(exe, list(arguments), locale)
+        return popen.call_args.args[0]
+
+    def test_devreg_build_overrides_a_machine_wide_cn_region(self):
+        # Branch=kr is a CDN/install branch, not the asset region. The tags
+        # select RDEV even on a machine whose Battle.net registry says CN.
+        exe = self.installed_game()
+        command = self.launch_command(exe, ["--BNetServer=127.0.0.1:1118"])
+        self.assertIn("--tank_Region=US", command)
+        self.assertIn("--tank_Locale=enUS", command)
+        self.assertIn("--tank_AudioLocale=enUS", command)
+
+    def test_explicit_region_and_unknown_install_are_preserved(self):
+        exe = self.installed_game()
+        command = self.launch_command(exe, ["--tank_Region=EU"])
+        self.assertIn("--tank_Region=EU", command)
+        self.assertNotIn("--tank_Region=US", command)
+        (exe.parent.parent / ".build.info").unlink()
+        command = self.launch_command(exe, locale="none")
+        self.assertEqual(command, [str(exe)])
+
+
 class RunningCopyTests(TempDirTest):
+    def test_only_confirmed_exited_processes_with_unknown_images_are_ignored(self):
+        ours = self.make_game()
+        with (
+            patch.object(game.inject, "find_pids", return_value=[10, 11, 12]),
+            patch.object(game.inject, "image_path", side_effect=[str(ours), None, None]),
+            patch.object(game.inject, "process_exited", side_effect=[True, False]) as exited,
+        ):
+            self.assertEqual(game.running_copies(ours), ([10], [12]))
+        self.assertEqual([call.args for call in exited.call_args_list], [(11,), (12,)])
+
     def test_only_this_copy_of_the_game_is_closed(self):
         ours, other = self.make_game("Game"), self.make_game("Overwatch 2")
         running = {10: str(ours), 11: str(other), 12: None}
@@ -146,6 +183,7 @@ class RunningCopyTests(TempDirTest):
         with (
             patch.object(game.inject, "find_pids", side_effect=lambda name: sorted(running)),
             patch.object(game.inject, "image_path", side_effect=running.get),
+            patch.object(game.inject, "process_exited", return_value=False),
             patch.object(game.subprocess, "run", side_effect=taskkill),
         ):
             game.close_running_copy(ours)

@@ -5,7 +5,8 @@ The channel (reader 0x7FF789B7A480, writer 0x7FF789B7ADE0):
     if set: 4 bits reliable count, 4 bits unreliable count; when either is not 0, pad to a byte, then
         reliable:   u32 seq, u8 protocol index, u8 message index, JAM fields   (in seq order)
         unreliable: u8 protocol index, u8 message index, JAM fields
-    the stream goes on at the byte after the last message.
+    scalar fields (including the next message header) align to a byte.
+    After the last message, the bit stream resumes immediately after its last field.
 The client delivers reliable messages strictly in seq order: it parks one that comes early and drops
 one it already had, so a lost reliable message has to be sent again or everything after it waits.
 
@@ -81,6 +82,11 @@ def write_channel(bits: BitWriter, reliable=(), unreliable=()) -> None:
         bits.raw(seq.to_bytes(4, "little") + message)
     for message in unreliable:
         bits.raw(message)
+    # Encoded messages zero-fill their last byte for storage. Only the last
+    # message's unused bits are available to the following world channel.
+    final = unreliable[-1] if unreliable else reliable[-1][1]
+    _, _, end = _read_message(final, 0)
+    bits.count -= len(final) * 8 - end
 
 
 def read_channel(reader: BitReader) -> tuple[list, list]:
@@ -97,12 +103,14 @@ def read_channel(reader: BitReader) -> tuple[list, list]:
     data, pos = reader.data, reader.pos >> 3
     for _ in range(n_reliable):
         seq = int.from_bytes(data[pos : pos + 4], "little")
-        msg_id, value, pos = _read_message(data, pos + 4)
+        msg_id, value, end = _read_message(data, pos + 4)
+        pos = (end + 7) >> 3
         reliable.append((seq, msg_id, value))
     for _ in range(n_unreliable):
-        msg_id, value, pos = _read_message(data, pos)
+        msg_id, value, end = _read_message(data, pos)
+        pos = (end + 7) >> 3
         unreliable.append((msg_id, value))
-    reader.pos = pos * 8
+    reader.pos = end
     return reliable, unreliable
 
 
@@ -114,5 +122,5 @@ def _read_message(data: bytes, pos: int) -> tuple[int, dict, int]:
         raise DecodeError(f"unknown protocol index {index}")
     crc, first = PROTOCOLS[index]
     msg_id = first + offset
-    value, end = schemas().read(crc, msg_id, data, pos + 2)
+    value, end = schemas().read_bit_end(crc, msg_id, data, pos + 2)
     return msg_id, value, end

@@ -4,7 +4,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ow174.accounts.profile import Profile
@@ -28,6 +28,67 @@ def make_session(bot_chat):
 
 
 class BotChatTests(unittest.TestCase):
+    def test_window_hotkeys_use_the_owning_local_match_session(self):
+        session, _ = make_session(bot_chat=False)
+        server = session.server
+        other = MagicMock(local=True, logged_in=True, npc_menu_open=True,
+                          account=SimpleNamespace(account_lo=3))
+        other.sock.getpeername.return_value = ("127.0.0.1", 61000)
+        session.sock.getpeername.return_value = ("127.0.0.1", 61001)
+        for candidate in (session, other):
+            candidate.sock.getsockname.return_value = ("127.0.0.1", 3724)
+        session.local = session.logged_in = True
+        session.npc_menu_open = False
+        server.social.sessions = {3: other, 1: session}
+        server.game.npc_key.side_effect = [
+            {"handled": True, "action": "menu", "menu_open": True, "choices": []},
+            {"handled": True, "action": "spawn", "name": "Trooper"},
+            {"handled": True, "action": "close_menu", "menu_open": False},
+            {"handled": True, "action": "start", "entity": 0xC0001000},
+            {"handled": True, "action": "stop", "count": 1},
+            {"handled": True, "action": "remove", "entities": (0xC0001000,)},
+        ]
+        owners = {(61000, 3724): 10, (61001, 3724): 11}
+        with patch.object(chat, "configured_catalog", return_value={}):
+            for key in ("1", "=", "1", "Escape", "1", "0", "{", "-"):
+                chat.npc_hotkey(server, 11, key, lambda *ports: owners.get(ports))
+        self.assertEqual([call.args[:2] for call in server.game.npc_key.call_args_list],
+                         [(1, "="), (1, "1"), (1, "Escape"), (1, "0"), (1, "{"), (1, "-")])
+        self.assertFalse(server.game.npc_key.call_args_list[3].kwargs["menu_open"])
+        self.assertEqual(session.send.call_count, 6)
+        self.assertEqual(session.send.call_args.args[2]["text"], "Removed 1 NPCs.")
+        self.assertIn("{ stops ([ without Shift also stops)", session.send.call_args_list[0].args[2]["text"])
+        other.send.assert_not_called()
+        self.assertFalse(session.npc_menu_open)
+
+    def test_npc_commands_keep_menu_state_per_session_and_reply_privately(self):
+        session, recipient = make_session(bot_chat=True)
+        session.local = True
+        session.npc_menu_open = False
+        game = session.server.game
+        game.npc_key.side_effect = [
+            {"handled": True, "action": "menu", "menu_open": True,
+             "choices": [{"key": "1", "name": "Trooper"}]},
+            {"handled": True, "action": "spawn", "name": "Trooper"},
+            {"handled": True, "action": "close_menu", "menu_open": False},
+        ]
+        with patch.object(chat, "configured_catalog", return_value={}) as catalog:
+            for line in (".npc", "1", "Escape"):
+                chat.chat(session, {"+0x90": line})
+            self.assertEqual(catalog.call_count, 3)
+        self.assertEqual([call.kwargs["menu_open"] for call in game.npc_key.call_args_list],
+                         [False, True, True])
+        self.assertFalse(session.npc_menu_open)
+        self.assertIn("1 Trooper", session.send.call_args_list[0].args[2]["text"])
+        self.assertIn("{ stops", session.send.call_args_list[0].args[2]["text"])
+        self.assertEqual(session.send.call_args_list[1].args[2]["text"], "Spawned Trooper.")
+        recipient.send.assert_not_called()
+        chat.chat(session, {"+0x90": "1"})
+        self.assertEqual(recipient.send.call_args.args[2]["text"], "Alpha, I hear you: 1")
+        session.local = False
+        chat.chat(session, {"+0x90": ".npc 0"})
+        self.assertEqual(game.npc_key.call_count, 3)
+
     def channel_texts(self, bot_chat):
         session, player_session = make_session(bot_chat)
         chat.chat(session, {"+0x78": {"+0x10": 5}, "+0x90": "hi"})

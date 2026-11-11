@@ -1,9 +1,11 @@
 """Shared voice lifecycle, separate polling, timer plugs and explicit service failures."""
 
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
 from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.junkenstein_dialogue import Line, Playback
 from ow174.game.script import expr, runtime, scene
 from ow174.game.script import voice_stimulus as voice
 from tests.test_script_play_loaded import dynamic
@@ -52,6 +54,115 @@ def setup(*, strict=True, host='present', **fields):
 
 
 class VoiceStimulusTests(unittest.TestCase):
+    def test_junkenstein_defeat_narrator_sends_to_defeated_defenders(self):
+        mode = runtime.GAME_MODE_ENTITY
+        cue = 0x0EE0000000000CB8
+        viewer = SimpleNamespace(body=0xA0000101, team=0, spawned=True, gone=False,
+                                 has_body=True, mode_script=SimpleNamespace(delivered=2), client=mock.Mock())
+        match = SimpleNamespace(players=[viewer], combat=mock.Mock())
+        match.combat.is_dead.return_value = True
+        world = scene.SceneWorld()
+        world.bind(mode)
+        world.bind_voice_set(mode, 0x07A000000000013B)
+        component = runtime.Component(mode, world=world, strict=True)
+        world.bind_script_component(mode, component)
+        authored = graph([node(271, 'STU_40E05F6B', state=0)])
+        authored.index = 0x0C8C
+        instance = component.create(authored, init=False)
+        playback = Playback(match, {}, 0)
+        handle = playback.submit(instance.state(0), playback.stimulus(cue), (mode,))
+        self.assertEqual(handle, 0x8CE0)
+        self.assertEqual(playback.duration(handle, cue, True), 707534 / 48000)
+        anchor, message, payload = viewer.client.queue_combat_notice.call_args.args
+        self.assertEqual((anchor, message, payload['+0x78'], payload['+0x90']),
+                         (None, 27500, {'+0x0': mode}, 0x0760000000008CE0))
+
+    def test_junkenstein_narration_uses_authored_hero_variants(self):
+        mode = runtime.GAME_MODE_ENTITY
+        world = scene.SceneWorld()
+        world.bind(mode)
+        world.bind(OWNER, hero=0x02E000000000006E)
+        world.bind_voice_set(mode, 0x07A000000000013B)
+        component = runtime.Component(mode, world=world, strict=True)
+        world.bind_script_component(mode, component)
+        root = scene.graph.graph(0x0C8C)
+        instance = component.create(root, init=False)
+        playback = Playback(SimpleNamespace(players=[]), {}, 0)
+
+        victory = playback.stimulus(0x0EE0000000000CB7)
+        state = instance.node_state(root.node(221))
+        component.set(8602, expr.Asset(0x02E0000000000016))
+        self.assertEqual(playback.submit(state, victory, (mode,)), 0xA3EE)
+        self.assertEqual(playback.duration(0xA3EE, victory.guid, True), 603456 / 48000)
+        component.set(8602, None)
+        self.assertEqual(playback.submit(state, victory, (mode,)), 0x8CF1)
+
+        casualty = playback.stimulus(0x0EE0000000000924)
+        state = instance.node_state(root.node(241))
+        component.set(8619, expr.Entity(OWNER))
+        self.assertEqual(playback.submit(state, casualty, (mode,)), 0xA3E6)
+        world.unbind(OWNER)
+        self.assertEqual(playback.submit(state, casualty, (mode,)), 0)
+
+    def test_junkenstein_conversation_dispatches_ordered_speakers_at_line_deadlines(self):
+        cue = 0x0EE000000000086B
+        first = Line(0x0760000000001234, 1, 0.25, False)
+        reply = Line(0x0760000000005678, 2, 0.5, False)
+        unavailable = Line(0x0760000000005679, 3, 0.5, False)
+        conditional = Line(0x076000000000567A, 2, 0.5, True)
+
+        def player(hero, body):
+            return SimpleNamespace(hero=SimpleNamespace(guid=hero), body=body, team=0, spawned=True,
+                                   gone=False, has_body=True, client=mock.Mock())
+
+        for replace_body in (False, True):
+            with self.subTest(replace_body=replace_body):
+                players = [player(1, 0x80000001), player(2, 0x80000002)]
+                match = SimpleNamespace(players=players, combat=mock.Mock(), ensure_remote_body=mock.Mock())
+                match.combat.is_dead.return_value = False
+                parts = ((first,), (reply, unavailable, conditional))
+                playback = Playback(match, {0x086B: ((parts, 1.0),)}, 0)
+                world = scene.SceneWorld()
+                world.bind(OWNER)
+                component = runtime.Component(OWNER, world=world, strict=True)
+                world.bind_script_component(OWNER, component)
+                fields = {'m_stimulus': {'$': 'STUConfigVarVoiceStimulus', 'm_resourceKey': None,
+                                         'm_voiceStimulus': f'0x{cue:016X}'},
+                          'm_targets': dynamic(10)}
+                authored = graph([node(21, 'STU_40E05F6B', state=0, **fields)])
+                authored.index = 0x0CBD
+                instance = component.create(authored, init=False)
+                instance.initialized = True
+                context = playback.context(component)
+                world.set_voice_context(OWNER, context)
+                state = instance.state(0)
+
+                state.begin()
+                context.poll()
+                component.run_now()
+                component.now = 249
+                context.poll()
+                for viewer in players:
+                    sent, = viewer.client.queue_combat_notice.call_args_list
+                    self.assertEqual((sent.args[0], sent.args[1], sent.args[2]['+0x90']),
+                                     (players[0].body, 27500, first.guid))
+
+                if replace_body:
+                    players[1].body = 0x80000003
+                component.now = 250
+                context.poll()
+                component.run_now()
+                component.now = 750
+                context.poll()
+                component.run_now()
+                for viewer in players:
+                    notices = viewer.client.queue_combat_notice.call_args_list
+                    self.assertEqual([sent.args[2]['+0x90'] for sent in notices],
+                                     [first.guid] if replace_body else [first.guid, reply.guid])
+                    if not replace_body:
+                        self.assertEqual(notices[1].args[0], players[1].body)
+                self.assertFalse(state.active)
+
     def test_unknown_context_stops_strict_begin_while_known_absence_leaves_caches_uninitialized(self):
         for host in ('unknown', 'absent'):
             _, _, _, state, context, _, _, _ = setup(host=host)

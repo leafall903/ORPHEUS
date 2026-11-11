@@ -90,6 +90,18 @@ class ValueTests(unittest.TestCase):
         self.assertEqual(f32(0.1), 0.10000000149011612)
         self.assertEqual(expr.round_half_away(f32(f32(0.7665) * 1000.0)), 767)
 
+    def test_forward_vector_uses_native_degree_axes_and_float32(self):
+        config = {"$": "STU_B113D362", "m_7C831A8D": dynamic(1), "m_C0EDD7EC": dynamic(2)}
+        for yaw, pitch, expected in (
+            (0, 0, Vec3(0, 0, 1)),
+            (90, 0, Vec3(1, 0, -4.371138828673793e-08)),
+            (0, 90, Vec3(0, -1, -4.371138828673793e-08)),
+            (190, 0, Vec3(-0.17364822328090668, 0, -0.9848077297210693)),
+        ):
+            with self.subTest(yaw=yaw, pitch=pitch):
+                self.assertEqual(expr.evaluate(config, Vars({1: yaw, 2: pitch})), expected)
+        self.assertEqual(expr.evaluate(config, Vars()), Vec3(0, 0, 1))
+
     def test_biotic_field_vectors_use_extracted_coordinate_names(self):
         launch = graphs.graph(0x0257).state(1).field("m_5EC1EB38.m_1C78B91C")
         track = graphs.graph(0x0258).state(0).field("m_05BE62DD")
@@ -102,6 +114,12 @@ class ValueTests(unittest.TestCase):
 
 
 class BytecodeTests(unittest.TestCase):
+    def test_hook_parameter_vector_keeps_its_components_and_supports_scaling(self):
+        ctx = Vars(instance={1: (Vec3(2, 3, 4),)})
+        self.assertEqual(expr.evaluate(expression([8, 0, 62, 0], [(1, 0)]), ctx), 4.0)
+        scale = expression([8, 0, 6, 0, 25, 0], [(1, 0)], [0.5])
+        self.assertEqual(expr.evaluate(scale, ctx), Vec3(1, 1.5, 2))
+
     def run_code(self, opcodes, dynamics=(), floats=(), ctx=None, configs=None):
         return expr.evaluate(expression(opcodes, dynamics, floats, configs), ctx or Vars())
 

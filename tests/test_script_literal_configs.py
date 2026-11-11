@@ -6,9 +6,14 @@ from tests.test_script_runtime_budget import graph
 
 RESOURCES = (
     ("STUConfigVarVoiceStimulus", "m_voiceStimulus", 0x0EE00000000009C6),
+    ("STUConfigVoiceDefinition", "m_C6C61CB0", 0x07A000000000013B),
     ("STUConfigVarAnimation", "m_animation", 0x0A000000000051F5),
+    ("STUConfigVarAnimCategory", "m_category", 0x0280000000000004),
     ("STUConfigVarHero", "m_hero", 0x02E0000000000015),
+    ("STUConfigVarTexture", "m_texture", 0x0C00000000000001),
+    ("STU_08305297", "m_C21DB248", 0x09A000000000059A),
     ("STU_43CF7A79", "m_entityDef", 0x00400000000020D8),
+    ("STU_8556841E", "m_entityDef", 0x04000000000016BE),
     ("STUConfigVarSkinTheme", "m_skinTheme", 0x0A50000000016970),
 )
 
@@ -30,6 +35,20 @@ class NativeContext(expr.Context):
 
 
 class LiteralConfigTests(unittest.TestCase):
+    def test_value_presence_distinguishes_false_from_null_and_failed_evaluation(self):
+        cfg = {'$': 'STU_58AA0A3B', 'm_value': {'$': 'FixtureConfig'}}
+        for value, expected in ((None, False), (expr.EVALUATION_FAILED, False), (False, True),
+                                (0, True), ('', True), ((), True), (expr.Asset(0), True)):
+            with self.subTest(value=value):
+                context = NativeContext(value)
+                self.assertIs(expr.evaluate(cfg, context), expected)
+                self.assertEqual(context.reads, [cfg['m_value']])
+        self.assertIs(expr.evaluate({'$': 'STU_58AA0A3B'}, LiteralContext()), False)
+
+    def test_authored_empty_string_overwrites_the_destination(self):
+        cfg = {"$": "STU_92CA44CC", "m_value": None}
+        self.assertEqual(expr.evaluate(cfg, LiteralContext(), initial=42), "")
+
     def test_unkeyed_resources_keep_asset_type_and_exact_guid(self):
         for cls, field, guid in RESOURCES:
             for key in (None, 0, "0x0000000000000000"):
@@ -84,7 +103,7 @@ class LiteralConfigTests(unittest.TestCase):
         instance = created[0]
         self.assertTrue(instance.initialization_pending)
         self.assertFalse(instance.initialized)
-        self.assertEqual([event.kind for event in instance.queue], [runtime.ASSIGN] * 6)
+        self.assertEqual([event.kind for event in instance.queue], [runtime.ASSIGN] * len(configs))
         self.assertEqual([event.assignment[2] for event in instance.queue],
                          [*(expr.Asset(guid) for _, _, guid in RESOURCES), -1])
 

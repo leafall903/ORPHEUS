@@ -1,6 +1,6 @@
 """104319 DataFlowMapping cache/provider callbacks with explicit component services."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ow174.game.script import expr, play
 
@@ -18,6 +18,8 @@ class Context:
     special_changed: object = NotImplemented
     position: object = NotImplemented
     retired: bool = False
+    component: object = None
+    _providers: dict = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
         if (type(self.owner) is not int or not 0 <= self.owner <= 0xFFFFFFFF
@@ -28,6 +30,24 @@ class Context:
 
     def retire(self):
         self.retired = True
+        self._providers.clear()
+
+    @classmethod
+    def managed(cls, component, position):
+        context = cls(component.entity, True, True, position=position, component=component)
+        context.register = context._register_provider
+        context.unregister = context._unregister_provider
+        return context
+
+    def _register_provider(self, state):
+        self._providers[state] = state.mapping
+
+    def _unregister_provider(self, state):
+        self._providers.pop(state, None)
+
+    def providers(self, mapping):
+        return tuple(state for state, guid in self._providers.items()
+                     if guid == mapping and state.active and not state.ending)
 
 
 def _unsupported(state, feature):
@@ -38,6 +58,7 @@ def _check(state, context):
     instance, component = state.instance, state.instance.component
     component.ensure_valid()
     if (context.retired or context.owner != component.entity or instance.stopped
+            or (context.component is not None and context.component is not component)
             or component.instances.get(instance.id) is not instance
             or instance.states.get(state.index) is not state
             or component.world.data_flow_context(component.entity) is not context

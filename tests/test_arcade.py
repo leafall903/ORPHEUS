@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ow174.accounts.profile import Profile
+from ow174.accounts.profile import Profile, new_profile
 from ow174.catalog.templates import RetailTemplates
 from ow174.content.arcade import (
     CARD_BASE,
@@ -67,6 +67,11 @@ class ArcadeTests(unittest.TestCase):
         offered = {c["+0x0"] for c in built[(ARCADE, 39802)]["+0x78"]["+0x0"]}
         windows = {w["+0x0"] for w in built[(ARCADE, 39810)]["+0x78"]}
         self.assertTrue({CARD_BASE | c for c in expected} <= offered <= windows)
+
+
+    def test_new_local_profile_offers_all_junkenstein_cards(self):
+        cards = self.arcade.cards(new_profile(), 0)
+        self.assertEqual(cards[:len(JUNKENSTEIN)], list(JUNKENSTEIN))
 
 
 if __name__ == "__main__":

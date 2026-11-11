@@ -1,4 +1,4 @@
-"""104319 CE4A60/CEDBD0 entity queries with explicit native lookup services.
+"""104319 entity queries with explicit native lookup services.
 
 The owner supplies the active namespace/environment and both lookup registries.
 Scene bindings and the reverse primary-possessor catalog do not imply these inputs.
@@ -10,6 +10,8 @@ from ow174.game.script import expr, play
 
 EXISTS = 'STU_E72F6348'
 POSSESSED = 'STU_0AC15F78'
+LINKED = 'STU_A37A910D'
+PARTICIPANT = 'STU_0340A42A'
 
 
 @dataclass
@@ -44,6 +46,8 @@ class Context:
     watch_environment: object = NotImplemented  # None declares a missing dependency hub.
     watch_possession: object = NotImplemented
     retired: bool = False
+    lookup_linked: object = NotImplemented  # Callable (entity, selector) -> entity or None.
+    lookup_participant: object = NotImplemented  # Callable (entity, watcher) -> resolved entity or None.
 
     def __post_init__(self):
         if (type(self.owner) is not int or not 0 <= self.owner <= 0xFFFFFFFF
@@ -60,7 +64,7 @@ class Context:
 def evaluate(evaluation, cfg):
     """Return NotImplemented only when this world has not installed the service."""
     cls = cfg.get('$')
-    if cls not in (EXISTS, POSSESSED):
+    if cls not in (EXISTS, POSSESSED, LINKED, PARTICIPANT):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher
     component = instance.component
@@ -94,6 +98,43 @@ def evaluate(evaluation, cfg):
             call(context.watch_environment, 'entity query environment subscription', watcher, kind)
 
     check()
+    if cls == PARTICIPANT:
+        if context.lookup_participant is NotImplemented:
+            return NotImplemented
+        if not context.namespace_present:
+            return expr.EVALUATION_FAILED
+        value = play.evaluate_scalar(instance, cfg.get('m_entity'), initial=expr.Entity(0), watcher=watcher)
+        check()
+        # CF0660 first resolves the queried entity, then searches the
+        # participant bindings. The host owns those relationships.
+        entity = expr.to_entity(value) & 0xFFFFFFFF
+        resolved = call(context.lookup_participant, 'participant entity lookup', entity, watcher)
+        if resolved is None:
+            watch_environment(0 if context.environment_present else 46)
+            return expr.EVALUATION_FAILED
+        if type(resolved) is not int or not 0 <= resolved <= 0xFFFFFFFF:
+            unsupported('participant entity lookup result')
+        return expr.Entity(resolved)
+
+    if cls == LINKED:
+        if context.lookup_linked is NotImplemented:
+            return NotImplemented
+        # CCB2B0 subscribes before reading either operand. The game lookup
+        # at 99B9D0 returns zero when the entity or keyed record is absent.
+        watch_environment(0x20)
+        entity = play.evaluate_scalar(instance, cfg.get('m_152B6961'),
+                                      initial=expr.Entity(0), watcher=watcher)
+        check()
+        selector = play.evaluate_scalar(instance, cfg.get('m_A60150E2'), initial=0, watcher=watcher)
+        check()
+        linked = call(context.lookup_linked, 'linked entity lookup',
+                      expr.to_entity(entity) & 0xFFFFFFFF, expr.to_int(selector) & 0xFFFFFFFF)
+        if linked is None:
+            return expr.Entity(0)
+        if type(linked) is not int or not 0 <= linked <= 0xFFFFFFFF:
+            unsupported('linked entity lookup result')
+        return expr.Entity(linked)
+
     if cls == EXISTS:
         if not context.namespace_present:
             return expr.EVALUATION_FAILED

@@ -43,3 +43,24 @@ test('unknown keys never issue requests', async () => {
   assert.deepEqual(await client.send('w'), {handled: false});
   assert.equal(count, 0);
 });
+
+test('stop supersedes queued attacks while waiting for an in-flight attack', async () => {
+  const keys = [];
+  let release;
+  const inFlight = new Promise(resolve => { release = resolve; });
+  const client = new NpcConsoleClient(async (_url, request) => {
+    keys.push(JSON.parse(request.body).key);
+    if (keys.length === 1) await inFlight;
+    return {ok: true, json: async () => ({handled: true})};
+  });
+  const first = client.send('0');
+  await new Promise(resolve => setImmediate(resolve));
+  const superseded = client.send('0');
+  const stop = client.send('{');
+  const restart = client.send('0');
+  assert.deepEqual(keys, ['0']);
+  release();
+  await Promise.all([first, stop, restart]);
+  assert.deepEqual(await superseded, {handled: false, canceled: true});
+  assert.deepEqual(keys, ['0', '{', '0']);
+});

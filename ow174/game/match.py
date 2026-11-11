@@ -44,7 +44,17 @@ from ow174.game.collision import (
     default_collision_provider,
 )
 from ow174.game.commands import Command, CommandQueue
-from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
+from ow174.game.content import (
+    JUNKENSTEIN_MAP,
+    JUNKENSTEIN_MODES,
+    JUNKENSTEIN_THREE_THEY_WERE,
+    PRACTICE_RANGE,
+    SOLDIER,
+    GameMap,
+    Hero,
+    heroes,
+    spawn_point,
+)
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
@@ -214,6 +224,7 @@ class Player:
         self.spawn = spawn_point(match.game_map, team, number)  # (position, yaw in degrees)
         self.mover = self.new_mover()
         self.commands = CommandQueue()
+        self.impulse_correction: tuple[int, int] | None = None
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
         # Other players' bodies this player's client has: body -> False in the frame of its create.
@@ -298,7 +309,13 @@ class Player:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
-                if not dead and self.body_script is not None:
+                aim_lock = getattr(self.match.scene_host, 'player_aim_lock', None)
+                if not dead and aim_lock is not None and (locked := aim_lock(self)) is not None:
+                    yaw, pitch = locked
+                    command = replace(command, yaw=yaw, pitch=pitch, click_yaw=None, click_pitch=None)
+                hook_victim = getattr(self.match.scene_host, 'hook_victim', None)
+                hooked = hook_victim is not None and hook_victim(self) is not None
+                if not dead and (self.body_script is not None or hooked):
                     self.mover.step(
                         command, seconds, self.match.tick,
                         simulate_pose=self._step_body_pose,
@@ -322,6 +339,9 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
+        if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
+            return
         stunned = self.match.combat.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
@@ -330,6 +350,9 @@ class Player:
               and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
             # The mover models static supports. Selector 1 preserves vertical velocity.
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        from ow174.game import mccree
+
+        mccree.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
         requests = []
         if script is not None and not stunned:
@@ -349,7 +372,7 @@ class Player:
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -367,6 +390,7 @@ class Player:
         """Set up the allocated body at the spawn point."""
         self.body = entity
         self.mover = self.new_mover()
+        self.impulse_correction = None
 
     def new_mover(self) -> Mover:
         """The body's mover at the spawn point, with the hero's values and the match's pinned collision.
@@ -433,6 +457,7 @@ class Match:
         self.wheel_cosmetics_of = wheel_cosmetics_of
         self.controller = heroselect.controller_of(game_map.mode_guid)
         self.tick = 0  # the server's frame number, set every tick
+        self._npc_planning_turn = 0
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.assembled = False
         self.players: list[Player] = []
@@ -519,6 +544,25 @@ class Match:
                            and entry.id == (0x80000000 | entry.placement.flat)}
                 if created != set(self.game_map.placeables):
                     raise ValueError('scene script world differs from actual match placeable creates')
+                if self.game_map.map_guid == JUNKENSTEIN_MAP and self.game_map.mode_guid in JUNKENSTEIN_MODES:
+                    # The ready switch waits for the admitted roster. Arcade can
+                    # start a local Junkenstein match with fewer than four players.
+                    host.world.team_member_count = lambda team: sum(
+                        player.team == team and not player.gone for player in self.players
+                    )
+                    host.world.configure_junkenstein_card(self.card)
+                    if self.card == JUNKENSTEIN_THREE_THEY_WERE:
+                        # The blue team's Damage Dealt rule (2539) in 011C.0C0.
+                        self.combat.defender_damage_scale = 1.2
+                    if host.world.session_entity_roster is None:
+                        host.world.session_entity_roster = lambda: (
+                            player.entity for player in self.players if not player.gone
+                        )
+                    if host.world.player_participant_roster is None:
+                        host.world.player_participant_roster = lambda: (
+                            (player.entity, PLAYER_FILTER | player.team_bit, 0)
+                            for player in self.players if not player.gone
+                        )
             if self.scene_host is None or not self.scene_host.advance(tick):
                 raise ValueError(str(None if self.scene_host is None else self.scene_host.error))
             return True
@@ -605,6 +649,8 @@ class Match:
         )
         updates.append(EntityUpdate(GAME_MODE_ENTITY, OP_CREATE, self._game_mode_create))
         updates.extend(self._bot_create_update(bot) for bot in self.bots)
+        if self.scene_host is not None:
+            updates.extend(self.scene_host.spawned_entity_updates())
         if self.bots:
             self.bots_shown[viewer.slot] = self.tick
         for other in self.players:
@@ -613,15 +659,28 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import heavy_assault, npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {"controller_components": components}
+            manual_rialto_spawn = (self.game_map.map_guid == 0x080000000000079F
+                                   and bot.spawner.get("manual_spawn") is True)
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                manual_nameplate=manual_rialto_spawn,
+                nameplate_name=bot.name if manual_rialto_spawn else None,
+                manual_rialto_spawn=manual_rialto_spawn,
+                **context,
             )
+            if (components is not None
+                    or (bot.hero in heavy_assault.MELEE and bot.spawner.get("manual_spawn") is True)):
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -631,18 +690,30 @@ class Match:
         vitals = self.combat.vitals.get(bot.entity)
         components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.ids)
         components[26] = [TEAM_BIT << bot.team]
-        return EntityUpdate(bot.entity, OP_CREATE, lambda origin: self._bot_create(origin, bot, components))
+        definition, position, rotation = bot.body, bot.position, _rotation(bot.yaw)
+        return EntityUpdate(
+            bot.entity, OP_CREATE,
+            lambda origin: self._bot_create(origin, definition, components, position, rotation),
+        )
 
     @staticmethod
-    def _bot_create(origin: int, bot: bots.Bot, components: dict) -> world.RecordWriter:
+    def _bot_create(origin: int, definition: int, components: dict, position, rotation) -> world.RecordWriter:
         """A training bot's body, as a player's body on another client: placed by its transform, moved
         by movement records from the next frame on. Without a player body's 123 (the hero): the bots'
         bodies have no such component, and the client fails the whole frame on one it cannot place
         (assert 0xD62712AE, "Failed to deserialize component update ... 143E ... /123"; 143E has 1, 3, 4,
         22, 24, 25, 26, 28, 31, 35, 39, 43, 47, 49, 51, 69, 76, 78, 83, 86, 90, 97, 115, 119, 122, 127)."""
         return world.create(
-            origin, bot.body, components, flags=BODY_FLAGS, position=bot.position, rotation=_rotation(bot.yaw)
+            origin, definition, components, flags=BODY_FLAGS, position=position, rotation=rotation,
         )
+
+    def publish_bot(self, bot: bots.Bot) -> None:
+        """Queue the new body's baseline for viewers already in the world."""
+        bot.records_from = self.tick + BOT_RECORD_DELAY
+        for viewer in self.players:
+            if viewer.client is not None and viewer.spawned:
+                viewer.client.queue_entities([self._bot_create_update(bot)])
+                self.bots_shown.setdefault(viewer.slot, self.tick)
 
     @staticmethod
     def _shown(player: Player) -> bool:
@@ -796,12 +867,21 @@ class Match:
             updates.append(EntityUpdate(other.body, movement=other.movement()))
         shown = self.bots_shown.get(viewer.slot)
         client = viewer.client
+        if client is not None and self.scene_host is not None:
+            updates.extend(self.scene_host.spawned_entity_movements(viewer))
         if client is not None and shown is not None and self.tick - shown >= BOT_RECORD_DELAY:
-            updates += [
-                EntityUpdate(bot.entity, movement=bot.movement(self.tick))
-                for bot in self.bots
-                if client.bot_create_acked(bot.entity) and bot.record_due(self.tick, SEND_EVERY)
-            ]
+            for bot in self.bots:
+                if not client.bot_create_acked(bot.entity) or not bot.record_due(self.tick, SEND_EVERY):
+                    continue
+                movement = bot.movement(self.tick)
+                update = EntityUpdate(bot.entity, movement=movement)
+                if self.game_map.map_guid == 0x080000000000079F and bot.spawner.get("manual_spawn") is True:
+                    update.npc_idle = (
+                        not bot.firing and not bot.walking() and not movement.flags
+                        and movement.velocity == (0, 0, 0) and movement.throttles == (0, 0)
+                        and movement.input_frame is not None and movement.spring_speed == 0
+                    )
+                updates.append(update)
         own = correction.own_record(viewer, self.tick)
         if own is not None:
             updates.append(own)
@@ -914,6 +994,8 @@ class Match:
     def update(self, now: float, tick: int, *, frames: bool | None = None) -> None:
         """Run the spawn steps of players who loaded, keep their statescript acked, walk the training
         bots, and show new players and bodies to the others."""
+        if self.ended:
+            return
         if frames is None:
             frames = sends(tick)
         self.tick = tick
@@ -924,10 +1006,20 @@ class Match:
         if ready and not self._advance_scene(now, tick):
             return
         if ready and self.bots:
+            from ow174.game import npc_navigation
+
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
+            manual = [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
+            budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
+            if budgets:
+                self._npc_planning_turn += 1  # server ticks can skip under load
             for bot in self.bots:
+                if bot.spawner.get('manual_spawn') is True:
+                    npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
+                                        plan_budget=budgets.get(bot.entity, 0))
+                    continue
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
                          paused_until=self.combat.stuns.get(bot.entity, 0))
         if ready:
@@ -960,6 +1052,7 @@ class Match:
 
     def _spawn_steps(self, player: Player, client, now: float) -> None:
         waited = now - player.loaded_at
+        scene_ready = self.scene_host is not None and self.scene_host.client_ready
         if player.steps_done == 0 and waited >= SEND_OWN_ENTITY:
             client.queue_ownership()
             player.steps_done = 1
@@ -972,18 +1065,19 @@ class Match:
             and client.ownership_delivered()
             and self.collision_world is not None
             and not self._pending_bot_scripts
-            and (self.scene_host_factory is None
-                 or (self.scene_host is not None and self.scene_host.client_ready))
+            and (self.scene_host_factory is None or scene_ready)
         ):
             client.queue_entities(self.spawn_updates(player))
             player.steps_done = 3
             player.spawned = True
             self.notices.entered_world(player)
             log.info("[game] %s: %s spawned", self.label(), player.describe())
-            if self.controller.graph == heroselect.PVP.graph and self.assemble_ends is None:
+            if not scene_ready and self.controller.graph == heroselect.PVP.graph and self.assemble_ends is None:
                 self.assemble_ends = now + ASSEMBLE_SECONDS
                 log.info("[game] %s: assemble your team, %d s", self.label(), ASSEMBLE_SECONDS)
         if player.steps_done == 3 and waited >= SEND_CONTROLLER:
+            if scene_ready and not player.mode_script.delivered:
+                return
             if isinstance(self.controller, heroselect.FixedController) and not client.controller_ready:
                 return
             player.steps_done = 4
@@ -1158,6 +1252,9 @@ class Match:
                 spray_unlocks=spray_unlocks,
                 voice_effects=voice_effects,
             )
+            mount_intro = getattr(self.scene_host, "mount_player_intro_receiver", None)
+            if mount_intro is not None:
+                mount_intro(script)
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
@@ -1347,9 +1444,10 @@ class Match:
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
+        player.hero = hero
+        if old is not None:
             player.new_body(entity)
             self.combat.record_replacement(entity)
-        player.hero = hero
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:

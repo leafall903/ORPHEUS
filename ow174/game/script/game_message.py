@@ -16,7 +16,7 @@ class Request:
     params: tuple  # Ordered (full parameter GUID, collected value tuple) pairs.
 
 
-def prepare(instance, node):
+def prepare(instance, node, *, routed=False):
     component = instance.component
 
     def unsupported(feature):
@@ -41,7 +41,15 @@ def prepare(instance, node):
             return None
         owner = identity(component.world.game_message_owner(instance, node))
         targets, self_target = [], False
-        for value in play._iter_values(instance, node.field('m_targets')):
+        if routed:
+            candidates = component.world.routed_game_message_targets(instance, node, message)
+            if type(candidates) is not tuple:
+                unsupported('routed game message targets')
+        else:
+            candidates = play._iter_values(instance, node.field('m_targets'))
+        for value in candidates:
+            if routed:
+                component.consume_work('routed game message target collection')
             check()
             target = expr.to_entity(value) & 0xFFFFFFFF
             if not expr.valid_entity(target):
@@ -84,9 +92,9 @@ def prepare(instance, node):
         return Request(message, owner, instigator, tuple(targets), self_target, tuple(params))
 
 
-def execute(instance, node):
+def execute(instance, node, *, routed=False):
     with instance.component.operation():
-        request = prepare(instance, node)
+        request = prepare(instance, node, routed=routed)
         if request is not None:
             instance.component.world.submit_game_message(instance, node, request)
             instance.component.world.validate_game_message_source(instance, node)

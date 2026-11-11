@@ -18,17 +18,41 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,
   an external base-pool catalog and companion console/API are implemented.
-  Authored NPC weapon components are mounted; three of five enemies damage
-  McCree in an offline fixture. Full enemy combat and browser/original-client
+  Authored NPC weapon components are mounted; all five base definitions now
+  have scoped incoming-damage evidence in offline fixtures. Assassin requires
+  contact within3m; manual collision-aware pursuit now closes the default5m
+  spawn distance. Real NPC mover inputs and scoped navigation evidence are in
+  [NPC navigation](NPC_NAVIGATION.txt); full AI/map coverage remains open. See
+  [Assassin pin](ASSASSIN_PIN_BRIDGE.txt). Enforcer uses an explicitly declared manual
+  controller policy; see [Enforcer context](ENFORCER_MANUAL_CONTEXT.txt). Full enemy combat and browser/original-client
   acceptance remain open.
   McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
   for the partial attack frontier and open Flashbang/Deadeye requirements.
+  Scoped Fan scatter now affects damage rays;40 actual-five-NPC cases cover240
+  shots. All five console-spawned types also die through real Fan/reload input,
+  retain corpses/positions for300 frames and remove with minus. Seed identities
+  and mode binding are declared reconstructions; original-client agreement is open.
+  [Combat Roll](MCCREE_ROLL.txt) has scoped resource-driven physical movement
+  and buffered cooldown input checks; native phase/client equivalence remains open.
   Resource-backed Flashbang control has offline interruption/recovery/lifetime
   checks; native immunity/presentation and complete hero acceptance remain open.
+  Scoped authored launch bias/gravity and reconstructed range-end blast now
+  pass30 five-NPC flight cases; full native collision/expiry semantics stay open.
   Native input joins now preserve Deadeye's six-second timing and secondary
-  cancellation; target acquisition/charging/damage and full ultimate acceptance
-  remain open. See [state-input joins](STATE_INPUT_JOIN.txt).
+  cancellation; full ultimate and native-client acceptance remain open. See [state-input joins](STATE_INPUT_JOIN.txt).
+  A scoped per-target Deadeye bridge passes15 actual-input offline scenarios;
+  see [target bridge](DEADEYE_TARGET_BRIDGE.txt) for geometry, effect and native
+  acceptance limits. This does not complete the sandbox or hero checklist.
   See [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt).
+  - [ ] Verify each enemy's original-client health bar, contact sound and hit
+    reaction, continuous idle before and after nonlethal damage, and the
+    shooter's hit-indicator size. Record sound and animation playback
+    separately from health and hit-notice delivery.
+    The 1280x720 E4BA retest covers the idle intervals on all five bodies
+    after the server stopped repeating confirmed stationary movement. The
+    fixed-camera 3E3A capture shows intermediate hit-to-idle poses for all five.
+    Bone-level blend fidelity and a matched original PvE marker comparison
+    remain open. See [McCree combat](MCCREE_COMBAT.txt) for the rendered and audio evidence.
 
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
