@@ -32,7 +32,8 @@ class AuthoredChargeMessageTests(unittest.TestCase):
                     (expr.ENTITY, 13022): 0.25,
                 })
                 original_native = component.world.native
-                breakdown = (1,)
+                breakdown = (expr.Map(((16056, expr.Asset(0x0D80000000003EBB)),
+                                       (499, expr.f32(filtered_amount)))),)
 
                 def native(cfg, caller):
                     kind = cfg.get("$")
@@ -40,11 +41,6 @@ class AuthoredChargeMessageTests(unittest.TestCase):
                         return True
                     if kind == "STU_25ECB55F":
                         return False
-                    if kind == "STU_A6B80C63":
-                        # Supply the filtered sum at the native query boundary.
-                        value = caller.find_var(expr.INSTANCE, 16100).value()
-                        self.assertEqual(value, breakdown if message == 0x12 else None)
-                        return filtered_amount if value else 0
                     return original_native(cfg, caller)
 
                 params = {

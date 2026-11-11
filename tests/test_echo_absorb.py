@@ -13,6 +13,7 @@ from ow174.game.collision import World
 from ow174.game.commands import CROUCH
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.mover import Mover, mover_data
+from ow174.game.script import expr
 from ow174.game.world import SHIELDS_POOL
 
 SIGMA = 0x02E000000000023B
@@ -169,8 +170,9 @@ class EchoAbsorbTests(unittest.TestCase):
         for _ in range(5):
             run.step({sigma: (*facing, 0)})
         self.assertFalse(instance.states[1].active)
-        self.assertIsNotNone(vitals.temporary_shield)
-        grace_end = vitals.temporary_shield.decay_from
+        self.assertTrue(any(pool.identifier == 0x5847 and not pool.removed for pool in vitals.extra.values()))
+        grace = instance.states[29]
+        grace_end = grace.start / 1000 + expr.to_float(grace.evaluate(grace.node.field("m_timeout"), watch=False))
         while fight.now + combat.TICK <= grace_end:
             run.step({sigma: (*facing, 0)})
         self.assertAlmostEqual(vitals.temporary_shields, 30.6, places=4)

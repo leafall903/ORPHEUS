@@ -5,6 +5,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Reconcile delivered charge and shield fixtures with integrated services
+
+- Feed Genji's existing damage-message cases actual tagged breakdown rows so
+  the integrated array reducer computes their filtered amount. Remove only the
+  obsolete mocked sum boundary; retain every message/tag/charge assertion.
+  The previously failing case table now passes through the real reducer.
+- Read Echo's existing Grasp decay fixture from the named 5847 pool and authored
+  1D02 wait29 deadline instead of the superseded aggregate shield record. Keep
+  its original grace-period amount, decay rate, cooldown, expiry and reuse
+  assertions. This repaired check passes; the other 12 absorption checks passed
+  in the preceding run. No gameplay behavior or acceptance scope is added.
+
+
+
 ### Genji delivery history integration
 
 - Merge delivery e7e17067. The Genji implementation module is byte-identical
