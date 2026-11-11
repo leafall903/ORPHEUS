@@ -4,6 +4,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reaper weapon, Reaping and charge consumers
+
+- Preserve the original Reaper, authored damage-charge context and ring-sampler
+  modules byte-for-byte. Route0019 through its20 authored pellet rays and scoped
+  critical default; award Reaping from effective hostile body damage through the
+  combined healing service, including armour, overkill, melee and healing caps.
+- Consume the original0B8B target/tag arithmetic once per damage award and retain
+  its authored five-point passive cadence on the world clock. Preserve absolute
+  charge awards/Duplicate bonuses and the causal passive remainder/tick in both
+  VM and enclosing server snapshots. Other heroes retain their charge services.
+- Route Reaper health-event tags through the delivered admission function and
+  expose its typed tag view over existing combined HitDef storage. Preserve the
+  historical source combat record and both original gameplay/charge check files.
+  The optional D.Va fixture now checks the combined graph/mover availability and
+  uses the same0407 body GUID; no assertion or expected result was weakened.
+- All seven selected original pellet/Reaping checks passed. The seven-check
+  initial charge run passed six, with the no-input VM advancement check still
+  failing. The broader36-check charge/runtime run recorded five failures, four
+  errors and one optional-input skip; all13 existing runtime checks passed.
+  Subsequent fixes resolved the tag failures/missing typed tag view: both
+  original tag checks and two existing server snapshot checks passed together.
+- Death Blossom channel/device/shield consumers, Shadow Step and the source idle
+  body advancement still require reconciliation. Keep their failing original
+  checks and all delivered implementations; this is not whole-line or original-
+  client acceptance. No new feature, acceptance matrix or Rust cutover.
+
 ### Reconcile delivered D.Va control interruption and retained input
 
 - Release held inputs and drain authored release handlers before stopping

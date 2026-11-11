@@ -93,7 +93,7 @@ from ow174.game import (
     world_bubbles,
 )
 from ow174.game.script import support, support_effects
-from ow174.game import knockback, lucio, orisa, orisa_charge, sombra_control, sound_barrier, wall_ride
+from ow174.game import knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -866,6 +866,11 @@ class HitDef:
     vertical_impulse: float = 0.0
     impulse_rings: tuple = ()
 
+    @property
+    def damage_tags(self):
+        """Delivered typed health-event tags backed by the combined tag storage."""
+        return tuple(expr.Asset(tag) for tag in self.tags)
+
     def impulse_scale(self, distance: float, *, own: bool = False) -> float:
         column = 2 if own else 1
         rings = tuple((row[0], row[column]) for row in self.impulse_rings)
@@ -966,6 +971,10 @@ def hit_def(state, cfg) -> HitDef | None:
         if isinstance(entry, dict)
         and isinstance(tag := state.evaluate(entry.get("m_EE3055BD"), watch=False), expr.Asset)
     )
+    if state.instance.component.world.hero == reaper.HERO:
+        from ow174.game import damage_charge
+
+        tags = tuple(tag.guid for tag in damage_charge.event_tags(state, modify))
     graph_index, node_index = state.instance.graph.index, state.index
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
@@ -1683,6 +1692,7 @@ class Combat:
         self.assassin_victims: dict[int, assassin_victim.Lease] = {}
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
+        self.reaper_blossoms: dict[int, dict] = {}
         self.echo_duplicates = echo_duplicate.Duplicates(self)
         self.barriers = barriers.Barriers(self)
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
@@ -3344,6 +3354,7 @@ class Combat:
             for player in self.match.players:
                 if player.hero.guid == lucio.HERO:
                     lucio.advance_passive_charge(player, at)
+                reaper.charge_world(player, self)
             from ow174.game.script import charge as mercy_charge
 
             for player in self.match.players:
@@ -4408,6 +4419,8 @@ class Combat:
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
         direct = hit_def(state, node.field("m_6396149F"))
+        if direct is not None:
+            reaper.shotgun_critical(shooter, state, direct)
         from ow174.game import dva
 
         dva_critical = dva.direct_hit_critical(shooter, state)
@@ -4644,6 +4657,8 @@ class Combat:
             if not npc and shooter.hero.guid == 0x02E000000000006E:
                 direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
+        if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
+            directions = reaper.shotgun_directions(shooter, state, direction)
         if getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None)) == dva.HERO:
             directions = _volley_directions(shooter, state, direction, number=number, counter=activation[0])
         if not npc and shooter.hero.guid == 0x02E0000000000003:
@@ -7128,6 +7143,11 @@ class Combat:
             script = getattr(shooter, "body_script", None)
             hero = shooter.hero.guid
             current_source = source_body is None or source_body == shooter.body
+            if current_source:
+                self._reaping(shooter, target, dealt)
+            if award_ult and enemy and current_source:
+                reaper.charge_damage(shooter, dealt - extra, target,
+                                     tuple(expr.Asset(tag) for tag in hit_tags))
             if award_ult and enemy and current_source and hero == regeneration.MERCY:
                 from ow174.game.script import charge
 
@@ -7137,7 +7157,7 @@ class Combat:
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source
-                    and hero not in (regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 if hero == 0x02E000000000006E:
@@ -7345,6 +7365,18 @@ class Combat:
             return actor
         player = self.match._message_player(actor.source_body) if actor.owner else None
         return player if player is not None and player.entity == actor.owner else None
+
+    def _reaping(self, shooter, target: Target, dealt: float) -> None:
+        ratio = reaper.reaping_ratio(shooter)
+        if (not ratio or target.owner is shooter
+                or (not self.match.game_map.free_for_all and target.team == shooter.team)):
+            return
+        vitals = self.vitals.get(shooter.body)
+        if vitals is None or vitals.dead:
+            return
+        recipient = self.player_target(shooter)
+        if recipient is not None:
+            self._heal(shooter, recipient, dealt * ratio)
 
     def _tell_hit(self, shooter, target: Target, dealt: float, flags: int, frame: int) -> None:
         """Send the shooter's hit marker and target health bar using the hit's source frame."""

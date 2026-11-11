@@ -1836,6 +1836,8 @@ class BodyScript(ReplicatedBody):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
+        self.reaper_charge_ms = 0
+        self.reaper_charge_tick = match.tick if hero == 0x02E0000000000002 and match is not None else None
         self.ult_gain_bonus = 0.0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
@@ -2008,6 +2010,14 @@ class BodyScript(ReplicatedBody):
         if cost > 0 and charge < cost:
             self.set_ult_charge(min(cost, charge + points))
 
+    def credit_ult_charge(self, points: float) -> None:
+        """Apply an authored absolute award with the retained Duplicate bonus."""
+        if self.ult_gain_bonus:
+            charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+            points = min(cost, f32(points + f32(max(0.0, points - charge) * self.ult_gain_bonus)))
+        self.set_ult_charge(points)
+
     def gain_ult(self, amount: float) -> float:
         """Reconstructed health-event conversion: one point per actual HP, scaled by2819.
 
@@ -2081,6 +2091,12 @@ class BodyScript(ReplicatedBody):
         return after - before
 
     def _charge_ult(self) -> None:
+        if self.hero == 0x02E0000000000002:
+            from ow174.game import reaper
+
+            if self.world.match is None:
+                reaper.charge_passive(self)
+            return
         if self.hero == 0x02E000000000006E:
             if (self.retired or self.component.owner_dead
                     or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
