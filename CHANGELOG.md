@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Echo delivery history integration
+
+- Merge delivery fe787730. The dedicated Echo movement/duplicate modules match
+  the delivery. Retain the combined projectile flight/defense scheduler,
+  Reinhardt lowering, McCree fan adapter and linked-target lifecycle.
+- Keep the integrated 1D03 PlayScript/HealthPool Grasp host instead of adding
+  the obsolete aggregate-shield consumer: it supplies the existing 400 cap,
+  capture conversion, grace/decay and body-retirement behavior with named pools.
+- All 123 checks in the existing six-module combat/duplicate/charge/movement/
+  copied-Soldier/copied-Cassidy selection passed. Twelve of thirteen absorption
+  checks initially passed; after the preceding storage-fixture adaptation,
+  the original decay/cooldown/reuse check passed as well.
+- Shared conflicts retain these reconciled implementations. This history merge
+  changes documentation only; no native/client or all-line completion is claimed.
+
+
+
 ### Reconcile delivered charge and shield fixtures with integrated services
 
 - Feed Genji's existing damage-message cases actual tagged breakdown rows so
