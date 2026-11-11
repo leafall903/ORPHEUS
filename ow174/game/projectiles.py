@@ -226,6 +226,7 @@ class Shot:
     field_tick: int | None = None
     faded: bool = False
     arrivals: list = field(default_factory=list)  # the field entities whose create arrived
+    intercepted: bool = False  # end owner/observer copies without their held impact explosion
 
 
 class Projectiles:
@@ -346,13 +347,14 @@ class Projectiles:
             else:
                 viewer.client.queue_entities([create])
 
-    def flown(self, shot: Shot, seconds: float) -> None:
+    def flown(self, shot: Shot, seconds: float, *, intercepted: bool = False) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
+        shot.intercepted |= intercepted
         if isinstance(shot.player, bots.Bot):
             for delivery in shot.observers:
                 delivery.finish(self.match.tick, False, drain=True)
             return
-        if shot.spawn is not None or shot.release_at is not None:
+        if (shot.spawn is not None and not shot.intercepted) or shot.release_at is not None:
             return
         start = next((report.cmfd for report in shot.reports if report.received is not False), shot.frame)
         due = start + math.ceil(seconds * 1000 / FRAME_MS) + RELEASE_MARGIN
@@ -378,7 +380,7 @@ class Projectiles:
         script = player.body_script
         alive = player.client is not None and player.has_body and player.body == shot.body
         if not alive or script is None:
-            self._end(shot, tick, explode=alive)
+            self._end(shot, tick, explode=alive and not shot.intercepted)
             return
         shot.reports[:] = [report for report in shot.reports if report.received is not False]
         key = (shot.instance, shot.state)
@@ -397,14 +399,14 @@ class Projectiles:
         if due is None and shot.created_tick is not None:
             due = shot.created_tick + shot.bound + RELEASE_MARGIN  # no flight from the server: the bound
         if due is not None and tick >= due + DELIVERY_GRACE_TICKS:
-            self._end(shot, tick, explode=True)
+            self._end(shot, tick, explode=not shot.intercepted)
             return
         self._confirm(shot, tick)
         # Queuing a destroy retires queued and in-flight creates, so even a late
         # confirmation must arrive before we send the explosion release.
         if (due is not None and tick >= due and shot.created
                 and all(arrival.received for arrival in shot.created.values())):
-            self._end(shot, tick, explode=True)
+            self._end(shot, tick, explode=not shot.intercepted)
 
     def _confirm(self, shot: Shot, tick: int) -> None:
         ready = [report for report in shot.reports if report.received is True]
@@ -481,10 +483,10 @@ class Projectiles:
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
         # The opening tick has no heal, and the field ends before the expiry tick.
         # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+        first, last = max(first_tick, start + 1), min(tick, expires - 1)
+        if first <= last:
+            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * (last - first + 1)
+            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount, ticks=(first, last))
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return

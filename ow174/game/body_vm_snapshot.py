@@ -10,9 +10,13 @@ import json
 import random
 
 from ow174.game import replay_values
+from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.orisa_supercharger import DeviceWorld
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime, scopes
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.sigma_barrier import BarrierWorld as SigmaBarrierWorld
+from ow174.game.symmetra_barrier import BarrierWorld as PhotonBarrierWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -49,6 +53,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    nodes.MappedPhaseEntry: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -72,9 +77,11 @@ _STATE_LAYOUTS = {
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp",
+         "links", "reported", "last_values"),
         ("max_shots", "min_shots"),
     ),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
@@ -89,7 +96,9 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.TrackBodyRay: (("result", "outputs"), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "var", "count_var"), ()),
+    nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -383,17 +392,22 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld, SigmaBarrierWorld, PhotonBarrierWorld, DeviceWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "manual_target", "match"))
+            if kind in (BarrierWorld, SigmaBarrierWorld, PhotonBarrierWorld):
+                fields.add("actor")
+            if kind is DeviceWorld:
+                fields.update(("entity", "location"))
+            # Match and actor references belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "actor"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

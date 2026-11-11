@@ -301,6 +301,10 @@ class Context:
     def position(self, entity: int) -> Vec3:
         return Vec3(0.0, 0.0, 0.0)
 
+    def ruleset_key(self, cfg):
+        found = dynamic(cfg)
+        return found[1] if found else to_int(evaluate(cfg, self))
+
     def ruleset(self, key: int):
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
@@ -443,9 +447,7 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_B5A0CAF0":  # GetOwner
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
-        key = cfg.get("m_value")
-        found = dynamic(key)
-        return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
+        return ctx.ruleset(ctx.ruleset_key(cfg.get("m_value")))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
         return value if value is not None else evaluate(cfg.get("m_default"), ctx)

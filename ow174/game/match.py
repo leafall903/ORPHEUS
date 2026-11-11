@@ -33,7 +33,23 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    fortify,
+    hero_torbjorn,
+    heroselect,
+    movelog,
+    notices,
+    phase_defenses,
+    pools,
+    sigma_flux,
+    stats,
+    torbjorn_charge,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -43,7 +59,7 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import Command, CommandQueue, JUMP
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
@@ -194,6 +210,10 @@ class Player:
         self.card_sent = False  # the player's client has its own card
         self.card_again: int | None = None  # when its own card goes to it once more
         self.hero = hero
+        self.turret_cooldown_until = 0.0
+        self.overload_cooldown_until = 0.0
+        self.fortify_cooldown_until = 0.0
+        self.halt_cooldown_until = 0.0
         self.team = team
         self.quanta = quanta
         self.entity = 0xA0000000 | (slot + 1) << 8
@@ -322,9 +342,20 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
-        stunned = self.match.combat.is_stunned(self, tick=tick)
+        fight = self.match.combat
+        buttons = fight.sombra_hacks.admitted_buttons(self.body, tick, command.buttons)
+        if buttons != command.buttons:
+            command = replace(command, buttons=buttons)
+        frost = fight.frost.sample(self, tick)
+        speed_scale = max(.3, 1.0 - frost[0]) if frost is not None else 1.0
+        if tick < fight.steel_traps.root_until(self.body):
+            command = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        stunned = fight.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
+            if frost is not None and frost[2]:
+                command = replace(command, yaw=frost[3], pitch=frost[4])
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
@@ -337,15 +368,33 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
-            state, (target, speed) = requests[0]
-            outcome = self.mover.step_pose(
-                command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
-            )
-            if outcome is not None:
-                movement_end = state, outcome
-        else:
-            self.mover.step_pose(command, seconds, tick)
+        forced = fight.hooks.forced_move(self)
+        if forced is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=forced)
+        elif not sigma_flux.step_pose(self, command, seconds, tick, speed_scale):
+            if self.body in fight.gravitons.pulled:
+                # Graviton already moved the body this tick. A pending Halt
+                # request can move it once the field releases it.
+                pose = replace(command, forward=0, right=0)
+                velocity = self.mover.velocity
+                self.mover.step_pose(
+                    pose, seconds, tick, move_to=(tuple(self.mover.position), combat.graviton.PULL_SPEED),
+                )
+                self.mover.velocity = velocity
+                self.mover.driven = True
+            elif len(requests) == 1:
+                state, (target, speed) = requests[0]
+                outcome = self.mover.step_pose(
+                    command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
+                    speed_scale=speed_scale,
+                )
+                if outcome is not None:
+                    movement_end = state, outcome
+            elif (not stunned and tick >= fight.steel_traps.root_until(self.body)
+                  and (bash := fight.brigitte_shields.bash_move(self)) is not None):
+                self.mover.step_pose(command, seconds, tick, move_to=bash, speed_scale=speed_scale)
+            else:
+                self.mover.step_pose(command, seconds, tick, speed_scale=speed_scale)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -354,7 +403,14 @@ class Player:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
             self.match.body_command(self, command, movement_end=movement_end)
-            self.match.combat.command(self, command if posed else None)
+            fight = self.match.combat
+            fight.command(self, command if posed else None)
+            if self.body in fight.gravitons.pulled and (
+                    phase_defenses.phase(self)[0] or fortify.state_for(self) is not None):
+                fight.gravitons.release_player(self)
+            if self.body in fight.halt.pulls and (
+                    phase_defenses.phase(self)[0] or fortify.control_flag_active(self)):
+                fight.halt.release(self.body)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
@@ -595,15 +651,22 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {"controller_components": components}
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                **context,
             )
+            if components is not None:
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -1118,6 +1181,7 @@ class Match:
             return
         script.created(create)
         player.body_script = script
+        self.combat.superchargers.bind_owner(player, script)
         bodytrace.started(player, script)
 
     @staticmethod
@@ -1144,6 +1208,9 @@ class Match:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
+            from ow174.game.sombra_control import prepare
+
+            prepare(self.combat, player, command)
             script.command(command.frame, command.buttons, command.action, command.forward, command.right)
         except Exception as error:
             bodytrace.failed(script, error)
@@ -1243,11 +1310,39 @@ class Match:
         the later records wait for acknowledgement of their prerequisites."""
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
+        turret_cooldown = 0.0
+        overload_cooldown = 0.0
+        fortify_cooldown = 0.0
+        halt_cooldown = 0.0
+        retained_charge = None
+        passive_timer = None
         if old is not None:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
-            self.combat.retire_player_body(player)
+            script = player.body_script
+            if hero.guid == old_hero and script is not None and torbjorn_charge.enabled(script):
+                retained_charge = expr.to_float(script.component.entity_var(342).value())
+                passive_timer = torbjorn_charge.passive_timer_due(script)
+            if old_hero == hero_torbjorn.HERO:
+                turret_cooldown = hero_torbjorn.turret_cooldown_remaining(player)
+                overload_cooldown = hero_torbjorn.overload_cooldown_remaining(player)
+                if hero.guid != old_hero:
+                    player.turret_cooldown_until = self.combat.now + turret_cooldown
+                    player.overload_cooldown_until = self.combat.now + overload_cooldown
+            elif hero.guid == hero_torbjorn.HERO:
+                turret_cooldown = max(0.0, player.turret_cooldown_until - self.combat.now)
+                overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
+            if old_hero == fortify.HERO:
+                fortify_cooldown = fortify.cooldown_remaining(player)
+                halt_cooldown = self.combat.halt.cooldown_remaining(player)
+                if hero.guid != old_hero:
+                    player.fortify_cooldown_until = self.combat.now + fortify_cooldown
+                    player.halt_cooldown_until = self.combat.now + halt_cooldown
+            elif hero.guid == fortify.HERO:
+                fortify_cooldown = max(0.0, player.fortify_cooldown_until - self.combat.now)
+                halt_cooldown = max(0.0, player.halt_cooldown_until - self.combat.now)
+            self.combat.retire_player_body(player, next_hero=hero.guid)
             player.new_body(entity)
             self.combat.record_replacement(entity)
         player.hero = hero
@@ -1256,6 +1351,20 @@ class Match:
         if player.client is not None and player.spawned:
             components = self._possession(player)
             player.client.queue_entities(self.own_body_updates(player))
+            if turret_cooldown > 0:
+                hero_torbjorn.set_turret_cooldown(player, turret_cooldown)
+            if overload_cooldown > 0:
+                hero_torbjorn.set_overload_cooldown(player, overload_cooldown)
+            if fortify_cooldown > 0:
+                fortify.set_cooldown(player, fortify_cooldown)
+            if halt_cooldown > 0:
+                self.combat.halt.set_cooldown(player, halt_cooldown)
+            if retained_charge is not None and player.body_script is not None:
+                script = player.body_script
+                cost = expr.to_float(script.component.entity_var(338).value())
+                script.set_ult_charge(min(cost, max(0.0, retained_charge)))
+                if passive_timer is not None:
+                    script.world.passive_charge_due = passive_timer
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,

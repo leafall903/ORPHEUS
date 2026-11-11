@@ -1,14 +1,15 @@
 """104319 Torbjorn bridges for reconstructed authoritative combat.
 
-Hammer timing uses the authored swing duration and its0.42 normalized threshold.
+Hammer timing uses the authored swing duration and normal/Overload thresholds.
 This is an explicit substitute for the unimplemented native54FEB21C consumer;
 it does not claim a complete native animation-event or TrackTargets backend.
 """
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from ow174.game import projectile_defenses
 from ow174.game.script import expr
 
 HERO = 0x02E0000000000006
@@ -41,6 +42,90 @@ class Turret:
     next_fire: float
     shots: int = 0
     target: int | None = None
+    last_fired: float | None = None
+    last_damaged: float | None = None
+
+
+@dataclass
+class HammerContacts:
+    instance: int
+    counter: int
+    begin: float
+    end: float
+    hit: set[int] = field(default_factory=set)
+    barrier_hit: set[int] = field(default_factory=set)
+    repaired: set[int] = field(default_factory=set)
+    cancelled: bool = False
+
+
+def cancel_hammer(fight, body):
+    contacts = fight.hammer_contacts.get(body)
+    if contacts is not None:
+        contacts.cancelled = True
+
+
+def owned_turret(world):
+    """Explicit reconstructed deployable context for this current owner body."""
+    match = world.match
+    if match is None or world.hero != HERO:
+        return None
+    for turret in match.combat.turrets.values():
+        owner = turret.owner
+        if (owner.body == world.body and owner.body_script is not None
+                and owner.body_script.world is world and owner.hero.guid == HERO
+                and not owner.body_script.component.strict
+                and turret.actor in match.bots and not turret.actor.dead):
+            return turret
+    return None
+
+
+def foreign_turret_var(world, entity, var):
+    turret = owned_turret(world)
+    if turret is None or entity != turret.actor.entity or turret.actor.body_script is None:
+        return NotImplemented
+    slot = turret.actor.body_script.component.entity_var(var, create=False)
+    return slot.value() if slot is not None else None
+
+
+def turret_native(world, cfg, instance):
+    if cfg.get("$") != "STU_E72F6348":
+        return NotImplemented
+    turret = owned_turret(world)
+    if turret is not None and instance.evaluate(cfg.get("m_entity")) == expr.Entity(turret.actor.entity):
+        return True
+    return NotImplemented
+
+
+def turret_message(world, target, message, sender):
+    turret = owned_turret(world)
+    if (turret is None or target != turret.actor.entity or sender != world.body
+            or message != 0x024000000000003F):
+        return False
+    # The actual16C5 interact path sends003F to its bound turret. The manager
+    # supplies retirement/cooldown rather than claiming the missing1688 native
+    # role392/KillEntity services are implemented.
+    destroy_turret(world.match.combat, turret.owner, damaged=True)
+    return True
+
+
+def turret_damaged(fight, target):
+    for turret in fight.turrets.values():
+        if turret.actor is target.owner:
+            turret.last_damaged = fight.now
+            return
+
+
+def _control_context(fight, turret):
+    script = turret.actor.body_script
+    if script is None:
+        return
+    base = next(i for i in script.component.instances.values() if i.graph.index == 0x1688)
+    duration = float(base.evaluate(base.graph.node(145).field("m_timeout")))
+    script.component.set(795, turret.target is not None)
+    script.component.set(2143, turret.last_damaged is not None and fight.now - turret.last_damaged < duration)
+    elapsed = 100.0 if turret.last_fired is None else min(100.0, fight.now - turret.last_fired)
+    script.component.set(1769, elapsed)
+    _owner_turret_var(turret.owner, turret.actor.entity)
 
 
 def deploy_turret(fight, owner, position):
@@ -62,6 +147,8 @@ def deploy_turret(fight, owner, position):
                       position, team=owner.team, current_health=config["initial_health"])
     actor.spawner["manual_spawn"] = False
     actor.combat_owner = owner
+    if actor.body_script is not None:
+        actor.body_script.component.world.match = fight.match
     actor.combat_geometry = (config["height"], config["radius"], config["height"] * 0.75, False)
     actor.retain_corpse = True  # manager owns destruction; never schedule training-bot respawn
     end = fight.now + config["build_seconds"]
@@ -76,7 +163,17 @@ def _owner_turret_var(owner, entity):
     if script is not None:
         instance = next((i for i in script.component.instances.values() if i.graph.index == 0x16C5), None)
         if instance is not None:
-            instance.write((expr.INSTANCE, 5875), expr.Entity(entity))
+            value = expr.Entity(entity)
+            if instance.find_var(expr.INSTANCE, 5875).value() != value:
+                instance.write((expr.INSTANCE, 5875), value)
+            if script.component.entity_var(679).value() != value:
+                instance.write((expr.ENTITY, 679), value)
+            # Foreign reads return sampled values, without installing cross-VM
+            # variable watchers. Poll the authored combat-lock condition instead.
+            state = instance.states.get(25)
+            if state is not None and state.active:
+                state.polled = True
+                state.ticks()
 
 
 def destroy_turret(fight, owner, *, damaged=False):
@@ -84,14 +181,93 @@ def destroy_turret(fight, owner, *, damaged=False):
 
     turret = fight.turrets.pop(owner.entity, None)
     if turret is not None:
+        fight.sombra_hacks.retire(turret.actor.entity)
         npc.remove_spawned(fight.match, entities={turret.actor.entity})
         _owner_turret_var(owner, 0)
-        if damaged and owner.body_script is not None and owner.hero.guid == HERO:
-            component = owner.body_script.component
-            cooldown = component.entity_var(15787, create=False)
-            instance = next((i for i in component.instances.values() if i.graph.index == 0x16C5), None)
-            if cooldown is not None and instance is not None:
-                instance.write((expr.ENTITY, 6300), cooldown.value())
+        if damaged:
+            hp = fight.vitals.get(turret.actor.entity)
+            elapsed = max(0.0, fight.now - hp.died_at) if hp is not None and hp.died_at is not None else 0.0
+            _full_cooldown(owner, elapsed)
+
+
+def _full_cooldown(owner, elapsed=0.0):
+    ability = _turret_ability(owner)
+    if ability is not None:
+        cooldown = ability.instance.component.entity_var(15787, create=False)
+        if cooldown is not None:
+            amount = expr.to_float(cooldown.value()) - elapsed * max(0.0, ability.rate())
+            ability.instance.write((expr.ENTITY, 6300), max(0.0, amount))
+
+
+def _turret_ability(owner):
+    if owner.body_script is not None and owner.hero.guid == HERO:
+        for instance in owner.body_script.component.instances.values():
+            if instance.graph.index == 0x16C5:
+                return instance.state(13)
+    return None
+
+
+def turret_cooldown_remaining(owner):
+    ability = _turret_ability(owner)
+    if ability is None:
+        return 0.0
+    rate = ability.cooldown_rate
+    return ability.remaining() / (rate if rate > 0 else 1.0)
+
+
+def set_turret_cooldown(owner, seconds):
+    ability = _turret_ability(owner)
+    if ability is not None:
+        rate = ability.rate()
+        ability.instance.write((expr.ENTITY, 6300), seconds * (rate if rate > 0 else 1.0))
+
+
+def _overload_ability(owner):
+    script = owner.body_script
+    if script is not None and owner.hero.guid == HERO:
+        for instance in script.component.instances.values():
+            if instance.graph.index == 0x1721:
+                return instance.state(19)
+    return None
+
+
+def overload_cooldown_remaining(owner):
+    """Wall time until reuse when replacing this body."""
+    ability = _overload_ability(owner)
+    if ability is None:
+        return 0.0
+    instance = ability.instance
+    duration = instance.state(1)
+    if duration is not None and duration.active:
+        # Graph 1721 chases entity var 9143 to zero, then node 39 writes
+        # the configured cooldown from instance var 472.
+        buff_left = expr.to_float(instance.find_var(expr.ENTITY, 9143).value())
+        cooldown = expr.to_float(instance.find_var(expr.INSTANCE, 472).value())
+        rate = ability.rate()
+        return buff_left + cooldown / (rate if rate > 0 else 1.0)
+    rate = ability.cooldown_rate
+    return ability.remaining() / (rate if rate > 0 else 1.0)
+
+
+def set_overload_cooldown(owner, seconds):
+    ability = _overload_ability(owner)
+    if ability is not None:
+        target = expr.lvalue(ability.node.field("m_out_CooldownVar"))
+        if target is not None:
+            rate = ability.rate()
+            ability.instance.write(target, seconds * (rate if rate > 0 else 1.0))
+
+
+def turret_killed(fight, actor):
+    # Input packets may arrive between world updates. Publish the destruction
+    # cooldown now, before another player's command can start a fresh throw.
+    for turret in fight.turrets.values():
+        if turret.actor is actor:
+            if actor.entity in fight.sombra_hacks.active and actor.body_script is not None:
+                actor.body_script.initial_payload()
+                fight.sombra_hacks.retire(actor.entity)
+            _full_cooldown(turret.owner)
+            return
 
 
 def projectile_impact(fight, rocket, point, struck):
@@ -115,7 +291,7 @@ def projectile_impact(fight, rocket, point, struck):
 
 
 def update_turrets(fight):
-    from ow174.game import combat, npc
+    from ow174.game import combat, npc, torbjorn_mark
 
     for turret in list(fight.turrets.values()):
         owner, actor, cfg = turret.owner, turret.actor, turret.config
@@ -127,6 +303,16 @@ def update_turrets(fight):
         if vitals is None or vitals.dead:
             destroy_turret(fight, owner, damaged=vitals is not None and vitals.dead)
             continue
+        if actor.body_script is not None:
+            snapshot = actor.body_script.advance_live(fight.tick, actor.position)
+            # Native construction/timers/observer states run; the explicit gun
+            # bridge below still owns damage, so reports cannot double-fire.
+            actor.body_script.component.shots.clear()
+            if snapshot is not None:
+                for viewer in fight.match.players:
+                    if viewer.spawned and viewer.client is not None:
+                        viewer.client.queue_bot_live(actor.entity, snapshot)
+        _control_context(fight, turret)
         until = min(fight.now, turret.build_end)
         if until > turret.last_build:
             heal = ((cfg["maximum_health"] - cfg["initial_health"]) *
@@ -135,6 +321,10 @@ def update_turrets(fight):
             fight._sync_body_health(actor, vitals)
             turret.last_build = until
         if fight.now + combat.EPSILON < turret.build_end or actor.body_script is None:
+            continue
+        if fight.is_stunned(actor) or fight.sombra_hacks.silenced(actor.entity, fight.tick):
+            turret.target = None
+            _control_context(fight, turret)
             continue
         instance = next(i for i in actor.body_script.component.instances.values()
                         if i.graph.index == cfg["gun_graph"])
@@ -158,16 +348,20 @@ def update_turrets(fight):
         turret.target = None
         if not candidates:
             turret.next_fire = max(turret.next_fire, fight.now)
+            _control_context(fight, turret)
             continue
-        _, turret.target, centre = min(candidates)
+        preferred = torbjorn_mark.preferred(fight, owner, candidates)
+        _, turret.target, centre = next((row for row in candidates if row[1] == preferred), min(candidates))
         npc.aim_at(fight.match, actor, centre)
         if fight.now + combat.EPSILON >= turret.next_fire:
             if turret.next_fire < fight.now - combat.TICK:
                 turret.next_fire = fight.now  # do not replay an unretained burst after a long scheduler gap
             turret.shots += 1
+            turret.last_fired = fight.now
             time = fight.tick * actor.body_script.component.frame_ms
             fight._shoot(actor, None, state, turret.shots - 1, time, activation=(turret.shots, time))
             turret.next_fire += 1.0 / rate
+        _control_context(fight, turret)
 
 
 def repair_turret(fight, player, centre, radius):
@@ -194,8 +388,10 @@ def repair_turret(fight, player, centre, radius):
         if wall is not None and wall < distance - target.radius:
             return
     vitals = fight.vitals_of(target)
-    if not vitals.dead and vitals.heal(turret.config["repair"]) > 0:
-        fight._sync_body_health(turret.actor, vitals)
+    if not vitals.dead:
+        if vitals.heal(turret.config["repair"]) > 0:
+            fight._sync_body_health(turret.actor, vitals)
+        return turret.actor.entity
 
 
 def overload(fight, player, script):
@@ -228,19 +424,24 @@ def hammer(fight, player, command, script):
         return
     swing = instance.states.get(13)
     if swing is None or not swing.active:
+        fight.hammer_contacts.pop(script.entity, None)
         return
-    duration = combat._number(swing.evaluate(swing.node.field("m_86701C3E"), watch=False), 0.0)
-    trigger = instance.graph.node(43)
-    fraction = combat._number(swing.evaluate(trigger.field("m_ED97A97C"), watch=False), 0.0)
-    if duration <= 0.0 or not 0.0 <= fraction <= 1.0:
+    contacts = fight.hammer_contacts.get(script.entity)
+    if contacts is None or (contacts.instance, contacts.counter) != (instance.id, swing.counter):
+        duration = combat._number(swing.evaluate(swing.node.field("m_86701C3E"), watch=False), 0.0)
+        boosted = swing.evaluate(instance.graph.node(47).field("m_condition"), watch=False)
+        trigger = instance.graph.node(48 if boosted else 43)
+        fraction = combat._number(swing.evaluate(trigger.field("m_ED97A97C"), watch=False), 0.0)
+        window = combat._number(swing.evaluate(instance.graph.node(46).field("m_timeout"), watch=False), 0.0)
+        if duration <= 0.0 or not 0.0 <= fraction <= 1.0 or window <= 0.0:
+            return
+        # Branch47 chooses at swing entry. Expiry of Overload midway through
+        # the animation cannot move this already-started contact interval.
+        begin = swing.start + duration * fraction * 1000
+        contacts = HammerContacts(instance.id, swing.counter, begin, begin + window * 1000)
+        fight.hammer_contacts[script.entity] = contacts
+    if contacts.cancelled or not contacts.begin <= script.component.now < contacts.end:
         return
-    if script.component.now < swing.start + duration * fraction * 1000:
-        return
-    counters = fight.melee_seen.setdefault(script.entity, {})
-    key = (instance.id, 6)
-    if counters.get(key, 0) == swing.counter:
-        return
-    counters[key] = swing.counter
     state = instance.state(6)
     modify = state.node.field("m_modifyHealth") or {}
     amount = combat._number(state.evaluate(modify.get("m_amount"), watch=False), 0.0)
@@ -251,8 +452,16 @@ def hammer(fight, player, command, script):
     x, y, z = player.mover.position
     origin = (x, y + 1.2, z)
     centre = combat._along(origin, combat.aim(*command.aim()), 1.5)
+    fight.barriers.melee(player, centre, 1.0, amount, contacted=contacts.barrier_hit)
+    fight.orisa_barriers.melee(player, centre, 1.0, amount, contacted=contacts.barrier_hit)
+    fight.sigma_barriers.melee(player, centre, 1.0, amount, contacted=contacts.barrier_hit)
+    fight.symmetra_barriers.melee(player, centre, 1.0, amount, contacted=contacts.barrier_hit)
+    fight.steel_traps.melee(player, origin, centre, 1.0, amount, contacted=contacts.barrier_hit)
+    contacts.hit.update(fight.bubbles.area(player, centre, 1.0, amount, contacted=contacts.barrier_hit))
     view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
     for target in fight._enemies(player):
+        if target.entity in contacts.hit:
+            continue
         shown = fight.seen(target, view_tick)
         if shown is None:
             continue
@@ -267,5 +476,17 @@ def hammer(fight, player, command, script):
             wall = combat.ray_world(fight._collision(), origin, direction, distance)
             if wall is not None and wall < distance - shown.radius:
                 continue
-        fight._damage(player, target, amount, False, loadout, command.frame)
-    repair_turret(fight, player, centre, 1.0)
+        contacts.hit.add(target.entity)
+        if not projectile_defenses.blocks_torbjorn_melee(player, target, state, modify):
+            fight._damage(player, target, amount, False, loadout, command.frame)
+    # RepairTrack33 has an independent owner-centred sphere, rather than the
+    # forward damage sphere of Track11. Its filter accepts only bound actor679.
+    repair_track = instance.graph.node(33)
+    offset = swing.evaluate(repair_track.field("m_05BE62DD"), watch=False)
+    radius = combat._number(swing.evaluate(repair_track.field("m_radius"), watch=False), 0.0)
+    turret = fight.turrets.get(player.entity)
+    if (isinstance(offset, expr.Vec3) and radius > 0.0 and turret is not None
+            and turret.actor.entity not in contacts.repaired):
+        repaired = repair_turret(fight, player, (x + offset.x, y + offset.y, z + offset.z), radius)
+        if repaired is not None:
+            contacts.repaired.add(repaired)

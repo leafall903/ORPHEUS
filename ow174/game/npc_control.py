@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat, npc
+from ow174.game import assassin, bots, combat, npc
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -70,6 +70,7 @@ def stop(match):
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
@@ -98,10 +99,12 @@ def update_input(fight, bot):
     if enabled:
         eye = bot.combat_geometry[2] if bot.combat_geometry else combat.EYE
         origin = (bot.position[0], bot.position[1] + eye, bot.position[2])
-        point = (body.feet[0], body.feet[1] + body.height * 0.5, body.feet[2])
+        point = (fight._eye(target) if bot.hero == assassin.HERO else
+                 (body.feet[0], body.feet[1] + body.height * 0.5, body.feet[2]))
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -109,6 +112,14 @@ def update_input(fight, bot):
             npc.aim_at(fight.match, bot, point)
     value = button(bot)
     component = bot.body_script.component
+    desired = target.body if enabled else None
+    if bot.hero == assassin.HERO and component.world.manual_target != desired:
+        if component.world.manual_target is not None and desired is not None:
+            # Let the old input release reach the graph before pressing for a new body.
+            enabled = False
+            desired = None
+        assassin.bind(component.world, component, desired)
+        bot.attack_input = False
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

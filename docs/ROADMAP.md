@@ -19,21 +19,52 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   health damage in server tests. Authored rivet gravity now uses a documented
   fixed-step ballistic reconstruction. Ten-pellet ring launches now cause actual
   per-pellet damage/ammo use with explicit reconstructed spread; native phase/
-  jitter/flight parity and other-owner repair remain open. Hammer55 damage now uses an
+  jitter/flight parity remain open. Hammer55 damage now uses an
   authored-duration/threshold reconstruction with hit/miss/LOS/team/cancel tests.
   Overload grants100 temporary armour with expiry/death cleanup and spam-proof
-  cooldown evidence. Actual30percent movement increase,0.42/0.56s fire intervals
+  cooldown evidence. Rejected Ability input now retains its original timestamp
+  rather than refreshing indefinitely. Actual Overload early-release expiry,
+  near-expiry0.15s buffering,held-until-ready and fresh-after-ready inputs pass;
+  the previous method reproduced an automatic recast9.856s after release.
+  The private shared runtime also reproduces and fixes canceled notification
+  markers persisting through state reentry;825script checks pass. Cleanup precedes
+  arbitration-link release under an explicit server reconstruction. Repeated
+  hammer background refill/rivet reselect/fire has a dedicated actual-input guard.
+  All122selected Torbjorn/VM methods pass after that shared lifecycle fix.
+  Actual30percent movement increase,0.42/0.56s fire intervals
   and1.4s reload under Overload restore ordinary values after expiry. Actual18-round
   clip exhaustion/automatic reload,manual refill/fire readiness,holster cancellation
-  and2s hammer-equipped background reload pass; partial-ammo semantics remain open.
+  and2s hammer-equipped background reload pass. A native-backed first-dispatch
+  fix permits full secondary volleys from1round against player/all five NPCs;
+  broader resource/interrupt/protection semantics remain open.
   A prepared-data
   turret reconstructs persistent build/fire/repair/ownership/destruction with
-  player/five-NPC damage and5/10second cooldown evidence. Native firing effects,
-  combat redeploy lock, dismantle input, placement/scoring policies,
+  player/five-NPC damage and5/10second cooldown evidence. Native firing/observer
+  effects and placement/scoring policies remain open.
+  Primary030E now runs16FC's0.5s tag states on actual player/five-NPC victims;
+  an explicit per-owner priority host redirects real turret damage and falls
+  back after expiry. Native tag sharing/acquisition/FX remain open. Hammer
+  repair follows the native owner-only679 filter and its separate sphere;
+  another allied turret stays unchanged. Overload now selects its authored
+  earlier0.30 hammer threshold, with actual damage/repair timing checks.
+  Its authored0.2s contact interval now accepts late/moving targets and aim
+  changes,with one contact per target per swing,release commitment and scoped
+  interruption cleanup.Timing is frozen at swing start across Overload expiry.
+  Actual interact dismantle,combat redeploy denial/recovery,respawn binding and
+  same-world-tick lethal-input cooldown checks pass under an explicit owned-actor
+  control host; strict native namespace/kill services remain unaccepted.
   Molten Core now hosts actual16DD/16DE area/status graphs with reconstructed
   contact and periodic damage, including player/five-NPC hits, armour-only bonus,
-  overlap suppression, lifetime and cleanup evidence. Ultimate resources/end,
-  surfaces/bounce, cross-owner arbitration, cross-hero protections and
+  overlap suppression, lifetime and cleanup evidence. Actual ultimate release/
+  repress keeps a ten-globule budget,Q edges cannot extend timed end,and death
+  denies future launches while a landed pool continues damage. Ultimate charge
+  generation now uses actual0B8B's5point/second timer and damage012 event:
+  primary/secondary/melee/hammer and turret loss charge the owner;ultimate tags,
+  deployable/repair/friendly/missed/incoming damage do not. Cost2142,multipliers,
+  caps,permission/disable gates and automatic-respawn retention have evidence.
+  Native pre-round/game-state gating,special pool deductions and full charge
+  tag taxonomy remain open under the explicit permissive host.
+  Surfaces/bounce, cross-owner arbitration, cross-hero protections and
   original-client acceptance remain open. See [Torbjorn combat](TORBJORN_COMBAT.txt).
   Actual five-NPC fixtures cover four outgoing attacks, basic incoming identity/
   pool/death semantics, a manually aimed Heavy Assault volley and corpse retention.
@@ -45,6 +76,29 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   broader controls, immunity/cleansing and original-client effects remain open.
   Complete NPC attack execution/AI, conditional difficulty pools and protection/
   ability interactions remain open; these fixtures use permissive VM and adapters.
+  Parent-authored five-NPC movers now supply distinct height/radius/speed for
+  revalidation. Assassin eye-height misses are corrected by body-centre aim;
+  hammer boundary and floor-backed open/wall controls pass for each body.
+  Selected Wraith/Fade/Cryo interactions now use live authored phase stacks:
+  ghost pass-through versus solid immunity,damage/status/charge denial,turret/
+  burn/mark handling,end recovery and reverse melee checks.Phase engine tags,
+  full AI targeting/filter policy and remaining protections are still open.
+  Live Genji/Sigma projectile gates now use authored boxes and explicit known
+  tags for actual rivets,full secondary,Molten and turret hitscan. Tests cover
+  reflected ownership/teams,five-NPC return hits,new-owner pool burns,expiry,
+  nearer walls/bodies,full pitch and nonexplosive prediction retirement.
+  Reflection preserves remaining flight/gravity/landing metadata and consumes
+  the retained interval after the gate. Actual2931turret throws remain excluded
+  by145 and keep their owner. DVa Matrix,Genji melee blocking and complete
+  protective interactions remain open;this does not close the checklist.
+  Follow-up restores Genji reflected-damage charge through actual0B8B,including
+  actual-loss/overkill/cap/modifier/gate tests and retained Molten ultimate tags.
+  Sigma absorption now feeds21312and hosts the authored self shield request:
+  60percent,400cap,3s grace,5/s decay,nonrecoverable extra pool,death/replacement
+  cleanup,idempotent requests and cooldown/recast checks. Native special-pool
+  charge deductions remain open. Cached tag/host policy and view maps now join
+  replay identity. Torbjorn's authored1.0/.7m standing/crouched launch/target
+  origins and participating peers' view heights have low-cover/hit evidence.
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
@@ -87,3 +141,122 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+- Torbjorn private lane follow-up: no-decay239B normalized spread and causal ramp
+  snapshot imported;manual Enforcer13EB controller and Assassin1157 pin inputs
+  execute. Actual pin/hammer recovery found and fixed equal-null stack topology
+  notifications. Targeted19 cases pass,including preserved cadence,buff/ultimate recovery and snapshots. Full
+  regression records remain external. Remaining NPC weapon-range/observer combinations,
+  remaining controls/protections/modifiers and parent Fan spread review are
+  still open;full hero/client acceptance remains unchecked.
+
+- Torbjorn lane verified front-facing Genji melee blocks and real Matrix input
+  on an authored possessed-mech fixture. Eight Matrix methods cover eligible
+  and excluded projectiles, melee, facing, teams, cover, depletion and recovery.
+  Physical barriers, projected bubbles and remaining interaction cases stay open.
+
+- Torbjorn lane verified Mei spray piercing, slow, freeze, shield cover
+  and thaw. Blizzard now has actual cast, area freeze and projectile
+  defense evidence. Other recipients and native presentation remain open.
+
+- Torbjorn lane verified Orisa Halt's two presses, pull speed and stopping
+  point, cooldown, and frontal Defense Matrix and Kinetic Grasp interception.
+  Deflect now has a server test for ownership, automatic wall detonation and
+  enemy selection. Native target queries and reflected presentation stay open.
+
+- Torbjorn lane verified temporary armor loss from four real Talon ranged
+  attacks during Overload, alongside the Assassin pin regression. Sustained
+  Trooper and Enforcer fire verifies expiry with temporary armor remaining.
+  Sustained Trooper fire also crosses both armor pools into base health.
+
+- Torbjorn lane verified four Talon weapons' 100 m reach independently of
+  manual selection, plus Enforcer damage at near, midpoint and floor range.
+
+- Torbjorn lane verified launched Molten Core pools against all five Talon
+  bodies, including direct hits, range, team and wall filtering, and burn
+  re-entry. Pools from separate casters settle and retire independently.
+  Lethal overlap credits the killing caster and clears both burns.
+  Direct globule tests distinguish body impact from a vertical wall impact.
+
+- Torbjorn lane verified that thrown turrets reject allied, distant and
+  covered Talon bodies and resume fire when an enemy returns to view.
+  Actual fire from the four ranged NPCs also verifies destruction and
+  redeploy cooldown recovery. An active turret can kill an Assassin and
+  release its pinned owner.
+  In a full-health exchange the Heavy Assault destroys the turret,
+  while the turret defeats Trooper, Enforcer and Sniper in the test setup.
+  Hammer repair can restore turret health during Heavy Assault fire.
+  Flashbang cancels a pending repair. A fresh swing after recovery repairs
+  the same turret.
+  Repair contact also has tests on both sides of the capsule boundary
+  and for cover clearing during or after the active swing.
+
+- Torbjorn lane verified that marks on all five NPCs preserve the target
+  tag through cover, regain turret priority when clear and expire normally.
+  Two allied Torbjorns also retain independent turret priority and expiry
+  when both mark the same target.
+  Personal and projected Zarya barriers consume rivets without creating
+  a mark. A fresh body hit after expiry restores turret priority.
+  Both barriers absorb turret fire while an existing mark runs to expiry.
+  Reflected rivets damage Torbjorn without creating a turret mark.
+  Kinetic Grasp also denies the mark while converting the absorbed damage.
+  Defense Matrix denies new marks and consumes turret shots while an
+  existing mark expires on schedule.
+  Owner death preserves turret priority from existing and in-flight rivets
+  until their marks expire.
+  Switching away from Torbjorn clears turret and mark state immediately.
+
+- Torbjorn lane verified Ana grenade anti-heal against Soldier's Biotic
+  Field, including skipped expiry ticks, plus Overload and turret repair.
+
+- Torbjorn lane verified Ana Sleep Dart damage and control, rifle wake,
+  shield cover and Molten firing recovery. The wake thresholds use a
+  declared server reconstruction.
+
+- Torbjorn lane verified Sombra Hack input restrictions, return-fire
+  interruption and fresh-input recovery. The EMP body effect now passes
+  multi-target, cover and shared silence lifetime checks. EMP shield drain,
+  deployable effects and further controls stay open.
+
+- Torbjorn lane verified landed Molten cover across Winston's shell in
+  both directions and across Orisa's grounded mesh. Actual globule break
+  exposes a target to the existing pool. Native surface and receiver
+  policy and other shield placements remain open.
+
+- Torbjorn lane verified that layered deployed meshes and world spheres
+  keep their cover for a single Flashbang event when its front shield breaks.
+  Native blast penetration and landed Molten across shields remain open.
+
+- Torbjorn lane verified Sigma Experimental Barrier movement, damage,
+  recall, break and delayed repair. Native collision, mixed area effects
+  and original-client presentation remain open.
+
+- Torbjorn lane verified Orisa's deployed barrier against rivets, pellets,
+  turret fire, melee, Molten globules and Flashbang. The static host runs
+  the authored pool and expiry graph. Native flight, filter and presentation
+  parity remain open.
+
+- Torbjorn lane verified Winston's Barrier Projector against rivets, pellets,
+  turret fire, melee, Molten Core and Flashbang. The authored cast and timer
+  drive a fixed server shell. Native collision filters, other physical
+  barrier families and client replication remain open.
+
+- Torbjorn lane verified Zarya personal and projected barriers with actual
+  input, absorbed damage credited to the caster, and break and expiry.
+  The server reconstructs target selection and spherical contact. Native
+  target selection, replication and remaining protective combinations stay open.
+
+- Torbjorn lane verified authored Reinhardt shield hits, break and recovery,
+  melee contact, allied and wall ordering, and Flashbang splash protection.
+  Other physical barriers, projected bubbles, native rebound and remaining
+  interaction rows stay active.
+
+- Torbjorn lane verified static Transcendence immunity, ally healing after
+  NPC attack settlement, Ana antiheal expiry and Winston shell admission.
+  Actual Sleep Dart interrupts all five manual Talon NPC attacks, including
+  an active Assassin pin. Natural expiry and rivet damage both recover NPC
+  input. Full static coverage and original-client verification remain open.
+
+- Torbjorn lane added static Chain Hook and Steel Trap execution.
+  The focused source run passed. Full discovery and remaining static
+  interactions are open, with original-client acceptance tracked separately.

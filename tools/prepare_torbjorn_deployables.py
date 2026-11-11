@@ -56,6 +56,8 @@ def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path, status_xml:
                                if extract.tag(node) == "STU_50BA775C" and node.get("m_height") is not None)
     status_guid = None
     status_graph = None
+    mark_guid = None
+    mark_root = None
     if status_xml is not None:
         pool_graph = records[0x16DD]
         apply = next(node for node in pool_graph["nodes"] if node["class"] == "STU_431F3FCC")
@@ -67,6 +69,16 @@ def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path, status_xml:
         data.setdefault("status_effects", {})[status_guid] = xml.value(xml.root)
         status_graph = extract.guid_index(xml.field(xml.root, "m_14AA219A").get("GUID"))
         pending.append(status_graph)
+        sources[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        primary = next(node for node in records[0x1683]["nodes"] if node["state"] == 10)
+        mark_guid = primary["fields"]["m_6396149F"]["m_modifyHealth"]["m_277A4ECA"]["m_A76A8CF6"]
+        guid = int(mark_guid, 16)
+        kind = int(f"{guid >> 48:012b}"[::-1], 2) + 1
+        path = status_xml / f"{guid & 0xFFFFFFFFFFFF:012X}.{kind:03X}.xml"
+        xml = extract.StuXml(path, enums)
+        data["status_effects"][mark_guid] = xml.value(xml.root)
+        mark_root = extract.guid_index(xml.field(xml.root, "m_5A4051BC").get("GUID"))
+        pending.append(mark_root)
         sources[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
     seen = set(records)
     while pending:
@@ -113,8 +125,22 @@ def prepare(base: Path, xml_folder: Path, owlib: Path, output: Path, status_xml:
             "base_dps": first["fields"]["m_modifyHealth"]["m_amount"]["m_value"],
             "armour_bonus_dps": bonus["fields"]["m_modifyHealth"]["m_amount"]["m_value"],
             "loadout": first["fields"]["m_modifyHealth"]["m_loadout"]["m_loadout"],
-            "reconstruction": ("flat cylinder;armour-only rate bonus;per-owner overlap suppression;"
+            "reconstruction": ("horizontal radius and height relative to the struck surface;"
+                               "armour-only rate bonus;per-owner overlap suppression;"
                                "native status services incomplete")}
+    if mark_root is not None:
+        play = next(node for node in records[mark_root]["nodes"]
+                    if node["class"] == "STUStatescriptActionPlayScript")
+        mark_graph = extract.guid_index(play["fields"]["m_script"]["m_graph"]) & 0xFFFFFFFFFFFF
+        mark_nodes = records[mark_graph]["nodes"]
+        wait = next(node for node in mark_nodes if node["class"] == "STUStatescriptStateWait")
+        tag = next(node for node in mark_nodes if node["class"] == "STU_E56BA8D8")
+        catalog["primary_mark"] = {
+            "effect": mark_guid, "root_graph": mark_root, "graph": mark_graph,
+            "lifetime_seconds": wait["fields"]["m_timeout"]["m_value"],
+            "wait_state": wait["state"], "tag_state": tag["state"],
+            "tag": tag["fields"]["m_targetTags"]["m_7D7C86A1"],
+            "reconstruction": "direct invocation;per-owner latest-hit priority;eligible targets only"}
     data["deployables"] = catalog
     data["graphs"] = [records[index] for index in sorted(records)]
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +159,7 @@ def main():
     parser.add_argument("--xml", type=Path, required=True)
     parser.add_argument("--owlib", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--status-xml", type=Path, help="external053 XML directory for Molten Core status")
+    parser.add_argument("--status-xml", type=Path, help="external053 XML for Molten Core and primary marking")
     args = parser.parse_args()
     report = prepare(args.base, args.xml, args.owlib, args.output, args.status_xml)
     args.output.with_suffix(".provenance.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

@@ -488,6 +488,19 @@ class Mover:
         self.spring_low = f32(-lowest)
         self.spring_high = f32(2.0 * data.step_down)
 
+    def impulse(self, velocity: tuple) -> None:
+        """Reconstructed external velocity addition; positive lift starts an airborne pose.
+
+        This hosts resource-backed combat impulses, not the native force/resistance service.
+        Keep the existing upward speed when it exceeds the requested lift.
+        """
+        dx, lift, dz = velocity
+        vx, vy, vz = self.velocity
+        self.velocity = (vx + dx, max(vy, lift), vz + dz)
+        if lift > 0:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+
     def use(self, data: MoverData | None = None, world: World | None = None) -> None:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
         if data is not None and data is not self.data:
@@ -622,7 +635,7 @@ class Mover:
 
     def step_pose(
         self, command: Command, seconds: float, tick: int,
-        *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        *, move_to: tuple[tuple[float, float, float], float] | None = None, speed_scale: float = 1.0,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -633,6 +646,9 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        if speed_scale != 1.0:
+            active.append(Mod(0, 1, speed_scale, frame, priority=99))
+            active.sort(key=Mod.order)
         self.values = data = modded(self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)

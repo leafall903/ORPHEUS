@@ -86,6 +86,10 @@ def _graphs(script) -> dict:
 
 def full_frame(script, snap: Snapshot):
     graphs = _graphs(script)
+    # A retained live baseline can include graphs already retired from the component.
+    for item, (graph_index, _) in snap.instances.items():
+        if item not in graphs:
+            graphs[item] = graph.graph(graph_index)
     wires = {
         item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
     }

@@ -81,6 +81,23 @@ class ServerSnapshotTests(unittest.TestCase):
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
 
+    def test_rifle_wound_clock_changes_snapshot_without_advancing_combat(self):
+        session, _, (source, victim) = self.scene(two=True)
+        fight = source.match.combat
+        target = next(target for target in fight._targets() if target.owner is victim)
+        hp = fight.vitals_of(target)
+        initial = snapshot_digest(self.capture(session))
+        fight.rifle_wounds.apply(source, target, 70, fight.tick)
+        wound, = fight.rifle_wounds.active
+        active = snapshot_digest(self.capture(session))
+        self.assertNotEqual(active, initial)
+        self.assertEqual(active, snapshot_digest(self.capture(session)))
+        wound.last_ms += 16
+        self.assertNotEqual(active, snapshot_digest(self.capture(session)))
+        self.assertEqual(hp.total, hp.maximum)
+        fight.rifle_wounds.retire(source.body)
+        self.assertEqual(initial, snapshot_digest(self.capture(session)))
+
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()
         player = players[0]

@@ -204,6 +204,17 @@ class ReplayManifestTests(unittest.TestCase):
             self.capture(dependencies=None)
         version.assert_called_once_with("cryptography")
 
+    def test_runtime_graph_bundle_identity_tracks_effective_data(self):
+        from ow174.game.script import graph
+
+        with mock.patch.object(graph, "_data", return_value={"graphs": [{"index": 0x09BC, "nodes": []}]}):
+            initial = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        with mock.patch.object(graph, "_data", return_value={"graphs": [{"index": 0x09BC, "nodes": [{"pos": 6}]}]}):
+            updated = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        differences = manifest.compare_manifests(
+            self.capture(configuration=initial), self.capture(configuration=updated))
+        self.assertEqual(differences, [{"path": "configuration/input.graph_bundle.sha256", "kind": "changed"}])
+
     def test_live_configuration_captures_both_quanta_limits_and_mutable_knobs(self):
         with mock.patch("ow174.game.server.GameServer", side_effect=AssertionError("must not construct")):
             config = manifest.runtime_configuration(quanta_us=16000, run_options={"mode": "controlled"})

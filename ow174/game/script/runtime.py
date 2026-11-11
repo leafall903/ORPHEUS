@@ -278,12 +278,17 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def ruleset_key(self, cfg):
+        key = self.instance.component.world.ruleset_key(cfg, self.instance)
+        return super().ruleset_key(cfg) if key is None else key
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            topology = self.instance.component.world.stack_topology_queries(self.instance)
+            self.watcher.watch(target, topology=topology)
         return would_stack_to_top(target, priority)
 
     def poll_native(self, cfg: dict):
@@ -375,6 +380,9 @@ class World:
 
         return rulesets.default(key, self.hero, self.mode)
 
+    def ruleset_key(self, cfg, instance):
+        return None
+
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
             variables = mode_variables(self.mode)
@@ -391,6 +399,22 @@ class World:
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def stack_topology_queries(self, instance: "Instance") -> bool:
+        """Explicit compatibility scope; native notification routing is unproved."""
+        return False
+
+    def track_body_ray(self, state: "State"):
+        return NotImplemented
+
+    def track_targets(self, state: "State"):
+        return NotImplemented
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -487,6 +511,12 @@ class World:
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def destroy_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def create_world_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -650,7 +680,7 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, topology=False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
         changed = not expr.same(before, after)
@@ -668,9 +698,9 @@ class Component:
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (topology and state.watched.get(var)):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -993,8 +1023,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, topology=False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, topology=topology)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1415,7 +1445,7 @@ class State:
         self.start = 0
         self.ended_at = 0
         self.ticked_at = None
-        self.watched: dict[Var, None] = {}
+        self.watched: dict[Var, bool | None] = {}
         self.flags_changed = False
         self.flags_check = False
         self.polled = False
@@ -1445,6 +1475,10 @@ class State:
 
     def plug_enter(self, input_path: str) -> bool:
         """A link enters the state (base 0x7FF78AA83D80): the abort plug asks for an abort, others a begin."""
+        if (self.instance.graph.index, self.node.pos, input_path) == (0x156B, 57, "m_6647ED22"):
+            confirm = getattr(self.instance.component.world, "confirm_photon_barrier", None)
+            if confirm is not None and confirm(self):
+                return True
         if input_path == ABORT_PLUG:
             self.request(ABORT)
         else:
@@ -1471,6 +1505,8 @@ class State:
         self.ticked_at = self.now
         self.on_begin()
         self.on_enter()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.create_world_entity(self.instance, self.node)
         if not self.active:
             return
         self.instance.follow(self.node, "m_onBeginPlug", self)
@@ -1485,8 +1521,12 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These coalescing bits describe the events that cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.destroy_entity(self.instance, self.node)
         self.on_cleanup()
         self.unwatch()
         self.polled = False
@@ -1517,10 +1557,11 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, topology=False) -> None:
         if self.active and not self.ending:
             var.watchers[self] = None
-            self.watched[var] = None
+            # Stack predicates depend on links even when the resulting value stays equal.
+            self.watched[var] = True if topology else self.watched.get(var)
 
     def unwatch(self) -> None:
         for var in self.watched:
@@ -1629,7 +1670,7 @@ class State:
         if bake:
             var.base = self.output(0)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, topology=True)
         for state in var.stack_states():
             state.stack_changed(var)
 

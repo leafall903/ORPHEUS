@@ -1,7 +1,7 @@
 """104319 Molten Core area host with explicitly reconstructed contact/rate policy.
 
 16DD runs its authored preparation/lifetime/FX states;030C.053 resolves16DE.
-The flat contact volume, armour-only bonus and same-owner overlap policy are
+The ground contact volume, armour-only bonus and same-owner overlap policy are
 reconstructed. Native status arbitration, surfaces and protection services remain
 separate acceptance requirements.
 """
@@ -10,7 +10,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import observers, projectiles, world
+from ow174.game import fortify, observers, phase_defenses, projectiles, world
 from ow174.game.script import expr, graph, runtime, scopes
 from ow174.game.script.bot import BotScript
 from ow174.game.statescript import Stream
@@ -19,6 +19,8 @@ HERO = 0x02E0000000000006
 POOL = 0x0400000000002903
 LANDED = 0x024000000000003F
 STATUS_START = 0x024000000000000F
+GROUND_NORMAL = .707
+NORMAL_RESTITUTION = .5  # static approximation of the native rebound response
 log = logging.getLogger("ow174.game")
 
 
@@ -33,6 +35,7 @@ class Pool:
     instance: int
     born: float
     last_update: float
+    ground_normal: tuple[float, float, float] = (0.0, 1.0, 0.0)
     arrivals: dict = field(default_factory=dict)
     phase: int = -1
     targets: tuple = ()
@@ -70,7 +73,7 @@ class Burn:
     scope_entered: bool = False
 
 
-def create_pool(fight, owner, position):
+def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0)):
     cfg = (graph._data().get("deployables") or {}).get("molten_core")
     if not isinstance(cfg, dict) or graph.graph(cfg["status_graph"]) is None:
         raise ValueError("Molten Core requires the explicit prepared053 status bundle")
@@ -90,7 +93,7 @@ def create_pool(fight, owner, position):
     script._produced = script.latest_live
     script._initial_frame = None
     pool = Pool(owner, owner.hero.guid, entity, position, dict(cfg), script, instance.id,
-                fight.now, fight.now)
+                fight.now, fight.now, ground_normal=ground_normal)
     fight.molten_pools[entity] = pool
     _deliver(fight, pool)
     return pool
@@ -122,9 +125,36 @@ def end_pool(fight, pool):
         pool.script.component.destroy(instance)
 
 
-def projectile_impact(fight, rocket, point, struck):
+def retire_owner(fight, owner):
+    """Retire the departing hero's areas and their ability to create new pools."""
+    for pool in tuple(fight.molten_pools.values()):
+        if pool.owner is owner:
+            end_pool(fight, pool)
+    for key, burn in tuple(fight.molten_burns.items()):
+        if burn.owner is owner:
+            _remove_burn(fight, key)
+    for rocket in fight.rockets:
+        if rocket.shooter is owner and rocket.shot is None and rocket.spawn == POOL:
+            rocket.spawn = None
+
+
+def rebound(rocket, point, normal, *, normal_scale=NORMAL_RESTITUTION, tangent_scale=1.0):
+    """Scale the tangential velocity and reflect the normal component at a surface."""
+    velocity = [axis * rocket.speed for axis in rocket.direction]
+    velocity[1] -= rocket.gravity * (rocket.flown - rocket.segment_start)
+    normal_speed = sum(v * n for v, n in zip(velocity, normal, strict=True))
+    outgoing = tuple(tangent_scale * v - (tangent_scale + normal_scale) * normal_speed * n
+                     for v, n in zip(velocity, normal, strict=True))
+    rocket.speed = math.hypot(*outgoing)
+    if rocket.speed:
+        rocket.direction = tuple(axis / rocket.speed for axis in outgoing)
+    rocket.position = tuple(p + n * .0001 for p, n in zip(point, normal, strict=True))
+    rocket.segment_start = rocket.flown
+
+
+def projectile_impact(fight, rocket, surface, struck):
     spawn = rocket.spawn if rocket.spawn is not None else getattr(rocket.shot, "spawn", None)
-    if spawn != POOL or struck is not None:
+    if spawn != POOL or struck is not None or surface is None or surface.normal[1] < GROUND_NORMAL:
         return
     cfg = (graph._data().get("deployables") or {}).get("molten_core")
     if not isinstance(cfg, dict):
@@ -132,19 +162,21 @@ def projectile_impact(fight, rocket, point, struck):
         return
     if rocket.shooter.gone or rocket.shooter not in fight.match.players:
         return
-    hit = fight._collision().cast_ray((point[0], point[1] + 0.05, point[2]), (0.0, -1.0, 0.0), 0.1)
-    if hit is not None and abs(hit.normal[1]) >= 0.707:
-        create_pool(fight, rocket.shooter, hit.point)
+    create_pool(fight, rocket.shooter, surface.point, ground_normal=surface.normal)
 
 
 def _contact(fight, pool, target):
     from ow174.game import combat
 
+    if phase_defenses.phase(target.owner)[0]:
+        return False
     x, y, z = pool.position
     tx, ty, tz = target.feet
-    # A source-derived1m shallow cylinder is a reconstruction of16DD's more
-    # complex surface/normal/target filters, not native aerial/platform parity.
-    if not -0.05 <= ty - y <= pool.config["height"]:
+    # Keep the authored height above the struck surface. The horizontal radius
+    # and straight ground visibility remain a reconstruction of 16DD.
+    nx, ny, nz = pool.ground_normal
+    surface_y = y - (nx * (tx - x) + nz * (tz - z)) / ny
+    if not -0.05 <= ty - surface_y <= pool.config["height"]:
         return False
     if math.hypot(tx - x, tz - z) - target.radius > pool.config["radius"]:
         return False
@@ -153,8 +185,16 @@ def _contact(fight, pool, target):
     distance = math.sqrt(combat._dot(delta, delta))
     if distance <= combat.EPSILON:
         return True
-    wall = combat.ray_world(fight._collision(), origin, tuple(axis / distance for axis in delta), distance)
-    return wall is None or wall >= distance - target.radius
+    direction = tuple(axis / distance for axis in delta)
+    reach = distance - target.radius
+    if reach <= combat.EPSILON:
+        return True
+    wall = combat.ray_world(fight._collision(), origin, direction, reach)
+    if wall is not None and wall < reach:
+        return False
+    # World cover can cut off the shallow ground path. An attached barrier
+    # instead absorbs the protected body's burn interval during settlement.
+    return fight._shield_trace(pool.owner, origin, direction, reach, include_attached=False) is None
 
 
 def _ensure_burn(fight, owner, target, cfg):
@@ -205,6 +245,10 @@ def _damage_duration(fight, owner, target, cfg, duration):
     from ow174.game import combat
 
     vitals = fight.vitals_of(target)
+    defense = fortify.state_for(target.owner)
+    scale = fight.superchargers.scale(owner)
+    if defense is not None:
+        scale *= fortify.damage_scale(defense)
     left = duration
     # Split at actual pool boundaries: bonus damage never leaks into ordinary
     # health or shields when the last armour fraction expires inside a tick.
@@ -218,9 +262,11 @@ def _damage_duration(fight, owner, target, cfg, duration):
         else:
             available, armour = vitals.now[world.HEALTH_POOL], False
         rate = cfg["base_dps"] + (cfg["armour_bonus_dps"] if armour else 0.0)
-        if available <= combat.EPSILON or rate <= 0:
+        effective_rate = rate * scale
+        if available <= combat.EPSILON or effective_rate <= 0:
             break
-        step = min(left, available / rate)
+        # Combat applies the scale to damage. Use it here only to time pool exhaustion.
+        step = min(left, available / effective_rate)
         fight._damage(owner, target, rate * step, False, int(cfg["loadout"], 16), fight.tick,
                       world_tick=fight.tick, armour_reduction=False)
         left -= step
@@ -244,6 +290,10 @@ def update(fight):
         start, end = max(pool.last_update, armed), min(fight.now, expires)
         was_active = pool.phase == 1
         active = state is not None and state.active
+        # The VM can end its scope a tick before the continuous damage deadline.
+        # Preserve contact until the final fractional interval has been settled.
+        if was_active and expires <= fight.now + combat.TICK + combat.EPSILON:
+            active = True
         phase = 1 if active and fight.now < expires else 0
         if phase != pool.phase:
             pool.phase = phase
@@ -271,8 +321,9 @@ def update(fight):
         if key not in contacts:
             _remove_burn(fight, key)
     for key, (owner, target, cfg, intervals) in contacts.items():
-        burn = _ensure_burn(fight, owner, target, cfg)
-        _activate_burn_scope(burn)
+        # An earlier caster can kill a target after the contact list was built.
+        if fight.vitals_of(target).dead:
+            continue
         merged = []
         for start, end in sorted(intervals):
             if merged and start <= merged[-1][1]:
@@ -280,7 +331,20 @@ def update(fight):
             else:
                 merged.append((start, end))
         duration = sum(end - start for start, end in merged)
+        bubble = fight.bubbles.for_target(target.owner)
+        if bubble is not None:
+            if key in fight.molten_burns:
+                _remove_burn(fight, key)
+            fight._shield_damage(owner, bubble, cfg["base_dps"] * duration)
+            continue
+        burn = _ensure_burn(fight, owner, target, cfg)
+        _activate_burn_scope(burn)
         _damage_duration(fight, owner, target, cfg, duration)
+        if fight.vitals_of(target).dead:
+            for burn_key in tuple(fight.molten_burns):
+                if burn_key[1] == target.entity:
+                    _remove_burn(fight, burn_key)
+            continue
         if burn is not None:
             burn.duration += duration
             if isinstance(target.owner, bots.Bot) and not target.owner.firing and not target.owner.dead:
@@ -296,5 +360,5 @@ def update(fight):
                             viewer.client.queue_bot_live(target.entity, snapshot)
         still_contact = any(p.owner is owner and target.entity in p.targets
                             for p in fight.molten_pools.values())
-        if (fight.vitals_of(target).dead or not still_contact) and key in fight.molten_burns:
+        if not still_contact and key in fight.molten_burns:
             _remove_burn(fight, key)

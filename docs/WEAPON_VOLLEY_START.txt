@@ -1,0 +1,52 @@
+Weapon-volley initial dispatch, target104319
+==========================================
+
+Defect
+------
+Torbjorn can naturally reach1round after17primary launches. Secondary costs2.
+The previous report loop used floor(ammo/cost) as its total count, so emitted
+nothing at1round. The volley nevertheless consumed that round through its
+authored ammo output. Actual input therefore lost ammo without a projectile.
+
+Native evidence
+---------------
+Read-only existing104319 capture SHA256:
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2
+No live client was launched and no captured image is added to source.
+
+D60F03..D60F71 tests State40 bit0 and the incoming firing counter. Its new-start
+path sets byte2CB at D60F2F, calls1B70790/1B70480, then clears the byte at D60F4D.
+State40 bit0 is the native on/off bit, also established by ENTITY_CONTROL_STATE.
+
+AE5EEF..AE6007 divides stored ammo284 by per-shot cost288. The normal loop tests
+next-shot time278 and current count270 against this integer quotient. At
+AE5F37/AE5F39 the byte2CB value permits an initial dispatch even when those tests
+would otherwise reject it. Both shot-call branches clear their local first-shot
+flag before returning to the loop. The quotient still limits later shots.
+
+The Python report now preserves that first dispatch for a new activation. Its
+existing reported counter prevents duplicate reports; owner death still refuses
+reports, and the authored weapon graph owns empty-magazine eligibility. The
+integer planning/timer rules and replicated VM layout are unchanged. This is a
+fix to a missing initial shot, not a replacement ammo-capacity or damage formula.
+
+Verification
+------------
+The lane-only probe executes the original AE5EEF..AE6007 instruction slice in
+Unicorn with192 cases: ammo0/1/2/3/4/18, cost0/1/2/3, elapsed0/50/100/200ms and initial
+dispatch flag off/on. All native results match the expected branch behavior.
+The96 flag-on cases also match actual Python WeaponVolley.report, including
+repeated-report idempotence. The virtual shot service is an explicit adapter:
+it increments count and sets the next time to100ms per shot. Geometry, damage,
+timer generation and full activation/engine services are not emulated by it.
+
+Actual combat tests spend17rounds through primary commands, release, then fire
+secondary at the remaining round. All ten pellets are produced and deal125 to
+an enemy player and to each actual Trooper, Enforcer, Sniper, Assassin and Heavy
+body. Ammo reaches0 and subsequent empty input cannot launch another volley.
+This closes the previous one-round secondary defect at the static combat layer.
+The NPC fixtures retain their permissive-VM/observer-transport limitations.
+
+Commands and external native probe provenance are recorded by the lane's
+MERGE_READY.json. Native projectile spread/pose, protections/status interactions,
+full hero matrix and original-client acceptance remain separate open work.

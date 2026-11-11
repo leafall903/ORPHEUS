@@ -1,6 +1,6 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+from ow174.game import observers, orisa_halt, orisa_supercharger
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -31,12 +31,18 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +50,15 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_context
+
+        value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = orisa_halt.recipient_position(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -72,12 +87,31 @@ class BotWorld(runtime.World):
         return super().native(cfg, instance)
 
 
+    def play_compatible_script(self, instance, node):
+        from ow174.game import sombra_control
+
+        if instance.graph.index != sombra_control.EMP_CHILD:
+            return False
+        return sombra_control.application(self, instance, node)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin
+
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
+
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +120,7 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -106,7 +140,8 @@ class BotScript(ReplicatedBody):
         self.death_frame: int | None = None
         self._produced = snapshot
 
-    def _initial_payload(self) -> BitWriter:
+    def initial_payload(self) -> BitWriter:
+        """Freeze the last live baseline before retiring any of its graph instances."""
         if self._initial_frame is None:
             self._initial_frame = observers.full_frame(self, self.latest_live)
         return self._initial_frame
@@ -114,10 +149,15 @@ class BotScript(ReplicatedBody):
     @property
     def initial(self) -> tuple[BitWriter, Snapshot]:
         """Encode the current live baseline only when a viewer needs its full frame."""
-        return self._initial_payload(), self.latest_live
+        return self.initial_payload(), self.latest_live
 
     def replicated_instances(self):
-        return (instance for instance in super().replicated_instances() if instance is not self.behavior)
+        # These static combat effects are server-owned on NPCs.
+        return (
+            instance for instance in super().replicated_instances()
+            if instance is not self.behavior
+            and instance.graph.index not in (orisa_supercharger.STATUS, orisa_halt.PULL)
+        )
 
     def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
@@ -127,6 +167,9 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -142,7 +185,10 @@ class BotScript(ReplicatedBody):
         if frame < self.frame:
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
-        self._initial_payload()
+        self.initial_payload()
+        from ow174.game import assassin
+
+        assassin.bind(component.world, component, None)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)

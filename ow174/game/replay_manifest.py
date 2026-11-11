@@ -33,6 +33,7 @@ _RUNTIME_FIELDS = {
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.assassin", "ow174.game.npc_context",
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
@@ -213,6 +214,50 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
             limit = field.startswith("MAX_") or field.endswith("_MAX") or "BUDGET" in field
             if numeric or limit or field in required:
                 values[f"{name}.{field}"] = value
+    # External projectile admission data is a model input. Its semantic cached
+    # identity is path-independent and follows the table gameplay actually uses.
+    from ow174.game import (
+        barrier_mesh,
+        brigitte_shield,
+        combat,
+        orisa_barrier,
+        orisa_halt,
+        orisa_supercharger,
+        projectile_defenses,
+        sigma_barrier,
+        sigma_grasp,
+        torbjorn_charge,
+    )
+
+    from ow174.game.script import graph
+
+    values["input.graph_bundle.sha256"] = graph.bundle_sha256()
+    values["ow174.game.projectile_defenses"] = projectile_defenses.runtime_identity()
+    geometry = barrier_mesh.configured_geometry()
+    values["ow174.game.barrier_mesh.descriptor_sha256"] = (
+        None if geometry is None else geometry.content_sha256
+    )
+    halt_input = orisa_halt.input_bytes()
+    values["input.orisa_halt.sha256"] = hashlib.sha256(halt_input).hexdigest() if halt_input else None
+    values["ow174.game.orisa_barrier.descriptor_sha256"] = orisa_barrier.GEOMETRY_SHA256
+    _, device_geometry = orisa_supercharger.assets()
+    values["input.orisa_supercharger.sha256"] = (
+        None if device_geometry is None else device_geometry.content_sha256
+    )
+    values["ow174.game.sigma_barrier.descriptor_sha256"] = sigma_barrier.GEOMETRY_SHA256
+    values["ow174.game.brigitte_shield.descriptor_sha256"] = brigitte_shield.GEOMETRY_SHA256
+    values["ow174.game.sigma_grasp"] = {
+        "hero": sigma_grasp.HERO, "graph": sigma_grasp.GRASP, "shield_tag": sigma_grasp.SHIELD_TAG,
+    }
+    values["ow174.game.torbjorn_charge"] = {
+        "supported_heroes": tuple(sorted(torbjorn_charge.SUPPORTED_HEROES)),
+        "controller": torbjorn_charge.CONTROLLER, "damage_message": torbjorn_charge.DAMAGE,
+        "sandbox_seconds": torbjorn_charge.SANDBOX_SECONDS,
+    }
+    for field in ("EYE_STANDING", "EYE_CROUCHED"):
+        values[f"ow174.game.combat.{field}"] = {
+            f"0x{body:016X}": height for body, height in sorted(getattr(combat, field).items())
+        }
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)

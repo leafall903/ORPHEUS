@@ -87,15 +87,40 @@ FIELDS = {
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
-                   "stats stats_sent next_stats"),
+                   "select_open controller_hero turret_cooldown_until overload_cooldown_until "
+                   "fortify_cooldown_until halt_cooldown_until stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice turrets molten_pools molten_burns stuns"
+        "projectiles observers voice turrets molten_pools molten_burns stuns sleep antiheal "
+        "torbjorn_marks hammer_contacts grasp_grants grasp_shields pins barriers bubbles "
+        "world_bubbles orisa_barriers sigma_barriers symmetra_barriers brigitte_shields sombra_hacks frost blizzard halt rifle_wounds "
+        "gravitons superchargers steel_traps hooks"
     ),
-    combat.Vitals: _names("entity most now over_armour ids changed died_at death_tick killer"),
+    combat.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry states"),
+    combat.orisa_supercharger.Superchargers: _names("fight active buffs geometry"),
+    combat.orisa_supercharger.DeviceWorld: _names("hero mode entity location"),
+    combat.hook.Hooks: _names("fight flights seen"),
+    combat.orisa_halt.Halt: _names("combat bundle orbs pulls"),
+    combat.graviton.Gravitons: _names("fight fields pulled npc_movers"),
+    combat.mei_blizzard.Blizzard: _names("combat areas"),
+    combat.ana_rifle.Wounds: _names("combat active"),
+    combat.mei_frost.Frost: _names("combat samples sources"),
+    combat.sombra_control.Hacks: _names("combat active bases suppressed"),
+    combat.sigma_barrier.Barriers: _names("fight geometry actors"),
+    combat.sigma_barrier.BarrierWorld: _names("hero mode actor"),
+    combat.symmetra_barrier.Barriers: _names("fight geometry actors"),
+    combat.symmetra_barrier.BarrierWorld: _names("hero mode actor"),
+    combat.brigitte_shield.Shields: _names("combat geometry by_body whip_seen whips flail_hits"),
+    combat.orisa_barrier.Barriers: _names("fight geometry flights actors"),
+    combat.orisa_barrier.BarrierWorld: _names("hero mode actor"),
+    combat.steel_trap.Traps: _names("fight devices"),
+    combat.world_bubbles.WorldBubbles: _names("fight actors next_id"),
+    combat.zarya_bubbles.ZaryaBubbles: _names("fight live seen next_entity"),
+    combat.Vitals: _names(
+        "entity most now over_armour temporary_shields adaptive_shield_source "
+        "ids changed died_at death_tick killer"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -117,7 +142,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components manual_target match"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -132,15 +157,24 @@ FIELDS = {
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw pitch velocity firing route index wait target start keys turning "
         "held last_held input_tick moved_tick last_tick retain_corpse "
-        "combat_geometry combat_owner attack_target attack_input"
+        "combat_geometry combat_owner attack_target attack_input impulse_mover"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
+    combat.ana_rifle.Wound, combat.graviton.Field, combat.orisa_supercharger.Device,
+    combat.zarya_bubbles.Bubble,
+    combat.hook.Flight, combat.orisa_halt.Orb, combat.orisa_halt.Pull, combat.mei_blizzard.Area, combat.sigma_barrier.Shield,
+    combat.symmetra_barrier.Shield, combat.brigitte_shield.Shield, combat.brigitte_shield.WhipFlight,
+    combat.steel_trap.Trap, combat.world_bubbles.FixedBubble, combat.orisa_barrier.Flight, combat.orisa_barrier.Shield,
+    combat.reinhardt_barrier.barrier_mesh.Geometry, combat.reinhardt_barrier.BarrierState,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     combat.TemporaryArmour,
+    combat.TemporaryShield, combat.sigma_grasp.ShieldDecay,
     combat.hero_torbjorn.Turret,
+    combat.hero_torbjorn.HammerContacts,
+    combat.torbjorn_mark.Mark,
     combat.molten_core.Pool, combat.molten_core.Arrival, combat.molten_core.Burn,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,

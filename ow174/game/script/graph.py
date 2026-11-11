@@ -39,6 +39,7 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -285,6 +286,12 @@ def _collect_graphs(value, found: set) -> None:
 @cache
 def _data() -> dict:
     return json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+
+
+def bundle_sha256() -> str:
+    """Identify the effective cached graph data independently of its file path."""
+    encoded = json.dumps(_data(), ensure_ascii=True, separators=(",", ":")).encode("ascii")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 @cache

@@ -39,7 +39,8 @@ Passive            Actual1683/st25 background reload while hammer is equipped
                    ownership-related applicability remains under audit.
 Swap/reload        Weapon selection runs through actual manager graph15;
                   18ammo,1/2cost,empty/auto/manual refill/holster/release/death
-                   and Overload timing tests pass. Partial-ammo corner OPEN.
+                   and Overload timing tests pass. One-round secondary now
+                   fires its full volley after native-backed first-shot fix.
 Primary rivet      70 direct damage to player; authored gravity9.8 is consumed
                    by a reconstructed ballistic solver with 16ms sweeps;
                    critical defaults, true hitboxes and presentation OPEN.
@@ -51,7 +52,8 @@ Quick melee        Existing 0043/st4 approximation; Torbjorn-specific client,
                    NPC, barrier/control/immune/death acceptance OPEN.
 Forge Hammer       168C/st6 declares55 damage and st5 tracks around a local
                    (0,1.2,1.5) centre with radius1. Command-driven damage now
-                   uses active swing13 and duration*threshold0.42 as an explicit
+                   uses active swing13 and duration*threshold0.42 normally or
+                   0.30 under Overload as an explicit
                    substitute for unimplemented native54FEB21C. Delay, repeated
                    swing cadence, misses/range/team/LOS and holster/death cancel
                    pass; native animation timing and five-NPC interactions OPEN.
@@ -62,8 +64,9 @@ Deploy Turret      Prepared-data path:16C5 projectile2931 lands and creates28B7.
                    Persistent actor builds75to250 over3s, then authored1689/st1
                    deals14 at4Hz within40m/LOS to enemies, crediting its owner.
                    Own repair/destroy/redeploy/death/switch/cooldown tested;
-                   in-combat redeploy lock, manual dismantle input, native
-                   firing state/FX, special scoring and native policy OPEN.
+                   actual interact dismantle and combat redeploy lock tested.
+                   Native firing state/FX, special scoring, placement and
+                   broader protection policies remain OPEN.
 Overload           1721/st3 now grants its authored100 temporary armour pool
                    (type1). Damage consumes it before base armour; one armour
                    reduction applies across both. No re-fill on repeated input,
@@ -85,12 +88,13 @@ Health/armour/shield pools: basic pool mechanism exists; Torbjorn incoming
 armour/player death and outgoing per-pellet/player damage tested here.
 Reconstructed Flashbang control now has Torbjorn player interruption/recovery
 evidence, with explicit Overload cast preservation; see the control section.
-Barriers, Zarya bubbles, Deflect, Defense Matrix, invulnerability, damage
-modifiers, broader control/interrupts, knockback, native immunity/cleansing and
-general status policy: OPEN. Combat._damage currently calls Vitals.damage directly;
-there is no complete authoritative protection/status policy at that boundary.
-Allied turret/repair and team eligibility: OPEN. Existing general enemy
-filtering must be retained; support/repair must not become hostile damage.
+Barriers, Zarya bubbles, Deflect, Defense Matrix,damage modifiers,broader control/
+interrupts,knockback,native immunity/cleansing and general status policy: OPEN.
+Selected Wraith/Fade/Cryo protection is now checked before health loss;see the
+phase section below.This is not a complete authoritative status/filter engine.
+Allied turret/repair: native filter accepts only owned679. Actual own repair,
+other-ally refusal and hostile/FFA hammer damage pass;broader protection/status
+interactions remain open. General team filtering remains in force.
 Manual PvE corpses: baseline retain_corpse exists, actual five-NPC client
 appearance and terminal script/lifetime still OPEN. Normal player respawn is
 a different policy.
@@ -215,8 +219,9 @@ Soldier fire damages the1m turret without a headshot multiplier. The same gun
 deals70 across5bullets to each actual NPC body, attributing damage to Torbjorn.
 A passive server snapshot observes owned actor geometry and next-fire timing.
 
-Remaining turret acceptance includes in-combat rethrow denial, manual dismantle
-input, native firing/observer effects and muzzle poses, owner-lock/target-marking
+Actual interact dismantle and combat rethrow denial now have the control-host
+evidence below. Remaining turret acceptance includes native firing/observer
+effects and muzzle poses, owner-lock/target-marking
 policies, allied-other-owner repair, destruction-specific scoring/feedback,
 moving-platform/surface/bounce placement and all protections/status interactions.
 Turret death currently uses shared NPC death before manager removal; this is not
@@ -377,9 +382,3640 @@ Overload's active1721/st24 movement modifier adds0.3 to movement index0. Actual
 ground movement reaches5.5m/s normally and7.1504m/s while boosted (quantized30%).
 At expiry, movement returns to5.5 and fire/reload return to0.6/2s.
 
-Still open: secondary with only1ammo currently drains it without emitting a
-volley; native partial-cost semantics must be established before acceptance.
+The previous1ammo secondary defect is now fixed: the new-activation dispatch
+must survive the zero integer ammo/cost quotient. Actual one-round secondary
+fires ten pellets/125damage to player and all five NPC bodies, then rejects empty
+input. See WEAPON_VOLLEY_START.txt for original instruction/probe evidence.
+Still open:
 Complete death/interrupt/reload edge cases, Overload/background-reload timing,
 all protective/status interactions and broader passive applicability remain open.
 The tests do not establish native spread, animation-event or client presentation
 parity. Run python -B -m unittest test_game_torbjorn_resources -q.
+
+Owned turret control context and input
+-------------------------------------
+The previous bridge did not publish the turret as owner entity variable679.
+The16C5 graph therefore could not read its health, firing/damage flags or shot
+age, and did not have a375 target for its003F interact message. The selected
+permissive host now binds the current owner body to its actual actor, supplies
+read-only foreign values and scoped E72F6348 existence, and polls the authored
+combat-lock condition. It does not force that condition to pass or install a
+general foreign-entity/native namespace service. Strict mode refuses this host.
+
+Actor VM construction/timers now advance and observer snapshots are queued.
+Its real1884 stacks initially refuse dismantling and clear after construction.
+Logical30 (command bit0x04) follows16C5's actual interact path; after construction
+a fresh press emits003F toward375. The host accepts it only for the current
+owner's turret and applies retirement/full10s cooldown. It reconstructs the
+missing1688 role392/KillEntity engine services; those native services and visual
+destruction remain unaccepted. Holding interact through construction does not
+automatically dismantle when the gate opens; another press is required.
+
+The gun bridge publishes795 while engaging,1769 as elapsed time since its last
+shot (native1689/st6 rises toward100), and2143 for the native1688/node145 damage
+wait of3s. Real16C5 conditions then deny deployment while engaged/recently hit
+and recover after the quiet window. The source still reconstructs gun damage;
+advancing the actor VM does not establish native firing FX/target acquisition.
+Native reports are discarded by this bridge to avoid duplicate damage.
+
+Actual input checks cover construction refusal/fresh-press dismantle,10s spam
+denial/recovery and simultaneous interact/throw non-bypass; enemy-player firing
+and actual incoming damage deny redeploy until recovery. All five real NPC
+bodies continue taking turret damage while redeploy input is refused. Another
+player cannot dismantle the actor. Owner death preserves it; respawn binds the
+surviving actor to the new body, which can dismantle it. Flashbang blocks interact
+during control; after expiry it works while the owner's ground pool persists.
+Passive snapshots include last-fire/last-damage timing and the polled graph state.
+
+A further input-order test found that lethal enemy input followed by owner
+deploy input in the same world tick could start another throw before manager
+cleanup. The death path now publishes full cooldown immediately. Later removal
+subtracts elapsed time instead of restarting the ten seconds. Actual lethal
+enemy fire followed immediately by owner input passes the denial check.
+
+These are static reconstructed-host checks. Original-client presentation,
+special scoring, surfaces/moving platforms and all protective/status interactions
+remain open. Current changes stay uncommitted until the complete hero static
+matrix passes.
+
+Primary marking and owner-only hammer repair
+-------------------------------------------
+Actual1683 primary HitDef selects030E.053; secondary selects no hit effect.
+030E references16FB, whose0F entry starts16FC on the struck body. The latter's
+start entry BB4AC733 enters a0.5s wait with target tag611 in its child state2;
+at expiry it removes the tag and retires. Its Boolean gate6604 ||8440 also retires
+the action. The prepared-data tool now includes030E and both referenced graphs.
+The current external pack SHA256 is
+19ca8451bc60fd29b4342797fc95e4d59622802b1f2d2f968c186733f648861c.
+
+The permissive combat host directly starts actual16FC on a non-strict struck
+body, advances its real states, and observes its tag state and gate. A world
+deadline also caps retention at0.5s. It does not implement a generic native tag
+service. Target selection explicitly prioritizes this owner's newest active
+eligible mark, then uses the existing nearest-target fallback. Native sharing
+between different owners, acquisition/current-target retention and original
+client FX are not established by this policy. Marking never overrides the
+turret's enemy,range,static-LOS or live-body filters.
+
+Actual three-player input redirects turret damage from a nearer enemy to the
+primary victim and returns to the nearer one after expiration. Secondary,
+missed and friendly shots do not tag; repeated primary hits replace/refresh
+the instance. Each of five actual NPC bodies receives the tag and becomes the
+turret target. Death,body replacement,source departure and expiry clean up both
+host record and VM instance. Actual6604/8440 gate changes refuse new tags and
+clear existing ones on the next world pass after victim-VM advancement.
+Passive snapshots include active tags/deadlines.
+
+The native hammer repairTrack33 filter is(param(8) == #679e), restricting its
+candidate to the current owner's bound turret. Other allied turrets stay
+unchanged; hostile and free-for-all turrets take ordinary55 hammer damage.
+An overlapping own/allied pair repairs only the own turret, capped at maximum
+health, without hero-damage or incoming-damage-lock side effects.
+
+RepairTrack33 uses centre owner+(0,1,0)*size and radius1.5*size. DamageTrack11
+uses the separate forward damage sphere. The bridge now evaluates the repair
+geometry independently: a nearby turret behind the owner can repair, an actor
+outside the repair sphere cannot, and real wall collision occludes repair.
+Normal node43 uses a0.42 swing threshold; Overload branch47 selects node48's
+0.30 threshold. Actual boosted damage/repair occurs on tick10 rather than20,
+and boosted damage repeats every33ticks rather than47 on the16ms fixture.
+The earlier one-sample policy is superseded by the contact-window host below.
+Animated pose/hitbox and complete native TrackTargets semantics remain open.
+
+Additional ultimate input and death evidence
+-------------------------------------------
+Actual full-charge input followed by a single fire press creates one globule
+and one ground pool;40 released frames emit no more. Repress creates a second
+globule/pool, and holding afterward exhausts at ten total, without refilling.
+Repeated Q edges without firing do not extend the original timed window; firing
+after that window cannot emit another ultimate projectile. These checks inspect
+actual16DA/st17 launches and combat pool entities, not only script variables.
+
+Death during startup prevents later ultimate fire/pool creation. Death after
+one globule lands prevents future launches while the existing pool persists
+and continues damaging a victim standing in it. Actual post-death health loss
+is verified. This does not complete ultimate charge generation, protection,
+wall/body bounce, cross-owner arbitration or client acceptance.
+
+Authored ultimate charging and death retention
+---------------------------------------------
+The old sandbox had no combat-charge event and filled cost/60 each second.
+That was not a missing formula in the game data: actual common graph0B8B is
+already mounted as instance16 on Torbjorn. Its nodes3/4 wait one second then add
+5*valueOr(9532e,1)*valueOr(12918e,1), capped at338e. Damage entry012 binds native
+parameters13/15/3D/624 to loss336,victim393,tags510,special-pool records16100.
+After its eligibility/tag/pool checks,node23 adds
+loss336*valueOr(9532e,1)*valueOr(13022e,1), capped at338e. The actual cost is2142.
+
+The new host supplies only a scoped permissive context: a current Torbjorn body
+in its match,ordinary character and team checks,an unset2426e permission and a
+normal sandbox gate for F7262B36. Explicit false2426e remains false;the graph's
+9530e disable link and other gates remain authoritative. Native engine filters,
+tag taxonomy and pre-round/game-state semantics are incomplete. Strict mode
+does not use this host. The default60s synthetic fill is suppressed only when
+this host owns charging;nondefault ult_seconds overrides retain sandbox timing.
+
+Positive actual loss dispatches012 only to that body's real0B8B instance,
+with actual evaluated attack tags and empty special-pool records. Other graph
+instances do not receive a fabricated general damage event. Native damage-pool
+detail services are not claimed: special shields and tag-specific deductions
+still need acceptance. Initial Molten projectile and persistent pool share
+loadout0227 and native tag025A;actual0B8B/36 rejects this ultimate damage.
+
+Actual primary70,secondary125,quick melee30 and hammer55 generate matching
+charge against a player and each of five NPCs. Armour reduction limits a rivet
+to65damage/65charge against Torbjorn. Owned turret health loss credits its owner.
+Missed/friendly shots,deployable damage,repair,incoming damage and dead-target
+retries do not add charge. A lethal1000 request against200HP grants200,not1000.
+The graph's combat/passive multipliers work;permission/disable gates refuse
+charge. Actual damage finishes a nearly full meter at2142,then real Q consumes
+it and actual fire creates a Molten pool. Neither direct25ultimate hits nor
+persistent burn health loss generate charge after their real tag check.
+
+The automatic-respawn path previously recreated the body with zero charge.
+It now transfers the current unspent Torbjorn meter,clamped to the new body's
+cost. Tests kill,wait through automatic respawn and inspect the new entity:
+123unspent remains123;an already-consumed ultimate remains0. Ordinary hero
+change still starts its new body's meter at0. Same-hero manual reselect/skin
+replacement and exact native timer phase across body replacement remain open.
+While waiting dead,the actual native timer still adds10 across12616ms ticks.
+
+Authored five-NPC mover revalidation
+----------------------------------
+The original38-entry game_movers table did not contain the five Talon bodies;
+earlier geometric evidence used the Soldier/default fallback. Parent supplies
+an immutable43-entry table,extracted from target104319 body XML:
+Trooper1.7/.5/5.75;Enforcer1.9/.5/5;Sniper1.75/.5/4.5;
+Assassin1.5/.5/14;Heavy Assault2.3/.7/2.2(height/radius/forward speed).
+SHA256 e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c.
+The lane runner reads this table while keeping ordinary runtime metadata and
+graph inputs unchanged. It does not populate the parent's collision directory
+or write any hardlinked metadata. Tests supply explicit static collision worlds.
+
+Assassin's actual1.5m height invalidated eye-height primary/full-secondary
+fixtures. Those now aim at the target's actual capsule centre. Four outgoing
+attacks,damage-to-charge and friendly refusal are rechecked with authored sizes.
+Additional tests verify all five Target capsules,inside/outside hammer range
+boundaries derived from those radii/heights,and real wall denial paired with
+open controls on retained floor triangles. This is not AI/navigation or native
+animation/hitbox/client acceptance. Use run_static_with_npc_movers.py externally;
+the standalone geometry module also reads ORPHEUS_NPC_MOVERS_PATH explicitly.
+
+Continuous hammer contact host
+------------------------------
+Actual168C/node46 owns a0.2s Wait whose subgraph contains damageTrack11,
+repairTrack33 and its contact state61. The previous host sampled only once at
+the impact threshold,losing targets that entered during the remaining interval.
+It now captures(instance,counter,begin,end) at swing entry and samples retained
+commands inside that fixed interval. The normal0.42/Overload0.30 choice cannot
+change after entry,even when Overload expires during the animation.
+
+Each target can be damaged once per swing;the owned turret can be contacted
+for repair once,including a full-health contact. Leaving/re-entering does not
+duplicate damage or allow repeated repair on every frame. Distinct late targets
+can each be hit. The input may be released after committing the swing;changing
+aim during the contact interval changes the reconstructed forward sphere.
+Holster/death/body retirement remove the contact plan;stun marks it cancelled.
+The bridge retains capsule geometry rather than native animation hitboxes or
+the full TrackTargets backend. Per-target once-per-swing is the chosen policy.
+
+Actual commands prove late player/five-NPC contacts,expired-window refusal,
+multi-target/re-entry behavior,aim changes,release commitment,late owned repair,
+full-health contact without later same-window refill,and holster/death/control
+cancellation. Overload expiry mid-swing retains its original tick10 impact.
+Passive snapshots register the deadline,hit/repair sets and cancellation flag.
+Wall fixtures now retain floor triangles:otherwise falling actors can reach
+below a wall during the longer contact window,invalidating a static-wall claim.
+
+Selected phase-defense interactions
+-----------------------------------
+Known human skill graphs0020(Wraith),0F7C(Fade),05FE(Cryo) have a scoped
+zero-delay54FEB21C entry adapter. All other configurations keep the unresolved
+native consumer;strict execution rejects it. The adapter follows the authored
+continuation so its real stacks/timers can enter and leave. A reviewed equivalent
+mapping exists in the isolated Pharah lane;this lane separately audited its
+protection timing and registers the empty state layout for VM snapshot storage.
+
+Protection requires an active matching graph stack and its current entity value:
+8440 for Wraith/Cryo,6604 for Fade. A shared flag alone cannot grant Torbjorn
+immunity. The initial mapping used10467,but actual tracing showed it persists
+through recovery after8440/6604 already clear. Corrected16ms input measurements
+are2.992s Wraith,.736s Fade,3.984s Cryo;the longer action flags last3.392/.944/4.240s.
+Actual incoming rivets now damage and mark during that vulnerable recovery
+tail,while10467 is still true. Do not conflate action and immunity lifetime.
+
+The collision policy is explicitly reconstructed:Wraith/Fade leave hostile
+target sweeps;Cryo stays solid but rejects health/status effects. Actual primary
+and full secondary shots pass ghosts to an enemy behind them;Cryo blocks both
+without damage or charge. Actual25damage Molten projectiles follow the same
+distinction. Quick melee/hammer cannot harm protected bodies. Owned turret
+fire cannot damage them and recovers after eligibility returns. Existing pools
+remain but remove burn contact during protection and resume after it ends.
+Actual8440/6604 gate changes retire an existing16FC primary tag.
+
+Tests also prove primary pass-through to each actual NPC behind a phasing
+player,reverse phase-source melee denial against Torbjorn then fresh25armour
+damage after recovery,and passive snapshots of an active phase and timer end.
+No native generic tag/filter engine,complete phase targeting/cleanse policy,
+unmapped immunity sources or original-client animation/collision is claimed.
+The phase adapter does not implement peer heroes' healing services.Tests with
+pre-existing damage assert no new attacker damage/charge and allow positive
+healing,so they do not mistake a frozen HP value for full Cryo health fidelity.
+Barriers,bubbles,reflect,absorb and remaining control/modifier rows stay OPEN.
+
+Rejected ability input and Overload cooldown
+-------------------------------------------
+Parent review identified a shared Ability.can_start defect:take_press consumed
+an eligible press before checking cooldown/conditions,then rejection reinserted
+it with the current time. Every tick renewed its buffer,so a released early
+press could survive until the cooldown ended. The private lane now peeks with
+retain=True,and consumes only after all start gates pass. The stored timestamp
+and activation remain unchanged during rejection;the authored buffer can expire.
+
+Actual1721/state19 gives Overload a0.15s early-input buffer. Command tests now
+prove a one-frame press early in cooldown cannot automatically cast after
+release,a new press after readiness works,a short press within0.08s of readiness
+buffers successfully,and an early press held until ready still starts. All11
+Overload methods pass. An external negative control imports HEAD's old method
+into memory without changing source;it first proves timestamp renewal,then
+observes an automatic recast616frames(9.856s) after a one-frame press was released.
+823shared script tests and356combined current-source tests pass.The latter
+includes the final phase protection flags and three new Overload methods.
+
+The parent's later throttle-mod17/18/19 fix was scoped separately against eight
+actual Torbjorn stages:Overload active/ended,hammer with Overload,Molten startup/
+ready/firing,and Flashbang stunned/recovered. All MovementMod nodes,including
+inactive nodes,in each stage's loaded graphs use only indices0/10/11/12.
+torbjorn-throttle-mod-results.json records authored and active rows. No mover
+source was imported for these Torbjorn states. This does not settle unmapped
+controls or peer-hero movement semantics;those remain in the open matrix.
+
+Projectile-defense input research
+--------------------------------
+Read-only external torbjorn-defense-metadata.json records the exact input hashes,
+four attack definitions and authored02CCstate3 boxes. Rivet2A66,secondary13ED,
+Molten globule2902 and turret2A69 all have known tag2F9 and no145 exclusion in
+the authored projectile-tag catalog. This does not prove complete native filter
+or angle semantics. Unknown metadata must not become implicitly interceptable.
+The current Torbjorn pack lacks02CC,and D.Va hero7A selects040A by default;
+actual Matrix acceptance needs0407mech,its dependencies and real ability input.
+No reflect,absorb,reflected-owner/pool or Sigma conversion row is closed by this
+metadata audit. Those behaviors remain open alongside barriers and bubbles.
+An external command-driven activation trace also observes Genji E entering
+03A3/state10 mode0 for125samples,and Sigma Shift entering1D02/state1 mode1 for
+124samples on16ms input. The trace captures evaluated boxes,including reversed
+authored endpoints in one Genji box. That trace proves input/state entry only;
+the live combat adapter and its separate evidence are described below.
+
+Live Genji/Sigma projectile interception
+----------------------------------------
+Set ORPHEUS_PROJECTILE_TAGS to an external version1/build1.74.0.0.104319 catalog,
+as produced by the reviewed projectile-tag extractor. No game data is embedded
+in source. The owned checks use the immutable007A/projectile-tags.json input:
+SHA256 ba348f1546a7384a1a5f4b3d3a88c98b1f28cc4da725161cf3360086215446d2.
+The parser validates full003 and target-tag GUIDs,build/version and duplicate
+tags. Unknown003 metadata does not silently become interceptable. With no
+explicit catalog the scoped gates do not intercept any attack.
+
+projectile_defenses maps only actual Genji03A3mode0 and Sigma1D02mode1. An active
+StateDeflectProjectiles in the matching live permissive body,its authored145
+exclusion filter and known eligible projectile definition are required. Combat's
+current hostile/alive targets supply team and life eligibility. Evaluated boxes
+use a reconstructed eye-relative full yaw/pitch frame;their endpoints are
+normalized per axis because Genji's third authored box has reversed endpoints.
+Nearest ordinary body and static cover win over a farther gate. No generic
+native combat modifier/filter engine or authored angle interpretation is claimed.
+
+Both ballistic projectiles and turret hitscan use this path. Rocket.definition
+stores the authoritative003 independently of its optional predicted Shot.
+On reflection,the defender becomes shooter/team. The new flight carries direct/
+blast definitions,gravity,landing spawn,remaining lifetime and accumulated path.
+Its outgoing direction is the defender's current aim from the intercepted point;
+its speed is the incoming instantaneous velocity magnitude. Flown time restarts
+for gravity integration of that new velocity. The original prediction ends once.
+The remaining collision interval and retained catch-up frames continue on the
+reflected flight,so reflection cannot pause flight or refill time/range. Hitscan
+retains the unused ray reach and accumulated falloff distance. A16reflection
+per-step recursion bound terminates degenerate overlapping-gate cycles;native
+bounce-limit behavior remains unverified.
+
+Absorption ends the original flight without direct damage,blast or landing
+callbacks. Reflection also avoids the original impact callbacks. Shot.intercepted
+persists through existing confirmation/ACK/grace paths and sends a plain destroy
+rather than a held explosion release to owner and observer copies. This preserves
+delivery ordering for unconfirmed copies. Creating/presenting a reflected
+observer projectile is still open;no original-client visual parity is claimed.
+Rocket.definition and Shot.intercepted are included in passive dataclass exports.
+The causal-state test changes each field and observes the server snapshot hash,
+including a no-op export check. External tag-catalog replay-manifest identity
+is now integrated through the live cached semantic table and policy identity;
+see the settlement/view follow-up below for its separate replay evidence.
+
+Fifteen method scopes cover actual primary/full ten-pellet secondary,Molten
+contact and built-turret hitscan,expiry recovery,nearer body/wall ordering,
+allied incoming defense,return-path team reversal,unknown/excluded metadata,
+an overhead shot versus facing-up/forward Grasp,continuous versus retained-gap
+reflection and original prediction retirement without explosion releases.
+Actual return damage to Torbjorn is65for a70rivet. The full125secondary costs90
+actual HP after seven reduced pellets exhaust50armour and the last three hit
+unarmoured health. A ray aimed back at the turret spends14of its health per
+shot;the turret stands in front of its owner. No original-owner damage/charge
+is credited for reflected or absorbed contacts. Each actual NPC receives70from
+a reflected rivet credited to Genji. PvP return tests skip the reflector's ally
+but hit an original-shooter ally that is now hostile. Reflected Molten keeps2903
+landing metadata,creates a Genji-owned pool,and runs actual burn damage with
+new-owner credit. An actual reflected lethal rivet also attributes the30HP loss,
+killer identity and kill notice to Genji. The earlier Torbjorn-only charging
+host gave him0;the current0B8B host now credits that remaining30HP to Genji.
+
+A separate actual input probe covers the deployment throw:16C5state2 uses2931,
+whose authored tag145 excludes it. The throw crosses both active Genji and Sigma
+boxes,lands and creates a turret for the original Torbjorn. The probe retains
+the intended aim through the throw windup and records a geometric intersection
+control without patching the actual projectile definition.
+
+The initial gate-only candidate left Sigma21312at0. The read-only graph diagnostic
+identified6584->21312and a42shield/400cap request from a manually supplied70.
+The current scoped sigma_grasp host now feeds actual intercepted hits through
+that output and processes the authored end request. Its separate acceptance
+and remaining native-pool limits are recorded below;the earlier diagnostic
+is retained as evidence of the former gap rather than overwritten.
+DVa0407/02CC preparation,Genji's CombatModFilter/melee block,native outgoing
+projection/muzzle/angles and complete tags/filters remain open. The chosen
+intercept-point aim and accumulated falloff are reconstructed policies pending
+native comparison. Barriers,bubbles,remaining controls/modifiers,Molten bounce/
+surfaces/cross-owner arbitration and other original matrix rows remain open.
+
+Shared notification and ability-exit lifecycle follow-up
+------------------------------------------------------
+The parent identified canceled CHANGED/CHECK events leaving flags_changed/
+flags_check set. After reentry,a BooleanSwitch could permanently miss later
+variable changes. Both minimal behavioral regressions fail in the prior private
+runtime. State.end now clears those existing coalescing markers after cancel;
+Component.changed does not notify a state while it is ending. All825script
+methods pass after the fix,including reentry and cleanup-write regressions.
+
+Ability.stop now queues scope exit,stop plugs and resource-variable cleanup
+before unlinking the arbitration owner. This prevents a newly unblocked weapon
+from sampling pre-cleanup ammo. The cross-object ordering is explicitly a server
+reconstruction;native stop/guard instruction evidence alone does not prove that
+ordering. No new global phase or persistent VM field is introduced.
+
+A new Torbjorn guard performs three actual hammer background reload/reselect/
+rivet-shot cycles for ordinary and Overload starts:18refills to17after each
+accepted single shot,and each reselected gun fires once. It passes before the
+shared fix,so it is not represented as an actual Torbjorn-specific reproduction
+of McCree's Roll failure. All122selected resource/control/ultimate/phase/defense,
+projectile-motion and passive VM methods pass after the shared change,including
+all15live projectile-defense methods.
+
+The371combined and13server-snapshot runs above completed before this late shared
+lifecycle follow-up. Their candidate source hashes are retained in MERGE_READY.
+Do not present them as a fully green broad run of the later runtime source.
+
+Current settlement and input-identity follow-up
+---------------------------------------------
+Replay runtime configuration now seals the semantic projectile table actually
+cached by gameplay,its enabled state,build,row count,hero/gate mapping,145
+exclusion and reflection limit. It also identifies the current charge/shield
+host policy and standing/crouched view maps. It exposes no local paths.
+Equivalent catalog content survives relocation,JSON/tag order and formatting.
+Changing an on-disk file after loading does not silently replace the live cache;
+after a reload,changed eligibility has a different model identity. A controlled
+match-root journal replays with matching inputs and rejects changed eligibility
+before constructing its replay server or dispatching roots. Missing/malformed
+explicit catalogs fail instead of being recorded as an unknown/empty table.
+
+The existing scoped0B8B host now accepts the current Genji body as well as
+Torbjorn. Damage012 carries actual HP loss to its new owner,with the actual
+graph's cap,permission and combat multipliers. Reflected rivet/secondary charge
+Genji65/90through Torbjorn armour;each actual NPC gives70. A reflected lethal
+rivet awards only the remaining30HP. Molten direct and reflected pool damage
+retain authored025Aultimate tags and award neither original nor new-owner
+damage charge. The host searches current-owner graphs plus the Torbjorn source
+graphs;it does not turn every hero's sandbox timer into a reconstructed host.
+Native special-pool deductions,game-state/round gates and unknown tag branches
+remain separate limits of this declared permissive service.
+
+sigma_grasp now writes each intercepted nominal hit to1D02's6584 and follows
+the real m_160B5DBE output;node32 accumulates21312. No health is granted at
+interception. On the authored end path,only node34's self-targeted1D03 request
+is hosted. Its evaluated amount/cap gives60percent up to400bonus shield.
+Node71's3second delay and node70's5per-second amount control reconstructed
+elapsed-time decay. A70rivet grants42;the full125secondary grants75;six actual
+secondary volleys accumulate750and hit the400bonus cap. Earlier presses while
+cooling cannot re-enter or duplicate a grant;after cooldown,a new activation
+starts its own fresh accumulator and can legitimately grant again.
+
+The bonus has its own stable component51 slot and pool ID. Damage spends it
+before ordinary shields;healing never refills it. Decay does not remove base
+shield or create damage/charge credit. A depleted pool emits a zero record.
+The grant cache is keyed by body plus actual instance/counter,so replaying the
+same request cannot refill a spent activation. Death denies a pending grant
+and retires active decay;body replacement removes pool/grant/decay ownership.
+TemporaryShield,ShieldDecay and their owning tables are registered causal
+snapshot state. This is an explicit self-request/health-pool reconstruction,
+not execution of the native1D03pool State. Native pool queries,full tag stacking,
+temporary-pool ultimate-charge deductions and original-client presentation
+remain unproved. The current ordinary charge host still supplies empty special
+pool records;do not claim that spending every bonus-health type has native
+ultimate-charge semantics.
+
+Authored FirstPerson geometry
+----------------------------
+The original003 FirstPerson fields m_E29993A5/m_816B830F were audited for seven
+participants;the external first-person-height-results.json records fullGUIDs,
+source paths and SHA256 hashes. Values in metres above the simulated feet:
+Torbjorn28B6:1.0/.7;Genji0225:1.2/.84;Sigma2AB1:2.1/1.75;
+McCree02A3:1.425/.9975;Mei08BA:1.3/.91;Moira1C46:1.7/1.1;
+Reaper0022:1.55/1.085. The slash separates standing and crouched values.
+Unknown bodies retain existing fallbacks;Soldier's1.085crouched override stays.
+
+One eye_height query now supplies both actual projectile origins and player
+Target.eye,including crouch and retained target samples. Actual Torbjorn posture
+commands produce those heights and matching rivet launch origins. A0.85m wall
+allows a standing shot but stops a crouched shot;a1.2m wall stops standing too.
+Each wall retains a floor,so falling capsules cannot create a false LOS result.
+Incoming McCree tests use his authored origins and hit Torbjorn armour for65.
+The parent's declared owned01D2/node31 implicit2x reconstruction gives135actual
+head damage through that armour;Fan's explicit1 remains authoritative. The
+world hero/body,graph and node gate this policy. Other null defaults,including
+Torbjorn's currently unresolved implicit critical policy,are not globally2x.
+Native bone hit regions,camera/muzzle animation and unreviewed body values are
+not proved by these source-height/capsule tests. Build-backed reconstruction
+is permitted for static acceptance,but its differences stay explicit.
+
+Normalized spread follow-up
+---------------------------
+Imported WeaponVolley.spread_ramp for239B571E with null23C72C36. params bakes
+AC20B1C1(default0);the output is min(1,f32(spread0+f32(max(shots+1,0)/ramp))).
+Ramp below float32(1e-7) returns1. The value is normalized,not an angle,and the
+final output survives state exit. Optional-decay configurations retain the old
+unmodeled behavior. The baked ramp is causal VM snapshot state. The seven shared tests cover the final millisecond boundary too;
+75 targeted volley/Torbjorn/turret/Molten/snapshot tests passed before the NPC
+bridge changes. Primary1683/10,Molten16DA/17 and turret1689/1 match this scope;
+secondary613B's5degree ring reconstruction remains separate. Native random ray
+sampling and exact muzzle phase are not established by normalized output.
+
+Manual Enforcer and Assassin reverse attacks
+--------------------------------------------
+The explicit manual controller policy declares4B present and5C absent before
+body graphs initialize. Enforcer13EB resolves that owner predicate and reads
+actual OWNER_HEALTH. Other heroes,graphs and entity queries retain the old
+unknown-service behavior. The manual attack/stop/restart path now executes
+against Torbjorn. A direct probe verifies all25 authored projectiles are
+emitted at5m with2damage each,for25actual HP lost through Torbjorn armour.
+Friendly manual input is refused with no shot or damage. Remaining range/LOS/
+falloff/control/observer intersections are still incomplete.
+
+Assassin1157 uses a data-only possessor map1650 bound to the current victim
+body. Manual contact radius3m and logical button36 are explicit sandbox policy.
+Nodes15/25 use authored amount variables and mode1's elapsed milliseconds for
+continuous damage;default mode applies once. Ordinary armour rules apply.
+The pins table is causal Combat snapshot state. Per-world target/controller
+fields and ModifyHealth.last_applied are causal VM snapshot state. Clear pins
+on source/victim death,replacement/removal;stop or invalid range/LOS/team/target
+ends damage and control. Phase-protected victims are refused. No native AI
+navigation/acquisition,grab animation or exact controller allocation is claimed.
+
+Actual1157 input damages Torbjorn and stop/restart works. A second real-scene
+case pins hammer/Overload/Molten:movement and attack/ability inputs are denied;
+old hammer contact is canceled;after stop a fresh hammer attack hits. Applied
+Overload retains its source and loses shield only by damage;active Molten can
+resume within its existing window. Synthetic host tests additionally exercise
+rate/idempotence,one-shot exit,source stun/death,target/body replacement and
+explicit removal without retained world references.
+
+A real hammer recovery failure exposed a shared VM dependency gap: stack33
+could lose its arbitration link while remaining null. Value-change watchers
+received no event,leaving WouldVarStackToTop's false branch stale. The permissive Torbjorn168C query alone
+now marks its existing watched-map entry as topology-sensitive;link pop
+notifies it even for equal values. Ordinary value subscriptions stay unchanged.
+The minimal null pop test and actual pin/hammer case fail under the old
+behavior and pass with the fix. Native notification dispatch still has the
+same declared reconstruction boundary;this is repeatable server behavior.
+Other heroes retain historical value-only subscriptions. A global opt-in changed
+the Soldier977-bit historical fixture to991bits,so it is not enabled globally.
+
+Late parent Fan follow-up
+-------------------------
+The parent subsequently supplied weapon_spread.py and scoped McCree Fan ray
+sampling. It is not imported here yet. Review it before broad enemy Fan damage
+acceptance;existing explicit1x multiplier checks do not prove native Fan spread,
+seed parity or six center-aim hits. Torbjorn's null critical policy is still
+unresolved. All remaining full-scope matrix rows remain active.
+
+The broader push notification also changed normal hammer cadence47->53frames
+and broke the boosted33-frame second hit. It is rejected. Only pop notifications
+are enabled for the known permissive168C query. Nineteen focused cadence,
+Assassin-window,notification and turret/Molten snapshot tests pass after this
+narrowing. The server object table separately registers BotWorld's new context,
+manual target and match fields;the VM field table alone was insufficient.
+
+Actual Assassin sequence probe additionally verifies initial25damage gives20
+through Torbjorn armour,then the real1157/15 stage becomes active at authored
+100DPS. Twenty16ms ticks lose16.00000024HP and armour under the declared damage
+clock/reduction host. Stop releases control. The initial idle/delay period is
+recorded separately;synthetic immediate-rate tests are not substituted for this
+real graph sequence. See external assassin-native-rate-contact-progress.json.
+
+Five actual NPC inputs now kill Torbjorn without injecting damage/death:
+Trooper329,Enforcer851,Sniper377,Assassin226,Heavy278frames from engagement.
+All source attribution matches the attacking NPC;30post-death frames keep the
+old pool at0 and release input/pins. Fifteen more scenarios cover friendly,
+manual-range and real static-wall rejection for every NPC for150frames,then
+actual attack recovery when the blocker is removed. Recovered first HP losses
+are15,25,95,20,2.5 respectively. Every wall fixture retains a floor. These prove
+the declared manual policy,not native AI acquisition or maximum weapon range.
+See external NPC_INCOMING_EXECUTION_PROGRESS.json and its hashed subreports.
+
+Later parent changes remain unimported:McCree Fan cone sampling and gravity20
+Flashbang flight(+0.05lift,16ms chords,expiry detonation). Our existing rivet
+Rocket already has gravity;review field/clock/expiry differences rather than
+replacing the shared class wholesale. Current Flashbang regression is the
+private host's existing acceptance,not proof of those later flight changes.
+
+Torbjorn held-primary input also kills all five actual NPCs without injecting
+damage/death. Heavy4000HP takes2544frames and3authored automatic refills.
+Every corpse remains for220frames,then explicit removal clears its actor and
+vitals. Separate real McCree Flashbang cases deal25 and apply50ticks of stun to
+each incoming NPC. After allowing10frames for in-flight attacks to settle,
+there is no further Torbjorn damage in the remaining39 checked stun frames.
+The actual Assassin pin exists before stun and is released by it. All five
+attacks recover after stun. See NPC_BIDIRECTIONAL_EXECUTION_PROGRESS.json.
+
+The six independent NPC probes were rerun against the same hashed43-row mover
+input as the suite. A stopped controlled-server capture with a real active
+1157/15 pin repeats without advancing HP/tick;mutating manual_target,world
+match,ModifyHealth.last_applied or Combat.pins changes its stored digest. Only
+that digest and checks leave memory;the passive graph is not a restore artifact.
+
+Final frozen pop-only candidate:431 combined,833 script and13 server-snapshot
+methods pass. The six NPC probes and active-pin snapshot are additional direct
+evidence. The original goal is still active;Matrix,barriers,bubbles,Genji melee,
+remaining controls/modifiers and other matrix interactions need coverage.
+No commit or integration approval is issued for this candidate.
+
+Genji melee and D.Va Matrix follow-up
+-----------------------------------
+The active Genji 03A3 node 107 supplies a zero multiplier and authored
+attack tags. The quick melee and hammer tags overlap that filter. The
+server reconstruction resolves the facing dot product from live feet
+and aim. Native callback operands and general tag matching remain open.
+Actual input checks cover front blocks, rear hits, recovery after expiry
+and a defender turning during a blocked hammer contact window.
+
+D.Va Matrix uses the explicit possessed 0407 mech fixture with 02CC and
+authored mover data. Normal D.Va selection supplies the pilot. The
+fixture ends the unpossessed startup stack before actual RMB input.
+The three scoped selectors read local ruleset values and preserve
+overrides. The mech's authored standing and crouched eye are both 1.74m.
+Eye-relative box placement and defender-to-contact cover checks are
+server reconstruction choices.
+
+Actual Matrix input consumes primary, secondary, turret and Molten
+shots. The Molten globule creates no pool when consumed. The 0145
+excluded turret throw crosses the active box and deploys for Torbjorn.
+The tests cover front versus rear, friendly admission, melee bypass,
+wall ordering, resource exhaustion, immediate retry rejection and
+recovery. Mech possession transitions, native observer presentation and
+remaining range, death, interrupt and protective combinations stay open.
+
+Final checks on this change cover 16 defense/manifest methods and 833
+script methods. A 71-method Genji, hammer, phase and combat run passed
+before the Matrix integration. Prior combined and snapshot results
+retain their own source fingerprints.
+
+Reinhardt physical shield follow-up
+----------------------------------
+Actual RMB input raises the 0095 pet state. The private server loads the
+192-triangle descriptor from the Soldier lane. It reconstructs the
+raised pose from the authored mesh and bind-pose hardpoint, with a
+clearance adjustment against the owner capsule. The body uses its
+authored 1.8m standing and 1.26m crouched eyes.
+
+With 1600 initial shield HP, rivet, secondary, turret and globule
+contacts deal 70, 125, 14 and 25 shield damage respectively. Shield-only contacts award zero hero damage credit and ultimate charge. The projectile sweep orders enemy shields against walls,
+body hits and other defensive volumes. Allied shields allow the shot
+through. Quick melee and hammer can also damage the body through the
+shield under the declared melee policy, with shield contact settled
+once per swing.
+
+Actual rivets exhaust the full capacity. The breaking rivet is
+consumed and a later shot damages the exposed body. A premature
+raise is denied and a fresh press succeeds after cooldown. The
+ability timer now notifies its computed cooldown subscribers at
+zero, including 0095's raise gate. The snapshot witness checks shield
+capacity and cooldown fields, and replay configuration hashes the
+loaded mesh descriptor.
+
+Paired McCree input cases check that a raised allied shield consumes
+Flashbang while Torbjorn remains unhurt and unstunned. With the shield
+lowered the same cast damages and stuns Torbjorn and Reinhardt.
+The shield contact policy terminates a Molten globule at the mesh.
+Native rebounds and landed-pool interactions across a shield remain
+open, along with native attachment and replication, other barrier
+families and projectile-specific penetration.
+
+Final validation passed 17 defense, 112 combat/projectile/replay and 833 script tests.
+
+Zarya personal and projected barriers
+-------------------------------------
+Actual inputs enter the authored 0244 and 025C phases and start an
+attached 200 HP barrier. The server reconstructs the 1.5 m sphere
+around the protected capsule. The projected target query filters by
+team, aim, range and line of sight. It ranks eligible targets using aim
+and uses a 10 degree fallback when the graph supplies no angle.
+The barrier tracks the cast activation and the protected body separately.
+
+Primary and secondary contacts consume 70 and 125 HP. Quick melee,
+hammer, turret and direct Molten contacts consume 30, 55, 14 and 25 HP.
+The breaking contact spends its remaining damage at the barrier.
+The authored energy graph receives actual absorption on the caster.
+An allied projected barrier absorbs McCree's 25 damage Flashbang
+and protects the target from its stun.
+
+The server consumes a globule that hits the barrier before landing.
+An already landed pool drains the barrier with its base damage rate.
+The breaking interval is spent on the barrier. Later intervals can
+damage the exposed body and apply burn. The pool handling is a declared
+server reconstruction. Native bounce, cleanse and overlapping defenses
+remain open. Passive snapshots include active barrier capacity and activation.
+
+Projected protection can finish its active phase after the caster dies.
+Replacing the protected body retires that cast. Actual inputs verify both.
+Final scoped validation passed 27 defense, 124 combat/projectile/replay and 833 script tests.
+
+Winston Barrier Projector
+-------------------------
+Actual E input enters 00FA and runs its 01C3 CreateEntity action.
+The graph's position expression reads the live caster position and
+writes the private actor ID to instance variable 38. That ID stays in
+the server VM. The authored PlayScript request starts 00FC with 700 HP
+and a nine-second ChaseVar lifetime. Cooldown remains on the caster.
+The authored 0D02 model supplies a five-metre radius.
+
+The server reconstructs a fixed sphere and resolves the first crossed
+surface against walls, bodies, and other defenses. An enemy shot can
+hit the exit surface. Friendly fire and contacts wholly inside the
+sphere reach their usual targets. Quick melee and hammer bypass the
+shell under the declared policy. The receiver profile overlaps the
+melee query profile in the data. Its native interpretation remains open.
+
+Rivet, secondary, turret and Molten globule contacts debit the fixed
+pool. A breaking rivet is spent on the shell. An incoming Flashbang
+debits the pool once and leaves both protected bodies unstunned. A
+landed Molten pool wholly inside the shell can burn Winston. Globule
+rebounds, landed pools across the shell boundary, mixed barriers,
+native actor filters and client replication still need evidence.
+
+Final scoped validation passed 12 Winston, 27 other defense, 124 combat/projectile/replay and 833 script tests.
+
+Orisa Protective Barrier
+------------------------
+Actual E input runs the 0BD7 projectile state. The server reconstructs
+the eye origin, ballistic flight, ground admission and wall bounce
+using the graph's launch inputs. A landing hosts 0BD8 on a separate
+server component with 600 HP and a 20-second countdown plus authored
+cleanup. A ready second cast replaces the prior mesh on landing.
+
+The grounded 104319 mesh intercepts enemy rivets, pellets, turret rays
+and a Molten globule. The breaking rivet spends its hit at the mesh.
+Friendly shots pass through. Quick melee and hammer each debit the
+mesh once per contact or swing. Incoming Flashbang debits the mesh
+and leaves a covered Torbjorn unstunned. The landed component export
+tracks the pool and replay configuration includes the mesh hash.
+
+Native attachment, flight and bounce, client actor replication,
+death and interruption timing, mixed barriers and landed Molten
+across the mesh remain open.
+
+Final scoped validation passed 10 Orisa, 39 other defense, 124 combat/projectile/replay and 833 script tests.
+
+Sigma Experimental Barrier
+--------------------------
+The 1B55 pet phase creates the private 2D25 actor and hosts 1A2A.
+The child graph supplies 700 HP, 16.5 m/s travel and 0.9 m obstacle
+clearance. The server reconstructs eye-relative launch, centre-ray
+travel, mesh pose and finite-pool damage. The pet ID stays server-side.
+
+Actual RMB holds the mesh in travel, releases it to park, and recalls
+it on a fresh press. Recall and break start separate cooldowns. The
+stored mesh waits two seconds before repairing at 80 HP per second.
+The active mesh retires when the caster dies. Quick melee and hammer
+use swept contact against the same 104319 mesh used by projectile rays.
+
+Native pose, receiver filters, mixed blast occlusion and cross-mesh
+landed Molten interactions remain open. The client actor and effects
+have separate acceptance.
+
+Final scoped validation passed 11 Sigma, 57 other defense, 124 combat/projectile/replay and 833 script tests, plus 18 final Orisa and Grasp reruns.
+The broader defense and combat runs preceded the final Sigma team and private ID changes.
+
+Layered blast cover
+-------------------
+The server determines shield debits and body effects before applying
+damage. A front Reinhardt, Winston, Orisa or Sigma barrier can occlude
+splash aimed at another world barrier. Cover lasts for that explosion
+even if the direct impact breaks its shield. The next shot uses the
+new live shield state. Attached Zarya protection retains its existing
+protected-body policy.
+
+Actual Cassidy Flashbang checks a low-capacity front Sigma mesh with
+an Orisa mesh behind it and Torbjorn in the gap. The breaking blast
+spares both. A fresh cast after the cooldown damages the rear mesh
+and damages and stuns Torbjorn. Paired Winston and Sigma cases exercise
+both front shield orders. The low-capacity fixtures use seeded pools.
+Native blast visibility and penetration, other pairings and
+cross-shield landed Molten remain open.
+
+Final scoped validation passed 2 mixed barrier, 52 defense and 94 combat/projectile/replay tests.
+
+Landed Molten cover
+-------------------
+An active landed pool traces a shallow ground path from its origin to
+the front of each eligible target capsule. Static walls and hostile
+world barrier surfaces cut off that path. Under the declared server
+policy this cover leaves world barrier capacity intact. Same-side and
+allied-shell paths remain eligible. Attached Zarya absorption still
+settles the eligible protected body's interval.
+
+Actual inputs land the pool and cast the Winston or Orisa barrier.
+Winston's shell blocks in either crossing direction. Moving back
+across the shell removes the burn, and the same path burns again with
+a friendly shell. Orisa's grounded mesh blocks the existing pool.
+An actual globule breaks a preset low-capacity mesh. On the breaking
+frame the existing pool resumes damage and the globule creates no
+new pool. Native receiver and ground propagation rules, other shield
+positions, and multi-pool cross-cover cases remain open.
+
+Final scoped validation passed 2 landed cover, 43 Molten/ultimate/defense and 94 combat/projectile/replay tests.
+
+Sombra Hack
+-----------
+Actual RMB runs 0B1B and hosts the 0B1F effect on Torbjorn. The server
+uses a capsule ray for acquisition, then checks enemy ownership,
+range, walls and shields at application. The effect supplies five
+seconds of skill silence. The server masks new turret, Overload
+and ultimate presses. A held blocked button must be released before
+it can start a skill after expiry. Primary fire remains available.
+
+Actual rivet damage enters the authored Sombra damage message and
+starts interruption cooldown. Early retry fails and a fresh cast
+works after cooldown. Wrong team, out-of-range, new wall and released
+channel cases reject application. The existing Overload buff follows
+its own expiration. Passive VM export covers the live channel and
+effect, and body replacement retires the hosted status.
+
+Target acquisition, final revalidation and input suppression are
+declared server policies. Native recipient filters, active skill
+interruption, EMP, other controls and original-client feedback remain
+open.
+
+Final scoped validation passed 5 Hack, 111 combat/control/replay and 833 script tests.
+
+Sombra EMP body effect
+----------------------
+Actual charged Q runs 0B31, which selects nearby hostile bodies and
+starts the 0B32 recipient graph. The authored recipient request
+hosts 0B1F with five seconds of skill silence. The static host
+reconstructs radial sight with a body ray and world collision.
+The body path can cross a hostile world barrier. Wrong team,
+distance, wall cover and missing charge reject the respective cases.
+
+Actual EMP reaches two Torbjorn bodies on different sides of the
+caster. It leaves existing Overload armour intact in this path.
+The shared input gate keeps pressed skills blocked until release
+and applies the later deadline when Hack and EMP overlap.
+EMP receiver tags, shield drain, deployable effects, additional
+recipients and original-client feedback still need acceptance.
+
+Final scoped validation passed 4 EMP body, 5 Hack, 111 combat/control/replay and 833 script tests.
+
+Ana Sleep Dart
+--------------
+The 0BDD Sleep Dart hit carries 026F. The corresponding 0BDE receiver
+supplies the five-second 224E duration. The scoped server dispatch
+applies a body-local deadline on Torbjorn and reuses existing control
+input and interruption. Ordinary armour reduces the five-point dart
+to 2.5 on the tested Torbjorn body. An allied Winston shell absorbs
+the five-point dart and prevents control.
+
+Biotic Rifle volley 0B94 nodes 7 and 88 carry 70 damage and effects
+0266 and 027B. The extracted 053 records route through 0B96 and
+C67 to 0B95, which supplies the 0.6-second window. The host integrates
+that window on its 16 ms clock and bypasses armor mitigation under
+the OW1 periodic damage rule (March 19, 2019 retail patch notes).
+Native pulse cadence and status cleansing remain open.
+
+Three command-fired shots in each scope mode take Overload Torbjorn
+from 350 to 280, 210 and 140. Damage spends temporary armor, base
+armor and then health. Each wound settles its final 8 ms on the
+expiry frame. Ana receives 210 credited damage.
+The server snapshot includes active wound timing and captures it
+without advancing combat.
+
+Genji redirects each rifle mode onto Ana ally Torbjorn. The wound
+spends 70 temporary armor and leaves both base pools full. Genji
+receives all 70 damage and ultimate charge. Ana receives no damage
+credit. Actual possessed-mech Matrix consumes either rifle mode
+without a wound or damage to the mech or Torbjorn. A fresh shot
+after release and clearing the lane spends 70 Overload armor.
+The Matrix fixture begins with an already possessed mech.
+
+Actual Kinetic Grasp absorbs a front rifle hit in each firing mode.
+The absorption counter records 70. Sigma takes no damage and receives
+no wound. While the same Grasp is active, a rear hit leaves that
+counter unchanged and its wound spends 70 base shields. Grasp ends
+with a 42-point temporary shield grant. A fresh Torbjorn rivet
+spends 42 temporary and 28 base shields, grants 70 damage and ultimate
+charge to Torbjorn, and leaves Sigma at 300 health and 2 base shields.
+
+Actual Ana rifle damage shortens sleep to the later of the 1.5-second
+floor or a 0.5-second wake recovery from damage. The earlier deadline
+remains authoritative after further damage. The floor and recovery
+are declared server policy. Actual input verifies blocked attacks and
+abilities, normal expiry, fresh input recovery, and Molten firing
+after wake. The already landed pool survives sleep. A lethal rifle
+hit clears the old body status.
+
+Native receiver, wake animation, other recipients and stacking,
+active object interactions, and original-client feedback remain open.
+
+Final scoped validation passed 6 Sleep Dart, 29 control/ultimate/Overload and 94 combat/replay tests.
+
+Ana Biotic Grenade anti-heal
+---------------------------
+The 0B97 grenade hit carries 0267. Its 0C71 receiver references
+0B99, which supplies a four-second hostile healing restriction.
+The scoped server host tracks half-open tick windows for Torbjorn
+and removes them on body retirement. A grenade hit in the tested
+fixture deals 45 damage through Torbjorn armour.
+
+An actual allied Soldier field heals only on eligible ticks.
+The contiguous and skipped-update cases credit the same four
+ticks after expiry. While anti-heal is active, Overload still
+grants its 100 temporary armour and a hammer swing repairs 50
+on the owner's damaged turret fixture. Grenade damage can end
+sleep while the anti-heal window stays active. A wall blocks
+the grenade effect in the tested case.
+
+A real Zarya Projected Barrier truncates an active grenade antiheal
+window on allied Torbjorn. A wrong-aim cast preserves the original
+deadline. The existing Soldier field heals the next six ticks with
+equal totals through individual or skipped updates. Healing leaves
+100 temporary Overload armor and the 200-point barrier intact.
+A fresh rifle shot spends 70 barrier capacity without leaving a
+wound. A fresh exposed shot after expiry spends 70 Overload armor
+and credits Ana the same amount.
+
+Recipient scope, healing admission and elapsed tick handling use
+the declared server implementation. Friendly amplification,
+native cleanse and stacking, other healing sources and recipients,
+and original-client feedback remain open.
+
+The melee admission check now recognizes player Genji through an optional
+hero identity. NPC and turret scripts reach ordinary damage settlement.
+
+Scoped validation passed 5 anti-heal, 12 control, 39 hammer/support/defense, 2 five-NPC and 94 combat/replay tests.
+The 94 combat and replay tests preceded the final NPC melee admission guard.
+
+Mei spray frost
+---------------
+The authored 05E6 spray target count allows a projectile to touch
+more than one body. Server flight tracks distinct contacts through
+the remaining sweep and still stops at walls and hostile barriers.
+Actual spray damages two aligned Torbjorn bodies once each.
+
+Primary spray uses the 30 percent beam armor reduction (Blizzard
+Entertainment, March 19, 2019 and August 31, 2020 retail patch notes).
+Each 2.75 damage spray hit spends 1.925 if entirely absorbed by
+armor. Thirty hits freeze Torbjorn for 1.3 seconds and spend 57.75
+Overload armor while both base pools stay full. Continued spray
+exhausts temporary armor and then base armor. Hit 78 spends the
+last base armor and passes the unmitigated remainder to health.
+Mei receives credit for damage actually spent from the pools.
+
+The scoped 0B77 projection uses initial frost 0.2, per-hit buildup,
+and a 1.3-second freeze. An active freeze does not extend on further
+spray. Frozen Torbjorn holds aim and loses movement and action input.
+A fresh shot after thaw works. The slow composes with Overload's
+speed boost. A gap clears the slow and body replacement clears
+stored progress. A friendly Winston shell consumes the spray without
+frost on the protected body.
+
+The buildup, aggregation, movement scale and thaw handling are
+declared server rules. Native hit filters, custom settings, Blizzard,
+other recipients, status stacking and original-client effects remain open.
+
+Final scoped validation passed 7 Mei frost, 25 control/barrier, 45 movement and 94 combat/replay tests.
+
+Mei Blizzard
+------------
+Actual Q uses the 064A Snowball and the ballistic projectile host.
+The server anchors 065E's storm at world contact, applies a 200 ms
+arming delay, and runs the 4.25-second area. The reconstructed
+radius, visibility and frost pulses determine each eligible target's
+damage and control. A retained clock gap preserves landing and
+storm timing.
+
+Actual input verifies charge use, freeze, thaw, radius exit and
+reentry, wall and friendly filtering, Zarya projected absorption,
+and the landed area's survival after Mei dies. Genji's real Deflect
+changes the resulting storm owner. A possessed D.Va Matrix fixture
+consumes the thrown Snowball before it can land.
+
+Blizzard bypasses armor damage reduction under the OW1 periodic
+damage rule (Blizzard Entertainment, March 19, 2019 retail patch notes).
+It spends Overload armor at 20 damage per second until the temporary
+pool expires during the freeze, then spends base armor at the same
+rate. The storm credits Mei 85 damage and excludes the discarded
+temporary armor. Held Overload input cannot refresh the pool.
+
+Area movement, visibility and shield settlement are declared
+server policies. Other recipients, storm positions, native geometry,
+cross-source frost and original-client presentation remain open.
+
+Final scoped validation passed 8 Blizzard/Matrix, 25 final timing/frost/replay, 24 control and 94 combat/replay tests.
+
+Orisa Halt
+
+Actual 0CCB presses launch and detonate the orb. Host capsule range,
+static cover and team checks select eligible players. Authored 0CCE applies
+the 20 m/s pull to the graph destination. Verified cooldown denial and
+recovery, no damage, and retirement when the target VM is unposed. Native
+recipient queries, orb interception and other recipients remain open.
+
+Final scoped validation passed 3 halt, 68 mover and control, 94 combat and replay, 833 statescript tests.
+
+Frontal enemy Defense Matrix deletes the flying Halt orb before
+terrain contact or the second press. On the same posed mech with Matrix
+facing away, the second press still moves Torbjorn at 20 m/s to the authored
+destination. Deflect, Grasp and native target queries remain open.
+
+Final scoped validation passed 13 halt and matrix, 86 combat and replay tests.
+
+Frontal Kinetic Grasp also removes the flying Halt orb before detonation.
+The authored Grasp output receives zero damage for Halt and grants no extra
+shields. A real rivet during the same activation still yields 42 shields.
+The rear-facing control permits the Halt pull. Deflect remains open.
+
+Final scoped validation passed 22 halt grasp and matrix, 86 combat and replay tests.
+
+Actual Deflect redirects Halt with a new server-local handle and Genji
+as the new owner. The original Orisa second press leaves it flying. On
+automatic wall impact, enemy Torbjorn moves and friendly Torbjorn remains
+in place. Native reflected detonation semantics and presentation are open.
+
+Final scoped validation passed 23 halt deflect grasp and matrix, 104 combat and replay tests.
+
+NPC primary hits during Overload
+
+Actual Trooper, Sniper, Heavy Assault and Enforcer first hits spend 15, 95,
+2.5 and 25 temporary armor respectively. Static cover denies manual
+engagement. Reopening permits the hit, and stopping engagement lets the
+remainder expire with the 200 health and 50 base armor pools intact.
+Assassin pin coverage was rerun separately.
+
+Final scoped validation passed 2 npc overload and assassin, 24 overload control and geometry tests.
+
+Sustained NPC fire during Overload
+
+Trooper and Enforcer stay engaged across natural expiry with temporary
+armor left. The first post-expiry attacks spend 15 and 25 base armor.
+Early sustained Trooper fire empties the last 10 temporary armor and
+spends 5 base armor on the same shot. Continued fire consumes the remaining
+base armor and then deals 20 damage to unarmored health.
+
+Final scoped validation passed 3 npc overload and assassin, 24 overload control and geometry tests.
+
+NPC weapon reach and Enforcer falloff
+
+Actual Trooper, Sniper, Heavy Assault and Enforcer weapons hit at 99 m and
+miss at 101 m. The test widens only manual acquisition and engagement to
+110 m to isolate the authored weapon reach of 100 m. Enforcer pellet damage
+is 2 nearby, approximately 1.2 in the interpolation band and 0.4 at the floor,
+before the armor pool applies its reduction. Native spread remains open.
+
+Final scoped validation passed 14 npc combat, 41 combat control and geometry tests.
+
+Launched Molten pool against the five Talon NPCs
+
+Real ultimate and primary inputs produce a ground pool. Range, team and
+wall fixtures deny contact for all five NPCs. Eight open frames deal
+20.48 damage. Leaving range retires 16DE, and re-entry creates a new 16DE
+instance and deals another 20.48 damage. NPC poses and team changes are
+explicit fixture inputs.
+
+Final scoped validation passed 23 molten and ultimate, 40 npc geometry charge and turret tests.
+
+Molten direct hits and independent casters
+
+Real globules deal 25 damage on direct enemy contact for all five NPCs.
+Allied NPCs take no damage, and direct enemy hits create no pool or burn.
+Two real casts overlap and each contributes 20.48 damage over eight frames
+with a separate 16DE burn. Switching one caster to Soldier retires only
+that caster's pool and burn. The surviving caster contributes another
+20.48 damage over the next eight frames.
+
+Final scoped validation passed 25 molten and ultimate, 45 defenses phases and charge tests.
+
+Lethal Molten overlap
+
+Actual overlapping pools kill on the first contribution at 1 HP or the
+second at 4 HP. The second case credits 2.56 and 1.44 damage to the two
+casters. Both existing burns retire on the death tick. A later contact
+from a second caster cannot mount a fresh burn on the dead target.
+
+Final scoped validation passed 1 lethal overlap, 26 molten and ultimate, 48 combat health and replay tests.
+
+Vertical Molten wall contact against NPCs
+
+Actual globules rebound from the fixture wall 2.5 m from launch and
+make one pool on the launch side. All five NPCs behind the wall retain
+their health and receive no burn. An overhead shot also reverses its
+vertical velocity at a ceiling, then creates one pool on the floor.
+The OW1 October 2018 release notes establish the wall and ceiling rule.
+The static host preserves tangential velocity and retains half the
+normal speed in the opposite direction. Exact 104319 restitution,
+surface thresholds and native prediction remain open.
+
+A single actual globule can hit a ceiling and then a wall before it
+lands. Both contacts keep the same projectile, preserve its remaining
+lifetime plus elapsed flight, and produce no pool. The second rebound
+reverses the forward velocity at half speed. Floor contact produces
+exactly one pool on the approach side of the wall.
+
+All five Talon bodies at 6.5 m take a 25-damage direct hit from a
+globule after its ceiling rebound when hostile. The hit credits
+Torbjorn and terminates the globule without a pool or burn. Against
+the same allied bodies the globule passes through and lands once,
+with no health loss or damage credit.
+
+After a ceiling rebound, the globule removes 25 health from either
+Zarya barrier and gives energy to the caster. The protected body
+keeps its full health, Torbjorn gains neither damage credit nor
+ultimate charge, and no pool or burn is created.
+
+Genji and Sigma also intercept a descending globule after its
+ceiling rebound. Genji takes ownership, lands a pool, and applies
+20.48 burn damage in eight frames. Sigma absorbs the globule's
+25 nominal damage and gains 15 temporary shield health on settlement,
+with no pool or body damage.
+
+A descending globule after ceiling rebound passes through Wraith
+and Fade, lands, and starts burning only when the target exits phase.
+Cryo-Freeze stops the globule without body damage or a pool. After
+Cryo ends, a fresh shot on the same route deals 25 direct damage.
+
+Defense Matrix switched on after the ceiling rebound removes the
+descending globule without body damage, a pool, or burn. After Matrix
+release, a fresh shot on the same route deals 20 to the mech's armor,
+with no pool or ultimate charge.
+
+Molten landing beneath a thin overhang
+
+The pool uses the surface hit by the ballistic sweep. An actual
+globule passes beneath a thin overhang and hits the floor at y=1.
+The former vertical probe moved the pool to y=1.035 on the overhang.
+The pool now stays at y=1 on the surface the globule struck.
+
+Molten landing on ramps
+
+An actual globule deposits its pool on the struck 30-degree incline.
+The same input against a 60-degree incline rebounds and deposits on
+the approach-side floor. Both pools burn Soldier for 1.92 on the
+partial arming frame and another 20.48 over the next eight frames.
+These fixtures exercise the current static normal cutoff.
+
+Burn height on the struck incline
+
+The static host evaluates the existing height band relative to the
+struck surface plane. On a 30-degree ramp a landed pool burns Soldier
+both 0.6 m downhill and 2.1 m uphill for 20.48 over eight frames.
+A target 3.5 m away along the same ramp is outside the horizontal
+radius and its burn ends. Flat surfaces retain the existing height band.
+
+Sleep Dart contact with a deployed turret
+
+An aimed Sleep Dart hits a full-health turret in front of Torbjorn,
+deals five damage to it, and leaves Torbjorn at 250. Neither receives
+the sleep state in the static host. The same turret continues hitting
+Ana for 14 per shot after contact.
+
+Biotic Grenade against a turret and its overloaded owner
+
+One actual grenade damages the turret for 50 and spends 45 of
+Torbjorn's temporary armor. Ana receives 95 damage credit.
+The static host applies antiheal to Torbjorn and no antiheal
+window to the turret. After the Overload startup lock, one
+hammer swing repairs 50 with the owner's antiheal still active.
+
+Thrown turret acquisition against all five Talon NPCs
+
+Actual turret throw and construction precede acquisition. The turret
+ignores each NPC while allied, behind static cover or beyond authored
+range. Clearing cover or returning to range acquires the enemy and
+produces one 14-damage shot per return, credited to Torbjorn. NPC pose
+and team transitions are controlled by the fixture.
+
+Final scoped validation passed 22 turret, 18 mark and npc control tests.
+
+Actual ranged NPC fire destroys a thrown turret
+
+Trooper, Enforcer, Sniper and Heavy Assault weapons hit the turret while
+aiming at a crouched allied player placed behind it. The fixture sets the
+built turret to 1 HP. Actual NPC fire kills it, grants NPC killer identity
+and starts the 10-second redeploy cooldown. An early throw fails and a
+fresh post-cooldown throw creates a new turret. Assassin remains open.
+
+Final scoped validation passed 1 ranged npc lethal, 13 turret and npc control tests.
+
+Assassin pin and autonomous turret fire
+
+Actual Assassin input pins and damages Torbjorn. The fixture sets the
+active Assassin to 14 HP after the pin begins. A real shot from the
+previously thrown turret kills it with Torbjorn credit and immediately
+clears the owner pin. The turret remains deployed. The manual pin host
+requires a player victim. Native deployable eligibility stays open.
+
+Final scoped validation passed 1 assassin and turret, 10 assassin and ranged npc regression tests.
+
+Full-health turret exchanges with four ranged NPCs
+
+In the fixed line-of-fire fixture the 250 HP thrown turret defeats
+Trooper, Enforcer and Sniper with 70, 166 and 50 HP left. Heavy Assault
+destroys it, retains 3776 HP and starts redeploy cooldown. Both sides use
+actual fire, and the test verifies health lost, killer identity and
+Torbjorn damage credit. The NPC targets a crouching player behind the turret.
+
+Final scoped validation passed 2 full health and redeploy, 11 targeting pin and npc control tests.
+
+Hammer repair during Heavy Assault fire
+
+A previously thrown, full-health turret receives actual Heavy Assault
+fire directed at a crouched player behind it. Hammer swings request
+50 repair each and restore at least 50 HP while over 100 incoming damage
+is recorded. After release the NPC destroys the turret and the normal
+redeploy cooldown starts.
+
+Final scoped validation passed 3 repair and duel, 25 hammer support and geometry tests.
+
+Flashbang interruption of pending turret repair
+
+A thrown turret is pre-damaged to 130 HP. Actual Flashbang interrupts
+Torbjorn before the hammer contact and deals 25 damage to the nearby
+turret and stuns it until the same deadline as Torbjorn. The turret
+holds at 105 HP and fires no shots during the stun. A fresh hammer
+press after recovery repairs the same turret to 155 HP.
+
+With Torbjorn outside the blast, Flashbang deals 25 to the thrown
+turret alone and stops its fire until the exact stun expiry. Its
+first shot at expiry deals 14. A separate owner-only hit leaves
+turret fire and the existing Molten burn active.
+
+Final scoped validation passed 17 control, Flashbang and turret
+Sleep Dart tests.
+
+Final scoped validation passed 15 control and flashbang, 15 hammer and turret repair tests.
+
+Turret repair boundary and changing wall cover
+
+Actual hammer repairs 50 HP at 1 cm inside the modeled authored-sphere
+contact and does not repair at 1 cm outside. Clearing wall cover after
+20 frames permits one repair in the current swing. Clearing it after 33
+frames does not revive the contact. A new swing then restores 50 HP.
+
+Final scoped validation passed 10 repair contact, 15 hammer and turret repair tests.
+
+NPC primary marks under changing cover
+
+An actual rivet mounts 16FC on each of the five NPC types. A new static
+wall redirects the turret to the closer player without removing the
+mark. Clearing the wall restores NPC priority and damage. Expiry removes
+the VM instance and restores nearest-target priority. Native sharing
+and remaining protection interactions stay open.
+
+Final scoped validation passed 9 primary mark, 16 turret and replay tests.
+
+Independent primary marks from two Torbjorns
+
+Both actual thrown turrets initially prefer the nearer enemy. One actual
+rivet marks the farther enemy and redirects only the firing owner’s
+turret. The second owner’s actual rivet creates another 16FC instance.
+Each turret returns to the nearer enemy when its own mark expires.
+Native global sharing policy remains unverified.
+
+Final scoped validation passed 10 primary mark, 13 phases and turret tests.
+
+Zarya barriers and Torbjorn primary marks
+
+Actual personal and projected barriers absorb 70 rivet damage without
+applying 16FC or redirecting the turret. The body stays at full health.
+Expiry does not produce a deferred mark. A fresh exposed body hit
+creates the mark and directs the turret to that target.
+
+Final scoped validation passed 11 primary mark, 12 bubbles and phase cleanse tests.
+
+Existing marks through personal and projected Zarya barriers
+
+An actual rivet marks the farther enemy before the barrier is cast. Both
+barriers absorb a 14-damage turret shot while the marked body loses no
+health. Mark instance and deadline are unchanged. Expiry removes 16FC
+and the turret returns to the nearer enemy while the barrier stays active.
+
+Final scoped validation passed 2 existing and new marks, 12 primary mark, 12 bubbles and phase cleanse tests.
+
+Reflected rivet and primary mark
+
+Actual Deflect returns a rivet to Torbjorn for 65 damage. Neither body
+receives a mark and the turret stays on its nearer target. After Deflect
+expires, a fresh body hit marks Genji and redirects the turret.
+
+Final scoped validation passed 1 deflect mark, 13 primary mark, 3 deflect and phase tests.
+
+Kinetic Grasp and primary mark
+
+Actual Kinetic Grasp absorbs a 70-damage rivet without applying 16FC or
+changing turret priority. The authored exit settles 42 shields and no
+deferred mark. A fresh exposed body hit mounts 16FC and redirects fire.
+
+Final scoped validation passed 2 grasp and deflect marks, 14 primary mark, 9 grasp regression tests.
+
+Defense Matrix and primary marks
+
+On the possessed-mech fixture, actual Defense Matrix consumes rivets
+without marking or redirecting the turret. After release, a new body hit
+marks the mech. Matrix facing the turret also consumes its shots while
+an existing mark expires at its original deadline.
+
+Final scoped validation passed 2 matrix mark interactions, 12 matrix, 14 primary mark tests.
+
+Primary marks after Torbjorn dies
+
+A real Soldier shot kills Torbjorn after an existing mark or while the
+rivet is still airborne. Existing and posthumous marks both direct the
+surviving turret to the farther target. Normal expiry removes 16FC and
+returns the same turret to its nearer enemy. The owner starts at 1 HP.
+
+Final scoped validation passed 1 owner death mark, 5 lifecycle regression, 15 primary mark tests.
+
+Same-frame hero switch and primary marks
+
+Switching off Torbjorn removes the turret and active marks immediately.
+The leased rivet retires with the body. An unleased rivet can still deal
+70 damage, but cannot mark for the replacement hero body. A fresh throw
+and a fresh body hit restore normal turret priority after switching back.
+
+Final scoped validation passed 1 hero switch mark, 30 lifecycle regression, 16 primary mark tests.
+
+Same-tick hero switch and Molten Core
+
+Switching off Torbjorn immediately retires his landed pool and active
+burn. A globule launched with the projectile lease disabled in the
+fixture can still fly but cannot spawn a pool after switching back.
+A fresh actual cast after the switch lands normally.
+
+Final scoped validation passed 1 hero switch molten, 5 lifecycle regression, 22 molten tests.
+
+Hero switch during a turret throw
+
+Actual throw input creates an airborne turret projectile with a lease.
+Switching off Torbjorn retires that projectile. Switching back before
+the next world tick does not deploy it. A fresh throw deploys normally.
+
+Final scoped validation passed 5 turret switch tests.
+
+Airborne turret after owner death
+
+A Soldier primary shot kills Torbjorn at 1 HP while the actual throw is
+airborne. The turret lands, builds and hits Soldier for 14 before
+Torbjorn respawns. Damage is credited to Torbjorn.
+
+Final scoped validation passed 4 airborne turret death tests.
+
+Airborne Molten globule after owner death
+
+A Soldier primary shot kills Torbjorn at 1 HP while the globule is in
+flight. The globule lands and its pool deals 20.48 damage in eight frames
+before respawn. The burn credits Torbjorn and held fire launches no more
+globules while he is dead.
+
+Final scoped validation passed 6 airborne molten death tests.
+
+Overload depletion and respawn under actual Soldier fire
+
+The first Soldier shot removes 15 temporary armor and leaves base armor
+intact. Held fire kills Torbjorn and clears Overload. Presses while dead
+do not refill it. The new body spawns at 250, and a fresh press raises
+it to 350 with a new temporary armor pool.
+
+Final scoped validation passed 1 overload respawn, 14 overload regressions tests.
+
+Overload after same-frame hero switching
+
+Actual movement reaches 7.15 m/s before switching. Switching away and back
+retires the old pool and returns movement to 5.5 m/s and health to 250.
+A fresh Overload restores 100 temporary armor and 7.15 m/s.
+
+Final scoped validation passed 3 overload switch tests.
+
+All four ranged NPCs across Overload expiry
+
+Sniper and Heavy Assault join Trooper and Enforcer in the sustained-fire
+fixture. Temporary armor remains just before expiry. The first subsequent
+Sniper hit spends 50 armor and 45 health, while Heavy Assault spends 2.5
+armor. The same attack input stays active across expiry.
+
+Final scoped validation passed 1 npc overload expiry tests.
+
+Ranged NPC fire across team changes
+
+Trooper, Enforcer, Sniper and Heavy Assault reject initial friendly
+acquisition. After hostile acquisition they release attack input upon
+becoming friendly and deal no damage. Restoring hostility resumes actual
+fire, and a second friendly transition again prevents damage. The test
+changes teams directly in the fixture.
+
+Final scoped validation passed 1 npc team transition, 10 npc control regression tests.
+
+Assassin pin across team changes
+
+Initial friendly acquisition is denied. The real hostile pin damages
+Torbjorn. Changing the Assassin to friendly clears the pin and input
+and stops damage. Returning to hostile reapplies the pin and damage
+through the existing engagement. Teams are set by the fixture.
+
+Final scoped validation passed 10 assassin team transition tests.
+
+Assassin pin through live wall changes
+
+A static wall denies initial acquisition. Inserting it during an active
+pin releases input and control and stops damage. Removing it resumes
+the engagement and applies a fresh damaging pin. The fixture replaces
+the collision world directly.
+
+Final scoped validation passed 18 assassin cover transition tests.
+
+Assassin pin range and re-entry
+
+The live attack applies a pin and damage at 2.98 m and releases both
+at 3.02 m, measured between the fixture eye positions. The fixture uses
+the server default NPC eye height. Re-entry starts a fresh pin. The
+server contact range is 3 m and native acquisition range remains open.
+
+Final scoped validation passed 10 assassin range transition tests.
+
+Lethal Assassin pin and respawn
+
+After the actual pin engages, the fixture sets Torbjorn to 1 HP. Actual
+pin damage kills him, credits the Assassin and clears the pin on the death
+tick. The controller releases its old target on the next tick. The fixture
+then stops engagement. The replacement body spawns at 250 without control.
+
+Final scoped validation passed 10 assassin lethal respawn tests.
+
+Assassin pin across hero replacement
+
+A manual Assassin engagement releases the old body before sending
+attack input for a replacement body. A same-tick Torbjorn to Soldier to
+Torbjorn switch clears the old pin. The existing engagement then pins the
+fresh body without a new attack command. The fixture restores the target
+pose after the switches to keep it in contact range.
+
+Final scoped validation passed 19 assassin switch focused, 36 assassin switch npc suite tests.
+
+Molten Core and the live Assassin pin
+
+A command-fired globule lands before a full-health Assassin enters the
+pool. The live pin damages Torbjorn while the pool keeps burning the
+Assassin. The lethal burn credits Torbjorn and releases the pin while he
+is alive. The fixture positions both actors around the landed pool and
+starts the Assassin through manual engagement.
+
+Final scoped validation passed 1 molten assassin final, 24 molten assassin suite tests.
+
+Molten Core and Ana Sleep Dart
+
+A landed pool continues burning after Ana sleeps Torbjorn. The fixture
+places Ana in the existing pool after the dart lands. Lethal burn damage
+credits Torbjorn and clears Ana's burn. Ana's death leaves the active
+sleep deadline intact, and Torbjorn wakes on the original deadline.
+
+Final scoped validation passed 7 molten ana sleep suite tests.
+
+Molten Core and Sombra Hack
+
+A command-fired pool interrupts an actual Hack channel when Sombra
+enters the burn while holding the input. In the opposite direction,
+applied Hack leaves an active Molten primary available while suppressing
+new skill buttons. The fixture moves Sombra into the pool for the
+channel interruption case.
+
+Final scoped validation passed 7 molten hack suite tests.
+
+Molten Core and Sombra EMP
+
+An applied EMP blocks new skill inputs while allowing active Molten
+primary fire. A previously landed pool keeps dealing damage and kills
+Sombra at full starting health, with burn cleanup and Torbjorn kill
+credit. The original EMP deadline survives her death and expires on
+schedule. The fixture moves Sombra into the first pool after EMP applies.
+
+Final scoped validation passed 5 molten emp suite tests.
+
+Molten Core and Mei freeze
+
+Actual spray and Blizzard both prevent fresh Molten primary input
+while Torbjorn is frozen. A previously launched pool burns Mei during
+both freezes. The spray case verifies burn removal on exit and a new
+globule after thaw. The fixtures place Mei in the pool after freeze.
+
+Final scoped validation passed 8 molten spray suite, 8 molten blizzard suite tests.
+
+Molten Core and Orisa Halt
+
+An actual Halt cast and detonation pull Torbjorn across the contact
+boundary of a command-fired enemy Molten pool. Pulling in starts the
+burn and periodic damage. Pulling out clears both. The fixture places
+Torbjorn just outside or inside the boundary before the pull.
+
+Final scoped validation passed 5 molten halt suite tests.
+
+Molten Core and Wraith, Fade, Cryo-Freeze
+
+A command-fired pool mounts a burn before each actual phase ability.
+The phase retires the mounted burn without consuming the pool or
+crediting damage while immune. On exit the same pool mounts a new burn
+and resumes damage. The fixture positions the defender inside the
+landed pool before the phase.
+
+Final scoped validation passed 12 molten phase suite tests.
+
+Landed Molten Core and Sigma barrier
+
+A command-deployed Sigma mesh parked across the ground path removes
+an existing burn without spending barrier health. Recalling the mesh
+restores damage and mounts a new burn from the same pool. The fixture
+positions Sigma and the recipient around the landed pool.
+
+Final scoped validation passed 14 molten sigma cover suite tests.
+
+Landed Molten Core and new Zarya bubbles
+
+Actual personal and projected barriers remove an existing burn and
+absorb the next full damage interval. Body damage and credit stop
+through the breaking tick. The same pool remounts burn after break.
+The fixture places the recipient inside the already landed pool.
+
+Final scoped validation passed 12 molten zarya live suite tests.
+
+Reflected Molten Core kills its original caster
+
+A command-fired globule lands under Genji ownership after Deflect.
+After the Molten firing window ends, Torbjorn activates Overload and
+enters the pool. Burn first spends temporary armor at the armor rate,
+then kills Torbjorn and credits Genji. An ally of Genji within radius
+is excluded. The fixture sets teams and places both targets.
+
+Final scoped validation passed 19 molten deflect lethal suite tests.
+
+Molten Core and Kinetic Grasp settlement
+
+Actual Grasp absorbs a 25-damage globule without a pool or body hit.
+Grasp exit grants 15 temporary shields. A later landed globule spends
+them before base pools. The fixture places Sigma in the landed pool.
+
+Final scoped validation passed 10 molten grasp suite tests.
+
+Molten Core and active Defense Matrix
+
+Actual Matrix deletes a new globule while the existing pool continues
+the same burn at the armor damage rate. The fixture uses the prepared
+possessed-mech body and places it inside the already landed pool.
+
+Final scoped validation passed 13 molten matrix suite, 1 molten matrix final tests.
+
+Landed Molten Core and Reinhardt barrier
+
+A downward-aimed shield clears both burns without losing capacity
+to the pool. A new globule spends 25 shield health. Lowering the shield
+remounts both burns. The fixture positions both targets after landing.
+
+Final scoped validation passed 12 molten rein cover suite tests.
+
+Biotic Grenade against active Overload
+
+An actual enemy grenade spends 45 temporary armor without damaging
+base pools. Ana rifle fire exhausts the remainder. An allied Soldier
+field cannot heal until the antiheal deadline, then heals base damage
+without refilling temporary armor.
+
+Final scoped validation passed 6 ana grenade overload suite tests.
+
+Sleep Dart against active Overload
+
+An actual Sleep Dart spends 2.5 temporary armor while preserving
+base pools. The remainder expires on the same tick as in the matched
+no-dart run, while Torbjorn is still asleep.
+
+Final scoped validation passed 8 ana sleep overload suite tests.
+
+Deployed turret during Sleep Dart
+
+A thrown turret kills Ana while Torbjorn sleeps. The kill credits
+Torbjorn and the sleep expires on the original tick. Ana enters combat
+range after the turret builds.
+
+Final scoped validation passed 9 ana sleep turret suite tests.
+
+Deployed turret and Sombra Hack
+
+One turret hit interrupts held Hack. Cooldown rejects early retry.
+After a successful retry, the same turret still fires without changing
+the deadline. Fixture cover isolates the hit while preserving Hack LOS.
+
+Final scoped validation passed 8 sombra hack turret suite tests.
+
+Deployed turret during Sombra EMP
+
+A thrown turret fires during EMP and kills Sombra. The kill credits
+Torbjorn and the original silence deadline remains in force. The
+fixture places Sombra back in range after the turret builds.
+
+Final scoped validation passed 6 sombra emp turret suite tests.
+
+Deployed turret during Mei spray freeze
+
+A thrown turret damages Mei for 14 per hit during spray freeze.
+Owner inputs are denied and the freeze deadline stays unchanged.
+Fixture cover is removed after freeze to isolate the turret shots.
+
+Final scoped validation passed 9 mei spray turret suite tests.
+
+Deployed turret during Blizzard freeze
+
+A thrown turret damages Mei for 14 per hit during Blizzard freeze.
+Owner inputs are denied and the thaw deadline stays unchanged.
+The fixture moves Mei away during buildup and back after freeze.
+
+Final scoped validation passed 9 mei blizzard turret suite tests.
+
+Deployed turret during Orisa Halt
+
+A thrown turret keeps its position and damages Orisa during the pull.
+Torbjorn moves without taking damage and the pull expires. The fixture
+returns Orisa to range after the turret builds.
+
+Final scoped validation passed 6 orisa halt turret suite tests.
+
+Hammer repair during Ana antiheal
+
+Ana rifle fire damages a command-thrown turret. A hammer swing
+repairs 50 health during grenade antiheal. The fixture positions the
+actors and moves Ana away after the grenade.
+
+Final scoped validation passed 6 ana antiheal repair suite tests.
+
+Sleep Dart cancels pending hammer repair
+
+An actual dart hits before the repair contact and cancels it. A
+held hammer does not repair during sleep. A fresh swing after wake
+restores 50 health to the thrown turret damaged by Ana rifle fire.
+
+Final scoped validation passed 10 ana sleep repair suite tests.
+
+Hammer repair during Sombra Hack
+
+Sombra damages a thrown turret with actual primary fire. After Hack
+applies to Torbjorn, his equipped hammer repairs 50 on the same turret
+while Overload is denied. Fixture cover isolates the Hack channel.
+
+Final scoped validation passed 9 sombra hack repair suite tests.
+
+Hammer repair during Sombra EMP
+
+Sombra damages a thrown turret and applies EMP to Torbjorn.
+The equipped hammer repairs 50 while Overload and Molten Core inputs
+are denied. The fixture moves Sombra away after EMP lands.
+
+Final scoped validation passed 16 sombra emp repair suite tests.
+
+Spray freeze and hammer repair
+
+Mei icicles damage a thrown turret. Spray freeze cancels pending
+repair and a fresh swing after thaw restores 50. The fixture removes
+cover before the cancelled contact would occur.
+
+Final scoped validation passed 10 mei spray repair suite tests.
+
+Blizzard freeze and hammer repair
+
+Actual Blizzard cancels pending repair before contact. The turret
+takes only storm damage while the owner holds fire during freeze.
+A fresh swing after thaw and storm expiry restores 50.
+
+Final scoped validation passed 20 mei blizzard repair suite tests.
+
+Hammer repair range after Orisa Halt
+
+An actual Halt pulls Torbjorn out of hammer repair range. A swing
+misses the turret damaged by Orisa fire. The fixture returns Torbjorn
+to the initial pose and a fresh swing restores 50.
+
+Final scoped validation passed 7 orisa halt repair suite tests.
+
+Hammer repair during Assassin pin
+
+An actual thrown turret damaged by player fire receives no repair
+while the Assassin pins its owner. The test sets the Assassin one shot
+from death after checking input denial. The turret releases the pin
+with a lethal hit, then a fresh hammer swing restores 50 health.
+
+Final scoped validation passed 20 assassin hammer repair suite tests.
+
+Reflected secondary against all five NPCs
+
+A reflected volley deals 50 to an NPC allied with Torbjorn and 45 to
+Torbjorn through armor. All 95 damage and charge go to Genji. The same
+fixture geometry verifies each of the five actual NPC identities.
+
+Final scoped validation passed 3 reflected secondary npcs suite tests.
+
+Thrown turret Deflect and Overload
+
+Genji activates Deflect outside turret range, then the fixture places
+him in range aimed at the original owner. Both 14-damage shots reflect
+onto Overload for 9 each. Base pools and turret health stay intact,
+and Genji receives the 18 damage and charge.
+
+Final scoped validation passed 2 turret deflect overload suite tests.
+
+Thrown turret and Kinetic Grasp
+
+Two 14-damage turret shots grant 16.8 temporary shields at Grasp exit.
+The next turret shot spends 14 without reaching base pools. The fixture
+moves Sigma in and out of range to isolate the three shots.
+
+Final scoped validation passed 11 turret grasp shields suite tests.
+
+Thrown turret and Matrix depletion
+
+The possessed mech activates Matrix out of range and enters range.
+Matrix consumes actual turret shots until the resource runs out. The
+next hit deals 9 through armor and charges the owner by 9.
+
+Final scoped validation passed 13 turret matrix depletion suite tests.
+
+Thrown turret and Zarya barrier expiry
+
+Actual thrown turret fire spends 14 per hit from either personal or
+projected barrier, then deals 14 to the body after natural expiry.
+The fixture moves the protected target into range after barrier cast.
+
+Final scoped validation passed 12 turret bubbles expiry suite tests.
+
+Thrown turret and Winston barrier expiry
+
+The turret spends 14 per hit from the deployed shell. After natural
+expiry the next shot deals 9 through armor and grants 9 charge.
+
+Final scoped validation passed 12 turret winston expiry suite tests.
+
+Thrown turret breaks Orisa barrier
+
+The actual turret takes 43 shots to break the 600-health landed
+barrier. The breaking shot does not spill onto Orisa. Shot 44 deals
+9 through armor and grants 9 charge.
+
+Final scoped validation passed 10 turret orisa break suite tests.
+
+Thrown turret after Sigma recall
+
+The parked shield absorbs 14 per turret shot. Actual recall removes
+cover and the next shot deals 14 to Sigma and grants 14 owner charge
+while leaving the recalled shield capacity intact.
+
+Final scoped validation passed 11 turret sigma recall suite tests.
+
+Thrown turret after Reinhardt shield release
+
+The raised shield absorbs 14 per shot from a thrown turret. After
+release the next shot deals 9 through armor and grants 9 owner charge.
+
+Final scoped validation passed 8 turret rein lower suite tests.
+
+Layered Sigma and Orisa barriers
+
+Rivets hit the near mesh and then the far mesh after recall. A thrown
+turret breaks the remaining 530 barrier health in 38 shots and damages
+Orisa on the next shot.
+
+Final scoped validation passed 11 turret mixed mesh suite tests.
+
+Reflected turret death and redeploy
+
+A reflected turret shot kills its source turret and credits Genji.
+The fixture seeds 14 turret health before the hit. The full redeploy
+cooldown rejects an early throw, and a fresh throw after expiry
+creates a new turret entity.
+
+Final scoped validation passed 3 turret deflect destroy suite tests.
+
+Full-health turret death from Deflect
+
+Three actual Deflect activations return 18 turret shots and kill
+the full-health turret. The fixture moves Genji out of range between
+activations. He receives 250 damage credit and the full redeploy cooldown
+rejects an early throw before a fresh throw succeeds.
+
+Final scoped validation passed 3 turret deflect full health suite tests.
+
+Reflected weapon hits against Overload
+
+A reflected rivet spends 65 temporary armor and a ten-pellet volley
+spends 75. Neither touches base pools. Genji earns all damage and
+charge. Both weapons fire after the Overload startup.
+
+Final scoped validation passed 3 deflect weapons overload suite tests.
+
+Deflect across the Overload armor boundary
+
+The fourth reflected turret hit spends 8 temporary and 1 base armor
+with one reduction after a reflected rivet and three turret hits.
+Genji earns all 101 damage and charge.
+
+Final scoped validation passed 3 deflect overload boundary suite tests.
+
+Reflected turret fire against five allied NPCs
+
+An actual thrown turret fires at Genji and Deflect redirects the shot
+onto each original allied NPC. The NPC loses 14 health and Genji gains
+14 damage and charge. The fixture moves Genji into range after Deflect.
+
+Final scoped validation passed 3 reflected turret npcs suite tests.
+
+Reflected Molten against both NPC teams
+
+A reflected globule lands with Genji ownership. For each of the five
+NPC types, the fixture spawns an opposing and allied NPC in the pool.
+Only the enemy of Genji receives burn and damage. Damage credits Genji
+without granting ultimate charge.
+
+Final scoped validation passed 3 reflected molten npcs suite tests.
+
+Reflected Molten after Genji dies
+
+After the reflected globule lands, a second Torbjorn kills full-health
+Genji with rivets. The original caster enters the existing pool and dies
+while Genji is still dead. Damage and the elimination credit Genji, with
+no ultimate charge.
+
+Final scoped validation passed 3 reflected molten genji death suite tests.
+
+Reflected Molten during hero switches
+
+The original caster can change heroes while the reflected pool and burn
+remain active under Genji. A different-hero switch by Genji removes his
+pool and burn instance immediately. This follows the reconstructed
+hero-switch cleanup policy for owned Molten areas.
+
+Final scoped validation passed 3 reflected molten hero switch suite tests.
+
+Airborne reflected Molten during hero switches
+
+Changing the original caster preserves the globule and its landing
+and burn under Genji. Changing Genji leaves the flight intact and
+removes the ability to spawn a Molten area.
+
+Final scoped validation passed 4 reflected molten airborne switch suite tests.
+
+Molten hero replacement with and without prediction
+
+The actual graph launches without a lease. A forced lease fixture
+verifies rocket and prediction cleanup on hero change.
+
+Final scoped validation passed 4 molten predicted switch suite tests.
+
+Molten NPC team transitions
+
+For every NPC type, a live team change clears burn and stops damage
+on the next tick. Hostility restores both. The reflected fixture
+swaps the allied and hostile NPCs in place and checks Genji credit.
+
+Final scoped validation passed 2 molten npc team transitions suite tests.
+
+Molten lethal ticks against NPCs
+
+Both direct and reflected pools kill all five NPC types, credit only
+remaining health and destroy the burn instance on death. Heavy Assault
+is reduced to 5 HP after ordinary contact because one pool cannot spend
+its 4000 HP. The other four types take the full damage from the pool.
+
+Final scoped validation passed 2 molten npc lethal suite tests.
+
+Molten caster death against five NPCs
+
+All five actual NPC attacks kill the caster, seeded at 1 HP. Death
+blocks new launches while a landed pool continues burning the killer.
+
+Final scoped validation passed 3 molten npc caster death suite tests.
+
+Airborne Molten after NPC kills
+
+All five actual NPC attacks kill the caster during flight. The
+fixture aims upward for a longer flight and seeds the caster at
+1 HP. The same projectile lands and its burn credits Torbjorn.
+
+Final scoped validation passed 3 molten npc airborne death suite tests.
+
+Overload death and respawn against all five NPCs
+
+The fixture activates real Overload and seeds 1 temporary armor and
+1 health to ensure each NPC kills during its window. Death clears the
+source. Respawn restores 50 base armor, and fresh Overload adds 100.
+
+Final scoped validation passed 3 overload npc death suite tests.
+
+Thrown turret after NPC kills
+
+Each actual NPC kills Torbjorn, seeded at 1 HP. The same thrown turret
+credits 14 damage against the killer before and after respawn. The
+NPC is temporarily allied between checks to preserve it for the second shot.
+
+Final scoped validation passed 3 turret npc owner death suite tests.
+
+Airborne turret after NPC kills
+
+The fixture retains the upward aim through launch and seeds Torbjorn
+at 1 HP. The Sniper starts winding up before the throw. For all five
+NPCs, the throw is airborne on the lethal tick.
+It deploys and damages the killer, repositioned near the landed turret,
+with 14 credited damage before and after respawn.
+
+Final scoped validation passed 3 turret npc airborne owner death suite tests.
+
+Turret destruction during owner death
+
+An actual Soldier shot destroys the turret during the respawn wait.
+The remaining cooldown transfers to the replacement body.
+
+Final scoped validation passed 4 turret respawn cooldown suite tests.
+
+Turret cooldown on manual same-hero reselect
+
+An actual interact dismantles the thrown turret. Reselecting Torbjorn
+retains the remaining cooldown on the replacement body. Early throw
+input is rejected and deployment works after recovery.
+
+Final scoped validation passed 5 turret reselect cooldown suite tests.
+
+Turret cooldown on skin replacement
+
+After real dismantle and same-hero reselect, the fixture equips the
+golden weapon through Match.skin_changed. The new body retains the
+same cooldown deadline and early throw input cannot bypass it.
+
+Final scoped validation passed 5 turret skin cooldown suite tests.
+
+Turret cooldown on a different-hero round trip
+
+Actual dismantle starts the cooldown. Switching to Soldier and back
+creates a fresh kit that deploys before the original deadline. The
+old actor stays retired. Native switch policy remains unverified.
+
+Final scoped validation passed 3 turret cross hero cooldown suite tests.
+
+Turret cooldown through a different-hero round trip
+
+The server carries the active cooldown as a deadline while another
+hero is selected. Returning to Torbjorn restores the remainder. This
+replaces the prior reset behavior for dismantle and airborne throws.
+The original-client cross-hero cooldown policy remains unverified.
+
+Final scoped validation passed 5 turret cross hero nonbypass suite tests.
+
+Turret cooldown expiry on another hero
+
+Two successive round trips preserve the original deadline. In a separate
+fixture the deadline passes while Soldier is selected, and the first
+throw after returning deploys normally.
+
+Final scoped validation passed 4 turret cross hero expiry suite tests.
+
+Overload cooldown reset on same-hero replacement
+
+The old body rejects Overload with over nine seconds remaining.
+A manual reselect or golden-weapon replacement creates a new body
+that accepts Overload immediately. This is an open non-bypass defect.
+
+Final scoped validation passed 3 overload replacement cooldown suite tests.
+
+Running Overload cooldown on body replacement
+
+Manual reselect, golden weapon replacement and a different-hero round
+trip retain the running cooldown and reject early activation. The
+pre-countdown cast interval remains open.
+
+Final scoped validation passed 4 overload running cooldown transfer suite tests.
+
+Overload replacement before cooldown starts
+
+The remaining buff time and configured cooldown determine the reuse
+deadline. Actual input verifies early rejection and recovery.
+
+Final scoped validation passed 4 overload active replacement suite tests.
+
+Overload replacement at modified cooldown rates
+
+The fixtures apply double rate before cooldown and half rate during
+cooldown. Both round trips retain the elapsed-time deadline.
+
+Final scoped validation passed 5 overload replacement cooldown rate suite tests.
+
+Turret replacement at double cooldown rate
+
+Dismantle yields five seconds under a doubled rate. Two hero round trips
+retain the deadline and an early throw remains blocked until expiry.
+
+Final scoped validation passed 5 turret replacement cooldown rate suite tests.
+
+Overload reselect with a paused cooldown
+
+The zero-rate fixture resumes the full ten seconds at the replacement
+body default rate. Actual inputs verify early rejection and recovery.
+
+Final scoped validation passed 1 overload paused cooldown suite tests.
+
+Turret reselect with a paused cooldown
+
+The zero-rate dismantle fixture resumes the full ten seconds at the
+replacement body default rate. An early throw is rejected and a new
+throw deploys after expiry.
+
+Final scoped validation passed 1 turret paused cooldown suite tests.
+
+Ultimate charge on same-hero replacement
+
+An actual rivet earns 70 charge. Reselect and cosmetic replacement
+retain it. The spent value survives replacement after an actual cast.
+
+Final scoped validation passed 3 charge same hero replacement suite tests.
+
+Passive charge phase on same-hero reselect
+
+Two charge ticks match the uninterrupted control frame by frame.
+
+Final scoped validation passed 5 charge passive replacement phase suite tests.
+
+Passive charge phase through body replacement
+
+Reselect, golden weapon replacement and natural respawn preserve
+the charge phase against uninterrupted controls frame by frame.
+
+Final scoped validation passed 5 charge passive lifecycle phase suite tests.
+
+Adaptive Shield charge deduction
+
+Graph 1566 health pool state 6 and graph 0B8B node 83 use tag 3EBB.
+Actual rivets deal 70 damage. Seeded Adaptive Shield pools of 100
+and 50 yield 0 and 20 charge. A seeded Sigma tag yields 70.
+
+Final scoped validation passed 4 charge adaptive shield suite tests.
+
+Actual Adaptive Shield cast
+
+Actual input grants 100 base shields in the no-nearby-target setup.
+A rivet spends 70 without awarding charge and the remaining 30 expires.
+Nearby-target scaling remains open.
+
+Final scoped validation passed 1 charge adaptive shield cast suite tests.
+
+Adaptive Shield target count
+
+Actual casts test the authored radius and nearby enemy scaling.
+Rivets consume shield without granting charge.
+
+Final scoped validation passed 3 charge adaptive shield target count suite tests.
+
+Adaptive Shield NPC count and rivet spill
+
+For each NPC type, the opposing member of a paired spawn adds 75
+shield. Three actual rivets spend the 175 shield and award charge
+for the 30 damage that reaches base armor.
+
+Final scoped validation passed 4 charge adaptive shield npcs suite tests.
+
+Adaptive Shield cooldown and recovery
+
+Actual presses after rivet depletion and natural expiry do not
+refill shields. A fresh press after cooldown grants 100.
+
+Final scoped validation passed 4 charge adaptive shield cooldown suite tests.
+
+Adaptive Shield charge by weapon
+
+Actual secondary, quick melee and hammer spend 125, 30 and 55
+shield from a real 175-point cast and award zero charge.
+
+Final scoped validation passed 5 charge adaptive shield weapons suite tests.
+
+Turret and Molten against Adaptive Shield
+
+Seven turret shots award zero charge and the eighth awards seven
+for base armor loss. Eight Molten ticks spend 32 temporary shield
+with the armor bonus active and award no charge.
+
+Final scoped validation passed 2 charge adaptive shield deployables suite tests.
+
+Direct Molten impact on Adaptive Shield
+
+The globule spends 25 shield and creates no pool. A separate grounded
+globule spends another 32 shield in eight pool ticks. Neither grants charge.
+
+Final scoped validation passed 2 charge adaptive shield molten direct suite tests.
+
+Ultimate charge during hero assembly
+
+The server countdown blocks passive and actual hit charge. Natural
+completion restores both. Native mode-specific state gates remain open.
+
+Final scoped validation passed 3 charge assemble countdown suite tests.
+
+Molten Core during hero assembly
+
+A full-charge press during the server countdown preserves charge.
+A fresh press after natural completion consumes it and launches a pool.
+
+Final scoped validation passed 4 molten assembly cast gate suite tests.
+
+Held Molten input through hero assembly
+
+Every assembly frame keeps full charge. The first live frame
+consumes it and the ultimate can fire a pool.
+
+Final scoped validation passed 5 molten assembly held input suite tests.
+
+Released Molten input during assembly
+
+A short press released just before the end of assembly used to cast
+on the first live frame. The gate now clears blocked press history.
+Held input and a fresh live press still activate the ultimate.
+
+Final scoped validation passed 6 molten assembly release suite tests.
+
+Charge module integration regression
+
+The full charge module passes alongside the existing Genji hammer
+and quick melee test, which exercises front and rear contacts.
+
+Final scoped validation passed 28 charge suite regression suite, 1 hammer genji tests.
+
+Kinetic Grasp against melee and hammer
+
+Actual front quick melee and hammer deal 30 and 55 damage,
+credit equal ultimate charge and grant Sigma no shields.
+
+Final scoped validation passed 3 grasp hammer melee suite tests.
+
+Defense Matrix against melee and hammer
+
+Actual front quick melee and hammer deal 25 and 50 after armor
+reduction while Matrix remains active. Both grant matching charge.
+
+Final scoped validation passed 2 matrix hammer melee suite tests.
+
+Phase exit and melee recovery
+
+Wraith, Fade and Cryo deny hammer and quick melee. After phase and
+attack recovery, the fixture repositions the target at 1.5 m. Fresh
+inputs deal 55 and 30 damage and grant equal charge.
+
+Final scoped validation passed 3 phase hammer melee recovery suite tests.
+
+Winston cross-shell hammer and quick melee
+
+A real barrier separates the two bodies. Actual hammer and quick
+melee deal 50 and 25 after armor reduction, grant matching charge
+and leave barrier health at 700 under the reconstructed host.
+
+Final scoped validation passed 3 winston cross shell melee suite tests.
+
+Winston shell with static wall cover
+
+Static cover blocks both attacks. Removing it restores body hits
+for 25 and 50 and matching charge with no shell damage.
+
+Final scoped validation passed 3 winston cross shell melee wall suite tests.
+
+Winston reverse cross-shell melee
+
+Removing static cover lets actual quick melee spend 25 Overload armor.
+
+Final scoped validation passed 4 winston reverse shell melee suite tests.
+
+Winston Tesla primary into Overload
+
+Real primary input activates actual00FE TrackTargets and ModifyHealth.
+Across Winston's own barrier, 25 active frames at 6 m spend 16.8
+temporary armor with base pools and barrier capacity intact. World
+cover, range, team and release checks reject damage. The host uses
+the authored 8 m base reach and 60 DPS, a reconstructed 45-degree
+half-angle, and OW1's 30 percent beam reduction on armor. Native
+target geometry and cadence remain open.
+
+Winston Tesla primary against a deployed turret
+
+An actual throw builds to 250 health before the exchange. A static
+wall prevents damage in both directions. Removing it lets the turret
+damage Winston for Torbjorn and lets Winston's held Tesla destroy the
+turret with 250 credited damage and one elimination. Destruction
+starts the full cooldown. Early redeploy fails and a new throw builds
+after expiry.
+
+Held Tesla target updates
+
+Actual held primary hits Torbjorn and his deployed turret in the same
+activation. Moving Torbjorn beyond the arc's range drops only his
+entity from actual00FE variable 468. Turning away drops both targets.
+Restoring the aim and position reacquires both without releasing primary
+or restarting the damage state. The test checks both health pools and
+the combined damage credited to Winston.
+
+Held Tesla depletion and automatic reload
+
+An uninterrupted primary hold consumes the full 100-ammo magazine.
+On the frame ammo reaches zero, the actual00FE damage state ends and
+Torbjorn takes no further damage. The magazine refills 79 frames later.
+The next 26 frames still deal no damage. On the following frame the
+state reactivates and the held input deals 0.672 armor-adjusted damage.
+
+Projected Barrier against Tesla
+
+Zarya projects a 200-health barrier onto allied Torbjorn during Overload.
+Twenty-five Tesla frames spend 24 barrier health and generate Zarya energy.
+The break fixture seeds the barrier at 0.5 health before natural expiry.
+The break frame spends no Overload armor and grants no hero damage.
+The next held frame spends 0.672 Overload armor and credits Winston.
+
+Tesla kill during Overload
+
+Torbjorn starts at full health and activates Overload after taking
+Tesla damage. The held beam deals no damage during automatic reload,
+then exhausts the remaining temporary armor and kills Torbjorn before
+Overload expires. Winston earns 350 damage and one elimination.
+Death clears the buff source and rejects Overload input. Respawn creates
+a fresh 250-health body and the next activation adds 100 armor.
+
+Rivet interrupt of held Tesla
+
+Torbjorn's actual rivets deal all 500 damage to Winston. The lethal
+rivet lands while Tesla is active, and Winston gains no further damage
+credit on that frame or during the following 24 held-input frames.
+After respawn, a fresh Winston body fires for 9.6 damage over ten frames.
+
+EMP against Winston Barrier Projector
+
+Actual EMP destroys an enemy Winston shell that blocks aimed Hack.
+It applies the authored silence to Torbjorn without spending body
+health or granting hero damage. The shell survives if allied, outside
+the authored EMP radius, or behind static cover. The host checks
+range and cover at the nearest point on the sphere along the radial
+line to its center. Other EMP barrier receivers remain open.
+
+EMP base shields and Overload armor
+
+One actual EMP drains exposed Zarya's 200 base shield health while
+leaving her 200 ordinary health. The same cast silences Torbjorn and
+leaves his full 100 Overload armor. The host handles base shield pools
+on selected exposed targets. Temporary shields, active personal and
+projected barriers, and native damage attribution remain open.
+
+EMP against a deployed turret
+
+An in-range turret receives the actual 0B32 and 0B1F graphs and stops
+firing for the hosted five-second effect. Its health stays at 250 and
+it resumes with a 14-damage shot on expiry. A turret outside EMP range
+continues firing while Torbjorn is silenced and can kill Sombra without
+shortening the owner's effect. Native deployable filters and duration
+overrides remain open.
+
+Aimed Hack against a deployed turret
+
+Static cover blocks the channel without consuming cooldown. After
+the wall is removed, actual aimed Hack applies 0B1F to the turret
+while leaving Torbjorn unsilenced. The turret keeps all 250 health,
+stops firing through the effect, and deals 14 damage on the first
+frame after expiry.
+
+Forge Hammer during turret Hack
+
+Sombra shoots the disabled turret to 195 health or less. Torbjorn
+equips the Forge Hammer and restores 50 health with one swing.
+Repair leaves the Hack deadline and shot count intact, and the turret
+resumes its 14-damage shots on the original expiry frame.
+
+Destruction of a hacked turret
+
+Sombra kills an actual full-health hacked turret with her machine
+pistol before the effect expires. The last live observer baseline
+is frozen before the lethal command removes the Hack instance.
+The terminal script runs and destruction starts the full redeploy
+cooldown on that command. Early input fails. A fresh turret builds
+and fires after cooldown without inheriting the old effect.
+
+Molten Core weapon selection and Forge Hammer
+
+Soldier damages a deployed turret. Torbjorn equips the hammer, then
+casts Molten Core. The hammer-select input during the ultimate leaves
+primary assigned to Molten Core. The press produces one landed pool
+and gives no repair. After timed end, a fresh hammer select and swing
+restore 50 turret health without producing another pool.
+
+Molten Core interrupts hammer windup
+
+An actual hammer swing starts with a Soldier in contact range.
+Torbjorn activates Molten Core five frames into the swing, before
+the contact window. The pending hammer contact retires without
+damaging Soldier. A fresh primary press then produces a landed pool.
+
+Molten Core from an empty Rivet Gun
+
+Nine actual secondary volleys empty the Rivet Gun. Torbjorn activates
+Molten Core while the gun is empty. On frame 46 after activation,
+primary launches one globule and the rivet magazine refills to 18.
+Secondary held from frame 361 fires neither weapon through frame 411.
+On frame 412 it fires one rivet volley and spends two rounds. A fresh
+primary after recovery spends one round and deals 70 damage to Soldier.
+
+Molten Core and Overload
+
+An ultimate press immediately after Overload starts leaves the charge
+intact. A fresh press after startup consumes the charge while all 100
+temporary armor remains. An Overload press during Molten Core grants
+no armor and starts no cooldown. Baseline, active Overload and denied
+Overload inputs all land ten pools with the same ten launch frames.
+The active Overload armor expires on its own timer.
+
+Deploy Turret during Molten Core
+
+Primary and Deploy Turret pressed together during Molten Core land
+one pool without starting a turret throw or a redeploy cooldown.
+A deployed turret continues hitting Soldier for 14 per shot, credited
+to Torbjorn. With no deployed turret, a fresh throw after the timed
+end builds normally.
+
+Quick melee through Molten Core recovery
+
+Holding quick melee with Soldier at 1.5 m deals no damage through
+frame 411 after activation. On frame 412, the same held input deals
+30 damage and credits Torbjorn. No projectile launches during the test.
+
+Turret throw already started when Molten Core begins
+
+Molten Core starts both during the turret windup and after the thrown
+projectile is airborne. The existing turret cooldown continues ticking.
+In both cases one turret lands, builds to 250 health, and deals a
+credited 14-damage shot during the same ultimate that lands a globule.
+
+Charge during Molten Core startup and weapon lock
+
+Three actual turret hits during startup grant 42 charge. A passive tick
+on frame 36 raises it to 47. Five more turret hits damage Soldier but
+grant no charge during the weapon lock. The first post-lock shot on
+frame 412 grants 14, and the passive tick on frame 453 grants five more.
+
+Molten burn after weapon recovery
+
+A globule fired late in the ultimate leaves a live pool after the
+Rivet Gun recovers. Soldier enters the pool after recovery and takes
+burn damage without granting charge. A rivet then deals 70 to the same
+Soldier outside the pool and grants 70 charge while the pool is still live.
+
+The post-recovery comparison also runs against all five authored Talon
+NPCs. Each takes 20.48 burn damage over eight frames without giving
+charge. After leaving the pool, each takes 70 from a fresh rivet and
+grants 70 charge while the original pool remains live.
+
+A globule fired on frame 386 stays airborne through Rivet Gun recovery
+on frame 412. It then hits Soldier at 18 m for 25, grants no charge, and
+creates no pool. A following rivet on the same Soldier grants 70 charge.
+The same sequence hits all five authored Talon NPCs at 18 m. Each
+globule credits 25 damage without charge or a pool. Each follow-up rivet
+credits another 70 damage and grants 70 charge.
+
+Close attack cover and lethal settlement against all five NPCs
+
+Primary, secondary, quick melee and hammer each run against Trooper,
+Enforcer, Sniper, Assassin and Heavy Assault. A static wall blocks
+all 20 attack and target combinations without damage or charge.
+With the same target and aim after wall removal, the next attack
+kills, produces a terminal body script frame, and credits one
+elimination and 17 damage and ultimate charge. Each fixture seeds
+17 remaining health before input. A later attack grants nothing
+and the corpse persists past the ordinary bot respawn delay.
+
+NPC capsule boundary and rivet miss recovery
+
+Quick melee activates at each pose against all five NPCs. A target
+1 cm outside its individual boundary receives zero damage. Inside
+by 1 cm, a sideways activation still misses. Front aim at the same
+pose deals and credits 30. Moving out rejects the next activation.
+
+One primary or two secondary rounds are spent on an aimed miss
+without damage or charge against each NPC. A secondary retry after
+45 idle frames is denied and does not fire during the next 45 idle
+frames. A fresh aimed press recovers. Body hits grant 70 damage and
+charge for primary and 125 for secondary.
+
+Command-fired secondary spread and falloff against all five NPCs
+
+1683 state 13 specifies falloff from 10 to 20 m with a 0.3 floor.
+At each distance an actual secondary command spends two rounds and
+launches ten distinct pellets. All five NPCs take ten at 1.5 m.
+At 8 m, Trooper, Enforcer, Sniper and Assassin each take seven at
+12.5 per pellet. Heavy Assault takes ten. At 15 m the hit counts
+are three and five, with 8.3 to 8.8 damage per pellet. At 25 m
+the counts are one and three, all at the 3.75 floor. Body damage,
+damage credit and ultimate charge match the sum of the impacts.
+The exact hit counts apply to the fixed static poses and hosted
+pellet pattern. Native spread and falloff implementation remain open.
+
+Empty secondary reload across Overload expiry under Heavy Assault fire
+
+Nine actual secondary volleys exhaust the Rivet Gun. The final volley
+leaves zero rounds on frame 250 after Overload activation. Actual Heavy
+Assault fire spends temporary armor, then spends base armor after expiry.
+The empty-magazine reload starts on frame 285 and retains its 1.4-second
+rate and activation across Overload expiry on frame 312. Ammo refills on
+frame 329. Held secondary launches nothing through frame 372, then fires
+on frame 373. That volley spends two rounds and deals 125 to the NPC.
+
+Active manual reload during Assassin pin
+
+Actual Assassin pin starts one frame after manual reload begins.
+Primary, secondary and new reload commands are rejected during
+the pin while the original reload activation keeps its counter.
+The magazine refills on frame 62 and reload ends on frame 125.
+A manual engagement stop at frame 40 releases control, but held
+primary remains gated until frame 125. A stop at frame 130 allows
+a fresh primary on 131. Both recovery shots spend one round and
+hit the Assassin for 70. This verifies the static control policy.
+
+Hammer background reload during Assassin pin
+
+After one actual rivet and a hammer switch, Assassin pin rejects
+weapon reselect and primary input. The same background timer refills
+the gun on frame 125 while the pin is still active. A manual stop at
+frame 40 allows early reselect and cancels the pending refill. A stop
+at frame 130 followed by reselect preserves the full magazine. The
+first fresh primary spends one round and hits the Assassin for 70
+in both cases. Release is driven by the manual NPC engagement host.
+
+Five NPC lethal attacks during hammer background reload
+
+Trooper, Enforcer, Sniper, Assassin and Heavy Assault each deliver
+an actual lethal hit with the hammer equipped before the pending
+background refill. The fixture seeds one remaining health and starts
+Sniper engagement 16 frames earlier to align its longer windup.
+Dead input cannot fire, switch or start a manual reload. The old
+background timer refills on frame 125 and its weapon state is retired
+with the old body. Natural respawn starts with a separate full magazine
+and no background reload. After placing the new body in the test lane,
+the first rivet deals 70 and spends only one new round.
+
+Sleep Dart and Flashbang control precedence
+
+The February 25, 2020 retail notes compare new stuns with the
+incumbent guaranteed time and use Sleep Dart's 1.5-second minimum.
+In the hosted Sleep Dart and Flashbang pair, early Flashbang deals
+20 through armor and schedules wake at the sleep floor without
+adding its stun. Later Flashbang replaces sleep with a 50-frame
+window. Sleep Dart landing during Flashbang replaces that stun.
+In each case the first allowed primary input hits Ana for 70.
+Cross-stun arbitration with other control families remains open.
+
+Spray freeze with Sleep Dart and Flashbang
+
+Actual spray freezes Torbjorn for 1300 ms. Early Flashbang deals
+damage and preserves the longer freeze. Later Flashbang replaces
+freeze, and Sleep Dart replaces freeze using its guaranteed minimum.
+A completing spray hit replaces a shorter Flashbang. A completing
+spray hit against fresh sleep deals damage but cannot replace the
+longer guaranteed sleep. The static host consumes the rejected frost
+buildup without queuing it. A primary shot at recovery hits Mei for
+70 in all five cases. Other stun families and the native buildup
+policy after a rejected freeze remain open.
+
+Blizzard control precedence through a live storm
+
+Actual Snowball lands and the storm applies frost up to the final
+pulse. Completing frost replaces a shorter active Flashbang. A
+Sleep Dart just before that pulse denies freeze. A Sleep Dart just
+after the pulse retires active freeze. The storm keeps damaging
+Torbjorn, and in both sleep cases wake occurs at the guaranteed
+floor. The first allowed primary hits Mei for 70 in all three cases.
+
+Sigma Hypersphere impact and airburst against Overload
+
+The expiry policy follows the isolated Sigma lane patch 083e907.
+Only the two 187F weapon volleys airburst on expiry. The shared blast
+path handles damage, line of sight and team filtering. Two actual
+direct hits and their explosions debit 90 Overload armor at 6 m.
+At 22 m with one meter lateral offset, two airbursts debit 50.
+Both keep base health and armor intact. A wall blocks airburst
+damage and allies take none. Actual Genji Deflect preserves expiry
+behavior and redirects both airbursts onto Torbjorn, crediting 50
+damage and charge to Genji. Native wall ricochet and collision
+parity remain separate from this expiry policy.
+
+Hypersphere wall rebound and grazing contact against Overload
+
+187F supplies a 0.1 m wall sweep radius, 0.2 m added body radius,
+100 bounces and 0.7 normal and tangent scales. Actual Hyperspheres
+first strike a wall 6 m in front of Sigma. Both rebound at about
+35 m/s and hit Torbjorn 2 m behind Sigma. Four settlements spend
+90 Overload armor. With an unobstructed path at 6 m, a 0.60 m
+offset is outside the center ray but takes the same damage. At
+0.85 m both spheres miss and expire without body damage. Static
+sweep categories and contact ordering remain reconstructed.
+
+Sigma Accretion against Overload and guaranteed sleep
+
+The 1BBB host uses the authored launch lift and gravity. An actual
+direct hit routes the tagged damage event through 1BBB node 17 and
+the 224E request through node 18. The host checks target stack
+conditions and uses the shared timed control clock.
+
+Actual direct impact and explosion spend 60 Overload armor and
+knock down Torbjorn for 50 frames. Wall splash spends 35 and applies
+no knockdown. A rock hitting just after Sleep Dart deals 60 and
+wakes only at the guaranteed sleep floor. A fresh primary after
+control hits Sigma for 70. Native knockback and presentation remain
+open in this lane.
+
+Projected Barrier and Winston shell against Accretion
+
+An actual allied Projected Barrier forms after Accretion launches.
+The rock spends 70 of 200 capacity or breaks the barrier when 50
+capacity is seeded. Neither leaks body damage or knockdown.
+Zarya gains energy for the capacity spent. Enemy projection fails;
+the same rock then spends 60 Overload armor and knocks Torbjorn
+down for 50 frames. A fresh pair of Hyperspheres deals 90 after
+the allied barrier breaks. Actual Winston shell likewise spends
+70 or breaks with 50 capacity, preserving both protected bodies
+and blocking knockdown.
+
+Accretion windup, airborne death and replacement
+
+An actual Torbjorn rivet kills Sigma during active 1BBB windup.
+The fixture seeds Sigma at 20 health and credits the lethal rivet
+20 damage and one elimination. The cancelled cast produces no rock.
+After launch the same lethal rivet leaves the existing rock alive.
+It spends 60 Overload armor and knocks down Torbjorn for 50 frames.
+Dead input produces no further rock. Switching the live Sigma to
+Soldier while the rock is airborne instead retires it before impact.
+Natural Sigma respawn permits a fresh cast which deals 60 and
+knocks down for 50 frames in both death scenarios.
+
+Accretion against Deploy Turret
+
+The actual cast hits the deployed turret for 30 direct and 40 splash
+damage. The turret stops firing for 50 frames and hits Sigma for 14
+on the expiry frame. With its starting health seeded at 50, the same
+cast destroys the turret and clears its control state. The full redeploy
+cooldown rejects an early throw. A fresh throw builds to 250 health.
+Torbjorn takes no damage in either scenario.
+
+Hyperspheres against Deploy Turret
+
+Actual pairs at 6 m as allies, at 45 m as enemies, and behind a wall
+at 6 m deal no damage. Neither side damages the other in these cases.
+After cover removal each complete pair spends 110 turret health,
+with 25 direct and 30 splash per sphere. The first sphere of the third
+pair deals 25 direct and a lethal 5 splash. Sigma earns 250 damage
+credit and one elimination. Each turret shot credits Torbjorn 14.
+Early redeploy is rejected. The next turret builds to 250 and fires.
+
+Experimental Barrier break under turret fire
+
+An actual secondary volley leaves the parked shield at 575 health.
+Turret shot 41 leaves 1 and the
+1B55 node 29 predicate withdraws the shield. A small secondary
+falloff leaves slightly more than 575, so shot 42 instead spends
+the remaining capacity to zero. Neither shot wounds Sigma or grants
+hero damage or charge. The next shot deals and credits 14. Early
+shield redeploy is rejected and a fresh cast works after cooldown.
+
+Molten Core against Experimental Barrier
+
+An actual globule spends 25 parked barrier capacity. With the
+fixture then set to 20 shield health, a fresh globule breaks it.
+The shield consumes both globules without body impact or a new pool.
+The existing pool remounts its burn on the breaking frame and
+credits its ordinary 2.56 damage tick. A later actual globule
+crosses the former shield position and credits 25 direct damage
+to Sigma without creating another pool. The casts grant no charge.
+
+Hypersphere damage across Experimental Barrier
+
+Two actual spheres spend 55 capacity each on direct impact or 30 each
+when they expire near the mesh. Seeding the shield at 50 or 20
+respectively makes the first sphere break it without body damage.
+The second sphere spends 45 or about 22.76 Overload armor and
+credits the firing Sigma. A mesh allied to the firing Sigma keeps
+all 700 capacity while the two spheres spend 90 or about 45.52
+Overload armor. The protected base pools remain intact in all cases.
+
+Accretion across Experimental Barrier
+
+Actual rock contact spends 70 shield capacity and nearby wall splash
+spends 40. With shield health seeded at 50 and 30 respectively,
+each rock breaks the mesh without damage, knockdown or hit credit
+on Overload Torbjorn behind it. A mesh allied to the firing Sigma
+keeps 700 health. The same direct route spends 60 temporary armor
+and knocks down for 50 frames, while the wall burst spends 35 and
+applies no knockdown. Both preserve the base pools.
+
+Gravitic Flux static ground confirmation
+
+Actual input starts 1E41 at full charge and enters its aim phase.
+The host of node 23 traces the caster eye ray up to the graph 35 m
+limit. A first static ground contact is written to 2478 and follows
+the authored success path through phase 2 and warning wait node 31.
+Sky, range and a wall leave the cast in aim and permit a fresh input.
+A second press cannot move a confirmed point. The unconfirmed cast
+expires. The static provider covers no moving surface transforms.
+Target selection, lift, slam, damage and client feedback remain open.
+
+Gravitic Flux warning and initial hit
+
+At the end of 1E41 node 31, the hosted target query uses the
+authored 15 m radius and vertical bounds with static world LOS.
+Node 38 routes the actual 1DBC effect to exposed hostile players.
+Its node 12 applies the authored 50-point hit once. Overload loses
+45 temporary armor and an unarmored recipient loses 50 health.
+A recipient seeded at 1 HP dies with matching damage and kill credit.
+The effect graph cleanup retires the receiving instance.
+Physical lift, slam damage and other recipients remain open.
+
+Gravitic Flux lift and landing
+
+The static host sweeps upward using the 1E41 node 59 values
+as 12 m/s and 7 m, an explicit reconstruction of that request.
+The 1DBC chase holds the target. On expiry the graph mover
+modifiers drive descent. Node 14 waits for the mover to land
+and evaluates the default half-maximum-health expression.
+For Overload Torbjorn, the 45-point first hit leaves 55 temporary
+armor. The 120-point armored slam spends that 55, 50 base armor
+and 15 health. The normal cleanup retires the effect.
+A lethal slam credits remaining health. An actual rivet killing
+Sigma after lift leaves the slam and its credit intact. A live
+hero replacement releases the mover without a slam.
+
+Gravitic Flux warning interruption
+
+An actual late rivet or a shot from a deployed turret can kill Sigma
+after floor confirmation and before target selection. Actual Flashbang
+also stops the warning. Control and death retire warning node 31, and
+the selector requires the live casting state. A hero switch retires
+the old body. All four branches leave Overload unchanged and produce
+no 1DBC recipient. After natural respawn, a fresh cast credits 45
+base armor damage and binds 1DBC to the replacement Sigma body.
+
+Torbjorn outputs during Gravitic Flux
+
+The deployed turret and landed pool each continue damaging Sigma
+while Torbjorn is lifted. The first turret hit spends 14 and the
+first burn tick spends 2.56. Seeding Sigma at 1 health after that
+hit lets the same output kill him. Both preserve the committed
+slam and its damage credit. The existing objects remain live after
+landing. An actual primary press from more than 2 m above the
+floor also launches a new globule that lands a separate pool.
+
+Projected Barrier during Gravitic Flux
+
+The static host resolves the 1DBC health nodes independently from
+the lift. Early projection spends 50 shield capacity, or the last
+20 with no spill. Both targets lift. Expiry or break before descent
+exposes the target to the 120-point armor-adjusted slam. Projection
+at the apex instead absorbs the 125-point slam, or spends the last
+20 without spill. Both late casts preserve the 55 temporary armor
+left by the first hit. The enemy cast grants no barrier and the
+unprotected target takes 165 across the cast. Zarya receives energy
+for the actual capacity spent. The native 1DBC filter remains open.
+
+Hammer repair during Gravitic Flux
+
+Actual Hyperspheres spend 110 turret health. A hammer swing started
+on the floor reaches its contact window after lift begins and
+repairs 50. At the apex the next swing opens its own contact window
+but the raised repair origin is too far away. After the slam a fresh
+swing restores another 50. The turret retains its actor and credits
+14 damage per shot. Neither repair adds hero damage.
+
+Overload on the Gravitic Flux landing frame
+
+The initial hit spends 45 base armor before either Overload cast.
+An apex cast mounts 100 temporary armor. The slam spends it plus
+5 base armor and 15 health. A press on the landing frame instead
+mounts the 100 armor after the slam. Both leave 185 total, with
+185 base health in the first case and 85 health plus 100 armor in
+the second. Repeated presses do not refill or bypass cooldown.
+A fresh press after cooldown mounts a new 100-point pool.
+
+Gravitic Flux recipient death and replacement
+
+An actual Soldier shot kills the lifted Torbjorn after the fixture
+leaves him at 1 HP. Death retires 1DBC and clears the driven motion
+before the corpse is observed. Held buttons cannot move the corpse
+or grant Overload. Same-hero reselect and switching to Soldier
+also retire the old recipient graph before body replacement.
+Natural respawn and both replacement paths preserve starting
+health through the former slam deadline. Sigma keeps 45 first-hit
+credit and no elimination. Fresh Overload works on the new Torbjorn.
+
+Gravitic Flux over static terrain
+
+A 4 m ceiling clips the lift. The damage lands on the frame the
+mover reports contact with the original floor. In an elevated
+fixture the target rises 7 m relative to the platform and the slam
+lands on that platform. Moving the test target beyond an open ledge
+just before selection still triggers the 45-point first hit.
+The target remains airborne through recipient graph timeout,
+which retires the effect without a slam.
+
+Talon attacks against allied Winston Barrier Projector
+
+Trooper, Sniper, Heavy Assault and Enforcer actual fire spends
+20, 100, 5 and 50 capacity. At a seeded 1 capacity the breaking
+contact leaves Overload intact. The next single-weapon hits spend
+15, 95 and 2.5. The already-launched Enforcer pellets spend 24
+without another volley after their first pellet breaks the shield.
+The manual Assassin pin crosses the intact shell and spends 20
+Overload armor. Stopping the attack releases the pin.
+
+Talon fire against allied Projected Barrier
+
+Actual Trooper, Sniper, Heavy Assault and Enforcer fire spends
+20, 100, 5 and 50 capacity and grants 4, 20, 1 and 10 Zarya energy.
+At seeded 1 capacity the breaking contact grants only 0.2 energy
+and does not spill. The subsequent single hits spend 15, 95 and 2.5
+Overload armor. Already-launched Enforcer pellets spend 24 after
+break. Base health and armor stay intact. The Sniper fixture waits
+through part of its windup before the projected shield input.
+
+Talon ranged fire reflected by allied Genji
+
+Actual Deflect protects Overload Torbjorn from four Talon weapons.
+Trooper, Sniper, Heavy Assault and Enforcer take 20, 100, 5 and 50
+returned damage. The Enforcer return records 25 separate hits.
+Genji receives equal damage and ultimate credit. With Genji off
+the attack line, continued fire spends 15, 95, 2.5 and 25 Overload
+armor and leaves the base pools intact.
+
+Talon ranged fire absorbed by allied Sigma
+
+Actual Kinetic Grasp protects Overload Torbjorn from Trooper, Sniper,
+Heavy Assault and Enforcer. The active graph stores 20, 100, 5 and
+50 nominal damage. On exit the separate shield pools grant 12, 60,
+3 and 30 respectively. Both heroes keep their base pools and the NPC
+takes no damage. After Sigma leaves the attack line, continued fire
+spends 15, 95, 2.5 and 25 Overload armor without adding absorption.
+
+Talon ranged fire intercepted by allied Defense Matrix
+
+Actual possessed-mech Matrix protects Overload Torbjorn from Trooper,
+Sniper, Heavy Assault and Enforcer at 5 m. Held Matrix reaches depletion
+without damage to either hero or returned damage to the NPC. Without
+moving either hero or releasing Matrix input, the first unblocked
+attacks spend 15, 95, 2.5 and 25 Overload armor respectively.
+
+Allied Flashbang releases an active Talon Assassin pin
+
+An actual allied Cassidy Flashbang hits the Assassin for 25 and retires
+the live pin on impact. No pin damage reaches Torbjorn during the
+50-frame stun. He fires one rivet during that interval for 70 damage.
+The same manual engagement resumes attack input at the exclusive stun
+deadline and the next pin spends 20 more from the original Overload
+armor grant. The base pools stay unchanged.
+
+Thrown turret versus a full-health Talon Assassin during a pin
+
+A wall blocks turret fire without blocking the pin. When it opens,
+the turret starts firing while held primary remains gated. The
+Assassin kills Overload Torbjorn first. The same turret keeps firing
+and uses 36 shots to remove 500 NPC health for one credited elimination.
+Natural respawn restores an uncontrolled body and a fresh magazine.
+Its first rivet deals 70 to an enemy player after accounting for
+any concurrent 14-point turret hits.
+
+Overlapping Sombra Hack and EMP on a thrown turret
+
+Both cast orders apply independent 0B1F instances. The first
+expires and removes only its own instance. The later instance
+preserves silence and blocks all shots until its own deadline.
+On that frame the original 250-health turret clears the silence
+flag, reacquires Sombra and deals 14 with one shot.
+
+Hero replacement during overlapping turret Hack and EMP
+
+Switching Torbjorn to Soldier retires both live 0B1F instances,
+their turret and the old Torbjorn body silence immediately.
+After switching back, a fresh full-health turret hits Sombra for
+14 before either old deadline. The old effects do not silence
+the new turret and the retired turret never fires again.
+
+Layered Winston shell and Projected Barrier under Talon fire
+
+Both shields are seeded at one capacity for breaking contacts.
+Against Trooper and Heavy Assault, separate attacks break the shell
+and the projected barrier before spending 15 and 2.5 Overload armor.
+One Enforcer pellet breaks each shield and the remaining 23 pellets
+from the same volley spend 23 Overload armor. Against Sniper the
+projected barrier is cast after shell break to fit the slower cadence.
+A later shot spends 95 Overload armor. Base pools stay unchanged.
+
+Same-hero reselect after depletion of active Overload armor
+
+Actual Soldier rifle fire empties the temporary pool and spends five
+base armor. Overload still grants 7.15 m/s, and repeated input adds
+no armor. Manual reselect returns run speed to 5.5 m/s and preserves
+the original reuse deadline. Early presses do not activate
+Overload or trigger a recast at expiry. A fresh post-cooldown press grants 100 temporary armor
+and restores 7.15 m/s.
+
+Airborne Molten Core during actual Sleep Dart
+
+An actual dart applies sleep before a launched globule lands.
+The globule creates one pool during sleep. When Ana enters, it
+deals and credits 20.48 over eight frames without moving the wake
+deadline. Held primary launches nothing during sleep. A fresh press
+after natural wake launches the next globule and lands a second pool.
+
+Projected Barrier against two overlapping live Molten burns
+
+An actual projected barrier clears both burns and absorbs 5.12 per
+full frame. With capacity seeded at 1, the first contact breaks it
+and the second deals 2.56 to the body in that frame. With capacity
+seeded at 4, the barrier consumes both contacts with no body damage.
+Both burns apply on the next frame. A switch by the second caster
+retires only that pool and burn. The first continues to deal and
+credit 2.56 per frame.
+
+Actual Molten burn through full Overload and base armor
+
+The first partial arming frame spends 3 temporary armor. The
+Overload boundary frame spends 1 temporary armor and 3 base armor.
+The base armor boundary frame spends 3 armor and 0.64 health.
+The next full frame spends 2.56 health. One uninterrupted burn
+credits the caster all 153.2 damage.
+
+New Overload during an uninterrupted Molten burn
+
+With base armor gone, the activation frame spends 2.56 health
+before granting 100 temporary armor. Starting on the next frame,
+the same burn spends four armor per frame for 25 frames, despite
+repeated Overload presses. Then it resumes 2.56 per frame to health.
+The lethal tick credits the caster, clears Overload and the burn
+instance, and preserves the original pool.
+
+Forge Hammer and a lethal shot on the first repair contact frame
+
+An actual thrown turret is seeded at 20 health. Repair first gives
+50, then the Soldier shot leaves 50. Shot first destroys the turret
+and denies the pending repair, immediately starting redeploy cooldown.
+An early throw is denied. After cooldown a fresh throw creates a new
+actor, actual Soldier fire drops it to 190 and a fresh swing restores
+it to 240 without reviving the old turret.
+
+One Forge Hammer swing repairs and damages in the same frame
+
+An actual swing repairs the owned thrown turret for 50 and damages
+Soldier for 55. Both contacts settle on frame 20 normally and frame
+10 during Overload, once per swing. The angled wall blocks turret
+fire while keeping both hammer paths open. Hero damage credit is 55.
+
+Shared primary and secondary delay across Overload expiry
+
+Rivet to secondary retains the prior boosted 0.42-second delay.
+Secondary to rivet retains the prior boosted 0.56-second delay.
+The first post-expiry shot sets the next ordinary delay of 0.8 or
+0.6 seconds respectively. Both orders deal 195 and spend three
+ammo with no early launch or ammo use while gated.
+
+Defense Matrix interception of the final secondary volley
+
+An actual one-ammo secondary launches ten pellets, all intercepted.
+The magazine reaches zero with no damage or damage credit. Start,
+refill and first resumed launch of the two-second automatic reload
+match the exposed control frame for frame. After Matrix release,
+the first resumed secondary spends two ammo and deals 75 to mech armor.
+
+Reflected secondary destroys the original full-health turret
+
+Across two Deflect activations, four actual volleys land 20 pellets
+for 250 damage and one elimination credited to Genji. The turret
+shoots a closer enemy throughout the engagement. Both duelists keep
+their full health. The lethal pellet starts full redeploy cooldown.
+An early throw fails and a post-cooldown throw makes a new turret.
+
+Independent turret priority with concurrent marks on different targets
+
+Actual turret shots reach the different targets marked by each owner.
+A newer mark replaces selection while the older mark remains active.
+When the newest target becomes friendly, one turret uses its older
+mark and the other returns to the nearest enemy. Hostility restores
+both selections without refreshing either mark. Expiry restores
+nearest-target selection independently.
+
+Adaptive Shield spill caps charge and permits a same-frame cast
+
+The first actual rivet spends 70 Adaptive Shield without charge.
+Ten below cost, a Molten Core command is rejected. The second rivet
+spends 30 shield and 35 base armor, credits 65 damage, and caps
+charge at 2142. A fresh command after impact on that same frame
+consumes the charge. A subsequent globule lands a pool without a refund.
+
+Turret damage and a passive charge tick on one frame
+
+With charge seeded 18 below cost, a 14-damage turret hit leaves
+four points to fill. The same-frame passive tick caps charge at 2142.
+A press one frame early remains buffered even after release. That
+press or a fresh command on the cap frame can start Molten Core.
+Without either press, charge stays at cap until the following press.
+All three activations consume charge and land a pool.
+
+Molten Core input buffer at a combined charge cap
+
+An eight-frame early press survives release and casts at cap.
+A nine-frame early press expires and a fresh input is required.
+The 16DA activation node has a 150 ms buffer. At the first
+full-charge evaluation, the tested presses are 143 ms and
+159 ms old respectively in the static command fixture.
+
+Sleep Dart on the passive Molten charge cap frame
+
+A short press eight frames before cap remains buffered immediately
+before impact. Sleep Dart clears the press before the passive tick
+fills charge to 2142. The full charge persists through natural wake.
+A fresh press then consumes it and launches a globule that lands.
+
+Same-owner launched pool overlap across natural expiry
+
+Two actual globules from one cast land at the same point at different
+times. Their overlap deals one 2.56 tick per full frame to an unarmored
+target. The first natural expiry preserves the original burn and its
+damage credit. The final expiry settles damage through its last
+interval and removes the burn. Later frames deal no more damage.
+
+Allied Matrix in front of Projected Barrier and Overload
+
+Matrix intercepts all three tested weapons and leaves the rear barrier
+at 200 capacity. After release, Trooper and Heavy Assault break the
+barrier seeded at one capacity without spill, then spend 15 and 2.5
+Overload armor. The Enforcer barrier expires at full capacity before
+the next volley spends 25 Overload armor.
+
+Projected Barrier versus aimed Hack and radial EMP
+
+The static host blocks aimed Hack at the projected barrier. Actual
+EMP applies silence and leaves 200 barrier and 100 Overload armor.
+The projected barrier expires without shortening the silence.
+A rivet hits Sombra for 70 during silence, while turret input is
+denied. A fresh press after expiry throws a new owned turret.
+
+Reflected rivets against Projected Barrier and Overload
+
+Three actual reflected rivets spend 70, 70 and the final 60 of a
+full projected barrier and grant Zarya energy without body spill.
+The fourth spends 65 Overload armor, credits Genji 65 damage and
+charge, and neither touches base pools nor applies a mark.
+
+Zarya Particle Grenade against Projected Barrier and Overload
+
+Actual zero-energy grenade spends 47 projected capacity. A second
+grenade breaks the barrier seeded at one capacity without spill.
+The third spends 42 Overload armor. The fourth detonates on cover
+and deals no damage. Separate primary input at 5 m activates 0241
+ModifyHealth without changing target health over 80 frames. Its
+TrackRay and periodic health settlement need a scoped player host.
+
+Scoped server 0241 primary beam
+
+The server ray nodes feed their entity selector into actual
+ModifyHealth. At 5 m, zero-energy fire spends 20.9475 Overload armor
+over 25 command frames. Release, allies, world cover and distance
+deny damage. Returning into range restores it. Eight full shield
+frames instead spend 9.6 Projected Barrier capacity with no body damage.
+The static ray uses eye origin and capsule/mesh traces. Native beam
+width, animated muzzle and client presentation remain open.
+
+Particle Cannon energy and projectile defense intersections
+
+One actual rivet into Personal Barrier grants the enemy Zarya 14
+energy. Her beam runs at 88.3 DPS before armor and spends 11.80571
+Overload armor over 191 ms. Her barrier stays at 130. Hero switch
+stops damage immediately. Zero-energy fire crosses active Deflect
+and Grasp boxes with 20.9475 damage in 25 command frames, without
+reflection credit or a Grasp shield grant.
+
+Particle Cannon beam through Matrix and into the nearer mech
+
+A zero-energy beam crosses the held Matrix volume and spends
+20.9475 Overload armor in 25 command frames. A mech moved into the
+ray spends 6.72 armor over eight full frames while Torbjorn stays
+untouched. Moving the mech aside transfers damage back to Overload
+without turning Matrix off. Both losses credit Zarya.
+
+Particle Cannon breaks the Winston shell and resumes on Overload
+
+Actual held zero-energy primary spends 9.525 shield over eight
+frames. With capacity seeded at one, the next interval breaks the
+shell without spill. The following command frame spends 0.7875
+Overload armor. Eight post-break frames credit Zarya 6.6675 without
+damaging either Torbjorn base pool or Winston.
+
+Particle Cannon destroys a full-health thrown turret
+
+An actual held beam spends all 250 turret health and credits one
+elimination to Zarya. The rear Torbjorn takes no damage on the
+lethal frame or the next. On the second frame the held beam retargets
+and then spends 6.72 Overload armor across eight full damage frames.
+Destruction starts cooldown immediately. A fresh throw is denied
+after Overload ends but succeeds after the turret cooldown.
+
+Particle Cannon empty-magazine recovery against Overload
+
+Held primary spends ammo while aimed away. At empty the final
+partial interval spends 0.4725 armor and stops the health state.
+The magazine refills on frame 73 after empty. Holding primary
+deals no damage until frame 100, when a fresh health state spends
+0.21 armor. Total damage and credit are 8.2425.
+
+Graviton Surge projectile start and direct contact
+
+Actual 025F input rejects insufficient charge and launches 08CE once
+at full charge. Direct contact spends 2.5 Overload armor. Static cover
+stops contact. Launch carries 03E2 and graph 0260 is available.
+The 0068 Zarya lane implementation and its 0005 and 0012 patches
+provide the 0260/0261 field evidence and an integration reference.
+That patch set needs adaptation to this lane combat and movement APIs.
+Area creation, periodic damage and pull remain open here.
+
+Static Graviton field against Overload Torbjorn
+
+The 0068 0260/0261 evidence is adapted to this lane projectile
+and mover APIs. Impact creates a four-second, six-meter field.
+Exposed Torbjorn takes 2.5 direct and 20 periodic Overload damage.
+Outward input cannot cancel the pull. A rivet still hits Zarya for
+70 during restraint. Cover and allied targets deny field effects.
+Natural expiry clears driven velocity and restores ordinary movement.
+Capsule/LOS selection and scalar 3 as pull speed are static policies.
+Native field actor presentation, force and protection precedence remain open.
+
+Static Graviton caster lifecycle
+
+A lethal rivet leaves the active field running on its original clock.
+The pull and periodic damage continue and the damage credits Zarya.
+Switching to Soldier removes the active field immediately. The next
+world tick clears pull and driven velocity without another damage tick.
+A switch before impact retires the airborne projectile without a field.
+
+Static Graviton field against the five Talon NPC bodies
+
+An actual launch lands on Overload Torbjorn. In each fixture the
+exposed enemy NPC is pulled and loses 20 health through expiry.
+Same-team and covered copies retain their positions and health.
+Expiry clears the NPC mover and velocity. Zarya receives 42.5
+combined damage credit from Torbjorn and the exposed NPC.
+
+Static Graviton against Deflect, Grasp, Matrix and Projected Barrier
+
+Genji owns the reflected projectile and its landed field. A return
+at head height spends 2.5 Overload armor from fixed five-point
+impact damage. The field pulls Torbjorn and Zarya and credits Genji
+42.5 total damage. Grasp converts five nominal damage into three
+temporary shields. Matrix deletes the shot. Neither creates a field.
+Projected Barrier takes the impact and the first two field pulses
+in the break fixture. Pull persists and the next pulse spends armor.
+
+Static Graviton against Wraith Form, Fade and Cryo-Freeze
+
+The actual projectile passes the two intangible bodies and strikes
+Overload for 2.5. Solid Cryo-Freeze intercepts without direct damage.
+Torbjorn still takes field damage and pull near the Cryo landing.
+A phase entered during pull releases the body immediately. The
+world tick preserves newly commanded Wraith or Fade velocity.
+Bodies that stay within range reacquire on expiry or Cryo cancel.
+Wraith and Fade can leave the active field and avoid reacquisition.
+
+Static Graviton with Sleep Dart, Projected Barrier and hammer repair
+
+Actual Sleep Dart spends 2.5 Overload armor. The allied projection
+absorbs Graviton impact and pulses without waking the pulled body.
+A body pulse after break or expiry spends .08 armor and applies
+the sleep floor or 32-tick damage wake delay, whichever is later.
+Primary is denied before wake and deals 70 to Ana from a press on
+the wake frame while the field is still active.
+A field moves a pending hammer swing out of repair range. The
+damaged turret stays at its seeded 175 health. After field expiry,
+Torbjorn walks back and a fresh swing restores exactly 50 health.
+
+Static Graviton against deployed Sigma, Orisa and Winston barriers
+
+The actual projectile spends five capacity on each hostile shield
+and lands at its face. A shield seeded at three capacity breaks
+without direct damage spilling to Overload. Allied shields let the
+projectile through for 2.5 direct damage. In all nine cases the
+landed field pulls Torbjorn, spends 20 Overload armor without
+debiting the shield and clears driven velocity at expiry.
+
+Static Graviton handoff to an active Orisa Halt
+
+Following the isolated Zarya lane static policy, Graviton retains
+translation while a live opposing Halt request is active. On the
+field expiry tick that request moves Torbjorn toward its destination
+at 20 m/s and finishes without damage. Graviton spends
+2.5 direct plus 20 periodic Overload armor. The Overload grant
+expires on its own clock and base pools stay intact.
+
+Static Graviton overlap with Sigma Gravitic Flux
+
+Graviton sweeps horizontally while the recipient Flux graph owns
+vertical motion. Release preserves the active lift or fall state.
+Against a matched Flux-only run, the seven-meter height path and
+the landing frame agree. The slam settles on landing and Sigma
+receives 165 total. The field loses range at height and resumes
+separate damage on return. Both effects retire after settlement.
+
+Static Graviton and Molten Core crossing and countercast
+
+Graviton pulls Overload Torbjorn across both sides of an actual
+landed enemy Molten pool. The burn attaches or retires on that
+tick. Molten credits four armor per inside tick and Graviton credits
+.08 per field tick. The same Overload grant and base pools persist.
+A pulled Torbjorn can consume full Molten charge and land a globule.
+Zarya is placed in the resulting pool and takes 20.48 over eight
+ticks while Graviton independently spends .64 Overload armor.
+
+Static Graviton victim death and replacement
+
+Two Gravitons and the Graviton plus Molten case both settle an
+actual lethal tick. After a .12 health seed, the first pulse credits
+.08 and the second source credits .04 and one elimination.
+The death tick clears pull and velocity while the fields remain.
+The corpse stays stationary until normal full-health respawn.
+Reselect and Soldier switch clear the old body before replacement.
+The new body is safe outside the field and reacquires on entry.
+
+Static Graviton and Molten lethal ticks on all five Talon NPCs
+
+Ten real NPCs cover each definition twice. Outside the Molten pool
+a .04 health seed leaves Graviton lethal. Inside the pool, a .12
+seed lets Graviton spend .08 and Molten finish the last .04.
+Each caster receives five eliminations and each NPC sends one death
+event. Pull, NPC mover and velocity clear on the lethal tick.
+The surviving Torbjorn remains pulled while the corpses stay still.
+
+Static Graviton contact with Torbjorn turret and counterfire
+
+An actual impact deals five damage to a turret. The landed field
+pulls Overload Torbjorn and leaves turret position and health fixed.
+The turret hits Zarya for 14 and kills her from a one-health seed.
+The committed field lasts through expiry. A separate direct hit kills
+a turret seeded at three health, starts the ten-second cooldown and
+denies early redeploy. Fresh input after cooldown starts a new turret
+at 75 construction health and completes it at 250.
+
+Static Orisa Fortify mitigation and Graviton restraint
+
+The live 0CF4 filter scales incoming damage before armor. An actual
+Torbjorn rivet spends 37 during Fortify and 65 after expiry. The
+scoped rivet retains its existing noncritical policy. An actual
+Cassidy head shot verifies critical suppression and recovery.
+Fortify keeps Graviton damage at .048 per tick while denying pull.
+Activation releases an existing pull and expiry allows reacquisition.
+Other controls and native filter parity remain open.
+
+Static Orisa Fortify against Torbjorn weapons and Molten Core
+
+Actual secondary, quick melee, hammer and turret fire spend 37.5,
+13, 28 and 4.2 respectively through Fortify and armor. Torbjorn
+receives the corresponding damage credit and ultimate charge.
+A real landed Molten pool crosses a seeded .9-armor boundary in
+one fortified tick. The pulse spends .9 armor and .96 health in
+two health events and grants no ultimate charge.
+
+Static Orisa Fortify cooldown, death and body replacement
+
+Actual retries leave the activation counter and cooldown unchanged.
+Rivet spends 65 during cooldown and 37 after a successful recast.
+A lethal rivet on fortified Orisa at one seeded health gives Torbjorn
+one damage and one elimination. Dead inputs cannot restore Fortify.
+Respawn and same-hero reselect restore ordinary 65-point rivet damage.
+Soldier replacement takes 70. A fresh cast after respawn restores 37.
+
+Static Fusion Driver and fortified Orisa against Overload Torbjorn
+
+Actual fortified Orisa and Overload Torbjorn trade fire. Torbjorn gets
+37 damage and charge from a rivet. Fusion Driver spends six armor
+per impact and crosses expiry or exhausts the grant. The depletion
+impact spends the last four temporary armor and two base armor.
+Orisa uses the shared 0B8B bridge for actual damage charge and
+same-hero retention. Miss, friendly team and cover each spend one
+round without damage or charge. Release stops ammo consumption.
+
+Static Fusion Driver reload against Overload Torbjorn
+
+Actual held fire spends all 150 rounds and enters auto reload.
+Manual reload is also verified. No round fires before refill.
+Torbjorn hits for 65 during reload. The first resumed shot spends
+six Overload armor and credits six Orisa charge.
+Clock-driven volley outputs and terminal ammo notify state watchers.
+The last notified output values are recorded in VM snapshots.
+
+Static Fusion Driver terminal travel against Overload Torbjorn
+
+Actual launches fly at 120 m/s for an authored 20 seconds. The
+flat fixture puts the capsule about .25 m inside or outside 2400 m.
+The inside capsule takes six Overload armor on the terminal sweep.
+The outside capsule takes no damage or charge. Both flights retire
+on tick 1250. The lifetime uses the simulation epsilon for residue.
+
+Static Fusion Driver against Deflect, Grasp and Matrix
+
+Actual interceptions spend an Orisa round without damage or charge.
+The Genji return spends 3.3 through Fortify and credits Genji.
+Sigma receives 6.6 temporary shields from one 11-point round.
+Matrix deletes the round and neither protected body takes damage.
+Clearing the lane or releasing Matrix restores a six-point hit.
+Torbjorn can still reply to fortified Orisa with a 37-point rivet.
+
+Static Fusion Driver against a full allied Projected Barrier
+
+Nineteen 11-point rounds spend the full 200 barrier. The breaking
+round does not reach Overload or award Orisa charge. Zarya receives
+40 energy from actual barrier loss. Protected Torbjorn can deal 37
+with a rivet against Fortify. The twentieth Fusion Driver round
+spends six from the original Overload grant and awards six charge.
+
+Static Orisa Supercharger deployment, aura and destruction
+
+Actual 0CF5 command lands the 200-health device and runs 0D00/0D01.
+Allied rivets deal and credit 105 in range and 70 after expiry.
+This static aura selects player bodies. Turret fire remains 14.
+Boosted Fusion Driver spends 11.5 Overload armor and gains no charge.
+Three enemy rivets destroy the device without charging Torbjorn.
+The next Fusion Driver round spends and credits six.
+The device supplement and live state are bound into replay evidence.
+Native aura filters, deployable boost eligibility and remaining interactions are open.
+
+Static Supercharger interruption and committed deployment
+
+A lethal Torbjorn rivet or Cassidy Flashbang ends the 0CF5 launch
+wait without refunding charge. An airborne cast survives caster
+death and lands. A deployed cast also survives death. Its allied
+Soldier can still spend 25 Overload armor with one boosted round.
+Hero replacement cancels the windup or flight. A landed aura stays
+active without transferring the charge block to Soldier.
+Flashbang after landing leaves the boost active.
+
+Static Supercharger rebind after natural Orisa respawn
+
+A lethal Torbjorn rivet leaves the deployed device alive. The new
+Orisa body receives its 0859 handle while the original device source
+and deadline stay fixed. Boosted Fusion Driver spends 11.5 Overload
+armor but earns no charge. Three Torbjorn rivets destroy the device
+without awarding Torbjorn charge. Orisa then earns six from the next
+unboosted round against the same Overload grant.
+
+Static Supercharger with landed Molten Core
+
+An active pool uses the live aura for six armor per tick.
+A hostile rivet destroys the device at one seeded health and
+the same world tick applies the ordinary four armor.
+An attached barrier absorbs 3.84 per boosted pulse. A breaking
+pulse does not spill to the body. The next pulse spends 3.84
+body shields and earns damage credit without ultimate charge.
+
+Static Supercharger cover and barrier visibility
+
+World cover and a hostile Orisa barrier stop the aura while a
+rivet can still hit an enemy on Torbjorn's side of the cover.
+Removing cover or breaking the barrier restores the aura.
+Nine ordinary rivets break the 600-health barrier without
+hero damage credit or ultimate charge.
+
+Static Supercharger with airborne and reflected rivets
+
+An airborne rivet deals 70 after the shooter leaves the aura
+and 105 after entry, with equal damage credit and ultimate charge.
+Actual Deflect uses the aura on Genji. A shooter-only aura yields
+ordinary reflected damage of 65 or 75. A reflector-only aura
+yields 100 or 137.5. Damage credit and charge go to Genji.
+
+Static Supercharger with the five Talon NPCs
+
+An allied aura boosts actual NPC attacks on Torbjorn. A hostile
+aura leaves them at ordinary damage. Ordinary and boosted values
+are 15/25 Trooper, 95/145 Sniper, 2.5/3.75 Heavy Assault,
+25/37.5 Enforcer and 20/32.5 Assassin contact. Ten Assassin pin
+pulses spend 8/12. Lethal rivets and explicit NPC removal clear
+the NPC status without removing the device. The four lethal cases
+complete the NPC death event. The NPC status stays server-side.
+
+Static Talon NPC counterfire after Supercharger destruction
+
+Three ordinary rivets destroy the hostile 200-health device
+without damage credit or ultimate charge. Each surviving NPC
+loses its aura and its next attack deals ordinary damage.
+At 18 m the final rivet destroys the device after Enforcer
+launches 25 pellets and before they land. The airborne volley
+settles using ordinary damage.
+
+Static Fortify cooldown across hero replacement
+
+Switching during Fortify or its cooldown, or reselecting Orisa
+while Fortify is active, preserves the original reuse deadline
+within one simulation tick. Early retries leave mitigation off.
+Actual rivet damage is 65 before recovery and 37 after a new
+Fortify activation. The old mitigation retires on replacement.
+This is a static body replacement policy.
+
+Static turret exchange with Fortified Orisa
+
+Actual Fusion Driver rounds damage the turret. One hammer swing
+repairs 50 while Fortify remains active. Turret fire spends 4.2
+armor per shot during Fortify and 9 after expiry. Fusion Driver
+destroys the turret after 300 total damage. Early redeploy fails.
+Supercharger excludes the player-owned turret and still boosts
+allied Talon NPCs in the static host.
+
+Static Fusion Driver interruption and committed rounds
+
+Actual lethal rivet or landed Molten burn stops new rounds.
+A round already airborne at death deals six to Torbjorn armor.
+Natural respawn restores primary fire. Flashbang spends 20
+armor and denies new rounds until stun ends. Fortify changes
+Flashbang damage to 10 and keeps the held volley running.
+
+Static Halt and Fortify during actual counterfire
+
+Fortified Orisa is excluded from a new Halt pull. Starting
+Fortify during movement destroys the active 0CCE instance
+on the activation frame. Horizontal movement ends. The
+other pull from the same orb keeps moving Torbjorn. The
+actual rivet and Fusion Driver exchange 37 and 6 armor.
+
+Static Halt post-pull slow with Overload and rivet fire
+
+The authored 650 ms slow begins after MoveTo ends. Normal and
+Overload run speeds are 1.925 and 3.575 m/s under additive mods.
+An actual rivet deals 65 during the slow in both cases.
+The authored end retires the instance and clears var 23186.
+Run speeds recover to 5.5 and 7.15 m/s. Armor remains intact.
+
+Static Halt on five Talon NPCs
+
+Actual enemy Trooper, Enforcer, Sniper and Assassin acquire
+the 0CCE instance, remain still through startup, then move
+and enter the 650 ms post-pull scope. Heavy Assault retains
+authored 6601 immunity. Halt deals no damage. Each NPC takes
+70 from an actual rivet after the pull retires. The NPC graph
+is server-owned and uses the static collision mover.
+
+Static Talon death and removal during Halt movement
+
+Actual lethal rivets hit four susceptible NPC bodies while
+0CCE MoveTo is active. The death frame clears the instance
+and velocity, runs the NPC death script, and credits Torbjorn
+one damage, charge and elimination. The seeded corpses stay
+in place. Explicit removal clears one Trooper while the
+second pulled recipient continues to its ordinary end.
+
+Static Talon return fire during Halt
+
+Four susceptible NPCs attack during their live Halt instances.
+Overload loses 15 for Trooper, 25 for Enforcer, 95 for Sniper
+and 20 for Assassin pin contact. Immune Heavy Assault stays
+in place and spends 2.5 armor. Base pools stay intact.
+An actual Torbjorn rivet deals 70 to each after the encounter.
+
+Static Halt source and recipient body lifecycle
+
+Lethal rivet and source hero switch remove the undetonated orb.
+An acquired slow outlasts either source ending and runs 650 ms.
+A lethal Fusion Driver hit during movement clears the driven
+mover on the death frame. Recipient reselect retires the old
+instance. The new Torbjorn body fires an actual 65-damage rivet.
+
+Static Halt replacement between two casters
+
+The second detonation ends the first slow and clears its
+modifier. The second 0CCE instance uses the new orb and caster,
+moves Torbjorn laterally and applies a single 650 ms slow.
+Actual rivet and Fusion Driver trade for 65 and 6. On expiry
+the remaining instance retires and 5.5 m/s movement returns.
+
+Static Halt with Wraith Form, Fade and Cryo-Freeze
+
+Active phase prevents new Halt acquisition. An actual phase
+input during movement destroys that recipient instance on the
+input frame and keeps the same orb pull on Torbjorn active.
+An actual rivet is denied during phase and deals 70 after expiry.
+The old orb does not reacquire the recovered body.
+
+Static Halt cooldown across hero replacement
+
+Reselect and hero round trip retire the old orb and preserve
+the reuse gate. A committed flying orb starts the authored
+six-second cooldown at forced retirement. A running cooldown
+keeps counting while on another hero. Early presses do not
+replay. A fresh input after expiry launches and pulls Torbjorn.
+
+Static Halt and rivet against a hostile landed Orisa shield
+
+The orb crosses the mesh in flight. A separate detonation
+acquires Torbjorn across the mesh before the orb crosses it.
+Both cases move Torbjorn without body or shield damage.
+An actual rivet is stopped by the same mesh and spends 70
+capacity without hero damage or ultimate charge. Native
+collision-mask equivalence remains open.
+
+Static Halt against Particle and Projected Barrier
+
+The orb centre may be inside or outside either live Zarya
+barrier. Acquisition and movement spend no barrier or health.
+An actual Fusion Driver round spends 11 capacity. A hostile
+rivet spends 70 on Particle Barrier. A rivet from protected
+Torbjorn passes his projection and deals 65 to Orisa.
+
+Static holstered rifle refill across Overload and Sleep Dart
+
+Holstering snapshots the current reload duration. A 2000 ms
+wait survives Overload start or expiry. A boosted manual reload
+interrupted by holstering starts a 1400 ms wait that survives
+Overload expiry. Hammer fire deals 55 without resetting the wait.
+Sleep blocks weapon selection and attack but the original 2000 ms
+wait still refills. After wake, hammer deals 55 and a fresh rifle
+reselect and rivet spend one round and deal 70.
+
+Static manual reload across Overload transitions
+
+Overload activation cancels manual reload before or after
+the refill and preserves the settled 17 or 18 rounds.
+A new boosted reload refills at frame 43. Expiring Overload
+during an existing boosted reload keeps frame 43 for refill
+and frame 88 for fire readiness. Actual recovery rivets deal 70.
+
+Static manual reload and rifle refill during Molten Core
+
+Actual Molten Core interrupts manual reload on either side of
+the refill and keeps the settled 17 or 18 rounds for 45 frames.
+Frame 46 has 18 rounds whether or not a globule launches.
+The hammer-holster wait stays inactive. Timed end restores
+rivet fire. A fresh shot spends one round and deals 70.
+
+Static Sleep Dart at the Molten Core refill boundary
+
+Sleep Dart lands on frame 45 or 46. Frame 46 still fills the
+Rivet Gun to 18, while the actual primary input launches no
+globule. An Ana rifle hit wakes Torbjorn at the sleep floor.
+Fresh input lands a Molten pool. After the original timed end,
+a rivet spends one round and deals 70.
+
+Static Molten Core timeout during Sleep Dart
+
+An actual Sleep Dart lands while the authored Molten duration
+is active. Molten expires during sleep and the existing pool
+persists. Repeated attack and ultimate inputs create no new
+projectile or pool. Both natural sleep expiry and Ana rifle
+damage wake recover with no delayed attack. The first fresh
+ordinary rivet spends one round and deals 70.
+
+Static turret Hack after Sombra death or hero switch
+
+An actual aimed Hack on the deployed turret retains the same effect
+and deadline after Torbjorn kills Sombra with three rivets or Sombra
+switches to Soldier. The same full-health turret stays silent through the
+preceding frame. On the expiry frame, it hits a second enemy for 14
+and the spent effect leaves no active target entry.
+
+Static turret Hack acquisition and channel cancellation
+
+Actual aimed Hack rejects an allied turret, a turret at 30 m,
+and wrong aim without acquiring a target or spending cooldown.
+New cover and input release prevent an acquired target from
+receiving Hack. The turret keeps dealing 14
+per shot in each case. After restoring valid conditions and any
+cooldown, a fresh cast silences the same turret and stops its
+damage while the owner remains unsilenced.
+
+Static turret Hack against Reinhardt Barrier Field
+
+A hostile Barrier Field blocks aimed Hack on a deployed turret
+when raised before acquisition or during the locked channel.
+Hack spends no shield health and the turret keeps dealing 14
+per shot to a separate enemy. Lowering the shield permits a
+fresh cast. A shield allied to Sombra admits Hack while raised.
+In both success paths, the turret stops firing and its owner
+remains unsilenced.
+
+Static turret Hack against deployed Sigma and Orisa barriers
+
+Actual barriers allied to Torbjorn intercept the aimed Hack ray
+without losing health or spending Hack cooldown. The turret
+keeps dealing 14 per shot to a separate enemy. Actual Sigma recall
+and destruction of the Orisa barrier by Sombra machine-pistol fire
+allow a fresh Hack on the same turret. The turret stops firing
+and Torbjorn remains unsilenced.
+
+Static turret Hack and EMP across Winston Barrier Projector
+
+An actual shell allied to Torbjorn blocks aimed Hack from either
+side without losing any of its 700 health. The turret keeps
+dealing 14 per shot. Actual EMP destroys the shell and silences
+the full-health turret with Torbjorn and Winston outside its
+radius. The same turret hits for 14 on the effect expiry frame.
+
+Static turret EMP against Reinhardt, Sigma and Orisa meshes
+
+Charged EMP breaks the three hostile meshes and silences the
+full-health turret behind each. The same turret fires for 14
+on the effect expiry frame. Allied Sigma, out-of-range Reinhardt,
+and world-occluded Orisa barriers keep their full capacity.
+The static host checks distance and world visibility to the
+nearest mesh surface and uses the existing break handlers.
+
+Static turret fire during the Sombra EMP windup
+
+An actual turret shot deals 14 during the 0.35-second EMP wait.
+If Sombra survives, the original cast destroys the Winston shell
+and silences the turret. A lethal hit cancels those effects and
+dead input cannot restore the cast. After natural respawn, a fresh
+full-charge EMP silences the same turret.
+
+Static Molten Core overlap across two natural expiries
+
+Two actual casts release globules 24 frames apart. Each owner
+has a separate burn and receives 2.56 damage credit per full
+overlap frame. If the VM scope ends one frame early, the server
+still credits the final 0.64 damage at the continuous deadline.
+Each expiry retires its own burn. The second burn retains its
+identity until final expiry, when damage and credit stop.
+
+Static lethal Molten overlap at expiry against five Talon NPCs
+
+Two launched pools apply separate burns to all five NPC bodies.
+With health seeded at 0.5, the final 4 ms of the expiring pool
+credit its owner with all five eliminations. With health seeded at
+1.0, the first pool credits 0.64 per NPC and the surviving pool
+credits 0.36 and all five eliminations. Both burns retire on death
+and the surviving pool cannot remount them. The full-frame encoder
+resolves retired instances from the retained snapshot. All five
+NPC death scripts dispatch on the lethal frame in both cases.
+
+Static Molten expiry across Overload armor and ordinary health
+
+Two actual burns first spend a real Overload grant. With 0.25
+temporary and 0.25 base armor remaining, the first pool spends
+both and 0.32 health in its final 4 ms. With 0.75 temporary and
+1.25 base armor, the first pool spends 1 armor and the second
+spends 1 armor plus 1.92 health. The same surviving burn credits
+the next full tick for 2.56.
+
+Static Molten rebound at flight expiry
+
+An actual globule rebounds from a ceiling and falls beyond a ledge.
+A surface placed halfway through its remaining flight interval
+creates exactly one pool. A surface beyond the end of that interval
+creates no pool or damage and the globule expires on its original
+clock.
+
+Static Molten terminal sweep against five Talon NPCs and floor
+
+A ceiling-rebounded globule meets each NPC and a floor during its
+final flight interval. The nearer body takes and credits 25 and
+produces no pool. The nearer floor produces one pool with no
+direct damage. Both contacts retire the original globule before
+its flight deadline.
+
+Static primary mark through turret kills and player respawn
+
+A primary hit marks a player or any of the five Talon NPCs after
+health is seeded to 90. The actual thrown turret leaves its nearer
+target, kills the marked body before expiry, and returns to the
+nearer target for 14 damage. Death removes the mark. A fresh hit
+on the naturally respawned player redirects the same turret again.
+
+Static primary mark and thrown turret through phase exit
+
+Actual Wraith Form, Fade and Cryo-Freeze remove a live mark before
+expiry. The thrown turret switches to a nearer enemy for 14 and
+the phased body takes no damage. Phase exit leaves the mark absent.
+A fresh primary creates a new mark and the same turret follows
+with a 14-damage shot.
+
+Static primary mark and turret damage across Adaptive Shield
+
+Actual Adaptive Shield grants 100 temporary shields. A 70-point
+body hit marks Wrecking Ball without granting charge. The thrown
+turret spends 14 shields twice, then returns to the nearer enemy
+when the mark expires. A fresh rivet spends the final 2 shields
+and 63 base armor. Its new mark redirects the turret for 9 more
+armor damage. Only the 72 armor damage grants charge.
+
+Static simultaneous hammer repair and protected enemy contact
+
+The same swing repairs the thrown turret from 170 to 220 while
+Genji Deflect blocks body damage or Zarya Particle Barrier spends
+55 capacity. That swing grants no damage credit or charge. After
+protection expires, a fresh swing caps the turret at 250 and
+deals and credits 55 body damage.
+
+Static protection changes within one hammer contact window
+
+The first swing repairs its own turret and breaks a Particle Barrier
+with 40 capacity seeded or is blocked by front Deflect. Genji then
+turns away before the contact window closes. Holding the same swing
+cannot hit either newly exposed body or repair 12 newly seeded turret
+damage. A fresh swing restores 42 turret health and deals 55 damage.
+
+Static Mei spray freeze around a combined hammer contact
+
+Actual spray freeze before the contact denies both 50 repair and
+55 body damage. Freeze after contact preserves both completed
+effects. Held input adds neither effect during freeze. After thaw
+a fresh swing repairs up to the turret maximum and deals 55.
+
+Static Assassin pin around a combined hammer contact
+
+Actual Talon Assassin pin before contact denies 55 body damage
+and 50 turret repair. Pin after contact preserves both effects.
+Held hammer input during pin adds neither effect. After the pin
+is released, a fresh swing damages the Assassin and repairs the
+same thrown turret.
+
+Static secondary pellet settlement through a Zarya barrier break
+
+One actual secondary volley spends two rounds for ten pellets.
+For either bubble, 5 or 12.5 remaining capacity consumes one
+whole pellet and leaves 112.5 body damage. A 12.75-capacity
+bubble consumes two pellets and leaves 100 body damage.
+Only body damage grants credit and charge. No primary mark is applied.
+
+Static secondary fire through two layered barrier breaks
+
+One actual ten-pellet volley breaks Barrier Field before the
+Projected Barrier on the Soldier behind it. Swapping the seeded
+capacities of 5 and 12.75 swaps which barrier consumes one or two
+pellets. The remaining seven pellets deal and credit 87.5 body
+damage and charge. Reinhardt takes no body damage.
+
+Static secondary fire across Defense Matrix and Projected Barrier
+
+The edge of active Matrix deletes four pellets from one actual
+ten-pellet volley. A Projected Barrier seeded at 5 absorbs one.
+The remaining five deal and credit 62.5 body damage. The
+mech takes no damage and the volley applies no primary mark.
+
+Static secondary fire across Kinetic Grasp and Projected Barrier
+
+Grasp absorbs four of ten pellets for 50 and grants 30 temporary
+shields on exit. A Projected Barrier seeded at 5 absorbs one whole
+pellet. The remaining five deal and credit 62.5 body damage.
+Sigma takes no damage and the volley applies no primary mark.
+
+Static secondary fire across Deflect and Projected Barrier
+
+Deflect returns four of ten pellets for 30 Overload armor damage
+and matching credit and charge to Genji. A Projected Barrier
+seeded at 5 absorbs one whole pellet. The remaining five deal
+and credit 62.5 body damage to Torbjorn. Genji takes no damage
+and the volley applies no primary mark.
+
+Static Transcendence and Talon Sleep Dart settlement
+
+An actual 017B cast protects a solid Zenyatta from rivets, pellets,
+quick melee, Forge Hammer, deployed turret shots and direct and landed
+Molten Core until the authored countdown ends. The healing host reads
+the authored amount, countdown and radius. Team, distance, static
+occlusion and Winston shell tests verify healing admission. At 16 ms
+the ordinary pulse heals 4.8. It restores base armor after Ana
+antiheal expires and does not replenish Overload temporary armor.
+All five Talon NPCs can deal damage before the same-frame healing pulse.
+Lethal hits keep NPC kill credit and receive no pulse. Surviving Torbjorn
+receives 4.8 after the attack consumes the last temporary armor.
+
+An actual allied Ana Sleep Dart hits each of the five Talon NPCs for 5.
+The static host releases attack input and the Assassin's active pin
+on impact. The NPC attacks again at its first eligible release after
+the natural sleep deadline or the guaranteed wake floor after an
+actual 70-damage rivet. Death or manual removal clears the sleep state.
+Turrets continue to receive the dart's damage without the sleep effect.
+
+The isolated baseline passed 659 discovery cases. The integrated source
+passed all 15 added cases. The wider source run is still in progress.
+These fixtures cover the static server. Original-client acceptance and
+remaining cross-hero interactions are tracked separately.
