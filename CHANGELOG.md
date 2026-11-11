@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Ana delivery history integration
+
+- Merge delivery 14f691f6 after mounting missing healing-credit, owner-dead
+  validation and same-hero respawn handling. Keep the combined Nano module,
+  tick-based Sleep receiver, timed rifle doses, Cryo sampling, generic damage
+  credit, body health/target queries and multi-hero barrier services in place
+  of the delivery's older private combat/host adapters.
+- Preserve the shared VM's linked scripts, resource/scene entity hosting,
+  target validation, filter dispatch and query services when resolving host
+  conflicts. Keep all existing delivery tests and their documented open gaps;
+  do not replace the graph-driven grenade profile to satisfy old fixtures.
+- This merge changes documentation only. The preceding tested code commit
+  records the successful recovered lifecycle checks and remaining acceptance
+  differences; no client acceptance or all-line completion is claimed.
+
+
+
 ### Ana delivered healing credit and respawn lifecycle
 
 - Mount delivered effective-healing charge for allied/self rifle and grenade
