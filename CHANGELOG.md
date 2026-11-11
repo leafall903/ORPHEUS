@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Brigitte delivery history integration
+
+- Merge delivery a3004ec6 after reconciling its shared host interfaces. The
+  complete Brigitte implementation module is byte-identical to that delivery;
+  its missing live foreign-slot bridge is now mounted. Keep the combined VM's
+  linked-target validation and implemented condition handlers in place of the
+  older validation/fallback helpers, preserving other integrated heroes.
+- Resolve shared-file conflicts to the current combined implementations; no
+  gameplay code is dropped to satisfy the unfinished acceptance suite. All
+  63 focused interface/combat/snapshot/Wraith-cancel checks passed before this
+  history merge, which changes documentation only. The existing initialization,
+  protected-phase, defensive-state and NPC interaction gaps remain documented
+  in the preceding entry and are not a reason to withhold the delivery.
+
 ### Delivered foreign variable slots and Wraith phase binding
 
 - Mount Brigitte's delivered BodyWorld foreign-slot resolver on the existing
