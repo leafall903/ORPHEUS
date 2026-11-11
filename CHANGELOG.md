@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy Valkyrie integration
+
+- Mount the delivered original-language Valkyrie movement hook and embedded
+  mover profile before numeric modifiers. Retain the shared collision sweep,
+  velocity changes, wall-ride path and other heroes' movement consumers.
+- Advance the authored 15-second expiry and recovery without owner commands.
+  Retain expired flight and weapon eligibility for earlier input frames,
+  while refusing to spend future passive charge on a historical ultimate.
+  Retire retained flight on death and body replacement.
+- Include pending profiles, flight scale and retained lifetime in the existing
+  physics/server snapshots. All 28 delivered Valkyrie checks and 121 shared
+  movement, physics snapshot, Lucio/Echo and core combat checks passed. The
+  27 passive/healing charge and support-effect checks also passed with the
+  prepared external effect graphs. Original-client acceptance and the rest
+  of Mercy's damage/boost charge, NPC and interaction delivery remain pending.
+
 ### Mercy passive and healing charge integration
 
 - Retain the delivered Python charge and relationship modules. Mount Mercy's

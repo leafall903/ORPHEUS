@@ -32,7 +32,7 @@ import math
 from collections import deque
 from contextlib import nullcontext
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from ow174.game import (
     bodytrace,
@@ -78,6 +78,7 @@ from ow174.game.content import (
 from ow174.game.dynamic_spheres import DynamicSpheres
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.genji import GENJI, Mobility
+from ow174.game.mover import MoverData, statescript_flight, statescript_mover_data
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
@@ -99,6 +100,14 @@ from ow174.game.world import (
     Movement,
 )
 from ow174.jam.values import id16
+
+@dataclass(frozen=True)
+class RetainedFlight:
+    through: int
+    instance: int
+    expires_ms: int
+    profile: tuple[float, MoverData | None] | None
+
 
 log = logging.getLogger("ow174.game")
 
@@ -431,6 +440,8 @@ class Player:
         if self.hero.guid == GENJI:
             self.genji_mobility.before_pose(self, command, seconds, driven=bool(requests))
         movement_end = None
+        retained = getattr(self, "valkyrie_pose", None)
+        flight_profile = retained.profile if retained is not None and command.frame <= retained.through else None
         charge_start = tuple(self.mover.position) if self.hero.guid in (
             0x02E0000000000007, 0x02E000000000012F,
         ) else None
@@ -442,6 +453,7 @@ class Player:
             state, (target, speed) = requests[0]
             outcome = self._move_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
+                flight_profile=flight_profile,
             )
             if outcome is not None:
                 movement_end = state, outcome
@@ -466,6 +478,9 @@ class Player:
                     command, seconds, tick, movement_limit=movement_limit,
                     fall_limit=fall_limit, speed_scale=speed_scale,
                 )
+            elif self.hero.guid == 0x02E0000000000004:
+                self.mover.step_pose(command, seconds, tick, movement_limit=movement_limit,
+                                     speed_scale=speed_scale, flight_profile=flight_profile)
             elif movement_limit is None:
                 mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned,
                                        speed_scale=speed_scale)
@@ -478,15 +493,16 @@ class Player:
             command, movement_end=movement_end, charge_start=charge_start, seconds=seconds,
         )
 
-    def _move_pose(self, command, seconds, tick, *, move_to=None):
+    def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None):
         fight = self.match.combat
         command = fight.clamp_sleep_command(self, command)
         walls = fight.walls
         if not walls.pieces:
-            return self.mover.step_pose(command, seconds, tick, move_to=move_to)
+            return self.mover.step_pose(command, seconds, tick, move_to=move_to, flight_profile=flight_profile)
         before = tuple(self.mover.position)
         outcome = self.mover.step_pose(
             command, seconds, tick, move_to=move_to, ground_override=walls.ground(self.mover),
+            flight_profile=flight_profile,
         )
         blocked = walls.move_mover(self.mover, before)
         if move_to is not None and blocked:
@@ -532,10 +548,38 @@ class Player:
             charge.set_pending_credits(script.world, tuple(credit for credit in pending
                                                           if credit[0] > script.component.now))
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame, posed=posed)
+        self.mover.script_data = statescript_mover_data(script.component) if script else None
+        self.mover.flight_scale = statescript_flight(script.component) if script else None
+        retained = getattr(self, "valkyrie_pose", None)
+        if retained is not None and command.frame >= retained.through:
+            self.clear_valkyrie_pose()
 
+    def finish_valkyrie_pose(self, frame: int, instance: int, expires_ms: int) -> None:
+        """Keep the expired movement and weapon inputs for older command frames."""
+        mover = self.mover
+        script = self.body_script
+        if script.frame < frame:
+            profile = (mover.flight_scale, mover.script_data) if mover.flight_scale is not None else None
+            self.valkyrie_pose = RetainedFlight(frame, instance, expires_ms, profile)
+            if profile is not None:
+                active = statescript_mods(script.component)
+                for key, mod in mover.mods.items():
+                    if key[0] == instance and key not in active and mod.end is None:
+                        mod.end = frame + 1
+        self.mover.track_mods(statescript_mods(script.component), script.frame, posed=False)
+        self.mover.script_data = statescript_mover_data(script.component)
+        self.mover.flight_scale = statescript_flight(script.component)
+
+    def clear_valkyrie_pose(self) -> None:
+        retained = vars(self).pop("valkyrie_pose", None)
+        if retained is not None:
+            for key, mod in tuple(self.mover.mods.items()):
+                if key[0] == retained.instance and mod.end == retained.through + 1:
+                    del self.mover.mods[key]
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
+        vars(self).pop("valkyrie_pose", None)
         self.body = entity
         self.mover = self.new_mover()
         self.impulse_correction = None

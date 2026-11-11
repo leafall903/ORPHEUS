@@ -320,6 +320,70 @@ class MoverData:
         return r, (part if part > rest else rest)
 
 
+COMPONENT_FIELDS = dict(zip((
+    "1972C687", "7A70E3E3", "4A576BC2", "03E04168", "915FF368", "D97B3735",
+    "D4AE9D05", "5C6B4602", "6B7FDB90", "E54438F7", "AEBAD1B0", "08FFAA0A",
+    "CFD3E635", "61D6B4E9", "19452F15", "B470B8DA", "AA6F4CE1", "0DDD18C3",
+    "DAA0618B", "E631BA84", "D24BF4E6", "E0A0FE25", "6F25AA23", "4E03E892",
+    "142DA8D4", "031FE7EE", "8895A9C8", "EC289987", "C2C40969", "B74245E8",
+    "975F21A5", "B99EC983", "CEF4898C", "D4A3C694",
+), (field.name for field in fields(MoverData)), strict=True))
+
+
+def statescript_mover_data(component) -> MoverData | None:
+    """Decode a sole active ED2B22BD embedded profile before scalar mods.
+
+    Native D3C925..978 publishes the typed component; C3CC80..CECE copies
+    the selected active record before applying numeric modifiers. Simultaneous
+    profile arbitration is not bound here. Missing fields are not defaulted.
+    """
+    profiles = []
+    for instance in component.instances.values():
+        for state in instance.states.values():
+            if not state.active or state.node.cls != MOVEMENT_MOD:
+                continue
+            for row in state.node.field("m_BC5E91CF") or ():
+                if isinstance(row, dict) and row.get("$") == "STU_ED2B22BD":
+                    profile = row.get("m_9B7A63EA")
+                    if not isinstance(profile, dict) or profile.get("$") != "STUCharacterMoverComponent":
+                        raise ValueError("invalid embedded mover component")
+                    values = {}
+                    for key, name in COMPONENT_FIELDS.items():
+                        value = profile.get("m_" + key)
+                        if type(value) not in (float, int) or not math.isfinite(value):
+                            raise ValueError(f"missing or invalid mover component field {key}")
+                        integer = name in ("ground_circle_rays", "character_collision")
+                        values[name] = int(value) if integer else f32(value)
+                    profiles.append(MoverData(**values))
+    if len(profiles) > 1:
+        raise NotImplementedError("simultaneous embedded mover profiles require native arbitration")
+    return profiles[0] if profiles else None
+
+
+def statescript_flight(component) -> float | None:
+    """Mercy's authored C1BA7545: native movement-hook kind16, parameter+18.
+
+    Owner command-frame scheduling is reconstructed. Other hook kinds and
+    simultaneous hook arbitration remain unbound.
+    """
+    if component.owner_dead:
+        return None
+    values = []
+    for instance in component.instances.values():
+        if instance.graph.index != 0x10DA:
+            continue
+        for state in instance.states.values():
+            if state.active and state.node.cls == "STU_C1BA7545":
+                cfg = state.node.field("m_2166C07A")
+                value = 1.0 if cfg is None else instance.evaluate(cfg)
+                if type(value) not in (int, float, bool) or not math.isfinite(value):
+                    raise ValueError("invalid flight hook parameter")
+                values.append(f32(value))
+    if len(values) > 1:
+        raise NotImplementedError("simultaneous flight hooks require native arbitration")
+    return values[0] if values else None
+
+
 _mover_table: dict[int, MoverData] | None = None
 _mover_table_lock = threading.Lock()
 
@@ -544,6 +608,8 @@ class Mover:
         data: MoverData | None = None,
         category: int = MOVER,
     ) -> None:
+        self.script_data: MoverData | None = None
+        self.flight_scale: float | None = None
         self.data = data or mover_data(None)
         self.values = self.data  # the data changed by the mods of the tick being run
         self.position = [quantise(axis) for axis in position]  # the feet
@@ -752,6 +818,7 @@ class Mover:
         ground_override: Ground | None = None,
         world_driven: bool = False,
         wall_ride: tuple[int, bool] | None = None,
+        flight_profile: tuple[float, MoverData | None] | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -764,7 +831,10 @@ class Mover:
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
         if speed_scale != 1.0:
             active.append(Mod(SPEED, MULTIPLY, speed_scale, frame))
-        self.values = data = modded(self.data, active)
+        flight_scale, profile = self.flight_scale, self.script_data
+        if flight_profile is not None:
+            flight_scale, profile = flight_profile
+        self.values = data = modded(profile or self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
         if held:
@@ -779,6 +849,11 @@ class Mover:
         forward, forward_byte = throttle_byte(command.forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
+        flying = flight_scale is not None and move_to is None
+        rise = jump
+        sink = intent(active, CROUCH_INTENT, 1.0 if crouch else 0.0) > 0.5
+        if flying:
+            jump = crouch = False
         stood_up = self.crouch_end
         if crouch and not self.crouched and stood_up is not None:
             crouch = (frame - stood_up) * dt >= CROUCH_AGAIN
@@ -789,6 +864,8 @@ class Mover:
 
         ground, under = self._probe(dt, ground_override)
         self._transitions(ground, under, jump, crouch, active)
+        if flying:
+            self.flags_word = (self.flags_word | FELL) & ~(CROUCHED | NOT_GROUND_UNDER)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
 
@@ -810,7 +887,15 @@ class Mover:
         else:
             self.wall_contact = None
         outcome = None
-        if move_to is None:
+        if flying:
+            self._flight_velocity(dt, right, forward, rise, sink, flight_scale)
+            if any(change.frame == frame for change in self.velocity_changes):
+                from ow174.game.velocity import consume
+
+                self.velocity = consume(self.velocity, data.jump_speed, self.velocity_changes, frame)
+            self._move(dt, (0.0, 1.0, 0.0), movement_limit)
+            self.fall = 0.0
+        elif move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
             vx, vy, vz = self.velocity
             horizontal = (vx, 0.0, vz)
@@ -1091,6 +1176,82 @@ class Mover:
         return encode_spring((self.spring, self.spring2), self.spring_low, self.spring_high)
 
     # ---- 7. velocity
+
+    def _flight_velocity(
+        self, dt: float, right: float, forward: float, rise: bool, sink: bool, scale: float,
+    ) -> None:
+        """Kind16's context/input/velocity/cap path (C48A00/C4A4B0/C42B70/C49820).
+
+        Uses the ordinary owner yaw/pitch frame, modified jump/crouch intents,
+        air friction and acceleration. Trig/normalization here use Python math;
+        this reconstructed binding is not a bit-exact native callback replay.
+        The existing collision sweep still owns the resulting displacement.
+        """
+        data = self.values
+        yaw, pitch = self.yaw * TURN, self.pitch * TURN
+        sy, cy, sp, cp = math.sin(yaw), math.cos(yaw), math.sin(pitch), math.cos(pitch)
+        facing = [sy * cp, -sp, cy * cp]
+        side = (-cy, 0.0, sy)
+        if rise != sink:
+            sign = 1.0 if rise else -1.0
+            if forward:
+                facing[1] += sign * scale * (1 if forward > 0 else -1)
+            else:
+                facing = [0.0, sign, 0.0]
+                forward = 1.0
+        length = math.sqrt(sum(axis * axis for axis in facing))
+        facing = tuple(axis / length for axis in facing)
+        normal = (side[1] * facing[2] - side[2] * facing[1],
+                  side[2] * facing[0] - side[0] * facing[2],
+                  side[0] * facing[1] - side[1] * facing[0])
+        velocity = self.velocity
+        vertical = sum(a * b for a, b in zip(velocity, normal, strict=True))
+        projected = tuple(vertical * axis for axis in normal)
+        plane = tuple(a - b for a, b in zip(velocity, projected, strict=True))
+        speed = math.sqrt(sum(axis * axis for axis in plane))
+        initial_plane_speed = speed
+        base = self.script_data or self.data
+        rate = (data.decel_air_base * data.run_forward
+                + max(0.0, speed - data.decel_air_base_speed) * data.decel_air_per_speed * base.run_forward)
+        if speed > TINY:
+            keep = max(0.0, 1.0 - dt * rate / speed)
+            velocity = tuple(a + b * keep for a, b in zip(projected, plane, strict=True))
+        ahead = data.run_forward if forward > 0 else data.run_backward
+        wish = tuple(right * scale * data.run_strafe * s + forward * ahead * f
+                     for s, f in zip(side, facing, strict=True))
+        wanted = math.sqrt(sum(axis * axis for axis in wish))
+        if wanted > TINY:
+            direction = tuple(axis / wanted for axis in wish)
+            cosine = sum(a * b for a, b in zip(direction, facing, strict=True))
+            cap = data.run_strafe + abs(cosine) * (ahead - data.run_strafe)
+            wanted = min(wanted, cap)
+            speed = math.sqrt(sum(axis * axis for axis in velocity))
+            target = max(wanted, speed)
+            delta = tuple(target * a - b for a, b in zip(direction, velocity, strict=True))
+            distance = math.sqrt(sum(axis * axis for axis in delta))
+            rate = data.accel_air * data.run_forward
+            if distance > TINY:
+                fraction = min(1.0, max(0.0, rate * dt / distance))
+                result = tuple(a + fraction * b for a, b in zip(velocity, delta, strict=True))
+                if speed > TINY and sum(a * b for a, b in zip(direction, velocity, strict=True)) > 0:
+                    length = math.sqrt(sum(axis * axis for axis in result))
+                    if length > TINY:
+                        magnitude = speed + min(rate * dt, target - speed)
+                        result = tuple(axis / length * magnitude for axis in result)
+                velocity = result
+        # C49820 caps the velocity in the new flight plane, retaining its normal component.
+        vertical = sum(a * b for a, b in zip(velocity, normal, strict=True))
+        projected = tuple(vertical * axis for axis in normal)
+        plane = tuple(a - b for a, b in zip(velocity, projected, strict=True))
+        length = math.sqrt(sum(axis * axis for axis in plane))
+        if length > TINY:
+            cosine = sum(a * b for a, b in zip(plane, facing, strict=True)) / length
+            ahead = data.run_forward if cosine > 0 else data.run_backward
+            cap = data.run_strafe + abs(cosine) * (ahead - data.run_strafe)
+            factor = min(1.0, max(0.0, cap, initial_plane_speed) / length)
+            velocity = tuple(a + b * factor for a, b in zip(projected, plane, strict=True))
+        self.velocity = velocity
+
 
     def _friction(self, dt: float, horizontal, vertical: float, grounded: bool) -> None:
         """Slow the horizontal velocity the context had (0x7FF789B43090), and in the air the quadratic drag

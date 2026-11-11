@@ -69,7 +69,7 @@ from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.commands import CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
-from ow174.game.match import Match, Player, ShownController
+from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import body_owner, driver, entity_queries, expr, play, runtime
 from ow174.game.script import graph as script_graph
@@ -248,7 +248,7 @@ OPTIONAL_FIELDS = {
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
-    Player: _names("impulse_correction"),
+    Player: _names("impulse_correction valkyrie_pose"),
     npc_navigation.Navigator: _names("charge_contact"),
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
@@ -273,7 +273,7 @@ DATACLASSES = (
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
-    scopes.History, scopes.Edge,
+    RetainedFlight, scopes.History, scopes.Edge,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,

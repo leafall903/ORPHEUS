@@ -1397,6 +1397,7 @@ class Combat:
 
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
+        player.clear_valkyrie_pose()
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != player.body]
         self.recalls.retire(player.body)
         self.breathers.retire(player.body)
@@ -2783,7 +2784,16 @@ class Combat:
             for player in self.match.players:
                 script = player.body_script
                 if script is not None and not script.retired and script.hero == 0x02E0000000000004:
-                    mercy_charge.advance_passive(script, at)
+                    if player.spawned and not player.gone and script.component.fault is None:
+                        try:
+                            expired = mercy_charge.advance_valkyrie_expiry(script, at)
+                            if expired is not None:
+                                player.finish_valkyrie_pose(*expired)
+                                self.support_effects.retire_valkyrie_children(script.entity, expired[0])
+                            mercy_charge.advance_passive(script, at)
+                        except (runtime.ScriptBudgetError, runtime.UnsupportedScriptError):
+                            log.exception("[game] %s: %s's world timers failed", self.match.label(), player.name)
+                            self.match.stop_body_script(player, failed=True)
             self._advance_timed_hits()
             if self.lucio_auras.leases or self.lucio_auras.healing:
                 self.lucio_auras.update(at)
@@ -6158,6 +6168,9 @@ class Combat:
         """Dispatch notices, authored death, and the respawn."""
         self.sombra_controls.retire(victim.body)
         self.sound_barriers.retire(victim.body)
+        victim.clear_valkyrie_pose()
+        victim.mover.script_data = None
+        victim.mover.flight_scale = None
         self.support_effects.retire(victim.body)
         self.lucio_auras.retire(victim.body)
         self.knockbacks.retire(victim.body)
