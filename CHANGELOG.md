@@ -4,7 +4,1613 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Reaper integration delivery
+
+- Package the current Reaper implementation, its shared combat and NPC
+  dependencies, and the related tests for server integration.
+- All 52 delivery smoke tests passed, including the earlier shield,
+  Deflect and Kinetic Grasp cases and the Whole Hog and Gravitic Flux
+  lift boundary. Full static and original-client acceptance remain open.
+
+#### Reflected Biotic Grenade against Projected Barrier
+
+- Verify 50 shield damage on contact and no body damage or antiheal
+  on the break tick. Without the barrier, the reflected impact deals
+  60 to Reaper and applies four seconds of antiheal. All 14 related
+  regressions passed. Shield collision and effect dispatch are
+  reconstructed. Original-client behavior remains open.
+
+#### Reflected Biotic Grenade against Defense Matrix
+
+- Verify that Matrix absorbs the return on its next flight tick.
+  With Matrix inactive, the return deals 60 and applies four seconds
+  of antiheal. All 22 related regressions passed in the reconstructed
+  host. Original-client behavior remains open.
+
+#### Reflected Biotic Grenade against Kinetic Grasp
+
+- Verify that Grasp absorbs the reflected projectile for 50 and grants
+  about 30 temporary shields. With Grasp inactive, the impact deals 60
+  to Reaper and applies four seconds of antiheal credited to Genji.
+  All 29 related regressions passed. Contact and effect dispatch use
+  the reconstructed host. Original-client behavior remains open.
+
+#### Accretion at Wraith Form expiry
+
+- Verify separate 30-point direct and 40-point splash hit notices on the
+  impact tick. A nearby Reaper takes splash and knockback without stun,
+  and Wraith rejects both effects.
+- Verify that a side Projected Barrier occludes Accretion splash and
+  knockback without spending shield health under reconstructed blast LOS.
+  Ten Accretion regressions passed. Original-client behavior is open.
+- Verify that a rock still inside Reaper's capsule at Wraith expiry
+  deals damage and stuns. A rock already beyond the capsule misses.
+
+#### Mercy credit at the Immortality Field floor
+
+- Verify that boosted Blossom credits Mercy only for extra health lost
+  above the floor. The next pulse kills on the protection expiry tick.
+
+#### Staggered Biotic Grenades during Death Blossom
+
+- Verify that Reaping resumes with the remaining friendly boost after
+  hostile antiheal expires, then returns to its normal rate.
+
+#### Mercy beam and Fortify during Death Blossom
+
+- Verify that Mercy earns charge for her bonus after Fortify reduction.
+  Later pulses lose the beam bonus, then return to base damage at Fortify expiry.
+
+#### Mercy beam release and Nano Boost expiry during Death Blossom
+
+- Verify all fifteen pulses through both modifier transitions. Mercy
+  earns charge for the beam's contribution while Reaper reaps from the
+  full damage and earns no ultimate charge during Blossom.
+
+#### Autonomous Trooper attack switching across Projected Barrier break
+
+- Verify that the Trooper switches from rifle to melee against the same
+  target, breaks projection without spill, then resumes rifle fire when
+  Reaper returns to range.
+
+#### Autonomous Enforcer volleys across Projected Barrier break
+
+- Verify that the first volley spends shield only. The second breaks
+  the remaining shield without spill, then later pellets hit Reaper.
+
+#### Autonomous Sniper retargeting after Projected Barrier break
+
+- Verify that the first round breaks projection without body damage.
+  The next round kills Reaper, then the Sniper acquires and hits Zarya.
+
+#### Autonomous Assassin pin across Projected Barrier break
+
+- Verify that contact and sustained damage spend the shield first.
+  The pin persists across the break and damages Reaper on the next tick.
+
+#### Autonomous Heavy Assault charge during Death Blossom
+
+- Verify that the Heavy automatically selects a charge against Reaper.
+  Its lethal contact ends Blossom. Projected Barrier absorbs the charge
+  and preserves later pulses.
+
+#### Reflected Sleep Dart with tied absorption contacts
+
+- Verify that Projected Barrier spends five health when tied with
+  Kinetic Grasp. Without the barrier, Grasp absorbs the same dart.
+- Verify the positive-distance tie at 0.5 m. A nearer Grasp wins,
+  while a tied or nearer projection spends five health.
+
+- Verify that when the return starts inside both Defense Matrix and
+  Kinetic Grasp, the current server sweep selects the first defender
+  it visits. Only Grasp absorption grants Sigma shields.
+- Verify the same rule when a reflected dart starts outside both
+  volumes and reaches the two aligned front faces at positive distance.
+
+### 2026-11-10
+
+#### Reflected shuriken fan at Kinetic Grasp expiry
+
+- Verify that the last active tick absorbs one returned shuriken and
+  grants 17.4 temporary shields. At expiry the shuriken reaches Reaper.
+  The other two still resolve against Sigma and Reaper.
+
+#### Reflected shuriken fan during Death Blossom
+
+- Verify that each returned shuriken resolves against the current shield
+  pool. A projectile that breaks projection spends its damage on the
+  shield, and the next projectile can end Blossom on a lethal hit.
+
+#### Seismic Slam waves against Death Blossom
+
+- Verify that ground and aerial waves end Blossom on a lethal hit.
+  Nonlethal displacement and hits absorbed by Projected Barrier leave
+  later pulses active.
+
+#### Meteor Strike against Death Blossom
+
+- Verify that a lethal outer-ring impact ends Blossom without an ultimate
+  refund. A surviving Reaper continues to pulse, including when Projected
+  Barrier absorbs the full impact.
+
+#### Aerial Seismic Slam at Shadow Step immunity entry
+
+- Verify that the aerial cast lands at its selected point and sends a wave
+  that hits on the last vulnerable tick and misses on the first immune
+  tick. Both outcomes preserve the confirmed teleport.
+
+#### Seismic Slam wave at Shadow Step immunity entry
+
+- Verify a ground wave hits on the last vulnerable tick and misses on the
+  first immune tick. Both cases preserve the confirmed teleport.
+
+#### Rising Uppercut during Shadow Step
+
+- Verify that Uppercut damages and lifts Reaper during windup and after
+  landing. Shadow immunity rejects both. The windup hit preserves the
+  confirmed teleport and cooldown.
+
+#### Reflected Talon Sniper round against Kinetic Grasp
+
+- Verify that allied Sigma absorbs the reflected round for 60 temporary
+  shields. With Grasp idle, Genji deals 100 damage to the Sniper.
+
+#### Whole Hog at Gravitic Flux impact
+
+- Verify that a volley on the last airborne tick delays the slam by one tick.
+  Volleys on or after the baseline slam tick preserve its timing and damage.
+
+#### Reflected Sleep Dart at Defense Matrix release
+
+- Verify that the last active Matrix tick absorbs a reflected dart.
+  Earlier release sends it to Grasp, yielding three temporary shields.
+  Both outcomes protect Reaper from sleep.
+
+#### Reflected Sleep Dart at Grasp expiry
+
+- Verify last-tick absorption and body contact after expiry during Death Blossom.
+
+#### Two reflected Sleep Darts across a barrier break
+
+- Verify that the first reflected dart breaks Projected
+  Barrier and Death Blossom continues. The next dart hits
+  the body, starts sleep and ends the channel.
+
+#### Reflected Sleep Dart at Projected Barrier expiry
+
+- Verify that the last active shield tick absorbs the dart
+  and lets Shadow Step land. After expiry the dart applies
+  sleep, aborts the cast and preserves the cooldown.
+
+#### Lethal reflected shell during Death Blossom
+
+- Verify that the same reflected shell ends a channel when
+  lethal and leaves it running when Reaper survives.
+  Death attribution and later pulse damage match skipped ticks.
+
+#### Reflected shell breaks Experimental Barrier
+
+- Verify that later pellets can feed Grasp or hit Sigma after the shield breaks.
+
+#### Reaper shell against Deflect and Grasp
+
+- Verify split direct and reflected pellet damage against active Grasp.
+
+#### Temporary shield priority in server snapshots
+
+- Verify that a passive snapshot distinguishes shield order
+  even when both pools keep their values and identifiers.
+  The next actual Blossom pulse confirms the priority.
+
+#### Death Blossom against two temporary shield pools
+
+- Verify that the most recently created temporary pool takes
+  damage first when Sound Barrier and Grasp overlap. With
+  equal starting shields, changing creation order changes
+  the lethal pulse and effective damage available to Reaping.
+
+#### Death Blossom at Sound Barrier depletion
+
+- Verify that Sound Barrier's last two points postpone a
+  lethal Blossom pulse. Reaping counts shield spent by the
+  attack. Both outcomes preserve zero ultimate charge.
+
+#### Death Blossom at Discord expiry
+
+- Verify a lethal second pulse on Discord's final active tick.
+  At expiry the second pulse leaves the target alive until
+  the third. Both schedules heal from effective damage and
+  preserve zero ultimate charge through the channel.
+
+#### Shadow Step interrupted on confirmation
+
+- Retire a confirmed cast when control ends it on the same
+  owner frame. The teleport stays cancelled and the authored
+  cooldown runs. Later idle updates can skip closed frames.
+
+#### Shadow Step landing at Ice Wall expiry
+
+- Settle confirmed Shadow Step on its authored completion
+  tick even across skipped updates. A pillar supports its
+  locked landing only through the last tick of the wall's
+  lifetime.
+
+#### Heavy Assault carry at Ice Wall expiry
+
+- Use the carry step's world tick when sweeping a captured
+  body against Ice Wall. The last active tick can trigger
+  an impact. From expiry onward, the carry can continue
+  through the former wall position.
+
+#### Talon specials against a retained target
+
+- Recheck the opt-in NPC attack choice when a visible retained
+  target enters a different range. Trooper can release its
+  rifle input and swing. Heavy Assault can switch from primary
+  fire to Charge while its authored ability is ready.
+
+#### Seismic Slam during Wraith Form
+
+- Continue both a launched ground leap and a committed aerial
+  descent when owner input stops. Their waves settle at the
+  landing pose and preserve Wraith protection across a
+  230-tick update. Recovery and cooldown also advance.
+
+#### Rocket Punch during Shadow Step
+
+- Continue a launched Rocket Punch after owner input stops.
+  A tap interrupts vulnerable Shadow Step for 50 damage and adds
+  50 if Reaper hits a nearby wall. During immunity the punch
+  crosses the departure point and the teleport lands. Rocket
+  Punch recovery and cooldown also advance on the world clock.
+
+#### Reinhardt Charge during Shadow Step
+
+- Continue an active Charge along its last resolved heading when
+  owner commands stop. The run can pin Reaper during windup and
+  deal 300 on wall impact, or cross the protected departure point
+  and let Shadow Step land. Both outcomes survive a 150-tick update.
+
+#### Chain Hook during Shadow Step
+
+- Retain world ticks while Chain Hook is flying or pulling.
+  A hook during confirmed windup still hits and aborts the
+  teleport. During immunity it passes through and Reaper lands.
+
+#### Sleep Dart at Transcendence and Cryo-Freeze expiry
+
+- Retain projectile sweeps while self-immunity is active.
+  The last protected tick still intercepts Sleep Dart without
+  damage or sleep. The expiry tick applies both at contact.
+
+#### Helix Rockets at Discord cover expiry
+
+- Retain rocket sweeps while a Discord Orb is active. The last
+  tick of its cover grace still amplifies Helix damage. On the
+  expiry tick the same rocket deals its normal damage.
+
+#### Sleep Dart at Fortify expiry
+
+- Retain projectile sweeps while Fortify can expire. The last
+  active tick reduces Sleep Dart damage and rejects sleep.
+  The expiry tick admits full damage and starts sleep.
+
+#### Helix Rockets at Nano Boost expiry
+
+- Retain rocket sweeps while Nano Boost can change incoming
+  damage. The last active tick halves both Helix damage
+  components. The expiry tick applies full damage.
+
+#### Helix Rockets at Kinetic Grasp shield depletion
+
+- Retain rocket sweeps while Kinetic Grasp temporary shields
+  decay. A rocket on the last shield tick samples the remaining
+  pool before applying body damage. The next tick can be lethal.
+
+#### Helix Rockets at Sound Barrier depletion
+
+- Retain rocket sweeps while Sound Barrier shields decay.
+  The final two shield points can turn a lethal Helix hit
+  into a one-health survival. The next tick exposes base health.
+
+#### Helix Rockets at Immortality Field protection expiry
+
+- Retain rocket sweeps while a deployed field can protect a
+  target. The last protected tick leaves Reaper at the health
+  floor. A rocket that hits on expiry is lethal even while the
+  device remains present.
+
+#### Projectile contact order at a parked Experimental Barrier
+
+- Retain sweeps while Sigma's barrier is parked. A later-fired
+  Sleep Dart that arrives first spends five shield health before
+  Helix Rockets break the barrier. Reaper remains protected.
+
+#### Helix Rockets at Brigitte barrier release
+
+- Advance Brigitte's body clock through missing input and
+  retain projectile sweeps while her shield is raised. A
+  Helix Rocket on the last active tick spends 120 barrier
+  health. A rocket reaching the released shield hits Reaper.
+
+#### Sleep Dart at Reinhardt barrier release
+
+- Advance Reinhardt's body clock through missing input and
+  retain flight sweeps while his barrier is raised. Sleep Dart
+  spends 5 barrier health before release. After release it hits
+  Reaper for 5 and applies sleep from the body contact frame.
+
+#### Helix Rockets and Sleep Dart at Ice Wall expiry
+
+- Keep projectile sweeps in order while Ice Wall pillars are
+  live. The last active tick intercepts Helix Rockets and Sleep
+  Dart. On expiry they can reach Reaper behind the wall.
+- Stepped and skipped updates agree on pillar damage, body
+  damage and the sleep deadline.
+
+#### Helix Rockets at Photon Barrier expiry
+
+- Keep in-flight sweeps while Photon Barrier is deployed.
+  A Helix Rocket arriving before expiry spends 120 barrier
+  health. One arriving at expiry can reach Reaper behind it.
+
+#### Helix Rockets at Winston dome expiry
+
+- Keep rocket sweeps in order while the deployed dome's timer
+  runs. Its last active tick blocks the rocket. A rocket that
+  reaches the surface at expiry travels to Reaper instead.
+
+#### Helix Rockets at Projected Barrier expiry
+
+- Retain projectile sweeps while Zarya barriers are live. A
+  rocket that reaches the projection on its last active tick
+  spends 120 barrier health. At expiry it passes that surface
+  and hits Reaper on the following tick.
+
+#### Staggered Zarya barrier expiry during Death Blossom
+
+- Death Blossom reaches each protected body on that barrier's
+  expiry tick. If the first exposed pulse kills Zarya, her live
+  projection still protects its recipient until its own expiry.
+- Stepped and skipped updates match hit frames and Reaping.
+
+#### Helix Rockets at Defense Matrix release
+
+- Retain flight ticks for projectiles the active matrix can
+  absorb. A Helix Rocket reaching the matrix before release is
+  consumed without an explosion. At release it can reach Reaper
+  behind the mech and splash the mech.
+
+#### Helix Rockets at Deflect expiry
+
+- Retain rocket sweeps while Genji's Deflect is active. A Helix
+  Rocket that reaches Genji before expiry still reflects across
+  a skipped update. The return credits Genji for splash to Reaper.
+- At expiry the original rocket hits Genji and credits Soldier.
+
+#### Biotic Grenade at Wraith Form expiry
+
+- Keep in-flight projectile sweeps in order while Wraith Form
+  can expire. A grenade on the last protected tick deals no
+  damage or antiheal. A grenade on the next tick deals 60 and
+  blocks Reaping for the duration of the hostile effect.
+
+#### Heavy Assault primary fire during Shadow Step
+
+- Heavy Assault hits Reaper for 5 during windup, releases its
+  trigger during protection, and reacquires him after landing.
+- Stepped and 140-tick skipped updates match targeting and hit
+  frames. Reaper's return shot deals damage and triggers Reaping.
+
+#### Nano Boost and Fortify expiry during Death Blossom
+
+- Orisa's body script now advances on the world clock when owner
+  input stops. Death Blossom samples Fortify at each pulse.
+- On a target with both reductions, pulses deal 10.2 damage.
+  Nano expiry raises that to 20.4. Fortify expiry restores 34.
+  Posed, idle, and skipped playback agree on damage and Reaping.
+
+#### Reflected Sleep Dart during Shadow Step
+
+- Retain in-flight projectile sweeps while a confirmed Shadow
+  Step can still move Reaper. A 120-tick update now preserves
+  an earlier reflected Sleep Dart hit that interrupts windup.
+- A dart arriving during protection still misses. Stepped and
+  skipped updates agree on sleep timing, position, and cooldown.
+
+#### Staggered Whole Hog volleys during Gravitic Flux
+
+- Two Roadhogs fire from different directions one tick apart at
+  the start of committed descent. The second hit preserves part of
+  the first lateral impulse and leaves the 125-point slam on the
+  same tick as the single-volley control.
+- Stepped and 270-tick skipped updates after the hits agree on
+  landing pose, velocity, health, and impulse cleanup.
+
+#### Enforcer volley breaks Projected Barrier during Death Blossom
+
+- One Enforcer volley consumes an 11-health projection in six hits.
+  The breaking hit spends the final point on the barrier. Later
+  pellets reach Reaper and stop Blossom only if lethal.
+- Stepped and 28-tick skipped updates match the barrier hit frames,
+  damage, and lethal interruption frame.
+
+#### Deflected Helix Rockets against Kinetic Grasp
+
+- A Soldier rocket returned by Genji reaches allied Sigma in front
+  of Reaper. Grasp absorbs 120 and grants Sigma 72 temporary shields.
+  A 40-tick world update preserves the interception tick. The
+  control with Grasp inactive records splash damage to Reaper.
+
+#### Helix Rockets at Kinetic Grasp expiry
+
+- Retain world sweeps for rockets in flight during Kinetic Grasp.
+  A rocket intercepted before expiry still funds the shield grant
+  when the next world update ends after expiry. A later rocket
+  reaches the Experimental Barrier behind Sigma.
+
+#### Helix Rockets against Experimental Barrier and Kinetic Grasp
+
+- Actual Helix Rockets resolve against the first surface they
+  reach. Experimental Barrier takes 120 damage when it is first.
+  Kinetic Grasp absorbs 120 when its volume is first and grants
+  Sigma 72 temporary shields at the end of the ability.
+- Both arrangements protect Reaper from direct and splash damage.
+
+#### Helix Rockets as Experimental Barrier parks
+
+- Keep rocket sweeps in world order while Sigma's barrier moves.
+  With no further input, the shield parks at the same position
+  and intercepts on the same tick in stepped and skipped updates.
+
+#### Helix Rockets at Protective Barrier expiry
+
+- In-flight rockets retain their collision sweeps while a
+  landed Protective Barrier is active. A rocket that reaches
+  the barrier before expiry still spends 120 barrier health
+  when the world update ends after expiry.
+- Stepped and 30-tick skipped updates match the expiry and
+  impact frames, including a later rocket that hits Reaper.
+
+#### Helix Rockets at Protective Barrier landing
+
+- Rockets already in flight keep their world sweeps while
+  Protective Barrier is airborne. Landing no longer blocks
+  a rocket that crossed the future shield surface earlier.
+- Stepped and 30-tick skipped updates agree on landing,
+  collision and whether Reaper or the shield takes 120 damage.
+
+#### Death Blossom against overlapping barriers
+
+- Death Blossom damages Protective Barrier and Projected Barrier
+  independently. Pulses four and six break the outer and inner
+  barriers. Pulse seven reaches Orisa and starts Reaping.
+- Stepped and 200-tick skipped updates match the shield and
+  body hit frames, health and channel completion.
+
+#### Protective Barrier and Projected Barrier overlap
+
+- A forward Protective Barrier takes the whole break shot.
+  The next shell spends 120 of the inner barrier. Six pellets
+  remain after the inner barrier breaks, dealing 30 damage
+  to Orisa and triggering Reaping.
+- When the shield surfaces intersect, one shell spends 24 on
+  Protective Barrier and 96 on Projected Barrier.
+
+#### Death Blossom breaks Protective Barrier
+
+- Four Reaper shells leave the landed barrier at 120 health.
+  The fourth Blossom pulse breaks it. The next scheduled pulse
+  damages Orisa and starts Reaping.
+- Stepped and 200-tick skipped updates agree on shield hits,
+  body hits, and both heroes' health.
+
+#### Death Blossom during Protective Barrier flight
+
+- Death Blossom damages Orisa while her barrier is in flight.
+  The barrier starts receiving pulses on its landing tick,
+  and Reaping only credits earlier body damage.
+- A 200-tick gap matches stepped updates through channel end.
+  All 72 pinned clock, snapshot and replay checks also pass.
+
+#### Protective Barrier landing boundary
+
+- A Reaper shell one tick before Orisa's barrier lands damages
+  Orisa and triggers Reaping. A shell on the landing tick spends
+  120 barrier health and causes no body damage or healing.
+- Stepped and skipped world updates agree on both sides of the
+  boundary. Landing and contact order use the reconstructed host.
+
+#### Photon Barrier confirmation
+
+- The shared placement state forwards the authored Photon Barrier
+  confirm input to its existing host handler. Primary confirmation
+  spends ultimate charge and deploys the barrier from preview.
+- The landed barrier again intercepts Reaper shells and Death
+  Blossom. Passive snapshots capture its pool and expiry.
+
+#### Orisa barrier snapshot prerequisites
+
+- The snapshot case reports when the pinned mesh is absent.
+  With the mesh present, launch and landing are separate assertions.
+  Both phases change the passive digest, and the landed barrier
+  intercepts an actual Reaper shell.
+
+#### Whole Hog during Gravitic Flux
+
+- A Whole Hog volley damages and pushes Reaper laterally after
+  Gravitic Flux lifts him. Flux still deals its 125-point slam,
+  and both effects clear after landing.
+- Stepped and 270-tick skipped updates agree on final pose,
+  velocity, health and hit frames. Impulse damping and its
+  integration with Flux use reconstructed server rules.
+- A separate volley during committed descent also changes the
+  lateral landing position. The slam occurs on the first
+  grounded tick, matching the aimed-away control.
+- Two consecutive volleys during descent apply separate impulses.
+  The second adds lateral displacement and damage while the
+  slam frame stays the same in the zero-, one- and two-volley cases.
+
+#### Shadow Step under Graviton Surge and Halt
+
+- Actual Zarya and Orisa inputs apply both pulls during
+  Reaper's confirmed windup. Halt clears at immunity.
+  Reaper holds position and health through immunity and
+  reaches the chosen destination before Graviton resumes damage.
+- Stepped and skipped world updates agree on the sampled
+  positions, health, hit frames and field expiry.
+  Movement priority and phase ordering are server reconstructions.
+
+#### Blizzard after a mech dies with Matrix held
+
+- An actual rear Reaper shell destroys the mech while a
+  Blizzard projectile is still in flight. The projectile
+  lands with the destroyed body present or after the
+  test switches D.Va to the pilot body.
+- Stepped and 95-tick skipped updates agree on the
+  landing, hit frames, health and frost on the opposing
+  Reaper. The pilot receives a fresh body without the
+  mech's world clock anchor.
+- The test uses the existing body replacement entry.
+  Native automatic ejection remains open.
+
+#### Defense Matrix release during Blizzard flight
+
+- D.Va's mech uses the existing idle world clock. Missing
+  input releases the held Matrix command before later
+  projectile contacts.
+- An actual Blizzard throw is absorbed while Matrix is
+  held. Explicit release and a 95-tick missing-input
+  update both let it land and match flight time, area,
+  hit frames, damage and frost on Reaper.
+- Missing-input release timing and contact geometry are
+  server reconstructions.
+
+#### Kinetic Grasp expiry during Blizzard flight
+
+- Sigma now uses the world clock anchor so his authored
+  two-second Grasp window expires during missing input.
+- A Blizzard projectile reaching Sigma one tick before
+  expiry is absorbed without granting shields. Contact
+  on the expiry tick lets it land and damage Reaper.
+  Stepped and skipped updates agree on flight, area,
+  hit frames and frost.
+- Mapping owner command time onto retained world ticks
+  remains a server reconstruction.
+
+#### Deflect expiry during Blizzard flight
+
+- Genji now uses the world clock anchor so his authored
+  03A3 Deflect window expires during missing input.
+- A Blizzard projectile reaching Genji one tick before
+  expiry is reflected and affects Reaper. Contact on the
+  expiry tick leaves the projectile with Mei. Stepped
+  and skipped updates agree on ownership, placement,
+  hit frames and frost.
+- Mapping owner command time onto retained world ticks is
+  a server reconstruction.
+
+#### Blizzard across Shadow Step immunity
+
+- Blizzard flights and active areas now retain individual
+  world ticks within the existing combat catch-up budget.
+  Damage and frost sample Shadow Step immunity on those
+  ticks.
+- A 235-tick skip previously added 9.92 damage in both
+  the in-flight and landed cases. The actual throws and
+  casts now match stepped hit frames, health, frost and
+  landing position.
+- Per-tick area settlement and the catch-up limit remain
+  server reconstructions.
+
+#### Overlapping Immortality Fields during Death Blossom
+
+- Two actual fields expire 25 ticks apart on separate
+  Blossom pulses. An eligible second field holds the
+  target at 20 health after the first expiry. An
+  out-of-range second field leaves the first expiry
+  pulse lethal.
+- Stepped and skipped updates agree on the lethal tick,
+  40 damage, 14 Reaping and zero Blossom damage charge.
+  Both undamaged devices are still present at each
+  expiry boundary. This exercises the existing
+  reconstructed targeting and world-clock order.
+
+#### Immortality Field target tracking at landing
+
+- The field's health floor follows the 1762 lifetime
+  and the target tracker that invokes 1763.
+- A Death Blossom pulse one tick before landing kills
+  a 25-health Baptiste. The same pulse on landing leaves
+  20 health while the separate 350 ms data-flow wait is
+  active. Driving the authored #8912 gate off the target
+  branch permits a lethal pulse with the device intact.
+- The controlled #8912 input verifies consumption of the
+  authored gate. Its native producer remains open.
+
+#### Immortality Field expiry during Death Blossom
+
+- The field's health floor now ends with the five-second
+  protection state in 1762. The device still follows its
+  authored half-second teardown.
+- With the device outside Blossom range, the first pulse
+  leaves Baptiste at the 20-health floor. A pulse on the
+  expiry tick kills him while the device still has 150
+  health. Stepped and skipped updates agree on the death
+  tick, Reaping and ultimate charge.
+- The server still reconstructs field range, line of
+  sight and the health floor from the resource graphs.
+
+#### Kinetic Grasp shield lifetime
+
+- Sigma's death now retires the Grasp grant record and
+  shield decay clock immediately. Body replacement uses
+  the same cleanup. A late grant request checks whether
+  the recipient is alive before recording the activation.
+- Actual Reaper attacks cover lethal melee during Grasp
+  and lethal shotgun damage after the 72-point grant.
+  A live body replacement discards the old grant. After
+  a 240-tick skipped update, the new body takes the full
+  unabsorbed shell and can earn a fresh 72-point grant.
+- The shield host and its decay clock remain server
+  reconstructions of the authored grant and decay data.
+
+#### Reaper return through Kinetic Grasp
+
+- Actual Deflect returns a Mercy-boosted Reaper shell
+  through Sigma's active Kinetic Grasp. Grasp consumes
+  156 damage and grants 93.6 temporary shields. No body
+  loses health and the attack awards no damage charge.
+- After Grasp ends, the same active Deflect and beam
+  return a fresh shell into Sigma for 156 effective loss.
+  Genji gains 120 charge and his Mercy gains 36.
+- The control exercises the existing box sweeps, return
+  aim and boost attribution on the static sandbox.
+  Native contact ties remain open.
+
+#### Reaper blue beam attribution against Talon
+
+- Actual Reaper shells under Mercy's blue beam kill each
+  of the five Talon bodies. At 13 health, 1.8 effective
+  amplification gives Mercy 1.8 charge and the authored
+  PvE rate gives Reaper 5.6 charge. Reaping uses the full
+  13 loss. The encoded and decoded 0C18 death frame
+  names Reaper as killer and includes Mercy once. At 5
+  health there is no effective amplification or assist.
+- Restore Baptiste's 1902 placement confirmation when
+  the compatible placement host declines that state.
+  Actual Matrix exchanges with all five Talon bodies
+  exercise the restored route.
+- These controls use the prepared Talon runtime and
+  fixture observer transport. Cross-attack assist lifetime,
+  native AI, and original-client display remain open.
+
+#### Reaper shell returned by Deflect (partial)
+
+- The reflected hitscan shell replaces the original Mercy
+  bonus with the bonus on Genji at Deflect contact. A full
+  return deals 120 without that beam or 156 with it. The
+  base 120 charges Genji through 0B8B. Effective blue beam
+  damage charges the supporting Mercy through 006B and
+  0B8B.
+- Pellets returned by one defender share attribution for
+  that shell. A lethal 13-health return credits Genji and
+  carries his Mercy in the death assist array when her
+  first pellet contributed 1.8 effective amplification.
+- The contact-time modifier transfer and reflected charge
+  bridge are reconstructed for Reaper shells. Native
+  Deflect ordering and modifier transfer on other attacks
+  remain open.
+
+#### Reaper blue beam kill-feed attribution (partial)
+
+- A Mercy who added effective damage during a lethal
+  Reaper attack is included in the 003E death message's
+  03E7 assist array. The 01CF observer frame carries that
+  body in #9296 while keeping Reaper as the killer.
+- A 13-health target takes 1.8 effective amplification on
+  the first pellet and dies to the next pellet in the same
+  shell. Mercy appears once. A 5-health target dies without
+  an amplification contribution and has an empty list.
+  Actual quick melee and Valkyrie Blossom also exercise
+  the death parameters.
+- Per-attack eligibility is reconstructed. The assist
+  window across attacks, staff 0143 feedback, dedicated
+  scoring and native client display remain open.
+- The Flux pose query skips NPC scripts without a runtime
+  component, so those scripts can finish their death and
+  observer delivery paths.
+
+#### Mercy staff damage event from Reaper (partial)
+
+- Actual Reaper shotgun, quick melee and Death Blossom now
+  send 0D9A to the selected 006B staff instance. The graph
+  records its two amplification stats and emits 00EB to
+  Mercy's 0B8B charge branch when eligible.
+- An actual 156-damage shell gives Reaper 120 charge and
+  Mercy 36. Setting the victim's authored #6442 gate keeps
+  156 damage and 36 amplification while denying Mercy
+  charge. Valkyrie also denies charge while tracking
+  amplification.
+- The hit message, positive eligibility input and ordinary
+  sandbox victim filters are server reconstructions.
+  Other filter categories, the client-only staff message,
+  reflected damage attribution and assists remain open.
+
+#### Mercy blue beam charge from Reaper (partial)
+
+- Actual Reaper shotgun, melee and Death Blossom body hits
+  compare effective loss with and without the staff bonus.
+  The difference feeds Mercy's amplification stats and the
+  authored 0B8B charge branch through message 00EB. Reaper's
+  charge uses the base loss. Damage credit and Reaping still
+  use the full effective loss.
+- Armour and overkill affect the split. A barrier awards
+  neither amplification nor Mercy charge in this path. Two
+  beams use one caster. Valkyrie chain damage updates the
+  amplification stats while the graph suppresses charge.
+- Per-contact attribution and 00EB production are server
+  reconstructions. The native 006B event path, reflected
+  damage attribution and assists remain open.
+
+#### Mercy healing charge from Reaper (partial)
+
+- Actual staff healing emits 0044 to Mercy's 0B8B charge
+  graph with the healed body, effective amount and healing
+  tags. Full health and antiheal produce no award. The graph
+  applies recipient and mode exclusions, multipliers and the
+  1820 cap. Healing can fund a fresh Valkyrie cast.
+- Valkyrie primary and chain heals leave charge unchanged.
+  Normal primary healing resumes charge after expiry. A
+  repeated world tick gives no additional award.
+- Message production and the ordinary sandbox mode category
+  are server reconstructions. Native effect hosting, damage
+  boost charge and assist attribution remain open.
+
+#### Mercy yellow beam and Reaper (partial)
+
+- The live 006B yellow beam uses its authored 55 healing per
+  second, or 60 during 10DA Valkyrie. Valkyrie links a second
+  ally within the 0079 10-metre radius and ends that link on
+  expiry while normal primary healing continues.
+- The beam heals through Wraith. Enemy Ana grenade blocks
+  both secondary healing and Reaping during Death Blossom.
+  Both resume after the authored antiheal ends, with Mercy
+  receiving the beam healing statistic.
+- Healing settles after damage on the world clock. Closed
+  owner windows advance the live beam through release.
+  Repeating a world tick does not grant another slice.
+  Secondary targeting and tick integration are server
+  reconstructions. Independent effect scripts and Mercy's
+  boost charge remain open.
+
+#### Valkyrie damage beam and Reaper (partial)
+
+- The active 10DA Valkyrie phase enables a secondary boost
+  from a live 006B blue beam. The 006C state 12 radius is
+  10 metres from the primary recipient. The secondary link
+  checks live ally bodies and cover. Leaving range or
+  releasing the beam restores Reaper's 120-point shell.
+- Secondary boost raises Death Blossom pulses from 34 to
+  44.2 and keeps damage and elimination credit on Reaper.
+  Reaping caps at the target's remaining health on lethal
+  hits. Valkyrie expiry returns later pulses to 34 while
+  the direct beam remains active on its primary recipient.
+- Secondary geometry and the outgoing boost consumer use
+  server reconstruction. Independent effect VM, chain healing,
+  Mercy boost charge and assists remain open.
+
+#### Talon Trooper and Heavy Assault versus Reaper (partial)
+
+- Trooper primary and 1422 melee now keep their actual 20- and
+  30-damage contacts across a 270-tick gap. Autonomous primary
+  waits for Wraith to end. Stopping either engagement prevents
+  late damage, and Reaper's return shell triggers Reaping.
+- Heavy Assault's 1408 charge matches contiguous updates through
+  a 290-tick gap. Wraith rejects contact, lethal contact ends
+  Death Blossom at the retained frame, and a wall impact deals
+  295 after armour to a carried D.Va mech. The same charge deals
+  50 to a flanking Reaper, who can return fire and reap.
+- The five Talon profiles now share the 512-tick retention
+  policy for active or autonomous sandbox encounters. Navigation,
+  contact and missed-tick processing use server reconstruction.
+  Native AI, dynamic trajectories and gaps outside the retained
+  window remain open.
+
+#### Talon Sniper and Reaper (partial)
+
+- The Sniper now retains weapon and navigation updates on the
+  Talon combat clock. Over a 300-tick gap, the 1122 round kills
+  the first Reaper and the next deals 100 to a second player
+  on the same frames as contiguous updates. The death record
+  uses the contact frame and emits one notice.
+- A 235-tick gap preserves the 142C wait, reposition and first
+  shot. Reaper takes 100 and can hit the Sniper in return. In a
+  350-tick gap, autonomous fire resumes after Wraith expires.
+  A round already in flight passes through Wraith during a
+  230-tick gap and ends on the same frame as in contiguous play.
+- The 512-tick replay window and the static Rialto destination
+  selection use server reconstruction. Native targeting,
+  map trajectories and longer gaps remain open.
+
+#### Talon Assassin and Reaper (partial)
+
+- The 1157 pin now uses the bounded Talon combat clock. After
+  25-point contact, a 270-tick gap preserves the timing of
+  the subsequent 100-per-second damage. Lethal damage
+  records the actual retained frame and emits one death notice.
+- Autonomous pursuit resumes after Wraith expires in a
+  300-tick gap. After a lethal pin, the Assassin can release
+  the first Reaper and pin a second during the same update.
+- A Reaper body replacement now lets the old pin release
+  before binding the new body. Fresh contact applies 25
+  and restarts the authored delay. Ana's Sleep Dart can
+  also interrupt the Assassin through the shared control path.
+- The 512-tick window, target context, contact and continuous
+  damage clock use server reconstruction. Native input
+  arbitration and longer gaps remain open.
+
+#### Talon Enforcer and Reaper (partial)
+
+- The 13EB weapon emits 25 projectiles of definition 23F0 at
+  2 damage each. A vulnerable Reaper takes 50. Wraith and the
+  protected Shadow Step phase let the volley pass. Shadow Step
+  windup takes damage and still completes. After Wraith expires
+  during idle updates, fresh fire hits and a return shell reaps
+  from the Enforcer.
+- A lethal volley ends Death Blossom and credits the Enforcer.
+  A surviving Reaper keeps channeling. Tests cover both cases
+  after the first 34-damage Blossom pulse and its healing.
+- An existing 23F0 flight retains combat ticks through its
+  remaining lifetime. A 270-tick gap and contiguous updates
+  agree on the old volley through Wraith expiry. The server
+  retains the authored flight lifetime and uses its existing
+  collision and protection rules.
+- Live manual Enforcers retain weapon and targeting updates on
+  the combat clock. A 300-tick gap matches contiguous 13EB launch
+  and hit frames during Wraith expiry, direct engagement,
+  autonomous acquisition and pursuit from 14 metres. The server
+  retains at most 512 ticks for this trigger. Stopping the
+  engagement clears the trigger and pending flight. This is a
+  bounded scheduler policy using reconstructed NPC targeting and
+  pursuit.
+
+#### Echo Duplicate and Reaper (partial)
+
+- Actual Echo Q uses the 2254 charge cost, 19EB search radius and
+  15-second lifetime. The server selects a visible enemy player and
+  replaces Echo's body while preserving pose and faction. Wraith and
+  protected Shadow Step reject selection. Rear aim, cover, range and
+  friendly targets also reject the cast. Flashbang blocks Q until
+  stun ends and a fresh press arrives.
+- A copied Reaper starts with zero charge and uses actual shotgun,
+  Reaping, Wraith and Death Blossom. The 1544 resource supplies a
+  5.5 bonus on positive charge gains. The next command in a received
+  batch can fire after the transform.
+- A lethal Reaper shell breaks the copy without an elimination.
+  Copy expiry retires an active copied Blossom at the retained tick.
+  Return restores Echo's original skin and base pools with the
+  authored half-health floor.
+- Actual Echo Q also copies Soldier: 76. Against Reaper, the 0254
+  rifle deals 20 and Helix deals 40 direct plus 80 splash. Effective
+  damage feeds the copy's charge at the 6.5 multiplier. Wraith
+  denies damage and charge. Helix refuses an early repeat, and its
+  cooldown recovers without owner input.
+- The active 0259 Tactical Visor redirects the copied rifle toward
+  a visible eligible enemy. Helix keeps manual aim. Visor expiry
+  restores manual rifle aim and damage charge without owner input.
+  Copy expiry retires an in-flight Helix even without a projectile
+  lease.
+- Genji's Deflect takes ownership of copied Helix. The returned
+  projectile survives the copy deadline and deals 120 to restored
+  Echo. Sigma's Kinetic Grasp accumulates 120 without damage or
+  copy charge. Defense Matrix retires the lease without an impact,
+  and Reaper takes 120 from the next launch after Matrix release
+  and Helix cooldown. Two Reaper shells also break the Soldier
+  copy and retire its outgoing Helix without an elimination.
+- Target selection, instantaneous body replacement, neutral copied
+  skin and same-tick return protection are reconstructed. Copied
+  Visor uses server capsule centres, angular ranking and cover
+  checks. Helix retirement follows the server's body lifetime.
+  Native transitions, 1544 message scheduling, further copy
+  profiles and broader target filtering remain open.
+
+#### Reaper damage charge target rules (partial)
+
+- Evaluate the authored 0B8B target branches for Reaper and reuse the
+  same evaluator for Winston. A stock Roadhog body gives 75 percent
+  of actual damage as charge. The active 0E62 PvE tag gives 50 percent
+  and takes priority when both tags are present.
+- Actual shotgun and quick melee preserve their damage and Reaping.
+  All five Talon bodies give half charge, including lethal overkill.
+  Death Blossom damage still gives zero charge.
+- Scoped reads of the recipient's 6442 and 1363 flags allow the
+  authored charge exclusions to work without changing health or
+  Reaping. Tests exercise actual shots with controlled flag values.
+- Carry authored ModifyHealth event tags into the supported damage
+  charge paths. The 1503 stack suppresses charge while active.
+  Controlled event tags exercise the two unconditional exclusions
+  and the exclusion that also requires recipient flag 20682.
+  Actual Practice Range shots respect faction, and D.Va's mech and
+  pilot award their measured post-armour loss.
+  Other target filters and native mode admission remain open.
+
+#### Winston Jump Pack against Reaper (partial)
+
+- Consume actual 010A casts and preserve the authored normal six-second
+  and Primal two-second cooldowns. Normal early retry is refused and
+  a new press after expiry launches. Primal permits a fresh air recast.
+- The resource supplies speed 30, takeoff damage 1, and landing damage
+  up to 50. The server interprets pitch bounds, capsule distance, linear
+  landing falloff and radial force. Ground collision commits one impact.
+- Reaper's Wraith and protected Shadow Step frames reject damage and
+  force. Death Blossom continues through the push. Projected Barrier
+  resolves before body force, and a lethal Reaper shell stops the impact.
+  Actual Flashbang cancels the impact while gravity continues to ground.
+- Retain closed input and NPC navigation frames through a 235-tick
+  world skip. All five Talon bodies settle identically and take Reaper
+  follow-up shells. Passive snapshot capture seals the active flight.
+- Queue closed-frame impacts until all bodies advance protection.
+  Shadow Step entry and exit and Wraith expiry resolve identically
+  across roster orders and skipped updates. Simultaneous lethal
+  landings credit one source in body-ID order. Immortality Field
+  preserves health and allows force at the floor.
+- A temporary caster clock advances Zarya's live barrier scopes
+  without input. Overlapping personal and projected barriers expire
+  separately. An expired projection no longer intercepts a landing.
+- Native launch, landing selection, force and broader control ordering
+  remain open.
+
+#### Winston Tesla Cannon against Reaper (partial)
+
+- Consume the actual 00FE search and damage states. Reconstruct the
+  authored 8m and 40-degree search as a capsule cone and the 60
+  damage value as a per-second rate. At 16ms the first body hit is 0.96.
+  The 0B8B graph computes damage charge from actual admitted loss.
+- Actual held primary resumes after Primal, spends ammo through
+  Wraith immunity and respects Shadow Step's protected window.
+  Death Blossom continues while both heroes take damage. Manual reload
+  gates damage, and a lethal slice credits only remaining health.
+- World cover and faction filter contacts. One slice spends a shared
+  shield once and reserves the breaking slice for that shield.
+  Mei's Ice Wall intercepts the arc. Active Deflect and Grasp leave
+  the beam unreturned and unabsorbed. All five Talon bodies take beam
+  damage and a Reaper follow-up shell.
+- Cone geometry, the continuous armour multiplier and per-slice cover
+  arbitration are server reconstructions. Native target selection,
+  beam timing and further mixed ability states remain open.
+
+#### Winston Primal Rage against Reaper (partial)
+
+- Actual 0109 Primal Rage spends 1540 charge, raises Winston's pool
+  from 500 to 1000, refills it, and expires without owner input.
+  The server consumes 00FE's alternating fist states after their
+  authored windup and uses the resource damage and force fields.
+- Reaper takes 40 damage and moves without stun. Wraith blocks damage
+  and force, and Death Blossom continues through the push. Static
+  cover and out-of-range targets reject contact.
+- Projected Barrier spends 40 from its own pool and prevents body
+  force. A lethal Reaper shell during fist windup retires the bonus
+  pool and prevents the pending contact.
+- Actual fists hit before Shadow Step immunity, respect the protected
+  window, and hit again after landing. Flashbang cancels a pending
+  fist while Primal remains active, and an input gap does not bank
+  an unposed contact. Primal expiry cancels pending fists and resumes
+  passive charge.
+- The same swing can damage Reaper when frontal Genji Deflect blocks
+  Genji without returning damage. Rear contact hits Genji, and
+  Sigma's active Kinetic Grasp does not absorb the melee contact.
+- All five Talon bodies move and take damage. Contiguous and
+  85-tick skipped updates agree on their settled pose, velocity and
+  the result of Reaper's follow-up shell.
+- The server reconstructs fist collision, force settlement and the
+  missing-input clock. Native behavior and wider interactions remain
+  open.
+
+#### Roadhog Whole Hog against Reaper (partial)
+
+- Run the 2240-charge 01C6 cast and node 33's 16-pellet volley.
+  Use the authored rings, damage, range and force inputs. The server
+  reconstructs pellet directions, the omitted critical multiplier,
+  and one collision-swept force contribution per body per volley.
+- Actual shots respect Wraith Form, Shadow Step immunity, cover, range
+  and faction. Whole Hog moves Reaper during Death Blossom without
+  ending the channel. Reaper can end the cast with a lethal shell.
+- Projected Barrier, Defense Matrix and Kinetic Grasp intercept damage
+  before body force. Genji Deflect sends damage and force back to Roadhog.
+- All five Talon bodies take damage and move. An 85-tick update gap
+  after a volley matches contiguous settling and Reaper's follow-up hit.
+  Native spread, force parity and additional mixed states remain open.
+- Under the reconstructed Immortality Field rule, a body hit can
+  apply force at the health floor without recording damage. Actual
+  Reaper and five Talon fixtures verify the floor. Projected Barrier
+  spends its pool before force reaches the protected body. Whole Hog
+  can destroy the device and then kill Reaper during the same cast.
+- The world clock now settles a lifted player through landing when
+  input stops. A 140-tick gap matches contiguous idle updates and
+  leaves the current input frame open. Wraith removes force but keeps
+  gravity. Reaper lands during Flashbang without ending the stun.
+  Reflected force settles Roadhog through a temporary clock anchor,
+  and body replacement retires the pending landing.
+
+#### Sigma Gravitic Flux against Reaper (partial)
+
+- Run the 1960-charge 1E41 cast, static ground selection and authored
+  1DBC receiver. The lift applies 50 damage. The slam waits for ground
+  contact and deals half maximum health, or 125 for Reaper.
+- Wraith Form can avoid selection or retire an active lift. Death
+  Blossom continues to damage enemies while Reaper rises. A lethal
+  Reaper shell ends Sigma's pre-descent effects and leaves committed
+  slams active. The 310-tick owner-input gap test matches the posed and
+  contiguous idle outcomes.
+- The receiver interrupts confirmed Shadow Step before its immunity.
+  Selection during immunity leaves Reaper at the chosen destination.
+  A late Projected Barrier spends 125 on the slam and preserves health.
+  Body replacement retires the old effect. Placement and lift clocks
+  contribute to passive snapshots.
+- Reconstruct placement and target admission using the authored
+  35 metre placement range and volume inputs with the existing capsule
+  and cover queries. Trooper, Enforcer, Sniper and Assassin rise and
+  take a grounded slam. Heavy Assault's authored 6601 branch takes only
+  the entry hit. All five agree across 395 skipped ticks and can be hit
+  by Reaper at the resulting pose.
+- Projected Barrier spends the entry hit on Heavy Assault and the slam
+  on the other four. Reaper can kill a lifted Trooper with normal death
+  attribution. Lethal Flux entry and slam each produce one death event.
+  Simultaneous Graviton pulls Reaper and Trooper laterally while Flux
+  retains their lift and grounded slam.
+  An active Halt MoveTo also displaces Reaper and the four liftable
+  Talon bodies laterally during Flux. A later Halt can attach its
+  recipient graph without starting MoveTo before the window closes.
+  Native placement, filter fidelity and other mixed controls remain open.
+
+#### Zarya Graviton Surge against Reaper (partial)
+
+- Run the 025F volley at 2100 charge with its authored projectile gravity.
+  An impact creates a 6 metre field for 4 seconds from 0260. Continuous
+  damage uses the 0261 value of 5 per second and awards no ultimate charge.
+- The reconstructed field uses capsule visibility and collision movement.
+  Reaper takes 20 damage across a full field, continues Death Blossom
+  while pulled, and can move and avoid damage during Wraith Form. The
+  active field reacquires Reaper after Wraith ends inside it. Shadow Step
+  keeps its chosen destination and suspends the field during immunity.
+- Frontal Defense Matrix and Kinetic Grasp absorb the projectile before
+  impact. Deflect transfers the field's owner and target faction.
+  Projected Barrier takes the field damage while the pull continues.
+- Retain flight and field ticks through a 325-tick scheduler gap. Keep
+  projectile ownership, field timing and controlled bodies in passive
+  snapshot state.
+- All five Talon NPCs use their existing collision movers during the
+  pull. A 310-tick gap matches contiguous movement, damage, field expiry
+  and Reaper's follow-up shell. An allied or occluded Trooper stays
+  outside the effect. A hostile Trooper keeps firing during the pull,
+  and a lethal Reaper shell preserves death attribution.
+  Contiguous and 72-tick skipped updates agree on Trooper fire and
+  movement under both manual and autonomous targeting.
+- Graviton ends Heavy Assault's active Charge windup and preserves its
+  authored cooldown. A new Charge request stays gated until field expiry.
+  An active capture releases the carried D.Va mech without impact damage.
+
+#### Orisa Halt against Reaper (partial)
+
+- Run 0CCB's authored cast, arming and second-press message. The pinned
+  104319 supplement supplies the 5 metre search value and recipient 0CCE,
+  which supplies startup, MoveTo and the post-pull timer.
+- A wall impact detonates on the incoming side. Reaper is moved without
+  damage or stun, and Death Blossom continues. Wraith rejects acquisition
+  and clears a pending pull. Cover, range and faction reject acquisition.
+- The authored cooldown rejects early input and accepts a fresh cast
+  after expiry. A lethal Reaper shell during windup prevents launch.
+  Flight and capsule visibility use a reconstructed world query.
+- Halt can move a confirmed Shadow Step before immunity and can move
+  Reaper after landing. The immune phase rejects acquisition and the
+  confirmed destination holds through departure.
+- The authored post-pull slow lasts 650 ms and survives source
+  replacement. Wraith clears it early. A source replacement retires
+  an in-flight orb, and recipient replacement retires its pull graph.
+- Matrix uses the authored 172C projectile tags. Frontal Matrix and
+  Grasp consume Halt without a pull or shield gain. Rear contact permits
+  manual detonation.
+- Frontal Deflect transfers the orb to Genji. The original caster
+  cannot detonate it, and a later world impact selects enemies of the
+  reflector. A reflected orb survives original caster replacement and
+  retires on reflector replacement. Contact ordering is reconstructed.
+- Trooper, Enforcer, Sniper and Assassin use the authored 0CCE MoveTo
+  request, settle on the ground and pursue at 35 percent speed during
+  the post-pull slow. Heavy Assault rejects the pull through the
+  authored immunity gate. Trooper can fire during the slow, and
+  Reaper's lethal shell retires the modifier and preserves the NPC death
+  record. NPC mover dispatch and speed integration are reconstructed.
+- Halt can move a projected Reaper without spending barrier health.
+  Enemy Blossom still spends the barrier and hits Reaper on a later
+  pulse after the break. Particle Barrier allows acquisition whether
+  the detonation is inside or outside the sphere.
+- Cryo-Freeze's authored control flag prevents acquisition and clears
+  the post-pull slow. Transcendence can still be moved by Halt, while
+  its damage scope rejects Reaper's shell.
+- Closed owner frames advance an active player pull with neutral input
+  through the collision mover. Posed, contiguous idle and skipped
+  updates agree during the pull. Longer gaps preserve wall contact and
+  post-slow expiry. Duplicate updates and stale commands cannot replay
+  the settled poses.
+- Skipped world ticks retain an already-launched Halt through its
+  authored range budget and recipient window. Wall, range and reflected
+  ground impacts match contiguous updates. The impact samples Wraith
+  immunity at its own tick.
+- The same retained ticks step Talon navigation before combat.
+  All five NPC bodies match contiguous updates across wall impact and
+  recipient cleanup, and the next Reaper shell uses the settled pose.
+  Trooper preserves firing and damage during the retained pull.
+- Halt sweeps the unused part of its current step after Deflect. A
+  newly hostile Matrix can absorb it within that step, or a second
+  Genji can return it and leave it in flight. A defender is considered
+  once per step to bound overlapping contact. These are reconstructed
+  contact and range rules.
+
+#### Orisa Supercharger with Reaper (partial)
+
+- Use the optional pinned 104319 supplement for the authored throw,
+  landed device and recipient graphs. The reconstructed target query
+  refreshes the 50 percent boost for visible allies in range.
+- Boost Reaper shells to 180 damage and Blossom pulses to 51. Effective
+  shell damage feeds Reaping and ultimate charge. Blossom keeps its
+  no-charge rule and returns to 34 damage on device expiry.
+- Enemy Reaper shells can destroy the 200-health device through its
+  resource mesh. Destruction retires the boost and the device damage
+  grants neither Reaping nor charge. Passive snapshots capture device
+  health and the recipient status deadline.
+- Quick melee and Blossom use the nearest point on the device mesh for
+  reconstructed range and sight checks. Melee deals 30 and the sixth
+  Blossom pulse destroys a full-health device. Opening sight during
+  Blossom starts a new pulse schedule.
+- The charged cast spends its cost before the throw. A lethal Reaper
+  shell during windup prevents launch and deployment.
+- Accepted Flashbang control ends the detached pre-throw wait without a
+  refund. Fortify allows the throw to continue. Flashbang after release
+  preserves flight, landing and the deployed ally boost.
+- Helix uses the device mesh for flight contact and the nearest visible
+  surface for splash. A direct rocket spends 120 device health. Reaper
+  can finish the remainder with one shell without gaining Reaping or charge.
+  Cover, ally filtering, earlier Grasp and Genji's reflected allegiance
+  are checked with actual casts.
+- Flashbang splash can spend 25 device health while stunning a nearby
+  Orisa. The surviving device keeps its deadline and ally boost.
+- Deflect replaces the launcher's captured Supercharger bonus with
+  Genji's bonus at reflection. A returned Reaper shell deals 120 or
+  180 according to Genji's status. Helix replaces the bonus on both
+  direct and blast damage, including when the launcher leaves boost
+  range during flight. This ownership rule is reconstructed.
+
+#### Baptiste Immortality Field against Reaper (partial)
+
+- Run 1761's actual throw and 1762's landed actor. The resource-driven
+  floor limits shotgun damage and restores low-health, visible allies
+  in range. Enemy, range and cover gates are covered by actual deployment.
+- Reaper can damage the device with shotgun, melee or Blossom. Device
+  damage does not feed Reaping or charge. Expiry or destruction allows
+  a subsequent lethal hit. A full Blossom can destroy the device and
+  then kill its former recipient.
+- Landing collision, device hit volume and target-side floor enforcement
+  are reconstructed.
+
+#### Lucio Sound Barrier against Reaper (partial)
+
+- Run 073A's charged cast and grant a nonhealable temporary shield
+  that decays over six seconds. The optional checksum-pinned 073B
+  resource runs its recipient graph. The base bundle uses the same
+  prepared capacity for the bounded pool host.
+- Actual Reaper shells and Blossom spend the shield before base pools.
+  Effective pool damage feeds Reaping. The scoped charge rule excludes
+  the Sound Barrier portion of a shell, including on a breaking hit.
+- Source replacement preserves already granted ally shielding. Recipient
+  replacement and expiry retire it. Cover, distance, faction, undercharge
+  and lethal interruption before delivery have command evidence.
+  Delivery, linear decay and charge filtering are server reconstructions.
+
+#### Lucio Soundwave against Reaper (partial)
+
+- Run 0776's actual secondary input and one-hit activation. The scoped
+  cone and force query deal 25 and displace Reaper without stopping
+  Death Blossom. Wraith, cover, range, team and facing can prevent the hit.
+- Allied projection absorbs 25 without moving Reaper. Cooldown rejects
+  early re-press. Actual Reaper shells kill Lucio before release or after
+  the applied push. Search and collision integration are reconstructed.
+- Verify the three Shadow Step phases. A pre-immunity push leaves the
+  confirmed teleport intact. Projection can break on the impact without
+  exposing its recipient. Soundwave moves a flashed Reaper without
+  changing the stun deadline or allowing early fire.
+
+#### Doomfist Meteor Strike against Reaper (partial)
+
+- Host the 0C51 targeting, confirmation, descent and impact with
+  reconstructed landing geometry and target sockets. Both confirmation
+  and timeout can land. Undercharge refuses the cast, and the authored
+  recovery spends the ultimate.
+- Inner and outer impacts deal 300 at 1.5 meters and 107.5 at five
+  meters, respectively. Wraith, cover, faction, range and allied
+  projection prevent body damage. Reaper's actual fire is rejected
+  during selection and can kill Doomfist after impact.
+- Advance an already-started cast on completed input windows if the
+  caster stops sending commands. Both confirmation and timeout land
+  once across skipped world ticks. Settle the impact after all
+  recipients advance their defensive scopes.
+
+#### Doomfist Seismic Slam against Reaper (partial)
+
+- Run 0B27's ground hop and aerial target move through the authored phase
+  switch. The landing starts a travelling wave that applies the authored
+  time-scaled damage and pull once per target. The ground wave gives the
+  same result after a 24-tick gap.
+- Verify Wraith, static cover, faction, range and an allied projection
+  applied after the wave starts. A lethal Reaper shell before landing
+  retires the cast. Targeting and wave geometry are reconstructed.
+
+#### Doomfist Rising Uppercut against Reaper (partial)
+
+- Run 0DD8's target search, damage and first self-launch row from actual
+  input. Uppercut deals 50, lifts Reaper without stun and grants 30
+  temporary shields. Death Blossom can continue while Reaper is airborne.
+- Verify Wraith, rear, range, cover, team and projected-barrier outcomes.
+  A lethal shell stops Uppercut before contact. Reaper can fire back
+  after a hit and kill Doomfist while the earlier lift continues.
+  Search geometry, velocity integration and the scoped launch query are
+  reconstructed.
+
+#### Doomfist Rocket Punch against Reaper (partial)
+
+- Run the 0D06 release and 0D07 charge-scaled contact from actual input.
+  A tap deals 50. A fully charged hit deals 100 and adds 150 on wall
+  contact. Wraith avoids the punch. Sweep geometry and forced movement
+  are reconstructed.
+- A confirmed punch interrupts Death Blossom and grants Doomfist 30
+  temporary shields from 0DDD. Reaper's return shell consumes the shield
+  and restores health through Reaping. A lethal shell during windup
+  prevents the punch from reaching Reaper.
+- Verify Shadow Step before immunity, during immunity and after landing.
+  Projection absorbs the punch even when the impact breaks the barrier.
+  Static cover, range and team gates prevent contact. Early re-press
+  is refused, and a fresh press after cooldown lands again.
+
+#### Sigma Accretion against Reaper (partial)
+
+- Run the 1BBB cast and projectile from actual Sigma input. Read launch bias,
+  gravity, damage, force and the 224E control request from the graph.
+- A direct hit at six meters deals 70, interrupts Death Blossom and applies
+  a 50-tick stun plus a swept player impulse. Wraith avoids those effects.
+  Static cover stops the projectile. A retained world update matches the
+  contiguous impact, stun deadline and target position.
+- A projected barrier applied during flight absorbs 70 and prevents control.
+  Lethal Reaper fire stops an unreleased cast. A released rock still hits
+  and stuns after Sigma dies.
+- Verify the Shadow Step immunity window and the pre-immunity interruption.
+  An in-flight rock passes the protected departure point. A rock aimed
+  at the completed landing hits normally.
+- The rock passes active Deflect, Grasp and Defense Matrix. Matrix uses the
+  excluded projectile tag. Nearby splash uses separate force rings without
+  the direct-hit stun or a second impulse on the direct recipient.
+- A low-durability projection breaks without exposing its owner to the same
+  impact.
+- Projectile sweep, hit message routing, stun and player impulse are server
+  reconstructions.
+
+#### Reinhardt Charge against Reaper (partial)
+
+- Run the authored 007D Charge from body input and reconstruct swept
+  contact, pin transport and wall impact. A frontal pin interrupts
+  Death Blossom, then the wall hit deals 300 damage. Wraith avoids both.
+- Retire the pin when either body is replaced. A lethal Reaper shell
+  during Charge windup prevents the run. Killing Reinhardt during a
+  live pin frees the victim without a later wall hit.
+- A pin before Shadow Step immunity interrupts the teleport. Charge
+  crosses the protected departure point without damage or control.
+  A new Charge can pin Reaper at his landing site.
+
 ### 2026-11-09
+
+#### Sigma Experimental Barrier against Reaper (partial)
+
+- Host 1B55 and 1A2A with the pinned C015 collision mesh. Actual Reaper
+  fire damages the barrier while Sigma's body remains protected. Actual
+  recall blocks early deployment and allows stored repair.
+- Include the actor pose and pool in passive snapshots. Placement,
+  collision and cross-graph hosting are reconstructed.
+
+#### Opt-in Talon target acquisition (partial)
+
+- Let the five manual-spawn Talon bodies acquire visible hostile players
+  through an explicit server policy and run their authored attacks.
+  Preserve target pursuit through new cover. Sniper waits for its original
+  post-fire lock before re-pressing the trigger.
+- Optionally choose the authored Trooper and Heavy melee or Heavy charge
+  at acquisition using reconstructed ranges. Heavy resumes primary fire
+  after charge recovery.
+
+#### Heavy Assault charge against Reaper (partial)
+
+- Route explicit charge through 1408's authored windup and velocity.
+  Sweep the NPC capsule against static cover. Resolve the authored target
+  array before same-frame cleanup and apply the 175-damage contact.
+  Actual Reaper can evade contact damage with Wraith Form.
+- Use authored reset and cooldown values for host cancellation. Actual
+  stop, static cover and miss start the 15-second cooldown. Re-press is
+  refused until expiry, when another contact can kill Reaper.
+
+#### Sniper reposition against Reaper (partial)
+
+- Route the reconstructed manual reposition request through 142C's authored
+  wait and movement. Hold the next rifle press until its weapon recovery
+  stack ends. Actual static tests cover exchange of fire and cancellation
+  by stop or newly inserted cover.
+
+#### Trooper and Heavy Assault melee against Reaper (partial)
+
+- Explicit manual melee input runs the authored logical 31 skills and uses
+  their TrackTargets geometry, windup and damage. Actual Reaper takes 30
+  from Trooper or 80 from Heavy Assault. Wraith and static cover stop damage.
+  Host target selection and line of sight are reconstructed.
+
+#### Collision-aware Assassin pursuit against Reaper (partial)
+
+- Route manually engaged Talon bodies with the reconstructed bounded search
+  and authored movers. Actual Assassin approaches from the console's 5 m
+  distance, then enters her authored contact and damage sequence.
+- Stop and death clear pursuit motion. Losing contact breaks the pin while a
+  continuing engagement can pursue again. Include navigation in snapshots.
+
+#### D.Va Defense Matrix with Reaper (partial)
+
+- Load pinned 0407 graph and mover supplements alongside the shared runtime.
+  Explicit mech selection uses its authored health, armor, mover and graphs.
+  The live controller query releases the authored 0276 startup lock.
+- Read active 02CC Matrix boxes for Reaper's 004A pellets. Actual secondary
+  input drains the resource and obeys release and cooldown. Actual shells
+  are absorbed from the front and deal damage when the mech turns away or
+  releases Matrix. Box attachment and tag exclusion are reconstructed.
+- With the pinned projectile tag catalog, Matrix also consumes eligible
+  moving projectiles without damage, explosion release or spawned fields.
+  Actual Helix verifies frontal absorption, rear damage and static cover.
+  Projectile definitions stay attached to server flight and reflected flight.
+
+#### Zarya personal and projected barriers with Reaper (partial)
+
+- Host the authored personal and projected phases with a separate 200-point
+  sphere and route pool loss to Zarya's energy graph. Actual Reaper fire
+  spends shield health without Reaping or charge. Later pellets can hit after
+  break. Death Blossom waits until the next pulse to damage the body.
+- Target selection, attachment and finite-pool routing use server
+  reconstruction. Combat, manifest and passive snapshot checks passed 72 tests.
+
+#### Orisa deployed barrier interactions with Reaper (partial)
+
+- Host the authored thrown barrier and landing graph using a pinned external
+  collision mesh. Actual throw and shell reduce the landed barrier from 600
+  to 480, with no body damage, Reaping or charge. Authored expiry retires it.
+- Landing, bounce and grounded pose use server reconstruction. Combat, replay
+  identity and passive flight and actor snapshots passed 40 related checks.
+
+#### Winston dome interactions with Reaper (partial)
+
+- Host the authored 00FA creation and 00FC lifetime in the private match.
+  Actual Reaper fire and Death Blossom reduce the dome from 700 to 70 while
+  preserving Winston's body health. The authored timer retires the dome.
+- The sphere pose and private entity lifecycle use server reconstruction.
+  36 related checks cover combat, replay identity and passive dome snapshots.
+
+#### Reaper shield, reflection and absorption interactions (partial)
+
+- Route Death Blossom pulses to visible enemy Reinhardt shield surfaces. Covered
+  bodies keep their pulse phase through shield break. Surface LOS sampling uses
+  reconstructed current geometry.
+- Read active Genji 03A3 reflection and Sigma 1D02 absorption scopes. Reconstruct
+  current aim, full-angle cones and return-ray behavior. Sigma hits feed the
+  authored box and damage callback. The scoped PlayScript host converts the
+  authored amount into a distinct nonrecoverable shield pool. The resource
+  supplies a three-second grace and five shield points per second of decay.
+  Actual Reaper pellets grant 72 temporary shields from 120 absorbed damage.
+- The applied Reaper and defense interaction suite passed 44 tests. The preceding
+  frozen baseline passed 487 tests.
+
+#### Reinhardt barrier health and actual Reaper hitscan (partial)
+
+- Read native295F1CDE ruleset254B/default1 and retain authored0095 health1600,
+ 2s recovery delay,200/s chase and5s break cooldown. Exact #38 health queries
+ use stored586; a bounded host condition follows Pet51 lifetime for recovery
+ without creating a fake entity. Pet replication remains unimplemented.
+- Load the complete authored curved collision mesh98 vertices/192 triangles
+ from an external checksum-pinned geometry file. Active stand/aim pose is an
+ explicit reconstruction using hand bind height, capsule clearance and Pet0.2;
+ animation/hardpoint/native masks/rewind remain unproven. No raw mesh enters Git.
+- Actual shell removes120 shield health with body/leech/charge unchanged;
+ first pellet breaks last6 shield health and19 remaining pellets hit body443.
+ Actual release/recovery/reuse, held no-heal, friendly/miss, no-body rays,
+ away-facing exposure and real static wall pass. Other shield consumers/families open.
+- Fix time-varying cooldown getter dependencies through existing polling. This
+ server invalidation reconstruction lets actual0095 re-enter after5s without
+ inventing cooldown writes; shared ability behavior is rechecked.
+-72 barrier/clock/Reaper/shared checks PASS60.096s;17 snapshot/manifest checks
+ PASS84.882s. Expanded frozen regression result is recorded in lane0002 STATUS.
+ Full Reaper static matrix and original-client acceptance remain open.
+
+
+#### Assassin pin and authored Reaper/McCree eye heights (partial)
+
+- Adopt the reviewed manual1157 bridge privately, without parent navigation code.
+  Explicit manual target context/button36,3m contact and mode1 per-second clock
+  are reconstructed; resource contact25,1s contact phase and amount100 are traced.
+  Independent private policy rejects pin/damage during Wraith and Zen/Mei protection.
+-11 actual pin methods pass10.862s: damage/control and first-phase timing,
+  stop/fire/Reaping, death attribution, Wraith/protection, Blossom/Shadow ends,
+  actual support Reaper kill, Ana Sleep, range/LOS/team and body/removal cleanup.
+  Earlier support fixture requested hero switch while hidden; corrected to restore
+  spawned first and assert accepted switch. Full snapshot clock/target/control pass.
+- Trace Reaper0022 FirstPerson1.55/1.085 and McCree02A31.425/.9975; use one
+  helper for player attack origin and target eye. Actual crouch/low-cover tests
+  pass2 in3.420s. Native bones/camera interpolation/muzzles remain unaccepted.
+-92 common Reaper/Sleep/Enforcer/bot/body-VM checks pass54.286s; full-server pin
+  snapshot pass61.398s. Expanded frozen regression PASS477 in1260.615s, no skips.
+  Full requested static matrix remains open; original-client acceptance separate.
+
+#### Notification lifetime and ability exit review (partial)
+
+- Reproduce both parent notification regressions on the previous private runtime.
+  Clear CHECK/CHANGED coalescing markers when State.end cancels queued events,
+  and keep cleanup writes from notifying the ending state. No persistent fields added.
+- Queue running scope/resource cleanup before Ability arbitration unlink, an
+  explicit server ordering reconstruction; complete native inter-object order stays open.
+- Actual Reaper partial and empty clips are fired, Wraith refills8, then held
+  primary resumes with7 remaining and120 actual damage.67 related checks pass
+  in32.335s; final frozen regression PASS463 in1122.853s, no skips.
+
+#### Enforcer manual combat and actual Shadow input lock (partial)
+
+- Independently repeat8 native B96D3A98 predicate-tail cases from the parent's
+  read-only evidence. Declare manual Enforcer component4B/no5C and scoped13EB
+  aggregate-health mapping; native controller creation and general queries stay open.
+- Restore actual25 speed80 projectiles with resource1/8/16 rings at4 degrees,
+  2 damage each and8..15m falloff to0.2. Share reviewed ring mathematics with
+  Reaper; zero phase/tangent projection and body-eye muzzle remain reconstructed.
+  Three close actual volleys now injure Reaper250 ->100; four ranged NPC types
+  can damage/kill Reaper with correct attribution and stop without late damage.
+- Apply resource17/18/19 throttle mods using the parent's reviewed scalar path.
+  Independently repeat120 original-prefix cases with explicit scalar lookup stub.
+  Actual Shadow blocks all four input directions from next frame, keeps raw
+  command bytes and restores movement after cast. Source wire bytes are unchanged.
+-46 NPC/Shadow/body checks and36 Enforcer/snapshot/mover fixture checks pass.
+  Full selected frozen regression PASS460 in1095.880s, no skips. Assassin,
+  autonomous AI/navigation, native controller/wire/muzzle/seed/difficulty remain open.
+
+#### Shared cooldown-buffer review on actual Reaper input
+
+- Review the parent's early-press timestamp fix against this lane's equivalent
+  consume=False check/consume-after-gates implementation. No runtime change needed.
+- Reaper's authored early window is0.15s. Actual Wraith tests prove deep-cooldown
+  short press expires, near-expiry short press buffers, held input starts when
+  ready and a fresh post-cooldown press works.34 relevant checks PASS22.743s.
+
+#### Ana Sleep Dart and Reaper control (partial)
+
+- Resolve delayed0BDD fixture aiming: keep aim through windup. Actual dart
+  deals5 damage and applies a scoped0BDE ->224E/676B reconstruction:5s duration,
+  0.5s damage-wake gate and0.5s recovery. Native filters/messages/modes remain open.
+- Keep sleep independent from Flashbang. Interrupt Blossom and Shadow through
+  authored exits and suppress player/manual-NPC input. Damage wakes once;
+  additional pellets do not extend recovery. World expiry/death/retirement and
+  NPC removal clean up. Applied sleep survives caster switch.
+- Actual casts exercise input, immunity, friendly/miss, wake/no-wake, ultimate
+  interruption, selector cancellation, lifecycle, Flashbang overlap, five actual
+  NPC bodies and passive full-server snapshot capture. Expanded regression is
+  PASS421 tests in945.319s, no skips, with immutable43-row navigation runtime
+  for both runtime roots. Full static acceptance remains open.
+
+#### Ana healing modifiers and Reaper cleanse (partial)
+
+- Trace0B97/0267 ->0C71 ->friendly0B99/enemy0C72 from existing104319 XML.
+  Reconstruct the normal-human branch with60 damage once (effect-graph value
+  selected over the volley's50),100 initial friendly healing,4s modifiers,
+  hostile0 and friendly1.5 after its50ms entry. Native relation/filter/tag/AI
+  dispatch remains open; no unknown native predicate is forced to succeed.
+- Apply modifiers through shared actual healing, with hostile precedence,
+  same-kind replacement, no self-amplified initial heal, world expiry and
+  recipient lifecycle cleanup. Read0C72's actual cleanse variables; Wraith,
+  Zen and Mei set8440. Wraith clears hostile modifiers and retains positive
+  boost; Shadow Step retains existing antiheal and rejects new hits in immunity.
+- Cover actual pellets, Blossom and Zen/Mei healing, both caster and recipient
+  lifecycle, miss/FFA, overlap/refresh/delay, in-flight source retirement and
+  pure server snapshot observation.25 Ana/NPC methods pass in50.666s;10 NPC
+  control/removal checks pass5.454s;23 interface/catalog checks pass3.939s.
+- Adopt the parent's read-only43-row NPC-navigation runtime and reject missing
+  NPC mover rows. Recheck all-five capsule dimensions, Blossom range edges and
+  walls, outgoing damage/leech and actual grenade modifiers. A real Trooper
+  hit followed by Reaper's shell cannot bypass antiheal. Old default-capsule
+  results are not original NPC geometry evidence. All407 selected frozen tests
+  pass in787.904s with both runtime roots set to the43-row navigation input;
+  no skips. Full static acceptance remains open.
+
+#### Defensive healing into Reaper interactions (partial)
+
+- Reconstruct Cryo-Freeze self healing from200 over the authored3.9000001s
+  interval and normal Transcendence healing from1800 over6s with its10m search.
+  Interpret amount as a total per interval; native integration/filter flags,
+  alternate modes and activation restoration remain unverified. Zen's target
+  search uses declared friendly current capsules and static LOS, including self.
+- Keep per-cast activation/start/end/settled-time/rate/radius state in Combat
+  and full-server snapshots. Retain active intervals over scheduler gaps, stop
+  on cancel/death/retirement, and never bank healing for targets entering range.
+  Keep terminal clocks monotonic under duplicate/backward world observations.
+- Centralize actual healing limits/stats/body-health sync for these consumers,
+  Biotic Field and Reaping. Do not add healing-charge messages or feed Reaping
+  back into charge. Defensive healing follows the world damage pass for every
+  player slot; a lethal Blossom pulse cannot be reversed by later-slot healing.
+- Pass91 healing/combat/projectile/protection/clock checks in77.335s and16
+  healing/snapshot checks in228.770s. Final frozen regression passes363 tests
+  in933.546s with explicit actual NPC data and no skips. Antiheal, boost, cleanse,
+  other defenses and full five-NPC/static acceptance remain open.
+
+#### Reaper and bounded defensive scopes without owner input (partial)
+
+- Fix stalled Wraith/Transcendence/Cryo scopes by advancing completed missing
+  input windows from world elapsed time. Reuse the existing zero-input path so
+  authored exits, recovery, cooldowns and movement modifiers advance together.
+  Leave the newest owner window available, release stale held input and discard
+  unposed shots. Scope this explicit server policy to Reaper, Zenyatta and Mei.
+- Reanchor on actual pose-bearing input, reject already-filled late input before
+  movement, scale by owner quanta and stop before the wire epoch limit. Export
+  the causal world/frame anchor in all observation formats; add the defensive
+  module dependency to legacy model sealing. Native rollback/transport is open.
+- Advance all protection scopes before damage consumers. Retain Blossom's active
+  three-second interval over scheduler gaps so target acquisition after another
+  Wraith ends matches contiguous ticks, including long empty tails. Historical
+  Blossom pulses never award ultimate charge after the VM has left its scope.
+- Pass23 direct clock/charge tests in15.154s and64 clock/VM/replay/manifest tests
+  in23.307s. Actual Trooper hits after no-input Wraith expiry; full frozen
+  regression passes351 tests in721.526s with explicit actual NPC data and no
+  skips.98 additional input handoff/epoch/body recovery/movement/VM-alias checks
+  pass in11.686s. Healing/status/full five-NPC/native-client scope stays open.
+
+#### Reaper passive world clock (partial)
+
+- Advance bound Reaper passive charge from world ticks instead of owner input.
+  Preserve the authored five-point/one-second arithmetic, rates and cap; standalone
+  body scripts retain their declared command clock. Store the world tick and
+  unfinished interval in VM, full-server and legacy trace observations.
+- Exclude channeling time when world updates skip ahead, resume after the actual
+  Blossom interruption/expiry, and prevent future or duplicate owner commands
+  from awarding time twice. Reset on death, ineligibility and body replacement.
+  The matching terminal world channel handles a stalled owner's VM explicitly.
+- Pass44 charge/Reaper/snapshot checks in134.985s and32 expanded clock/legacy
+  replay checks in18.091s. Include pending native join arrivals/traversal context
+  in legacy hashes too. Privately integrated2ca9178 passes88 Reaper phase/join
+  regressions in92.071s. Full static/native-clock and client acceptance stay open.
+- Pass339 frozen regressions in681.107s with actual external NPC data and no
+  skips. After final capped-remainder reset and legacy model dependency sealing,
+  pass48 charge/replay/manifest checks in18.550s. Source-byte mutation of the
+  Reaper dependency changes the legacy model fingerprint without editing inputs.
+- Record separate failing no-input protection deadlines: Wraith still protects
+  after300 world ticks; Zen/Mei after500. Their VM scopes do not expire without
+  input. Mei's active healing state also does not restore injured health. These
+  remain open and are not covered by the passing passive-charge reconstruction.
 
 #### Native state-input joins and Deadeye timing
 
@@ -29,6 +1635,29 @@ This log records tested changes and their acceptance status. Entries are grouped
   an external bundle. Normal runtime data/services and original working changes
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
+
+#### Reaper Flashbang immunity and cast interruption (partial)
+
+- Privately reuse64bf71c's resource-backed Flashbang/control foundation. Keep
+  stuns and Reaper channel/selector clocks together in stored server state and
+  body-retirement cleanup. Protected Wraith/Shadow/Zen/Mei scopes reject the hit
+  effect as well as damage; immunity is not inferred from damage side effects.
+- On an accepted stun, release the authored Blossom channel and abort Shadow's
+  selector/cast roots through their own exits. An interrupted selector spends
+  no cooldown; an interrupted confirmed cast starts its authored cooldown and
+  cannot teleport later. A completed landing stays committed. Blossom spends
+  charge without a refund and cannot resume damage after control expires.
+- Pass10 actual-input control tests in11.398s: movement/weapon/skill suppression
+  and recovery, buffered-input rejection, real nearby projectile impacts during
+  immunity and vulnerability windows, early/late Shadow interruption, world-
+  clock expiry with no owner commands, lethal primary during stun and body
+  replacement. Retain explicit reconstructed control/immunity/geometry limits;
+  native224E, cleanse/stacking/other statuses and client presentation stay open.
+- Pass322 expanded Reaper/control/NPC/route/projectile/VM/owner/server-snapshot/
+  stored-journal/replay/manifest checks in605.921s, no skips, with the explicit
+  NPC pack; Ruff/diff pass. A separate observed frontier confirms passive charge
+  still follows input frames:125 world ticks give0 without commands versus10
+  with commands. Keep that clock discrepancy and the remaining matrix open.
 
 #### Resource-backed Flashbang control reconstruction
 
@@ -55,6 +1684,29 @@ This log records tested changes and their acceptance status. Entries are grouped
   Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
   lane merged. Normal runtime/services and original working changes preserved.
 
+#### Reaper defensive interactions and deferred ability stopping (partial)
+
+- Privately reuse7cd1ed7's shared melee visibility fix. Verify Reaper's visible
+  and wall-blocked player/training-NPC melee damage, Reaping and charge.
+- Add explicit owner-protection consumers for Zenyatta017B/st8 and Mei05FE/st17,
+  entered through their actual ability inputs and scoped zero-delay54FEB21C
+  server callbacks. Preserve authored six/four-second lifetimes, Mei cancel
+  and cooldown/refusal/reuse, and Zen ultimate consumption/refill/reuse.
+  Prevent pellet/melee/Blossom damage and consequent life steal/charge; protected
+  bodies still intercept pellets before targets behind them. State export
+  observes the existing VM scopes without evaluating defense getters.
+  Damage immunity and authoritative callback timing are declared server
+  reconstructions. Native D07EBF01 damage semantics, geometry/target selection,
+  Zen/Mei healing, cleanse, other defenses and client presentation remain open.
+- Correct187D5125 from inline stopping to native allocated-state index order
+  and deferred Ability timer3, then release/recheck activation. Five offline
+  original C84040/RTTI/state-lookup cases match Python; timer queue/storage and
+  outgoing plug are explicit adapters. Test deferred output order and instance
+  isolation. The Reaping's25A healing tag is excluded by0B8B/node80's charge gate.
+- Pass257 selected regressions in259.533s with explicit external NPC data and
+  no skips; Ruff/diff checks pass. Complete Reaper static/client acceptance
+  remains open. No own completion commit/shared merge/push/client operation.
+
 #### McCree melee static-wall occlusion
 
 - Prevent quick melee from damaging targets through static walls: retain the
@@ -70,6 +1722,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
   five-NPC AI/navigation/specials and original-client combat remain open. Normal
   inputs/services and original working changes are preserved; no hero lane merged.
+
+#### Reaper charge and action interlocks (partial acceptance)
+
+- Reuse6debff3's authored array selector. Consume0B8B/node23 damage-charge and
+  node4 passive-charge expressions on node3's one-second cadence, replacing
+  the60-second fill placeholder only for Reaper. Preserve multipliers, cap and
+  explicit eligibility/disable/channel flags. Enemy actual damage funds charge;
+  excess damage and The Reaping's healing are not fed back as damage awards.
+  Missing mode eligibility uses a declared living-sandbox reconstruction;
+  native target/tag/difficulty/healing-event gates remain open.
+- Store the unfinished passive interval in BodyScript.reaper_charge_ms, body
+  VM/server observation and legacy command-trace hashes. Observe without VM
+  evaluation. Verify charge timing, damage/caps, death/duplicate rejection and
+  ultimate consumption. Verify Blossom/Wraith/Shadow own-action interlocks;
+  Wraith secondary stays inert and its own button cancels after the minimum.
+- Pass228 selected regressions in119.009s with the explicit NPC pack, no skips.
+  After adding the legacy hash field, pass33 related replay/snapshot/manifest
+  checks in24.583s. Full static and original-client acceptance remain open;
+  no lane completion, own commit, shared merge or publication is claimed.
 
 ### 2026-11-08
 
@@ -179,6 +1850,85 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Reaper combat reconstruction (partial; acceptance remains open)
+
+- Privately incorporate d1286b7's shared authored NPC weapon-component mounting;
+  discard the equivalent lane-local implementation. Actual Sniper graph1122
+  shots retain executed damage evidence with the parent's shared initializer.
+- Correct logical-button conditions from native104319 evaluator1B758C0:
+  disabled rejection and independent down/up-edge/held/released flags. Preserve
+  edge context for compiled owner completion checks. A refused Shadow Step
+  during Wraith no longer loops its priority stack until the VM retires; held
+  input cannot silently retry after Wraith ends. Compare128 native/Python
+  truth-table cases with explicit input/variant adapters outside Git.
+- Verify Wraith actual command movement5.5->8.25->5.5 and character-collision
+  flag restoration, immediate eight-shell refill, manual reload fire lock and
+  refill, and melee during reload without a free shell or extra shotgun hit.
+  Pass71 Reaper/Shadow/passive-snapshot/input/runtime/Soldier-ability checks
+  in51.516s before the equivalent shared NPC initializer integration.
+- On d1286b7, pass183 selected Reaper/combat/projectile/runtime/ability/NPC-body/
+  snapshot/manifest checks (188 discovered, five external-pack cases skipped),
+  then all five actual-NPC cases with the explicit sparse NPC runtime in18.147s.
+  Ruff and diff checks pass. Full static and original-client acceptance stay open.
+- Actual Trooper/Sniper/Heavy Assault scripts deal first-hit20/100/5 to Reaper,
+  stop with no late damage, emit real volleys during Wraith without hurting him,
+  and kill Reaper with the correct NPC entity in death attribution. Sniper
+  repeated trigger release is manual; native AI and specials are not claimed.
+  Enforcer/Assassin incoming attacks retain unresolved context/behavior gates.
+- Pass103 NPC/body/engagement/projectile/combat/active-snapshot tests in80.913s
+  and15 replay-manifest tests in1.307s, Ruff/diff checks. Seal NPC script knobs
+  and manual AIM_RANGE in runtime identity. Fixture NPC projectile observer
+  streams are absent; these results establish authoritative damage, not wire
+  projectile presentation or original-client acceptance.
+- Add a declared Shadow Step bridge for visible walkable35m selection,
+  standing-capsule/actor clearance, locked confirmation, secondary cancel,
+ 1.5s reconstructed teleport callback, authored recovery/10s cooldown and its
+  immunity scope. Revalidate landing at completion and keep physics/history
+  consistent. Restore the input wait after a refused cooldown attempt on release.
+  Store selector/cast state in passive snapshots. Native landing adjustment,
+  random/context callbacks and original-client agreement remain unaccepted.
+- Pass135 combined tests in74.557s including seven initial Shadow lifecycle
+  cases, plus later direct low-ceiling, wall/occupancy and selector snapshot
+  checks recorded in the lane. Full cross-hero/NPC incoming acceptance is open.
+- Restore Death Blossom's per-target effect consumer at34 damage/5Hz from
+  effect4 -> graph0045, using the live root's8m search and3s duration. Continue
+  on world time without owner input; keep terminal cast identity to prevent
+  replayed damage, reset clocks on target exit and stop on death/interruption.
+  Store all channel/target clocks in passive server snapshots. Suppress passive
+  ultimate charge during the channel even though its graph has no Ability node.
+- Verify primary critical/falloff/range and empty-clip reload behavior. Reaper's
+  omitted headshot multiplier uses a scoped reconstructed2x default; exact
+  native default/seed and client agreement remain unaccepted.
+- Wake compiled owners of logical-button transition conditions on input
+  changes. Original Reaper00F2 now enters its Shadow Step selector on input;
+  placement/confirm/teleport/cooldown remain open.
+- Pass128 focused hero, actual-five-NPC, active-channel snapshot, combat,
+  projectile, NPC/catalog, runtime and ability tests in67.595s, Ruff/diff checks.
+  Real NPC bodies take shotgun/melee/Blossom damage and fund Reaping; primary
+  kills retain each actual corpse without respawn. Body VMs are permissive and
+  transport/collision are fixtures. Enemy attacks/AI/specials, complete control/
+  barrier/reflect/absorb interactions and client acceptance remain open.
+- Consume Hellfire Shotguns' 20 authored pellets through individual body/wall,
+  falloff, armour and death resolution. Scope the reconstructed ring projection
+  and phase to Reaper. Restore The Reaping at the authored ~35% of actual enemy
+  damage, capped at missing health, including quick melee and NPC damage.
+- Reconstruct Reaper's zero-duration Wraith entry gate and bound immunity to
+  its authored three-second wait. Preserve the graph's cancellation, recovery
+  and eight-second cooldown. Other users of the unsupported entry node retain
+  their existing behavior. Native/client trajectory and phase agreement remains
+  unaccepted; this adapter is not a generic implementation of the native node.
+- Fix Ability's rejected buffered presses retaining their original timestamp.
+  Previously each failed start refreshed it, so a cooldown press could silently
+  activate seconds later after its input buffer should have expired.
+- Pass 102 Reaper, combat, projectile, stored-snapshot and ability/owner-frame
+  regression tests in 484.176s with frozen source; Ruff/diff checks pass. The
+  five actual NPC bodies also each take120 from one shell in permissive-VM
+  fixtures using the parent's read-only prepared catalog and graph package.
+  After fast-forwarding this private clone to a15d554's NPC foundation, pass
+  33 focused Reaper/NPC/catalog/ability tests in14.007s; Ruff/diff checks pass.
+  Shadow Step, Death Blossom, five Talon enemies, cross-hero effects and all
+  original-client acceptance remain open. See docs/REAPER_COMBAT.txt.
 
 #### Optional persistent NPC corpses
 

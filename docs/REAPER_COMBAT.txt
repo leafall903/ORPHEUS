@@ -1,0 +1,516 @@
+Reaper combat restoration -- build 1.74.0.0.104319 -- OPEN
+
+No complete static or original-client combat acceptance is claimed.
+The isolated development lane is verification/hero-lanes/0002/source on main.
+External runtime inputs are read from runtime-104319. Local XML and native
+inspection outputs stay outside Git in lane0002/research and lane0002/*.txt.
+
+Latest direct execution (complete goal still OPEN):
+- Ana's grenade chain is resolved:0B97 normal volley/effect0267 ->0C71 ->
+  friendly0B99/enemy0C72. Resource validation matches7 compiled values plus the
+  cleanse-variable set, with source hashes:ana-status-resource-validation.json.
+  This is resource/consumer consistency, not native effect-graph execution.
+- The normal-human consumer selects effect damage60 once over the volley50,
+  initial friendly heal100,4s modifier, hostile0 and friendly1.5 after50ms.
+  No generic native predicate was hard-opened. Native filter293E exclusions,
+  relation/mode/AI dispatch, 031A engine semantics and projectile motion stay open.
+- Actual normal casts block pellet and Blossom Reaping, suppress live Zen
+  healing until expiry, and amplify pellet/Blossom Reaping without charge
+  feedback. Recipient death/replacement and explicit NPC removal clear status;
+  caster death does not clear an already applied effect. Pending grenade source
+  eligibility is captured, and body retirement discards that pending projectile.
+-0C72 ends on6604/8440/478/33551; Wraith/Zen/Mei author8440. Wraith cleanses
+  hostile status while preserving boost. Shadow carries existing antiheal
+  through its cast; its immunity rejects a new enemy grenade. Overlap, real
+  second-source refresh,50ms delay, normal4s expiry, cooldown refusal, FFA and
+  misses have executed evidence. Full status manager/UI/other controls stay open.
+- Parent mover audit adopted: normal runtime has38 rows and lacks the five
+  Talon bodies. Earlier fallback capsules did not prove NPC geometry. New NPC
+  checks require explicit43-row navigation runtime and actual rows. Table SHA256
+  e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c.
+  All-five authored capsule sizes,8m Blossom surface edges and static walls
+  rechecked. All-five actual grenade/boosted Reaper damage and a real Trooper
+  hit under antiheal are covered. Map-cache/navigation/AI/native hitboxes remain
+  open. Inputs are hardlinked/read-only; no real map cache/deployment is implied.
+-25 Ana/NPC methods pass in50.666s;10 removal/control checks pass5.454s;23 NPC
+  interfaces/catalog checks pass3.939s. Full navigation-input regression follows.
+-363 frozen regressions pass in933.546s with explicit actual NPC data and no
+  skips. Log:tests-reaper-healing-final-regression.txt. Includes all selected
+  Reaper/charge/clock/healing/control/NPC, shared VM/combat/projectile, complete
+  server snapshot/stored-journal and replay/manifest checks. Full hero goal OPEN.
+- Defensive healing is now a declared world-time consumer: Mei's own200 over
+ 3.9000001s and Zen's normal1800 over6s,10m friendly capsule/static-LOS search,
+  including self. Amount-as-total integration and target search are explicit
+  reconstructions; native filter flags, alternate modes, activation restoration
+  and complete ModifyHealth execution remain OPEN.
+- Actual Reaper pellets injure enemy Mei130, then her healing recovers to250
+  without healing or charge feedback to Reaper. Friendly Reaper receives300/s
+  from Zen, including while in Wraith; health caps/stats/body vars agree. Enemy,
+  FFA-other, out-of-range and wall-occluded bodies reject the friendly search.
+- Per-cast healing activation/start/end/last/rate/search state is full-server
+  causal storage, not part of the body-only VM boundary. No-input, contiguous
+  and long-jump integration agree. Cancel stops healing, a recast gets a new
+  identity, death never revives, retirement drops the clock, and entry into range
+  never banks past healing. Duplicate/backward observations cannot settle twice.
+- Defensive healing follows this world damage pass independent of player-slot
+  order. A lethal Blossom pulse kills before healing, and cannot be reversed.
+  Shared actual-heal settlement preserves Biotic Field and Reaping behavior; no
+  native healing-charge event route or antiheal/boost/cleanse is claimed.
+-91 healing/combat/projectile/protection/clock checks pass in77.335s;16 healing/
+  snapshot checks pass in228.770s. Final363 pass above. Read-only observation:
+  defense-healing-after.json; exact remaining boundaries:healing-evidence-boundaries.txt.
+-351 frozen regressions pass in721.526s, explicit actual NPC runtime and no
+  skips. Includes all current Reaper subsets, input joins, shared combat/NPC,
+  body VM, complete server snapshots/stored journals, replay and manifest checks.
+  Log:tests-reaper-world-expiry-final-regression.txt. No complete hero claim.
+-98 additional command handoff/epoch/queue, body-script/recovery/trace, movement
+  and VM-alias checks pass in11.686s. Log:tests-reaper-world-expiry-command-paths.txt.
+- Completed missing owner windows now advance Reaper/Zenyatta/Mei body VMs from
+  world elapsed time. The current owner window remains available for input;
+  this is an explicit server gap policy, with a current-owner-window grace
+  interval plus world-tick quantization.
+  No native prediction/rollback/transport equivalence is claimed.
+- The existing gap path releases held input, advances real authored states,
+  recovery/cooldowns and movement mods, and discards unposed shots. It does not
+  only mask protection booleans. Actual input reanchors world/owner time; stale
+  filled input is filtered before movement.8/32ms quanta, frame offsets,
+  cooldown refusal/reuse, replacement and wire-epoch stopping are exercised.
+- All protection scopes advance before damage consumers. The active Blossom
+  interval is retained over skipped scheduler time; no long empty tail is
+  replayed. A two-Reaper target acquires after Wraith expiry and takes272 in
+  continuous,200-tick jump and1000-tick jump cases alike. No Blossom damage
+  charge is earned by historical pulses after its VM scope has ended.
+-23 clock/charge checks pass in15.154s;64 clock/VM/replay/manifest checks pass
+  in23.307s. Actual Trooper20 damage resumes after no-input Wraith expiry.
+  The world/frame anchor is causal snapshot/trace state. Final351 pass above.
+-339 frozen regressions pass in681.107s on2ca9178 with explicit NPC data, no
+  skips. Final cap-remainder reset and legacy model dependency refinement then
+  pass48 charge/replay/manifest checks in18.550s. Capped time cannot be banked;
+  mutating Reaper source bytes changes the legacy model fingerprint.
+- Historical failing frontier: with no owner commands, Wraith remained protected
+  after300 world ticks and Zen/Mei after500, with0 body-frame advancement. The
+  passive-charge fix alone did not fix protection expiry. See the retained
+  defense-world-clock-frontier.json. The missing-window policy above repairs
+  this observed failure; native transport/clock fidelity still remains open.
+- Historical defense-healing-frontier.json shows injured Mei150->150 after200
+  world ticks despite its active ModifyHealth state. Zen's absent self-healing
+  did not establish ally healing either way. The declared consumers above repair
+  the observed missing healing; remaining native rules still need evidence.
+- Private base2ca9178 includes native distinct-input joins.88 Reaper phase/join/
+  button/stop regressions pass in92.071s after integration. Root stayed read-only.
+- Bound Reaper passive charge now follows world ticks; standalone BodyScript
+  retains its explicit command-frame clock. No-input and normal-input125 ticks
+  both award10, and future/duplicate commands cannot award time twice. The
+  world anchor reaper_charge_tick and unfinished reaper_charge_ms are exported
+  without evaluation in body-VM/full-server and legacy trace observations.
+- Channel overlap is excluded even across skipped world ticks. A matching
+  terminal world channel resumes passive charge despite a stalled owner VM;
+  interruption clamps the channel end to actual world time. Death/ineligibility
+  reset the remainder, and replacement bodies get a new anchor. Zero-rate and
+  cap handling stay bounded over large gaps. Other heroes retain their policy.
+-44 charge/Reaper/snapshot checks pass in134.985s, plus32 expanded clock/legacy
+  checks in18.091s. Native mode/target/tag/difficulty/healing gates and actual
+  native/server-clock equivalence remain OPEN. This is a server reconstruction.
+- Legacy trace observation now includes pending join arrivals and traversal
+  context, preserving the parent join foundation's causal state in that format.
+- On64bf71c,322 expanded regressions pass in605.921s with explicit NPC data,
+  no skips, Ruff/diff pass. Includes full server snapshot/stored-journal checks.
+  Log:tests-reaper-control-final-regression.txt. The10 actual Reaper control
+  suites also pass independently in11.398s.
+- Historical charge-clock-frontier.json records the unfixed0 versus10 result.
+  The world-clock reconstruction above fixes that observed discrepancy; it does
+  not establish original-client/native authoritative clock equivalence.
+- Private base64bf71c reuses shared Flashbang/control deadlines, input/movement
+  suppression, route pause, static splash visibility and lifecycle cleanup.
+  Merge preserves stuns together with reaper_blossoms/reaper_shadows in both
+  Combat and stored snapshots. No shared root was modified by this lane.
+- Accepted Flashbang control now interrupts actual Blossom and Shadow roots,
+  rather than only Ability-class states. Protected targets reject hit effects
+  separately from damage. Native224E status-manager execution is NOT claimed.
+- Ten actual-input Reaper control cases pass in11.398s. A real backstop makes
+  the grenade collide near the target, including intangible casts. Wraith and
+  Shadow's authored immunity window prevent damage/control; Wraith recovery
+  and landed Reaper are vulnerable. Zen/Mei self-protection rejects both too.
+  Normal Flashbang deals25 and uses an exclusive50-world-tick deadline here.
+- Selector interruption spends no Shadow cooldown and permits reopening after
+  stun. Pre-immunity cast interruption prevents late teleport and preserves the
+  authored10s cooldown; a completed landing is not undone. Blossom interruption
+  keeps spent charge0, clears target clocks and cannot resume after stun or a
+ 220-frame no-owner-input world advance. Primary fire recovers and charges only
+  actual available enemy health. Real70-damage McCree primaries can kill Reaper
+  during stun; death and hero replacement remove the old body's control/clocks.
+  Log:tests-reaper-control-expanded.txt; probe:probe-reaper-flashbang.txt.
+- On7cd1ed7:257 selected regressions pass in259.533s, no skips, with explicit
+  NPC data; Ruff/diff checks pass. Log:tests-defenses-final-regression.txt.
+- Private base now reuses7cd1ed7's shared static melee visibility fix. Reaper
+  visible/wall-blocked player and training-NPC cases verify real30/0 damage,
+  corresponding Reaping and damage charge, without phantom wall hits.
+- Actual Zen Q and Mei Shift now enter their017B/st8 and05FE/st17 owner scopes
+  through explicit zero-delay54FEB21C server callback bridges. Their authored
+  chase durations own6s/4s protection. No damage, hit notice, Reaping or damage
+  charge from shotgun, melee or a full Blossom against those protected bodies;
+  bodies still intercept pellets before an enemy behind them. Mei primary
+  cancel/hero replacement remove protection; cooldown refusal/expiry/reuse and
+  Zen ultimate refill/reuse pass. Passive snapshot checks cover both live scopes.
+- These damage-immunity and callback consumers are explicit reconstructions,
+  scoped by hero/graph/state and owner-target configuration. They do not define
+  a generic D07EBF01 meaning. The captured client has only its passive parent
+  implementation, not authoritative damage logic. Native54 begin8E5A90 exports
+  random/context values and queues timer1;8E5F50 does not unconditionally finish.
+  Its full callbacks/auxiliary interfaces remain unimplemented. Native defense
+  geometry/target selection and complete abilities are not accepted by this subset.
+-187D5125 now queues timer3 for allocated Ability states in state-index order,
+  without allocating missing states. Ability timer3 releases and rechecks
+  activation. Original C84040/state lookup/runtime RTTI match five Python cases
+  in ability-stop-action-native-validation.txt; timer storage/plug are adapters.
+  Tests verify outgoing actions before deferred stop and instance isolation.
+- Reaping0075's ModifyHealth carries tags1DE7/25A.0B8B's healing-charge route
+  rejects25A at node80, supporting no extra charge from this passive's healing.
+  Healing events and target/difficulty filters elsewhere remain open. Resource
+  probe:defense-healing-resources.txt. Zen017B supplies1800 over6s; Mei05FE
+  supplies200 over(#567-.1)=3.9s. Their actual healing consumers are NOT yet
+  implemented, so neither complete defensive skill is claimed.
+- On6debff3:228 selected Reaper/charge/interlock/snapshot/array/body-VM/runtime/
+  Soldier/NPC/projectile/combat/manifest regressions pass in119.009s, no skips,
+  with explicit external NPC data. After including the passive remainder in
+  legacy command-trace hashes,33 replay/snapshot/manifest cases pass in24.583s.
+  Evidence:tests-charge-interlocks-regression.txt, tests-charge-legacy-replay.txt.
+- Earlier6debff3 reused the parent's array-selection implementation.
+-0B8B node23 supplies damage charge min(cost, charge + actualDamage *9532 *13022),
+  and node4 supplies passive min(cost, charge +5 *9532 *12918); missing scalar
+  multipliers default1. Node3 supplies the one-second interval. Reaper now uses
+  those expressions instead of the shared60-second fill placeholder. Cadence
+  is explicit reaper_charge_ms server state, exported without evaluation by
+  body-VM and full-server observers. Positive ult_seconds enables the authored
+  Reaper cadence; zero disables passive awards. Other heroes keep legacy policy.
+- Charge eligibility is explicitly reconstructed for an alive sandbox body:
+  missing2426 uses sandbox eligibility; explicit false2426/9530 or both false
+ 10482/10480 reject. Active842/Blossom/death reject;11942 blocks passive and
+ 12321 blocks damage separately. This does not restore native F7262B36/mode
+  services,012 target/tag filters, target-type difficulty scaling, absorption
+  exclusions or healing-event routes. Native-backed arithmetic and reconstructed
+  eligibility must not be confused with complete charging acceptance.
+- Eight actual charge cases pass in5.457s: pellet/melee actual damage, armour,
+  overkill/corpse, miss/LOS/ally rejection, multipliers/cap, real ultimate use,
+  channel suppression, death/duplicate commands and passive timing. The Reaping
+  is not added as a second damage/charge event; native healing-charge/tag policy
+  remains open.24 VM/partial-clock observer tests pass in27.272s.
+- Three mutual-exclusion command suites pass in2.251s. Blossom blocks primary,
+  secondary, Wraith, Shadow, repeat ultimate, reload and melee, preserving15
+  damage pulses/510 and ammo8. Shadow's locked cast blocks those actions and
+  later aim cannot retarget. Wraith ignores secondary, E, Q, reload and melee;
+  its own button cancels after the minimum and starts cooldown. This resource
+  version has no authored secondary-fire Wraith cancellation.
+- On d1286b7:183 selected regressions pass in73.622s (188 discovered, five
+  external-NPC cases skipped), followed by all five actual-NPC cases in18.147s
+  with explicit ORPHEUS_NPC_RUNTIME_DIR. Ruff and diff checks pass. Evidence:
+  tests-parent-shared-input-regression.txt and tests-parent-shared-actual-npc.txt.
+- Earlier d1286b7 incorporated the parent's shared NPC initializer, replacing
+  the equivalent lane-local mounting fix. NPC bodies with a weapon component
+  initialize its manager and weapon instances as well as their initial body
+  graphs; Sniper's previously omitted1122/1134 now mount. Actual manual
+  engagements produce first damage20/100/5 for Trooper/Sniper/Heavy Assault,
+  respectively; all three can kill Reaper with NPC death attribution, stop
+  without late damage, and emit volleys while Wraith correctly prevents damage.
+  Sniper trigger release/repress is explicit manual control. Enforcer and
+  Assassin remain unresolved and never count as passing from no-damage runs.
+-103 relevant NPC/body/engagement/projectile/combat/active-snapshot tests pass
+  in80.913s;15 manifest tests pass in1.307s, with Ruff/diff checks. Runtime
+  identity now includes NPC script and engagement policy knobs. Fixture NPC
+  projectile observer streams are absent; authoritative damage is tested while
+  projectile replication/native AI/whole-client fidelity remain unaccepted.
+- Native logical-button evaluator1B758C0 and STU offsets B0..B3 establish
+  down/up-edge and held/released flags, with disabled-input rejection. The
+  default down-edge was incorrectly treated as held, causing an E press during
+  Wraith to cycle Shadow Step's refused priority stack until the VM failed.
+  Completion checks now preserve edge context; the held wait does not retry.
+  Native/Python128-case truth table passes with explicit variant and input
+  adapters (lane button-native-truth.txt; offline captured image, not live AI).
+- Actual movement commands verify Wraith5.5->8.25->5.5 and collision-flag
+ 1->0->1. Manual reload refills eight, locks held primary until recovery, and
+  melee during reload delays refill without a free shot/shell. Wraith refills
+  eight immediately and retains ammo through its channel/recovery. Four new
+  behavioral cases pass; the expanded71-test group passes in51.516s before
+  parent initializer integration. Full status cleansing remains OPEN.
+- Shadow Step now has a declared server bridge: the live selector's35m ray
+  must hit a visible walkable surface, fit a standing capsule and avoid living
+  actors. Confirm locks the point; secondary cancels without cooldown. A scoped
+  reconstruction finishes00F2/st32 at its1.5s duration and commits the landing
+  after revalidation. The root retains its recovery and10s cooldown, refuses
+  cooldown attempts and can reopen after expiry. Death/early scope abort cannot
+  teleport. Immunity follows authored linked-state34 rather than all selection.
+  Native landing adjustment/random/context callbacks remain missing. Input wait
+  after a refused attempt is reconstructed to re-arm after release, avoiding a
+  held-key loop or permanent disable. State lives in Combat.reaper_shadows.
+-135 combined tests pass in74.557s (previous128 plus seven Shadow lifecycle
+  tests), with Ruff/diff checks. Later real low-ceiling and vertical-wall geometry,
+  occupation during cast and passive selector-clock export checks are separate
+  evidence; inspect lane test logs for the latest results.
+-128 tests pass in67.595s across Reaper24, actual NPC2 (five definitions each),
+  active-channel passive snapshot1, combat28, projectiles37, NPC6, extractor3,
+  logical-button transitions2, runtime13 and existing Soldier abilities12.
+- Death Blossom reads root0044's duration/radius and applies effect0045's34
+  damage at5Hz to each acquired hostile target. A continuous3s acquisition
+  takes15 pulses/510 damage; armour is reduced per34-point pulse. LOS uses the
+  capsule midpoint and range the capsule surface, both explicit reconstructions.
+  New/re-entering targets begin their own clock; they receive no backfilled
+  damage for time outside acquisition. World clock expiry cannot restart a
+  stale still-active VM channel. Control-hook cancellation, source death and
+  hero retirement stop damage; actual cross-hero control wiring remains open.
+- Charge2100 is required by the authored root and consumed on cast. The driver
+  now suppresses its baseline passive charge while this non-Ability channel is
+  active. Damage-based charging and exact native passive rates remain OPEN.
+- Active channel/target timing is explicit Combat.reaper_blossoms storage,
+  included in server snapshots; mutating a target clock changes passive digest
+  without running variable evaluation or State payload callbacks.
+- Actual Trooper/Enforcer/Sniper/Assassin/Heavy Assault bodies load from an
+  explicitly supplied read-only sparse NPC pack. Each takes primary120,
+  melee30 and up to510 Blossom damage, and primary/melee fund capped Reaping.
+  Repeated real primary input kills all five, including Heavy Assault4000;
+  each body stays dead and unrespawned beyond the ordinary bot respawn time.
+- Primary tests also cover real health at full/floor falloff and the100m reach,
+ 20-pellet head damage240, clip exhaustion, reload fire lock and refill8.
+  The absent Reaper critical multiplier is reconstructed as2x, scoped to0019;
+  this is execution evidence for the reconstruction, not native-default proof.
+- Button-condition compiled owners now receive completion checks on matching
+  input changes. The real00F2 graph reaches its selector with input16; no
+  placement or teleport follows merely from this selector-entry proof.
+
+Direct partial execution:
+- tests/test_game_reaper.py sends real Match/player commands into the hero body
+  and Combat. It verifies 20x6 shotgun body damage, single-shell ammunition,
+  individual armour reduction, spread hitting an off-axis target, misses,
+  wall occlusion, player death, corpse-retaining Training Bot death, no repeated
+  damage to a corpse, friendly exclusion, melee30, capped healing and no revival.
+- Graph0019/st6 supplies20 pellets, radius ratios0/.25/.5/1, ring counts1/5/6/8,
+  spread6 and falloff10..20 to.3. The tangent-plane projection, degrees and zero
+  phase are reconstructions pending native trajectory/seed comparison.
+- Graph0075/st5 supplies the0.35000002 healing coefficient. Healing consumes
+  real damage after armour and overkill. Ally/self/miss/dead-source exclusions
+  are enforced. Anti-heal, healing boosts and barrier semantics remain open.
+- Wraith graph0020/st1 uses unsupported54FEB21C with delay0 and no outputs.
+  A Reaper-only post-command adapter finishes this entry gate. It does not
+  implement the original node's engine random/context output callbacks.
+  Graph0020/st3 then owns3s intangible time, st7 owns.4s weapon recovery, and
+  the Ability cooldown variable receives8s when the ability finishes.
+  Direct damage and target acquisition reject an intangible Reaper.
+- Reaper tests cover Wraith duration, primary cancel after the minimum time,
+  damage rejection, cooldown refusal and expiry/reuse. The rejected press must
+  preserve its timestamp: refreshing it previously caused unintended late casts.
+- Existing test_script_abilities.py covers12 Soldier ability/owner-wire cases
+  after the shared input-buffer correction; no client visual claim is made.
+- Final combined102 Reaper/combat/projectile/stored-snapshot/ability tests pass
+  in484.176s, with Ruff and diff checks. A separate lane-owned probe using the
+  parent's read-only NPC package loads all five real bodies and observes120
+  damage per shell: Trooper200->80, Enforcer350->230, Sniper300->180,
+  Assassin500->380, Heavy Assault4000->3880. This is a permissive body-VM and
+  collision/transport fixture subset; their AI/incoming/specials remain open.
+
+Recovered resource evidence for the next work:
+- Local DataTool extracts of type053 and01B (outside source/Git) show
+  000000000004.053 -> effect graph000000000045.01B. That effect graph is absent
+  from the prepared runtime graph bundle. Its volley has5 shots/s, damage34,
+  critical1, range9 and loadout000000000010.09E. Root0044 acquires targets at8m.
+  Root0044 also has a16Hz visual volley with no ModifyHealth; using that visual
+  rate as the damage rate would be wrong. Exact target-effect timing, LOS and
+  ownership/native acquisition fidelity remain unaccepted; the declared
+  server effect consumer above now has direct subset acceptance.
+- Death Blossom charge cost is2100 from current body variables. The initial
+  short probe used1500 and therefore did not exercise a charged cast. A later
+ 2100-charge command enters root0044/st3 and clears charge; no ultimate damage
+  acceptance is inferred from that graph transition.
+
+Remaining matrix, all OPEN until directly tested:
+- Native 031A combat-mod/filter/tag/AI/mode and effect dispatch fidelity beyond
+  the declared normal-human Ana consumer; other damage/healing boosts and
+  generic cleanse/status stacking/transport/presentation.
+- Native world/input time, transport rollback and historical target poses beyond
+  the declared completed-window/static-pose reconstruction.
+- Wider reload cancellation/repeated-input cases and native critical/seed fidelity.
+- Wraith status cleansing/death/hero-switch/interrupt
+  interactions and owner/observer/client agreement.
+- Shadow Step native landing-adjustment fidelity, wider geometry/moving-world/
+  cross-hero interruption cases and owner/observer/client transport agreement.
+- Death Blossom native mode/target/tag/difficulty/healing-event charge gates,
+  native/server-clock fidelity, actual cross-hero control/barrier/
+  reflect/absorb hooks and presentation. Direct arithmetic/cadence and own-skill
+  mutual exclusion subsets pass as described above.
+- Cross-hero barriers, reflect, absorb, remaining damage prevention, status/control,
+  anti-heal/healing boosts/cleanse and native Zen/Mei healing integration/filters/
+  modes/activation. The bounded protection/healing subsets above have direct
+  evidence; complete native geometry/callback/target and broader skills stay open.
+- Incoming NPC attacks/specials for Trooper, Enforcer, Sniper, Assassin and Heavy
+  Assault and full bidirectional interaction. Outgoing damage/life steal and
+  actual retained-corpse lifetime subsets now pass as described above.
+- Original-client combat, audio, animations, hit feedback, health/ammo HUD,
+  skill cooldown HUD and two-way player/NPC behavior (separate later acceptance).
+
+Publication and integration:
+Parent reviews isolated commits/patches and serializes shared-main integration.
+This lane never modifies or merges original ORPHEUS/main, and does not push.
+MERGE_READY.json must report static_acceptance_complete false while any item
+above lacks direct evidence. No completed goal or merge is claimed.
+
+Validated Ana/navigation-input boundary (2026-11-09):
+- All407 selected frozen regression tests PASS in787.904s, no skips; log
+  tests-reaper-ana-final-regression.txt in lane0002. Both runtime variables
+  point to the read-only43-row npc-navigation-runtime; missing actual NPC
+  movers fail explicitly. Static fixtures only; real map cache is absent.
+- This supersedes old fallback geometry only for exercised subsets. Ana normal
+  profile is a declared reconstruction; native filter/mode/AI/effect dispatch,
+  Sleep/control and the remaining full hero/NPC matrix stay OPEN.
+
+Scoped Sleep Dart consumer (2026-11-09):
+- Actual logical8 ->0BDD direct5/effect026F requires holding aim until the
+  delayed volley emits. Fixture zero aim after a single press caused a miss.
+-0BDE/node51 plays224E with profile676B and215=5.224E/node166 permits damage
+  wake only when remaining < initial-0.5;76 ->145 clamps remaining to0.5.
+  Node54 wake animation specifies0.5. Normal world-tick consumer includes
+  that final wake phase in5s; repeated damage cannot extend recovery.
+- Independent sleep/Flashbang tables suppress player/manual-NPC input. Accepted
+  control uses authored ability/Blossom/Shadow exits. Applied sleep survives
+  caster switch; recipient death/retirement/removal clears it. Pending unleased
+  sleep darts retire with their source body. Full-server snapshots seal plain
+  start/end/waking fields without evaluating the control/VM.
+- Declared reconstruction: native filters/message tag191F exclusions, modes,
+  multi-source stacking, exact wake message/animation ordering and autonomous
+  NPC control remain OPEN. No unknown native predicate is globally hard-opened.
+
+Sleep final selected regression:421 PASS945.319s, no skips; both runtime roots
+use the immutable43-row navigation runtime. Native messages/filters/modes and
+complete hero/NPC static matrix remain open. The independent400-frame Enforcer
+and Assassin probes emit no volleys or incoming damage despite logical20 input.
+Enforcer2279 source XML has null manager/weapons, so dynamic assembly/input gates
+need tracing; no guessed default weapon or hard-open gate was added.
+
+Parent cooldown notice reviewed on actual Wraith (2026-11-09):
+- This lane already retains the original timestamp with take_press(consume=False)
+  and consumes only after all activation gates pass, equivalent to the parent's
+  retain=True API. No shared source imported or modified; no runtime change needed.
+- Authored m_246438AD on0020/Ability st10 evaluates0.15000000596s. Existing deep
+  cooldown short press expires and a fresh ready press works. Added actual near
+  expiry short press and held-input cases enter Wraith when ready. Count actual
+  cast child st1, since the persistent Ability state's counter is not a cast count.
+-34 input/ability/runtime/button/stop checks PASS22.743s after fixture correction.
+  This supplements the421-test frozen runtime pass; only tests/docs changed after it.
+
+Manual Enforcer and Shadow throttle boundary (2026-11-09):
+- Parent context evidence is read-only. Re-executed original CC9F61 boolean tail
+  plus182C470 bitset reader against the private controller_predicate for8 cases.
+  DA6910 lookup and F66AF0 output are explicit adapters. Context policy4B/no5C
+  is only for manual Enforcer/13EB owner queries. Aggregate health mapping is
+  reconstructed, verified350 ->230 ->110 ->0 from real Reaper shells/death.
+-13EB volley resource:25 projectiles,80 speed,2 damage,4 degrees with1/8/16
+  rings (radii0/.5/1). Native phase/seed/muzzle/transport remain unaccepted.
+  Reuse Reaper's reviewed tangent ring sampler with explicit caller scopes.
+  Direct projectile damage now uses actual flown distance for authored falloff:
+  8..15m to0.200000003 floor. Long-range actual hits settle0.4 damage per pellet.
+- Four actual ranged NPC types including Enforcer damage/kill Reaper, block
+  damage during Wraith, and stop without late attacks. Existing outgoing Reaper
+  shots/melee/Blossom remain covered. Wall inserted after emission stops all25
+  projectiles. This does not restore autonomous AI or Assassin specials.
+- Parent17/18/19 throttle modifier fix adopted into private mover: forward and
+  backward magnitudes, unsigned lateral followed by restored sign and clamp.
+  Independent120 original C33960..C33A8D prefix cases pass with scalar lookup
+  stub; native complete mover equivalence is not claimed. Actual Shadow F2/17
+  movement-mod st8 now blocks all axes from next frame and restores after cast.
+  Mover raw throttles/input frame/history schemas are unchanged.
+- BotWorld controller_components is explicit causal data in body-VM/full-server
+  snapshots; both capture without invoking native/Var getters. Actual Enforcer
+  full-server capture changes digest when declared component facts change.
+-46 NPC/Shadow/body and36 Enforcer/snapshot/mover fixture checks pass. Original
+  map cache is absent; this only covers static fixtures. Full control/defense/NPC
+  AI/specials/native geometry/time/charge fidelity still require further evidence.
+
+Final Enforcer/Shadow selected runtime regression:460 PASS1095.880s, no skips,
+with both runtime roots on immutable43-row npc-navigation-runtime. Source was
+frozen throughout snapshots/stored journals/native replay/manifests. Remaining
+full hero/NPC matrix is OPEN. No completion commit or client acceptance claim.
+
+Notification/exit lifetime follow-up (2026-11-09):
+- The parent2 minimal notification regressions also fail on this private runtime
+  before repair. State.end now clears flags_check/flags_changed after cancel;
+  Component.changed excludes ending states. Capture schema/fields are unchanged.
+- Ability.stop queues scope exits/on-stop/resource changes before arbitration
+  unlink. This prevents a newly released weapon observing stale ammo; exact
+  native cross-object ordering is still explicitly reconstructed.
+- Actual1-shell and8-shell consumption, Wraith refill8, then held-primary first
+  actual shell leaves7 and deals120. No direct clip edit is used.67 notification/
+  Reaper/runtime/budget/ability/stop checks PASS32.335s. Earlier460 frozen pass
+  is historical until this lifecycle change's own full regression completes.
+
+Final lifecycle regression:463 PASS1122.853s, no skips; both immutable43-row
+navigation runtime roots.67 prior lifecycle/Reaper checks passed32.335s. Full
+static hero/NPC matrix remains OPEN. Native ability cross-object exit ordering
+is still reconstructed; this pass is selected server evidence only.
+
+Manual Assassin pin / eye-height boundary (2026-11-09):
+-1157 contact ModifyHealth node25 amount25, wait24=1s, continuous15 mode1
+  amount11984=100; per-second consumption and explicit3m manual contact are
+  declared reconstructions.20 remains the extracted AI slot;36 is an explicit
+  manual pin action. DB742151 returns a data-only controller descriptor with
+  target1650 bound to the current victim body, no fake controller entity/wire.
+- Actor source/victim alive/team/range/static LOS/retirement gates are checked.
+  Wraith/Shadow intangible targets and bounded Zen/Mei protections reject pin.
+  Control uses authored ability/Blossom/Shadow exits; stopped/killed/slept source,
+  recipient death/switch and explicit NPC removal release control. No native
+  acquisition/lunge/navigation/camera/animation/namespace equivalence claimed.
+- Actual Reaper contact225,1s phase, then100/s world rate. Cross-frame entry
+  may settle an initial fractional interval; fixed20-tick windows lose32 health.
+  Stop restores actual primary and42 Reaping; pin kills with NPC attribution.
+  Actual support Reaper shell kills pinner, actual Ana Sleep breaks pin. Eleven
+  methods PASS10.862s; first fixture's hidden source failed hero selection and
+  is corrected with spawn-before-switch and acceptance assertions.
+- ModifyHealth.last_applied, BotWorld.manual_target and Combat.pins are causal
+  stored state. Full-server capture pass61.398s changes digest for each without
+  Var/native/VM evaluation. Body-VM seals clock/context and excludes enclosing
+  Match; full-server seals Match linkage and control table.
+- Reaper0022 FirstPerson XML1.55 standing/1.085 crouched; crouch formerly used
+  generic1.15 fallback. McCree02A31.425/.9975 incorporated for enemy interaction.
+  One eye_height helper drives player origin and Target.eye, preserving unknown
+  bodies' fallback. Actual stance/low-wall/twenty-pellet tests pass2 in3.420s.
+  Fixed HEAD_BELOW remains an unverified head-region approximation, not bones.
+-92 common Reaper/Sleep/Enforcer/bot/body-VM checks PASS54.286s. Remaining
+  barrier/reflect/absorb/boost/control and full hero/NPC static matrix are OPEN.
+
+Final Assassin/eye regression:477 PASS1260.615s, no skips. Both runtime roots
+use the immutable43-row navigation pack; source remained frozen through all
+snapshot/stored-journal/native-replay tests. Full static matrix remains open,
+including actual barriers/reflection/absorption and remaining controls/NPC specials.
+
+Reinhardt0095 barrier -- partial normal hitscan profile (2026-11-09)
+- Native295F1CDE EvalCC9A80 calls C1BBB0: ruleset0D8000000000254B/default1.
+  This restores actual authored health1600. Stored586 backs only0095/#38's
+  exact health query. The host condition for node18 follows actual Pet51 state17
+  each frame, so the original false subgraph owns2s wait and200/s ChaseVar.
+  No fabricated entity ID or data map is written into the typed Pet output38.
+- Barrier damage writes586; actual message0240000000000053 drives zero health,
+  Pet abort and5s cooldown. Body hit/critical/leech/damage charge are not awarded.
+- An Ability cooldown output changes without writes. Watched reads of the active
+  slot0 getter now join the existing poll list (including reads below stacks).
+  This declares server frame invalidation, not native callback parity.
+- Complete authored model0A3C curved mesh98 vertices/192 triangles remains in
+  external storage. Set ORPHEUS_REINHARDT_BARRIER_GEOMETRY to the prepared JSON:
+  SHA256523e98ccdde7233bcf4565fe1640e2ca8dd099eea7c627dc67315be59543f9a9.
+  The checksum and pose constants are sealed in runtime model identity; snapshots
+  neither load geometry nor evaluate health/presence to observe changes.
+- Active pose reconstruction: current aim, height1.541406989 from8C world-bind,
+  forward0.9 = standing capsule0.7 plus Pet0.2; model negativeZ outward. Animated
+  attachment/native lag compensation/filter masks/two-sided policy remain open.
+  Body model4F2 has overlapping bone/hardpoint numbers; separate typed records
+  avoid the generic merged-node cycle1/5/4. Do not use that mixed frame as pose.
+- Actual20 pellets: shield1600->1480/body500 unchanged/no Reaping or charge;
+  last6 shield break then19 pellets damage body500->443;5s refusal/expiry/reuse.
+  Held no-heal, release delay/cap/reuse, friendly/miss, no-body rays, away-facing
+  body exposure and actual static wall-before-shield execute.72 related checks
+  PASS60.096s;17 passive snapshot/model identity checks PASS84.882s.
+- Projectile/melee/Blossom consumers, other applicable barrier families and wider
+  lifecycle/overlap/range/geometry/player/NPC matrix are OPEN. Pet entity creation
+  and replication, active animation and all original-client acceptance unperformed.
+
+Reinhardt quick melee
+- The reconstructed0043 tracker selects bodies through an active Reinhardt
+  shield and still checks static map LOS, range and team. Actual quick melee
+  leaves shield1600, removes25 armored body health, and reaps8.75.
+  Actual wall, friendly and5m cases reject. This does not establish native
+  shield-target filtering or apply to other melee profiles.

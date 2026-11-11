@@ -199,7 +199,21 @@ class InstanceContext(Context):
             return None
         if self.watcher is not None:
             self.watcher.watch(var)
-            if self.watcher.reads_below(var):
+            below = self.watcher if self.watcher.reads_below(var) else None
+            visible = None
+            for link in var.links:
+                if link.state is below:
+                    break
+                if link.state.active:
+                    visible = link
+            if (visible is not None and visible.slot == 0
+                    and getattr(visible.state, "family", None) == "ability"):
+                # The cooldown getter changes with time without a Var write.
+                # Reconstruct frame invalidation through the existing poll list;
+                # do not invent writes or mutate the stored cooldown base.
+                self.watcher.polled = True
+                self.watcher.ticks()
+            if below is not None:
                 return var.value(below=self.watcher)
         return var.value()
 
@@ -270,6 +284,11 @@ class InstanceContext(Context):
                 component.unsupported(self.instance, "entity position", f"{entity:08X}")
             return expr.Vec3(0.0, 0.0, 0.0)
         return value
+
+    def ruleset_key(self, cfg):
+        instance = self.instance
+        key = instance.component.world.ruleset_key(cfg, instance)
+        return super().ruleset_key(cfg) if key is None else key
 
     def ruleset(self, key: int):
         found = self.var(ENTITY, key)
@@ -366,14 +385,26 @@ class World:
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
+    def graph_raycast_provider(
+        self, instance, node
+    ) -> Callable[[RaycastRequest], RaycastResult | None] | None:
+        return None
+
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
+
+    def ruleset_key(self, cfg, instance):
+        return None
 
     def ruleset(self, key: int):
         from ow174.game.script import rulesets
 
         return rulesets.default(key, self.hero, self.mode)
+
+    def state_condition(self, state):
+        """Optional explicit host condition; NotImplemented preserves authored evaluation."""
+        return NotImplemented
 
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
@@ -391,6 +422,16 @@ class World:
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        """Explicit world consumer; unknown health semantics remain unimplemented."""
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        return None
+
+    def refresh_compatible_placement(self, state: "State", *, confirm: bool):
+        return NotImplemented
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -487,6 +528,27 @@ class World:
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def apply_velocity(self, instance, node):
+        return NotImplemented
+
+    def track_targets(self, state):
+        return NotImplemented
+
+    def placement_confirmation(self, state):
+        return NotImplemented
+
+    def confirm_photon_barrier(self, state):
+        return False
+
+    def create_entity(self, instance, node):
+        return NotImplemented
+
+    def destroy_entity(self, instance, node):
+        return NotImplemented
+
+    def play_gameplay_script(self, instance, node) -> None:
+        """Optional scoped host service for permissive game bodies."""
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -670,7 +732,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1219,7 +1281,12 @@ class Instance:
         elif event.kind == CHECK:
             state.flags_check = False
             if state.active:
-                state.try_complete()
+                previous = self.component.button
+                self.component.button = event.button
+                try:
+                    state.try_complete()
+                finally:
+                    self.component.button = previous
         elif event.kind == CHANGED:
             state.flags_changed = False
             if state.active:
@@ -1247,6 +1314,20 @@ class Instance:
             state = self.state(index)
             if state is not None:
                 state.button(button, pressed)
+        # A logical-button condition is not itself a State. Its compiled owner
+        # list identifies transition States that need a completion check when
+        # this input changes (e.g. Reaper00F2/st1 waiting for Shadow Step).
+        for node in self.graph.nodes:
+            if node.cls != "STU_7DEB522D" or not self.accepts(node):
+                continue
+            cfg = node.field("m_logicalButton")
+            if expr.to_int(self.evaluate(cfg)) != button:
+                continue
+            for index in node.field("m_122DF0CA") or ():
+                state = self.states.get(index)
+                if state is not None and state.active and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(component.now, 0, CHECK, state=state, button=button, pressed=pressed))
         component.button = NO_BUTTON
 
     def run_deferred(self) -> bool:
@@ -1445,6 +1526,12 @@ class State:
 
     def plug_enter(self, input_path: str) -> bool:
         """A link enters the state (base 0x7FF78AA83D80): the abort plug asks for an abort, others a begin."""
+        if (self.instance.graph.index == 0x1902 and self.index == 9 and self.active
+                and input_path == "m_6647ED22"):
+            result = self.instance.component.world.placement_confirmation(self)
+            if type(result) is bool:
+                self.instance.follow(self.node, "m_F6955E81" if result else "m_425337C6", self)
+                return True
         if input_path == ABORT_PLUG:
             self.request(ABORT)
         else:
@@ -1471,6 +1558,8 @@ class State:
         self.ticked_at = self.now
         self.on_begin()
         self.on_enter()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.create_entity(self.instance, self.node)
         if not self.active:
             return
         self.instance.follow(self.node, "m_onBeginPlug", self)
@@ -1485,8 +1574,12 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These coalescing bits describe the canceled queued notifications.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.destroy_entity(self.instance, self.node)
         self.on_cleanup()
         self.unwatch()
         self.polled = False

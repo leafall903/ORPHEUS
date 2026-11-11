@@ -10,9 +10,15 @@ import json
 import random
 
 from ow174.game import replay_values
+from ow174.game.baptiste_field import FieldWorld
+from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.orisa_supercharger import DeviceWorld
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.sigma_barrier import BarrierWorld as SigmaBarrierWorld
+from ow174.game.symmetra_barrier import BarrierWorld as SymmetraBarrierWorld
+from ow174.game.winston_barrier import DomeWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -38,8 +44,10 @@ _STATE = frozenset((
 ))
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
-    "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ult_gain_bonus",
+    "reaper_charge_ms",
+    "reaper_charge_tick", "world_frame_anchor",
+    "ultimates", "reports", "report_count",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -75,7 +83,9 @@ _STATE_LAYOUTS = {
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
-    nodes.MoveTo: (("movement",), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
+    nodes.CompatiblePlacement: ((), ()),
+    nodes.MoveTo: (("movement", "swept_targets"), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
@@ -89,7 +99,9 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.EarthshatterRelease: ((), ()),
+    nodes.EarthshatterWave: (("targets", "var", "origin", "forward", "speed", "reach", "launch_tick"), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "var"), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -212,6 +224,8 @@ class _Export:
         fields = _layout(obj, _STATE | set(required), optional)
         _containers(fields, ("watched",), dict, "state")
         _containers(fields, ("natives",), set, "state")
+        if kind is nodes.MoveTo:
+            _containers(fields, ("swept_targets",), set, "state")
         owner = fields["instance"]
         self._instance(owner)
         self._graph(owner.graph)
@@ -383,17 +397,27 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        barrier_worlds = (BarrierWorld, SigmaBarrierWorld, SymmetraBarrierWorld)
+        if kind in (runtime.World, BodyWorld, BotWorld, DomeWorld, FieldWorld, DeviceWorld, *barrier_worlds):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
+            if kind in barrier_worlds:
+                fields.add("actor")
+            if kind is DeviceWorld:
+                fields.update(("fight", "entity", "location"))
+            if kind is FieldWorld:
+                fields.update(("body", "origin", "retired"))
+            if kind is DomeWorld:
+                fields.update(("manager", "actor"))
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "match", "manual_target"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "manager", "actor", "fight"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

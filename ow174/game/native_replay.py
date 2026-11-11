@@ -29,6 +29,8 @@ HEADER_FIELDS = {
 }
 MODEL_FILES = (
     "ow174/game/native_replay.py", "ow174/game/commands.py", "ow174/game/pools.py",
+    "ow174/game/reaper.py",
+    "ow174/game/defenses.py",
     "ow174/game/script/driver.py", "ow174/game/script/runtime.py", "ow174/game/script/expr.py",
     "ow174/game/script/nodes.py", "ow174/game/script/graph.py", "ow174/game/script/rulesets.py",
     "ow174/game/script/codecs.py", "ow174/game/statescript.py",
@@ -114,6 +116,7 @@ def _snapshot(script: BodyScript, encode) -> dict:
             "vars": _variables(instance.vars, encode), "states": states,
             "queue": encode(instance.queue), "deferred": encode(instance.deferred),
             "ticking": encode(instance.ticking), "params": encode(instance.params),
+            "join_inputs": encode(instance.join_inputs), "plug_source": encode(instance.plug_source),
         })
     return {
         "hero": script.hero, "entity": script.entity, "frame": script.frame,
@@ -121,7 +124,10 @@ def _snapshot(script: BodyScript, encode) -> dict:
         # Cross-body routing belongs to the full match replay, outside this command trace.
         "world": encode({key: value for key, value in vars(script.world).items() if key != "match"}),
         "server_only": sorted(script.server_only),
-        "ult_seconds": encode(script.ult_seconds), "instances": instances,
+        "ult_seconds": encode(script.ult_seconds), "reaper_charge_ms": script.reaper_charge_ms,
+        "reaper_charge_tick": script.reaper_charge_tick,
+        "world_frame_anchor": encode(script.world_frame_anchor),
+        "instances": instances,
         "component": {
             "frame": component.frame, "now": component.now, "held": list(component.held),
             "button": component.button, "owner_dead": component.owner_dead,

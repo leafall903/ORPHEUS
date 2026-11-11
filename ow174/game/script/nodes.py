@@ -544,6 +544,9 @@ class BooleanSwitch(State):
         self.pending = False
 
     def condition(self) -> bool:
+        value = self.instance.component.world.state_condition(self)
+        if value is not NotImplemented:
+            return truthy(value)
         return truthy(self.evaluate(_field(self, "m_condition")))
 
     def on_begin(self) -> None:
@@ -1155,6 +1158,7 @@ class MoveTo(State):
     def __init__(self, *args) -> None:
         super().__init__(*args)
         self.movement: tuple[Vec3, float] | None = None
+        self.swept_targets: set[int] = set()
 
     def on_begin(self) -> None:
         speed_config = _field(self, "m_speed")
@@ -1178,6 +1182,7 @@ class MoveTo(State):
 
     def on_end(self, finished: bool) -> None:
         self.movement = None
+        self.swept_targets.clear()
 
 
 @state_class("STUStatescriptStateAnim")
@@ -1303,13 +1308,14 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, consume: bool = True) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if consume:
+                    self.presses.remove(item)
                 return True
         return False
 
@@ -1320,6 +1326,12 @@ class Ability(State):
 
     def timer(self, param: int) -> None:
         if param in (1, 2):
+            self.activate()
+        elif param == 3:
+            # C846D0 -> C96550: release the running/pushed ability and check
+            # activation again.187D5125 schedules this for the instance's
+            # allocated Ability states; stopping is deferred, not inline.
+            self.stop()
             self.activate()
 
     def plug_enter(self, input_path: str) -> bool:
@@ -1360,7 +1372,7 @@ class Ability(State):
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, consume=False)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1376,9 +1388,9 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
+        if pressed:
+            self.take_press(start)
         if start:
             self.flags |= self.HELD
         return True
@@ -1430,18 +1442,22 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue outgoing cleanup before releasing the arbitration link.
+
+        This server reconstruction lets refill/exit effects precede the newly
+        unblocked weapon. Exact native cross-object ordering remains open.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1567,8 +1583,15 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
+        # The 0B27 phase switch uses implicit case indices in mode 1.
+        indexed = ((self.instance.graph.index, self.node.pos) == (0x0B27, 20)
+                   and not self.instance.component.strict and _field(self, "m_F0F0720B") == 1)
         for number, case in enumerate(_field(self, "m_05706D1C") or []):
-            if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
+            if not isinstance(case, dict):
+                continue
+            config = case.get("m_value")
+            expected = number if indexed and config is None else self.evaluate(config, watch=False)
+            if equal(value, expected):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
 
@@ -1811,14 +1834,166 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STU_4C96470A")
+class CompatiblePlacement(State):
+    """Refresh the declared host placement service for this state."""
+
+    def on_begin(self) -> None:
+        world = self.instance.component.world
+        if world.refresh_compatible_placement(self, confirm=False) is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "placement service", self.node.cls, self.node)
+
+    def tick(self) -> None:
+        self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+
+    def plug_enter(self, input_path: str) -> bool:
+        if input_path == "m_6647ED22":
+            if not self.active:
+                return True
+            world = self.instance.component.world
+            if (self.instance.graph.index, self.node.pos) == (0x156B, 57):
+                return world.confirm_photon_barrier(self)
+            if world.refresh_compatible_placement(self, confirm=True) is not NotImplemented:
+                return True
+            if (self.instance.graph.index, self.index) == (0x1902, 9):
+                return super().plug_enter(input_path)
+            return False
+        return super().plug_enter(input_path)
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Explicit world health service; supported manual1157 clock is reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Explicit world-provided target arrays; unimplemented searches still find nothing.
+
+    Array linking/update and zero wire age are reconstructed. Native weighted
+    selection, target history/age and full engine-query scheduling stay open.
+    """
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.var = None
+
+    def on_begin(self):
+        targets = self.instance.component.world.track_targets(self)
+        if targets is NotImplemented:
+            return
+        self.targets = tuple(targets)
+        target = lvalue(self.node.field('m_8A2905A0'))
+        self.var = self.link(target) if target is not None else None
+        if ((self.instance.graph.index, self.node.pos) == (0x0C51, 19)
+                and not self.instance.component.strict):
+            self.instance.follow(self.node, "m_transitionPlug[0]", self)
+            self.request_finish()
+            return
+        self.ticks()
+
+    def tick(self):
+        targets = self.instance.component.world.track_targets(self)
+        if targets is NotImplemented:
+            targets = ()
+        before, self.targets = self.targets, tuple(targets)
+        if self.var is not None and before != self.targets:
+            self.instance.changed(self.var, before)
+
+    def on_end(self, finished):
+        if self.var is not None:
+            var, self.var = self.var, None
+            # Mercy's acquisition hands the selected array to the retained query.
+            # Its authored reset actions clear the stored result on release.
+            staff_handoff = self.instance.graph.index == 0x006B and self.index in (4, 5, 51)
+            self.unlink(var, bake=staff_handoff or (self.instance.graph.index, self.node.pos) == (0x1E41, 37))
+        self.targets = ()
+
+    def output(self, slot):
+        return self.targets
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in self.targets)}
+
+
+@state_class("STU_54FEB21C")
+class EarthshatterRelease(State):
+    """Selected release markers and timed Winston fist windups."""
+
+    def on_begin(self):
+        from ow174.game import winston_primal
+
+        if (self.instance.graph.index, self.node.pos) in ((0xBE, 92), (0x7D, 89)):
+            self.request_finish()
+        elif (not self.instance.component.strict and self.instance.graph.index == winston_primal.WEAPON
+              and self.node.pos in winston_primal.WINDUPS):
+            self.request_finish(seconds_to_ms(self.evaluate(self.node.field("m_ED97A97C"), watch=False)))
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+
+
+@state_class("STUStatescriptStateShockwave")
+class EarthshatterWave(TrackTargets):
+    """Selected server front and retained contacts for Reinhardt's 00BE."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.origin = None
+        self.forward = None
+        self.speed = 0.0
+        self.reach = 0.0
+        self.launch_tick = None
+
+    def on_begin(self):
+        if (self.instance.graph.index, self.node.pos) != (0xBE, 1):
+            if self.instance.component.strict:
+                self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+            return
+        self.speed = to_float(self.evaluate(self.node.field("m_speed"), watch=False))
+        self.reach = to_float(self.evaluate(self.node.field("m_6A79BD98"), watch=False))
+        # Combat owns propagation after release, even without owner commands.
+        targets = self.instance.component.world.track_targets(self)
+        if targets is not NotImplemented:
+            self.targets = tuple(targets)
+            target = lvalue(self.node.field("m_8A2905A0"))
+            self.var = self.link(target) if target is not None else None
+
+    def advance(self, tick, seconds_per_tick):
+        with self.instance.component.operation():
+            super().tick()
+            if (tick - self.launch_tick) * seconds_per_tick * self.speed >= self.reach:
+                self.end(True)
+
+    def on_end(self, finished):
+        super().on_end(finished)
+        self.origin = self.forward = None
+        self.launch_tick = None
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1938,7 +2113,9 @@ def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedTyp
     """Run the authored type-0 cast when a provider can complete it."""
     provider = instance.component.world.raycast
     if provider is None:
-        return NotImplemented
+        provider = instance.component.world.graph_raycast_provider(instance, node)
+        if provider is None:
+            return NotImplemented
     targets = []
     for field in _RAYCAST_OUTPUTS:
         config = node.field(field)
@@ -2098,9 +2275,24 @@ def contains(instance: Instance, node, caller) -> bool:
 
 @handler("STU_7DEB522D")
 def button_held(instance: Instance, node, caller) -> bool:
-    """A logical-button condition: the button is held."""
+    """Native1B758C0: disabled rejects; flags select down/up edges or held/released.
+
+    STU offsets B0..B3 are87F97379/12A75BC7/00994FF0/F2B4B71D.
+    The default is down-edge only, not held. Treating it as held loops Reaper's
+    refused Shadow Step stack back into its input wait within the same tick.
+    """
     button = to_int(instance.evaluate(node.fields.get("m_logicalButton")))
-    return branch(instance, node, caller, button in instance.component.held)
+    component = instance.component
+    held = button in component.held
+    accepted = not component.disabled.get(button) and (
+        (component.button == button and (
+            (node.fields.get("m_87F97379", 1) and held)
+            or (node.fields.get("m_12A75BC7", 0) and not held)
+        ))
+        or (node.fields.get("m_00994FF0", 0) and held)
+        or (node.fields.get("m_F2B4B71D", 0) and not held)
+    )
+    return branch(instance, node, caller, bool(accepted))
 
 
 @handler("STU_4E2BCAAB")
@@ -2161,11 +2353,11 @@ def send(instance: Instance, node, caller) -> None:
 
 @handler("STU_187D5125")
 def stop_ability(instance: Instance, node, caller) -> bool:
-    """ActionStopAbility: the running abilities of the instance stop (one per graph in the hero
-    data)."""
-    for state in list(instance.states.values()):
-        if isinstance(state, Ability) and state.active:
-            state.stop()
+    """C84040: scan allocated states in index order, queue Ability timer3 at now."""
+    for index in range(len(instance.graph.states)):
+        state = instance.states.get(index)
+        if isinstance(state, Ability):
+            state.timer_at(0, 3)
     instance.follow(node, "m_outPlug", None)
     return True
 
@@ -2188,10 +2380,48 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_FF3471E9")
+def apply_velocity(instance: Instance, node, caller):
+    if instance.component.world.apply_velocity(instance, node) is NotImplemented:
+        return NotImplemented
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_22926252")
+def retire_flux_effect(instance: Instance, node, caller):
+    from ow174.game import sigma_flux
+
+    component = instance.component
+    if (component.strict or instance.graph.index != sigma_flux.FLUX_EFFECT
+            or node.pos not in (3, 5, 45, 61) or getattr(component.world, "match", None) is None):
+        return NotImplemented
+    component.destroy(instance)
+    return True
+
+
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.play_gameplay_script(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_B6E3C77D")
+def create_entity(instance: Instance, node, caller):
+    if instance.component.world.create_entity(instance, node) is NotImplemented:
+        return NotImplemented
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_523EE38D")
+def destroy_entity(instance: Instance, node, caller):
+    if instance.component.world.destroy_entity(instance, node) is NotImplemented:
+        return NotImplemented
     instance.follow(node, "m_outPlug", None)
     return True
 
@@ -2202,10 +2432,17 @@ def no_op(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_CEBDAF17")
+def track_stat(instance: Instance, node, caller) -> bool:
+    from ow174.game import mercy_beam
+
+    mercy_beam.track_boost(instance, node)
+    return no_op(instance, node, caller)
+
+
 for _name in (
     "STUStatescriptActionEffect",
     "STUStatescriptActionCriteria",
-    "STU_CEBDAF17",  # TrackStat
     "STU_100EF8C2",  # SendClientOnlyGameMessage
     "STUStatescriptActionSendClientGlobalGameMessage",
     "STU_7106C356",

@@ -99,11 +99,31 @@ part of the representation.
 BodyScript fields covered by the VM adapter:
 
   hero entity record frame_ms world component frame buttons retired server_only
-  ult_seconds ultimates
+  ult_seconds reaper_charge_ms reaper_charge_tick world_frame_anchor ultimates
 
 record identifies the body definition covered by the source/data signature.
 ultimates is an ordered list of State references: future charge updates depend
 on those states and cannot reconstruct it merely by inspecting active states.
+reaper_charge_ms stores the unfinished0B8B passive-charge interval. It must be
+observed directly; resolving charge alone cannot recover when the next award is due.
+reaper_charge_tick stores the last world tick consumed by a match-bound Reaper.
+It is None for standalone command-clock scripts. The enclosing Match and combat
+channel clocks remain external to the body-only VM document; capturing the tick
+does not make a command-only replay a complete world simulation.
+world_frame_anchor is the last pose-bearing input's (world tick, owner frame)
+for match-bound Reaper/Zenyatta/Mei; otherwise None. It determines completed
+missing input windows independently of command-frame origin and owner quanta.
+Synthetic missing frames do not reanchor themselves. The current input window
+is left available; old filled windows cannot later move or recast the body.
+The enclosing world's tick and delivery policy remain an external boundary.
+Defensive healing intervals (Combat.defense_heals) also belong to the full-server
+snapshot: activation, start/end, settled time and captured rate/search parameters
+are observed directly. A body-only VM/legacy trace intentionally does not absorb
+that external combat clock or become a complete healing/world replay.
+The same boundary applies to Combat.heal_modifiers (source, start/end and factor
+of independent hostile/friendly intervals) and captured Rocket.ana_grenade
+eligibility. Full-server snapshots observe these fields directly; they do not
+evaluate modifier expiry, cleanse conditions or native status callbacks.
 
 Five known BodyScript fields belong to a later owner-transport adapter and are
 explicitly excluded from this VM storage document:
@@ -348,3 +368,16 @@ same-time/nested FIFO, cross-instance sequence use and failure progression.
 The existing eight VM budget tests and sixteen native replay tests also pass.
 No game, UI or service is started by these checks; existing native trace code and
 the actual event dispatch/FIFO insertion call sites are unchanged.
+
+Combat.ana_sleeps start/end/waking clocks are sealed by the full-server
+snapshot; body-only VM observations omit this external control consumer.
+Capture does not evaluate control predicates or advance VM.
+
+BotWorld.controller_components declares optional manual controller facts. It is
+sealed passively in both component/body-VM and full-server observations. Native
+controller allocation is not inferred from this captured tuple.
+
+Manual Assassin ModifyHealth.last_applied and BotWorld.manual_target are sealed
+by body-VM/full-server observations; BotWorld.match is external to body-VM.
+Combat.pins belongs to full-server state. Capture evaluates none of these
+consumers. Native health clock/controller and contact semantics stay reconstructed.

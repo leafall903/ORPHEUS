@@ -14,7 +14,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import barriers, correction, match, npc_control
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
 from ow174.paths import DATA_DIR, ROOT
@@ -28,6 +28,30 @@ DEPENDENCIES = {"cryptography": "50.0.0", "protobuf": "6.33.6", "websockets": "1
 
 
 class ReplayManifestTests(unittest.TestCase):
+    def test_barrier_mesh_identity_and_reconstructed_pose_are_sealed_without_geometry_io(self):
+        with mock.patch.object(barriers, "_geometry", side_effect=AssertionError("no geometry read")):
+            before = manifest.runtime_configuration(quanta_us=16000, run_options={})
+            with (
+                mock.patch.object(barriers, "GEOMETRY_SHA256", "0" * 64),
+                mock.patch.object(barriers, "POSE_FORWARD", barriers.POSE_FORWARD + 0.1),
+            ):
+                after = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        changes = manifest.compare_manifests(self.capture(configuration=before),
+                                             self.capture(configuration=after))
+        self.assertEqual(changes, [
+            {"path": "configuration/ow174.game.barriers.GEOMETRY_SHA256", "kind": "changed"},
+            {"path": "configuration/ow174.game.barriers.POSE_FORWARD", "kind": "changed"},
+        ])
+
+    def test_manual_npc_range_policy_is_part_of_runtime_identity(self):
+        before = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        with mock.patch.object(npc_control, "AIM_RANGE", npc_control.AIM_RANGE + 1):
+            after = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        changes = manifest.compare_manifests(self.capture(configuration=before),
+                                             self.capture(configuration=after))
+        self.assertEqual(changes, [{"path": "configuration/ow174.game.npc_control.AIM_RANGE",
+                                    "kind": "changed"}])
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)

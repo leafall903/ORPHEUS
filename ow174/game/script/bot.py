@@ -31,12 +31,18 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36  # declared manual pin action, not native AI slot remapping
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +50,21 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_context, orisa_halt, sigma_flux
+
+        value = sigma_flux.flux_effect_native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+
+        value = orisa_halt.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+
+        value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -60,6 +81,17 @@ class BotWorld(runtime.World):
                 == PRACTICE_NAMEPLATE_FILTER
             ):
                 return True
+        if instance.graph.index == 0x1408 and self.match is not None:
+            value = self.heavy_charge_pose(cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if (cfg.get("$") == "STU_71A87E92" and instance.graph.index in (0x1422, 0x140E)
+                and self.match is not None):
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            piece = self.match.combat.walls.pieces.get(entity)
+            if piece is not None:
+                return expr.Vec3(*piece.feet)
+            return self.match.script_body_position(entity, instance.component.entity)
         if self.selects_ai_behavior(instance):
             owner = cfg.get("m_entity")
             if isinstance(owner, dict) and owner.get("$") == "STU_0AC15F78":
@@ -71,6 +103,83 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def heavy_charge_pose(self, cfg, instance):
+        """Resolve 1408's owner pose queries from its current server body."""
+        from ow174.game.combat import aim
+
+        kind = cfg.get("$")
+        owner = cfg.get("m_entity")
+        if not isinstance(owner, dict) or owner.get("$") != "STU_B5A0CAF0":
+            return NotImplemented
+        entity = instance.component.entity
+        if kind == "STU_71A87E92":
+            return self.match.script_body_position(entity, entity)
+        if kind not in ("STU_2200A66D", "STU_021D01CD"):
+            return NotImplemented
+        bot = next((b for b in self.match.bots if b.entity == entity and not b.dead), None)
+        return expr.Vec3(*aim(round(bot.yaw), 0)) if bot is not None else None
+
+    def track_targets(self, state):
+        from ow174.game import npc_control
+
+        instance = state.instance
+        sweep = instance.graph.index == 0x1408 and state.node.pos in (32, 96)
+        spec = npc_control.CHARGE_CONTACT
+        charge = sweep or (instance.graph.index, state.node.pos) == (spec[0], spec[2])
+        melee = npc_control.MELEE_GRAPHS.get(self.hero)
+        if self.match is None or not (
+            charge or (melee is not None and (instance.graph.index, state.node.pos) == (melee[0], melee[2]))
+        ):
+            return NotImplemented
+        bot = next((b for b in self.match.bots if b.entity == instance.component.entity), None)
+        if bot is None or bot.dead or not (bot.attack_charge if charge else bot.attack_melee):
+            return ()
+        if charge and state.node.pos == 100:
+            from ow174.game import npc_navigation
+
+            if expr.valid_entity(npc_navigation.charge_victim(state)):
+                return ()
+        fight = self.match.combat
+        targets = (fight.npc_charge_sweep_targets(bot, instance, state.node) if sweep
+                   else fight.npc_contact_targets(bot, instance, state.node, pillars=not charge))
+        if charge and not sweep:
+            from ow174.game.combat import ChargeQueryContext
+
+            pillar = fight.npc_charge_pillar(bot, instance, state.node)
+            if pillar is not None:
+                return (expr.Entity(pillar.entity),)
+            condition = state.node.field("m_filter")["m_condition"]
+            targets = (
+                target for target in targets
+                if expr.truthy(expr.evaluate(condition, ChargeQueryContext(instance, target)))
+            )
+        return tuple(expr.Entity(target.entity) for target in targets)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, sigma_flux
+
+        value = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+
+        if self.match is not None and state.instance.graph.index == 0x1408 and state.index in (11, 13, 53):
+            if state.index == 13 or elapsed_ms == 0:
+                self.match.combat.npc_charge_damage(state, fresh=elapsed_ms == 0)
+            if state.index == 53 and elapsed_ms == 0:
+                state.request_finish()
+            return True
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def apply_velocity(self, instance, node):
+        from ow174.game import sigma_flux
+
+        return True if sigma_flux.flux_velocity(instance, node) else NotImplemented
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +187,7 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +196,7 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -119,6 +229,11 @@ class BotScript(ReplicatedBody):
     def replicated_instances(self):
         return (instance for instance in super().replicated_instances() if instance is not self.behavior)
 
+    def retire_live_instance(self, instance):
+        # A late observer can still request the preceding live baseline.
+        self._initial_payload()
+        self.component.destroy(instance)
+
     def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
         if frame <= self.frame or self.component.owner_dead:
@@ -127,6 +242,9 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -136,6 +254,8 @@ class BotScript(ReplicatedBody):
 
     def die(self, frame: int, params: dict, sender: int) -> Snapshot | None:
         """Deliver 003E.025 and capture the change that happens immediately."""
+        from ow174.game import sigma_flux
+
         component = self.component
         if component.owner_dead:
             return None
@@ -143,6 +263,7 @@ class BotScript(ReplicatedBody):
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
+        sigma_flux.retire_effects(component)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)

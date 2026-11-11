@@ -86,7 +86,7 @@ class FixedTargetMoveToTests(unittest.TestCase):
         state = instance.state(state_index)
         self.assertTrue(state.active)
         self.assertEqual(state.evaluate(state.node.field("m_speed")), speed)
-        self.assertIsNone(state.move_request())
+        self.assertEqual(state.move_request(), (Vec3(0.0, 1.0, 15.0), speed))
 
     def test_genji_authored_miss_uses_the_world_body_position(self):
         hero_guid, graph_id, state_index, _, speed = AUTHORED_STATES[0]
@@ -121,6 +121,25 @@ class FixedTargetMoveToTests(unittest.TestCase):
                     player.match.tick = START + 1
                     player.take_commands([Command(START + 1, buttons=0x08)])
                 self.assertEqual(instance.state(state_index).move_request(), (expected, speed))
+
+    def test_genji_live_shift_resolves_clear_and_wall_endpoints(self):
+        hero_guid, graph_id, state_index, _, speed = AUTHORED_STATES[0]
+        for blocked in (False, True):
+            with self.subTest(blocked=blocked):
+                geometry = World(FLOOR + wall(-5, 3, 5, 3, y0=1)) if blocked else flat_world(1.0)
+                player, instance = self.spawn(hero_guid, graph_id, geometry)
+                player.match.tick = START + 1
+                player.take_commands([Command(START + 1, buttons=0x08)])
+                destination, actual_speed = instance.state(state_index).move_request()
+                self.assertEqual(actual_speed, speed)
+                self.assertAlmostEqual(destination.z, 3 if blocked else 15)
+                self.commands(player, range(START + 2, START + 25))
+                z = player.mover.position[2]
+                if blocked:
+                    self.assertGreater(z, 2)
+                    self.assertLess(z, 3)
+                else:
+                    self.assertAlmostEqual(z, 15, delta=0.05)
 
     def test_entity_position_tracks_the_current_body_and_clears_on_retirement(self):
         hero_guid, graph_id, *_ = AUTHORED_STATES[0]

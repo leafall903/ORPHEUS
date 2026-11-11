@@ -121,7 +121,11 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
+        self.navigation = None
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
+        self.attack_melee = False
+        self.attack_charge = False
+        self.autonomous = False
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
@@ -295,7 +299,14 @@ class Bot:
 
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
+        if self.navigation is not None:
+            from ow174.game import npc_navigation
+
+            npc_navigation.stop(self)
+            self.navigation = None
         self.dead = True
+        self.attack_charge = False
+        self.attack_melee = False
         self.attack_target = None
         self.attack_input = False
         self.keys = False
@@ -332,15 +343,20 @@ class Bot:
             input_frame = None
         else:
             input_frame = self.input_tick
+        mover = None
+        if self.navigation is not None and self.navigation.forced_landing:
+            mover = self.navigation.mover
+        flags = mover.flags if mover is not None else 0
         return Movement(
             self.position,
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            flags | (DEAD if self.dead else 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
+            air_ticks=mover.air_ticks if mover is not None else 0,
             gravity=GRAVITY_SCALE,
         )
 

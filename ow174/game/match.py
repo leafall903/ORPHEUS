@@ -43,10 +43,10 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import FRAME_HALF, JUMP, Command, CommandQueue, frame_distance
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
-from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
+from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, loaded_mover_table, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
@@ -289,6 +289,13 @@ class Player:
         fresh, boundary = self.commands.before_limit(
             commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
         )
+        # The mover keeps the last settled pose even when a temporary world
+        # anchor has retired. Late input cannot replay its closed frame.
+        settled = self.mover.last_command.frame if self.mover.last_command is not None else None
+        if script is not None and script.world_frame_anchor is not None:
+            settled = script.frame
+        if settled is not None:
+            fresh = [item for item in fresh if 0 < frame_distance(item.frame, settled) < FRAME_HALF]
         if fresh:
             self.mover.use(mover_data(self.hero.body), collision)
         if movelog.ENABLED:
@@ -299,6 +306,9 @@ class Player:
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
                 if not dead and self.body_script is not None:
+                    command = self.match.combat.echo_duplicates.prepare(self, command)
+                    if command is None:
+                        continue
                     self.mover.step(
                         command, seconds, self.match.tick,
                         simulate_pose=self._step_body_pose,
@@ -311,53 +321,190 @@ class Player:
             movelog.snapshots(self)
         return boundary
 
-    def _advance_body_gap(self, first_pose: int) -> None:
+    def _advance_body_gap(self, first_pose: int, *, world_idle: bool = False) -> None:
         """Release old input and advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing), posed=False)
+        self._advance_body_frame(Command(first_missing), posed=False, defer_effects=world_idle)
         if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1), posed=False)
+            self._advance_body_frame(Command(first_pose - 1), posed=False, defer_effects=world_idle)
+
+    def advance_idle_control_pose(self, target: int, tick: int) -> None:
+        """Settle closed owner frames without replaying the last held input."""
+        from ow174.game import npc_navigation, reinhardt_charge, rocket_punch, seismic_slam
+
+        fight = self.match.combat
+        script = self.body_script
+        mover = self.mover
+        mover.use(mover_data(self.hero.body), self.match.collision_world)
+        seconds = self.quanta / 1e6
+        for frame in range(script.frame + 1, target + 1):
+            command = Command(frame, yaw=mover.yaw, pitch=mover.pitch)
+            movement_end = None
+            stunned = fight.is_stunned(self, tick=tick)
+            can_move = not stunned or (
+                self.body in fight.impulse_landings
+                and self.body not in fight.pins.values()
+                and not reinhardt_charge.pinned(fight, self.body)
+                and not npc_navigation.charge_carries(self.match, self.body)
+            )
+            if (not fight.is_dead(self) and can_move
+                    and not fight.hooks.controlled(self.body) and not fight.traps.rooted(self.body, tick)):
+                pull = fight.halts.pulls.get(self.body)
+                requests = []
+                if not stunned:
+                    requests = [(state, request) for instance in script.component.instances.values()
+                                for state in instance.states.values() if isinstance(state, nodes.MoveTo)
+                                if (request := state.move_request()) is not None]
+                before = tuple(mover.position)
+                ground = fight.walls.ground(self)
+                charge_moved = self.body in fight.charges and reinhardt_charge.step_pose(
+                    fight, self, command, seconds, tick, before, ground, idle=True,
+                )
+                punch = fight.punch_dashes.get(self.body)
+                if not stunned and rocket_punch.active(punch):
+                    rocket_punch.step_pose(fight, self, command, seconds, tick, before, ground, punch)
+                elif not stunned and (slam := seismic_slam.movement(fight, self)) is not None:
+                    movement_end = seismic_slam.step_pose(
+                        fight, self, command, seconds, tick, before, ground, slam,
+                    )
+                elif not charge_moved and (not requests or (
+                    len(requests) == 1 and pull is not None and requests[0][0].instance is pull.script
+                )):
+                    state, move_to = None, None
+                    if requests:
+                        state, (destination, speed) = requests[0]
+                        move_to = tuple(destination), speed
+                    outcome = self._pose_requested_move(command, seconds, tick, state, move_to, ground)
+                    if fight.walls.move_player(self, before):
+                        outcome = False
+                    if state is not None and outcome is not None:
+                        movement_end = state, outcome
+            # Future Mover.step gap recovery must not replay a closed pose.
+            mover.last_command = command
+            self._advance_body_frame(command, posed=False, movement_end=movement_end, defer_effects=True)
+            if self.body_script is not script:
+                break
+
+    def _pose_requested_move(self, command, seconds, tick, state, move_to, ground):
+        from ow174.game import sigma_flux
+
+        pull = self.match.combat.halts.pulls.get(self.body)
+        if (state is not None and pull is not None and state.instance is pull.script
+                and sigma_flux.needs_pose(self)):
+            movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
+            self.mover.step_pose(movement, seconds, tick, ground_override=ground)
+            return self.mover.move_toward_horizontal(*move_to, seconds)
+        return self.mover.step_pose(command, seconds, tick, move_to=move_to, ground_override=ground)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
-        stunned = self.match.combat.is_stunned(self, tick=tick)
+        from ow174.game import meteor_strike, npc_navigation, reinhardt_charge, rocket_punch, seismic_slam
+
+        fight = self.match.combat
+        if meteor_strike.freezes_pose(self):
+            self._advance_body_frame(command)
+            return
+        before = tuple(self.mover.position)
+        dynamic_ground = fight.walls.ground(self)
+        frost = fight.frost(self, tick=tick)
+        stunned = fight.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
+            if (reinhardt_charge.pinned(fight, self.body)
+                    or npc_navigation.charge_carries(self.match, self.body)):
+                self._advance_body_frame(command)
+                return
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
+        if frost and frost[2]:
+            command = replace(command, yaw=frost[3], pitch=frost[4])
+        if frost or (-1, 0, 0) in self.mover.mods:
+            self.mover.track_mods(self._movement_mods(script, frost), command.frame - 1)
+        if fight.gravitons.controls(self):
+            self.mover.yaw, self.mover.pitch = command.yaw, command.pitch
+            self._advance_body_frame(command)
+            return
+        if fight.traps.rooted(self.body, tick):
+            self.mover.velocity = (0.0, 0.0, 0.0)
+            movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
+            self.mover.step_pose(movement, seconds, tick, ground_override=dynamic_ground)
+            fight.walls.move_player(self, before)
+            self._advance_body_frame(command)
+            return
         requests = []
         if script is not None and not stunned:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
                 for state in instance.states.values()
+                if (instance.graph.index, state.index) != (seismic_slam.GRAPH, 9)
                 if isinstance(state, nodes.MoveTo) and (movement := state.move_request()) is not None
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
+        if self.match.combat.hooks.step_player(self, command, seconds, tick):
+            self._advance_body_frame(command)
+            return
+        if reinhardt_charge.step_pose(fight, self, command, seconds, tick, before, dynamic_ground):
+            self._advance_body_frame(command)
+            return
+        if not stunned and (punch := rocket_punch.prepare(fight, self)) is not None:
+            rocket_punch.step_pose(fight, self, command, seconds, tick, before, dynamic_ground, punch)
+            self._advance_body_frame(command)
+            return
+        if not stunned and (slam := seismic_slam.movement(fight, self)) is not None:
+            movement_end = seismic_slam.step_pose(
+                fight, self, command, seconds, tick, before, dynamic_ground, slam,
+            )
+            self._advance_body_frame(command, movement_end=movement_end)
+            return
         if len(requests) == 1:
             state, (target, speed) = requests[0]
-            outcome = self.mover.step_pose(
-                command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
-            )
+            outcome = self._pose_requested_move(command, seconds, tick, state, (tuple(target), speed),
+                                                dynamic_ground)
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            self.mover.step_pose(command, seconds, tick, ground_override=dynamic_ground)
+        if fight.walls.move_player(self, before) and len(requests) == 1:
+            movement_end = requests[0][0], False
+        if len(requests) == 1:
+            state = requests[0][0]
+            if (state.instance.graph.index, state.index) == (0x01DB, 1):
+                fight.swift_strike(self, state, before, tick)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        defer_effects: bool = False,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
+            from ow174.game import meteor_strike, seismic_slam, sombra
+
+            fight = self.match.combat
+            slam = fight.slams.get(self.body)
+            aerial_landing = slam is not None and movement_end is not None and movement_end[0] is slam.state
+            if posed or aerial_landing or seismic_slam.needs_pose(slam):
+                seismic_slam.observe(fight, self)
+            command = sombra.prepare_input(self.match.combat, self, command)
+            if posed:
+                command = meteor_strike.prepare_command(self.match.combat, self, command)
             self.match.body_command(self, command, movement_end=movement_end)
-            self.match.combat.command(self, command if posed else None)
+            self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        frost = self.match.combat.frost(self)
+        self.mover.track_mods(self._movement_mods(script, frost), command.frame)
+
+    @staticmethod
+    def _movement_mods(script, frost):
+        mods = statescript_mods(script.component) if script else {}
+        if frost:
+            mods[(-1, 0, 0)] = (0, 1, max(0.3, 1.0 - frost[0]), 99.0)
+        return mods
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -595,6 +742,8 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
@@ -603,7 +752,10 @@ class Match:
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_components=npc_context.manual_components(bot),
             )
+            if bot.spawner.get("manual_spawn") is True:
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -631,12 +783,12 @@ class Match:
         """Whether other players' clients get this player's body."""
         return player.spawned and player.has_body and player.client is not None
 
-    def own_body_updates(self, viewer: Player) -> list[EntityUpdate]:
+    def own_body_updates(self, viewer: Player, *, start_frame: int | None = None) -> list[EntityUpdate]:
         """The viewer's own body: its movement state rides in the create (at frame 0xFFFFFFFE) and in a
         movement record at the packet frame."""
         state = deepcopy(viewer.pose())
         create = EntityUpdate(viewer.body, OP_CREATE, movement=state)
-        self.start_body_script(viewer, create)
+        self.start_body_script(viewer, create, start_frame=start_frame)
         # The new script must exist before its projectile lease is captured. The create's
         # stream remains the native driver's arrival gate; only the payload is frozen here.
         create.build = self._body_builder(viewer, state, own=True)
@@ -651,7 +803,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.body_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -893,6 +1045,13 @@ class Match:
 
     # --- lifetime ------------------------------------------------------------------------------
 
+    def step_manual_npc(self, bot, tick: int) -> None:
+        from ow174.game import npc_control, npc_navigation
+
+        if bot.autonomous:
+            npc_control.acquire(self, bot, tick)
+        npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6)
+
     def update(self, now: float, tick: int, *, frames: bool | None = None) -> None:
         """Run the spawn steps of players who loaded, keep their statescript acked, walk the training
         bots, and show new players and bodies to the others."""
@@ -905,15 +1064,36 @@ class Match:
             return
         if ready and not self._advance_scene(now, tick):
             return
+        retained_npcs = []
         if ready and self.bots:
+            from ow174.game import npc_context, sigma_flux
+
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
+            skipped = self.combat.tick and tick > self.combat.tick + 1
+            field_replay = skipped and (
+                self.combat.gravitons.fields
+                or any(rocket.graviton_body is not None for rocket in self.combat.rockets)
+                or any(orb.until is None for orb in self.combat.halts.orbs.values())
+                or self.combat.winston_jumps
+                or any(sigma_flux.needs_pose(player) for player in self.players)
+            )
             for bot in self.bots:
+                if bot.spawner.get("manual_spawn") is True:
+                    if skipped and (field_replay or npc_context.retains_weapon(bot)
+                                    or bot.entity in self.combat.halts.pulls
+                                    or bot.entity in self.combat.npc_impulses
+                                    or sigma_flux.npc_needs_pose(bot)):
+                        # An earlier orb impact can create this NPC's pull during replay.
+                        retained_npcs.append(bot)
+                    else:
+                        self.step_manual_npc(bot, tick)
+                    continue
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
                          paused_until=self.combat.stuns.get(bot.entity, 0))
         if ready:
-            self.combat.update(now, tick, frames=frames)
+            self.combat.update(now, tick, frames=frames, retained_npcs=retained_npcs)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)
         for player in self.players:
@@ -1096,7 +1276,9 @@ class Match:
                 log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
                 self.stop_body_script(player, failed=True)
 
-    def start_body_script(self, player: Player, create: EntityUpdate) -> None:
+    def start_body_script(
+        self, player: Player, create: EntityUpdate, *, start_frame: int | None = None,
+    ) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
         self.stop_body_script(player)
@@ -1106,11 +1288,12 @@ class Match:
             script = BodyScript(
                 player.hero.guid,
                 player.body,
-                self._newest_frame(player),
+                self._newest_frame(player) if start_frame is None else start_frame,
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
                 match=self,
+                body_definition=player.hero.body,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
@@ -1236,26 +1419,47 @@ class Match:
                 return entity
         return None
 
-    def switch_hero(self, player: Player, hero: Hero) -> bool:
+    def switch_hero(
+        self, player: Player, hero: Hero, *, preserve_pose=False, start_frame=None, skin=None,
+    ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        if hero.body == pools.DVA_MECH:
+            if hero.guid != pools.DVA_HERO or graph.entity_body(hero.body) is None:
+                return False
+            mover_data(hero.body)
+            if hero.body not in loaded_mover_table():
+                return False
+            pools.body_pools(hero.guid, hero.body)
         old = player.body if player.has_body else None
+        prior = player.mover if preserve_pose and old is not None else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
+            if hero.body == pools.DVA_MECH or player.hero.body == pools.DVA_MECH:
+                player.hero = hero
             player.new_body(entity)
-            self.combat.record_replacement(entity)
+            self.combat.record_replacement(entity, tick=self.combat.tick if preserve_pose else None)
         player.hero = hero
-        player.skin = self.skin_of(player.account_lo, hero.guid)
+        if prior is not None:
+            mover = player.mover
+            mover.use(mover_data(hero.body))
+            mover.position[:] = prior.position
+            mover.yaw, mover.pitch = prior.yaw, prior.pitch
+            mover.velocity = prior.velocity
+            mover.flags_word, mover.air_ticks = prior.flags_word, prior.air_ticks
+            if start_frame is not None:
+                mover.last_command = Command(start_frame, yaw=mover.yaw, pitch=mover.pitch)
+        player.skin = self.skin_of(player.account_lo, hero.guid) if skin is None else skin
         player.has_body = True
         if player.client is not None and player.spawned:
             components = self._possession(player)
-            player.client.queue_entities(self.own_body_updates(player))
+            player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame))
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,

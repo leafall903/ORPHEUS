@@ -51,14 +51,17 @@ command that had any; and for each command frame the state the owner's client pr
 field for field as the client compares it with the server's (0x7FF789B73E00, see correction.py).
 """
 
+import hashlib
 import json
 import math
+import os
 import struct
 import threading
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, fields, replace
 from functools import cache
+from pathlib import Path
 
 from ow174.game import contacts
 from ow174.game.collision import MOVER, NOT_GROUND, Ground, World, flat_world
@@ -66,6 +69,8 @@ from ow174.game.commands import CROUCH, JUMP, SUBFRAME, Command
 from ow174.paths import DATA_DIR
 
 MOVERS_PATH = DATA_DIR / "game_movers_174.json"  # tools/extract_game_movers.py
+_mech_mover = os.environ.get("ORPHEUS_DVA_MOVER_SUPPLEMENT")
+DVA_MOVER_SHA256 = "0fa133e8258af42e485fe9d0ad7afe84ed2330d2b87e1bf69b8b9fbf19299ecd" if _mech_mover else None
 SOLDIER_BODY = 0x04000000000003CF
 
 RUN_SPEED = 5.5  # m/s, most heroes
@@ -170,6 +175,8 @@ DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
+
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
 # m_9B7A63EA value): class -> (op, value of an empty config var) (0x7FF789C4C1E0, by their type objects).
 MOVEMENT_MOD = "STU_316CFEF2"
@@ -263,6 +270,13 @@ def _movers() -> dict[int, MoverData]:
             else:
                 names = {field.name for field in fields(MoverData)}
                 table = json.loads(MOVERS_PATH.read_text(encoding="utf-8"))
+                if _mech_mover:
+                    raw = Path(_mech_mover).read_bytes()
+                    if hashlib.sha256(raw).hexdigest() != DVA_MOVER_SHA256:
+                        raise ValueError("D.Va mover supplement checksum mismatch")
+                    for key, entry in json.loads(raw).items():
+                        if table.setdefault(key, entry) != entry:
+                            raise ValueError(f"D.Va mover supplement conflicts with body {key}")
                 _mover_table = {
                     int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
                     for body, entry in table.items()
@@ -386,6 +400,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -454,6 +480,7 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.launching = False  # authored self-launch has yet to leave its starting floor
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -623,6 +650,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        ground_override: Ground | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -640,6 +668,7 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
+        right, forward = modified_throttles(active, right, forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end
@@ -651,6 +680,8 @@ class Mover:
         self.landed = False
 
         ground, under = self._probe(dt)
+        if ground_override is not None and (ground is None or ground_override.y > ground.y):
+            ground, under = ground_override, False
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -828,6 +859,10 @@ class Mover:
             vx, vy, vz = self.velocity
             nx, ny, nz = ground.normal if ground is not None else (0.0, 0.0, 0.0)
             limit = intent(active, LAND_LIMIT_MOD, LAND_LIMIT) if active else LAND_LIMIT
+            if self.launching and vy > 0:
+                limit = min(limit, LAND_LIMIT)
+            if ground is None or vy <= 0:
+                self.launching = False
             if ground is not None and vx * nx + vy * ny + vz * nz < limit:
                 if flags & (JUMPED | FELL):  # 0x7FF789AD0400
                     flags &= ~(JUMPED | FELL)
@@ -1067,6 +1102,28 @@ class Mover:
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
 
+    def launch(self, vector):
+        """Set launch velocity before the next posed step."""
+        self.velocity = tuple(f32(axis) for axis in vector)
+        self.driven = False
+        self.launching = True
+        self.flags_word = self.flags_word & ~JUMPED | FELL
+        self.air_ticks, self.fall, self.landed = 0, 0.0, False
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
+
+    def displace(self, velocity, dt):
+        """Sweep external velocity without replacing the actor's input velocity."""
+        body = self._engine_body()
+        vector = contacts.v3(*velocity)
+        final, planes, touching = body.move(contacts.v3(*(v * f32(dt) for v in vector)), f32(dt), ROUNDS)
+        before = self.position[1]
+        self._place(body, final, touching)
+        if self.position[1] - before > STEP and not self.airborne:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        return tuple(contacts.clip_velocity(vector, planes))
+
     def _move_to(self, dt: float, target, speed: float) -> bool | None:
         """Sweep a speed-limited displacement toward a resolved world-space feet position."""
         start = tuple(self.position)
@@ -1106,6 +1163,20 @@ class Mover:
         self.velocity = tuple(
             quantise((axis - old) / dt) for axis, old in zip(self.position, start, strict=True)
         )
+        return None
+
+    def move_toward_horizontal(self, target, speed, seconds) -> bool | None:
+        """Sweep a lateral request without replacing the body's vertical motion."""
+        dx, dz = target[0] - self.position[0], target[2] - self.position[2]
+        distance = math.hypot(dx, dz)
+        if distance > STEP:
+            scale = min(speed / distance, 1.0 / seconds)
+            self.displace((dx * scale, 0.0, dz * scale), seconds)
+            if self.history:
+                self.history[-1] = self.snapshot(self.history[-1].frame)
+        remaining = math.hypot(target[0] - self.position[0], target[2] - self.position[2])
+        if remaining <= STEP or distance - remaining < STEP / 2:
+            return remaining <= STEP
         return None
 
     def _place(self, body: contacts.CharacterBody, final, touching: bool) -> bool:

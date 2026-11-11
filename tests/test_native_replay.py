@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from ow174.game import native_replay as replay_module
 from ow174.game.commands import FIRE, FRAME_MASK, Command
 from ow174.game.content import SOLDIER
 from ow174.game.native_replay import (
@@ -64,6 +65,35 @@ class NativeReplayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.getLogger("ow174.script").setLevel(logging.ERROR)
+
+    def test_reaper_module_source_changes_invalidate_the_model_fingerprint(self):
+        original = Path.read_bytes
+        before = replay_module.model_hash.__wrapped__()
+
+        def changed(path):
+            data = original(path)
+            if path == replay_module.ROOT / "ow174/game/reaper.py":
+                return data + b"\n# changed charge consumer\n"
+            return data
+
+        with patch.object(Path, "read_bytes", new=changed):
+            after = replay_module.model_hash.__wrapped__()
+        self.assertNotEqual(before, after)
+
+    def test_pending_join_arrival_and_traversal_context_are_observed_without_evaluation(self):
+        script = body()
+        instance = next(iter(script.component.instances.values()))
+        with patch.object(runtime.Var, "value", side_effect=AssertionError("value evaluation")):
+            before = snapshot_hash(script)
+            instance.join_inputs.append((2, 3, "m_outPlug"))
+            arrival = snapshot_hash(script)
+            instance.plug_source = (3, "m_outPlug")
+            traversal = snapshot_hash(script)
+            instance.join_inputs.clear()
+            instance.plug_source = None
+            self.assertEqual(snapshot_hash(script), before)
+        self.assertNotEqual(before, arrival)
+        self.assertNotEqual(arrival, traversal)
 
     def test_recording_helpers_never_evaluate_values_payloads_or_consume_shots_rng_or_sequences(self):
         script = body()

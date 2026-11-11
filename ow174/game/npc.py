@@ -50,7 +50,8 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
+          autonomous: bool = False, autonomous_specials: bool = False) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -58,6 +59,10 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC spawn needs a validated definition')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
+    if type(autonomous) is not bool or type(autonomous_specials) is not bool:
+        raise ValueError('NPC autonomous policy must be explicitly boolean')
+    if autonomous_specials and not autonomous:
+        raise ValueError('NPC autonomous specials require autonomous acquisition')
     position = tuple(position)
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
@@ -66,10 +71,13 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if autonomous_specials:
+        data['autonomous_specials'] = True
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     bot = bots.Bot(entity, data, hero, {})
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True
+    bot.autonomous = autonomous
     # Import locally to keep Match's existing module graph acyclic.
     from ow174.game.match import BOT_RECORD_DELAY
 
@@ -79,6 +87,7 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match.combat._sync_body_health(bot, match.combat.vitals[entity])
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -93,6 +102,8 @@ def remove_spawned(match) -> tuple[int, ...]:
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
+        match.combat.clear_pins(bot.entity)
+        match.combat.halts.drop_pull(bot.entity)
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None
         if script is not None:
@@ -102,13 +113,15 @@ def remove_spawned(match) -> tuple[int, ...]:
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
+            component.world.match = None
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns,
+                      match.combat.heal_modifiers, match.combat.ana_sleeps):
             table.pop(bot.entity, None)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)

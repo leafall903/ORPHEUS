@@ -39,6 +39,7 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -51,6 +52,14 @@ from ow174.paths import DATA_DIR
 
 _graph_bundle = os.environ.get("ORPHEUS_GRAPH_BUNDLE")
 GRAPHS_PATH = Path(_graph_bundle).resolve() if _graph_bundle else DATA_DIR / "game_graphs_174.json.gz"
+_mech_bundle = os.environ.get("ORPHEUS_DVA_GRAPH_SUPPLEMENT")
+DVA_GRAPH_SHA256 = (
+    "8ed7308a39de882f600a51fc9461262550ecc3e928b567cf4541df0f3b10187f" if _mech_bundle else None
+)
+_lucio_bundle = os.environ.get("ORPHEUS_LUCIO_STATUS_SUPPLEMENT")
+LUCIO_STATUS_SHA256 = (
+    "fe694a0c5662507b8ff88f25e5562eace54288004f334b777802dfe518a9f144" if _lucio_bundle else None
+)
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -287,7 +296,34 @@ def _collect_graphs(value, found: set) -> None:
 
 @cache
 def _data() -> dict:
-    return json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    data = json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    if _lucio_bundle:
+        raw = Path(_lucio_bundle).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != LUCIO_STATUS_SHA256:
+            raise ValueError("Lucio status supplement checksum mismatch")
+        extra = json.loads(gzip.decompress(raw))
+        child, = (row for row in extra["graphs"] if row["index"] == 0x073B)
+        existing = next((row for row in data["graphs"] if row["index"] == 0x073B), None)
+        if existing is None:
+            data["graphs"].append(child)
+        elif existing != child:
+            raise ValueError("Lucio status supplement conflicts with graph 073B")
+    if not _mech_bundle:
+        return data
+    raw = Path(_mech_bundle).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != DVA_GRAPH_SHA256:
+        raise ValueError("D.Va graph supplement checksum mismatch")
+    extra = json.loads(gzip.decompress(raw))
+    records = {record["index"]: record for record in data["graphs"]}
+    for record in extra["graphs"]:
+        index = record["index"]
+        if records.setdefault(index, record) != record:
+            raise ValueError(f"D.Va graph supplement conflicts with graph {index:04X}")
+    entities = dict(data.get("entities") or {})
+    for key, record in extra["entities"].items():
+        if entities.setdefault(key, record) != record:
+            raise ValueError(f"D.Va graph supplement conflicts with entity {key}")
+    return {**data, "graphs": list(records.values()), "entities": entities}
 
 
 @cache

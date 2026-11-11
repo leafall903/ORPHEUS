@@ -15,6 +15,8 @@ from ow174.game.script import graph
 
 log = logging.getLogger("ow174.game")
 
+DVA_HERO = 0x02E000000000007A
+DVA_MECH = 0x0400000000000407
 BODY_GRAPH = 0x0033
 HEALTH_VAR, ARMOUR_VAR, SHIELDS_VAR = 199, 1736, 221
 FALLBACK = (200.0, 0.0, 0.0)  # a hero without body data: the flat value the server sent before
@@ -35,16 +37,27 @@ def _numbers(entries) -> dict[int, float]:
 def hero_pools(hero: int) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
     record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    values = _record_pools(record)
+    if values is None:
+        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
+    return values
+
+
+def _record_pools(record) -> tuple[float, float, float] | None:
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
-        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
         return None
     values = _numbers(body.fields["m_publicSchema"]["m_entries"])
     values.update(_numbers(item.get("m_1EB5A024")))
     return values.get(HEALTH_VAR, 0.0), values.get(ARMOUR_VAR, 0.0), values.get(SHIELDS_VAR, 0.0)
 
 
-def body_pools(hero: int) -> tuple[float, float, float]:
+def body_pools(hero: int, definition: int | None = None) -> tuple[float, float, float]:
     """hero_pools, or FALLBACK (logged) for a hero without data."""
+    if hero == DVA_HERO and definition == DVA_MECH:
+        values = _record_pools(graph.entity_body(definition))
+        if values is None:
+            raise ValueError("D.Va mech is missing authored health pools")
+        return values
     return hero_pools(hero) or FALLBACK
