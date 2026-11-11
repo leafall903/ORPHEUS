@@ -1695,6 +1695,13 @@ class Combat:
             return immunity.damage_scale(target.owner, target.entity)
         return None
 
+    def _direct_hit(self, shooter, target: Target, hit: HitDef, distance: float, critical: bool, frame: int,
+                    *, world_tick: int | None = None) -> None:
+        critical = critical and hit.critical > 1.0 and self._fortify_reduction(target) is None
+        amount = hit.amount * hit.scale(distance) * (hit.critical if critical else 1.0)
+        self._damage(shooter, target, amount, critical, hit.loadout, frame, world_tick=world_tick,
+                     hit_tags=hit.tags, boost_credit=hit.boost_credit)
+
     def _control_immune(self, target: Target) -> bool:
         return immunity.control_immune(target.owner, target.entity) or self.orisa._immune(target.owner)
 
@@ -3998,7 +4005,7 @@ class Combat:
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
                         target_limit=target_limit,
-                        spawn=spawn, source_graph=source_graph, source_state=state if server_ability else None,
+                        spawn=spawn, source_graph=source_graph, source_state=state if server_ability or not npc else None,
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
@@ -4237,7 +4244,8 @@ class Combat:
             self._apply_hit(shooter, target, direct, direct.amount * factor, False, shot_frame, world_tick=world_tick)
             return
         hit_y = origin[1] + direction[1] * t
-        critical = shown.critical_allowed and hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
+        critical = (shown.critical_allowed and hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
+                    and self._fortify_reduction(target) is None)
         amount = factor * direct.amount * direct.scale(travelled + t) * (direct.critical if critical else 1.0)
         landed = self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,

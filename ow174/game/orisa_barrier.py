@@ -48,8 +48,8 @@ class BarrierWorld(runtime.World):
 
 
 class Geometry:
-    def __init__(self, path):
-        self.load(json.loads(Path(path).read_text(encoding="utf-8")), model="0x0D00000000004062")
+    def __init__(self, path, *, model="0x0D00000000004062"):
+        self.load(json.loads(Path(path).read_text(encoding="utf-8")), model=model)
 
     def load(self, data, *, model):
         if (data.get("schema") != "orpheus-orisa-geometry-v1"
@@ -139,6 +139,8 @@ class Barriers:
         self.pending = []
 
     def landed(self, rocket, tick=None):
+        if rocket.ended != "world":
+            return
         if tick is None:
             tick = self.fight.tick
         if (rocket.deploy_body is not None and not rocket.shooter.gone
@@ -192,7 +194,7 @@ class Barriers:
             for old, barrier in tuple(self.active.items()):
                 if barrier.owner is rocket.shooter:
                     self.remove(old)
-            direction = rocket.direction
+            direction = rocket.launch_direction or rocket.direction
             self.active[entity] = Barrier(entity, rocket.shooter, rocket.deploy_body,
                                           rocket.team, rocket.position,
                                           math.atan2(direction[0], direction[2]), until,

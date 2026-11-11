@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+
+### Orisa delivery interface reconciliation
+
+- Retain the delivered barrier geometry model parameter, world-contact guard
+  and initial launch heading. Keep deployment notification in the combined
+  collision path so a world impact does not deploy the barrier twice.
+- Restore the delivered direct-hit entry point and Fortify headshot suppression
+  on the combined hitscan receiver, retaining hit tags and boost attribution.
+  Keep the emitting volley state on player projectiles as in the delivery.
+- With prepared geometry, charge and Supercharger inputs, all 106 enabled
+  checks in the existing seven-module Orisa suite passed; two NPC-input checks
+  remain skipped. No client acceptance or full cross-hero acceptance is claimed.
+
+
 ### Brigitte delivery history integration
 
 - Merge delivery a3004ec6 after reconciling its shared host interfaces. The
