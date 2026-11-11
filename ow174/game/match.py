@@ -38,8 +38,10 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    earthshatter,
     echo_movement,
     heroselect,
+    ice_wall,
     movelog,
     notices,
     orisa_charge,
@@ -357,6 +359,7 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        fight = self.match.combat
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
             return
@@ -404,6 +407,8 @@ class Player:
         charge_start = tuple(self.mover.position) if self.hero.guid in (
             0x02E0000000000007, 0x02E000000000012F,
         ) else None
+        collision = ice_wall.movement_world(fight, tick)
+        self.mover.use(world=collision)
         if len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
@@ -726,6 +731,7 @@ class Match:
         updates.extend(self._bot_create_update(bot) for bot in self.bots)
         if self.scene_host is not None:
             updates.extend(self.scene_host.spawned_entity_updates())
+        updates.extend(self.combat.deployable_create(actor) for actor in self.combat.deployables.values())
         if self.bots:
             self.bots_shown[viewer.slot] = self.tick
         for other in self.players:
@@ -734,7 +740,8 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
-        if graph.entity_body(bot.body) is None:
+        record = graph.entity_body(bot.body)
+        if record is None:
             return
         try:
             from ow174.game import npc_context
@@ -745,6 +752,15 @@ class Match:
             context = {} if components is None else {"controller_components": components}
             manual_rialto_spawn = (self.game_map.map_guid == 0x080000000000079F
                                    and bot.spawner.get("manual_spawn") is True)
+            controller_entity = None
+            if record.get("controller") is not None:
+                controller_entity = self.combat.next_bot
+                if (not bots.BOT_ENTITY <= controller_entity < 0xD0000000
+                        or controller_entity == bot.entity
+                        or any(other.entity == controller_entity for other in self.bots)
+                        or controller_entity in self.combat.deployables):
+                    raise ValueError('NPC controller allocator exhausted or collided')
+                self.combat.next_bot += 1
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
@@ -752,6 +768,7 @@ class Match:
                 nameplate_name=bot.name if manual_rialto_spawn else None,
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
+                controller_entity=controller_entity, match=self,
             )
             component = getattr(bot.body_script, "component", None)
             if isinstance(component, runtime.Component):
@@ -1090,6 +1107,7 @@ class Match:
             budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
             if budgets:
                 self._npc_planning_turn += 1  # server ticks can skip under load
+            pillars = ice_wall.pillar_actors(self.combat)
             for bot in self.bots:
                 if self.combat.orisa.controls(bot.entity, tick):
                     continue
@@ -1099,7 +1117,7 @@ class Match:
                     continue
                 mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0), movement_mods=mods)
+                         paused_until=self.combat.stuns.get(bot.entity, 0), movement_mods=mods, pillars=pillars)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1374,6 +1392,8 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            if posed and self.collision_world is not None:
+                earthshatter.prepare(self.combat, player)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now

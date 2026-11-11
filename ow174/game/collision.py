@@ -721,6 +721,21 @@ class World(_TriangleScene):
         hit = contacts.scene_sweep(self.engine, origin, end, ((0.0, 0.0, 0.0),), radius, category)
         return hit[0] * length if hit is not None else None
 
+    def cast_sphere(
+        self, origin, direction, length: float, radius: float, category: int = MOVER,
+    ) -> RayHit | None:
+        """Sweep a sphere along the same segment as a combat ray."""
+        endpoint = tuple(a + length * b for a, b in zip(origin, direction, strict=True))
+        hit = contacts.scene_sweep(self.engine, origin, endpoint, ((0.0, 0.0, 0.0),), radius, category)
+        if hit is None:
+            return None
+        fraction, point, normal, shape, triangle = hit
+        if triangle < 0:
+            return RayHit(length * fraction, point, normal, shape.mask, 0)
+        mask = shape.geometry.masks[triangle]
+        surface = shape.geometry.surfaces[triangle]
+        return RayHit(length * fraction, point, normal, mask, surface)
+
     @classmethod
     def load(
         cls, path: str | Path, identifiers: frozenset[int] = frozenset(), *,

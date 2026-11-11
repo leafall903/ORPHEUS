@@ -479,6 +479,10 @@ class Projectiles:
             " ".join(f"{entity:08X}" for entity in new),
         )
 
+    def intercepted(self, shot: Shot, tick: int) -> None:
+        """Retire the original prediction without an explosion release."""
+        self._end(shot, tick, explode=False)
+
     def _end(self, shot: Shot, tick: int, explode: bool) -> None:
         """End the shot, release its owner copies and field entities, and retire observer deliveries."""
         if shot in self.shots:

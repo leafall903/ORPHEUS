@@ -17,6 +17,10 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    absorption,
+    actors,
+    baptiste,
+    barrier,
     assassin_victim,
     barriers,
     bots,
@@ -26,6 +30,9 @@ from ow174.game import (
     dynamic_spheres,
     echo_duplicate,
     genji,
+    deflection,
+    earthshatter,
+    healing,
     heroselect,
     mei_wall,
     notices,
@@ -38,6 +45,7 @@ from ow174.game import (
     projectiles,
     props,
     reinhardt_barrier,
+    reinhardt_charge,
     replay_values,
     sigma_barrier,
     statescript,
@@ -56,7 +64,7 @@ from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import body_owner, driver, entity_queries, expr, play, runtime
 from ow174.game.script import graph as script_graph
-from ow174.game.script.bot import BotScript, BotWorld
+from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
 
@@ -114,7 +122,7 @@ FIELDS = {
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers "
-        "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa"
+        "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     combat.WaveHealthPool: _names("capacity current"),
     orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
@@ -123,7 +131,7 @@ FIELDS = {
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
-        "healing_block healing_boost temporary_shield extra next_pool sleep_until sleep_wake_floor"),
+        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
         "repairs barriers rally_seen stuns"
@@ -148,6 +156,13 @@ FIELDS = {
     script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
                                "states entries remote_nodes sync_vars _owner _remote _presence"),
     script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
+
+    baptiste.BaptisteEffects: _names(
+        "combat seen regeneration protection_seen fields field_bindings matrices"
+    ),
+    healing.HealingEffects: _names("combat spec anti amp"),
+    absorption.Grasp: _names("combat converted last_tick"),
+    barrier.BarrierField: _names("combat health children model_sha256"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -168,9 +183,17 @@ FIELDS = {
     driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
                              "_body_owner_context _entity_query_context"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
+        "flashbang_weapon_stack"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target manual_nameplate"),
+    BotWorld: _names(
+        "hero mode weapon_buttons owner_position controller component controller_inputs "
+        "heavy_counter_stuns match controller_components manual_target manual_nameplate"
+    ),
+    AssassinControllerWorld: _names(
+        "hero mode mover body_entity match button_edges button_holders movement_bits candidates "
+        "recovery_pending recovery_started"
+    ),
     body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
                                "watch_owner retired"),
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
@@ -212,6 +235,10 @@ DATACLASSES = (
     echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
     reinhardt_barrier.RaisedBarrier,
     genji.Mobility, combat.Frost,
+    earthshatter.Wave, reinhardt_charge.Charge,
+    actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
+    healing.Spec, healing.Modifier,
+    deflection.ProjectileTags,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

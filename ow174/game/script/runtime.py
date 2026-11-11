@@ -39,6 +39,7 @@ log = logging.getLogger("ow174.script")
 
 # Event kinds.
 STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
+STOP_INSTANCE = 11
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -426,6 +427,25 @@ class World:
     entities, config vars the server cannot compute, and game messages to other entities. The base
     answers like an empty world."""
 
+    def movement_flag_projection(self, instance, node):
+        """Explicitly supported (known-bit mask, value), or unknown engine input."""
+        return None
+
+    def placement_confirmation(self, state):
+        """Explicit world placement adapter, or an unknown engine service."""
+        return NotImplemented
+
+    def spawn_deployable(self, instance, node):
+        """Explicit authored spawn adapter, or an unknown engine service."""
+        return NotImplemented
+
+    def completes_empty_marker(self, state: "State") -> bool:
+        """Allow a host to complete an explicitly reconstructed empty marker."""
+        return False
+
+    def pet_lifecycle(self, state, entering):
+        """Optional selected Pet host. Other worlds leave the lifecycle unbound."""
+
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
     for_code_transport: bool | None = None  # Native script VM +8 role result, when known.
     outline_context_available = NotImplemented
@@ -483,6 +503,11 @@ class World:
 
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
+
+    def controller_button(self, state: "State", pressed: bool) -> None:
+        """Host transport for a supported controller logical-button state."""
+        if state.instance.component.strict:
+            state.instance.component.unsupported(state.instance, "state", state.node.cls, state.node)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
@@ -640,6 +665,10 @@ class World:
     def clear_global_data_flow(self, state) -> None:
         pass
 
+    def animation_seconds(self, state: "State") -> float | None:
+        """Return a resolved authored animation duration when available."""
+        return None
+
     def animation_aliases(self, entity: int):
         """Known component55 alias list, known absence, or unknown."""
         return NotImplemented
@@ -774,6 +803,32 @@ class World:
     def play_static_actor(self, instance: "Instance", node: Node):
         return NotImplemented
 
+    def after_set_var(self, instance: "Instance", node: Node) -> None:
+        """Optional world reaction before queued variable-change notifications."""
+
+    def placement_probe(self, state: "State") -> bool:
+        return False
+
+    def stop_tracking_targets(self, state: "State") -> None:
+        """Optional cleanup of a host-owned target query."""
+
+    def linked_script_changed(self, state: "State", *, entered: bool = False) -> None:
+        """Optional host lifecycle for a script bound to the source state."""
+
+    def apply_script_pose(self, instance: "Instance", node: Node) -> bool:
+        """Return whether the host handled this action's target pose."""
+        return False
+
+    def apply_modify_health(self, state: "State") -> None:
+        """Optional host combat consumer."""
+
+    def assassin_capture_sender(self, instance: "Instance") -> int | None:
+        return None
+
+    def play_script_host(self, instance: "Instance", node: Node) -> bool:
+        """Optional explicitly scoped body adapter; false leaves legacy bodies unchanged."""
+        return False
+
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
         if not instance.component.strict:
@@ -884,6 +939,7 @@ class Component:
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
+        self.maximum_health = None  # explicit authoritative body-health input, when supplied
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
         self._follow_depth = 0
@@ -1366,6 +1422,11 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # These guards describe queued notifications. Keeping a guard after its
+        # event was removed prevents a later activation from observing changes
+        # (Baptiste's secondary-ammo/cooldown gate then never opens again).
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1601,6 +1662,8 @@ class Instance:
             self.write((scope, identifier), value)
         elif event.kind == STOP:
             self.stop()
+        elif event.kind == STOP_INSTANCE:
+            self.component.destroy(self)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1838,6 +1901,8 @@ class State:
 
     def plug_enter(self, input_path: str) -> bool:
         """A link enters the state (base 0x7FF78AA83D80): the abort plug asks for an abort, others a begin."""
+        if input_path == "m_C721B06C" and self.active and self.instance.component.world.placement_probe(self):
+            return True
         if input_path == ABORT_PLUG:
             self.request(ABORT)
         else:
@@ -1863,6 +1928,8 @@ class State:
         self.start = self.now - backdate
         self.ticked_at = self.now
         self.on_begin()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.pet_lifecycle(self, True)
         self.on_enter()
         if not self.active:
             return
@@ -1882,6 +1949,8 @@ class State:
         self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.pet_lifecycle(self, False)
         self.on_cleanup()
         self.unwatch()
         self.polled = False
@@ -1966,6 +2035,9 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        if (self.node.cls == "STU_54FEB21C"
+                and self.instance.component.world.completes_empty_marker(self)):
+            self.request_finish()
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""

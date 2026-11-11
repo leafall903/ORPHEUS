@@ -241,3 +241,40 @@ def ring_volley(state, forward, base, shot):
              f32(number(launch["m_391F15AF"], 0) * f32(math.pi / 180)))
     return tuple(ring_direction(forward, spread, jitter, phase, rings, base, shot, pellet)
                  for pellet in range(count))
+
+
+def _unit(vector):
+    length = math.hypot(*vector)
+    if length * length < 1.1754943508222875e-36:
+        return (1.0, 0.0, 0.0)
+    return tuple(value / length for value in vector)
+
+
+def single_cone_direction(forward, radius: float, base: int, shot: int):
+    """D80090 with aspect one and the uniform radial sampler."""
+    sample = seed_index(base, shot, 0)
+    phase = _uniform(sample, 0.0, f32(math.tau))
+    angle = _uniform(sample + 1, 0.0, radius)
+    right = _unit(_cross(forward, (0, 1, 0)))
+    axis = _rotate(right, forward, phase)
+    return tuple(f32(value) for value in _rotate(forward, axis, angle))
+
+
+def jittered_ring_directions(forward, rings, spread: float, jitter: float, base: int, shot: int):
+    """D80310 ring launch at aspect one with the negative phase sentinel."""
+    right = _unit(_cross(forward, (0, 1, 0)))
+    phase_bias = _uniform(base + 7 * (shot & 0xffff), 0.0, f32(math.tau))
+    degrees = f32(math.pi / 180)
+    base_radius = f32(max(0.0, f32(spread - jitter)) * degrees)
+    jitter = f32(jitter * degrees)
+    pellet = 0
+    for fraction, count in rings:
+        radius = f32(base_radius * fraction)
+        for index in range(count):
+            phase = f32(f32(f32(index / count) * f32(math.tau)) + phase_bias)
+            axis = _rotate(right, forward, phase)
+            sample = seed_index(base, shot, pellet)
+            direction = _rotate(forward, axis, f32(radius + _uniform(sample, -jitter, jitter)))
+            tangent = _unit(_cross(forward, axis))
+            yield tuple(f32(v) for v in _rotate(direction, tangent, _uniform(sample + 1, -jitter, jitter)))
+            pellet += 1

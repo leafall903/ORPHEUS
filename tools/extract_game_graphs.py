@@ -492,6 +492,7 @@ def body_record(
         associated = _ai_association(path, xml)
         if associated is not None:
             record["ai_association"] = full_guid(f"{associated:012X}.003")
+            record["controller"] = f"0x{record['ai_association']:016X}"
             if buttons := _ai_weapon_buttons(path.with_name(f"{associated:012X}.003.xml"), enums):
                 record["ai_weapon_buttons"] = buttons
     used = {entry["graph"] for entry in graphs} | {manager, *weapons} | component_refs
@@ -810,11 +811,18 @@ def collect(
         for graph in sorted(used):
             queue.append((graph, entry["name"]))
     entities = {}
-    for index in sorted(set(entity_indexes)):
+    selected_entities = set(entity_indexes)
+    pending_entities = sorted(selected_entities)
+    while pending_entities:
+        index = pending_entities.pop(0)
+        key = f"0x{0x0400000000000000 | index:016X}"
+        if key in entities:
+            continue
         path = xml_dir / "003" / f"{index:012X}.003.xml"
         name = f"entity {index:04X}"
-        record, used = body_record(path, enums, None, name, include_ai_weapons=ai_spawners is not None)
-        entities[f"0x{0x0400000000000000 | index:016X}"] = record
+        record, used = body_record(path, enums, None, name,
+                                   include_ai_weapons=ai_spawners is not None and index in selected_entities)
+        entities[key] = record
         queue.extend((graph, name) for graph in sorted(used))
     associations = sorted({row["ai_association"] for row in entities.values() if "ai_association" in row})
     for definition in associations:

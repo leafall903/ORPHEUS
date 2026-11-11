@@ -374,7 +374,7 @@ def cryo_heal(world, state, elapsed_ms):
     applied = min(duration, elapsed) - min(duration, max(0, elapsed - elapsed_ms))
     budget = expr.to_float(state.evaluate(state.node.field("m_modifyHealth.m_amount"), watch=False))
     vitals = fight.vitals_of(target)
-    fight._heal_target(target.owner, target, vitals, budget * applied / duration)
+    fight._heal_target(target.owner, target, budget * applied / duration)
     return True
 
 
@@ -437,7 +437,7 @@ def transcendence_heal(world, state, elapsed_ms):
         if target.entity in selected and target.owner is not owner and target.team == owner.team:
             vitals = fight.vitals_of(target)
             if not vitals.dead:
-                fight._heal_target(owner, target, vitals, budget * elapsed_ms / (duration * 1000))
+                fight._heal_target(owner, target, budget * elapsed_ms / (duration * 1000))
     return True
 
 

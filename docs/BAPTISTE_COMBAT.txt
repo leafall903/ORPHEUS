@@ -1,0 +1,1494 @@
+Baptiste combat lane: OPEN
+Target: Overwatch 1.74.0.0.104319; hero 02E0000000000221
+
+Scope and evidence
+------------------
+This is a source-only private lane based on 100c66c. It does not establish
+complete hero support. No original-client combat acceptance has occurred.
+Runtime inputs are immutable. The base runtime-104319 has38 mover rows and no
+explicit Talon NPC movers. Five-NPC acceptance now requires the separate prepared
+npc-navigation-runtime (43 rows), with ORPHEUS_PVE_NPC_DATA selecting its data
+directory. A missing NPC mover row is an error, never a geometry acceptance pass.
+Earlier38-row fixture results retain only their declared logic/health scope.
+
+The ordinary BodyScript initializes weapon graph 1932, whose primary volley
+state6 evaluates to 24 damage. Secondary state26 evaluates to 20 direct healing,
+speed60 and lifetime60. The existing combat implementation discarded the health
+operation and treated both positive amounts as enemy damage. HitDef now retains
+the operation; hitscan, swept direct impact and configured explosion-ring
+paths dispatch healing to living teammates with effective-healing statistics.
+The existing damage path and source exclusion remain in use for attacks.
+
+1932's authored falloff inputs are25/45m and float32 floor0.3. Explicit static
+poses put the front capsule surface at25/35/45/55m and execute actual hit
+definitions, yielding24/15.6/7.2/7.2 under the existing linear interpolation.
+The reconstructed boundary results also agree with the bounded native
+falloff consumer described below. Native contact geometry, critical
+default equivalence and headshots remain OPEN.
+The native metadata binds6396149F to Volley+178 and A872C70E to hit config+98.
+An external bounded native probe executes the178 selection, original constant
+load at D88A9F,98 projection at D8B517 and8F6350's null branch. It writes-1.0
+to hit result+64. Allocation and null-watch registration are explicit adapters;
+unrelated sibling projections are skipped. This establishes the null projection,
+not the downstream meaning of-1 or a native final critical multiplier. The current
+combat adapter's1.0 fallback is still reconstructed, and native hit-region/default
+resolution must be recovered before claiming headshot support. Raw projection-1
+must not be applied directly as a damage multiplier.
+
+A follow-up offline probe runs D8AE7D through D8B735 using the actual native
+pool allocator and a zero-filled hit config fixture. It consumes one pooled
+record, writes -1.0 to its +0x64 and publishes the same record at Volley
+result +0x90. No native instruction reads the field in the executed projection
+and publication path. The null hit-config control leaves the pool and +0x90
+untouched. This identifies the published record to trace into later consumers.
+The fixture does not model the authored sibling fields or damage resolution.
+
+The candidate reader D63590 loads a pointer at source +0x90 and copies its
++0x64 and +0x50 into a queue input at +0x2c and +0x30. B1AAC0 calls that
+conversion and queues a 0xe0-byte entry via B0E900. Offline execution of
+the conversion and queue copy preserved all 32 bits for -1.0, 1.75, zero
+and a NaN payload. D63590 also reads source +0x138, beyond the 0x130-byte
+projected Volley allocation. Its fixture supplies that pointer separately.
+The data flow from the published Volley object into this reader, the queue
+consumer of +0x2c and final critical behavior remain open.
+
+The complete B1AAC0 direct-append path also runs offline with a synthetic
+source, separate origin, a preallocated queue and a no-redirect lookup.
+It preserves the four +0x64 bit patterns at queue +0x2c in empty and
+nonempty queues, increments the count, releases the lock and returns
+the origin +0xb0. A bounded run of the B13EF0 duplicate check compares
+native-generated slots. Changing +0, +4 or +0x30 rejects the duplicate.
+Changing only +0x2c still takes the duplicate branch. This identifies
++0x30 as a duplicate key.
+
+Native B0F290 sorts those same live B1AAC0 queue slots in descending
+unsigned 32-bit order at +0x2c. The -1.0 bits sort ahead of the 1.75
+bits and zero. The sibling, source marker and ordinal remain paired
+with each key. Both the small sort and partition path execute. Native
+B13DC0 then visits records in that order and clears the queue in two
+runs with a missing-world-entity lookup adapter. The tests stop before
+successful world resolution. Volley object identity, ordering effects
+on accepted hits and final critical damage remain open.
+
+A bounded native probe distinguishes the outer result's +0xb0 child
+from the Volley carrying the hit record. D84C70 acquires the +0xb0
+child from the context +0x1070 pool with vtable 2675110. D841D0
+acquires the Volley from a separate context +0x1280 pool with vtable
+2675170. D8C540 appends the Volley to the list at the tracking object's
++0xf8 and D8C583 passes that same pointer to D87AF0. The bounded hit
+projection leaves the pooled hit at that Volley's +0x90 when the hit
+config is present. A null hit config leaves the hit pool untouched.
+D8C591 publishes the separate child at the outer result's +0xb0.
+The probe uses preallocated pools, skips sibling fields and executes
+only the bounded hit slice of D87AF0. The consumer of the tracked
+Volley and its relationship to D63590 remain open.
+
+D861E0 also acquires a Volley and records its pointer and full key in
+one of eight buckets before projection. D86660 finds the exact key
+within that bucket. D8CFF0 adds a retention bit and D851B0 clears the
+supplied bits. Clearing the last tested retention bit removes the key,
+and D86300 returns the Volley and its attached hit object to their
+pools. Offline execution covers every bucket with and without a
+same-bucket key and hit config. Lookup, retention and retirement did
+not read the hit record's +0x64 in these cases. The cache fixture uses
+preallocated storage and the bounded projector. Damage resolution
+remains open.
+
+D6E2D0 resolves the cached Volley by the full key at input +0x40
+when the signed index at +0x30 is negative. B32D30 calls that resolver
+and reads the returned Volley's hit pointer at +0x90. Native metadata
+binds m_B4454CD7 to hit config +8, which is null in 1932 primary.
+D8AF2B projects that null to hit record +0x20 = 0. B32D30 substitutes
+0 when the hit pointer is absent. Its bounded branch increments the
+supplied counter by one when an enable byte is set, both veto bytes
+are clear and the signed threshold is at most the projected value.
+Equality and the next higher threshold were executed with the authored
+null and with a separate synthetic positive value. The tested branch
+does not read hit +0x64. A separate fixture limit makes counter 11
+skip downstream work and counter 12 enter it. The probe stops at
+those branch destinations and supplies cache/world topology. The
+nested index path, critical-region selection and final damage remain
+open.
+
+The follow-up B32D30 path processes an existing record or stages a
+new record with the same resolved Volley pointer. For the tested
+enable bytes and zero elapsed-time input, separation 0.5 reaches the
+existing-record callback. Separations 1.0 and 1.5 decrement the count,
+remove the old record and allow a new one. B290E0 stages that new
+record, B30110 receives the same Volley, and B2B690 reads its hit
++0x20 again. A previously set marker suppresses the B30F00 call.
+These runs supply a displacement callback, skip the optional world
+query and record the existing-record callback arguments. The +0xc0
+payload is absent in that fixture.
+
+Native metadata binds BAA390E1 to Volley config +0x108. D8CAD7
+clears the Volley +0xc0 pointer and, when the config is present,
+publishes a pooled child. The child holds an evaluated resource
+handle at +0x20 and the config byte at +0x28. Native B30110 resolves
+that handle through D6E0E0 and uses D6E140 to select the entry with
+key 2B1A5E8C. Offline cases cover absent config, no expression,
+rejected expression, failed lookup, wrong type, an empty dictionary,
+nonmatching keys and matching entries in both native dictionary
+layouts. The evaluator and registry results are fixture inputs.
+The 1932 XML extract does not expose BAA390E1 by hash for states 6
+or 26. Its actual resource binding and damage resolution remain open.
+
+Separately, both 1932 hit configs contain a ModifyHealth child. In
+the initialized server VM, primary state 6 resolves amount variable
+476 to 24 with raw operation 1. Secondary state 26 resolves variable
+17412 to 20 with raw operation 0. The offline native probe injects
+these evaluated values through the amount callback. D8B715 passes
+hit config +0x88 to D853A0, which acquires the ModifyHealth record,
+writes operation at +0x20 and amount at +0x24, then links it at hit
+record +0x70. D8B723 publishes the same hit at Volley +0x90. Missing
+or rejected amount produces 0 with the operation intact. Missing
+ModifyHealth leaves the hit's +0x70 null. Other health expressions
+and arrays are empty in this fixture. Native graph evaluation and
+the consumer that applies health changes remain open.
+
+B257E8 passes the cached Volley returned at B25796 to B361B0.
+The bounded B36A8B consumer reads hit +0x7b (config m_3E7A533D),
+then requires a ModifyHealth pointer with operation 1 before taking
+its amount. Native distance math and the falloff branch use the
+projected 1932 inputs 25/45 and float32 0.3. Results at 25/35/45/55
+are 24/15.6/7.2/7.2, agreeing with the server reconstruction for
+those distances. State 26 contributes zero in this damage branch.
+Disabling the flag or supplying a missing hit or health child also
+contributes zero. A separate synthetic +0xb8 damage amount is added
+after the direct falloff. The probe supplies the position query and
+stops before later consumers. It verifies arithmetic and gating with
+a projected record. Actual contact geometry, healing application,
+critical-region selection and final health changes remain open.
+
+The native DeflectProjectiles path AE2120 -> D5C2D0 stages direct
+and area operation-1 amounts in an array of 0x50-byte records. Its direct
+read does not use the hit flag or falloff branch tested above.
+With room available, it appends a record and requests scheduling.
+At 32 records it adds the amount to the final record and does not
+request another schedule. The callback at vtable +0x1c0 resolves
+to the original no-op for this receiver. D5C060 ignores event 0
+and drains one record on event 1. Its native value writer supplies
+the same amount as type 3 at the graph write boundary. A second
+event with an empty queue supplies 0. The probe adapts scheduling
+and graph host calls. The staged and delivered amounts are graph
+inputs. Recipient health application and critical behavior remain
+open.
+
+Native class registration 0EC57928 and the winning DeflectProjectiles
+vtable identify that receiver. The Deflect metadata maps +0x138,
++0x140 and +0x148 to Genji 03A3 state 10 variables 6584, 10581 and
+41. The vector output at +0x150 is null in 03A3. The +0x198 plug
+m_160B5DBE reaches normalized graph positions 109, 129 and 138.
+Two ordinary server inputs reflect Baptiste's primary and grenade,
+but neither runs the graph callback. Manually supplying the bounded
+native queue amounts, 24 and 0, traverses those graph links and
+evaluates the downstream amount expression to approximately 1.2
+and 0. TrackStat 109 is currently a no-op, and actions 129 and 138
+have no host implementation. This is a Genji callback acceptance
+gap. It supplies no ordinary Baptiste hit-application evidence.
+
+Event 1 on the original receiver looks up its node metadata, removes
+the oldest record, emits the tagged amount and source, then calls the
+output plug. Both original metadata table branches were exercised
+with fixture tables. The three- and 32-record queues delivered every
+amount/source pair in insertion order, including a queued zero.
+Events 0 and 2 left the queue alone. Event 1 on the empty queue emitted
+zero amount and source and still called the plug. In this probe, the
+list lookup, graph writes and plug dispatch use host adapters.
+
+The original BE2980 collector joins two component ID lists, skips
+IDs on its exclusion list and keeps the first occurrence of each
+remaining ID. Both native descriptor layouts were exercised with
+synthetic inputs. The native event handler also resolved a preexisting
+local list variable, cleared its old entries and wrote tagged 64-bit
+values in the queued order. It replaced longer lists with shorter ones
+and cleared the list on an empty event. The protected component lookup,
+construction of the identifier prefix, change notification and
+production reflection delivery remain open.
+
+The recovered external1C26 graph supplies the missing area heal through owner
+variables17411=50 and19948=3. The declared1932 motion reads variable18034=20;
+the adapter uses the projected owner-scaled coefficient as downward
+acceleration, with initial speed60.
+Direct impact therefore heals20+50=70; a nearby ground impact heals50. One-tick
+ballistic chords preserve the same trajectory when scheduler ticks are skipped.
+Solid-world LOS blocks area healing through a wall, and the source cannot heal
+itself with the grenade. These are tested reconstructed semantics. Full
+native collision and impact handling, expiration and defense behavior remain
+open. The external graph is not silently mounted as a working VM.
+
+An ordinary Regenerative Burst TrackTargets activation now starts a reconstructed
+world-healing adapter. It reads radius10, duration5 and total ally healing75 from
+19A5, with the actual 1B2D source==recipient doubling to150. Tests execute input,
+target selection, solid-world LOS, timed health changes, repeated-press rejection,
+expiration, death and body-retirement cleanup. Feet-distance/solid-world LOS and
+continuous healing are reconstruction assumptions. Authored tags/barrier filters,
+anti-heal, multiple-caster stacking and complete control/status policy remain OPEN.
+
+Cancelled state notifications now clear their queued-event guards. Previously a
+CHANGED event removed by cancellation left flags_changed latched, so Baptiste's
+secondary cooldown switch could never reactivate. The real weapon regression
+now fires again after cooldown. Executed control checks also cover 45 primary
+rounds, reload, three-round100ms spacing, secondary ammo,13s burst and25s field
+cooldowns, and the effective2310 ultimate activation threshold. Ability world
+effects are not inferred from those control tests.
+
+An explicit actual1763 PlayScript fixture now executes its10% protection State
+against player and all five NPC health pools. Damage consumes shields/armor
+first, stops at the float32 health floor, and becomes lethal after script
+retirement. Its actual conditional ModifyHealth State also raises a living
+recipient from5 to20 when the graph's8202 gate permits; it cannot resurrect.
+Current/max-health queries now use live body inputs, and NPC startup synchronizes
+the complete health+armor+shield maximum instead of base health alone. These
+fixtures explicitly mount the protection script; field deployment, membership,
+source attribution and actor lifetime are NOT supplied by that fixture.
+
+Exo Boots now has an explicit1983 crouch projection from the live mover into
+its single96F1DBCF output. The authored timers, increments, retention, movement
+multiplier and native mover perform the resulting jumps. Real crouch commands
+produce partial/full charge, normal/partial/full jump heights, release expiry,
+ability-gate cancellation, death/body replacement cleanup and ceiling collision.
+The single-bit0x40 projection/edge interpretation is a documented reconstruction;
+other96F1DBCF fields/contexts and native bit correspondence remain unknown. No
+full flag service or client acceptance is inferred from these movement tests.
+
+Interpretation: ModifyHealth.m_93CDFD2F value0 is healing and value1 is damage,
+inferred from actual primary/secondary and Regenerative Burst graphs. OWLib's
+Enum_29C23519 maps D52DFCA4 to0 and E4A3B46B to1, with1 as the default.
+This is data-derived reconstruction, not a native damage-routine comparison.
+The team selector is a limited replacement for authored filter execution.
+Selected Ana and Genji hosts below now use explicit tags/status/response inputs;
+they do not establish general native filtering, barriers or absorption services.
+
+Automated tests use actual extracted weapon states and ordinary live BodyScript
+commands in offline Match instances. They verify primary outgoing and Soldier
+incoming player damage, secondary ally healing, no enemy damage, source
+exclusion, healing cap/effective stats, corpse exclusion and affiliation changes.
+A real Practice Range Bot object exercises both weapon health operations.
+Projectile lease/presentation registration is isolated in secondary tests;
+those tests do not validate projectile wire transport or client presentation.
+
+Current acceptance matrix
+-------------------------
+Feature                         Enemy player       Enemy NPC          Ally semantics
+Primary/burst rifle             Offline partial    Five types partial Pass through
+Primary headshots/falloff        Head OPEN/curve partial OPEN           No damage
+Reload/ammo/burst timing         Offline partial    OPEN               N/A
+Quick melee                     Hit/miss/LOS/CD     Five types30       No ally damage
+Secondary direct grenade        Enemy untouched    Five types partial 20+50=70
+Secondary impact/area/gravity    Partial LOS/arc    Five types partial Healing only
+Regenerative Burst (19A5/1B2D)   Enemy untouched    Five types75       Timed heal partial
+Immortality Field (1761/1762)    Deployment partial Five types floor   Zone/floor partial
+Exo Boots (1983)                Charge/jump partial Cross-status OPEN N/A
+Amplification Matrix (1902/1909) Crossings partial  Five types48       Grenade140 partial
+Taking damage/death/respawn      Offline partial    OPEN               Player lifetime separate
+Genji Deflect                   Returns partial    Five returned types Healing ownership partial
+HUD/FX/audio/observer agreement  OPEN               OPEN               OPEN
+
+All five requested PvE types remain OPEN for full bidirectional combat:
+Trooper | Enforcer | Sniper | Assassin | Heavy Assault.
+An explicit external fixture now loads their real body scripts and authored base
+health/shield pools. Ordinary Baptiste input deals24 primary damage to each;
+secondary heals friendly NPCs and leaves enemies untouched; reconstructed Burst
+heals75 to each friendly type. Manual deaths retain all five corpses beyond the
+normal respawn deadline. Difficulty/conditional pools are explicitly unapplied.
+Ordinary melee input deals30 to every type; its player fixtures cover a miss,
+ally exclusion, cooldown rejection/reuse and solid-world occlusion. The shared
+melee path previously checked overlap without LOS and could hit through walls.
+An explicit logical-button NPC weapon fixture deals20/100/5 incoming damage from
+Trooper/Sniper/Heavy Assault. Enforcer's input gate and Assassin's melee/special
+path remain unresolved. This fixture does not implement acquisition/navigation.
+The NPC initializer formerly discarded declared weapon components; it now reuses
+the hero weapon allocator, restoring Sniper's actual manager0015 and slots1122/
+1134. New tests exercise actual Sniper weapon input and resulting health loss.
+Enforcer13EB/node18 additionally needs9B7648C3(self)>0. Static native registration
+2F88FC8 (priority1), constructorD0A9B0 and table2663B28 lead toCEB6C0->D177C0,
+which selects component51 and calls its+40 numeric getter. The NPC world now
+projects its own authoritative aggregate health to this float32 query. Actual
+initialization enters the health-gated branch; lethal damage closes it. Normal
+button20 still emits no shot because node1's actual controller predicate remains
+unsatisfied. This is not Enforcer incoming-combat acceptance. Foreign queries and
+complete native pool getter equivalence remain unknown.32E6E4D8 and7D7D2470 use
+different component getter slots (+48/+58); their aggregate-health projections
+remain reconstructed until the native getter implementations are established.
+Other-lane native B96D3A98 evidence tests controller component75 present and92
+absent. A real controller namespace, component43 owner link and resource227A
+initialization must replace missing services; forcing controller flags is not
+acceptance. The current production controller predicate is still unsupported.
+Transport is an adapter and VMs remain permissive. These results are not AI,
+complete specials, strict native execution or original-client evidence.
+Manual PvE NPCs must set retain_corpse and must not receive automatic respawn or
+cleanup. Normal player death and respawn are separate policies.
+
+Required interaction groups remain OPEN for players and each applicable NPC:
+barriers and personal shields/armor; reflect/absorb; invulnerability and damage
+reduction; stun/sleep/freeze/knockback/silence; anti-heal; deployable destruction;
+Immortality Field entry/exit/LOS/expiration/health floor; simultaneous deaths;
+amplified hitscan/projectiles/healing and enemy/source matrix crossing.
+
+The shared64bf71c Flashbang control core is now adapted in this private lane:
+authored hit effect053/0079 chooses0228's0.8/1.7s duration branch; player movement
+and attacks pause, held/buffered input releases and Ability.stop follows authored
+exits. NPC routes pause without catch-up, while consumed NPC shots are suppressed.
+The parent's manual engagement console/controller is absent here and was not
+silently copied. Its full NPC command policy remains a parent dependency.
+Actual enemy input against Baptiste executes primary/movement stop and recovery,
+Matrix-preview interruption with2310 retained and later successful placement,
+existing Burst HOT continuation with new E rejection, Field floor protection
+without control immunity, Boots jump refusal and later full recharge/jump.
+Static walls block Flashbang damage/control. Full224E semantics, anti-control,
+cleanse, unstoppable, native effect stacking and client state remain OPEN.
+This is a reconstructed service policy, not complete cross-hero acceptance.
+
+The five-NPC Field expiry fixture uses normal Baptiste E on the Match clock.
+From 23 health, Baptiste survives each selected hostile attack sequence at 20
+with the Field active and dies to the corresponding sequence after natural
+expiry. The last active tick also clamps all five cases to 20. On the expiry
+tick, Assassin opening contact, Enforcer pellets and Sniper slot 1 are lethal.
+Heavy Assault and Trooper first hits leave 18 and 3 respectively, then their
+continued fire kills in the expired controls. Assassin contact can precede
+actor cleanup on the expiry tick. The floor check still observes the deadline.
+The scene uses static placement and explicit logical button 20 for the four
+ranged bodies. This verifies reconstructed damage/expiry ordering for those
+attacks. Acquisition, other weapons and specials, and client delivery are
+outside this fixture.
+
+Actual Reinhardt secondary input and the verified 104319 A3C mesh intercept
+the selected hostile Trooper, Heavy Assault, Enforcer and Sniper slot 1
+attacks. The shield loses 20, 5, 50 (25 pellets) and 100 respectively.
+Baptiste and Reinhardt take no body damage. The same attacks pass through a
+shield on the attacker side and hit Baptiste for the unguarded amount.
+With both defenses active, these attacks reach the shield before the Field
+floor is needed. Releasing the shield before impact exposes Baptiste and the
+armed Field clamps 23 health to 20. The unprotected release controls take
+full damage. Sniper and Enforcer projectiles are already in flight when the
+shield is released. Assassin opening contact bypasses the shield and the
+Field still clamps the damage to 20. The 28 static scenarios use reconstructed
+shield attachment and team filters, explicit NPC weapon edges, and normal
+Reinhardt and Baptiste commands. Native filtering and client delivery are open.
+
+Genji secondary-ability input also intercepts the selected four ranged NPC
+attacks before they hit Baptiste. The Trooper 1FE6, Heavy Assault 206A and
+Enforcer 23F0 entity resources were verified against the 104319 content
+manifest and each supplies target tag 2F9. Sniper uses the verified 1E80 row.
+The return hits the original NPC, and lethal controls credit Genji alone.
+No guard, rear guard, missing metadata and attacker-team guard all leave the
+incoming hit with the NPC. A normally deployed, explicitly placed Baptiste
+Matrix doubles returned damage only when the return crosses the window:
+Enforcer 2 to 4 per pellet, Heavy Assault 5 to 10, Sniper 100 to 200 and
+Trooper 20 to 40. The window owner receives no damage or kill credit.
+The 32 cases use logical NPC weapon edges, fixed poses and reconstructed
+deflection aim, team filtering and Matrix placement. Assassin contact and
+other attack types remain outside this ranged fixture.
+
+Sigma 1D02 input intercepts the same verified NPC weapon entities. The
+active frontal cases accumulate 50 Enforcer, 140 Heavy Assault, 100 Sniper
+and 60 Trooper damage. At conversion, Sigma gains approximately 30, 84,
+60 and 36 temporary shield from 1D03. None of the intercepted attacks
+damage a body. Heavy Assault continues firing across the Grasp deadline.
+After expiry, its next shots hit Baptiste and the live Field holds him at
+20. All four delayed attacks also hit after an earlier Grasp expires
+and meet the Field floor, with no shield grant from those hits.
+Unknown metadata and attacker-team guards pass the shots. Rear-facing
+Grasp passes Heavy Assault, Sniper and Trooper. At the selected close
+Enforcer pose, all 25 off-axis pellets instead enter the reversed box
+after passing Sigma and satisfy the host 180-degree dot-product gate.
+This is a measured reconstruction edge case. The native angle and pose
+rules, additional attack types, and client delivery remain open.
+
+Exo Boots 1983 crouch/jump commands change the actual target pose for four
+hostile NPC weapon paths. Enforcer, Heavy Assault, Sniper slot 1 and Trooper
+hit the same fixed-height line on the ground, during a normal jump and
+after the stored charge expires. A fully charged jump moves the body clear
+of that line. A separately raised aim hits that same boosted body in the air.
+All four hit again after landing. An attack processed in the jump command
+tick can hit the pre-jump grounded pose before the normal command moves it.
+In a continuous Heavy Assault sequence, shots pass beneath Baptiste until
+his descent returns him to their path. Damage resumes before ground contact
+and continues after landing. These 29 cases use flat collision, fixed NPC
+aim and explicit weapon edges. Native movement and hitbox parity, autonomous
+aim prediction and additional NPC attacks remain open.
+
+Regenerative Burst input under actual hostile NPC attacks was compared
+with same-health no-cast controls. Starting from 95, 35, 60 and 35 HP,
+Baptiste survives the selected Assassin, Enforcer, Sniper and Trooper
+sequences with early Burst and dies without it. Starting at 100 HP,
+Heavy Assault sustained fire kills at offset 311 with early Burst versus
+190 without it. Self healing ends at death in each overwhelmed case.
+The surviving ally still receives 75 from the original caster body.
+After normal respawn, the replacement body is set to 180 and gets no
+healing from the old cast. In four cases the ally is still receiving
+that cast when the new body appears. The Sniper case respawns after
+the ally heal expires. These 15 cases use explicit initial health and
+positions, ordinary Burst input, and logical ranged NPC weapon edges.
+Native scheduling and other attack modes remain open.
+
+An allied Baptiste secondary tests five hostile NPC attacks against a
+prepared low-health Baptiste. Actual direct impact gives 20 plus 50 area
+healing and prevents the lethal hit when it resolves first. Area healing
+alone saves the Enforcer and Heavy Assault cases within the measured
+window. Assassin, Sniper and Trooper still kill. Late grenades pass the
+dead recipient, impact the ground and heal a living nearby ally for 50.
+For Enforcer and Sniper the hit and grenade can resolve in either order
+on the same tick. The NPC launch is processed before the close grenade
+and the damage resolves first. The low-health target dies. A higher-HP
+control at the same placement survives the hit and then receives 20+50
+on that tick. The 32 cases cover reconstructed Match ordering with
+fixed poses, prepared HP and explicit ranged NPC button input.
+Native scheduling, complete attack coverage and live delivery are open.
+
+A normally placed 1902 Matrix doubles the tested allied NPC attack only
+when it crosses the active window. Enforcer pellets, Heavy Assault fire,
+Sniper slot 1 and Trooper shots rise from 2/5/100/20 to 4/10/200/40.
+The same enemy crossings and allied shots outside the window stay at
+baseline. Heavy Assault and Trooper test local lateral 4.49 versus 4.51
+metres against the 92E3 half-width. Both hitscan paths amplify one tick
+before expiry and stop at expiry. A Sniper projectile crossing before
+expiry retains 200 damage on the expiry tick. Enforcer and Sniper crossing
+after the deadline receive no boost even when the actor still exists at
+the crossing callback. Assassin contact across the plane stays at 25 and
+100. The fixture prefills charge, uses ordinary Q and confirmation, then
+places the NPC and target around the actual window. Native team, collision
+and timing parity and other attack modes remain open.
+
+Known missing paths
+-------------------
+The production TrackTargets state returns an empty set. Generic ModifyHealth
+States do not apply combat health changes. The Burst adapter fills only its
+declared reconstructed scope; complete native world services and deployable
+effects remain incomplete. The secondary projectile definition29AD references graph1C26 in the
+existing research XML; it is absent from the shared graph bundle. The volley
+has no area ModifyHealth or explosion rings. The explicit grenade adapter now
+fills that data-derived scope, but complete native execution and cross-hero
+interception/expiration remain open. Do not confuse reconstructed numeric/physics
+tests with complete target-client equivalence.
+
+Strict offline BodyRuntime now reports an initial null graph as a blocking
+diagnostic instead of crashing while formatting None as hex. The complete
+Baptiste bootstrap still reports12 unresolved diagnostics and wire_ready=false.
+That stricter probe is separate from production BodyScript, and neither a
+successful production initialization nor a partial probe is hero acceptance.
+
+Client coordination
+-------------------
+An existing Overwatch PID12292/window was observed during lane setup. This lane
+neither owns that process nor holds the shared client lease and did not control
+it. Further client work requires the atomic exclusive lease plus process/window
+checks and an isolated lane server. No normal service was stopped or modified.
+
+Integration
+-----------
+The reconstructed Field adapter now consumes actual1761/state12 throws, flies
+29A8 at authored60 speed/20 downward acceleration, and creates150-health29A9
+at impact. Actual1762 supplies radius10, duration5, arming0.35 and hover2.75.
+Actual1763 is mounted/removed for living teammates by reconstructed spherical
+feet-distance and solid-world LOS. Tests cover all five NPC health floors,
+enemy weapon destruction, aura exit/occlusion, expiry, owner death/respawn,
+hero change, FFA self-only protection, cooldown rejection/reuse and late viewers.
+Applied Burst healing also survives caster death/respawn on living recipients.
+Manifest-verified model9EBA supplies a radius0.46099997 capsule with local
+endpoints(-1.04519895e-17,0.18003005,0) and(1.7166137e-8,0.08403006,0), attached
+to identity bind-pose model node2. This now replaces the radius0.05 movement
+proxy for damage tests. Off-axis weapon hits/misses and retained-pose endpoint
+preservation pass. Animated/native hitbox equivalence is still OPEN. The native
+rise curve is replaced by immediate hover. TrackTargets'm_A30B383E evaluates
+2*atan2(6,10) in degrees=61.927513; it is not a direct radius ratio. Its native
+search-shape consumer and emitter/target offsets remain unknown. These inputs,
+native filters/statuses, top-up attribution and actual-client replication remain
+OPEN. Minimal create records and offline actor tests do not establish visuals.
+
+The 1761 canister's 13C/13D/13E base collision profiles all encode the
+same 0x1FDF mask and 0x1F9F category. The separate 2A0 tag row packs
+category 0x18 and mask 0x1000 and is installed in the native query when
+the override array is nonempty. The manifest-verified escort body
+209A carries 2A0. The exported Baptiste, Soldier and five NPC root
+bodies have no explicit 2A0 tag. In 12 offline E cases the reconstructed
+host ignores the friendly player and NPC capsules, and places the
+Field at the wall 8 m away. A hostile capsule instead stops the
+canister between 3.30 and 3.50 m without taking damage. Native
+selection and pair filtering, inherited tags, payload contact and
+transport remain open.
+
+Matrix1902 confirmation enters node16 via m_6647ED22. An explicit provider now
+distinguishes this input from begin/reentry and follows the authored success/
+failure links. Ordinary Q/left-click consumes2310 and spawns2B50 for10s; rotation
+uses the actual0.1s button-enable delay, and right-click cancellation retains
+charge and permits reopening. Failed static placement does not consume charge.
+This is a direct aim ray of authored range35 with slope0.611 interpreted as
+radians, not the native swept solver or full clearance/parenting policy. Forward/
+right vectors and the spawn quaternion are reconstructed; no preview presentation
+or moving-parent equivalence is claimed. The actor has no Health component.
+Confirmed placement, repeat rejection, rotation, cancellation, miss/wall/range,
+expiry and hero switch pass7 actual-graph offline tests.
+
+The reconstructed crossing adapter now intersects weapon segments against the
+authenticated model rectangle transformed by the current actor quaternion.
+1909's modifier amount1 is interpreted as additive+1, giving2x once per flight.
+Actual input demonstrates rifle24->48, grenade20+50->40+100, all five NPCs48,
+and allied Soldier Helix40+80->80+160 against Heavy Assault. Allied Baptiste
+crosses in either direction; enemy shots, outside-mesh shots, new shots after
+expiry and melee do not gain this modifier. A crossed grenade retains its boost
+after the matrix disappears. Source stats retain effective caps and affiliation.
+Native filter/tag correspondence, multiplier/stacking consumers, all applicable
+weapon classes, world offsets/orientation, status interactions and attribution
+remain OPEN. Sweeps now carry a contiguous time interval and check each Matrix
+at the actual plane-crossing time. One/40-tick updates agree when a window expires
+after crossing, expires before crossing or is created after crossing. This fixes
+a reproduced70-vs140 skipped-tick discrepancy. Native frame alignment, historical
+owner/team changes and already-removed windows remain OPEN. The one-boost cap is a stated
+adapter policy. This is partial executed amplification, not complete equivalence.
+
+A deployed Matrix survives caster death and ordinary same-hero respawn, continues
+amplifying an ally's actual shots and disappears at its own expiry. Hero-change
+cleanup is separately tested; these lifetimes do not imply native presentation.
+
+Reviewed shared2ca9178's distinct-input join handler and its native evidence;
+applied the runtime/node/storage/test changes in this private candidate. The
+listed direct Baptiste roots/weapon/effect graphs contain no1113EBD5 node; the
+shared VM tests still validate registration and causal snapshots. This dependency
+does not retire any of the hero's missing status/geometry/charge requirements.
+
+Target-build model92E3 and receiver0051.098 were read from immutable client data
+and MD5/size-verified against its manifest. External lane-only XML/inventory records
+preserve SHA256 provenance. The model mesh has local X[-4.4999995,4.4999995],
+Y[-1.1999999,3.7999997], Z[+-0.0009999999]. These bounds are NOT yet a validated
+world amplification plane: native orientation/placement offsets, filter tags,
+modifier consumers and crossing/latching semantics remain unresolved. Receiver
+0051 accepts profile010B.097 with flags1; no general receiver policy is inferred.
+The local mapped client-image excerpt confirms4C96470A has a distinct confirm
+callback (RVA008E8AC0), which sets its sync byte at+340. Native deferred execution
+and B4802CE3 preview payload are not implemented by the direct-ray adapter.
+
+Damage-backed ultimate charge now uses the already-mounted shared0B8B/node23
+expression with eligible actual pool loss supplied as instance336. Its authored
+9532/13022 modifiers and338 cost cap remain in the expression. Actual rifle fire
+awards24, armour mitigation awards19, and killing a10-health target awards10.
+Three-shot ordinary input awards72 once; repeated same-frame input cannot add
+damage or charge. Actual primary input against each of the five external NPC
+bodies awards24. Missing expressions/instances are not replaced by a fixed gain.
+Sustained ordinary rifle input with explicit reloads against the actual Heavy
+Assault pools fills0->2310; subsequent Q/confirmation deploys Matrix and spends
+the charge to0 without a GM refill between damage and cast. The NPC survives.
+This is a scoped damage host: ally/self/deployable/dead-source selection and
+active-ultimate rejection are reconstructed eligibility policies. It does not
+claim native event/tag/mode qualification or Matrix bonus attribution. Native
+healing eligibility and passive timing remain OPEN. The old60s default is now
+replaced for Baptiste by the resource-valued host described below; explicit
+numeric sandbox overrides remain. No full charge-generation acceptance.
+Validation:107 combat/projectile/NPC/VM/snapshot/charge methods PASS before the
+new end-to-end NPC cast test; that additional method separately PASSES. Earlier
+70-method Baptiste checks and six charge/five-NPC checks also PASS and overlap.
+One earlier command named a nonexistent snapshot method: its101 real methods
+passed, the command failed, and the corrected107-method command passed. The first
+end-to-end fixture exhausted45 rounds; explicit authored reload input fixed the
+fixture, without changing ammo/resource behavior. Ruff and diff checks PASS.
+
+Effective ally healing now feeds0B8B/node32 using instance499 and the authored
+modifiers/cap. A stored Vitals.ult_healing_deficit records actual enemy-caused
+missing HP; every heal consumes it, even when the heal itself earns no charge.
+This is an explicit host eligibility reconstruction, not native event/tag/mode
+proof: raw pool edits, self/friendly damage and caster self healing are excluded.
+Actual grenade direct+area healing awards70 then only the remaining30; overheal
+awards0. Another healer consuming25 of a40 deficit leaves only15 charge. Actual
+Burst ally healing awards75 while its150 self heal is excluded. Both grenade70
+and Burst75 execute against each of the five NPC body definitions. Authored
+modifiers/cap execute for healing too. Sustained actual grenade/reload input on
+an injured Heavy Assault fills0->2310, then actual placement deploys/spends to0
+without a GM refill between healing and cast. Burst retains its original body
+identity: a dead caster's HOT continues healing, but cannot charge a replacement
+body. That lifetime fixture explicitly disables unrelated passive charging,
+including the first replacement-body tick. Native flight/body lifetime,
+native self-heal qualification and full ModifyHealth eligibility remain OPEN.
+The deficit is included in server snapshots; mutating only it changes the digest.
+Latest validation:180 combat/projectile/Baptiste/control/Field/Matrix/NPC/VM/hash
+methods PASS; the subsequently added healing-to-Matrix chain and refactored damage
+chain separately PASS2 methods. A fixed-source stored creation/raw-spawn/VM replay
+PASSES1 method in30.296s after the new server field registration. Ruff across all
+changed Python files and staged diff checks PASS. These suites overlap and are
+not a unique grand total. An earlier25-method run failed because the lifetime
+fixture included0.616 passive charge on the first replacement-body tick; the
+corrected fixture disables that unrelated surrogate and the180-method run passes.
+
+An additional actual-input upward grenade fixture reproduced50 healing charge
+being credited to a respawned caster. Rocket now captures source_entity at birth
+and carries it through direct/blast hit dispatch into charge eligibility. The
+unleased offline flight still heals its ally50 after the original caster dies,
+but earns0 for the replacement body; a subsequent actual grenade from the real
+respawn location heals the remaining50 and earns50 normally. The independent
+low-angle ballistic aim uses authored speed60/gravity20. This fixture explicitly
+stubs lease transport and passive charge, not ability input or world flight.
+Leased-projectile retirement retains its existing separate tests/policy. Full
+native lease lifetime, death/kill-feed identity and reflection ownership transfer
+remain OPEN. Source-entity mutation alone changes the server snapshot digest.
+Validation:78 charge/combat/projectile/hash methods PASS after the identity fix;
+the later extended old/new grenade lifetime fixture separately PASSES. A new
+fixed-source journal records an actual network-input Soldier Helix, verifies
+Rocket.source_entity matches its real Shot.body, and replays both identities:
+PASS1 method44.514s. This is stored-state validation, not retail combat proof.
+Ruff over changed Python and staged diff checks PASS. The first fresh-grenade
+extension tried to teleport an already-simulated mover and missed; the corrected
+fixture aims ballistically from the actual respawn point without pose overrides.
+
+Baptiste's default passive profile is now ult_seconds=None: it evaluates actual
+0B8B/node3's1-second interval and node4's5-point expression with9532/12918
+modifiers and338 cap. A stored integer passive_charge_ms tracks the input-frame
+remainder. At16ms,62 frames yield0 points/992ms,63 yield5/8ms, and125 yield10/0.
+Duplicate/old frames cannot add points; gaps within the existing command budget
+agree with continuous input. Explicit zero disables passive; numeric overrides
+retain time-to-full behavior; other heroes retain their previous60s default.
+Dead/retired/running-ultimate hosts and known842 blocking reset the phase. If the
+real authored Wait is active, the host does not add a second increment. Native
+ownership/F726/2426 qualification, world-vs-input clock and scheduler rounding
+remain OPEN: this adapter does not force the native gate or claim it now works.
+Phase-only mutation changes both VM/server stored digests; the observation hash
+includes it too. Six focused passive tests PASS. A fixed-source full-match
+Baptiste journal reproduces0/992ms then5/8ms across raw input roots and replay,
+PASS1 method101.056s.180 related Baptiste/control/NPC/driver/VM/native-replay/
+manifest methods PASS with this profile. Ruff/all changed Python and diff PASS.
+These counts overlap; native body-only replay still rejects unsupported heroes.
+
+The immutable104319 client exports0B8B.01B and1932.01B were manifest-MD5/size
+verified, with raw SHA256 in external charge-resource-inventory.json. The XML's
+four charge nodes match runtime UIDs, timeout, bytecodes, dynamic scopes,
+modifiers/defaults and constant5 exactly. The external verifier and XML SHA256
+make this repeatable. Resource agreement is not full native engine execution;
+all exported client material remains outside Git.
+
+The known charge flags are now enforced across resource-valued host paths:
+explicit false2426 or true842 vetoes combat charge, and false2426 also stops and
+resets the passive host's phase. Re-enabling starts a fresh interval. Actual
+damage/healing still changes HP while charge is blocked; healing consumes the
+eligible deficit, so it cannot be credited again on recovery. Five bypass cases
+were reproduced before the fix.20 charge methods and97 related methods pass
+afterward with the old data cohort; the new mover cohort is recorded below.
+Native XML conditions1/21/22/28/35 match runtime class/bytecodes/dynamic scopes.
+Unknown2426 still belongs to explicit host eligibility, not a resolved native
+gate; native owner/F726 qualification and other message/tag filters remain OPEN.
+
+Parent-provided mover-preparation.json identifies the immutable43-row input and
+source XML hashes. Actual Combat.Target height/radius and Bot.speed now match:
+Trooper1.7/.5/5.75; Enforcer1.9/.5/5; Sniper1.75/.5/4.5;
+Assassin1.5/.5/14; Heavy Assault2.3/.7/2.2. No data was copied into this checkout
+or written into either input runtime/hardlinks. Static capsule fixtures execute
+side hits/misses at radius+-0.01, front-surface ranges25/45 and wall rejection for
+every body. These mover capsules do not prove animated native damage hitboxes.
+The old generic1.55-eye fixture missed the1.5-height Assassin horizontally.
+This historical claim is superseded by the manifest-verified Baptiste1.35 eye:
+actual horizontal and capsule-center inputs both heal70/charge70; a deliberately
+high aim misses. No damage/capsule rule was changed to manufacture a hit.
+The original38-row cohort is
+explicitly rejected; that expected rejection is not counted as combat success.
+The new runtime's real map collision cache is absent: all of these use explicit
+static collision fixtures. Eye/muzzle, animated hit regions, full navigation/AI,
+Enforcer/Assassin attacks and all original-client acceptance remain OPEN.
+185 related methods PASS using the coherent43-row runtime/catalog/graph cohort;
+17 initial NPC methods plus the added Assassin method separately PASS and overlap.
+The fixed-source full-match Baptiste phase journal also PASSES1 method104.021s
+under that43-row cohort. Ruff over changed Python and staged diff checks PASS.
+
+Native controller evidence does not justify forcing Enforcer's firing gate.
+Executing104319 F525E0 with only an STU descriptor adapter maps DAE477D5 to73
+for both player000E and AI227A, and227A's76AF64F0 to92. Seven native B96D3A98
+tail/bitset cases confirm75 present and92 absent are required. If DA6910 returns
+an object with227A's XML-mapped mask, the predicate is false even if implicit75
+is added. The actual returned object is not proven. Native mask helpers BD4680
+and BD59A0 execute as component43/44 respectively; DA5FA0 checks43 on the body,
+falls back to44 when43 is absent, and checks44 on a resolved intermediary.
+Encrypted pointers, intermediary resolution and final ownership remain OPEN.
+External lane evidence retains image SHA256, adapters and exact limits; these
+probes do not establish AI allocation or actual Enforcer primary combat.
+
+Stored-state export now explicitly registers the added effect/actor state,
+placement/crouch state classes and authoritative maximum-health input. Snapshot
+coverage is required so replay observations cannot silently omit these effects.
+
+Selected Ana received-healing profile (partial cross-hero acceptance)
+
+The separate healing-runtime retains the parent's43 movers and adds only graphs
+0C71/0B99/0C72. Base metadata hardlinks remain immutable; the merged graph is a
+distinct file outside Git. Manifest MD5/size and raw/XML SHA256 checks confirm
+0267.053 dispatches0C71, four-second lifetimes, positive delay0.05, stat031A
+factors1.5/0, negative exemption tag293E and immunity flags6604/8440/478/33551.
+The ordinary player-source branch yields100 ally healing and60 enemy damage;
+the native human/AI predicate and AI stat alternatives remain OPEN. No old
+carrier50 damage is added a second time when this prepared profile handles it.
+
+Actual Ana E and Baptiste secondary/Burst inputs execute the selected profile
+for player recipients and five NPC bodies. Effective modified healing feeds the
+same capped stats/eligible charge path. Delayed amplification, antiheal expiry,
+refresh without multiplication, opposing modifiers, known immunity cleanse,
+caster death and recipient replacement are checked. Tagged healing exemption
+is a direct filter fixture, not proof of native skill ownership. Antiheal blocks
+Field entry top-up, while the damage floor still prevents further loss. Native
+8202/8203 effect projection, Field amplification and complete control/shield/
+reflect/absorb/invulnerability relationships remain OPEN.
+
+Two reproduced defects were fixed: the selected Ana grenade now collides with
+allied recipients; late Burst integration uses its clipped lifetime endpoint,
+rather than treating old healing as occurring after antiheal expiry. Ordinary
+and400-tick late updates now agree at58.12 HP in that fixture. Clock/refresh/
+nonstacking, static player pose/collision and unleased local projectile transport
+are explicit reconstruction policies. Native PlayScript/filter ownership,
+team filters, multiple-source stacking, timing and original-client visuals are
+not accepted by these checks. Stored snapshots register status specs, source
+identity and intervals; mutable host clocks also enter the replay manifest.
+The four negative-status cleanup flags are not treated as generic damage
+immunity: C72's ModifyHealth precedes the separate teardown path. Tests retain
+the60 damage while excluding/removing the negative modifier for these flags.
+This does not resolve the independent native invulnerability/damage services.
+After the shared Ability timestamp adaptation, a fixed-source strict stored
+journal PASSES1 method400.248s: actual encrypted Ana E plus scheduler flight
+hits enemy Baptiste to140HP and replays the active Spec/Modifier maps. All game/
+jam Python source hashes are unchanged during recording/replay. Earlier357.598s
+evidence predates that adaptation; intermediate failed/missing-world-tick and
+interrupted attempts are separately retained, not called passes. Runtime input
+audit confirms all23 other data files still match their parent hardlink inputs.
+
+Shared Ability cooldown press-age review
+
+Parent reported an actual McCree roll failure in the common Ability node: a
+consumed press was rewritten with now while start gates were blocked. The
+reviewed private adaptation retains the original timestamp until start gates
+pass. No new state fields or parent workspace changes are introduced.
+
+Baptiste's actual Burst19A5 and Field1761 have an unset m_246438AD, interpreted
+as zero by the existing host; melee0043 explicitly has0.15 seconds. Actual graph
+checks cover early released press expiry, a fresh ready press, held recovery,
+legal near-expiry melee buffering and no invented Burst/Field buffer. The first
+test's melee press was only24ms before readiness, so its second execution was
+legal and was NOT a defect reproduction. Corrected earlier-input cases pass
+under both reviewed old and new logic; no Baptiste reproduction is claimed.
+Native default/activation/gate timing and complete cooldown interactions remain
+OPEN, independently of the parent's reported McCree evidence.
+The corrected related suite PASSES202 methods199.538s and the shared script
+suite PASSES823 methods15.716s. Three focused buffer methods PASS5.591s. The
+earlier202-method run had201 passes and the legal-buffer fixture failure above;
+it is not reported as an all-pass run. Cohort counts overlap.
+
+Selected Genji Deflect intake/return (partial)
+
+Actual003 definitions are retained for hitscan2CFA, healing grenade29AD and Field
+canister29A8. Five manifest-MD5/size-verified resources (these three003 plus03A3
+and0043) were exported read-only outside Git. Independent XML checks match the
+three box-expression pairs, angle90, mode0, filter tag0145, dynamic Wait input567
+and node107's0318/zero/tagged melee condition. An explicit three-row immutable
+projectile-tag profile is supplied via ORPHEUS_PROJECTILE_TAGS; its byte hash
+enters the model manifest and its immutable contents enter stored Combat state.
+Missing/unknown metadata never becomes eligible by guessing from health tags.
+The file is optional for ordinary service; absent inputs do not constitute
+Deflect support. A selected missing/malformed file fails explicitly.
+
+In the declared host, known003 without0145 are admitted;29A8 has0145 and bypasses
+this gate, retaining its Field deployment owner. Native097 filter polarity and
+complete tag filters remain OPEN. Actual Genji E activates03A3/st10 and its
+authored boxes. Eye/aim attachment, interpreting90 as the incoming hemisphere,
+current pose, frame-bucket activation, outgoing aim and cumulative hitscan
+falloff distance are reconstruction policies. Nearest body/static wall ordering
+is checked before the response. Reversed side-box endpoints are normalized;
+original D5BED4..D5BF39 execution matches515 cases, including three evaluated
+Genji boxes and raw floating-point edge cases. That native probe does not prove
+outer config/pose lookup, ray-box intersection, angle/filter or ownership response.
+
+Actual Baptiste primary returns24 per round/72 per burst to the original shooter,
+with ammo spent by Baptiste and damage/hit/kill credit assigned to Genji. Returned
+healing preserves its operation:20+50 heals Genji's ally70, with effective healing
+credit to Genji and no Baptiste charge. All five explicit NPC bodies receive
+returned primary24 and returned healing70 in static capsule fixtures. These are
+returned Baptiste shots, not proof of NPC attacks or general projectile admission.
+Genji's own charge policy, native callback outputs6584/10581/41 and on-deflected
+events are not reconstructed by health credit alone and remain OPEN.
+Original weapon loadout is retained; native replacement/icon/kill-feed
+presentation remains OPEN. Actual lateral0.65m capsule-miss and1m outside-box
+flights separately test box interception versus unchanged original authority.
+
+Reflected grenades retain003 identity, remaining lifetime, gravity, residual
+travel, Matrix latch and the new emission authority; they survive replacement of
+the original Baptiste body. One/30-tick retained-world intervals agree for live
+and after-deadline crossings. Stale active owner VM state cannot protect beyond
+the authored Wait deadline; no defender input is synthesized. Full historical
+activation/removal/pose/team replay and native frame-phase correspondence remain
+OPEN. Explicit cycle bound8 retires a pathological repeated return without
+manufacturing impact damage or bypassing another active guard; it is not a
+recovered native limit. Two opposing active guards are checked without HP loss.
+
+Selected node107's zero0318 modifier blocks actual front melee and allows rear
+melee; its included-tag-any policy and parameter8/source-position binding remain
+host policy. Reflected primary and grenade preserve a prior Matrix boost48/140.
+The original confirmed prediction retires with explode=False; an actual grenade
+plus injected ACK record checks no explosion-release ch2. The returned client
+projectile/prediction/FX/observer ownership is not implemented or accepted.
+Actual input checks also cover friendly exclusion, earlier cover/body, E expiry,
+cooldown repress and unknown metadata. Strict stored export includes catalog
+bytes and flight003/return count; mutable clock/cycle/catalog identity is sealed
+in the replay manifest. Full barrier/absorb/invulnerability/control relationships,
+native Genji defense correspondence and original-client acceptance stay OPEN.
+Fixed-source strict full-server journal PASSES1 method496.882s: actual encrypted
+Genji E/Baptiste RMB plus world scheduler roots reproduce an in-flight reflected
+29AD, its new shooter/team/source body, return count, position/direction and
+remaining/flown time. Catalog bytes and pending delivery state participate in
+stored verification. No game/jam Python source bytes change during that run.
+This verifies the declared host's replay, not original-client reflection.
+The32-method initial deflection/manifest/causal-storage cohort PASSES164.363s;
+two added input methods separately PASS Matrix140 and lateral box hit/miss.
+The current module has19 methods. An extended311-method combat/NPC/VM/native-
+replay/manifest/server-storage/journal cohort PASSES541.104s using the same frozen
+production source. All cohort counts overlap; no unique grand total is claimed.
+The initial12-method run's one Field wrapper AttributeError was corrected in the
+fixture; it was not reported as a production defect or an all-pass run.
+
+Parent mover17/18/19 notice was reviewed read-only. The sixteen currently mounted
+Baptiste graphs contain no such input-mod records; no unrelated mover patch was
+introduced. This does not accept unscanned native cross-status movement behavior.
+
+Selected Sigma absorption, verified eyes and notification cleanup
+----------------------------------------------------------------
+This optional player-body host selects actual1D02 state1/node7 and its Chase
+state20/node45 deadline. It reuses the declared deflection pose/box/angle/tag
+policy, including explicit003 metadata and0145 exclusion. It is not a general
+native absorption service. Active owner VM state alone cannot extend the world
+deadline; no defender commands are manufactured.
+
+Original code D853ED..D853F6 and D85A10..D85A1B projects ModifyHealth's raw
+operation and supplied amount into fields20/24. D5C2ED..D5C376 selects direct
+90/70 and blastB8/48 payloads: only operation1 contributes to the damage-amount
+callback; operation0 healing and unknown types do not. Twenty original code
+cases agree with the Python typed selector. These bounded probes use synthetic
+context pointers, a supplied numeric evaluation register and a callback sink;
+they do not execute full projection, interception, native queues or callers.
+Falloff/Matrix placement before that native selector remains OPEN.
+
+For selected hits, output6584/source41 feed the actual node32 accumulator21312.
+The actual node34 PlayScript params supply cap11218 and0.6*sum to1D03. That
+graph's expressions query current named5847 temporary shields and bound the
+new HealthPool amount. Host storage provides distinct kind2 component51 slots
+and stable IDs. Temporary shields take damage before base pools and cannot be
+healed; only enemy-caused base-pool loss creates eligible healing deficit.
+Priority, flags, native numeric queries, removal and Immortality maximum/floor
+phase are reconstructed and remain OPEN. An original pool of43.2 does not turn
+into a permanently increased base maximum after it ends.
+
+Decay begins only when actual Wait71(3s) yields to ModifyHealth70, using5 times
+ruleset9527. Partial decay marks kind2 dirty for observer health delivery;
+the regression initially lost0.8 without any dirty pool and now passes. Dead,
+retired and exhausted played scopes are removed by the selected host. Full
+native owner-VM/world-clock phase, stopped-owner grant/decay, pool-slot exhaustion,
+concurrent casts and replication/presentation equivalence remain OPEN.
+
+Actual input cases include a72-damage burst consuming ammo without hit/charge,
+healing grenade consumption without healing/conversion, two Matrix-amplified
+Baptiste shooters reaching the400 cap, front/rear/melee/team/cover/deadline,
+Field0145 bypass, death and all five NPC bodies behind the guard. The NPC test
+does not establish their incoming attacks or AI. Shield-grant assertions sample
+the conversion before continuing bursts can damage the newly granted pool.
+
+Manifest-verified FirstPerson XML gives Bap29A6 standing1.35/crouched.945,
+Sigma2AB1 2.1/1.75, Genji0225 1.2/.84, McCree02A3 1.425/.9975 and Soldier03CF
+1.55/1.085. A shared helper supplies both shooter and target eye heights; the
+mutable maps are explicit replay configuration. Actual stand/crouch/release and
+low-cover cases use these fields. These are server emission/target host choices,
+not proof of native camera, bone/muzzle, animated hitboxes or NPC eyes.
+Seven raw resources have export-time manifest MD5/size verification;187 selected
+XML/config/float32 values and20 native amount cases are rechecked externally.
+
+Eye correction exposed an oblique Flashbang impact gap of9.9969e-7 from the
+wall, below the ray's1e-6 positive-distance cutoff. The reconstructed splash
+origin now offsets along the contact normal by twice the cutoff. Actual enemy
+input no longer damages/stuns through the fixture wall; this offset is host
+policy, not recovered native explosion-origin behavior.
+
+Notification cleanup now ignores ending states during CHANGED scheduling.
+Central cancellation already clears pending CHANGED/CHECK flags. Ability.stop
+keeps its arbitration link until running-scope cleanup finishes. Two regression
+fixtures verify cleanup-write suppression and reuse after cancelled callbacks;
+native cross-object cleanup ordering remains a separate gap.
+
+Earlier absorption/eye validation:241 combat/related methods PASS220.368s;825
+script methods PASS16.881s. Strict stored full-server replay PASS1 method
+260.119s with actual encrypted Sigma E, then a world tick, then Baptiste primary:
+the active21312 accumulator24 and Sigma HP400 reproduce under stored-state
+verification. No game/jam Python bytes change within those runs. The initial
+fixture fired before the defender's world activation bucket and correctly
+dealt24 instead of absorbing; its failure is retained externally, not counted
+as a replay pass. Manifest/hidden-state causality checks also pass. Counts
+overlap. Ruff over all staged Python and staged whitespace checks pass.
+These are partial declared-host checks, not full hero/static/native/client
+acceptance; the tool goal remains ACTIVE and no hero commit is made.
+
+Enforcer controller startup and shared spread refinement
+-------------------------------------------------------
+Eight manifest-verified104319 exports retain body2279, controller227A, its roots
+142A/0E5C/0C83/13E9/13EA and child147B. The five controller roots total152
+nodes, with9 more in147B; no unread nodes or unmapped enums appear in this
+selected extraction. These raw files are external evidence, not data installed
+into the current production runtime.
+
+Independent raw XML linkage confirms2279.m_8B9A461F->227A,13EA's startup
+Entry32(uid430)->Stack31(uid429), entity-scope output9134 and constant true.
+An isolated permissive fixture mounts all five actual roots in definition order
+with their overrides and resolves147B. It executes that startup Stack without
+setting9134 directly. Supplying the explicit fixture F726 controller identity
+and foreign variable-slot lookup lets the real13EB gate resolve true and
+ordinary logical button20 emit state14/node24. B96 is not evaluated in that
+short-circuit path; no predicate override is required. Retiring13EA removes its
+flag and closes the weapon gate through the foreign variable dependency.
+
+The fixture deals2 damage, while13EB/node24 authors25 projectiles per shot.
+Current Combat._shoot emits a single projectile for each volley report and does
+not sample the613BDDB0 ring/spread pattern. Therefore neither a complete shot
+nor Enforcer incoming combat is accepted. At that checkpoint NPC spawn lacked
+the controller binding, namespace/allocation and lifetime host. This experiment
+uses an explicit controller identity and default native services; observed
+controller calls include C3619A38/A3DEF368/E72F6348/783B4CF0. It is not complete
+controller/AI/navigation, native source ownership, muzzle or transport evidence.
+
+The reviewed parent WeaponVolley239B571E no-decay change is adapted exactly:
+spread_ramp is baked at activation, normalized output follows completed shots
+plus one over ramp plus initial output, saturates1, and a ramp below1e-7 gives1.
+Decay-bearing configurations and other launch classes retain their unmodeled
+behavior. Exit retains the final output. The new field belongs to the shared
+causal state layout, so both body and server snapshots include it; six tests
+cover values, float32, activation/reentry, exit, unmodeled decay and digest.
+The mounted Baptiste1761/node21 and1932/nodes10/58 all select this branch.
+
+Native D5EAA0 interpolates the primary radius bounds 229 and 230
+and converts degrees to radians. Both bounds initialize to zero in
+1932. With those bounds and the authored ramp 5, the radius stayed
+zero through six completed-shot counts. In 45 paired native launch
+cases, radius zero produced the exact baseline direction, and a
+nonzero control radius changed it. Two server input bursts confirmed
+both bounds remained zero for each reported shot. The forward burst
+dealt 72 damage and the rear burst missed, with three rounds spent
+in each. Server aim conversion differs slightly at rear aim.
+Baptiste 1932 node 10 now applies this cone to the authoritative
+hitscan direction. AE71CF reads the shot count before AE73F2 increments
+it. The direction therefore uses completed shots while the VM display
+uses completed shots plus one. The host uses its body, instance, node
+position and activation counter as seed inputs and the authored default
+aspect of one. A controlled upper bound of 90 degrees makes shots two
+and three miss the same player that shot one hits. That burst deals 24
+and spends three rounds. The production calculation matches 180 native
+samples with the same baseline direction and fixture seed. Native seed
+identity, alternate sampling and launch options, secondary and deployment
+directions beyond the checks below, and native muzzle and aim
+conversion remain open.
+
+The 1932 grenade launch reads variable 7396 through m_22CE7F30. Its
+authored producer multiplies 0.010000001 by min(1, owner variable
+9573), with fallback 1 for an absent owner variable. D88985 projects
+this value to +0x08. D5ECB4 adds the offset along world
+Y after cone selection and normalizes the vector. The server uses
+that correction for both the projectile transport direction and the
+authoritative flight. The 1761 canister has no authored offset.
+Five native canister-profile cases reproduced the unshifted direction.
+Those native cases used fixture aim and projected launch structs.
+
+D88E2A through D88FB8 also watches owner variable 9573 and multiplies
+the E1A5B579 motion coefficient by it. Both 1932 and 1761 author 20.
+The native projection and the server model match across 22 cases,
+including missing, zero, fractional, negative, boolean and list inputs.
+An elevated-ally input fixture verifies the coupled result. The default
+arc misses the capsule and restores 50 health through wall splash.
+At scale zero, both launch offset and acceleration are zero and the
+same input hits directly for 70 combined healing. Zero, half and
+negative scales also preserve actual Field deployment on a wall.
+The projection probe adapts config evaluation and owner lookup.
+
+Native D71ACD updates the vertical velocity in place before D70477
+advances position from that velocity. The authoritative server sweep
+now uses that order within each bounded ballistic step. Six fixture
+flights compare 78 steps with the native motion type dispatch and
+position block. They include positive, zero and signed acceleration,
+and a shorter final step. A further 24 native cases execute D70627's
+velocity correction at supplied contact fractions, which interpolates
+between the pre-step and full-step velocities. The reconstructed
+reflection retains the velocity magnitude for that fraction before
+redirecting the remaining flight. An actual Genji E return with the
+guard 20 m away preserves in-flight authority, position, velocity and
+remaining lifetime across individual ticks and a single 24-tick gap.
+Both runs miss the intended ally on the return.
+
+D6FD37 converts the original clock quantum of 16000 microseconds to
+a 16 ms tick. D72C80 limits a proposed flight chord independently by
+elapsed time and cumulative path distance, then interpolates position,
+velocity and used time. Both 1932 and 1761 author 60 seconds and 500 m.
+The server tracks both budgets for these two launches and preserves
+them across reflection. Eight native clipping comparisons cover free
+flight, time, distance, both limits, fractional ticks and signed
+acceleration. Actual grenade inputs exercise both limits separately.
+The range case uses the default motion and ends at 500 m of arc travel.
+The time case uses an explicit slow, gravity-free control and expires
+at 60 seconds. Neither produces an impact. An actual Field input also
+exhausts the 500 m path without deploying a Field.
+
+D74EC0's two dedicated expiry effects require flags absent from the
+selected resources. The grenade's m_EEB99E41 projects false, and both
+volleys omit m_747ECB51. The original projectile vtable reaches its
+terminal and retirement callbacks in both tested world branches.
+Both profiles reach the reason-3 terminal report boundary. The
+fixture adapts delivery of that report and the world lookups. Four
+authored cases skip both effects. The enabled control enters both.
+A repeated expiry on the same body skips the internal terminal
+report and retirement callbacks. The server retires the predicted
+copy when either budget runs out. Actual grenade input with a
+simulated ACK verifies a single destroy without an explosion release.
+Native deferred report handling, clock subdivision, collision
+resolution, muzzle and full aim conversion remain open.
+
+With this shared spread field included, frozen-source cohorts PASS247 combat/
+related methods294.728s,831 script methods24.237s, and1 strict active-absorption
+full-server stored replay344.388s. Source hashes remain unchanged within each
+run. Counts overlap. No full controller/AI, Enforcer incoming, static hero or
+original-client acceptance follows from these partial tests.
+
+Optional NPC controller host
+----------------------------
+The new external controller-runtime starts from immutable healing-runtime and
+adds only142A/0E5C/0C83/13E9/13EA/147B, entity227A and2279's explicit controller
+association. All other metadata uses immutable hardlinks. Existing runtime
+inputs are never overwritten. Static literal graph dependencies are validated
+before installing a namespace; missing147B or an absent controller identity is
+an error. Controller roots preserve definition order and schema overrides.
+
+Match reserves a distinct controller identity from the NPC allocator. BotScript
+mounts the controller before body initialization, so13EA's real initial Stack31
+can answer F726 self lookups. Native controller lookup/identity mapping remains
+unproved; this selected host does not force B96 or write9134 true. Other native
+controller predicates and full AI behavior are still unimplemented.
+
+Each advance_live call advances controller time before applying body logical
+input edges. The selected scalar members7681/9134 are polled into private body
+input slots at65536+identifier. This avoids cross-component mutable Var/state
+sharing and keeps the two namespaces independent. Those slots are explicitly
+filtered from replication. Their values and mappings participate in component
+storage; the outer server snapshot owns the separate controller and its graph/
+clock state. A one-component body snapshot deliberately excludes that external
+controller object, just as it excludes the enclosing Match; it is not a full
+server causality claim. The full server digest changes when either controller
+clock or cached input changes. Native watch callbacks and exact update phase
+are not recovered by this polling policy.
+
+Controller retirement destroys its scopes, clears held buttons/shot requests,
+marks it dead and synchronizes null inputs into the body before further input.
+Both NPC death and manual removal use this path. Independent Enforcers reserve
+distinct identities/variables; retiring one cannot close another's weapon gate.
+Controller entities are not network-created or presented to original clients.
+Reconstructed lifetime checks do not establish native ownership/replication.
+
+At the controller checkpoint, actual npc.spawn plus ordinary button 20 produced
+the selected 13EB shot and the single-projectile host dealt 2 damage. The
+subsequent launch implementation below expands that shot to the authored volley.
+
+The metadata extractor's optional AI path now retains the body003 association,
+collects the referenced controller definition and follows its graph references.
+An eight-real-XML fixture extracts all five controller roots and147B; body graph
+XML intentionally absent from this controller-only fixture remains listed as
+missing. The actual controller-runtime retains all body graphs from its base;
+this scoped collector audit is not a complete fresh runtime boot claim.
+
+The coherent controller-runtime cohort PASS337 combat/NPC/extractor/VM methods
+382.996s,831 script methods20.786s and1 strict active-absorption stored replay
+368.914s. Each run keeps game/jam source unchanged, including the updated Bot
+and snapshot layouts. A later extractor-only closure edit separately PASS16
+methods0.710s and the actual XML audit. The stored replay exercises Bap/Sigma
+input, not journaled NPC creation; actual-controller state causality is covered
+by the independent full-server digest test. Counts overlap. All marked full
+static/native/client gaps remain OPEN.
+
+Enforcer projectile launch
+--------------------------
+Two additional manifest-verified 104319 exports cover weapon graph 13EB and
+projectile 23F0. The prepared graph matches the selected launch and hit fields.
+Node 24 authors 25 projectiles in rings of 1, 8 and 16 at radius fractions
+0, 0.5 and 1. The live weapon evaluates spread 4 and jitter 2. Native projection
+D8870C..D887C1 writes those values and -1 for the absent phase config. The
+absent aspect config writes 1.0 through D87D7C and D88A03..D88A7E.
+
+The selected server model uses the generated uniform table and the original
+ring index, randomized phase, seeded jitter and two-axis rotation arithmetic.
+The table matches 16,384 captured values. Original instruction execution
+agrees with 200 production directions to 1.2e-7 per component, using explicit
+numeric projection adapters and scalar sine/cosine stubs. The seed mapping uses
+server body, instance, node and activation identity. Native handle identity,
+muzzle transform and projectile replication remain OPEN. Projectile 23F0's
+verified tag 02F9 is recorded for subsequent interception tests.
+
+Each pellet uses the existing flight, collision and impact path independently.
+The host uses linear travelled-distance falloff with authored 8 and 15 m bounds
+and a 0.2 floor. Tests cover 50 damage at close range, a reduced distant hit
+count at 0.4 damage per hit, ally filtering, wall occlusion and retirement before
+a player beyond the 100 m flight limit. Actual Field input holds Baptiste at
+20 HP during a lethal volley. Removing the Field permits the same volley to
+kill. Actual Matrix input doubles each allied pellet crossing the window.
+Full-server storage includes the active flights and their falloff policy.
+Exact native falloff, live projectile delivery, autonomous Enforcer inputs,
+Assassin incoming attacks and the remaining hero acceptance matrix stay OPEN.
+
+The seeded launch passed 121 relevant regression checks. The final
+13-method controller cohort includes a full-server digest check with all 25
+pellets in flight. The separate 100 m range retirement check passes. The
+earlier fixed-ring checkpoint passed 339 checks and one strict Baptiste/Sigma
+replay. That replay remains historical evidence for the earlier source.
+
+Deliver this lane's commit as a patch for parent review. Do not merge the parent
+working tree, modify runtime data, push manually or mark the hero completed.
+Reviewed parent NPC commits c2d3ae1/a15d554 were applied in this private clone
+as2a8f13f/a4a9870. They are dependencies, not a claim that the Baptiste goal is
+complete. No lane implementation commit is made before the full static gate.
+
+Assassin incoming attack (partial static)
+----------------------------------------
+The extracted 1EBD body references controller 1EBE. The host exposes that
+controller as the body's primary possessor and mirrors authored target slot
+1650 into private body storage. The 13C2 target message 0A73 and ordinary body
+button 36 reach graph 1157. With a supplied candidate and target health, node
+25 evaluates to 25 and node 15 to 100 exactly 1000 ms later. Rejection suppresses
+both nodes. Button release or Assassin death during the wait suppresses node 15.
+
+This verifies state activation and evaluated amounts. Candidate discovery,
+behavior arbitration, target health queries, capture motion, victim graph 1177,
+ModifyHealth application and effective damage, range, LOS and cooldown remain
+open.
+
+The host now resolves 1157's foreign health query from current combat pools.
+The 41 predicate is flag 478 OR (flag 2380 AND health <= 1). A nominated
+victim without either supplied flag does not reach the health lookup. With
+fixture flag 2380, actual input reads 1 HP and 2 HP from combat. Both cases
+still activate both damage nodes. Killing the victim during the wait likewise
+leaves the delayed state activation in the current fixture. Authored flag
+production, victim cleanup and actual damage application remain open.
+
+The 1157 state 18 references persistent message 08FE and node 45 targets
+victim graph 1177. A separate 1177 host probe invokes the graph explicitly and
+delivers 08FE through the packet adapter. The victim's actual body-health
+query enables receiver 17 only above zero HP. Delivery starts animation state
+2 and sets entity variable 14483. Actual victim death disables the receiver
+and animation on the next VM frame. Variable 14483 and the instance remain.
+Persistent routing, release, final cleanup and control effects remain open.
+
+The native action STU_22926252 schedules a Stop Instance event for its current
+instance when both authored options are absent. The event is queued before
+the action output. The strict runtime and the selected 1177 host path model
+this case. The 08FE strict fixture can now run the authored receiver branches
+without substituting the stop action. If a receiver has already entered its
+idle animation, selection of a sender exits that branch and its authored
+end action stops the existing receiver instance. Initial PlayScript timing
+and cross-body manager ownership remain open.
+
+With a nominated controller target, button 36 begins capture 23, sender 18,
+wait 24, and damage state 25 before invoking PlayScript node 45, all at the
+same host timestamp. The host now aborts active capture 23 on Assassin death
+before later corpse timers can activate node 15. This is scoped host teardown.
+Victim death during the wait still leaves node 15 eligible in the fixture.
+Persistent 08FE transport, actual victim-side invocation and damage remain
+open in the production combat path.
+
+The selected host now rejects a nominated target with an authoritative
+combat death record, clears the capture's local target, and schedules the
+same scoped abort before the next VM frame. This covers attacker-side
+teardown on victim death. Native target invalidation, 1177 victim-side
+teardown, production 08FE transport and damage remain open.
+
+The selected 1157 ModifyHealth host consumes nodes 25 and 15 once per
+activation. It evaluates each authored amount and instigator and uses the
+existing enemy selection, stun check and combat damage path. This is a
+reconstructed host interpretation of the two nodes. Native mode/option
+parity, capture motion, hit eligibility at range or through cover, and
+persistent victim control remain open.
+
+Both selected 1157 damage nodes use the current attacker eye position and a
+static ray to the nearest target capsule surface. This reuses the host melee
+cover policy. A wall inserted or removed between stages affects only the
+stage whose ray encounters it. This is a host damage gate. Native controller
+visibility cache production, capture eligibility and native reach stay open.
+
+The selected host damage path also reads the default 1158 node 21 distance
+assignment and applies it to current three-dimensional body-origin distance.
+The extracted default is 2.5. The host checks it independently at each damage
+stage. The authored threshold-doubling trigger and whether native capture
+keeps dealing damage as either body moves remain open.
+
+Assassin release animation timing (partial static)
+
+The NPC host resolves 1157 node 31, alias 0561 and category 082, through
+the Assassin 07C3 blend-tree set and 0640 tree to clip 508A. Its header
+duration is 1.4666667 seconds. The reconstructed host uses unit playback
+rate and the VM's existing animation completion path. Node 50 then clears
+the target. Repressing before completion leaves capture inactive. A new
+press after completion can capture again even while node 37 is running.
+Native playback modifiers and variable 173 initialization remain open.
+
+Assassin controller button transport (partial static)
+
+The selected 1158 node 12 holds button 36 on its associated Assassin body
+while the state is active. The host drains the controller edges in order
+before the body update. A release before the damage wait expires cancels
+the second hit. Death retires the controller and clears pending edges and
+the body's held input. These are reconstructed host rules. The native
+option behavior and autonomous selection of the controller state stay open.
+The same combat update can advance the body past an observer's last live
+snapshot. Full-frame encoding now uses the graph index recorded in that
+snapshot when the live instance has exited or its ID has been reused.
+
+Assassin controller movement projection (partial static)
+
+Native node 19 projects IN_AIR to variable 417 and its complement to 545.
+The reconstructed host samples the NPC's feet against static collision,
+using the body mover's step-down distance and slope limit. This feeds the
+authored movement variables before the controller tick. The host sample
+covers standing support and loss or gain of support. Native mover
+acquisition, dynamic contacts and full NPC movement remain open.
+
+Assassin controller spatial queries (partial static)
+
+The selected 1158 controller reads the current body origins from the
+combat scene. Its visibility query uses a static ray from the Assassin's
+eye to the eligible enemy's capsule surface, the same host geometry used
+for each damage stage. The range and visibility stacks refresh during
+combat ticks. This is a host reconstruction of query inputs. Native
+visibility-cache production and autonomous target admission stay open.
+
+Assassin target acquisition (partial static)
+
+The reconstructed host selects the 13C2 tracker and 1158 attack behavior.
+It feeds the tracker live enemy bodies within its authored search radius
+and nominates the nearest candidate, breaking ties by entity ID. The
+13C2 target message and graph write select the target. The host retains a
+target while eligible and runs the authored clear action when none remain.
+The 1158 graph evaluates range, static visibility and support before
+pressing the attack button. Native arbitration and filter flag semantics,
+full cooldown and repeat attack recovery remain open.
+
+Assassin body-to-controller interruption (partial static)
+
+The host routes authored 1460 relay messages 083A and 0AA3 to the paired
+live controller. The 1158 message entries only interrupt phase 2. An
+interruption during the damage wait releases button 36 before the second
+hit. One after the second hit releases the button and leaves damage
+already applied. The message source events and phase 3 recovery remain open.
+
+Assassin interruption from Flashbang (partial static)
+
+A Flashbang hit accepted by the existing host control path now submits
+083A to the Assassin's 1460 relay. This is a reconstructed mapping from
+host stun to authored attack cancellation. The control test casts actual
+Cassidy input and exercises the collision, damage and stun paths. An
+early hit cancels the second grab damage stage. A late hit releases the
+button after both stages, and a wall or an allied Assassin blocks control.
+The native Flashbang message source and post-interruption rearming stay open.
+
+Assassin controller recovery relay (partial static)
+
+The selected live controller forwards 09DA to its paired body. The
+authored phase 3 sequence sends it after the recovery waits. Body graph
+13C3 sets entity variable 13401 to 3 and the subsequent body sequence
+returns it to zero. In the exercised host path, 1158 remains in phase 3
+after this relay. Native behavior reselection, repeat attack eligibility
+and cooldown remain open.
+
+Assassin recovery reselection (partial static)
+
+After a delivered 09DA and the body phase transition from 3 to 0, the
+host reselects the 1158 attack root if its phase is still 3 and the
+Assassin is free of stun. This reconstructs behavior reselection from
+the observed graph handshake. The original range, visibility and target
+gates still decide whether the next attack starts. Both pending recovery
+fields and the current button holders are covered by snapshot export.
+Native arbitration, normal completion of an uninterrupted grab and
+variable 173 cooldown remain open.
+
+Assassin capture on the Baptiste body (partial static)
+
+In the static host, 1157 node 45 starts the extracted 1177 graph on the
+selected live enemy Baptiste body. Receiver 17 selects the matching active
+1157 sender 18 through a host bridge for 08FE. The received branch sets
+flag 14483. The release branch clears it when the sender ends. The host
+also retires the capture graph when the selected receiver exits on death.
+This coverage tracks graph state and flag lifetime. Victim input and mover
+constraints, native message selection and healthy uninterrupted release
+remain open.
+
+Assassin victim movement during capture (partial static)
+
+The mover resolves the 104319 directional input fields 17, 18 and 19
+through the existing active movement modifiers. Two normal command streams
+exercise positive and negative axes and the existing jump and crouch gates.
+The 1177 rows remain in effect through the release animation after Flashbang
+clears the capture flag. On the first command after the graph retires, the
+victim's movement inputs are accepted again. Field 22 reaches the mover's
+stored collision flag. Its downstream consumer and non-movement action
+inhibition remain open.
+
+Assassin qualified low-health release (partial static)
+
+At 1 HP with fixture-provided victim variable 2380, 1157 node 42 runs
+its authored 1.5 s wait and ends the capture sender. Victim graph 1177
+then takes the two-second wait instead of its usual release animation.
+The host receiver retains ownership of flag 14483 until cleanup, so the
+flag clears when this alternate path retires the graph. The fixture
+supplies the cross-entity qualifier lookup. Its gameplay producer,
+native damage cadence, and controller release for a living target
+remain open.
+
+Assassin controller recovery after qualified release (partial static)
+
+The Assassin body and controller read victim qualifiers 478 and 2380
+from the live target body through the host adapter. In the exercised
+2380 fixture, the authored controller predicate ends phase 2 at 1 HP.
+The body release animation overlays the effective phase with zero while
+13C3 writes the recovery phase into the underlying slot. The reconstructed
+reselection handshake observes that write and waits for the release
+animation and both phase values to clear. Reselection rejects the
+still-qualified 1 HP target. The fixture seeds variable 2380 in the victim
+body. Its normal gameplay producer, uninterrupted release of an
+unqualified living target, and native cooldown remain open.
+
+Sniper charge interruption (partial static)
+
+Flashbang's 224E node 33 stacks entity variable 33 above the Sniper
+charge owner at 1122 node 34. An isolated execution of that authored
+stack ends charge state 53. The host Flashbang adapter mirrors that
+interruption for active 1122 charge states. A hit before launch cancels
+the shot even if the stun ends before the original deadline. A projectile
+already launched keeps flying. A new press after stun runs the full charge
+again. Complete 224E runtime and native input arbitration remain open.
+
+Sniper fire input during Flashbang (partial static)
+
+The reconstructed host rejects Sniper fire-press edges during the active
+stun interval, before either weapon slot can start or queue a shot. This
+covers short presses and an edge with no later release. The expiry frame
+accepts new input, and slot 1 still requires the full two-second charge.
+Slot switching and autonomous control remain separate from this fire gate.
+
+Enforcer and Trooper ranged fire during Flashbang (partial static)
+
+Actual Cassidy Flashbang used to let Enforcer accept an input during stun
+and launch after expiry. Trooper could generate reports while stunned and
+continue firing from a held input after expiry. Enforcer now receives the
+Match combat context, and both bodies reuse the input gate for button 20.
+Presses during stun are discarded before their weapon graphs consume them.
+Release edges are preserved. A new press at the exclusive deadline or
+after it produces an ordinary shot and damages Baptiste.
+
+Graph 224E node 33 and the 13EB/102E weapon stacks share entity variable 33.
+The initial isolated stack probe queued a begin on an uninitialized
+instance and exhausted the VM update budget. Initializing the instance and
+isolating its start entries lets node 33 execute. The Enforcer 13EB node 0
+under link aborts node 11 and enters the authored recovery path.
+The host now requests that same abort on the active charge. A fresh press
+after recovery launches normally. An already emitted projectile still hits
+even when Flashbang lands before its impact. Real input tests also cover
+early stun ending before the original launch tick with no delayed volley.
+Actual Flashbang now starts the isolated 224E stack branch for an active
+Trooper 102E/node 44 or Heavy Assault 114F/node 28 attack. Both weapons
+restart their windup from shot zero when the host stun deadline releases
+the stack. Flashbang on the scheduled launch tick also preempts the shot.
+When interrupted during a volley, earlier hits remain and the rest of the
+tested volley is stopped. Extending the deadline postpones the restart,
+and death removes the projection without a corpse volley.
+The projection runs on the NPC VM and is included in the read-only server
+state export. It is excluded from observer instance snapshots. Complete
+224E behavior, native arbitration and client delivery remain open.
+
+With the 64-tick retained combat window, a Flashbang already admitted to
+flight can hit on its normal frame during catch-up. An unadmitted player
+projectile joins at the endpoint, so earlier NPC fire can resolve first.
+If the stun deadline falls within retained ticks, Trooper and Heavy
+Assault restart at the same time as continuous simulation. If the deadline
+is older than the retained window, windup begins on the first retained tick.
+
+Field arming under combat catch-up (partial static)
+
+Previously a retained NPC hit could kill Baptiste after the Field arming
+tick because membership and top-up ran only at the final replay tick.
+The combat loop now refreshes Field protection after attacks on each
+intermediate retained tick. Enforcer, Heavy Assault, Sniper and Trooper
+kill at arming minus one and on the arming tick, matching the continuous
+NPC attack phase. At arming plus one, both continuous and skipped updates
+leave Baptiste at 20. Actual hostile Trooper fire also hits five armed
+friendly NPCs and leaves their 20/35/30/50/400 floors intact.
+Retained ticks still use current poses. Native scheduling and frames older
+than the retained window are outside this acceptance.
+
+Sniper death at the charge boundary (partial static)
+
+Host corpse cleanup aborts active 1122 charge before advancing the death
+frame. Lethal Baptiste primary input now clears a pending charge on death.
+A shot already emitted by the combat scheduler still hits, including when
+the lethal player command is processed later in the same server frame.
+The ordering is verified for this host. Native corpse animation and
+client projectile transport remain open.
+
+Reinhardt Barrier Field versus hitscan (partial static)
+
+Supply verified build-104319 A3C.00C via ORPHEUS_REINHARDT_BARRIER_MODEL
+or runtime data/reinhardt_barrier_104319.00C. The selected host intersects
+the raw collision mesh during 0095 Pet state 17. It attaches the mesh one
+metre ahead of the current eye using current yaw, and uses hostile
+hitscan routing with normal wall and body distance ordering. Initial
+capacity comes from graph variable 587. This reconstruction holds
+damage on the current owner body and clears it when the body retires.
+
+Native Pet identity, animated hardpoint, historical pose, receiver
+filters, shield regeneration/break recovery, projectile and area
+interactions, hit feedback and client presentation remain open.
+
+Reinhardt Barrier Field versus direct projectiles (partial static)
+
+The mesh also intersects direct-only damaging projectiles. The sweep
+orders the mesh against the world, bodies and other projectile defenses.
+Earlier Matrix crossings and configured travel falloff apply to shield
+damage. Sniper's slots consume 100 and 5 capacity and preserve Baptiste
+  in the fixed-pose match probe.
+
+  Soldier's 0254 Helix (072C and its 1C86 Visor variant) uses the same
+  hostile mesh contact path. Original 002 query tests select an enemy A3C
+  contact. The host detonates on the incident side and uses the authored
+  direct 40 and inner-ring splash 80 against the contacted barrier. The
+  blast selects exposed bodies before applying barrier damage, including
+  when that damage breaks the shield. The ordinary input fixture exercises
+  072C and the 1C86 variant after actual Tactical Visor activation. It also
+  exercises a break, incident-side splash, allied pass-through, a nearer
+  solid wall and Matrix crossings before and beyond the barrier.
+
+  A clipped flight can contact the mesh at its endpoint. With authored A3C
+  geometry the native 002 callback publishes a hit at fraction 1.0. The
+  host test clips an input-launched rocket to just short of, at and just
+  beyond the contact. The host keeps the existing body or world hit at an
+  exact tie. Native final ordering for real coincident colliders remains open.
+  Barrier damage, nearest-capsule blast LOS and break ordering are host
+  reconstructions. Native authoritative HP routing, separate splash damage
+  to nearby barriers and other projectile/area policies remain open.
+
+Reinhardt Barrier Field break message (partial static)
+
+A positive-to-zero transition in the selected mesh routes authored
+message 0053 to the live 0095 instance. The original receiver ends
+Pet state 17 and sets the five-second cooldown. The host uses the owner
+as the sender and supplies no visual parameters. Child identity,
+recharge and a successful post-break re-raise remain open.
+
+Selected Reinhardt Pet identity (partial static)
+
+When the verified model is configured, Pet state 17 allocates a distinct
+server-local mesh identity, writes it to the authored output, and retires
+it on release or break. The break sender is that identity. The authored
+wait ends while the child exists and restarts when the output clears.
+Native child replication, capacity recharge and re-raise remain open.
+
+Reconstructed Reinhardt recharge (partial static)
+
+The configured host supplies unit capacity scaling for 0095, retains
+remaining shield HP on release, and transfers authored recharge back
+into collision capacity on the next raise. Cooldown timer expiry now
+notifies linked variable watchers so the graph can reopen its input
+listener. Normal input after expiry raises a fresh child and blocks
+Baptiste primary with the recovered HP. Native scaling, timing, child
+replication and full cross-ability shield acceptance remain open.
+
+Reinhardt Rocket Hammer incoming damage (partial static)
+
+Actual 0048 swing states select hostile bodies against the authored
+left/right capsules and apply the authored 85 damage. The host samples
+the capsule at state activation with body yaw and solid-world LOS.
+The native animated sweep, filter service and knockback remain open.
