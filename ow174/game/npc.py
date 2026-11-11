@@ -62,7 +62,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
     entity = match.combat.next_bot
-    if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(b.entity == entity for b in match.bots):
+    if (not bots.BOT_ENTITY <= entity < 0xD0000000 or entity in match.combat.deployables
+            or any(b.entity == entity for b in match.bots)):
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
@@ -94,6 +95,7 @@ def remove_spawned(match) -> tuple[int, ...]:
         match.combat.clear_pins(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
+            script.retire_controller()
             component = script.component
             from ow174.game import assassin
 

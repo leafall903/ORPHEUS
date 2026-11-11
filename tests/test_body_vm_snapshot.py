@@ -65,12 +65,14 @@ STATE_MODELS = (
     ("STUStatescriptStateDataFlowMapping", nodes.DataFlowMapping),
     ("STUStatescriptStatePet", nodes.Pet),
     ("STU_54FEB21C", nodes.PhaseEntry),
+    ("STU_96F1DBCF", nodes.MovementFlagProjection),
+    ("STU_4C96470A", nodes.PlacementPreview),
 )
 COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes", "startup_entity_values",
+    "state_registries", "parameter_scopes", "startup_entity_values", "maximum_health",
 }
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -181,7 +183,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 38)
+        self.assertEqual(len(STATE_MODELS), 40)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -554,6 +556,11 @@ class BodyVMSnapshotTests(unittest.TestCase):
                          {"hero", "mode", "body", "body_definition", "throttles", "velocity_requests", "communication_wheel",
                           "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                           "_body_owner_context", "_entity_query_context"})
+        self.assertIn("passive_charge_ms", body)
+        script.passive_charge_ms = 7
+        self.assertNotEqual(snapshot_digest(export_body_vm(script)), snapshot_digest(baseline))
+        script.passive_charge_ms = 0
+        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

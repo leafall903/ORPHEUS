@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Baptiste server integration
+
+- Integrate Baptiste's weapons, Regenerative Burst, Exo Boots, Immortality
+  Field, and Amplification Matrix with the Python combat runtime. Bring in
+  the delivery's NPC, replay, and StateScript changes.
+- Pass 170 combat, scene, and StateScript checks, then pass five targeted
+  rechecks of tagged Deflect and grenade amplification using the delivery's
+  external data. Full PvE and original-client verification remain open.
+
 ### Orisa server integration
 
 - Integrate Orisa's Fusion Driver, Fortify, Halt, Protective Barrier, and

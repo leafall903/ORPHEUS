@@ -369,7 +369,10 @@ class BodyRuntime:
             raise Unsupported(f"invalid variable target {identifier}/{scope}")
         return identifier, scope
 
-    def _instance(self, number: int, role: str, parent=None) -> RuntimeInstance | None:
+    def _instance(self, number: int | None, role: str, parent=None) -> RuntimeInstance | None:
+        if number is None:
+            self._report(None, None, "missing-graph", f"null graph reference ({role})")
+            return None
         metadata = self.graph_loader(number)
         if metadata is None:
             self._report(None, None, "missing-graph", f"graph {number:04X}")

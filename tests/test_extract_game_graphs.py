@@ -303,6 +303,8 @@ class AIWeaponButtonTests(unittest.TestCase):
         self.assertEqual(opted_in["entities"][body]["ai_association"], 0x0400000000001404)
         self.assertIn("0x0400000000001404", opted_in["entities"])
         self.assertNotIn("0x0400000000001404", baseline["entities"])
+        self.assertEqual(opted_in["entities"][body]["controller"], "0x0400000000001404")
+        self.assertEqual(opted_in["entities"]["0x0400000000001404"]["graphs"], [])
         self.assertEqual(opted_in["bodies"], baseline["bodies"])
         self.assertNotIn("ai_weapon_buttons", opted_in["bodies"][body])
 

@@ -1,11 +1,15 @@
 """The NPC body's statescript, shared by all observers."""
 
+import math
+
 from ow174.game import assassin, observers
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
+from ow174.game.collision import NOT_GROUND
 from ow174.game.content import PRACTICE_RANGE_MODE
-from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
+from ow174.game.mover import mover_data
+from ow174.game.script import expr, graph, play, runtime
+from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs, create_initial_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -16,6 +20,16 @@ ENABLE_NAMEPLATE = 0x0240000000000C3C
 NAMEPLATE_ENABLED = 8807
 NAMEPLATE_NAME = 8812  # 226C.01C, 0D24's optional display name
 PRACTICE_BOT_HEROES = frozenset(range(0x02E000000000016B, 0x02E000000000016F))
+TROOPER_HERO = 0x02E00000000001AC
+SNIPER_HERO = 0x02E00000000001B8
+HEAVY_ASSAULT_HERO = 0x02E00000000001BA
+ASSASSIN_HERO = 0x02E00000000001BB
+ENFORCER_HERO = 0x02E00000000001CE
+FLASHBANG_STACK_GRAPH = 0x224E
+ASSASSIN_TARGET = 1650
+ASSASSIN_CAPTURE_TARGET = 536
+ASSASSIN_RANGE_VAR = 12018
+ASSASSIN_VICTIM_VARS = (478, 2380)
 PRACTICE_NAMEPLATE_FILTER = {"$": "STUConfigVarFilter", "m_84065FD1": 0x3FFFFFFF, "m_4EA686DB": 0x100}
 
 
@@ -29,20 +43,415 @@ def practice_nameplate(snapshot: Snapshot) -> int | None:
     return None
 
 
+def require_controller_graphs(record) -> None:
+    """Reject missing literal graph dependencies before installing a controller namespace."""
+    pending = [item['graph'] for item in record['graphs']]
+    visited = set()
+
+    def references(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                yield from references(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from references(child)
+        elif (asset := graph.guid(value)) is not None and asset >> 48 == 0x0580:
+            yield asset & 0xFFFFFFFFFFFF
+
+    while pending:
+        index = pending.pop()
+        if index in visited:
+            continue
+        definition = graph.graph(index)
+        if definition is None:
+            raise ValueError(f'NPC controller graph {index:04X} is missing')
+        visited.add(index)
+        pending.extend(references(definition.fields))
+        for node in definition.nodes:
+            pending.extend(references(node.fields))
+
+
+class AssassinControllerWorld(runtime.World):
+    """Reconstructed host services for the Assassin controller graphs."""
+
+    def __init__(self, hero: int, mode: int, body: int, entity: int, match) -> None:
+        super().__init__(hero, mode)
+        self.mover = mover_data(body)
+        self.body_entity = entity
+        self.match = match
+        self.button_edges: list[tuple[int, bool]] = []
+        self.button_holders: set[tuple[int, int]] = set()
+        self.movement_bits = 0
+        self.candidates: tuple[expr.Entity, ...] = ()
+        self.recovery_pending = False
+        self.recovery_started = False
+
+    def entity_var(self, entity: int, var: int):
+        if self.match is not None and var in ASSASSIN_VICTIM_VARS:
+            return self.match.combat.scripted_body_var(entity, var)
+        return super().entity_var(entity, var)
+
+    def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        if self.match is not None and target == self.body_entity and message == 0x02400000000009DA:
+            bot = next((actor for actor in self.match.bots if actor.entity == target), None)
+            script = bot.body_script if bot is not None else None
+            if (script is not None and script.controller is not None
+                    and script.controller.world is self and script.controller.entity == sender
+                    and not script.controller.owner_dead and not script.component.owner_dead):
+                self.recovery_pending |= bool(runtime.send_message(script.component, message, params, sender))
+            return
+        super().send_message(target, message, params, sender)
+
+    def reselect_recovered_attack(
+        self, controller: runtime.Component, body: runtime.Component, frame: int,
+    ) -> None:
+        """Reselect the attack after the authored recovery handshake completes."""
+        if not self.recovery_pending:
+            return
+        body_phase = body.entity_var(13401, create=False)
+        phase = body_phase.value() if body_phase is not None else None
+        base_phase = body_phase.base if body_phase is not None else None
+        # The 1157 release animation temporarily overlays the phase written by 13C3.
+        if phase == 3 or base_phase == 3:
+            self.recovery_started = True
+        if not self.recovery_started or phase != 0 or base_phase != 0:
+            return
+        for instance in body.instances.values():
+            if instance.graph.index == 0x1157:
+                release = instance.states.get(instance.graph.node(31).state)
+                if release is not None and release.active:
+                    return
+        if self.match.combat.stuns.get(self.body_entity, 0) > frame:
+            return
+        self.recovery_pending = self.recovery_started = False
+        attack = next((i for i in controller.instances.values() if i.graph.index == 0x1158), None)
+        if attack is None:
+            return
+        attack_phase = attack.find_var(runtime.INSTANCE_SCOPE, 59, create=False)
+        root = attack.states.get(attack.graph.node(1).state)
+        if attack_phase is not None and attack_phase.value() == 3 and root is not None and root.active:
+            with controller.operation():
+                root.end(False)
+                root.begin()
+
+    def sample_ground(self, collision, position) -> None:
+        if collision is None or position is None:
+            self.movement_bits = 0
+            return
+        data = self.mover
+        x, y, z = position
+        ground = collision.ground(x, z, y + expr.EPSILON, y - data.step_down)
+        grounded = (ground is not None and not ground.surface & NOT_GROUND
+                    and ground.normal[1] > math.cos(math.radians(data.max_slope)))
+        self.movement_bits = 2 if grounded else 1
+
+    def position(self, entity: int):
+        if self.match is not None:
+            targets = self.match.combat._targets()
+            target = next((target for target in targets if target.entity == entity), None)
+            if target is not None:
+                return expr.Vec3(*target.feet)
+        return super().position(entity)
+
+    def native(self, cfg: dict, instance: runtime.Instance):
+        if self.match is not None and instance is not None and instance.graph.index in (0x1158, 0x13C2):
+            kind = cfg.get("$")
+            if kind in ("STU_00707E1E", "STU_0AC15F78"):
+                owner = cfg.get("m_00903303" if kind == "STU_00707E1E" else "m_entity")
+                if instance.evaluate(owner) == expr.Entity(instance.component.entity):
+                    return expr.Entity(self.body_entity)
+            if kind == "STU_AC829876":
+                selected = cfg.get("m_filter") or {}
+                signature = (selected.get("m_84065FD1"), selected.get("m_4EA686DB"))
+                target = instance.evaluate(cfg.get("m_entity"))
+                if signature in ((262144, 304), (262144, 316), (1, 264)):
+                    condition = selected.get("m_condition")
+                    if signature == (262144, 316):
+                        # The range switch checks this predicate before its
+                        # unconditional subgraph links the projection slot.
+                        condition = instance.graph.node(69).field("m_value")
+                    return (target in self.candidates
+                            and (signature == (262144, 304) or condition is None
+                                 or expr.truthy(instance.evaluate(condition))))
+            if kind in ("STU_9B7648C3", "STU_60146072"):
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                combat = self.match.combat
+                body = next((target for target in combat._targets() if target.entity == entity), None)
+                if body is None:
+                    return 0.0
+                vitals = combat.vitals_of(body)
+                return expr.f32(vitals.total if kind == "STU_9B7648C3" else vitals.maximum)
+            if kind == "STU_71A87E92":
+                return self.position(expr.to_entity(instance.evaluate(cfg.get("m_entity"))))
+            if kind == "STU_D379F515":
+                owner = instance.evaluate(cfg.get("m_7826B991"))
+                target = expr.to_entity(instance.evaluate(cfg.get("m_target")))
+                return (owner == expr.Entity(instance.component.entity)
+                        and self.match.combat.assassin_visible(self.body_entity, target))
+        return super().native(cfg, instance)
+
+    def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
+        return self.match is not None and instance.graph.index in (0x13C2, 0x1158)
+
+    def refresh_candidates(self, controller: runtime.Component) -> None:
+        if self.match is None:
+            return
+        tracker = next((i for i in controller.instances.values() if i.graph.index == 0x13C2), None)
+        if tracker is None:
+            return
+        node = tracker.graph.node(4)
+        reach = expr.to_float(tracker.evaluate(node.field("m_radius")))
+        self.candidates = self.match.combat.assassin_candidates(self.body_entity, reach)
+        slot = expr.lvalue(node.field("m_8A2905A0"))
+        if not expr.same(tracker.find_var(*slot).value(), self.candidates):
+            tracker.write(slot, self.candidates)
+        target = controller.entity_var(ASSASSIN_TARGET, create=False)
+        current = target.value() if target is not None else None
+        if current in self.candidates:
+            return
+        if self.candidates:
+            nominated = self.candidates[0]
+            runtime.send_instance_message(tracker, 0x0240000000000A73, {0x5C5: nominated}, nominated.id)
+        elif current:
+            tracker.run_node(tracker.graph.node(16), None)
+
+    def refresh_spatial_inputs(self, controller: runtime.Component) -> None:
+        # The selected stacks cache native results in the VM. Re-evaluate them
+        # before the next controller frame so moving bodies and walls are visible.
+        with controller.operation():
+            for instance in controller.instances.values():
+                if instance.graph.index != 0x1158:
+                    continue
+                for position in (7, 68, 80):
+                    state = instance.states.get(instance.graph.node(position).state)
+                    if state is not None and state.active:
+                        state.dependency_changed()
+
+    def movement_flag_projection(self, instance: runtime.Instance, node: graph.Node):
+        if instance.graph.index == 0x1158 and node.pos == 19:
+            return 3, self.movement_bits
+        return None
+
+    def controller_button(self, state: runtime.State, pressed: bool) -> None:
+        if state.instance.graph.index != 0x1158 or state.node.pos != 12:
+            return
+        before = bool(self.button_holders)
+        holder = (state.instance.id, state.index)
+        if pressed:
+            target = state.node.field("m_14EDDDA7") or {}
+            owner = target.get("m_entity") or {}
+            if (state.instance.component.owner_dead or target.get("$") != "STU_0AC15F78"
+                    or owner.get("$") != "STU_B5A0CAF0"
+                    or state.evaluate(state.node.field("m_7E2A700B"), watch=False) != 36
+                    or state.evaluate(state.node.field("m_5E1D2E9C"), watch=False) is not False):
+                return
+            self.button_holders.add(holder)
+        else:
+            self.button_holders.discard(holder)
+        after = bool(self.button_holders)
+        if before != after:
+            self.button_edges.append((36, after))
+
+
 class BotWorld(runtime.World):
     """Resolve the supported authored predicates and input bindings for an NPC body."""
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
-        *, controller_components: tuple[int, ...] | None = None, manual_nameplate: bool = False,
+        *, controller_components: tuple[int, ...] | None = None, manual_nameplate: bool = False, match=None,
     ) -> None:
         super().__init__(hero, mode)
+        self.match = match
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
         self.controller_components = controller_components
         self.manual_nameplate = manual_nameplate
-        self.match = None
         self.manual_target = None
+        self.controller: runtime.Component | None = None
+        self.component: runtime.Component | None = None
+        self.controller_inputs: dict[int, int] = {}
+        self.heavy_counter_stuns: list[tuple[int, float]] = []
+
+    def entity_var(self, entity: int, var: int):
+        if self.match is not None and (
+            (self.hero == ASSASSIN_HERO and var in ASSASSIN_VICTIM_VARS)
+            or (self.hero == HEAVY_ASSAULT_HERO and var == 9161)
+        ):
+            return self.match.combat.scripted_body_var(entity, var)
+        return super().entity_var(entity, var)
+
+    def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        controller = self.controller
+        if (self.hero == ASSASSIN_HERO and controller is not None
+                and target == controller.entity and sender == self.component.entity
+                and message in (0x024000000000083A, 0x0240000000000AA3)):
+            if not controller.owner_dead and not self.component.owner_dead:
+                runtime.send_message(controller, message, params, sender)
+            return
+        super().send_message(target, message, params, sender)
+
+    def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        controller = self.controller
+        selected = var in (7681, 9134) or (self.hero == ASSASSIN_HERO and var == ASSASSIN_TARGET)
+        if controller is not None and entity == controller.entity and selected:
+            # Selected host polling policy: local input slots avoid sharing VM
+            # storage namespaces. These reserved IDs are never replicated.
+            if var not in self.controller_inputs:
+                self.controller_inputs[var] = 0x10000 + var
+            self.sync_controller_inputs()
+            return self.component.entity_var(self.controller_inputs[var])
+        return NotImplemented
+
+    def sync_controller_inputs(self) -> None:
+        for key, proxy in self.controller_inputs.items():
+            slot = self.component.entity_var(proxy)
+            native = self.controller.entity_var(key, create=False)
+            value = native.value() if native is not None and not self.controller.owner_dead else None
+            if self.hero == ASSASSIN_HERO and key == ASSASSIN_TARGET:
+                if isinstance(value, expr.Entity):
+                    value = 0 if self.assassin_target_dead(value) else expr.Entity(value.id)
+                elif value is not None and (type(value) is not int or value != 0):
+                    raise ValueError('Assassin controller target must be an entity or empty')
+            elif value is not None and type(value) not in (bool, int, float):
+                raise ValueError('selected controller input must be scalar')
+            before = slot.value()
+            slot.base = value
+            self.component.changed(slot, before)
+
+    def animation_seconds(self, state: runtime.State) -> float | None:
+        index = state.instance.graph.index
+        alias = graph.guid((state.node.field("m_11E0A658") or {}).get("m_animAlias"))
+        category = graph.guid((state.node.field("m_22326315") or {}).get("m_category"))
+        if self.hero == HEAVY_ASSAULT_HERO and index == 0x1254 and category == 0x0280000000000245:
+            # Reconstruct category 0245 with the first linked 07C0.021 branch at unit rate.
+            # 0064 and 0066 resolve to the main clips 6A36.006 and 6A37.006.
+            if (state.node.pos, alias) == (46, 0x0C80000000000064):
+                return 0.6666666865348816
+            if (state.node.pos, alias) == (44, 0x0C80000000000066):
+                return 1.0666667222976685
+        if self.hero != ASSASSIN_HERO or index != 0x1157 or state.node.pos != 31:
+            return None
+        if alias == 0x0C80000000000561 and category == 0x0280000000000082:
+            # 07C3.021 alias 0561 -> 0640.020, category slot 3 -> clip slot 4.
+            # Use the 508A.006 header duration at unit playback rate.
+            return 1.4666666984558105
+        return None
+
+    def after_set_var(self, instance: runtime.Instance, node) -> None:
+        if self.hero == HEAVY_ASSAULT_HERO and instance.graph.index == 0x1408 and node.pos == 136:
+            drive = instance.states.get(instance.graph.node(71).state)
+            if drive is not None:
+                # As with wall contact, check the authored drive transition before the capture watcher.
+                drive.try_complete()
+
+    def track_targets(self, state: runtime.State) -> None:
+        if self.match is None:
+            return
+        if self.hero == TROOPER_HERO and state.instance.graph.index == 0x1422 and state.node.pos == 5:
+            target = self.match.combat.trooper_melee_target(state)
+            targets = (expr.Entity(target.entity),) if target is not None else ()
+        elif (self.hero == HEAVY_ASSAULT_HERO and state.instance.graph.index == 0x1408
+              and state.node.pos in (32, 85, 96, 100, 134)):
+            combat = self.match.combat
+            targets = (combat.heavy_cone_targets(state) if state.node.pos in (96, 134)
+                       else combat.heavy_filtered_targets(state))
+        else:
+            return
+        slot = expr.lvalue(state.node.field("m_8A2905A0"))
+        state.instance.write(slot, targets)
+
+    def stop_tracking_targets(self, state: runtime.State) -> None:
+        instance = state.instance
+        if (self.hero == HEAVY_ASSAULT_HERO and self.match is not None and not instance.teardown
+                and instance.graph.index == 0x1408 and state.node.pos == 96
+                and instance.find_var(runtime.INSTANCE_SCOPE, 59).value() == 0):
+            # Phase two still needs the selected victim for its impact.
+            instance.write(expr.lvalue(state.node.field("m_8A2905A0")), ())
+
+    def linked_script_changed(self, state: runtime.State, *, entered: bool = False) -> None:
+        instance = state.instance
+        if (self.hero != HEAVY_ASSAULT_HERO or self.match is None
+                or instance.graph.index != 0x1408 or state.node.pos != 158):
+            return
+        combat = self.match.combat
+        if entered:
+            state.watch(instance.find_var(runtime.INSTANCE_SCOPE, 59))
+            combat.heavy_capture_target(state)
+        elif state.ending:
+            combat.release_heavy_capture(instance.component.entity)
+        elif instance.find_var(runtime.INSTANCE_SCOPE, 59).value() == 0:
+            state.request(runtime.ABORT)
+
+    def apply_script_pose(self, instance: runtime.Instance, node: graph.Node) -> bool:
+        if (self.hero != HEAVY_ASSAULT_HERO or self.match is None
+                or instance.graph.index != 0x1408 or node.pos != 86):
+            return False
+        self.match.combat.place_heavy_release_target(instance, node)
+        return True
+
+    def apply_modify_health(self, state: runtime.State) -> None:
+        action = (self.hero, state.instance.graph.index, state.node.pos)
+        if self.match is not None and action in (
+            (TROOPER_HERO, 0x1422, 4),
+            (HEAVY_ASSAULT_HERO, 0x1408, 29),
+            (HEAVY_ASSAULT_HERO, 0x1408, 35),
+            (HEAVY_ASSAULT_HERO, 0x1408, 88),
+            (HEAVY_ASSAULT_HERO, 0x1408, 102),
+            (HEAVY_ASSAULT_HERO, 0x1408, 120),
+        ):
+            self.match.combat.npc_selected_damage(state, lateral_force=state.node.pos in (35, 88, 120))
+            if action == (HEAVY_ASSAULT_HERO, 0x1408, 88):
+                # The detached release effect is a one-shot, including the empty startup entry.
+                state.request_finish()
+            return
+        if (self.hero == HEAVY_ASSAULT_HERO and self.match is not None
+                and state.instance.graph.index == 0x140E and state.node.pos == 5):
+            self.match.combat.heavy_melee(state)
+            return
+        if (self.hero == ASSASSIN_HERO and self.match is not None
+                and state.instance.graph.index == 0x1157 and state.node.pos in (25, 15)):
+            controller = self.controller
+            if controller is None or controller.owner_dead:
+                return
+            for attack in controller.instances.values():
+                if attack.graph.index != 0x1158:
+                    continue
+                # Only the authored default range is supported by this host path.
+                init = attack.graph.node(21)
+                range_var = (runtime.INSTANCE_SCOPE, ASSASSIN_RANGE_VAR)
+                for assignment in init.field("m_143D4C5B") or ():
+                    if assignment and expr.dynamic(assignment.get("m_out_Var")) == range_var:
+                        reach = expr.to_float(attack.evaluate(assignment.get("m_value")))
+                        if reach > 0:
+                            self.match.combat.assassin_damage(state, reach)
+                        return
+
+    def play_script_host(self, instance: runtime.Instance, node: graph.Node) -> bool:
+        if self.hero == ASSASSIN_HERO and self.match is not None:
+            return self.match.combat.assassin_play_capture(instance, node)
+        if (self.hero != HEAVY_ASSAULT_HERO or self.match is None
+                or instance.graph.index != 0x1408 or node.pos not in (132, 140, 189)):
+            return False
+        resource = play.resolve_resource(instance, node)
+        if resource is None or resource.guid != 0x058000000000224E:
+            return False
+        overrides = dict(resource.overrides)
+        duration = expr.to_float(overrides.get(0x0D800000000000D7))
+        if (not math.isfinite(duration) or duration <= 0
+                or overrides.get(0x0D80000000006BD6) != expr.Asset(0x0D80000000006BBE)):
+            return True
+        selected = instance.evaluate(node.field("m_targets"))
+        targets = selected if isinstance(selected, tuple) else (selected,)
+        # Defer until the impact has dispatched damage, before control interrupts an actor.
+        self.heavy_counter_stuns.extend((target.id, duration) for target in targets
+                                        if isinstance(target, expr.Entity))
+        return True
+
+    def assassin_target_dead(self, value) -> bool:
+        if self.match is None or not isinstance(value, expr.Entity):
+            return False
+        vitals = self.match.combat.vitals.get(value.id)
+        return vitals is not None and vitals.dead
 
     def ai_weapon_button(self, slot: int) -> int | None:
         if self.hero == assassin.HERO and self.controller_components is not None and slot == 0:
@@ -86,6 +495,43 @@ class BotWorld(runtime.World):
             # this value; no global/foreign-entity health lookup is inferred.
             health = instance.component.entity_var(OWNER_HEALTH, create=False)
             return health.value() if health is not None else None
+        if (self.hero == TROOPER_HERO and self.match is not None and instance is not None
+                and instance.graph.index == 0x1422 and cfg.get("$") == "STU_71A87E92"):
+            entity = instance.evaluate(cfg.get("m_entity"))
+            if isinstance(entity, expr.Entity):
+                targets = self.match.combat._targets()
+                target = next((item for item in targets if item.entity == entity.id), None)
+                if target is not None:
+                    return expr.Vec3(*target.feet)
+        if (self.hero == ASSASSIN_HERO and cfg.get("$") == "STU_DB742151"
+                and instance is not None and self.controller is not None
+                and instance.evaluate(cfg.get("m_entity")) == expr.Entity(instance.component.entity)):
+            return None if self.controller.owner_dead else expr.Entity(self.controller.entity)
+        if (cfg.get("$") == "STU_F7262B36" and instance is not None and self.controller is not None
+                and instance.evaluate(cfg.get("m_801B298F")) == expr.Entity(instance.component.entity)):
+            return None if self.controller.owner_dead else expr.Entity(self.controller.entity)
+        if cfg.get("$") in {"STU_32E6E4D8", "STU_7D7D2470", "STU_9B7648C3"} and instance is not None:
+            target = instance.evaluate(cfg.get("m_entity"))
+            if target == expr.Entity(instance.component.entity):
+                if cfg.get("$") == "STU_7D7D2470":
+                    return getattr(instance.component, "maximum_health", None)
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if cfg.get("$") == "STU_9B7648C3" and type(value) in (int, float):
+                    #104319 CEB6C0 ->D177C0 selects component51 and calls+40.
+                    # Explicit NPC-owned aggregate health projection; foreign
+                    # entities and complete native pool-getter equivalence stay unknown.
+                    return expr.f32(value)
+                return value
+            if (self.hero == ASSASSIN_HERO and instance.graph.index == 0x1157
+                    and cfg.get("$") == "STU_9B7648C3" and isinstance(target, expr.Entity)
+                    and self.match is not None):
+                # Host projection of the 1157 target gate onto authoritative combat pools.
+                combat = self.match.combat
+                for body in combat._targets():
+                    if body.entity == target.id:
+                        return expr.f32(combat.vitals_of(body).total)
+                return 0.0
         if (
             cfg.get("$") == "STU_AC829876"
             and (self.manual_nameplate or self.mode == PRACTICE_RANGE_MODE and self.hero in PRACTICE_BOT_HEROES)
@@ -146,7 +592,7 @@ class BotScript(ReplicatedBody):
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None, match=None,
+        *, firing_position: tuple | None = None, controller_entity: int | None = None, match=None,
         controller_components: tuple[int, ...] | None = None,
         manual_nameplate: bool = False,
         nameplate_name: str | None = None,
@@ -164,7 +610,27 @@ class BotScript(ReplicatedBody):
         world = BotWorld(hero, mode, buttons, position, controller_components=controller_components,
                          manual_nameplate=manual_nameplate)
         world.match = match
+        self.controller: runtime.Component | None = None
+        if record.get("controller") is not None:
+            asset = graph.guid(record["controller"])
+            definition = graph.entity_body(asset) if asset is not None and asset >> 48 == 0x0400 else None
+            if (definition is None or type(controller_entity) is not int
+                    or not expr.valid_entity(controller_entity) or controller_entity == entity):
+                raise ValueError('NPC controller requires definition and separate live entity identity')
+            require_controller_graphs(definition)
+            controller_world = runtime.World(hero, mode)
+            if hero == ASSASSIN_HERO:
+                controller_world = AssassinControllerWorld(hero, mode, body, entity, match)
+            controller = self.controller = runtime.Component(controller_entity, world=controller_world)
+            controller.frame, controller.now = frame, frame * controller.frame_ms
+            world.controller = controller
+            for instance in create_initial_graphs(controller, definition):
+                instance.init()
+            controller.run_frame(frame)
+        elif controller_entity is not None:
+            raise ValueError('controller identity supplied without an explicit definition association')
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
+        world.component = component
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
@@ -174,6 +640,7 @@ class BotScript(ReplicatedBody):
                 heavy_assault.skip_sandbox_intro(instance)
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
+        self.flashbang_weapon_stack: runtime.Instance | None = None
         self.behavior = component.create(firing) if firing is not None else None
         if self.behavior is not None:
             # Scope the reconstructed spawn reset to this instance. Other 0013 receivers have their own rules.
@@ -209,7 +676,8 @@ class BotScript(ReplicatedBody):
         return None
 
     def replicated_instances(self):
-        return (instance for instance in super().replicated_instances() if instance is not self.behavior)
+        return (instance for instance in super().replicated_instances()
+                if instance is not self.behavior and instance is not self.flashbang_weapon_stack)
 
     def show_damage_nameplate(self, sender: int) -> None:
         if not self.component.world.manual_nameplate:
@@ -222,16 +690,52 @@ class BotScript(ReplicatedBody):
         if instance is not None:
             runtime.send_instance_message(instance, ENABLE_NAMEPLATE, {}, sender)
 
-    def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
+    def replicated_vars(self, instance=None):
+        hidden = ({0x10000 + key for key in self.component.world.controller_inputs}
+                  if instance is None else set())
+        return ((key, value) for key, value in super().replicated_vars(instance) if key not in hidden)
+
+    @property
+    def has_controller_buttons(self) -> bool:
+        return (self.controller is not None and not self.controller.owner_dead
+                and isinstance(self.controller.world, AssassinControllerWorld))
+
+    def advance_live(self, frame: int, position: tuple | None = None, *, edges=()) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
-        self.component.run_frame(frame)
-        from ow174.game import assassin
-
+        if self.controller is not None and not self.controller.owner_dead:
+            if self.has_controller_buttons:
+                match = self.component.world.match
+                collision = match.collision_world if match is not None else None
+                self.controller.world.sample_ground(collision, position)
+                self.controller.world.refresh_candidates(self.controller)
+                self.controller.world.refresh_spatial_inputs(self.controller)
+                self.controller.world.reselect_recovered_attack(self.controller, self.component, frame)
+            self.controller.run_frame(frame)
+            self.component.world.sync_controller_inputs()
+            if self.has_controller_buttons:
+                pending = self.controller.world.button_edges
+                edges = (*pending, *edges)
+                pending.clear()
+        world = self.component.world
+        stunned = world.match is not None and world.match.combat.stuns.get(self.component.entity, 0) > frame
+        if stunned:
+            if world.hero in (SNIPER_HERO, TROOPER_HERO, ENFORCER_HERO):
+                # A blocked press must not leave a volley queued for after the stun.
+                edges = tuple(edge for edge in edges if edge != (20, True))
+            elif world.hero == HEAVY_ASSAULT_HERO:
+                edges = tuple((button, down) for button, down in edges if not down)
+        else:
+            self._release_flashbang_weapon_stack()
+        self._abort_assassin_attack(frame, dead_target_only=True)
+        self.component.run_frame(frame, edges)
+        if world.hero == HEAVY_ASSAULT_HERO and world.match is not None:
+            world.match.combat.advance_heavy_capture(self.component)
+            world.match.combat.apply_heavy_counter_stuns(world.heavy_counter_stuns)
         assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
@@ -239,6 +743,50 @@ class BotScript(ReplicatedBody):
             self.latest_live = snapshot
             self._initial_frame = None
         return snapshot
+
+    def suspend_flashbang_weapon(self) -> None:
+        """Project 224E's weapon-stack preemption for an active 102E/114F attack."""
+        component = self.component
+        selected = {TROOPER_HERO: (0x102E, 44), HEAVY_ASSAULT_HERO: (0x114F, 28)}.get(component.world.hero)
+        if selected is None or component.owner_dead or self.flashbang_weapon_stack is not None:
+            return
+        graph_index, position = selected
+        weapon = next((instance for instance in component.instances.values()
+                       if instance.graph.index == graph_index), None)
+        active = weapon.states.get(weapon.graph.node(position).state) if weapon is not None else None
+        if active is None or not active.active or not active.top:
+            return
+        definition = graph.graph(FLASHBANG_STACK_GRAPH)
+        if definition is None:
+            return
+        effect = component.create(definition)
+        # Only the stack branch runs here. The host owns the Flashbang lifetime.
+        effect.queue.clear()
+        self.flashbang_weapon_stack = effect
+        with component.operation():
+            effect.node_state(definition.node(33)).begin()
+
+    def _release_flashbang_weapon_stack(self) -> None:
+        if self.flashbang_weapon_stack is not None:
+            self.component.destroy(self.flashbang_weapon_stack)
+            self.flashbang_weapon_stack = None
+
+    def interrupt_attack(self) -> None:
+        """Route host Flashbang control to supported NPC attack graphs."""
+        if self.component.owner_dead:
+            return
+        if self.component.world.hero == SNIPER_HERO:
+            # 224E node 33 preempts the weapon stack at 1122 node 34.
+            self._abort_sniper_charge()
+        elif self.component.world.hero == ENFORCER_HERO:
+            # 224E/node 33 preempts 13EB/node 0, whose under link aborts charge node 11.
+            self._abort_weapon_charge(0x13EB, 11)
+        elif self.component.world.hero == HEAVY_ASSAULT_HERO:
+            self._abort_heavy_capture()
+        elif self.has_controller_buttons:
+            for instance in self.component.instances.values():
+                if instance.graph.index == 0x1460:
+                    runtime.send_instance_message(instance, 0x024000000000083A, {}, self.component.entity)
 
     def die(self, frame: int, params: dict, sender: int) -> Snapshot | None:
         """Deliver 003E.025 and capture the change that happens immediately."""
@@ -261,18 +809,86 @@ class BotScript(ReplicatedBody):
         self.frame = max(frame, self.frame + 1)
         component.owner_dead = True
         assassin.bind(component.world, component, None)
+        self.retire_controller()
         if self.behavior is not None:
             component.destroy(self.behavior)
             self.behavior = None
         component.shots.clear()
+        self._abort_sniper_charge()
+        self._abort_heavy_capture()
+        self._abort_assassin_attack(self.frame)
         component.run_frame(self.frame)
         component.held.clear()
         component.set(OWNER_HEALTH, 0.0)
-        if not runtime.send_message(component, DIED, params, sender):
+        delivered = runtime.send_message(component, DIED, params, sender)
+        if delivered:
+            component.run_now()
+        self._release_flashbang_weapon_stack()
+        if not delivered:
             return None
-        component.run_now()
         self.death_frame = frame
         return self._changed_snapshot()
+
+    def _abort_heavy_capture(self) -> None:
+        if self.component.world.hero != HEAVY_ASSAULT_HERO:
+            return
+        for instance in self.component.instances.values():
+            if instance.graph.index == 0x1408:
+                sender = instance.states.get(instance.graph.node(158).state)
+                if sender is not None and sender.active:
+                    instance.write(expr.lvalue(sender.node.field("m_targets")), False)
+                    sender.request(runtime.ABORT)
+
+    def _abort_sniper_charge(self) -> None:
+        if self.component.world.hero == SNIPER_HERO:
+            self._abort_weapon_charge(0x1122, 53)
+
+    def _abort_weapon_charge(self, graph_index: int, position: int) -> None:
+        for instance in self.component.instances.values():
+            if instance.graph.index == graph_index:
+                charge = instance.states.get(instance.graph.node(position).state)
+                if charge is not None and charge.active:
+                    charge.request(runtime.ABORT)
+
+    def _abort_assassin_attack(self, frame: int, *, dead_target_only: bool = False) -> None:
+        component = self.component
+        world = component.world
+        if world.hero != ASSASSIN_HERO:
+            return
+        timestamp = frame * component.frame_ms
+        for instance in component.instances.values():
+            if instance.graph.index != 0x1157:
+                continue
+            if dead_target_only:
+                slot = instance.find_var(runtime.INSTANCE_SCOPE, ASSASSIN_CAPTURE_TARGET, create=False)
+                if slot is None or not world.assassin_target_dead(slot.value()):
+                    continue
+                instance.post(runtime.Event(timestamp, 0, runtime.ASSIGN,
+                                            assignment=(runtime.INSTANCE_SCOPE, ASSASSIN_CAPTURE_TARGET, 0)))
+            # The delayed damage state can be active outside capture's cleanup list.
+            for position in (23, 15):
+                state = instance.states.get(instance.graph.node(position).state)
+                if state is not None and state.active:
+                    instance.post(runtime.Event(
+                        timestamp, 0, runtime.STATE_OP, state=state, op=runtime.ABORT,
+                    ))
+
+    def retire_controller(self) -> None:
+        """Retire the selected host namespace; native controller/network lifecycle remains open."""
+        controller = self.controller
+        if controller is None or controller.owner_dead:
+            return
+        for instance in list(controller.instances.values()):
+            if controller.instances.get(instance.id) is instance:
+                controller.destroy(instance)
+        controller.owner_dead = True
+        controller.held.clear()
+        controller.shots.clear()
+        if isinstance(controller.world, AssassinControllerWorld):
+            controller.world.button_edges.clear()
+            controller.world.button_holders.clear()
+            controller.world.recovery_pending = controller.world.recovery_started = False
+        self.component.world.sync_controller_inputs()
 
     def advance_death(self, frame: int, lifetime_ticks: int) -> list[Snapshot]:
         """Run due graph events within this death's lifetime and retain each frame's change in order."""

@@ -120,6 +120,16 @@ caller-injected schemas/providers.
 
 Runtime and configuration coverage
 
+The Baptiste and received-healing hosts declare their TICK constants as required
+configuration. The corresponding hero/effect GUIDs are included too. Changing
+either module's clock in memory therefore changes the manifest even when source
+bytes are unchanged; active status records/specifications are separately covered
+by registered server-state snapshots.
+The selected Genji host also declares its clock, identifiers, cycle bound and
+optional projectile catalog SHA256. The catalog is an explicit external input;
+its contents are stored with Combat. No absolute catalog path is included in
+the configuration. Unknown or absent003 metadata is not a defense acceptance.
+
 Target build: 1.74.0.0.104319.
 Python identity: sys.implementation.name, full Python version tuple, implementation
 version tuple, cache_tag, pointer width, machine architecture label, byte order and
@@ -189,3 +199,12 @@ seeds. A current-repository coverage check verifies helpers/tables without readi
 collision contents. A real configuration check captures both quanta constants,
 mutable controls and VM limits without constructing a server. No game, UI, external
 service, collision loader or real user profile is started/read by these tests.
+
+The selected absorption module's Sigma/tag/tick constants and combat standing/
+crouched eye maps are declared inputs. Integer-keyed eye maps are represented
+as sorted tuples of body/value pairs without widening the manifest dictionary
+schema. Mutating either model code or these runtime knobs invalidates identity.
+
+Reinhardt Barrier Field configuration records the verified model digest
+when the mesh is enabled, or null when absent. The resource loader rejects
+an incompatible model before manifest capture. The path is not recorded.

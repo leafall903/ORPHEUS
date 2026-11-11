@@ -26,7 +26,7 @@ from ow174.game.script import (
     play,
     runtime,
 )
-from ow174.game.script.bot import BotWorld
+from ow174.game.script.bot import AssassinControllerWorld, BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
 
 SCHEMA = "ow174.body-vm-storage.v1"
@@ -38,7 +38,7 @@ _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes", "startup_entity_values",
+    "state_registries", "parameter_scopes", "startup_entity_values", "maximum_health",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -69,6 +69,7 @@ _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.ModifyHealth: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -90,6 +91,7 @@ _STATE_LAYOUTS = {
     nodes.AIBehavior: ((), ()),
     nodes.ActiveOutput: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
+    nodes.ControllerButton: ((), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.ConditionalTimer: ((), ()),
@@ -100,6 +102,9 @@ _STATE_LAYOUTS = {
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.MovementFlagProjection: (("value", "vars"), ()),
+    nodes.PlacementPreview: ((), ()),
+    nodes.SummonerPlacement: (("confirmed",), ()),
     nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (
         ("flags", "presses", "cur", "cooldown_rate", "cooldown_observed", "last", "var", "stack_var"), (),
@@ -107,11 +112,12 @@ _STATE_LAYOUTS = {
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
+    nodes.LinkedPlayScript: ((), ()),
     nodes.GameMessageEntry: (("message_context", "message_sender", "message_stacked", "message_key",
                              "message_flags", "message_selected", "message_generation", "message_count",
                              "message_sources", "message_cache", "message_refresh", "message_updating",
                              "message_getting", "message_epoch", "message_last_epoch", "message_bindings",
-                             "message_observed"), ("received",)),
+                             "message_observed"), ("received", "host_capture_started")),
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
@@ -427,7 +433,7 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld, DeviceWorld, PullQuery):
+        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DeviceWorld, PullQuery):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -437,7 +443,8 @@ class _Export:
                                "_body_owner_context", "_entity_query_context"))
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
-                               "manual_target", "manual_nameplate"))
+                               "manual_target", "manual_nameplate", "controller", "component",
+                               "controller_inputs", "heavy_counter_stuns"))
             if kind is BarrierWorld:
                 fields.update(("match", "entity", "location"))
             if kind is DeviceWorld:
@@ -445,8 +452,11 @@ class _Export:
             if kind is PullQuery:
                 fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
+            if kind is AssassinControllerWorld:
+                fields.update(("mover", "body_entity", "match", "button_edges", "button_holders",
+                               "movement_bits", "candidates", "recovery_pending", "recovery_started"))
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink", "controller", "mover"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) is BodyWorld
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,

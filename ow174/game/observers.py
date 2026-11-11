@@ -146,14 +146,16 @@ def _graphs(script) -> dict:
 
 
 def full_frame(script, snap: Snapshot):
-    live_graphs = _graphs(script)
-    # A retained live baseline can include a reaction that ended on the
-    # death tick. Resolve those graph definitions from the saved snapshot.
-    graphs = {item: live_graphs.get(item) or graph.graph(index)
-              for item, (index, _) in snap.instances.items()}
-    wires = {
-        item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
-    }
+    live = _graphs(script)
+    graphs = {}
+    wires = {}
+    for item, (index, parent) in snap.instances.items():
+        definition = live.get(item)
+        if definition is None or definition.index != index:
+            # Delayed full frames can outlive the instance captured in the snapshot.
+            definition = graph.graph(index)
+        graphs[item] = definition
+        wires[item] = InstanceWire(item, definition, parent=parent)
     entity_vars = {}
     for (owner, var), value in snap.vars.items():
         if owner == 0:
