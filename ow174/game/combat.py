@@ -4977,6 +4977,11 @@ class Combat:
         else:
             ice = None
         redirect = None
+        pulse_facing = None
+        if getattr(rocket, "pulse_bomb", False) and best is not None:
+            pulse_facing = self.pulse_bombs.deflect_aim(best[1], rocket.direction)
+            if pulse_facing is not None:
+                redirect = best
         if (biotic or (blast is not None and blast.effect == FLASHBANG_EFFECT)
                 or (rocket.direct is not None and rocket.direct.loadout == HELIX_LOADOUT)):
             limit = best[0] if best else step
@@ -5019,7 +5024,8 @@ class Combat:
         else:
             echo_shield = None
         limit = best[0] if best else step
-        defense = deflections.intercept(self, rocket, limit, reflected)
+        defense = deflections.intercept(self, rocket, limit, reflected,
+                                       modes=('absorb',) if getattr(rocket, "pulse_bomb", False) else ('reflect', 'absorb'))
         if defense is not None and (best is None or defense[0] < limit):
             distance, target, forward, state, mode = defense
             best = distance, target
@@ -5114,6 +5120,8 @@ class Combat:
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
+            if getattr(rocket, "pulse_bomb", False):
+                rocket.source_entity = struck.entity
             old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
             for name in ("direct", "blast"):
                 definition = getattr(rocket, name)
@@ -5123,7 +5131,8 @@ class Combat:
             rocket.damage_charge = None
             rocket.boost_credit = (rocket.direct.boost_credit if rocket.direct is not None else
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
-            rocket.direction = defense[2] if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch)
+            rocket.direction = (pulse_facing if pulse_facing is not None else defense[2]
+                                if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch))
             rocket.position = _along(point, rocket.direction, 1e-4)
             if rocket.velocity is not None:
                 rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)

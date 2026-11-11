@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Tracer cross-hero delivery and Pulse reflection policy
+
+- Retain65 remaining original Tracer check files unchanged for the delivered
+  cross-hero implementations; no new acceptance matrix or functionality added.
+- Use delivered capsule-contact/frontal admission for Pulse reflection, including
+  retained command-time Deflect state and aim. Transfer source identity as well
+  as shooter ownership so reflected self damage belongs to the current owner.
+- The39 original Pulse and reflection checks retain38 passes and one fixture
+  difference: the combined projectile represents an unarmed fuse as `None`,
+  while the source manager used `0`. Preserve the code and this visible result.
+  Cross-hero source reconciliation and original-client acceptance remain open.
+
 ### Mount delivered Tracer Pulse Bomb on the combined projectile host
 
 - Preserve the delivered damage resource, authored upward launch bias, gravity,

@@ -88,6 +88,7 @@ class CommandPoseAnchor:
     trusted: bool
     latest: int | None
     recall_frames: tuple[int, ...]
+    deflect_frames: tuple[tuple[int, tuple], ...] = ()
 
 
 class PulseBombs:
@@ -106,18 +107,22 @@ class PulseBombs:
         previous = self.anchors.get(player.body)
         latest = frame if exact else None
         protected = (frame,) if self.combat.recalls.locked(player) else ()
+        from ow174.game.combat import aim
+
+        facing = ((frame, aim(player.mover.yaw, player.mover.pitch)),) if self._deflecting(player) else ()
         if previous is None:
-            anchor = CommandPoseAnchor(world, frame, False, latest, protected)
+            anchor = CommandPoseAnchor(world, frame, False, latest, protected, facing)
         elif world == previous.world:
             continued = (previous.trusted and exact and previous.latest is not None
                          and frame == previous.latest + 1
                          and frame - previous.first < player.mover.history.maxlen)
             anchor = CommandPoseAnchor(world, previous.first, continued, latest,
-                                       previous.recall_frames + protected if continued else ())
+                                       previous.recall_frames + protected if continued else (),
+                                       previous.deflect_frames + facing if continued else ())
         else:
             aligned = (exact and world == previous.world + 1
                        and previous.latest == previous.first and frame == previous.first + 1)
-            anchor = CommandPoseAnchor(world, frame, aligned, latest, protected)
+            anchor = CommandPoseAnchor(world, frame, aligned, latest, protected, facing)
         self.anchors[player.body] = anchor
 
     def prepare_gap(self, tick, targets):
@@ -140,13 +145,15 @@ class PulseBombs:
                 continue
             body = target.owner.hero.body
             data = mover_data(body)
+            deflect_frames = dict(anchor.deflect_frames)
             for step, number in enumerate(frames, 1):
                 sample = history[number]
                 crouched = bool(sample.flags & CROUCHED)
                 pose = replace(target, feet=sample.position,
                                height=data.crouch_height if crouched else data.stand_height,
                                eye=eye_height(body, crouched))
-                self.poses[target.entity, anchor.world + step] = (pose, number in anchor.recall_frames)
+                self.poses[target.entity, anchor.world + step] = (
+                    pose, number in anchor.recall_frames, deflect_frames.get(number))
 
     def sampled(self, target):
         if self.context is None:
@@ -157,6 +164,33 @@ class PulseBombs:
     def recalling(self, target):
         sample = self.poses.get((target.entity, self.context)) if self.context is not None else None
         return sample[1] if sample is not None else self.combat.recalls.active(target.owner)
+
+    def _deflecting(self, owner):
+        if (getattr(getattr(owner, "hero", None), "guid", None) != 0x02E0000000000029
+                or self.combat.is_stunned(owner)):
+            return False
+        script = getattr(owner, "body_script", None)
+        if script is None or script.component.owner_dead:
+            return False
+        return any(instance.graph.index == 0x03A3 and (state := instance.states.get(10)) is not None
+                   and state.active for instance in script.component.instances.values())
+
+    def deflect_aim(self, target, incoming):
+        from ow174.game.combat import aim
+
+        if target is None:
+            return None
+        sample = self.poses.get((target.entity, self.context)) if self.context is not None else None
+        facing = sample[2] if sample is not None else (
+            aim(target.owner.mover.yaw, target.owner.mover.pitch) if self._deflecting(target.owner) else None)
+        return facing if facing is not None and sum(a * b for a, b in zip(facing, incoming)) < -1e-7 else None
+
+    def update(self, tick):
+        """Keep the delivered idempotent world-clock entry point."""
+        if tick != self.combat.tick:
+            raise ValueError("Pulse update requires the current authoritative combat tick")
+        for bomb in self.bombs:
+            self.combat._fly(bomb)
 
     @property
     def bombs(self):
