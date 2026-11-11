@@ -345,7 +345,9 @@ class Player:
         stunned = self.match.combat.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
-            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+            impact = self.match.combat.punch_impacts.get(self.body)
+            if not self.mover.external_impulse and (impact is None or tick >= impact.deadline):
+                self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         elif (self.body_script is not None
               and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
             # The mover models static supports. Selector 1 preserves vertical velocity.
@@ -355,7 +357,7 @@ class Player:
         mccree.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
         requests = []
-        if script is not None and not stunned:
+        if script is not None and not stunned and not self.mover.external_impulse:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -364,6 +366,9 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
+        charge_start = tuple(self.mover.position) if self.hero.guid in (
+            0x02E0000000000007, 0x02E000000000012F,
+        ) else None
         if len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
@@ -372,14 +377,32 @@ class Player:
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned)
-        self._advance_body_frame(command, movement_end=movement_end)
+            movement_limit = None
+            if script is not None and not stunned and not self.mover.external_impulse:
+                movement_limit = self.match.combat.brigitte.bash_movement_limit(self)
+            if movement_limit is None:
+                mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned)
+            else:
+                self.mover.step_pose(command, seconds, tick, movement_limit=movement_limit)
+        if self.body in self.match.combat.punch_impacts:
+            self.match.combat.punch_wall_contact(self, command, tick)
+        self._advance_body_frame(
+            command, movement_end=movement_end, charge_start=charge_start, seconds=seconds,
+        )
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
+            if posed:
+                self.match.combat.prepare(self, command)
+                if charge_start is not None:
+                    if self.hero.guid == 0x02E0000000000007:
+                        self.match.combat.charge_contact(self, command, charge_start, seconds)
+                    else:
+                        self.match.combat.punch_contact(self, command, charge_start)
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.

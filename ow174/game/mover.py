@@ -168,6 +168,8 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+# Native104319 C33960: positive forward/back magnitude/absolute lateral.
+# Keep raw replicated throttle bytes; these modifiers affect only the movement wish.
 THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
@@ -508,6 +510,7 @@ class Mover:
         self.world = world if world is not None else flat_world(self.position[1])
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
+        self.external_impulse = False
         self.driven = False  # the previous pose used a statescript world-target velocity
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
@@ -540,6 +543,26 @@ class Mover:
         self.slope_cos32 = f32(math.cos(max(min(f32(data.max_slope * DEGREE), SLOPE_LIMIT), 0.0)))
         # The spring offset's range (mover +0x4F8 / +0x4FC, set at 0x7FF789AD0BD1).
         self.spring_low, self.spring_high = data.spring_range()
+
+    def impulse(self, velocity: tuple) -> None:
+        """Reconstructed external velocity addition; positive lift starts an airborne pose.
+
+        This hosts resource-backed combat impulses, not the native force/resistance service.
+        Keep the existing upward speed when it exceeds the requested lift.
+        """
+        dx, lift, dz = velocity
+        vx, vy, vz = self.velocity
+        self.velocity = (vx + dx, max(vy, lift), vz + dz)
+        if lift > 0:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+
+    def add_external_impulse(self, impulse: tuple) -> None:
+        self.velocity = tuple(f32(v + delta) for v, delta in zip(self.velocity, impulse, strict=True))
+        self.driven = False
+        self.external_impulse = True
+        if self.velocity[1] > 0.0:
+            self.flags_word |= FELL
 
     def use(self, data: MoverData | None = None, world: World | None = None) -> None:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
@@ -678,6 +701,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        movement_limit: Callable[[tuple[float, float, float], float], float | None] | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -733,11 +757,13 @@ class Mover:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                 self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
-            self._fall_after(self._move(dt, normal))
+            self._fall_after(self._move(dt, normal, movement_limit))
         else:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne:
+            self.external_impulse = False
         return outcome
 
     def _fall_after(self, vertical: float) -> None:
@@ -1093,7 +1119,7 @@ class Mover:
 
     # ---- 8. the move
 
-    def _move(self, dt: float, normal) -> float:
+    def _move(self, dt: float, normal, movement_limit=None) -> float:
         """Move the capsule and the feet (0x7FF789B4D9C0, 0x7FF789ACF640); the vertical speed before it is put
         on the grid."""
         vx, vy, vz = self.velocity
@@ -1109,6 +1135,18 @@ class Mover:
             f32(f32(rise + velocity[1]) * step) + 0.0,
             f32(f32(f32(0.0 * rise) + velocity[2]) * step) + 0.0,
         )
+        blocked = False
+        if movement_limit is not None:
+            dx, dy, dz = displacement
+            distance = math.hypot(dx, dz)
+            if distance > EPSILON:
+                direction = (dx / distance, 0.0, dz / distance)
+                clearance = self._capsule()[0] + STEP
+                contact = movement_limit(direction, distance + clearance)
+                if contact is not None:
+                    scale = min(1.0, max(0.0, contact - clearance) / distance)
+                    displacement = contacts.v3(dx * scale, dy, dz * scale)
+                    blocked = scale < 1.0
         final, planes, touching = body.move(displacement, step, ROUNDS)
         vx, vy, vz = contacts.clip_velocity(velocity, planes)
         if grounded:
@@ -1119,6 +1157,8 @@ class Mover:
                 vx, vy, vz = vx * scale, 0.0, vz * scale
         if self._place(body, final, touching):
             vy = 0.0
+        if blocked:
+            vx = vz = 0.0
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
 

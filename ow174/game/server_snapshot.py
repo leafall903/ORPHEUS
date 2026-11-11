@@ -18,17 +18,23 @@ from pathlib import Path
 
 from ow174.game import (
     bots,
+    brigitte,
     combat,
     correction,
     heroselect,
+    mei_wall,
     notices,
     npc_navigation,
     observers,
+    orisa_barrier,
     projectiles,
+    reinhardt_barrier,
     replay_values,
+    sigma_barrier,
     statescript,
     stats,
     voicelines,
+    winston_barrier,
     world,
 )
 from ow174.game.bits import BitWriter
@@ -39,7 +45,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -95,10 +101,22 @@ FIELDS = {
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
-        "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices"
+        "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
+        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls"
     ),
-    combat.Vitals: _names("entity most now ids wave_health wave_health_id changed died_at death_tick killer"),
     combat.WaveHealthPool: _names("capacity current"),
+    orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
+    orisa_barrier.BarrierWorld: _names("hero mode match entity location"),
+    orisa_barrier.Geometry: _names("world"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    combat.Vitals: _names(
+        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
+        "healing_block healing_boost temporary_shield"),
+    brigitte.BrigitteCombat: _names(
+        "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
+        "repairs barriers rally_seen stuns"
+    ),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -114,13 +132,18 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count self_healing"
+        "retired first_owner_frame server_only ult_seconds passive_charge_ms ultimates reports report_count self_healing"
     ),
-    driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests communication_wheel wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects"),
+    driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
+                             "_body_owner_context _entity_query_context"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target manual_nameplate"),
+    body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
+                               "watch_owner retired"),
+    entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
+                                   "lookup watch_environment watch_possession retired lookup_linked lookup_participant"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -134,7 +157,7 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation impulse_mover"
     ),
     npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
     npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),
@@ -149,6 +172,12 @@ DATACLASSES = (
     driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
+    combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
+    winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
+    combat.TemporaryArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
+    brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
+    brigitte.RepairDelivery, brigitte.Barrier,
+    brigitte.BashStun,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -183,6 +212,8 @@ class _Graph:
         self.values += 1
         if self.values > MAX_VALUES:
             _fail("stored graph value budget exhausted")
+        if obj is NotImplemented:
+            return ["sentinel", "NotImplemented"]
         if obj is None or type(obj) in (bool, int, float, str, bytes):
             return replay_values.encode(obj)
         boundary = self.boundaries.get(id(obj))

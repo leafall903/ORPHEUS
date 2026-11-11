@@ -102,6 +102,8 @@ def detach_victim(match, source, body):
             if instance.graph.index == VICTIM_GRAPH and instance.source_entity() == source:
                 component.destroy(instance)
         break
+# Wraith Form, Fade, and Cryo-Freeze protect against the pin itself.
+PIN_EXCLUDED_PHASES = frozenset((0x0020, 0x0F7C, 0x05FE))
 
 
 def victim(world, state):
@@ -120,7 +122,8 @@ def victim(world, state):
     if (target is None or getattr(target.owner, 'client', None) is None or target.owner.gone
             or target.owner.entity != source.attack_target):
         return None
-    if not contact(match, source, target):
+    if (fight._invulnerable(target.owner, phases=PIN_EXCLUDED_PHASES)
+            or not contact(match, source, target)):
         return None
     return source, target
 

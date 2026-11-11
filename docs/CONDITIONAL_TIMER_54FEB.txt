@@ -1,0 +1,47 @@
+54FEB21C conditional timer -- build1.74.0.0.104319
+
+The registered game constructor8F25B0 installs vtable261D060. Its OnEnter
+(+60) is8E5A90, timer(+90)8E5F50, cleanup(+C0)8E5F10. The engine base
+registrationC8B6A0 uses vtable261E338, whose timer isC880C0. These are read
+from the existing authorized module capture, without live client access.
+
+Native game behavior relevant to the implemented variant:
+- OnEnter evaluates configED97A97C at node+E8 as float seconds, defaults to0,
+  multiplies by1000 in float32 and rounds half away from zero to signed ms.
+  It publishes engine time values through three optional outputs, follows
+  E5790891 at node+120 and queues timer parameter1 at the calculated delay.
+- Timer8E5F50 ignores parameters other than1. For1, it evaluates optional
+  7C8AD485 at node+F0 with no watcher. Only a present, successfully true
+  result calls base timerC880C0, which requests finish at delay0.
+- Missing/false/failed conditions do not finish, rearm or watch a variable.
+  Finishing unconditionally would change the original client's behavior.
+
+The Python ConditionalTimer models the empty-output/empty-alternate-subgraph
+variant. Queue insertion uses the existing scheduler's never-in-the-past rule.
+It has no additional mutable fields; the queued event is causal VM state.
+Nonempty engine outputs/alternate subgraphs are refused in strict execution;
+permissive prediction retains the previous passive fallback for those forms.
+Engine time-output, alternate-subgraph cleanup/context and the complete
+game/server authority service are not accepted by this implementation.
+
+Verification:
+The private probe executes original8E5F50, nativeF64940 bool conversion and,
+when accepted, originalC880C0. Five cases cover missing/0/1 completion values
+and timer parameters1/2. Node lookup, config evaluation and finish-request
+submission are explicit adapters; this is not a whole native scheduler test.
+Four unit methods check those branch outcomes, an authored500ms frame boundary,
+no rearm/watch, getter-free VM export and strict refusal of unhosted outputs.
+The probe and its image hash/report remain in the lane's private verification
+directory, not the source tree. No captured image or game data is committed.
+
+Brigitte cross-hero boundary:
+Mei05FE state41 and Zenyatta017B state13 enter this class with no true finish
+condition. Combat now supplies a scene-side handoff for these wrappers and
+for Reaper0020 state1 and Moira0F7C state1 after accepted input. This is a
+server reconstruction of the missing authority event. The native event and
+its exact timing remain open. The generic timer above keeps its original
+condition rules. Real combat tests follow each handoff into its authored
+phase and check protection and expiry.
+Orisa0CF4 and Zarya0244 activate2547 through actual Shift input; scoped tests
+exercise Bash control refusal while active and recovery after their duration.
+Their damage reduction/absorption and complete defense interactions stay open.

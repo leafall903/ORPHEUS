@@ -46,7 +46,9 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, IN_AIR, encode_spring, mover_data
+from ow174.game.collision import MOVER, TEAM0, TEAM1
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, IN_AIR, Mover, encode_spring, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -141,6 +143,7 @@ class Bot:
         self.position = tuple(spawner["position"])
         self.yaw = float(yaw_of(spawner["rotation"]))
         self.velocity = (0.0, 0.0, 0.0)
+        self.impulse_mover: Mover | None = None  # external displacement, independent of route/control input
         variables = spawner.get("vars", {})
         roots = {int(g, 16) for g in spawner["graphs"]}
         self.firing = FIRING in roots
@@ -162,7 +165,7 @@ class Bot:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
-        if not self.route:
+        if not self.route and self.impulse_mover is None:
             if tick < paused_until:
                 self._pause(tick)
                 self.last_tick = tick
@@ -172,10 +175,53 @@ class Bot:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            if at < paused_until:
+            if self.impulse_mover is not None:
+                self._impulse_step(at, seconds, collision)
+            elif at < paused_until:
                 self._pause(at)
-            else:
+            elif self.route:
                 self._tick(at, seconds, collision)
+
+    def impulse(self, velocity: tuple, tick: int, collision=None, *, free_for_all=False) -> None:
+        """Temporarily give external motion to the shared capsule solver.
+
+        Route intent waits while displaced; control pauses do not erase physical momentum.
+        Native NPC resistance/force ordering remains unproved.
+        """
+        if self.dead:
+            return
+        category = MOVER if free_for_all or self.team not in (0, 1) else (TEAM0, TEAM1)[self.team]
+        if self.impulse_mover is None:
+            carry = self.velocity
+            if self.navigation is not None:
+                from ow174.game import npc_navigation
+
+                npc_navigation.stop(self)
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision, mover_data(self.body),
+                                       category=category)
+            self.impulse_mover.velocity = carry
+        else:
+            self.impulse_mover.use(world=collision)
+            if self.impulse_mover.category != category:
+                self.impulse_mover.category = category
+                self.impulse_mover.body = None
+        self.impulse_mover.impulse(velocity)
+        self.velocity = self.impulse_mover.velocity
+        self.last_tick = tick
+        self.pace = 0.0
+        self.held = (0, 0)
+        self.moved_tick = tick
+
+    def _impulse_step(self, tick: int, seconds: float, collision) -> None:
+        mover = self.impulse_mover
+        mover.use(world=collision)
+        mover.step_pose(Command(tick, yaw=round(self.yaw), pitch=round(self.pitch)), seconds, tick)
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        self.held = (0, 0)
+        self.moved_tick = tick
+        if not mover.flags_word & IN_AIR and not any(mover.velocity):
+            self.impulse_mover = None
+            self.start = self.position  # a resumed route interpolates from the displaced position
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -302,6 +348,7 @@ class Bot:
         self.dead = True
         if self.spawner.get('manual_spawn') is True:
             self.firing = False
+        self.impulse_mover = None
         self.attack_target = None
         self.attack_input = False
         self.keys = False
@@ -343,7 +390,13 @@ class Bot:
         manual = self.spawner.get('manual_spawn') is True
         spring = (0, 0)
         spring_speed = 0.0
-        if self.navigation is not None and (not self.dead or self.retain_corpse):
+        if self.impulse_mover is not None and not self.dead:
+            flags |= self.impulse_mover.flags_word
+            air_ticks = self.impulse_mover.air_ticks
+            if manual:
+                spring = self.impulse_mover.movement_spring()
+                spring_speed = self.impulse_mover.spring_speed
+        elif self.navigation is not None and (not self.dead or self.retain_corpse):
             mover = self.navigation.mover
             airborne = mover.flags & IN_AIR
             flags |= airborne

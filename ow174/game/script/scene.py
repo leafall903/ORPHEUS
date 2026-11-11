@@ -498,6 +498,12 @@ class SceneWorld(runtime.World):
             return NotImplemented
         return component.entity_var(var, create=create)
 
+    def script_component_present(self, entity: int):
+        if entity not in self.entities:
+            return False
+        component = self.script_components.get(entity, NotImplemented)
+        return NotImplemented if component is NotImplemented else component is not None
+
     def _game_message_component(self, instance, node):
         component = instance.component
         component.ensure_valid()

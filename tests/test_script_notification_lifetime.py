@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import patch
 
+import test_script_join as join_tests
+
 from ow174.game.script import runtime
 from tests.test_script_runtime_budget import graph, node
 
@@ -49,3 +51,22 @@ class NotificationLifetimeTests(unittest.TestCase):
         instance.write((runtime.INSTANCE, 41), False)
         component.run_now()
         self.assertFalse(state.current)
+
+    def test_canceled_join_check_can_be_queued_after_state_reentry(self):
+        case = join_tests.JoinTests()
+        component, instance = case.setup_join()
+        first, second = instance.states[0], instance.states[1]
+        self.assertFalse(case.arrive(instance, 4, caller=first))
+        self.assertTrue(second.flags_check)
+        self.assertTrue(any(event.kind == runtime.CHECK and event.state is second
+                            for event in instance.queue))
+        second.end(False)
+        self.assertFalse(second.flags_check)
+        self.assertFalse(any(event.state is second for event in instance.queue))
+        self.assertTrue(case.arrive(instance, 5))
+        for state in (first, second):
+            state.request(runtime.BEGIN)
+        component.run_now()
+        self.assertFalse(case.arrive(instance, 4, caller=first))
+        self.assertTrue(any(event.kind == runtime.CHECK and event.state is second
+                            for event in instance.queue))

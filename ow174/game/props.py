@@ -555,17 +555,17 @@ def _shape_geometry(stu: Structured, shape: int, holder: int, category: int) -> 
     return None
 
 
-def model_shapes(data: bytes, category: int = MOVER) -> list:
+def model_shapes(data: bytes, category: int = MOVER, *, include_dynamic: bool = False) -> list:
     """The physics shapes of a 00C model that stop the category, in model space, as the engine keeps them:
     ("mesh", mask, vertices, triangles (a, b, c, wing0, wing1, wing2, mask, surface: the 32 B records of
     chunk 0x11, wing = the far corner of the neighbour across each edge, -1 none)), ("hull", mask,
     centroid, vertices, planes, faces, half edges), ("capsule", mask, a, b, radius), ("sphere", mask,
     centre, radius). A mesh's triangles carry their own masks; the other shapes the holder's. Only the
-    static ones (static_part), each moved to its node's place in the model."""
+    static holders are used by default. include_dynamic also admits dynamic holders."""
     out = []
     table = None
     for stu, wrapper, shape, holder, node in _model_shape_descriptors(data):
-        if not static_part(stu, wrapper, holder):
+        if not include_dynamic and not static_part(stu, wrapper, holder):
             continue
         geometry = _shape_geometry(stu, shape, holder, category)
         if geometry is None:

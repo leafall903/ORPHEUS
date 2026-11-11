@@ -56,11 +56,21 @@ class BotWorld(runtime.World):
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, npc_context
 
-        value = assassin.native(self, cfg, instance)
-        if value is NotImplemented:
-            value = npc_context.native(self, cfg, instance)
-        if value is not NotImplemented:
-            return value
+        result = assassin.native(self, cfg, instance)
+        if result is NotImplemented:
+            result = npc_context.native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
+        if cfg.get("$") == "STU_AC829876" and self.match is not None:
+            result = self.match.combat.brigitte.native(cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if (cfg.get("$") == "STU_9B7648C3" and isinstance(cfg.get("m_entity"), dict)
+                and cfg["m_entity"].get("$") == "STU_B5A0CAF0"):
+            # Explicit owner-health service. Enforcer13EB gates its weapon on
+            # this value; no global/foreign-entity health lookup is inferred.
+            health = instance.component.entity_var(OWNER_HEALTH, create=False)
+            return health.value() if health is not None else None
         if (
             cfg.get("$") == "STU_AC829876"
             and (self.manual_nameplate or self.mode == PRACTICE_RANGE_MODE and self.hero in PRACTICE_BOT_HEROES)
@@ -114,7 +124,7 @@ class BotScript(ReplicatedBody):
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, match=None,
         controller_components: tuple[int, ...] | None = None,
         manual_nameplate: bool = False,
         nameplate_name: str | None = None,
@@ -131,6 +141,7 @@ class BotScript(ReplicatedBody):
         position = expr.Vec3(*firing_position) if firing is not None else None
         world = BotWorld(hero, mode, buttons, position, controller_components=controller_components,
                          manual_nameplate=manual_nameplate)
+        world.match = match
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms

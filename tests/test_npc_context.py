@@ -33,8 +33,10 @@ class NpcContextTests(unittest.TestCase):
                 value = npc_context.native(world, self.query("STU_B96D3A98"), instance)
                 self.assertIs(value, NotImplemented if components is None else expected)
 
-    def test_only_manual_enforcer_declares_the_sandbox_controller(self):
+    def test_only_manual_supported_combat_actors_declare_the_sandbox_controller(self):
         for hero, spawner, expected in ((npc_context.ENFORCER, {"manual_spawn": True}, (75,)),
+                                        (0x02E00000000001BB, {"manual_spawn": True}, (75,)),
+                                        (0x02E00000000001BB, {}, None),
                                         (npc_context.ENFORCER, {}, None),
                                         (npc_context.ENFORCER, {"manual_spawn": 1}, None),
                                         (0, {"manual_spawn": True}, None)):

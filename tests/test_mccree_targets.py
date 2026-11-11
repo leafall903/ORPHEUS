@@ -67,13 +67,13 @@ class DeadeyeTargetsTests(unittest.TestCase):
         self.assertEqual(self.query.targets, (self.enemy.body,))
         self.assertEqual(self.visible.targets, ())
         self.assertEqual(set(self.effects.children), {self.enemy.body})
-        child = self.component.instances[self.effects.children[self.enemy.body]]
+        child = self.effects.children[self.enemy.body]
         self.assertIsNone(mccree.shot_aim(self.match.combat, self.player,
                                        type("Volley", (), {"instance": child})()))
 
     def test_off_crosshair_aim_rejects_retired_or_newly_occluded_target(self):
         self.select()
-        child = self.component.instances[self.effects.children[self.enemy.body]]
+        child = self.effects.children[self.enemy.body]
         state = type("Volley", (), {"instance": child})()
         origin, direction = mccree.shot_aim(self.match.combat, self.player, state)
         self.assertEqual(origin, self.match.combat._eye(self.player))
@@ -102,7 +102,7 @@ class DeadeyeTargetsTests(unittest.TestCase):
 
     def test_short_capsule_is_hit_even_when_its_generic_eye_is_above_the_body(self):
         self.select()
-        child = self.component.instances[self.effects.children[self.enemy.body]]
+        child = self.effects.children[self.enemy.body]
         state = type("Volley", (), {"instance": child})()
         target = next(t for t in self.match.combat._targets() if t.owner is self.enemy)
         short = replace(target, height=1.5, radius=0.5, eye=1.6)

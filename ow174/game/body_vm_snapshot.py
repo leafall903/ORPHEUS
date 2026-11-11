@@ -8,9 +8,20 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+import types
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.script import (
+    body_owner,
+    entity_queries,
+    expr,
+    graph,
+    message_receive,
+    message_scope,
+    nodes,
+    runtime,
+)
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
 
@@ -28,7 +39,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 ))
@@ -38,8 +50,8 @@ _STATE = frozenset((
 ))
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
-    "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
+    "ultimates", "reports", "report_count",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -73,6 +85,8 @@ _STATE_LAYOUTS = {
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
+    nodes.ConditionalTimer: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
@@ -81,7 +95,9 @@ _STATE_LAYOUTS = {
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ("scalar_value",)),
-    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
+    nodes.Ability: (
+        ("flags", "presses", "cur", "cooldown_rate", "cooldown_observed", "last", "var", "stack_var"), (),
+    ),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
@@ -93,7 +109,8 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed"), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed", "target_var"), ()),
+    nodes.CompatiblePet: (("pet_entity",), ()),
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
     nodes.ModifyHealth: (("last_applied",), ()),
     nodes.SprayPlacement: (("placement",), ()),
@@ -102,6 +119,11 @@ _STATE_LAYOUTS = {
 _VALUE_LAYOUTS = {
     WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
     WheelSprayEvent: ("serial", "instance", "start", "node", "time", "choice", "values", "placement"),
+    body_owner.Context: ("owner", "instance_present", "environment_present", "lookup",
+                         "watch_environment", "watch_owner", "retired"),
+    entity_queries.Context: ("owner", "namespace_present", "environment_present",
+                             "possession_context_present", "lookup", "watch_environment",
+                             "watch_possession", "retired", "lookup_linked", "lookup_participant"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -198,6 +220,9 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        target = fields["ruleset_target_entity"]
+        if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance ruleset target entity')
         frame = fields['initialized_frame']
         if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance initialization frame')
@@ -377,6 +402,8 @@ class _Export:
         raise BodyVMSnapshotError("set member has no supported stable ordering key")
 
     def value(self, obj, *, scope="vm"):
+        if obj is NotImplemented:
+            return {"sentinel": "NotImplemented"}
         kind = type(obj)
         if obj is None or kind in (bool, int, float, str, bytes):
             return obj
@@ -392,19 +419,28 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
-                               "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"))
+                               "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
+                               "_body_owner_context", "_entity_query_context"))
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate"))
+            if kind is BarrierWorld:
+                fields.update(("match", "entity", "location"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
+        if (kind is types.MethodType and obj.__self__ is self.component.world
+                and type(obj.__self__) is BodyWorld
+                and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
+                                     BodyWorld._poll_entity_query)):
+            return {"class": "builtins.method", "identity": self.identity(obj),
+                    "owner": ["component", "world"], "function": _name(obj.__func__)}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -432,7 +468,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event):
+            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}

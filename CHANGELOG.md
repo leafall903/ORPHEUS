@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+#### Combined hero server intake
+
+- Bring the Brigitte combat bridge and its shared barrier, impulse and body
+  script support into the Halloween and Rialto integration branch.
+- Pass 71 existing Brigitte, combat, PvE entrance and Arcade tests using the
+  combined runtime. Original-client acceptance remains pending.
+
 ### Combined hero server
 
 - Compose the Junkenstein and Rialto data packs for a single independent server.
@@ -2595,6 +2602,155 @@ This log records tested changes and their acceptance status. Entries are grouped
   charge economy, complete cross-hero behavior and presentation remain open.
   Keep the full hero goal active and changes uncommitted pending complete static
   acceptance. No hero lane is marked complete or merged from this partial work.
+#### Authored Genji interception boxes (partial)
+
+- Use the live 03A3 box fields for rifle and supported physical projectile
+  interception. Resolve contact order against walls, body capsules and
+  Brigitte's raised shield. The box aim frame is reconstructed.
+- Real Helix now covers a ray that misses Genji's body capsule and strikes
+  an authored box. A nearer wall stops the same volley before reflection.
+  The combat, shield, projectile and healing regression passed 78 tests. Full 612 is running.
+- D.Va's 0407 overlay loads 02CC but the actual secondary input does not
+  reach the Matrix phase in this lane. Ruleset and possession dependencies
+  are still required for that interaction.
+
+#### Physical projectile reflection against Brigitte (partial)
+
+- Active Genji Deflect redirects supported physical projectiles at front
+  body contact. The server preserves the payload and remaining lifetime
+  and assigns damage to the deflector. The original predicted Helix
+  flight releases at reflection.
+- Real Helix covers body damage, Brigitte shield interception, rear damage
+  to Genji and retirement of the original and reflected owners. A real
+  reflected grenade applies damage and anti-heal using Genji's team.
+- The projectile suite passed 73 tests. Full 610 passed with nine map skips. Authored
+  box tracing, full tag policy and reflected client objects remain open.
+
+#### Brigitte build 104319 server combat acceptance
+
+- Checkpoint 125 passed 242 combat and 107 snapshot and replay tests.
+  Shared and Practice Range runs passed 1,141 distinct cases, including
+  all nine map cases recovered on the Practice Range runtime.
+- The separate five-NPC suite passed 38 cases. The acceptance index matched
+  all 148 case references and all 35 NPC interaction groups. Ruff and the
+  26 tests covering the final formatting changes passed.
+- Original-client combat acceptance remains open. The static server uses
+  the documented collision, control, and status reconstructions.
+
+#### Brigitte against Mei Ice Wall
+
+- Host 0622 preview, confirmation and release with five independently
+  destructible pillars on a valid floor. Brigitte's Whip Shot and flail
+  contacts damage the first covering pillars. Shield Bash stops at the wall.
+- Live wall collision occludes Inspire and Repair Pack targeting. Rally
+  grants armor within its authored radius across the wall.
+- Pillar shapes, placement, and collision are server reconstructions.
+  Native movement, placement replication and presentation remain open.
+
+#### Brigitte against Orisa Protective Barrier
+
+- Run the authored 0BD7 projectile motion, apply the placement delay, and
+  use 0BD8 for initial health and lifetime. Configure the verified 104319
+  model descriptor through ORPHEUS_ORISA_GEOMETRY.
+- Whip Shot damages the hostile mesh and stops on break. Shield Bash stops
+  before the mesh. Tests cover friendly passage, expiry, scheduler gaps and
+  stored flight, pending and deployed state.
+- Server placement uses static world collision. Native deployment transport
+  and visual behavior remain open.
+
+#### Brigitte healing under Ana grenade effects (partial)
+
+- Rally still grants 15 temporary armour per pulse during actual Ana healing
+  amplification and prevention. The grant leaves base health and healing credit unchanged.
+
+- Use the real 0B97 volley and 0267 impact effect to dispatch the normal
+  0C71 friendly and hostile branches. The reconstructed recipient handling
+  uses 0B99 healing and delayed amplification and 0C72 damage and anti-heal.
+- Integrate Repair Pack and Inspire across modifier start and expiry times.
+  Real packs heal 165 with amplification, 0 with anti-heal, and 110 after
+  expiry. Real Inspire continues through expiry at the restored rate.
+  Actual Wraith input clears anti-heal and a pack heals before its old expiry.
+- Snapshot both modifier windows. Damage absorption prevents the same
+  damage event from applying an attached effect. Normal hero values and
+  body-capsule collision are the current reconstruction scope.
+- Focused 36 tests, updated healing modifier 3 tests, and one getter-free
+  snapshot test passed. Full 607 passed with nine map skips. Native motion, effect filters,
+  projectile reflection and the complete cross-hero matrix remain open.
+
+#### Brigitte against invulnerable phases (partial)
+
+- Supply a server scene handoff for the zero-delay wrappers in Wraith Form,
+  Fade, Cryo-Freeze and Transcendence. Their authored states own the protected
+  phase duration. The generic conditional timer retains the native condition
+  rule. The scene handoff timing is a reconstruction.
+- Real Flail, Whip and Bash reach damage resolution during each phase.
+  Protection preserves health, position and control and suppresses Inspire.
+  Actual phase expiry and Wraith re-press reopen damage.
+- Focused combat and timer coverage passed 21 tests. The added Wraith cancel
+  test passed. The 604-test regression passed with nine map skips. Native handoff, projectile
+  passage, status cleanses and healing interactions remain open.
+
+#### Brigitte against Genji Deflect (partial)
+
+- Use the active 03A3 Deflect state and its 90-degree field for a facing
+  check at body contact. Real inputs verify front flail, quick melee and Whip
+  blocks, rear hits, Bash damage and stun, and expiry.
+- Redirect actual Soldier rifle hitscan along Genji's aim with Genji as the
+  shooter. Real shots reach Brigitte or her raised shield. The server path
+  uses body contact and one redirect. Native box geometry, tag filters,
+  projectile reflection and original-client acceptance remain open.
+- The defense and combat regression passed 41 tests. The updated four
+  Deflect methods passed with quick melee coverage. Full 601 passed with nine map skips.
+
+#### Brigitte against Zarya's personal barrier (partial)
+
+- Use the active 0244 Pet state and the linked 0256 HealthPool expression to
+  absorb damage with the default 200-point pool. The two-second Chase owns
+  natural expiry. Pool depletion ends the Pet through its authored stop and
+  cooldown path. The breaking hit leaves the owner unharmed.
+- Real flail, Whip and Bash input consume 35, 70 and 5 points respectively.
+  They leave body health, motion, control, Inspire and attacker charge intact.
+  A real Fan burst verifies the breaking shot and later exposed hits.
+- Seven defense tests and one getter-free snapshot test pass. The pre-barrier
+  595-test regression passed with nine map skips covered separately. The
+  597-test regression passed with nine map skips. Projectile status ordering, Zarya energy,
+  projected barriers and original-client acceptance remain open.
+
+#### Brigitte team collision and cross-hero damage (partial)
+
+- Correct NPC external motion to player-equivalent team/FFA collision proxies,
+  including cached capsule invalidation on a repeated hit after team change.
+- Consume actual Fortify's incoming8243 damage scalar before armor, a declared
+  server ordering reconstruction. Flail/Whip/Bash reduced amounts, effective
+  charge and natural expiry pass; absorption/other protection remain open.
+- Reuse the parent's reviewed McCree primary default/Fan ray functions and
+  generated spread math with private provenance. Verify six actual cone rays
+  against Brigitte and per-shot shield break/no spill followed by exposed hits.
+  Native seed identities/radius-mode binding remain reconstruction differences.
+- Cover actual Inspire90/expiry for all five allied NPCs. Focused17 pass68.786s;
+  current getter-free/physics/replay3 pass75.669s and original-map9 pass17.194s.
+  Initial full595 exposed8 legacy lightweight-script component errors; require
+  actual VM component/Var for8243 and preserve raw damage otherwise. Dedicated
+  Bot-state/defense/Fan30 pass27.104s. Corrected full595 passed in 584.689s
+  with nine map skips. The preceding full19 snapshots
+  passed949.912s before these no-layout edits; that result is historical.
+  Full static and original-client acceptance remain open; no hero commit.
+
+
+#### Brigitte Whip NPC displacement (partial)
+
+- Apply resource-backed Whip impulses through the shared capsule mover for
+  players and all five Talon NPCs, explicitly enter airborne motion for positive
+  lift, retain momentum through control pauses and resume route intent after
+  settling. Clear displaced physics on death/respawn; expose NPC air records.
+- Store the lazy NPC mover and pending tick causally without executing getters.
+  Copy the reviewed parent WeaponVolley normalized-spread field and matching VM
+  snapshot layout/tests, with private hash provenance. Combat ray spread is open.
+- New motion/lifecycle9 pass14.450s; combined body-VM/spread/motion39 pass52.959s.
+  Pre-category full mechanism584:575 pass476.070s plus9 map skips; exact9
+  pass17.902s separately. Complete snapshot19 later passed949.912s. Native resistance/direction, cross-hero
+  protection/healing modifiers and full static/client acceptance remain open.
+
 
 #### Native state-input joins and Deadeye timing
 
@@ -2620,6 +2776,246 @@ This log records tested changes and their acceptance status. Entries are grouped
   remain unchanged; no complete hero lane merged. Full PvE AI/navigation/specials,
   McCree/cross-hero and original-client combat acceptance remain open.
 
+
+#### Brigitte and enemy FirstPerson eye fields (partial)
+
+- Use original1B1B standing1.58/crouched1.2 and McCree02A3 1.425/.9975 for
+  player ray origins and Target.eye/history. Retain unlisted/NPC fallbacks.
+- Reproduce eight old-value failures; actual Whip/McCree/crouch low-cover and
+  origin/history3 methods/10 subscenarios pass8.746s. Static center-ray geometry
+  is reconstructed; camera/muzzle animations and skeletal hit zones stay open.
+- Full mechanism569 in319.445s:560 pass and9 real-map skips on43-row NPC
+  input; exact9 pass12.199s on original read-only runtime/cache. Selected
+  getter-free/stored replay/controller-deadline3 pass89.342s. Correct an
+  Assassin fixture at horizontal3m (outside3D range after eye-height change);
+  actual2.99/3m input boundary passes. No state layout or McCree critical
+  policy change. Full functional static scope/client acceptance remain open.
+
+#### Repair source lifetime and notification reentry (partial)
+
+- Preserve delivered Repair across same-hero body replacement instead of
+  truncating110 healing to15.4733. Keep initial controller/pick separate from
+  refreshed healer, honor0EE1's3s pending cleanup and changed-pick stop, and
+  prevent old-body healing from charging a new body. Register causal fields.
+- Execute four actual0EE1 source-loss/refresh branches with declared services;
+  native request27 and bounded stop-loop/dispatch262 comparisons establish
+  ordering with explicit callbacks. Native controller/registry/phase, full stop
+  dispatch and recipient transport remain open; numeric bridge remains a host.
+- Reset canceled CHECK/CHANGED coalescing markers, skip ending-state variable
+  notifications. Three old failures reproduced, including Join reentry. Reuse
+  parent source/tests privately with provenance. Ability.stop ordering unchanged.
+- Current focused26 pass44.750s. Frozen full mechanism565 completes336.467s:
+  556 pass and9 real-map skips; exact9 pass11.731s on original read-only inputs,
+  covering565 mechanism cases across documented inputs. Complete server
+  snapshot/replay18 pass610.994s; Ruff/diff pass. No final hero/static/client
+  acceptance or hero commit.
+
+#### Native throttle split and Bash pose boundary (partial)
+
+- Replace the reconstructed signed17/18 mapping with native104319 positive
+  forward17/backward magnitude18/unsigned lateral19 processing, sign restore
+  and clamp. Four actual-mover regressions fail before and pass after correction.
+- Actual Bash backward/left/right input verifies forced wish starts on the next
+  pose, lasts through the final scoped pose and restores input on the next.
+  Preserve raw command bytes and existing snapshot fields. Focused5 pass4.188s;
+  private original-prefix120 comparisons pass with an explicit modifier stub.
+- Current full mechanism554 completes455.806s:545 pass,9 real-map skips.
+  Exact9 pass12.635s on original read-only map inputs, covering554 mechanism
+  cases across documented inputs. Selected getter-free/stored replay/clock3
+  pass92.608s; Ruff/diff pass. Native modifier service/complete physics and full
+  hero/static/client acceptance remain open.17 Repair controller-ID tail checks pass with
+  an explicit key adapter; real controller/source lifetime still unaccepted.
+
+#### Brigitte authored early-input matrix (partial)
+
+- Verify existing original-timestamp retention with real Whip/Bash/Repair/Rally
+  input. Four new methods/13 subscenarios pass81.666s: released early input,
+  authored near-ready windows, held input and a new press after readiness. Ruff
+  and diff checks pass. Baseline
+  Ability replay reproduces erroneous automatic Whip/Rally activation.
+- Correct the test's initial held-Bash expectation from0EE3 LogicalButton22's
+  going-down route through gate98. Bash requires a new edge; the cooldown
+  Ability170 has no activation output. No production behavior changed here.
+- Add64 original E72F6348 scalar comparisons for Repair source existence with
+  registry/value-service adapters. Native controller/generation/lifetime and
+  full Repair cleanup remain open. No full hero or original-client acceptance.
+
+#### Brigitte resource-authored ultimate charge (partial)
+
+- Replace Brigitte's default60s fill with0B8B's one-second five-point expression
+  and live9532/12918 scalars. Damage/healing use the distinct authored amount,
+  multiplier9532/13022 and cap expressions, fixing35 instead of210 credit.
+- Retain effective amount/no-overheal/barrier exclusions; honor known gates,
+  death, retirement, full charge and the whole Rally aura. Pending passive
+  milliseconds are causal in both getter-free VM and server storage exports.
+- Actual-input regressions reproduce previous passive/damage errors. Initial
+  Rally/body-VM clock18 pass. Full mechanism548 attempt exposed one stale
+  capsule test fixture (two subcases); exact corrected method passes4.286s.
+  Nine skipped real-map checks pass11.503s on original read-only inputs,
+  covering548 mechanism cases across documented runs/inputs. Complete server
+  snapshot/replay17 pass637.318s; Ruff/diff pass. Native event/controller
+  qualification and exact passive host scheduling remain open; full hero/client
+  acceptance false. No final hero commit, merge or push.
+
+#### Brigitte velocity-action research boundary (partial)
+
+- Correct the mover overview: FF3471E9 is an action, not a state. Locate its
+  original104319 constructor/vtable/handler and separately probe18 scalar
+  dispatch-tail cases; supplied value/priority pairs reach the service intact.
+- The probe adapts expression evaluation and the movement service. Full type
+  dispatch, movement effects, NPC resistance and equivalence to Whip damage
+  knockback remain open. No runtime behavior or snapshot fields changed;
+  original-client/full static acceptance and the final hero commit stay open.
+
+#### Brigitte Whip live knockback rules (partial)
+
+- Replace hardcoded player impulse25/3 with1259 node32's actual horizontal
+  and vertical expressions, evaluated at contact. A change to ruleset14131
+  during flight now affects impact. Zero suppresses impulse; damage stays70.
+- Three regression subcases reproduce old behavior and now pass, including
+  doubled50/6. Existing nominal Whip input/impulse still passes; Ruff passes.
+  Targeted flight/barrier/NPC/combat/projectile/movement169 pass123.027s;
+  selected getter-free/stored replay2 pass36.378s (171 targeted checks on
+  actual43-row input). Ruff/diff pass. Native vector/ring/resistance and NPC impulse services remain
+  open; no full static or original-client acceptance or final hero commit.
+
+#### Brigitte controlled casts and Rally pulses (partial)
+
+- Discard an unlaunched Repair cast before authored control-abort paths spend
+  its charge. Actual Flashbang previously caused a heal after control ended;
+  now it cannot defer that pack, and a new cast still works. Actual Bash
+  cancellation passes; control after launch preserves the issued110 heal.
+- Consume the issued Rally aura before the active-input control gate. Actual
+  Assassin pin and Bash now permit ongoing armor pulses during control.
+  Previously only the native phase/timer continued while pulse grants paused.
+- Both previous failures are reproduced against archived review behavior.
+  Focused Flashbang and Rally/control cases pass. Actual43-row mechanism
+  run:531 pass,9 real-map mover cases skip for absent caches (540 attempted,
+  164.229s). Those9 pass8.632s on the original read-only cache/runtime; all
+  common38 mover rows are identical. Four selected snapshot/replay checks
+  pass65.722s on43-row input. Ruff/diff pass. Full static/client acceptance
+  remains open.
+
+#### Brigitte versus manual Assassin pin (partial)
+
+- Reuse scoped manual1157 integration from read-only shared WIP. Actual
+  logical36 drives contact25, graph-owned1s wait and authored100/s phase;
+  target context,3m contact and elapsed damage clock remain reconstructed.
+- Integrate pin input/channel interruption with independent Flashbang/Bash.
+  Actual allied Bash frees pinned Brigitte, pauses Assassin and permits
+  renewed engagement at expiry. Held shield drops on pin; stop/death/removal
+  release control and prevent later damage. Native AI/clock/status still open.
+- Include pin recipients, manual targets and ModifyHealth.last_applied in
+  causal snapshots; detach removed NPC world references.66 focused tests,
+  seven capture/context checks and extended actual rescue/recovery pass.
+  Frozen534 regression tests pass285.059s plus16 strict snapshot/replay
+  tests pass690.986s (550 baseline, original38-row mover input). Ruff passes.
+- Parent-provided43-row NPC mover input exposes old horizontal aim passing
+  over the real1.5m Assassin. Correct test poses through ordinary capsule aim.
+  All18 existing NPC cases pass37.561s with actual body dimensions; two new
+  methods pass16.832s (25 boundary scenarios, including45 actual activations
+  across range/wall/friendly rejection and10 capsule-edge checks). Other
+  metadata remain immutable hardlinks. No skeletal hitbox/map/navigation claim.
+  Full static/original-client acceptance and final hero commit/merge remain open.
+
+#### Brigitte Repair cross-source reuse (partial)
+
+- Honor0EDD's existing-recipient0F6F branch: settle prior healing and extend
+  one0EE1 stream across casters, then attribute it to the latest caller.
+  Two actual casters now produce55/s and220 total instead of parallel rates.
+- Execute the actual recipient graph through the ordered message receiver
+  in fixture transport: one instance, remaining duration+2 and source40
+  rebound. Health service/native world transport are not accepted by this test.
+- Reproduce the cross-source error on the old private review snapshot.82
+  focused healing/loaded-graph/message tests and a separate post-delivery
+  source-death case pass. Full frozen522 regression tests pass244.883s plus
+  15 strict snapshot/replay tests pass552.172s (537 total), including101
+  Brigitte methods. Ruff/diff pass.
+  Source disappearance/generation cleanup, homing/modifiers and full static
+  and original-client acceptance remain open; no hero commit or merge.
+
+#### Brigitte Inspire replacement and issued-effect lifetime (partial)
+
+- Honor12D8 node2's PlayScript policy3: replace the recipient's previous
+  Inspire even when another caster issued it. Settle previous healing before
+  replacement; a proc outside acquisition range leaves the old effect intact.
+- Keep recipient-owned Inspire through caster body replacement and preserve
+  its original source for charge eligibility. Switching away and back cannot
+  add old-effect charge to a new body. Target retirement still removes it.
+- Two regressions reproduce on the prior private review snapshot.54 focused
+  healing/loaded-graph tests and the additional distant-source case pass.
+  Frozen-source494 regression tests pass227.511s plus15 strict snapshot/replay
+  tests pass583.355s (509 total), including98 Brigitte methods. Ruff/diff pass.
+  Full healing/status modifiers, Repair cross-source policy and native filters
+  remain open. No original-client acceptance or final hero commit/merge.
+
+#### Brigitte versus manual Enforcer primary (partial)
+
+- Reuse reviewed read-only shared controller-query WIP in this private lane.
+  Declare4B-present/5C-absent only for manual Enforcer; the allocation policy
+  remains reconstructed. Eight original104319 predicate-tail/bit-reader
+  comparisons agree; controller lookup and output are explicit adapters.
+- Actual13EB node24 launches projectiles: raw2 costs Brigitte1 through armor
+  or shield2. Stop/restart, post-launch wall interception, Bash interruption
+  and recovery now cover the fourth manual primary. Full scatter/difficulty
+  policy, controller allocation, Assassin specials and autonomous AI stay open.
+- Sync NPC spawn health inputs from full created pools; include the declared
+  controller components in causal VM/server snapshots. Six scoped context
+  tests cover scope and snapshot inputs. Frozen-source491 regression tests
+  pass189.186s plus15 strict snapshot/replay tests pass491.135s (506 total),
+  including95 Brigitte methods. Ruff/diff and the formatting-only test
+  follow-up pass.
+  No original-client acceptance, final hero commit or merge.
+
+#### Brigitte control defenses and conditional timer (partial)
+
+- Correct Bash targeting to convert the authored opcode49 angle from degrees
+  before comparing its half-angle cosine. Near-lateral and rear-diagonal
+  targets now miss; complete native tracker geometry remains open.
+- Execute actual Orisa/Zarya Shift and confirm Bash contact rejects control
+  while immunity2547 is active, then permits control after native duration
+  and Bash cooldown. Fortify resource8243 exposes0.6 and retires to1; damage
+  reduction, armor ordering and bubble absorption remain unaccepted.
+- Model the54FEB21C empty-output conditional timer from original104319
+  handler execution: only timer1 with a present true condition finishes.
+  Missing/false values remain waiting without rearm/watch. Refuse unhosted
+  engine outputs/alternate subgraphs in strict execution. Four source tests
+  and five private native cases cover this bounded behavior; config lookup,
+  evaluation and finish submission in the native probe are explicit adapters.
+  Mei/Zenyatta authority wrappers and their later immunity remain open.
+- Corrected-source484 regression tests pass136.566s plus15 strict server
+  snapshot/replay tests pass382.314s (499 total), including94 Brigitte
+  methods. Ruff and diff checks pass. Full static acceptance remains open.
+  No original client was controlled and no hero commit/merge was made.
+
+#### Brigitte hosted Bash control and interruptions (partial)
+
+- Reconstruct bounded copy-on-write224E pending record assignments; preserve
+  source/duration/effect values and reject unsupported addresses without a write.
+  Scope the adapter to this hosted graph. Native general address semantics and
+  record-map transport remain open; pending/selected records are private host
+  data, while control/state fields retain normal snapshot/encoding paths.
+- Host actual0EE3 node13's224E overrides on a living selected recipient. Its
+  Chase20 owns0.75s, movement/jump mods and control stacks. Reconstruct only the
+  exact ordinary-actor filter for this lease, keeping2547/priority gating.
+  No parallel Bash timer or forced control-state activation is introduced.
+- Retire at expiry, death/replacement or manual removal; preserve issued control
+  after source death. Two actual casters expire independently. Running Rally
+  survives control. Five actual NPC bodies execute/expire the graph; Trooper,
+  Sniper and Heavy primaries stop and recover. Actual native hero/boss immunity,
+  cleanse, route/gap and full presentation acceptance remain open.
+- Review/apply parent64bf71c with authorship preserved. Reuse shared input/
+  buffer release and Ability.stop interruption with graph-phase control, keeping
+  Flashbang's reviewed deadline policy separate. Real Flashbang suppresses
+  Brigitte input and interrupts Whip; Bash also interrupts target Whip windup.
+- Add actual quick-melee35/range/wall/death cases and getter-free live-recipient
+  snapshot hashing. Register BotWorld.match in server and independent VM contracts;
+  VM export excludes Match like BodyWorld, leaving ownership to the server snapshot.
+  Inject Match through construction so synthetic-script adapters remain valid.
+- Frozen-source validation:443 regression tests pass104.263s;15 strict server
+  snapshot/replay tests pass414.482s (458 total), including90 Brigitte methods.
+  Ruff/diff pass. Complete static matrix and original-client acceptance remain
+  open; no hero commit/merge/push.
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
@@ -2644,6 +3040,34 @@ This log records tested changes and their acceptance status. Entries are grouped
   replication/HUD/animation/audio and original-client acceptance remain open.
   Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
   lane merged. Normal runtime/services and original working changes preserved.
+
+#### Brigitte Bash damage and projectile shielding (partial)
+
+- Feed reconstructed nearest enemy/radius/cone/static-LOS results into actual
+  Bash375 -> BooleanSwitch11 -> ModifyHealth10. Read5/loadout01DB, use shared
+  damage/armor/effective ultimate credit and finish the one-shot consumer.
+  Real input covers one-target/no-cleave,2.5 armor hit, misses/team/wall/death,
+  all five actual NPC bodies and lethal events. Reconstructed224E host follows
+  in the newer control entry above.
+- Recheck state completion after watched-variable dependency hooks. Authored
+  Bash488 now ends movement on contact and clears its latch; cooldown recast
+  works. Actual early stop/repeated cast exercises the shared runtime change.
+- Sweep shared Rocket flight against raised shields. Reconstruct closest-point
+  front-face splash and resolve body cover before breaking shields. Helix120,
+  no same-explosion spill, rear/friendly pass, front floor splash, side exposure
+  and static splash occlusion pass. Offset impact sight origin1e-4m outside
+  the surface. Exact geometry/overlap/prediction and wider defenses stay open.
+- Actual Sniper100 projectile and Heavy5 primary now spend shield100/5 while
+  owner stays200. Trooper20 remains covered. Enforcer/Assassin attacks, full
+  specials/navigation and native observer transport are not accepted.
+- Review/apply parent6debff3/7cd1ed7 dependencies without changing parent main
+  or external runtime. Frozen-source validation:342 combat/input/movement/
+  NPC/driver/array tests pass126.718s;14 strict snapshot/replay tests pass
+  452.654s (356 total), including74 Brigitte methods. Ruff/diff pass. Full
+  hero static matrix and original-client acceptance remain open. No hero commit
+  or push.
+
+
 
 #### McCree melee static-wall occlusion
 
@@ -2769,6 +3193,70 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Brigitte combat bridge (partial, full acceptance open)
+
+- Apply reviewed parent manual-NPC controls/console/weapon-root dependencies
+  through d1286b7. Actual Trooper/Sniper/Heavy attacks reduce Brigitte to
+  185/105/197.5; stop and Trooper shield interception pass. Enforcer/Assassin
+  attacks, autonomous AI/navigation/specials and native transport remain open.
+- Apply authored horizontal movement intents to the existing mover. Real shield
+  plus primary starts Bash travel, ends at rest, respects wall collision and
+  native cooldown. Mapping17/18 and raw-byte preservation are reconstructed;
+  Bash damage/stun and client prediction remain open.
+- Scope NPC owner-health lookup to explicit self, leaving foreign entities to
+  the existing fallback. Damage updates are tested; Enforcer still has other
+  unsupported weapon gates.
+
+
+- Consume real1248 flail damage states through shared health, armor, hit and
+  death paths; reconstruct a forward cleave volume with static occlusion and
+  per-activation target deduplication. Read amount35/loadout/reach from live
+  authored variables. Exact native sweep/hardpoint geometry remains open.
+- Repair explicitly indexed null-valued Switch cases so the weapon's combo
+  counter selects successive swings. This path is resource-inferred; no native
+  coercion differential or original-client acceptance is claimed.
+- Reconstruct12D8/11B9 Inspire: successful flail procs, ally/self filtering,
+  timed90/6s healing,1s proc cooldown,20m LOS snapshot, refresh, expiry/death
+  and body cleanup. Full modifiers/filters and native visible status stay open.
+- Consume1259's outgoing phase with reconstructed swept flight,70 damage,
+  player knockback and Inspire. Preserve authored windup/4s cooldown. Test
+  misses, LOS, team filtering, death cancellation, retained generic NPC corpses
+  and native cooldown/150ms early-press behavior. Exact geometry, NPC impulse,
+  defense interactions and client return/visual state remain open.
+- Fix Ability retry retaining a buffered press's original timestamp; retries
+  previously refreshed it indefinitely through cooldown and auto-cast on expiry.
+- Supply Repair0EDD allied targets before posed input, consume graph-owned
+  cast/charge transitions and reconstruct delivery/timed0EE1 healing110/2s.
+  Test charge exhaustion,6s refill,0.25s use lockout, LOS/range/team/FFA, target
+  locking, repeated-duration extension and source/target death. Preserve the
+  authored death-abort charge cost; exact ranking/homing/visual State stay open.
+- Reuse the reviewed external five-NPC catalog/bundle as read-only test inputs.
+  Actual bodies receive flail35/whip70/allied repair110, route type2 shields
+  correctly and retain corpses after terminal events. They are passive fixture
+  targets; enemy AI/attacks/specials and difficulty pools are not accepted.
+- Reconstruct0EE3/0EE4 Barrier Shield health and directional hitscan/whip
+  interception. Preserve250 max,1 broken sentinel, native5s cooldown and2s/85s
+  recovery. Test front/rear/friendly/wall ordering, cover, release/death, break
+  without spill, cooldown reopening and melee bypass. Native Pet, full projectile/
+  explosion handling and visible shield state remain open.
+- Correct fixture teleports to invalidate cached CharacterBody contacts; rerun
+  true target-lock/aim-change and positioned shield/whip tests.
+- Consume actual Rally10s phase/0.5s pulses with8m allies/self, capped100 extra
+  armor, individual30s expiry and native30% source movement modifier. Separate
+  cohorts from base pools; damage consumes bonus, healing cannot refill it,
+  expiry preserves base armor, and death stops the aura. Actual five allied
+  NPCs receive armor. Native pool flags/slot/priority/presentation remain open.
+- Add reconstructed1:1 effective damage/heal ultimate credit, cap at live2800
+  cost and suppress it for the whole aura. Legacy passive charging remains
+  unverified. Shield damage, armor grants and overhealing do not add credit.
+- Register bridge/cohort/cast/flight state in strict passive snapshots, avoid
+  nonfinite shield sentinels and verify expiry/shield mutations affect hashes
+  without evaluating getters. Full14 snapshot/replay tests pass in344.470s.
+- Pass291 combat/input/movement/NPC tests in81.230s plus14 strict snapshot/replay tests in343.934s (305 total), including58 Brigitte tests; Ruff and diff checks pass.
+  Full static matrix, enemy AI/specials, bash, native Rally charge/pools, cross-hero defenses
+  and original-client combat remain open.
+  See docs/BRIGITTE_COMBAT.txt. No deployment or GitHub sync is claimed.
 
 #### Optional persistent NPC corpses
 

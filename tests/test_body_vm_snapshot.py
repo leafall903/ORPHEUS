@@ -73,7 +73,7 @@ INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
-    "initialized_frame",
+    "initialized_frame", "ruleset_target_entity",
     "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
@@ -530,6 +530,16 @@ class BodyVMSnapshotTests(unittest.TestCase):
         with self.assertRaises(BodyVMSnapshotError):
             export_component_vm(runtime.Component(1), extra_roots=iter(()))
 
+    def test_pending_passive_charge_clock_is_causal_and_export_never_evaluates(self):
+        script = BodyScript(0x02E0000000000195, 123, 1000)
+        script.command(1030, 0)
+        self.assertEqual(script.passive_charge_ms, 480)
+        with mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no getter")):
+            baseline = export_body_vm(script)
+            script.passive_charge_ms += 1
+            changed = export_body_vm(script)
+        self.assertNotEqual(snapshot_digest(baseline), snapshot_digest(changed))
+
     def test_soldier_body_storage_excludes_only_named_transport_fields(self):
         script = BodyScript(SOLDIER, 123, 1000)
         baseline = export_body_vm(script)
@@ -539,7 +549,8 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("retired", body)
         self.assertEqual(set(dict(body["world"]["fields"])),
                          {"hero", "mode", "body", "body_definition", "throttles", "velocity_requests", "communication_wheel",
-                          "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects"})
+                          "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
+                          "_body_owner_context", "_entity_query_context"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

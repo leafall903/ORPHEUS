@@ -20,7 +20,7 @@ def uniform_table() -> tuple[int, ...]:
         words.append((1812433253 * (last ^ (last >> 30)) + i) & 0xffffffff)
     parity = (1, 0, 0, 0x13c9e684)
     inner = 0
-    for word, mask in zip(words, parity):
+    for word, mask in zip(words, parity, strict=False):
         inner ^= word & mask
     for shift in (16, 8, 4, 2, 1):
         inner ^= inner >> shift

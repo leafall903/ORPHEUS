@@ -37,14 +37,16 @@ _CONFIG_MODULES = (
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
-    "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
+    "ow174.game.projectile_tags", "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
-    "ow174.game.server", "ow174.game.statescript",
+    "ow174.game.server", "ow174.game.sigma_barrier", "ow174.game.statescript",
     "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world",
     "ow174.game.script.driver", "ow174.game.script.expr", "ow174.game.script.runtime",
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
+    "ow174.game.projectile_tags": {"CATALOG_SHA256"},
+    "ow174.game.sigma_barrier": {"MODEL_SHA256"},
     "ow174.game.match": {"HEALTH", "BODY_SCRIPT_HEROES", "SEND_EVERY", "RETAIL_QUANTA", "TOURNAMENT_QUANTA"},
     "ow174.game.correction": {"CORRECTIONS", "HEROES"},
     "ow174.game.script.runtime": {
@@ -213,6 +215,10 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
             limit = field.startswith("MAX_") or field.endswith("_MAX") or "BUDGET" in field
             if numeric or limit or field in required:
                 values[f"{name}.{field}"] = value
+    from ow174.game import orisa_barrier, reinhardt_barrier
+
+    values["ow174.game.reinhardt_barrier.GEOMETRY_SHA256"] = reinhardt_barrier.geometry_sha256()
+    values["ow174.game.orisa_barrier.GEOMETRY_SHA256"] = orisa_barrier.geometry_sha256()
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)

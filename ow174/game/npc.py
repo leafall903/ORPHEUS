@@ -104,9 +104,11 @@ def remove_spawned(match) -> tuple[int, ...]:
                 component.world.manual_target = None
         match.combat.cancel_npc_projectiles(bot)
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
-        for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+        for table in (match.combat.vitals, match.combat.history, match.combat.replacement_ticks,
+                      match.combat.melee_seen, match.combat.stuns, match.combat.projected_barriers):
             table.pop(bot.entity, None)
+        match.combat.clear_pins(bot.entity)
+        match.combat.brigitte.retire(bot.entity)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)
         match.bots.remove(bot)

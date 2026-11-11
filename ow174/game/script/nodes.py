@@ -30,6 +30,7 @@ from ow174.game.script import (
     model_look,
     modifiers,
     play,
+    record_assignment,
     scopes,
     shared_vars,
     spray_placement,
@@ -1858,6 +1859,35 @@ class DisableLogicalButton(State):
                     state.dependency_changed()
 
 
+@state_class("STU_54FEB21C")
+class ConditionalTimer(State):
+    """104319 game8E5A90/8E5F50, empty-output/empty-alt-subgraph variant.
+
+    ED97A97C seconds arms timer1. Only a present/truthy7C8AD485 requests finish
+    on that timer; missing/false deliberately keeps the state active. Native
+    engine time outputs and alternate subgraph ownership are not hosted here.
+    """
+
+    def on_enter(self) -> None:
+        subgraph = _field(self, "m_E5790891") or {}
+        unsupported = (any(_field(self, key) is not None
+                           for key in ("m_C7A42E2A", "m_F8CE386A", "m_C46403A5"))
+                       or self.node.links("m_E5790891")
+                       or (isinstance(subgraph, dict) and subgraph.get("m_FF3DAF1E")))
+        if unsupported:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(
+                    self.instance, "conditional timer engine outputs/subgraph", self.node.cls, self.node)
+            return
+        duration = self.evaluate(_field(self, "m_ED97A97C"), watch=False)
+        self.timer_at(seconds_to_ms(duration), 1)
+
+    def timer(self, param: int) -> None:
+        condition = _field(self, "m_7C8AD485")
+        if param == 1 and condition is not None and truthy(self.evaluate(condition, watch=False)):
+            self.request_finish()
+
+
 @state_class("STUStatescriptStateWait")
 class Wait(State):
     """OnEnter 0x7FF78AAA7570: `ms = R(timeout * 1000)`; 0 or less finishes now, else a timer (param 1) at
@@ -2430,6 +2460,7 @@ class Ability(State):
         self.presses: list[tuple[int, int, int]] = []  # (time, button, activation)
         self.cur = 0.0
         self.cooldown_rate = 1.0
+        self.cooldown_observed = 0.0
         self.last = 0
         self.var: Var | None = None
         self.stack_var: Var | None = None
@@ -2459,6 +2490,7 @@ class Ability(State):
         self.cur = max(0.0, to_float(var.base))
         self.cooldown_rate = self.rate()
         self.last = self.now
+        self.cooldown_observed = self.cur
         self.var = self.link(target)
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
@@ -2512,6 +2544,12 @@ class Ability(State):
     # starting and stopping
 
     def tick(self) -> None:
+        # A linked cooldown changes with time even when nothing writes its slot.
+        if self.var is not None:
+            before = self.cooldown_observed
+            self.cooldown_observed = self.remaining()
+            if before != self.cooldown_observed:
+                self.instance.changed(self.var, before)
         self.activate()
 
     def timer(self, param: int) -> None:
@@ -2570,6 +2608,7 @@ class Ability(State):
             and self.condition("m_150F0D92")
             and self.condition("m_F495731F")
             and self.stack_allows("m_3C0EB4A6")
+            and self.instance.component.world.ability_start_allowed(self)
         )
         if not ready:
             return False
@@ -2772,7 +2811,17 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
-        for number, case in enumerate(_field(self, "m_05706D1C") or []):
+        cases = _field(self, "m_05706D1C") or []
+        # 104319's 1248 weapon combo has explicitly disabled value matching and
+        # six null-valued cases. Its #59 counter indexes them (0, 1, 2, ...).
+        # Resource-backed reconstruction; native index coercion remains unverified.
+        mode = _field(self, "m_270252ED")
+        if mode is not None and not truthy(self.evaluate(mode, watch=False)) and cases and all(
+            isinstance(case, dict) and case.get("m_value") is None for case in cases
+        ):
+            index = to_int(value)
+            return f"m_05706D1C[{index}]" if 0 <= index < len(cases) else "m_A5EF385D"
+        for number, case in enumerate(cases):
             if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
@@ -3163,6 +3212,29 @@ class CombatDamageFilter(State):
 
     def on_end(self, finished):
         self.instance.component.world.unbind_combat_damage_filter(self)
+@state_class("STUStatescriptStatePet")
+class CompatiblePet(State):
+    """A permissive Pet with an explicit world factory."""
+
+    def on_created(self) -> None:
+        self.pet_entity = None
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
+        entity = self.instance.component.world.create_compatible_pet(self)
+        if entity is NotImplemented:
+            return
+        if type(entity) is not int or not expr.valid_entity(entity):
+            raise ValueError("compatible Pet factory returned an invalid entity")
+        self.pet_entity = entity
+        self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(entity))
+
+    def on_end(self, finished: bool) -> None:
+        if self.pet_entity is not None:
+            self.instance.component.world.retire_compatible_pet(self, self.pet_entity)
+            self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(0))
+            self.pet_entity = None
 
 
 @state_class("STUStatescriptStateTrackTargets")
@@ -3175,8 +3247,17 @@ class TrackTargets(State):
         super().__init__(*args)
         self.targets = ()
         self.managed = False
+        self.target_var = None
 
     def on_enter(self) -> None:
+        targets = self.instance.component.world.linked_tracked_targets(self)
+        if targets is not NotImplemented:
+            self.targets = self.linked_entities(targets)
+            target = lvalue(self.node.field("m_8A2905A0"))
+            if target is not None:
+                self.target_var = self.link(target)
+            self.ticks()
+            return
         self.refresh()
         if self.managed:
             self.ticks()
@@ -3189,10 +3270,32 @@ class TrackTargets(State):
         self.targets = tuple(values)
         self.instance.write(lvalue(self.node.field("m_8A2905A0")), tuple(Entity(e) for e in self.targets))
 
+    @staticmethod
+    def linked_entities(targets):
+        if type(targets) is not tuple or any(type(target) is not Entity for target in targets):
+            raise ValueError("target search must supply a tuple of entities")
+        return tuple(target.id for target in targets)
+
     def tick(self) -> None:
-        self.refresh()
+        targets = self.instance.component.world.linked_tracked_targets(self)
+        if targets is NotImplemented:
+            self.refresh()
+            return
+        targets = self.linked_entities(targets)
+        if targets != self.targets:
+            before = self.target_var.value() if self.target_var is not None else None
+            self.targets = targets
+            if self.target_var is not None:
+                self.instance.changed(self.target_var, before)
+            self.try_complete()
+
+    def output(self, slot):
+        return tuple(Entity(entity) for entity in self.targets)
 
     def on_end(self, finished: bool) -> None:
+        if self.target_var is not None:
+            var, self.target_var = self.target_var, None
+            self.unlink(var, bake=True)
         # Deadeye stops searching before iterating the baked target arrays.
         # Its authored ability exit resets those entity variables.
         self.targets = ()
@@ -3767,6 +3870,10 @@ def set_var(instance: Instance, node, caller) -> bool:
 def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> None:
     target = lvalue(out_cfg)
     if target is None:
+        #224E's pending records are explicitly hosted by the stun consumer.
+        # General record storage/transport for other graphs remains open.
+        if instance.graph.index == 0x224E and index_cfg is None and key_cfg is None:
+            record_assignment.store(instance, out_cfg, value)
         return
     if key_cfg is not None:
         key = instance.evaluate(key_cfg)

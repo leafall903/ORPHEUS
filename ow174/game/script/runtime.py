@@ -270,6 +270,13 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -286,6 +293,24 @@ class InstanceContext(Context):
         component = self.instance.component
         value = component.world.ruleset_for(component.entity, key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset_for(component.entity, key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -329,9 +354,11 @@ class InstanceContext(Context):
                 return values[0] if values else expr.EVALUATION_FAILED
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -437,6 +464,14 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
@@ -444,6 +479,9 @@ class World:
         return None
 
     def velocity_action(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def linked_tracked_targets(self, state: "State"):
         return NotImplemented
 
     def tracked_targets(self, state: "State"):
@@ -519,6 +557,9 @@ class World:
     def clear_target_tag(self, state: "State") -> None:
         pass
 
+    def ability_start_allowed(self, state: "State") -> bool:
+        return True
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
@@ -575,6 +616,9 @@ class World:
 
     def data_flow_context(self, entity: int):
         """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
         return NotImplemented
 
     def entity_query_context(self, entity: int):
@@ -708,6 +752,15 @@ class World:
         flags: tuple, *, controller_definition: int | None = None, skin_theme: int | None = None,
     ):
         instance.component.unsupported(instance, "hero creation service", node.cls, node)
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> None:
+        """Host explicitly supported actions on a permissive body."""
+
+    def create_compatible_pet(self, state: "State"):
+        return NotImplemented
+
+    def retire_compatible_pet(self, state: "State", entity: int) -> None:
+        pass
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -1170,6 +1223,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
