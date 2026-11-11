@@ -5,7 +5,7 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_initial_graphs
+from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -31,12 +31,18 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +50,13 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_context
+
+        value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,6 +84,64 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def tracked_targets(self, state):
+        if self.match is None:
+            return NotImplemented
+        from ow174.game import heavy_charge
+
+        fight = self.match.combat
+        targets = heavy_charge.tracked_contacts(fight, state)
+        return fight._npc_melee(state) if targets is NotImplemented else targets
+
+    def play_compatible_script(self, instance, node):
+        from ow174.game import heavy_charge
+
+        if self.match is not None and heavy_charge.handles_request(instance, node):
+            self.play_script(instance, node)
+            return True
+        return False
+
+    def play_script_context(self, instance, node):
+        from ow174.game import heavy_charge
+        from ow174.game.script.play import InvocationContext
+
+        if self.match is not None and heavy_charge.handles_request(instance, node):
+            entity = instance.component.entity
+            return InvocationContext(entity, entity, instance.source_entity())
+        return super().play_script_context(instance, node)
+
+    def submit_script_request(self, instance, node, request):
+        from ow174.game import heavy_charge
+
+        if self.match is not None and heavy_charge.handles_request(instance, node):
+            heavy_charge.request(self.match.combat, instance, node, request)
+        else:
+            super().submit_script_request(instance, node, request)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, heavy_charge
+
+        if self.match is not None and elapsed_ms == 0:
+            fight = self.match.combat
+            result = heavy_charge.crush(fight, state)
+            if result is NotImplemented:
+                result = heavy_charge.impact(fight, state)
+            if result is NotImplemented:
+                result = fight._npc_melee(state, health=True)
+            if result is not NotImplemented:
+                return result
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def animation_duration(self, state):
+        from ow174.game import assassin
+
+        return assassin.recovery_duration(self, state)
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +149,7 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,12 +158,12 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
-        for instance in create_initial_graphs(component, record):
+        for instance in create_body_graphs(component, record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -143,6 +215,9 @@ class BotScript(ReplicatedBody):
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
+        from ow174.game import assassin
+
+        assassin.bind(component.world, component, None)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)

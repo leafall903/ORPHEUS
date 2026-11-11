@@ -7,9 +7,8 @@ Read in the client (the addresses are in the docstrings below):
   step 0x7FF78AA9DE30). An update drains the instance's events up to now, ticks the ticking states and
   runs the deferred list, until the deferred list is empty (0x7FF78AAA27C0).
 - Events (dispatcher 0x7FF78AAA1690): 0 a state op (begin, finish, abort), 1 a timer, 2 a deferred
-  completion check, 3 an Entry, 4 a variable assignment, 8 a button edge, 9 "a watched variable changed".
-  Inserted after every event
-  of the same time (FIFO), never in the past.
+  completion check, 3 an Entry, 4 an assignment, 7 a stop, 8 a button edge, 9 a watched variable change.
+  Inserted after every event of the same time (FIFO), never in the past.
 - A plug walk (0x7FF78AA83FA0) follows the links in order. A state target only gets a begin (or abort)
   request: an event at now, so a state never begins inside a walk. Actions and conditions run at once.
   The server runs every node that is not client-only.
@@ -38,7 +37,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP_INSTANCE, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -135,15 +134,16 @@ class Link:
 class Var:
     """One variable: the stored (base) value, the links that override it, the states that watch it."""
 
-    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers")
+    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers", "entity_owner")
 
-    def __init__(self, key: tuple) -> None:
+    def __init__(self, key: tuple, entity_owner: "Component | None" = None) -> None:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
         self.watchers: dict[State, None] = {}
         self.resolving = False
         self.partial = None
+        self.entity_owner = entity_owner
 
     def value(self, below: "State | None" = None):
         # Native1BA70B0's in-resolution flag exposes the current lower value.
@@ -262,6 +262,13 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -277,6 +284,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -297,14 +322,32 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
-        self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        if cfg.get("$") == "STU_A6B80C63":
+            from ow174.game.script import play
 
-        result = entity_queries.evaluate(self, cfg)
+            return play.array_reduce(self.instance, cfg, watcher=self.watcher)
+        if cfg.get("$") == "STU_4BD39CFD":
+            from ow174.game.script import play
+
+            return play.array_item(self.instance, cfg, watcher=self.watcher)
+        self.poll_native(cfg)
+        from ow174.game.script import (
+            body_owner,
+            controller_heroes,
+            entity_filter,
+            entity_queries,
+            entity_team,
+        )
+
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_filter.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -382,17 +425,43 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def tracked_targets(self, state: "State"):
+        """Return polled targets, None for a push host, or NotImplemented if unhosted."""
+        return NotImplemented
+
+    def animation_duration(self, state: "State"):
+        """Optional declared animation duration in seconds; native assets stay external."""
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
+        return NotImplemented
+
+    def linked_target_sample(self, entity: int):
+        """Return (linked entity or None, yaw radians), None if absent, or NotImplemented."""
         return NotImplemented
 
     def subgraph_scopes(self, entity: int):
@@ -431,6 +500,10 @@ class World:
         """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
 
+    def body_owner_context(self, entity: int):
+        """Explicit instance/lookup and direct component43 ownership services."""
+        return NotImplemented
+
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
         """Ordered native hero catalog, controller lookup and availability services."""
         return NotImplemented
@@ -441,6 +514,20 @@ class World:
 
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
+
+    def matches_entity_filter(self, entity: int, cfg, *, instance, watcher):
+        """CF4340 environment+150; unknown engine admission must not become false."""
+        from ow174.game.script import entity_filter
+
+        host = self.entity_filter_host(instance)
+        if host is not NotImplemented:
+            entity_filter._check_owner(instance)
+            return entity_filter.admit(host, entity, cfg, instance=instance, watcher=watcher)
+        return NotImplemented
+
+    def entity_filter_host(self, instance):
+        """Current entity components and native filter services for this instance."""
+        return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
@@ -491,6 +578,10 @@ class World:
         resource = resolve_resource(instance, node)
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> bool:
+        """Optional declared body reconstruction; unknown legacy calls stay inert."""
+        return False
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -666,7 +757,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -734,7 +825,7 @@ class Component:
     def entity_var(self, var: int, create: bool = True) -> Var | None:
         found = self.vars.get(var)
         if found is None and create:
-            found = self.vars[var] = Var((0, var))
+            found = self.vars[var] = Var((0, var), self)
         return found
 
     # --- instances ---------------------------------------------------------------------------------
@@ -782,6 +873,8 @@ class Component:
         instance.stopped = True
         instance.initialization_pending = False
         instance.queue.clear()
+        instance.deferred.clear()
+        instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
 
@@ -934,9 +1027,12 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
+        self.join_inputs: list[tuple[int, int, str]] = []  # target, producer, output plug path
+        self.plug_source: tuple[int, str] | None = None  # current native input traversal
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -1020,6 +1116,10 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # Coalescing flags describe queued callbacks. A cancelled callback must
+        # not suppress all dependency changes after this state starts again.
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1153,6 +1253,8 @@ class Instance:
                 return
             for _ in range(MAX_INSTANCE_UPDATES):
                 self.drain()
+                if self.stopped:
+                    return
                 for state in list(self.ticking):
                     if state.active and state.ticked_at != self.component.now:
                         self.component.consume_work("state tick")
@@ -1222,6 +1324,8 @@ class Instance:
         elif event.kind == ASSIGN:
             scope, identifier, value = event.assignment
             self.write((scope, identifier), value)
+        elif event.kind == STOP_INSTANCE:
+            self.component.destroy(self)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1285,8 +1389,50 @@ class Instance:
                 if state is not None:
                     taken = state.plug_enter(input_path) or taken
                 continue
-            taken = self.run_node(target, None if target.is_action else caller) or taken
+            previous = self.plug_source
+            self.plug_source = (node.pos, path)
+            try:
+                taken = self.run_node(target, None if target.is_action else caller) or taken
+            finally:
+                self.plug_source = previous
         return taken
+
+    def join(self, node: Node, caller: "State | None") -> bool:
+        """104319 1B6EED0/1B73BC0: join distinct input edges before following output."""
+        if self.plug_source is None:
+            self.component.unsupported(self, "join input origin", node.cls, node)
+        arrival = (node.pos, *self.plug_source)
+        if arrival in self.join_inputs:
+            return False
+        previous = sum(row[0] == node.pos for row in self.join_inputs)
+        self.join_inputs.append(arrival)
+        indexes = node.field("m_122DF0CA") or ()
+        if previous == 0:
+            for index in indexes:
+                self.component.consume_work("join completion check")
+                state = self.states.get(index)
+                if state is not None and state.active and state is not caller and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(self.component.now, 0, CHECK, state=state))
+            return False
+        if previous != expr.to_int(node.field("m_B24D1794")) - 1:
+            return False
+        # 1B700F0 removes this target's registrations by swapping with the tail.
+        index = 0
+        while index < len(self.join_inputs):
+            if self.join_inputs[index][0] == node.pos:
+                self.join_inputs[index] = self.join_inputs[-1]
+                self.join_inputs.pop()
+            else:
+                index += 1
+        if not self.follow(node, "m_outPlug", caller):
+            return False
+        for index in indexes:
+            self.component.consume_work("join state abort")
+            state = self.states.get(index)
+            if state is not None and state.active:
+                state.request(ABORT)
+        return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
         """The states a subgraph plug lists (m_FF3DAF1E)."""

@@ -4,7 +4,966 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Moira server integration snapshot
+
+- Preserve the current build 104319 Moira implementation, shared combat and
+  StateScript changes, cross-hero and NPC interactions, runtime input tools,
+  and existing regression tests. The handoff covers the lane's accumulated
+  changes over 100c66c.
+- Source checks passed 74 tests. A 70-test selection with the prepared
+  Rialto PvE runtime had 26 skips and one failure at the D.Va hero-switch
+  assertion in the Graviton interception test. Full discovery without the
+  prepared runtime failed, including missing data fixtures. Ruff reported
+  77 findings.
+- Full static combat acceptance and original-client play remain pending.
+  External runtime inputs and offline probes remain in the research workspace.
+
+### 2026-11-09
+
+#### Heavy Assault frontal attachment
+
+- Host the 1408 frontal search and node158 victim-script request.
+  Attach the loaded 1407 graph, suppress victim inputs during travel,
+  and retire the binding when the charge ends.
+
+#### Heavy Assault charge side contact
+
+- Host actual 1408 graze search and health nodes. Apply the resource
+  damage and impulse once per target, then retire contacts on exit.
+
+#### Heavy Assault charge travel
+
+- Advance actual 1408 charge phases independently of the NPC firing
+  flag. Feed the authored motion expression a reconstructed yaw vector
+  and route static wall detection through the loaded exit branch.
+
+#### NPC melee impulse on players
+
+- Evaluate both authored impulse magnitudes and pass nonlethal melee
+  contact into the collision-backed player mover. Verify Heavy lifts
+  and displaces Moira, and Trooper supplies its smaller horizontal delta.
+
+#### Trooper and Heavy Assault authored melee
+
+- Host the actual 1422/140E melee searches and one-shot health states
+  using the loaded sphere geometry and reconstructed capsule and wall
+  admission. Confirm 30/80 damage on Moira and rejection through Fade.
+
+#### Grasp recovery against Adaptive Shield
+
+- Exercise Grasp against the real 03EBB pool and verify damage,
+  self-heal and fuel recovery with zero ultimate charge. Keep the
+  barrier-only regression for the other contact path.
+
+#### Sleep Dart and pending orb release
+
+- Exercise both real orb releases one frame before Sleep Dart and on
+  the impact frame. The earlier projectile continues and a same-frame
+  release is interrupted before spending cooldown.
+
+#### Actual Sleep Dart contact at the Fade boundary
+
+- Verify real darts on the last protected and first vulnerable frames
+  at the declared test pose. Check both damage and the Sleep deadline.
+
+#### Replay Moira charge after hero change
+
+- Extend the stored two-player journal through a switch to Moira and
+  actual Grasp commands. Separate passive catch-up from the hit delta
+  and compare the final charge after replay.
+
+#### Lethal Grasp charge checks
+
+- Verify an actual lethal Grasp charges only effective health lost
+  against a player and all five NPC bodies. Verify NPC corpses give no
+  further charge after the half-weighted killing hit.
+
+#### Fade cooldown boundary regression
+
+- Alternate real presses across the cooldown, then release and recast.
+  A continuous hold cannot reactivate immunity before readiness and
+  starts one fresh Fade when the cooldown reaches zero.
+
+#### Charge isolation in cross-hero combat checks
+
+- Isolate authored passive pulses using the 12918 multiplier. Retain
+  the health, energy, status and combat-charge assertions.
+- Verify 01C7/0700 starts the same 77 stack as 0694.
+
+#### Start Moira's charge graph during normal match entry
+
+- Translate the first active Moira body command to 01C7/0694. Verify
+  zero charge during assembly and the first authored five-point pulse
+  after the assembly gate opens.
+
+#### Damage notification 148 verification
+
+- Exercise 148 against the actual combat-body queries. Verify its 090D
+  gate and the adjustment retained from the previous 12 binding.
+  The original sender and ordering remain unresolved.
+
+#### Live damage charge message
+
+- Route actual damage to 0B8B/12, including authored attack tags and
+  the Adaptive Shield adjustment record. The match supplies scoped
+  combat-body identity, hostility and Roadhog/NPC target tag queries.
+
+#### Live healing charge message
+
+- Deliver actual spray, trailing heal and healing orb restores to
+  0B8B/44 with the target entity, effective amount and authored tags.
+  The loaded graph owns healing gain gates and multipliers.
+
+#### Authored live damage charge reducer
+
+- Feed hit-local Adaptive Shield adjustment records through the shared
+  0B8B reducer, clamp, target weight and damage gain expressions.
+  Preserve the scalar fallback for bodies without supplied enablement.
+
+#### Adaptive Shield charge adjustment
+
+- Exclude damage absorbed by Wrecking Ball's 03EBB pool from Moira's
+  ultimate charge. Three actual melee cases pass with supplied pools.
+- Back actual 1566/state6 activation with the tagged pool. Verify grant,
+  expiry, early cooldown rejection and Moira's charge before and after.
+
+#### Authored damage charge weights for Roadhog and the five NPCs
+
+- Resolve Roadhog's gameplay body 028F to its static 011E target tag and
+  apply the 0B8B three-quarter damage charge expression when the authored
+  charge policy is supplied. Verify actual grasp, damage orb and melee.
+- Use the active E62 03C3 state on the actual NPC body to select 0B8B's
+  half-charge expression. All five bodies pass grasp, orb and melee checks.
+  Finishing the tag state restores full grasp charge. Native general tag
+  registration remains open.
+
+#### Authored combat charge rates on actual Moira effects
+
+- Apply the 0B8B enablement and pause guards and evaluate the authored
+  combat gain expression on effective damage and healing when enablement is
+  supplied. The existing effective-health eligibility still supplies the
+  amount. Native event delivery, adjustment records and target tags remain
+  separate.
+- Verify grasp and spray keep changing health while disabled or paused and
+  earn the scaled charge once enabled. Earn the final scaled points with
+  actual grasp, then activate and spend charge with the authored ultimate.
+
+#### Authored charge adjustment list
+
+- Implement the StateScript reducer used by 0B8B's damage charge action.
+  Materialize the native iterator order, expose the cursor, count, accumulator
+  and current item, then evaluate the authored final expression.
+- Compare 15 callback schedules and 25 parameter lookups against native
+  code with declared variant adapters. Actual message 12 tests cover empty
+  lists, filtered adjustments, nesting and subtraction clamped to zero.
+  The message source and target relation service are supplied in the test.
+
+#### Authored combat charge message gates
+
+- Deliver actual 0B8B message entries 44, 12 and 148 to the loaded Moira body.
+  Exercise the amount, cap, multiplier, pause, disable, tag and subtraction
+  paths with supplied parameters. The 12 and 148 cases declare native services.
+- Trace the damage eligibility query to CE5020/C1CF60 and replay selected
+  original wrapper and relation cases. Native emission and actor inputs
+  remain open.
+
+#### Authored passive charge ownership
+
+- Let loaded graph 0B8B own passive charge whenever its enablement variable
+  is supplied. This prevents the legacy fill from adding points on disabled
+  or paused frames. Hosts with an absent enablement value retain the fallback.
+- Deliver the authored 0694 message to Moira's loaded 01C7 and exercise the
+  real 0B8B clock and body-owner lookup. Verify five-point pulses, explicit
+  pause, actual ultimate suppression and a new one-second wait on resume.
+  Native match emission of the enablement message remains open.
+
+#### Authored ultimate charge in Moira's shared body script
+
+- Trace loaded graph 0B8B to its one-second wait, five-point passive action
+  and event-driven charge consumers. Execute its charge messages and actions
+  with declared host inputs to verify scaling, guards and the cost cap.
+- With fallback fill disabled, the current host leaves the authored passive
+  wait inactive. Native event emission and host enablement remain open.
+
+#### Coalescence visibility through NPC cover
+
+- Execute Coalescence against all five actual NPC bodies as allies and
+  enemies, with either visibility point blocked and both points blocked.
+  All 30 cases produce the expected health delta.
+- Follow each body's additional entity reference from the build 104319
+  archive. All five linked resources have no model or further entity links.
+
+#### Coalescence NPC fallback hardpoint resources
+
+- Resolve the five Retribution body entities to eight distinct body and
+  attachment models from the build 104319 archive. None contains the typed
+  0DC:01CD hardpoint in the available model node tables. Sniper has a bone
+  with the same index and a different full identifier.
+- This establishes the static asset lookup boundary. Runtime hardpoint
+  overrides and the native special visibility component remain open.
+
+#### Coalescence static visibility fallback
+
+- Cast per-candidate static visibility rays to 30 and, when needed, 60
+  percent of capsule height, following the native generic path for a missing
+  fallback hardpoint. The actual beam passes either clear ray and skips a
+  target when both points are blocked. The previous server missed this cover
+  layout and applied damage through it.
+- Replay native component membership on two historical entity headers. The
+  controller and body both lack the component checked by the special branch.
+  Native hardpoint, special dispatch and five-NPC membership remain open.
+
+#### Coalescence native visibility probes
+
+- Trace candidate visibility from TrackTargets refresh through CA3570 and
+  D607F0. Execute category setup for the authored 02C, default 02D and invalid
+  category type, plus 12 blocker decisions with declared ray results.
+- Execute the generic first-endpoint and fallback path. A blocked first ray
+  can retry at hardpoint 01CD or 60 percent of capsule height. The default
+  first endpoint is 30 percent of height. Full actor dispatch and native
+  world collision remain open.
+
+#### Coalescence aim and native candidate dispatch
+
+- Verify live yaw and pitch changes during one Coalescence cast. The aim
+  returns to the same off-axis target after the pitched miss.
+- Compare 15 original axis-composition cases against server aim with supplied
+  yaw and pitch. Execute original category selection for both authored filters
+  and confirm the native secondary admission gate with declared services.
+  Pose binding and complete candidate visibility remain open.
+
+#### Coalescence off-axis targeting
+
+- Use the shared native-backed TrackTargets capsule predicate for Coalescence
+  healing and damage. Each search supplies its own depth, aperture and parallel
+  flag. The server eye and aim supply the frame. Visibility uses a static ray
+  to the nearest surface of each candidate capsule.
+- Both searches agree with all 336 captured capsule rows in the declared
+  frame. Actual casts hit an ally and an enemy 1 m off axis and exclude a
+  farther offset or a candidate behind local cover. Native origin, aim and
+  visibility binding remain open.
+
+#### Coalescence native target volume
+
+- Execute the build 104319 TrackTargets parameter tail for both Coalescence
+  searches with authored depth 30, aperture 4 degrees and the parallel flag.
+  A supplied forward frame yields about 1.048 m transverse extent on each
+  axis. The original capsule predicate executes 336 samples.
+- Compare five native geometry samples against actual server casts. A target
+  1 m off axis and 3 m ahead passes the original geometry under the supplied
+  frame, but the current server centerline misses it. Native frame resolution
+  and candidate visibility still need verification before changing geometry.
+
+#### Cryo contact and native candidate record
+
+- Run both actual Biotic Orb casts through live enemy Cryo to a target behind
+  the ice. The damage and healing orbs apply their effects behind it and spend
+  energy equal to the health delta. All 15 orb tests pass.
+- Execute 34 native hit-candidate cases with supplied records and flags.
+  Nonzero flags copy the full 0x48-byte candidate and preserve the flags.
+  Zero leaves the prior flags and buffer intact. Attack-specific use is open.
+- Trace Coalescence 1007 TrackTargets states 17 and 19 through separate
+  target lists into healing and damage. Neither consumes a TrackRay output
+  variable directly. Read each authored radius separately in the server beam.
+  Both are 30 in this build. All five beam checks pass, including an isolated
+  radius change on each branch. Native query shape and indirect effects remain open.
+
+#### Cryo receiver category verification
+
+- Execute actual Coalescence with a live Cryo actor before an ally and an
+  enemy. The current reconstructed beam reaches both through the ice.
+  Static cover between the ice and the targets stops both operations.
+- The actual orb graph writes category120 to instance var8518 for both
+  emitted orb operations in the tested mode. Grasp12C and Coalescence02C
+  use distinct authored 097 definitions and share the B3 result pair0/1.
+- Execute 90 native lookup comparisons with declared compiled arrays,
+  three selector cases with a supplied relation response, and32 wrapper
+  cases. The wrapper stores the full flags and admits nonzero results.
+  The attack-specific meaning of the individual bits remains open.
+
+#### Protection admission for Ana grenade and Assassin pin
+
+- Apply the existing active-phase protection predicate before writing
+  grenade anti-heal or acquiring an Assassin pin. Actual protected Wraith,
+  Cryo and Transcendence cases reject both. The unprotected comparisons
+  retain normal damage, anti-heal and pin control.
+- Actual Moira spray still heals friendly protected recipients after
+  the rejected grenade status. Twelve focused cases and33 combat tests
+  pass. Admission remains the existing reconstructed phase policy.
+- Identify the actual 12C and 02C category references in Grasp and
+  Coalescence and their B3 receiver override rows. Their downstream flags
+  and projectile category binding remain open.
+
+#### Mei Cryo actor and 0623 lifecycle
+
+- Create a separate server 090B actor from the actual 05FE Pet state.
+  Resolve and execute node22's actual PlayScript request on that actor's
+  component. The actor and its parent Pet identity are stored causally.
+- Drive the selected ice contact from the live actor. Actual inputs cover
+  active contact, cancel and rejected immediate reuse, natural expiry,
+  replacement and disconnect. Retirement destroys the 0623 instance.
+- Nine projectile/Grasp trajectory cases, five lifecycle cases, 886 script
+  tests and 220 shared checks pass. All203 actor-stage Moira tests pass.
+  All14 stored-server tests pass.
+- Host actual 05FE node27 self-heal. Actual Moira Grasp wounds Mei and
+  full Cryo restores200 over the authored approximately3.9 seconds.
+  Cancellation preserves the already-applied amount. Tick distribution
+  uses the existing server health pools. The old immunity check now verifies
+  zero dealt damage even when Mei heals. All10 charge/immunity checks pass.
+  Native cleanse remains open.
+- Entity allocation and attachment are reconstructed. Native receiver and
+  independent client replication remain open.
+
+#### Mei Cryo contact against Grasp and control projectiles
+
+- Use the live 05FE Pet and protection states to expose 090B's authored
+  0.5 metre radius and 2 metre height as a reconstructed foot-anchored capsule.
+- Enemy Grasp, Sleep Dart and Flashbang stop at the ice when it is the first
+  contact. The projectile ordering retains nearer impact and defenses.
+  Allied ice passes these attacks. Flashbang stops without a server blast
+  at the ice, following the scoped reconstructed direct-impact policy.
+- Nine actual ice-only trajectory cases and three actual Grasp lifecycle
+  cases pass. The 74-test combat regression passes.
+- Independent actor and 0623 runtime hosting, native attachment, receiver
+  masks and other attack classes remain open.
+
+#### Moira against Wraith, Cryo-Freeze and Transcendence
+
+- Adapt the Genji lane's three untimed protection entry gates. Use the live
+  ability phase for reconstructed damage and control immunity. Reaper's
+  active Wraith is excluded from enemy contact. Mei and Zenyatta retain
+  their ordinary body contact.
+- Twelve actual Moira attack cases cover Grasp, orb, melee and Coalescence
+  against the three protection windows. Grasp resumes damage after expiry.
+  Three behind-target Grasp cases and six actual control projectile cases
+  distinguish the contact policies.
+- The new phase entry class has a causal VM layout. All886 script tests and
+  all220 shared checks pass. The201-test full Moira run and the separately
+  added behind-target cases pass. All three live phases export to VM state.
+- Native protection flags, Mei's independent Cryo Pet, and external healing
+  during these phases remain open. Original-client acceptance is separate.
+
+#### Genji Deflect versus Sleep Dart and Flashbang
+
+- Reuse active frontal Deflect admission for the two authored projectile
+  definitions. Transfer owner, team and source body, retire the original
+  prediction and sweep the unused portion of the current flight step.
+  Preserve launch lifetime and speed. Apply gravity once per step.
+- Fourteen actual player cases cover redirected damage/control, allegiance,
+  Fade, rear hits and walls. Matrix and Grasp each absorb both reflected
+  definitions using the new allegiance. Reflected Flashbang expiry retains
+  its original duration and applies one redirected blast.
+- Both actual projectiles affect each of the five NPC bodies after
+  reflection. Allied Moira spray heals them during control. Two lethal
+  reflected Trooper cases retain Genji's body ID after he changes hero.
+  All220 shared checks pass. The full Moira run ended without a suite result
+  when the session hit its usage limit. The resumed200-test run passes.
+- Deflect still uses reconstructed frontal capsule contact and redirected
+  aim. Native box, attachment, filtering and reflected presentation remain
+  open. Original-client acceptance remains separate.
+
+#### Kinetic Grasp versus incoming Sleep Dart and Flashbang
+
+- Apply the reconstructed Grasp and Matrix contacts in projectile travel
+  order, bounded by earlier body, wall and eligible shield contacts.
+- Retire a consumed projectile before impact or expiry. Feed the nominal
+  direct and blast amounts to the authored 1D02 accumulator. Its end graph
+  grants3 temporary shield for Sleep Dart and about15 for Flashbang.
+- Ten actual input cases cover protection, expiration, ally, off-axis and
+  cover. Four simultaneous Matrix/Grasp cases verify both projectile types
+  and both orders. Sleep Dart also passes both Grasp/Reinhardt orders
+  and the Matrix/Reinhardt recheck. All199 Moira and220 shared checks pass,
+  along with the focused causal snapshot.
+- Run49 native D5C2ED prefix comparisons on declared linked health records.
+  The selected direct5 and blast25 shapes reach the callback boundary with
+  the same amounts. Original-client acceptance and native contact remain open.
+
+#### Matrix versus incoming Sleep Dart and Flashbang
+
+- Keep the emitted 003 definition in projectile state, independently of
+  whether the client prediction lease exists. Use the known build104319
+  tags and existing Matrix aim-box reconstruction for these two attacks.
+- Retire intercepted projectiles before damage, control or expiry blast.
+  Retain nearer body and wall contacts and the selected Sleep Dart shield
+  mesh. In both simultaneous-defense orders, actual Ana Dart hits only the
+  nearer defense. Reinhardt loses5 when his shield is first.
+- Ten actual input cases cover unprotected Moira, active enemy Matrix,
+  nearer cover, nearer bodies, and allied Matrix for both abilities.
+  The two-defense probe also verifies the launched projectile definition
+  changes the causal digest. All198 Moira,220 shared and14 snapshot
+  regressions pass.
+- The actual Matrix and Grasp filters admit both definitions under declared
+  hostile relation and resource tags. Allied relation and a declared added
+  exclusion tag reject both. Live native filter inputs remain open.
+
+#### McCree Flashbang flight in Moira cross-hero checks
+
+- Scope the shared launch and gravity rules to owned McCree 01E9 node7.
+  The resource supplies a 0.05 upward launch bias, gravity20, speed30 and
+  range7. Fixed16ms sweeps and expiry detonation are server reconstructions.
+- Actual enemy Flashbang reaches off-axis Moira for25 damage and a stun once.
+  Ally, wall and radius exclusions pass. Contiguous and skipped flight match.
+  The nine control tests retain the Fade, selection and Coalescence cases.
+- All220 shared tests and focused Ruff and diff checks pass. The real
+  launched projectile's gravity, velocity and expiry flag change its causal
+  digest. All197 Moira,886 script and14 server snapshot tests pass.
+  Original-client acceptance remains separate.
+
+#### Sleep effect member construction
+
+- Support the explicit array index and map member output expression used by
+  224E node172. The server creates missing array rows and maps and updates
+  existing keys in place. This reconstruction covers unlinked array storage.
+- Resolve the real BDE node51 override through the existing resource selector
+  and run the loaded 224E start on the declared filter host. Node175 loads
+  member26550 with source99, duration5 and effect676B. Node21 consumes the
+  duration and effect ID. The 003A row skips node21. The admitted row reaches
+  unsupported node150 STU_545AB3B8. A separate declared-host probe executes
+  node180 and the actual Freezethaw Elimination body receiver 1A5A. Its
+  instigator write and gated join pass. Node150 and live graph provisioning
+  remain open.
+- All886 script tests pass in 43.651s. Focused Ruff and diff checks pass.
+
+#### Entity filter host routing and Sleep start probe
+
+- Connect the optional World host to D0DA20 mask, condition, tag, custom
+  and post stages. Host inputs provide current components, dependencies and
+  unresolved engine services. The condition uses full target parameter GUID
+  0A40000000000008 and restores the prior scope on exit. Empty arrays retain
+  the caller default and supported numeric values use native-width conversion.
+- Run the actual 224E start entry with declared component61, mask64, Moira
+  base tags and neutral custom result. Node9 reaches node5 with base tags.
+  A declared 003A addition rejects at node9. Both rows run without fault.
+  Live component provisioning, effect member26550 and message binding remain open.
+- All885 script tests pass26.199s. Focused Ruff and git diff checks pass.
+  The complete original goal remains active.
+
+#### Selected real Fan rays against Moira
+
+- Copy parent's generated spread-table/cone module with only explicit
+  zip(strict=False) spelling for its4-word parity prefix. Selected Fan bridge
+  matches parent function at read and is scoped to owned01D2/node37. Adopt
+  actual direction in Combat._shoot. Complete16384-word and16384-float table
+  fingerprints match capture references; core cone/cold-cache/vertical tests pass.
+  body/instance/node/counter seed identities and uniform-radius Fan mode binding
+  are declared server reconstruction. Native seed/client parity, muzzle/input
+  quantization and optional decay remain unproven. No mutable RNG state added.
+- Nine actual Moira methods cover near kill/retransmission, far miss behavior,
+  off-axis scatter hit with center-only negative control, ally/wall/Fade,
+  Coalescence death/no refund, stable cold-cache outcome and captured activation.
+  Fixture pose checks found an existing physical body retaining its old pose;
+  rebuild via a fresh world before each arena, then assert actual distances.
+- Focused13 pass14.567s; full195 Moira pass567.262s/25 modules/zero skips;
+  882 scripts pass43.995s,220 shared pass77.851s. Ruff80/diff pass.
+  Prior14 snapshots pass957.209s is separate evidence; no new causal schema.
+  This private Fan-only bridge must be reconciled with parent's canonical
+  mccree.fan_direction at final serial integration, which already applies Fan.
+- Native filter research executes672 original1B8D970 push/evaluate/pop cases
+  including actual fullGUID8 provider/F66C80 and90BFC0/F64940 defaults. Config
+  getter/copy/release are explicit adapters; native ownership/growth failure
+  remain unproven. Six authored body XML tag sets and18 added-tag fixtures
+  match selected224E exclusions; live native tags/NPC resistance/global custom
+  admission are unaccepted. Full filter/224E host and every original remaining
+  combat/NPC/client requirement stay OPEN. Goal ACTIVE; no commit/publication.
+
+#### Selected normalized volley spread and causal snapshot field
+
+- Review/adopt only parent's WeaponVolley normalized spread changes; selected
+  class and6 copied state tests exactly match at read. No-decay239B571E launch
+  bakes m_AC20B1C1. D80A50/D5F979-derived output uses completed shots plus1,
+  float32 ramp arithmetic and final output preservation. Optional decay and
+  angular shot sampling remain unimplemented; normalized output is not an angle.
+- Original Moira F76/node19 and10E4/nodes20/21 all have239B571E with null
+  ramp/decay. Actual spray and both orb commands bake0/output1. The new
+  spread_ramp field is causal in body_vm_snapshot shared layout: real body VM
+  digest changes on mutation and restores exactly; full server replay passes.
+- Current186 Moira checks pass719.794s/24 modules/zero skips;
+  882 scripts pass26.528s,216 selected shared checks pass132.813s,
+  full14 server snapshots pass957.209s. Ruff76/diff pass; groups overlap.
+  Earlier focused21 pass114.271s includes14 existing orb checks; duplicate
+  discovery was removed by importing the fixture module rather than its class.
+- Additional native filter research executes4320 D0DA20 stage-order cases:
+  gate61, dependencies, mask/condition/tag/custom ordering and result1 rejection.
+  Component/nonnull condition/tag/custom/watcher providers are explicit adapters.
+  F64940 conversion124 cases show26 differences from generic truthy, including
+  empty-array caller defaults and numeric normalization. Global expressions
+  remain unchanged. Thirty-six original1B8D810/F66C80/current VM-scope cases
+  prove exact0A40000000000008 target Entity binding and failure preservation;
+  full1B8D970 push/evaluate/pop and concrete host remain unaccepted.
+  Newly announced parent Fan real-ray scatter is not yet adopted in this clone.
+  Full concrete filter/224E host and all original remaining
+  combat/NPC/client scope stay OPEN. Goal ACTIVE; no commit/publication.
+
+#### Native tag configuration collection and empty-result lifetime
+
+- Implement DB2C10's ordered nonzero Asset collection with full64 stable
+  deduplication.1062 original DB2C10/F65540/Python comparisons pass; iterator
+  supply/lifetime, allocation/copy and security-cookie handling are explicit
+  stubs. Existing iterator adapters handle config groups/values in production.
+  Selected actual224E node9 exclusion config evaluates all three authored
+  resources:0D600000000002CB,0D6000000000003A,0D6000000000093D.
+- A new reproduction shows an empty/failed first group provider can retire
+  its instance yet allow the second provider to execute before yielding a value.
+  Check ownership at every group boundary, preserve watcher subscription/end
+  cleanup, charge duplicates against shared budget and close iterators on error.
+  Both failing subcases now pass. This is explicit server callback safety,
+  not a claim about native memory ownership or watcher lifetime.
+- Eight focused checks pass1.795s; all876 scripts pass25.150s, Ruff74
+  and diff checks pass. Prior185 Moira/235 shared/14 snapshots remain separate
+  checkpoint evidence. No persistent schema or default World-admission change.
+  Concrete components/current tags, remaining D0DA20 stages, full BDE/224E
+  host and original full combat/NPC/client scope remain OPEN. Goal ACTIVE;
+  merge-ready false, no commit/publication.
+
+#### Native entity-filter mask and tag stages
+
+- Implement BCAAE0's any/all/excluded uint64 masks and low3 relation flags.
+  The exact3FFFFFFF sentinel admits the any stage; absent source skips relation
+  masks. Same identity overrides the opaque ordinary/spectator predicate.
+  9920 original-instruction/Python comparisons pass, including service branch
+  selection; predicate semantics and component provisioning are explicit stubs.
+- Implement DB2FD0's tag-list stage and DB4E70/DB5030 membership. A static
+  tag consults removals; a nonstatic tag consults additions. A removed static
+  tag stays absent even if also added. Query tokens compare low32 bits.
+  10624 original-instruction/Python comparisons pass, including both auxiliary
+  list layouts, absent components, null/empty queries and duplicate tokens.
+  Encrypted component resolution is adapted; resource/current-tag binding,
+  config collection and full D0DA20 stage/lifetime admission remain OPEN.
+- Sixteen focused checks pass0.007s; all868 scripts pass20.814s, Ruff73
+  and diff checks pass. Existing185 Moira/235 shared/14 snapshot results are
+  prior checkpoint evidence. New pure matching primitives do not change the
+  default World admission or persistent schema. No full hero/client acceptance,
+  no commit/publication; original goal remains ACTIVE and merge-ready false.
+
+#### Moira/McCree authored eyes and filter callback frontier
+
+- Verify original body1C46/02A3 FirstPerson fields: Moira1.7/1.1m,
+  McCree1.425/.9975m. Adopt parent's selected McCree values and common
+  eye_height helper for emission and player target descriptors. Actual McCree
+  shots versus Moira hit without cover and stop at low cover in both stances;
+  previous generic offsets produce four expected failing subcases. Existing
+  actual Moira standing/crouched spray cover check remains passing.
+- 185 current Moira tests pass449.560s/23 modules/zero skips. Seven focused eye/movement checks pass6.485s;
+  final lint-only test form passes2/3.276s; Ruff71 and diff checks pass.
+  Prior858 script/235 shared/14 snapshot results remain historical evidence;
+  no persistent state schema changes. Camera/muzzle animation and skeletal
+  hit regions are unproven. Complete original static/client scope remains OPEN.
+- Locate environment constructorD0D0D0/vtable266AFE0/+150 callbackD0DA20.
+  Thirty original-instruction early-exit cases pass: absent filter returns true,
+  missing target returns false. Target lookup/watcher services are explicit
+  stubs; valid-target flag/tag matching and host provisioning remain OPEN.
+  Goal remains ACTIVE, merge-ready false, no commit/publication.
+
+#### Entity-filter evaluator protocol and notification lifetime
+
+- Resolve AC829876 through104319 registration to CF4340. Implement target scalar
+  conversion and environment+150 delegation with unchanged filter/watcher context.
+  Invalid/failed targets still delegate; a false result is successful evaluation.
+  360 original instruction comparisons pass with explicit selector/filter-service/
+  value-ownership stubs. The actual engine filter algorithm remains unimplemented;
+  strict BodyWorld must not silently substitute its compatibility false result.
+- Parent notification review reproduces cleanup writes queuing a CHANGED event
+  on an ending state. Existing cancel-marker clearing was already present; add
+  the ending guard. Adopt parent's cleanup-before-arbitration-unlink ordering
+  for stacked abilities as a server reconstruction, not native ordering proof.
+- Ten focused query/lifetime checks pass0.026s;858 script pass25.219s,235 shared
+  pass86.956s and183 current Moira pass483.839s/22 modules/zero skips. Full14
+  server snapshots pass715.014s with retained multiplayer replay; groups overlap.
+  Complete original static/native/client scope remains OPEN; no commit/publication.
+
+#### Strict array removal for the Sleep effect frontier
+
+- Resolve DA54F8F7 through the104319 registry/factory/vtable to1B6BEB0. Add
+  strict unkeyed index/value removal with native coercion, stable compaction,
+  ordered source reads, typed equality, self-source termination and bounded work.
+  Keyed storage and linked writable handles remain explicit strict boundaries;
+  ordinary body compatibility retains its prior output-only behavior.
+- Execute105 original instruction/Python comparisons; actual handler, writable
+  acquisition/coercion, compaction and value-match loops run, while allocation,
+  value ownership, scalar/iterator providers, release notification and follow
+  are explicit stubs. Focused45 checks pass before the added compatibility test.
+- Full strict224E now advances past node176 and stops at missing world query
+  STU_AC829876. This retires one concrete frontier, not the generic effect host
+  or full static goal. Current850 script tests pass19.817s and235 selected shared
+  checks pass71.910s; no new stored fields. Prior183 Moira/14 full snapshots are
+  historical for the preceding recovery checkpoint; no claim of fresh reruns.
+
+#### Resource-backed Sleep wake recovery and input gates
+
+- Execute actual canonical224E health-message branches with explicit existing
+  Sleep context. Replace the prior instantaneous wake with first0.5 protection
+  and subsequent0.5 remaining-time clamp; final shorter recovery cannot extend.
+  Preserve tag191F exclusion through health-operation metadata and register the
+  minimum-wake deadline. Full native host/animation/binding remains OPEN.
+- Actual early/later melee validates blocked movement/Fade through recovery and
+  activation after release; four Moira damage paths/five NPC recipients now wait
+  for release and continuing orb damage cannot extend it. Healing stays nonwake.
+- Reproduce actual224E node168 zero-throttle scopes still accelerating live Moira
+  in four directions. Adapt only the parent's modified_throttles and17/18/19
+  application; raw input fields remain unchanged. Scope exit and next-frame
+  restoration pass. Parent native120 comparisons were not rerun here.
+- Current842 script pass27.677s and235 selected shared/mover checks pass83.753s;
+  current183 Moira pass599.258s/22 modules/zero skips;14 current full snapshots
+  pass855.072s, including minimum-wake state and two-player replay. Groups overlap.
+  Ruff/diff pass; full goal ACTIVE.
+  No commit, root/runtime edits, original-client control or publication.
+
+#### Sleep control and protected Moira
+
+- Adapt selected Ana BDD sleep metadata and resource-backed five-second target
+  deadline. Apply damage before sleep, wake on later actual health/shield loss,
+  preserve healing/Nano positive effects and block already-active Fade admission.
+  Authoritative world time gates future input, channels and manual NPC weapons.
+  NPC routes consume sleeping time; Assassin pin releases and can reacquire.
+- Add actual four Moira damage wake/four heal nonwake, five-NPC and lifecycle/
+  input/expiry/Nano checks. Already emitted orbs and NPC bullets keep running.
+  Reproduce Sleep hitting Rein behind an active mesh shield; intercept selected
+  Sleep projectiles at the nearest shield before body, preserving wall/team/down
+  controls and launch-body offense. Native224E host/fall/wake recovery, filters,
+  projectile range/lifetime and broader defense/status/NPC behavior remain OPEN.
+- Current177 Moira checks pass407.128s/21 modules/zero skips;842 script pass23.871s
+  and190 selected shared checks pass66.518s. Current14 server snapshots pass620.675s.
+  Afterward two new plus two existing actual-orb input checks pass8.688s; the
+  intentional timestamp-refresh mutant fails as expected. Shared runtime did not
+  change after the full run; own original-age fix matches the parent invariant.
+  Ruff64 changed Python/diff pass. Full original goal remains ACTIVE; no commit,
+  original-client control, root/runtime or publication.
+
+#### Selected Nano interactions with Moira
+
+- Adapt Ana13B/B9E target searches and actual delayed release, plus B9F heal250,
+  outgoing+0.5/incoming-0.5 and8-second target deadline. Store target-search links
+  and Nano deadline as causal state. Preserve central grenade healing modifiers.
+- Add actual player/five-NPC outgoing and incoming checks for four Moira attacks,
+  all six healing paths unchanged, four NPC weapon releases, Assassin entry/pin,
+  barrier resource separation and controlled emitted-orb200 actual-health budget.
+  Target ranking/filters, impact-time offense, no-stacking/retirement and orb
+  energy are declared policies; native modifier/projectile/absorption semantics
+  and complete static acceptance remain OPEN. No client or publication work.
+- Current160 Moira tests pass306.749s (20 modules, zero skips),842 script tests
+  pass17.366s and190 selected shared tests pass49.096s. Current14 stored-server
+  snapshots pass552.764s; groups overlap and are not added. All63 changed Python
+  files pass Ruff; diff checks pass. Full goal stays ACTIVE; no commit/client.
+
+#### Ana grenade status across Moira healing
+
+- Adapt selected lane013B grenade/status/gravity evidence by hashes, without
+  rifle/sleep/Nano or native aura/filter host. Actual grenade input gives allied
+  heal100/boost1.5 or enemy50/antiheal for4s. Central healing modifiers cover all
+  six Moira consumers. Active Fade rejects harmful application; entry cleanses
+  the imported block. Orb keeps its declared actual-health budget with post-boost
+  cap; native admission/amplified-budget semantics stay open.
+- Add actual block/boost/expiry/refresh/precedence/wall/FFA/Fade tests and60
+  five-NPC comparisons across four ally-healing paths. Heavy aura accounting
+  uses a controlled emitted-orb pose. Parent43-mover input matches own actual
+  five numeric records and is used in final verification, read-only.
+- 147 Moira tests pass358.750s,842 script tests pass27.802s;zero skips. Shared
+  gravity exposed a level Hanzo delivery fixture landing at1057. Preserve all
+  identity assertions with upward aim; final152 rerun and full14 snapshots running.
+  Capture all emitted Rocket launch bodies after reproducing an old Ana grenade
+  crediting the replacement Moira body. Current148 Moira tests pass296.961s and
+  current152 shared checks pass46.194s;10 focused source/status checks pass27.116s.
+  Current source-field full14 snapshots pass555.673s; previous14 passed788.401s.
+  Complete static goal remains ACTIVE; no client, commit, root edit or publication.
+
+#### Repair manual pin recovery and reselection
+
+- Reproduce permanent recovery Anim31 and late target536 cleanup suppressing
+  subsequent attacks after stop, allegiance loss or stun. Use an explicit,
+  manual1157/alias561-only duration service with paired authored Wait37's2s as
+  declared fallback; native clip duration remains unknown. Stop drains exits
+  before idle, and fresh selection follows the old target-clear callback.
+- Extend actual-input checks to300-frame stop/reselect without catch-up, recovery
+  early rejection, allegiance return, actual Flashbang post-expiry reengagement,
+  and a real second Moira killing a wounded Assassin to release its victim.
+  Native timing/contact/status/defense and the complete goal stay OPEN.
+- 842 script checks pass22.119s;152 shared combat/projectile/NPC/context/VM/route
+  checks pass48.081s. Full136 Moira tests pass262.753s;zero skips and stable
+  NPC input hash. Prior14 full snapshots are pre-recovery, not rerun; no new
+  causal schema. Ruff/diff pass. Complete static goal remains ACTIVE.
+
+#### Manual Assassin pin input and Moira control checks
+
+- Adapt selected parent WIP data-only target context/manual input/ModifyHealth
+  service and causal fields. Real selection and button36 drive1157 target536,
+ 25-point entry, authored1-second wait and declared100/sec health clock. Native
+  controller allocation,3m contact and clock equivalence remain unverified.
+- Fix the observed victim-control gap after entry damage: retain control over
+  actual enclosing node23 scope and validate it each frame. Active Moira Fade
+  rejects damage and pin admission; source control/stop and body/death clear it.
+- Six real-input tests pass3.741s: clock/control, invalidation, active Fade,
+  NPC kill credit, Coalescence interrupt/no refund and Flashbang release. Initial
+  33 context/Assassin/VM checks pass21.853s;842 script checks pass23.013s.
+  Current131 full Moira tests pass233.081s plus6 final Assassin checks pass12.541s
+  (4 overlap;133 unique).152 shared checks pass47.817s and14 full server
+  snapshots pass634.449s. Stale state-count/fixture contract checks corrected;
+  Ruff/diff pass. Complete goal stays ACTIVE; no commit/client.
+
+#### Declared Enforcer context and actual incoming Moira checks
+
+- Adapt selected parent WIP manual Enforcer13EB owner health/component predicate
+  policy by hashes. Store controller_components causally in both snapshot
+  layouts; preserve existing form/join/query/shield fields. No parent NPC console,
+  target-effect or Deadeye intake and no native controller allocation claim.
+- Actual180-frame button20 input emits at43/163, nominal2 each, Moira200->196.
+  Extend incoming health, Fade, ally/wall and Flashbang pause/rearm cases from
+  three to four real NPC weapon bodies. Keep full pellets/difficulty/AI open.
+- Sixteen PvE methods/140 subcases pass102.582s;111 other Moira tests pass135.362s.
+  All127 Moira checks pass, zero skips.52 context/NPC/body-VM checks pass12.899s
+  and full14 server snapshots pass435.319s. Groups overlap. Ruff/diff pass.
+- Diagnose real Assassin button36:1157 prep starts but DB742151 returnsNone,
+  foreign1650 cannot bind target536 and ModifyHealth13/25 never starts. No
+  forced target or damage. Controller-target/health/victim integration is OPEN.
+  Parent native probes are reported evidence, not rerun. Goal stays ACTIVE.
+
+#### Matrix protected NPC recipients and simultaneous defense checks
+
+- Add20 actual-five-NPC protected-recipient cases for both orb operations,
+  comparing real0407 Matrix input against absent Matrix. Captured launch-time
+  charge isolates effects from passive charge accumulated during fixture setup.
+- Add ten actual-input defense-order subcases across three methods: nearest
+  Matrix/Grasp (including zero-nominal healing callback), Matrix/Deflect and
+  same-slice reflected allegiance recheck inside previously allied Matrix.
+  Preserve native geometry/filter/simultaneous order as separate open work.
+- Full Moira suite passes127 tests in173.970s with135 NPC subcases and no skips.
+  Final10 Matrix methods pass33.989s after strengthened callback assertions;
+  Ruff/diff pass. Runtime unchanged; earlier842 script/71 dependency/89 shared/full14
+  snapshot passes are not rerun or summed. Complete static goal stays active.
+
+#### Partial Moira orb interception by D.Va Matrix
+
+- Adapt selected lane007A body-owner, explicit0407 graph/mover/pool, referenced
+  ruleset and snapshot dependencies; preserve existing join and shield state.
+  Retain three Matrix resource tests without unrelated DVa weapon consumers.
+- Classify the two actual orb003 definitions using external target tags and
+  consume them at authored active02CC boxes before aura effects. Compare earlier
+  wall/Genji/Sigma contacts and remove an optional prediction without explosion.
+  Seven real-input tests cover both operations, team/aim/offset, cover,
+  resource/release, unknown tags, grasp bypass and dead/replaced body admission.
+- Current checks:123 Moira tests pass113.091s,842 script tests pass11.907s,
+  71 dependency/storage/join checks pass24.797s and89 shared combat/projectile/
+  NPC/route checks pass16.836s. Full14 server snapshots pass398.383s.
+  Groups overlap; no skips. Ruff/diff pass.
+- Eye/current-aim boxes and0145 filter interpretation are reconstruction. Native
+  .097 evaluator, form transformations, confirmed-copy/client correction and
+  complete defense/NPC/status matrix remain open. No client controlled or commit.
+
+#### Native input-join dependency intake
+
+- Review selected parent2ca9178 source/tests into the isolated lane. Native
+  1113EBD5 joins distinct input origins, suppresses duplicates, clears pending
+  registrations before output and relooks up active abort targets afterward.
+  Preserve nested plug origin and register join_inputs/plug_source in VM storage.
+- Pass33 join/body-VM tests,826 script tests and116 Moira tests after intake.
+  Initialized Moira/Sigma samples contained no directly loaded join node, so
+  hero evidence is compatibility; dedicated imported tests exercise joins.
+  Parent offline native comparisons are reported evidence, not rerun here.
+  Complete snapshot verification is recorded separately at its completion.
+- Current-source validation:116 Moira tests pass115.344s;826 script tests
+  pass16.705s;33 join/body-VM tests pass12.336s;full14 server snapshot tests
+  pass487.283s with prepared barrier geometry. Groups overlap. Full hero goal
+  remains active; no commit, parent merge, client control or publication.
+
+#### Partial Moira orb absorption by Sigma
+
+- Review selected lane023B query/accumulator/shield services by source hashes;
+  no whole-lane or Sigma barrier intake. Actual active1D02/state1 boxes consume
+  either Moira orb before nearer wall/Deflect bounds. No aura pulse or charge
+  follows consumption. Geometry/attachment/order and nominal accounting are
+  explicit reconstruction; native filters/engine hosting remain open.
+- Capture actual emitted volley nominal100/0 for damage/healing orb separately
+  from remaining200/300 aura budgets. Damage100 feeds the authored accumulator
+  and end request into about60 temporary shields; healing0 grants none. Preserve
+  state/cooldown gates and reject repeated grant requests by activation.
+- Add separate tagged Vitals pools, stable component51 IDs, damage priority,
+  non-healable temporary HP and authored delayed decay without base shield loss.
+  Opt-in permissive PlayScript compatibility leaves strict routing unchanged.
+  Fix healing-orb acquisition with extra shields above base maximum: missing
+  ordinary health remains healable; temporary HP cannot be refilled.
+- Eight actual-input tests and20 five-NPC active/expired subcases cover these
+  paths plus ally/side/wall/death/expiry, nonorb exclusions, replay, decay and
+  pool records. Native conversion/filter/shape, Matrix, other absorbers and
+  full control/reflect combinations remain open. No original-client acceptance.
+- Pass116 combined Moira tests in143.434s with all prepared inputs and115 NPC
+  subcases. Pass278 combat/projectile/VM/body/NPC/route/health/PlayScript/snapshot
+  checks in152.633s. Ruff/diff checks pass. Parent2ca9178 join candidate reviewed
+  at this fixed-source boundary but not applied; do not mix validation versions.
+
+#### Partial Flashbang control against Moira
+
+- Review parent64bf71c's selected resource-backed control/movement/route policy.
+  Preserve hit-effect assets in HitDef; operation-aware impacts apply053/0079
+  control with normal0.8s/flagged1.7s exclusive deadlines. Clear held input,
+  pending presses/shots and stop abilities through authored exits. Player
+  movement/actions and NPC shots pause; route clock avoids stun-time catchup.
+  Register deadline state and clean it on death/expiry/retirement/replacement.
+- Add a Moira Fade effect guard: damage immunity alone must also reject the
+  later status callback. Actual Flashbang throws verify both duration branches,
+  grasp/movement/input suppression and recovery, Coalescence interruption with
+  no refund/resume/self-heal, selected-orb cancellation, launched-orb persistence,
+  active Fade immunity and body/death identity cleanup.
+- Five real NPC bodies receive Moira healing/damage while controlled, clear
+  status on expiry/death and retain corpses. Three supported weapons pause and
+  resume after explicit rearm. This is not autonomous AI/console input recovery.
+  Add route pause equivalence and stored-deadline digest checks. Shared splash
+  static LOS blocks effects along with damage. Other statuses, native cleanse/
+  stacking/immunity/unstoppable and full defense/client matrix remain open.
+- Pass107 combined Moira tests in103.058s, including14 external NPC tests/
+  95 subcases with all prepared inputs enabled. Pass184 combat/projectile/VM/
+  body/NPC/route/snapshot checks in116.172s. Ruff/diff checks pass. No client
+  control, full-goal commit, parent merge or publication.
+
+#### Partial actual NPC weapons against Moira
+
+- Review selected parent d1286b7/6debff3 source/tests into this lane. BotScript
+  mounts authored manager/sparse weapon slots; STU4BD39CFD resolves collecting
+  array-only selections. No parent/main changes or merges.
+- Actual explicit-input Trooper/Sniper/Heavy scripts now produce damage against
+  Moira:6x20,1x100 and41x5 volleys over180 ticks. Heavy kills through the normal
+  player death/notice path. First releases22/105/12 explain the short Sniper
+  probe's missing shot. Fix the test client's missing bot_stream method with
+  the normal absent-stream result; no NPC projectile presentation acceptance.
+- Three new tests/12 subcases prove actual weapon releases, real Fade input,
+  friendly exclusion and static-wall blocking. Controlled pose/button/firing
+  input is not autonomous AI. Enforcer/Assassin still emit no volley under the
+  same probe; their controllers, all specials and the full matrix remain open.
+- Pass98 combined Moira tests in90.649s with all external inputs and82 NPC
+  subcases. Pass149 combat/projectile/VM/body/NPC/snapshot checks in105.849s,
+  including the imported parent reproductions. Ruff/diff checks pass. No client
+  control, full-goal commit, parent merge or publication.
+
+#### Partial Moira versus Reinhardt barrier
+
+- Review lane0007's selected barrier geometry/resource service into this lane.
+  Reuse prepared external104319 model descriptor read only; no model/runtime
+  copies. Pose alignment/clearance and receiver policy are reconstruction.
+  Actual0095/state17 and variable586 gate1600HP,200/sec lowered regeneration,
+  2s regen delay and5s break recovery. Register descriptor/resource causal state.
+- Enemy mesh blocks spray; allied mesh passes it. Grasp damages shield without
+  body damage/self-heal/refill/charge. Beam and both orb kinds bypass mesh without
+  spending shield HP/orb energy. Ten new command tests and ten real NPC subcases
+  cover these paths, break/recovery and lifecycle. Close melee2m versus2.5m
+  records a sphere/attachment gap; native equivalence remains open.
+- Reproduce and fix melee damaging shield mesh through static walls: use GJK
+  witness points and eye-to-contact visibility. Body and shield now both reject
+  this blocked swing. Other barriers/control/receiver/client services remain open.
+- Reproduce both lane0007 VM defects before intake, then verify the selected
+  fixes: clear cancelled callback coalescing flags; notify cooldown dependants
+  at expiry. Include both portable reproductions in this lane's source tests.
+- Pass95 combined Moira tests after the final mesh-visibility correction in
+  80.385s, with all external inputs enabled and70 five-NPC subcases. Pass121
+  shared/VM/snapshot checks after barrier intake in102.190s; the final LOS
+  correction is covered by the95-test rerun. Ruff/diff checks pass. Native
+  close-melee shape, full defense/status and NPC weapon matrix remain open.
+
+#### Partial Moira versus Genji Deflect
+
+- Reuse lane0029 commitd714f0c's declared active-state/frontal Deflect predicate
+  in this isolated lane. Sweep both actual orb operations against eligible
+  defender capsules before static-wall contact. Transfer shooter/body/direction
+  while retaining remaining life/energy and healing/damage operation. Reacquire
+  health recipients after contact so the old owner's targets cannot receive
+  the reflected pulse. Retire any supported old prediction; reflected client
+  creation/correction and native box/filter geometry remain open.
+- Ten actual-command tests cover damage/healing, credit, rear/allied rejection,
+  walls, death/expiry, unchanged original cooldown, grasp/beam bypass and melee
+  block only. An external five-body test verifies reflected allegiance and
+  killer parameters/sender through each actual NPC death script. Pre-contact
+  aura damage remains possible. This is not general Deflect immunity.
+- Pass84 combined Moira tests in52.836s, including8 external five-NPC tests/
+  60 subcases with both explicit inputs enabled. Pass118 shared regressions
+  plus the extended stored-state test in68.636s. Ruff/diff checks pass. Full
+  static and original-client combat acceptance remain open; no commit/merge/push.
+
 ### 2026-11-08
+
+#### Partial Moira combat effects and static acceptance
+
+- Replace Moira's first-body-only spray collision with an explicitly
+  reconstructed finite-width, body-piercing packet sweep. Preserve actual
+  volley emission,40m/s speed,15m flight limit, ally selection, one contact per
+  body, static-wall termination and capsule-surface visibility. Treat observed
+  m_71A4B759=.75 as radius by declared inference; native shape/filter semantics
+  and penetration limits remain open. Add four actual-command geometry tests;
+  extend stored-state checks to packet contact history/radius. Tail checks now
+  wait for final contact rather than later packet retirement at max range.
+- Pass73 combined Moira tests in38.961s with both external NPC inputs;
+  pass118 shared regressions plus the extended stored-state test in59.401s.
+  Ruff/diff checks pass. Native collision and full interaction acceptance remain
+  open; no client control, commit, integration or publication.
+- Preserve surviving orb launch-body identity through health killer records,
+  elimination/death notices and player/five-NPC death-script parameters/senders.
+  A body-replacement regression previously credited the new body. Captured
+  damage source identity also gates combat charge; no new mutable state.
+- Verify already-active Fade against actual Moira grasp/orb/melee/ultimate
+  commands: blocked grasp gives no self-heal/charge/refill, an immune-only orb
+  neither slows nor drains energy, and beam caster self-heal continues. Verify
+  damage after Fade ends. Same-frame arbitration/native status services remain
+  open. The expanded Moira suite contains69 tests and55 five-NPC subcases.
+- Pass all69 Moira tests in38.944s with both external NPC inputs enabled;
+  pass118 shared regressions plus the extended snapshot in47.435s. Ruff and
+  diff checks pass. No original-client acceptance or full-goal commit.
+- Execute authored healing-fuel drain/passive recovery, empty/spam rejection,
+  respawn reset and the reconstructed successful-grasp recovery callback.
+  Verify Fade forward/jump modifiers, wall collision and speed release. Use
+  Moira's extracted1.7/1.1 eye heights; low-cover spray commands cover both.
+- Reconstruct capped1:1 actual-health combat ultimate charge, excluding self
+  healing, overheal, misses, ultimate effects and old-body orb credit. Native
+  coefficients, damage-notification cadence and passive policy remain open.
+- Reject shared quick melee through static walls. Verify five real NPC capsule
+  inputs using a selected external mover supplement, plus death event, dead
+  acquisition exclusion and retained lifetime. NPC AI/weapons/client corpses
+  and normal-runtime mover provisioning remain open.
+- Pass60 combined Moira tests plus3 beam geometry tests: enemy/ally/enemy
+  piercing, walls,29m/31m range and free-for-all. The five-NPC suite contains
+  50 actor/allegiance subcases. Full static acceptance remains open.
+- Reconstruct actual emitted healing/damage orbs as seven-second world-clock
+  flights with wall reflection, eligible visible tethers,0.275 speed scaling,
+  shared300/200 health budgets and65/50 per-second health effects. Healing
+  orbs can restore the caster. Flights outlive caster death; energy and lifetime
+  end them without overdraw. Aura1101/1102 identify loadout016D. Shapes, motion
+  sampling, modifier/filter services and client flight authority remain partial.
+- Preserve the original input timestamp when Ability requeues a rejected
+  start. Previously each tick renewed the early window and could replay an old
+  input seconds later at cooldown end. Verify expired rejection and valid
+  near-end buffering against actual Moira and Soldier ability graphs.
+- Reconstruct the spray's10B4->10B3 refreshed trailing heal:0.2s delay,35 total
+  over2s, no tap stacking, death/team-change cancellation and finite expiry.
+  Register orb and trailing-heal causal state in the passive snapshot exporter.
+- Pass40 Moira tests, including four external five-body tests/35 subcases;
+  pass118 combined combat/projectile/ability/runtime/driver regressions. All14
+  snapshot tests passed after orb state registration; the extended causal-state
+  test also passed after trailing-heal registration. Ruff/diff checks pass.
+
+- Add a separate Moira reconstruction module. Advance Fade's missing entry
+  transition into the authored duration/recovery/cooldown chain; reject damage
+  in entry/main and restore damage eligibility afterward. Repeated presses
+  cannot bypass cooldown; the authored ability becomes usable again at zero.
+- Resolve right grasp as an unobstructed nearest capsule hit at the authored
+  50 damage/sec, with24 self-heal/sec only after successful damage. Resolve
+  Coalescence's active states as a piercing capsule beam at70 enemy damage/sec,
+  140 ally healing/sec and50 self-heal/sec. Preserve authored charge gating,
+  startup, consumption and completion; death stops combat effects. The running
+  extracted ultimate cost is2800, so tests read ULT_COST rather than assuming2000.
+- Pass20 focused tests and the existing28 combat/37 projectile regressions;
+  13 snapshot regressions passed before these stateless effect additions.
+  External five-body tests exercise actual NPC definitions and explicit base
+  pools, including shields; direct NPC-source health calls are not weapon/AI
+  release acceptance. No original-client combat evidence.
+
+- Preserve ModifyHealth healing/damage operation in HitDef. Healing volleys
+  acquire living allies and restore capped pools, with an impact allegiance
+  check, healing statistics and script health synchronization.
+- Pass eight Moira server tests using real BodyScript commands, including
+  allied/enemy training NPCs, death, free-for-all, team changes, capped healing,
+  opposing rifle damage and quick melee. Existing28 combat and37 projectile
+  tests pass. No original-client acceptance, integration or publication.
+- Full Moira remains open: five NPC AI/weapon releases, complete spray geometry
+  and native resource cadence, native target bindings, Fade cleanse/control, complete
+  orb motion/modifiers/reflect/absorb, full beam geometry/control, cross-hero status/barriers
+  and original-client presentation. See docs/MOIRA_COMBAT.txt.
 
 #### Optional persistent NPC corpses
 

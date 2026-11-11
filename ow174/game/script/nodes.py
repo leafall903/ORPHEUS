@@ -48,7 +48,9 @@ from ow174.game.script.expr import (
 from ow174.game.script.graph import guid
 from ow174.game.script.runtime import (
     ABORT,
+    STOP_INSTANCE,
     Component,
+    Event,
     Instance,
     RaycastRequest,
     RaycastResult,
@@ -244,6 +246,86 @@ class AuxiliaryEffect(ScopedSubgraph):
     def on_destroyed(self):
         self.on_failed()
         super().on_destroyed()
+
+
+@state_class("STU_9935FBC8")
+class LinkedTarget(State):
+    """CAC810 mode 1 resource with an explicitly supplied mover sample."""
+
+    _LIMIT = 174532.90625
+    _PITCH_LIMIT = 1.5533430576324463
+    _RADIANS = 0.01745329238474369
+    _FIELDS = (
+        ("m_A53161C8", 0.0), ("m_AB37A892", 0.0),
+        ("m_D6119DFB", -9999999.0), ("m_C33684DE", -9999999.0),
+        ("m_83221709", 9999999.0), ("m_8FA7FF85", 9999999.0),
+    )
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.mover_angles = None
+        self.linked_entity = None
+        self.adjustment = 0.0
+        self.local_yaw = 0.0
+        self.local_limits = ()
+
+    def sample(self):
+        component = self.instance.component
+        sample = component.world.linked_target_sample(component.entity)
+        if sample is NotImplemented:
+            component.unsupported(self.instance, "linked target sample", self.node.cls, self.node)
+        return sample
+
+    def on_begin(self):
+        component = self.instance.component
+        if not component.strict:
+            return
+        if (self.instance.graph.index != 0x224E or self.node.pos != 34
+                or _field(self, "m_93CDFD2F") != 1 or _field(self, "m_4BE66EFF") is not None):
+            component.unsupported(self.instance, "linked target resource", self.node.cls, self.node)
+        sample = self.sample()
+        if sample is None:
+            return
+        angles = []
+        for name, default in self._FIELDS:
+            value = play.evaluate_scalar(self.instance, _field(self, name), initial=default)
+            angles.append(f32(f32(to_float(value, default)) * self._RADIANS))
+        self.local_yaw, *self.local_limits = angles
+        self.linked_entity = None
+        self.adjustment = 0.0
+        self.refresh(sample)
+        self.ticks()
+
+    def refresh(self, sample):
+        entity, adjustment = sample
+        adjustment = f32(adjustment)
+        if entity != self.linked_entity:
+            self.local_yaw = f32(f32(self.adjustment - adjustment) + self.local_yaw)
+        self.linked_entity = entity
+        self.adjustment = adjustment
+        yaw = f32(self.local_yaw + adjustment)
+        pitch, yaw_low, pitch_low, yaw_high, pitch_high = self.local_limits
+        pitch_low = f32(max(-self._LIMIT, pitch_low) + pitch)
+        pitch_high = f32(min(self._LIMIT, pitch_high) + pitch)
+        self.mover_angles = (
+            yaw, pitch, f32(max(-self._LIMIT, yaw_low) + yaw),
+            max(-self._PITCH_LIMIT, min(self._PITCH_LIMIT, pitch_low)),
+            f32(min(self._LIMIT, yaw_high) + yaw),
+            max(-self._PITCH_LIMIT, min(self._PITCH_LIMIT, pitch_high)),
+        )
+
+    def tick(self):
+        sample = self.sample()
+        if sample is None:
+            self.mover_angles = None
+            self.instance.ticking.remove(self)
+        else:
+            self.refresh(sample)
+
+    def on_cleanup(self):
+        self.mover_angles = None
+
+    on_failed = on_destroyed = on_cleanup
 
 
 @state_class("STU_316CFEF2")
@@ -819,6 +901,100 @@ class DisableLogicalButton(State):
                     state.dependency_changed()
 
 
+@state_class("STU_4C96470A")
+class CompatiblePlacement(State):
+    """Allow a scoped host to provide placement and confirmation."""
+
+    def on_begin(self):
+        world = self.instance.component.world
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "native placement service", self.node.cls, self.node)
+            return
+        refresh = getattr(world, "refresh_compatible_placement", None)
+        if refresh is not None and refresh(self, confirm=False) is not NotImplemented:
+            self.ticks()
+
+    def tick(self):
+        self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+
+    def plug_enter(self, input_path):
+        if input_path != "m_6647ED22":
+            return super().plug_enter(input_path)
+        if not self.active:
+            return True
+        refresh = getattr(self.instance.component.world, "refresh_compatible_placement", None)
+        return refresh is not None and refresh(self, confirm=True) is not NotImplemented
+
+
+@state_class("STUStatescriptStatePet")
+class CryoPet(State):
+    """Scoped entity output for hosted Pet states."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.pet_entity = 0
+        self.pet_var = None
+
+    def on_begin(self):
+        from ow174.game import cryo, photon_barrier, sigma_barrier
+
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, "Pet host", self.node.cls, self.node)
+            return
+        if self.instance.graph.index == photon_barrier.GRAPH and self.node.pos == 17:
+            world = component.world
+            if getattr(world, "match", None) is None:
+                return
+            entity = world.match.combat.photon_barriers.create(world, self)
+            self.pet_entity = 0 if entity is NotImplemented else entity
+        elif self.instance.graph.index == sigma_barrier.BARRIER_GRAPH and self.node.state == 4:
+            world = component.world
+            if getattr(world, "match", None) is None:
+                return
+            entity = sigma_barrier.create_barrier(world.match.combat, world, self)
+            self.pet_entity = 0 if entity is NotImplemented else entity
+        else:
+            self.pet_entity = cryo.create(component.world, self)
+        target = lvalue(self.node.field("m_B3019338"))
+        if self.pet_entity and target is not None:
+            self.pet_var = self.link(target)
+
+    def output(self, slot):
+        return expr.Entity(self.pet_entity) if self.pet_entity else None
+
+    def on_end(self, finished):
+        from ow174.game import cryo, photon_barrier, sigma_barrier
+
+        if self.pet_var is not None:
+            self.unlink(self.pet_var)
+            self.pet_var = None
+        if self.pet_entity:
+            world = self.instance.component.world
+            if self.instance.graph.index == sigma_barrier.BARRIER_GRAPH and self.node.state == 4:
+                sigma_barrier.retire(world.match.combat, self.pet_entity)
+            elif self.instance.graph.index != photon_barrier.GRAPH:
+                cryo.retire(world.match.combat, self.pet_entity)
+            self.pet_entity = 0
+
+
+@state_class("STU_54FEB21C")
+class PhaseEntry(State):
+    """Complete the selected protection gates with zero or absent timing."""
+
+    def on_enter(self) -> None:
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, "entry gate", self.node.cls, self.node)
+            return
+        entry = self.instance.graph.index, self.node.pos
+        zero_gate = (entry in ((0x0020, 2), (0x017B, 26))
+                     and self.node.field("m_ED97A97C.m_value") == 0)
+        cryo_gate = entry == (0x05FE, 64) and self.node.field("m_ED97A97C") is None
+        if zero_gate or cryo_gate:
+            self.request_finish()
+
+
 @state_class("STUStatescriptStateWait")
 class Wait(State):
     """OnEnter 0x7FF78AAA7570: `ms = R(timeout * 1000)`; 0 or less finishes now, else a timer (param 1) at
@@ -1039,6 +1215,7 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
 
@@ -1079,6 +1256,12 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            cfg = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1129,12 +1312,26 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        return self.spread0
+        return self.spread_at(self.now - self.start - self.offset)
+
+    def spread_at(self, elapsed: int) -> float:
+        """239B571E normalized spread, captured PC104319 D80A50-D80A99.
+
+        The ramp is baked when firing starts; the output is not an angle.
+        D5F979-D5F996 passes completed shots plus one to the ramp function.
+        Optional between-shot decay and other launch classes remain unmodeled.
+        """
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        increase = f32(max(0, self.shots_at(elapsed) + 1) / self.spread_ramp)
+        return min(1.0, f32(increase + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
@@ -1191,9 +1388,13 @@ class Anim(State):
     def on_enter(self) -> None:
         duration = _field(self, "m_86701C3E")
         if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
-            return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
+            declared = self.instance.component.world.animation_duration(self)
+            if declared is NotImplemented:
+                expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
+                return
+            ms = seconds_to_ms(declared)
+        else:
+            ms = seconds_to_ms(self.evaluate(duration, watch=False))
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
         if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
@@ -1304,14 +1505,18 @@ class Ability(State):
                 self.timer_at(0, 1, transient=True)
 
     def take_press(self, button: int) -> bool:
+        return self.take_press_record(button) is not None
+
+    def take_press_record(self, button: int) -> tuple[int, int, int] | None:
+        """Keep input age when a failed start puts the press back in its buffer."""
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
 
     # starting and stopping
 
@@ -1319,6 +1524,15 @@ class Ability(State):
         self.activate()
 
     def timer(self, param: int) -> None:
+        if param == 2:
+            # A computed cooldown reaches zero without a variable write. Notify
+            # dependants at expiry (0095's ready gate otherwise stays false).
+            # Millisecond rounding can schedule the timer just before zero.
+            if self.remaining() > 0.0:
+                self.timer_at(1, 2)
+                return
+            if self.var is not None:
+                self.instance.changed(self.var, self.cur)
         if param in (1, 2):
             self.activate()
 
@@ -1358,9 +1572,9 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        pressed = None
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press_record(start)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1377,7 +1591,7 @@ class Ability(State):
         )
         if not ready:
             if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+                self.presses.insert(0, pressed)  # wait without renewing the original input's age
             return False
         if start:
             self.flags |= self.HELD
@@ -1430,18 +1644,23 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue the running scope's cleanup before releasing its arbitration link.
+
+        This server ordering prevents a newly unblocked weapon from sampling old
+        ammo before the outgoing scope's refill message. Native inter-object
+        ordering is not yet proven by the static stop/delta-guard instructions.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1811,14 +2030,90 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Explicit world health service; supported manual1157 clock is reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """An explicitly supplied target search; unhosted searches retain the legacy empty list.
+
+    Hosts can poll through tracked_targets or publish from a posed combat frame.
+    Native generic filters, ranking and target age semantics remain separate.
+    """
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.target_var = None
+
+    def on_enter(self):
+        targets = self.instance.component.world.tracked_targets(self)
+        if targets is NotImplemented:
+            return
+        self.targets = () if targets is None else self.validate(targets)
+        target = lvalue(self.node.field("m_8A2905A0"))
+        if target is not None:
+            self.target_var = self.link(target)
+        if targets is not None:
+            self.ticks()
+
+    @staticmethod
+    def validate(targets):
+        if type(targets) is not tuple or any(type(target) is not Entity for target in targets):
+            raise ValueError("target-search service must supply a tuple of entities")
+        return targets
+
+    def tick(self):
+        targets = self.instance.component.world.tracked_targets(self)
+        if targets is NotImplemented:
+            return
+        self.publish_targets(targets)
+
+    def publish_targets(self, targets):
+        targets = self.validate(targets)
+        if targets == self.targets:
+            return
+        before = self.target_var.value() if self.target_var is not None else None
+        self.targets = targets
+        if self.target_var is not None:
+            self.instance.changed(self.target_var, before)
+        self.try_complete()
+
+    def on_end(self, finished):
+        if self.target_var is not None:
+            var, self.target_var = self.target_var, None
+            self.unlink(var, bake=True)
+
+    def output(self, slot):
+        return self.targets
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in self.targets)}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1984,6 +2279,8 @@ def set_var(instance: Instance, node, caller) -> bool:
 def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> None:
     target = lvalue(out_cfg)
     if target is None:
+        if index_cfg is None and key_cfg is None:
+            _store_indexed_member(instance, out_cfg, value)
         return
     if key_cfg is not None:
         key = instance.evaluate(key_cfg)
@@ -2003,6 +2300,60 @@ def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> N
             instance.write(target, tuple(items))
             return
     instance.write(target, value)
+
+
+def _store_indexed_member(instance: Instance, cfg, value) -> None:
+    """Write the array-of-maps lvalue used by 224E's effect context builder.
+
+    This is a server reconstruction for the explicit push/index/member form.
+    Other lvalue programs still use their existing handling.
+    """
+    if not isinstance(cfg, dict) or cfg.get('$') not in expr.EXPRESSIONS:
+        return
+    code, dynamics, _ = expr._parts(cfg)
+    if len(code) != 9 or [code[i] for i in (0, 2, 4, 5, 7, 8)] != [8, 8, 17, 7, 15, 0]:
+        return
+    slots = (code[1], code[3], code[6])
+    if any(type(slot) is not int or not 0 <= slot < len(dynamics) for slot in slots):
+        return
+    root_cfg, index_cfg, key_cfg = (dynamics[slot] for slot in slots)
+    root = expr.dynamic(root_cfg)
+    if root is None or expr.dynamic(index_cfg) is None or not isinstance(key_cfg, dict):
+        return
+    key = key_cfg.get('m_identifier')
+    if type(key) is not int or not 0 < key <= 0xFFFF:
+        return
+    index = to_int(instance.evaluate(index_cfg))
+    component = instance.component
+    if instance.stopped or instance.teardown or component.instances.get(instance.id) is not instance:
+        component.unsupported(instance, 'retired indexed member owner', cfg['$'])
+    if index < 0:
+        return
+    var = instance.find_var(*root)
+    current = var.base
+    if var.links or (current is not None and type(current) is not tuple):
+        if component.strict:
+            component.unsupported(instance, 'indexed member array storage', cfg['$'])
+        return
+    items = list(current or ())
+    while len(items) <= index:
+        component.consume_work('indexed member array expansion')
+        items.append(None)
+    member = items[index]
+    if member is not None and type(member) is not expr.Map:
+        if component.strict:
+            component.unsupported(instance, 'indexed member map storage', cfg['$'])
+        return
+    pairs = list(member.items) if member is not None else []
+    for position, (existing, _) in enumerate(pairs):
+        component.consume_work('indexed member key lookup')
+        if equal(existing, key):
+            pairs[position] = (existing, value)
+            break
+    else:
+        pairs.append((key, value))
+    items[index] = expr.Map(tuple(pairs))
+    instance.write(root, tuple(items))
 
 
 @handler("STU_12F5D52D")
@@ -2033,6 +2384,16 @@ def clear_array(instance: Instance, node, caller) -> bool | NotImplementedType:
     if not instance.component.strict:
         return NotImplemented
     array_actions.clear(instance, node)
+    instance.follow(node, 'm_outPlug', caller)
+    return True
+
+
+@handler("STU_DA54F8F7")
+def remove_array(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """Native DA54F8F7 unkeyed removal; full keyed storage stays explicit."""
+    if not instance.component.strict:
+        return NotImplemented
+    array_actions.remove(instance, node, caller)
     instance.follow(node, 'm_outPlug', caller)
     return True
 
@@ -2075,6 +2436,11 @@ def branch(instance: Instance, node, caller, result: bool) -> bool:
     if instance.follow(node, "m_truePlug", caller):
         return True
     return not node.links("m_truePlug") and not node.links("m_falsePlug")
+
+
+@handler("STU_1113EBD5")
+def join_inputs(instance: Instance, node, caller) -> bool:
+    return instance.join(node, caller)
 
 
 @handler("STU_3387AB5D")
@@ -2183,10 +2549,47 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_22926252")
+def stop_instance(instance: Instance, node, caller) -> bool:
+    """1B6C8F0 queues the current instance's stop when both selectors are null."""
+    if (not instance.component.strict or node.field("m_67B81D25") is not None
+            or node.field("m_EB35D2F1") is not None):
+        return NotImplemented
+    if not instance.teardown:
+        instance.post(Event(instance.component.now, 0, STOP_INSTANCE))
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.play_compatible_script(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@state_class("STU_CB4905E9")
+class PlayHeavyChargeVictim(State):
+    def on_enter(self):
+        instance = self.instance
+        world = instance.component.world
+        if (instance.graph.index == 0x1408 and self.node.pos == 158
+                and world.play_compatible_script(instance, self.node)):
+            return
+        if instance.component.strict:
+            instance.component.unsupported(instance, "victim script state", self.node.cls, self.node)
+
+
+@handler("STU_B6E3C77D")
+@handler("STU_523EE38D")
+def hosted_entity_action(instance: Instance, node, caller):
+    name = "create_entity" if node.cls == "STU_B6E3C77D" else "destroy_entity"
+    bridge = getattr(instance.component.world, name, None)
+    if bridge is None or bridge(instance, node) is NotImplemented:
+        return NotImplemented
     instance.follow(node, "m_outPlug", None)
     return True
 

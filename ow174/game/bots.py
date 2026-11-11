@@ -121,6 +121,9 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
+        self.attack_target = None  # player controller selected by the active targeting policy
+        self.attack_input = False
+        self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
@@ -154,16 +157,30 @@ class Bot:
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
 
-    def step(self, tick: int, seconds: float, collision=None) -> None:
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if not self.route or self.dead:
+        if self.dead:
+            return
+        if not self.route:
+            if tick < paused_until:
+                self._pause(tick)
+                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            self._tick(at, seconds, collision)
+            if at < paused_until:
+                self._pause(at)
+            else:
+                self._tick(at, seconds, collision)
+
+    def _pause(self, tick: int) -> None:
+        self.pace = 0.0
+        self.velocity = (0.0, 0.0, 0.0)
+        self.held = (0, 0)
+        self.moved_tick = tick
 
     def _tick(self, tick: int, dt: float, collision) -> None:
         before = (self.position, round(self.yaw))
@@ -279,6 +296,10 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        if self.spawner.get('manual_spawn') is True:
+            self.firing = False
+        self.attack_target = None
+        self.attack_input = False
         self.keys = False
         self.held = (0, 0)
         self._stand()

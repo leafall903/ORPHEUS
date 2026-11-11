@@ -106,6 +106,21 @@ def pair(var, cfg):
 
 
 class MultiAssignmentArrayTests(unittest.TestCase):
+    def test_indexed_member_assignment_keeps_neighbor_rows_and_upserts_in_place(self):
+        def member(key, value):
+            return {'m_out_Var': {'$': 'STU_919FD47C', 'm_expression': {
+                'm_opcodes': [8, 0, 8, 1, 17, 7, 2, 15, 0],
+                'm_dynamicVars': [dynamic(7), dynamic(11), dynamic(key)]}},
+                'm_value': integer(value)}
+
+        component, instance = setup_many(member(215, 5), member(27606, 6), member(215, 7))
+        neighbor = expr.Map(((9, 90),))
+        instance.write((0, 7), (neighbor,))
+        instance.write((0, 11), 1)
+        self.assertEqual(run(instance), (neighbor, expr.Map(((215, 7), (27606, 6)))))
+        self.assertEqual(instance.find_var(0, 20).value(), 17)
+        self.assertIsNone(component.fault)
+
     def test_each_array_value_is_collected_and_later_pairs_read_earlier_writes(self):
         _, instance = setup_many(pair(7, array(integer(3), integer(5))),
                                  pair(8, array(dynamic(7), integer(7))), pair(9, dynamic(8)))

@@ -1,5 +1,105 @@
 # Restoration roadmap
 
+- [ ] Moira full combat acceptance (hero01A2): partial server repair preserves
+  healing volley allegiance, Fade lifecycle/immunity, grasp and ultimate health
+  effects, orb flight/tethers/energy, trailing heal, authored fuel and Fade
+  movement;203 actor-stage full-suite checks cover
+  partial effects, authored Moira/McCree eye/low-cover interaction, launch-body death identity
+  and active Fade interactions. Combat charge is a declared reconstruction.
+  Both actual orb casts reach targets behind live enemy Cryo and spend energy
+  only on the applied effect. Native candidate admission copies the full record
+  for nonzero flags. Downstream attack interpretation remains open.
+  Coalescence heal and damage use independent authored volumes and the
+  native-backed capsule predicate. Static visibility follows the generic
+  capsule-height fallback. Native origin, aim, hardpoint/special visibility
+  and indirect TrackRay influence remain open.
+  Finite-width piercing spray is reconstructed; native exact shape remains open.
+  Actual spray/both orb normalized launch output and causal spread_ramp
+  now pass full186 Moira and14 server snapshot checks; angular sampling
+  and optional decay remain separate unaccepted work.
+  Selected real McCree Fan rays now cover enemy Moira hit/miss/offset,
+  wall/ally/Fade and channel death; native seed/mode identities remain
+  declared reconstruction. Full filter context orchestration remains open.
+  Selected actual Flashbang now resolves launch lift and gravity, with
+  reconstructed fixed steps and expiry blast. Enemy off-axis damage/control,
+  Fade and wall/ally/radius exclusions pass. Full cross-hero scope remains open.
+  Actual Matrix protects Moira from both incoming control projectiles.
+  Wall priority and both Sleep Dart Matrix/Reinhardt orders pass with
+  reconstructed Matrix attachment and authored tag input.
+  Active Sigma Grasp also protects Moira from both projectiles. The authored
+  shield conversion runs from reconstructed nominal absorption amounts.
+  Actual Matrix/Grasp nearest ordering passes in both directions.
+  Genji Deflect redirects both control projectiles, retaining flight budget
+  and Genji's attribution. Actual player and five-NPC impacts, Fade and
+  post-reflection Matrix/Grasp cases pass with reconstructed contact.
+  Wraith, Cryo-Freeze and Transcendence now reject the four Moira damage
+  paths during the actual active phase. Reconstructed contact tests separate
+  Wraith bypass from the retained Mei and Zenyatta bodies.
+  Scoped ice contact also reaches above crouched Mei and protects against
+  Grasp, Sleep Dart and Flashbang until cancel or expiry. Actual 05FE
+  Pet now owns the server 090B actor and starts 0623. Native receiver,
+  movement/attachment and client presentation remain open. Actual 05FE
+  self-heal restores Grasp damage and stops on cancel.
+  The same selected protection gates reject actual grenade anti-heal and
+  Assassin pin. Moira allied spray remains effective after rejected anti-heal.
+  Actual Coalescence reaches ally and enemy through live ice under the
+  current reconstruction and stops at static cover. Native B3 override
+  lookup and nonzero admission execute under declared inputs. Attack
+  consumers' individual flag meanings remain open.
+  Declared host input now executes the real 224E start filter branch.
+  BDE overrides populate member26550 on the declared host. The admitted
+  path reaches unsupported node150. On a declared host, node180 sends1682
+  to the real Freezethaw Elimination body receiver 1A5A and binds instigator.
+  The admitted node150 operation and live provisioning remain open.
+  Native mask/tag primitives pass9920/10624 comparisons; full entity-filter
+  host, runtime tag provisioning and watcher lifetime remain open.
+  DB2C10 collection passes1062 comparisons; actual224E tag group
+  evaluates, while complete effect-host admission remains open.
+  Both orb operations transfer through reconstructed actual Genji Deflect,
+  including five-NPC allegiance/death credit. Full defense/control matrix remains open.
+  Actual Reinhardt mesh/raise/resource reconstruction gates spray/grasp and
+  tests beam/orb bypass. Native close melee/attachment and other defenses remain open.
+  Actual Ana grenade block/boost now covers six Moira healing consumers and
+  four ally-heal paths across five actual NPCs; native filters/budget semantics
+  remain open. Selected actual Nano release/heal250, damage boost/reduction now
+  covers Moira/player/five-NPC consumers; native targeting/modifier/projectile
+  timing, full lifecycle and defense combinations remain open.
+  AC829876's native-backed evaluator entry now delegates to an explicit filter
+  host service (360 instruction comparisons); actual engine filtering remains
+  unavailable, with no guessed strict result. Ending-state notification cleanup
+  and server cleanup-before-arbitration ordering pass183 current Moira checks;
+  native ordering equivalence and full filter/host acceptance remain open.
+  Strict224E's DA54F8F7 array-removal frontier now executes past node176 using
+  original-image-backed unkeyed semantics (105 comparisons); keyed/linked storage
+  stays explicit. Next strict boundary is STU_AC829876 entity filtering; full
+  effect admission/message binding/animation and original static goal remain open.
+  Executed actual224E wake branches now replace instantaneous wake with initial
+  0.5 protection and a0.5 recovery clamp. Real melee/movement/Fade and five-NPC
+  damage recovery checks pass; actual224E zero-throttle scopes use the selected
+  parent mover fix with four-direction/exit/next-frame checks. Native effect host,
+  animation and message binding remain open.
+  Selected Sleep Dart gate now interrupts Moira input/channels, rejects active
+  Fade and preserves emitted orbs. Four damage wake/four heal nonwake paths,
+  actual five-NPC routes/weapons and Assassin release/reacquisition pass focused
+  checks. Raised Rein mesh intercepts Sleep before owner/protected Moira; native
+  wake/recovery/filter/absorption/reflection and full status matrix remain open.
+  Actual Flashbang control interrupts Moira channels, cancels selection, blocks
+  input and respects active Fade; five-NPC health/control cases pass. Native
+  status/cleanse/stacking and the complete control/defense matrix remain open.
+  Sigma Grasp consumes both orb kinds; selected accumulator/tagged shield
+  reconstruction and five-NPC active/expired comparisons pass. Native filtering,
+  Matrix and the full absorb/control/reflect matrix remain open.
+  Actual0407 Matrix consumes both Moira orb operations with authored resources;
+  five-NPC protected recipients and simultaneous defense order now pass;
+  eye/aim boxes and tag filter are reconstructed; native and full defense/NPC
+  acceptance remain open.
+  Trooper/Enforcer/Sniper/Heavy declared manual weapon release and Moira incoming paths pass;
+  Manual Assassin target/pin/health execution covers Moira health/control and
+  post-recovery stop/stun/allegiance reselection;2s timing is declared policy;
+  native Enforcer context/pellets and Assassin controller/contact/clock semantics, all NPC AI,
+  full skills, interactions and client acceptance remain
+  open. See [Moira combat lane](MOIRA_COMBAT.txt).
+
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
 | Milestone | Exit criteria | Current evidence |
