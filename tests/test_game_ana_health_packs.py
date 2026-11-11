@@ -92,14 +92,14 @@ class AnaHealthPackTests(unittest.TestCase):
         fight = run.match.combat
         vitals = fight.vitals[target.body]
         self.cast(run, ana, tuple(target.mover.position), 16)
-        self.assertEqual(vitals.total, 150)
-        deadline = vitals.healing_block_until
-        self.assertGreater(deadline, fight.now)
+        self.assertEqual(vitals.total, 140)
+        deadline = fight.healing.anti[target.body].end
+        self.assertGreater(deadline, fight.tick)
         self.place(target, pack, 0)
         run.step({})
-        self.assertEqual(vitals.total, 150)
+        self.assertEqual(vitals.total, 140)
         self.assertEqual(self.ready(pickup), 1)
-        while fight.now < deadline:
+        while fight.tick < deadline:
             run.step({})
         self.assertEqual(vitals.total, 200)
         self.assertLess(self.ready(pickup), 1)
@@ -112,7 +112,7 @@ class AnaHealthPackTests(unittest.TestCase):
         before = vitals.total
         self.cast(run, ana, tuple(tank.mover.position), 16)
         self.assertEqual(vitals.total, before + 100)
-        self.assertGreater(vitals.healing_boost_until, fight.now)
+        self.assertGreater(fight.healing.amp[tank.body].end, fight.tick)
         self.assertEqual(ana.stats.value(stats.HEALING), 100)
         self.place(tank, pack, 0)
         run.step({})
@@ -218,7 +218,7 @@ class AnaHealthPackTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(export_component_vm(pack.component)), active)
 
         def stored_pack():
-            capture = _Graph({"match": run.match, "fight": fight}, None)
+            capture = _Graph({"match": run.match, "fight": fight}, None, {})
             capture.value({"pack": pack, "source_digest": fight.health_pack_digest})
             return capture.finish()
 

@@ -380,6 +380,7 @@ class Player:
             return
         stunned = self.match.combat.is_stunned(self, tick=tick)
         frost = fight.frost_progress(self, tick=tick)
+        command = fight.sombra_controls.input(self, command)
         command = fight.clamp_sleep_command(self, command)
         pulled = self.body in fight.zarya_gravitons.pulled
         if stunned or fight.recalls.locked(self):

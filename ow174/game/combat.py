@@ -90,7 +90,7 @@ from ow174.game import (
     world,
     world_bubbles,
 )
-from ow174.game import orisa, orisa_charge
+from ow174.game import orisa, orisa_charge, sombra_control
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -1204,6 +1204,7 @@ class Combat:
         self.timed_hits: list[TimedHit] = []
         self.recalls = tracer_recall.Recalls(self)
         self.breathers = breather.Breathers(self)
+        self.sombra_controls = sombra_control.Controls(self)
         self.health_packs, self.health_pack_digest = health_packs.mount(match, match.tick)
         # Bounded flight results for ability impact/deployable consumers.
         self.ability_impacts: deque[Rocket] = deque(maxlen=64)
@@ -1302,6 +1303,7 @@ class Combat:
         actor = self.deployables.pop(entity, None)
         if actor is None:
             return
+        self.sombra_controls.retire(entity)
         self.baptiste.deployable_removed(entity)
         ice_wall.retired(actor)
         self.vitals.pop(entity, None)
@@ -1366,6 +1368,7 @@ class Combat:
         for charge in self.charges.values():
             if charge.pinned == player.body:
                 charge.pinned = None
+        self.sombra_controls.retire(player.body)
         self.baptiste.retire_body(player.body)
         self.healing.retire(player.body)
         self.absorption.retire(player.body)
@@ -1570,6 +1573,7 @@ class Combat:
         return immunity.control_immune(target.owner, target.entity) or self.orisa._immune(target.owner)
 
     def _interrupt(self, target: Target) -> None:
+        self.sombra_controls.interrupt(target.owner, hack_only=True)
         self.recalls.interrupt(target.entity)
         self.breathers.retire(target.entity)
         self.orisa.interrupt_supercharger_cast(target.owner)
@@ -2608,7 +2612,7 @@ class Combat:
         first = tick
         if self.tick and tick > self.tick + 1 and (
             self.timed_hits or self.recalls.phases or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
-            or self.zarya_gravitons.fields
+            or self.zarya_gravitons.fields or self.sombra_controls.locks
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
@@ -2621,6 +2625,7 @@ class Combat:
         # accepted just before the scheduler caught up joins only at the endpoint.
         for at in range(first, tick + 1):
             self.now, self.tick = now - (tick - at) * TICK, at
+            self.sombra_controls.update()
             self.recalls.update()
             self.breathers.update()
             self._decay_temporary_shields()
@@ -5839,6 +5844,7 @@ class Combat:
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
         source = _source_entity(killer) if source is None else source
+        self.sombra_controls.retire(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
         self.clear_pins(bot.entity)
@@ -5900,6 +5906,7 @@ class Combat:
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
         """Dispatch notices, authored death, and the respawn."""
+        self.sombra_controls.retire(victim.body)
         assassin_victim.retire_target(self, victim.body)
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)

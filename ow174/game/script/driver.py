@@ -337,6 +337,13 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        if self.hero == 0x02E000000000012E and self.match is not None and not state.instance.component.strict:
+            controls = self.match.combat.sombra_controls
+            player = controls.player(self.body)
+            if player is not None:
+                targets = controls.targets(player, state)
+                if targets is not NotImplemented:
+                    return targets
         if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x025C
                 and state.index in (4, 7)):
             return () if self.match is None else self.match.combat.projected_barrier_targets(self.body, state)
@@ -650,8 +657,14 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import mccree
+        from ow174.game import mccree, sombra_control
 
+        if (self.match is not None and self.hero == sombra_control.HERO
+                and instance is not None and not instance.component.strict
+                and instance.graph.index == sombra_control.HACK):
+            result = self.match.combat.sombra_controls.native(self.body, cfg, instance)
+            if result is not NotImplemented:
+                return result
         result = mccree.native(self, cfg, instance)
         if result is not NotImplemented:
             return result

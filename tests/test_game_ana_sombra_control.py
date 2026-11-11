@@ -10,7 +10,7 @@ import test_game_ana_projected_barrier as projected_fixture
 import test_game_ana_sound_barrier as sound_fixture
 from test_game_combat import aim
 
-from ow174.game import sombra_control, sound_barrier
+from ow174.game import moira, sombra_control, sound_barrier
 from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
@@ -71,7 +71,8 @@ class AnaSombraControlTests(unittest.TestCase):
                         run.step({})
                     self.assertEqual(target.total, 130 if button == 1 else 200)
                     self.assertFalse(fight.is_asleep(sombra))
-                    self.assertLessEqual(target.healing_block_until, fight.now)
+                    entry = next(item for item in fight._targets() if item.owner is sombra)
+                    self.assertEqual(fight.healing.factor(entry), 1)
 
     def test_sleep_lockout_ends_on_world_clock_and_held_key_needs_fresh_press(self):
         run, ana, sombra = self.arena()
@@ -219,22 +220,24 @@ class AnaSombraControlTests(unittest.TestCase):
         self.assertEqual(sombra.body_script.component.entity_var(ULT_CHARGE).value(), 0)
 
     def test_hack_preserves_adaptive_shield_and_emp_drains_it(self):
-        import test_game_ana_adaptive_shield as adaptive_fixture
-
         test = nano_fixture.AnaNanoTests()
         run, ana, ball, sombra = test.fight(ally_hero="Wrecking Ball", enemy_hero="Sombra")
         x, y, z = ana.mover.position
         placement.AnaOrisaBarrierTests.place(ball, (x, y, z + 3))
         placement.AnaOrisaBarrierTests.place(sombra, (x, y, z + 6))
-        pool = adaptive_fixture.AnaAdaptiveShieldTests().cast(run, ball, 175)
+        run.step({ball: (0, 0, 16)})
+        for _ in range(5):
+            run.step({})
+        pool = self.vitals(run, ball).extra[("adaptive", moira.ADAPTIVE_SHIELD_TAG)]
+        self.assertEqual(pool.now, 175)
         self.cast(run, ball, sombra, 2)
-        self.assertEqual(pool.amount, 175)
+        self.assertEqual(pool.now, 175)
         self.charge(sombra)
         run.step({})
         run.step({sombra: (0, 0, 32)})
         for _ in range(45):
             run.step({})
-        self.assertEqual(pool.amount, 0)
+        self.assertEqual(pool.now, 0)
         self.assertEqual(self.vitals(run, ball).total, 600)
 
     def test_projected_barrier_blocks_hack_and_emp_breaks_it_without_energy(self):
@@ -243,20 +246,58 @@ class AnaSombraControlTests(unittest.TestCase):
         x, y, z = ana.mover.position
         placement.AnaOrisaBarrierTests.place(zarya, (x + 3, y, z))
         placement.AnaOrisaBarrierTests.place(sombra, (x, y, z + 4))
-        bubble = projected_fixture.AnaProjectedBarrierTests().cast(run, zarya, ana)
+        run.step({zarya: (*projected_fixture.AnaProjectedBarrierTests().direction(run, zarya, ana), 16)})
+        fight = run.match.combat
+        bubble = fight.sombra_controls.body_barrier(projected_fixture.AnaProjectedBarrierTests.entry(run, ana))
+        self.assertIsNotNone(bubble)
+
+        def health():
+            vitals = getattr(bubble, "vitals", None)
+            return bubble.health if vitals is None else vitals.total
+
         direction = self.direction(run, sombra, ana)
         for _ in range(65):
             run.step({sombra: (*direction, 2)})
         fight = run.match.combat
         self.assertNotIn(ana.body, fight.sombra_controls.locks)
-        self.assertEqual(bubble.health, 200)
+        self.assertEqual(health(), 200)
         energy = zarya.body_script.component.entity_var(87).value()
         self.cast(run, ana, sombra, 32)
-        self.assertEqual(bubble.health, 0)
+        self.assertEqual(health(), 0)
         self.assertEqual(zarya.body_script.component.entity_var(87).value(), energy)
         self.assertEqual(self.vitals(run, ana).total, 200)
 
-    def test_emp_breaks_only_an_exposed_enemy_winston_shell_in_range(self):
+    def test_hacked_immortality_field_loses_protection_and_retires_receiver_on_destruction(self):
+        from test_baptiste_field import BaptisteFieldTests
+
+        field_fixture = BaptisteFieldTests()
+        run, baptiste, ally, sombra, fight, _, _ = field_fixture.make()
+        actor = field_fixture.cast(run, baptiste, fight)
+        ward = fight.baptiste.fields[actor.entity]
+        x, y, z = actor.position
+        placement.AnaOrisaBarrierTests.place(baptiste, (x, y, z + 3))
+        placement.AnaOrisaBarrierTests.place(ally, (x + 2, y, z))
+        self.assertTrue(run.match.switch_hero(sombra, heroes()[sombra_control.HERO]))
+        placement.AnaOrisaBarrierTests.place(sombra, (x - 4, y, z))
+        for _ in range(32):
+            run.step({})
+        self.assertIn(ally.body, ward.protections)
+        direction = aim(fight._eye(sombra), (x, y + 0.13, z))
+        for _ in range(80):
+            run.step({sombra: (*direction, 2)})
+            if actor.entity in fight.sombra_controls.locks:
+                break
+        self.assertIn(actor.entity, fight.sombra_controls.locks)
+        entry = next(target for target in fight._targets() if target.owner is ally)
+        self.assertFalse(fight.baptiste.protection_valid(entry, ward.protections[ally.body][1].id))
+        run.step({})
+        self.assertNotIn(ally.body, ward.protections)
+        self.assertEqual(actor.health, 150)
+        fight.destroy_deployable(actor.entity)
+        self.assertNotIn(actor.entity, fight.sombra_controls.device_receivers)
+        self.assertNotIn(actor.entity, fight.sombra_controls.locks)
+
+
         for scenario in ("enemy", "ally", "wall", "far"):
             with self.subTest(scenario=scenario):
                 test = nano_fixture.AnaNanoTests()
@@ -270,7 +311,7 @@ class AnaSombraControlTests(unittest.TestCase):
                 run.step({winston: (0, 0, 16)})
                 for _ in range(15):
                     run.step({})
-                manager = run.match.combat.winston_bubbles
+                manager = run.match.combat.barriers.world
                 dome, = manager.actors.values()
                 self.assertEqual(dome.health, 700)
                 if scenario == "wall":

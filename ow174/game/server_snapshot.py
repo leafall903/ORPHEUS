@@ -61,6 +61,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
+from ow174.game import sombra_control
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
@@ -124,7 +125,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets timed_hits recalls breathers health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
+        "match vitals history replacement_ticks rockets timed_hits recalls breathers sombra_controls health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -133,6 +134,8 @@ FIELDS = {
     ),
     tracer_recall.Recalls: _names("fight history phases"),
     breather.Breathers: _names("fight channels"),
+    sombra_control.Controls: _names("fight locks held device_receivers"),
+    sombra_control.DeviceWorld: _names("hero mode fight body tags"),
     combat.WaveHealthPool: _names("capacity current"),
     orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
     orisa_barrier.BarrierWorld: _names("hero mode match entity location"),
@@ -240,6 +243,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    sombra_control.Lock,
     driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley, combat.TimedHit,

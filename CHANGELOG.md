@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Sombra control integration
+
+- Route Hack and EMP through the Python server's authored receivers. Apply
+  skill lockouts, held-button release, cover checks, placed health-pack
+  ownership, and Immortality Field disablement through the existing combat
+  and body lifecycle. EMP shield drain consumes shield pools and barriers
+  without charging Zarya or overflowing into body health.
+- Static checks cover casts, duration, interruption, snapshot causality,
+  adaptive shields, Winston and Zarya barriers, pack access, and Field
+  protection and cleanup. All 33 core combat tests passed. Lucio's Sound
+  Barrier route still needs integration.
+  The combined barrier test requires external meshes. Original-client
+  acceptance and the remainder of the Sombra delivery are pending.
+
 ### Ana server integration
 
 - Integrate the Biotic Rifle's world-clock doses with source body attribution,

@@ -14,6 +14,7 @@ import types
 
 from ow174.game import replay_values
 from ow174.game.health_packs import PackWorld
+from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
@@ -499,7 +500,7 @@ class _Export:
         if kind is graph.Node:
             return {"ref": self._node(obj)}
         if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld):
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -520,6 +521,8 @@ class _Export:
                 fields.add("barrier")
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
+            if kind is SombraDeviceWorld:
+                fields.update(("fight", "body", "tags"))
             if kind is PullQuery:
                 fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
             # The match and its pending deliveries belong to the enclosing server snapshot.

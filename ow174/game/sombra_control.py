@@ -4,7 +4,7 @@ import math
 from copy import deepcopy
 from dataclasses import dataclass, replace
 
-from ow174.game import bots, health_packs
+from ow174.game import actors, bots, health_packs
 from ow174.game.script import entity_queries, expr, graph, nodes, play, runtime
 from ow174.game.world import SHIELDS_POOL
 
@@ -34,21 +34,23 @@ class DeviceWorld(runtime.World):
         return entity_queries.Component76Keys(self.tags) if entity == self.body else NotImplemented
 
     def native(self, cfg, instance):
-        if (instance is not None and instance.graph.index == PULSE
+        portals = getattr(self.fight, "symmetra_portals", None)
+        if (portals is not None and instance is not None and instance.graph.index == PULSE
                 and cfg.get("$") == entity_queries.POSSESSED):
             for pos in (15, 16):
                 if cfg is instance.graph.node(pos).field("m_targets")["m_configVars"][0]:
                     # The mounted pair supplies the body behind the authored owner/possession chain.
-                    _, owner = self.fight.symmetra_portals.endpoint_owner(self.body)
+                    _, owner = portals.endpoint_owner(self.body)
                     return expr.Entity(owner.entity if owner is not None else 0)
         return super().native(cfg, instance)
 
     def entity_var_slot(self, entity, var, *, create=False):
         from ow174.game.symmetra_portal import ENDPOINT_SLOTS
 
-        if var not in ENDPOINT_SLOTS:
+        portals = getattr(self.fight, "symmetra_portals", None)
+        if portals is None or var not in ENDPOINT_SLOTS:
             return NotImplemented
-        pair, owner = self.fight.symmetra_portals.endpoint_owner(self.body)
+        pair, owner = portals.endpoint_owner(self.body)
         if owner is None or owner.entity != entity:
             return None
         endpoint = pair.endpoints[ENDPOINT_SLOTS.index(var)]
@@ -145,8 +147,9 @@ class Controls:
 
     def enemies(self, player):
         return (target for target in self.fight._enemies(player)
-                if getattr(target.owner, "body_script", None) is not None
-                and not self.fight._protected(target.owner))
+                if not isinstance(target.owner, actors.Deployable)
+                and getattr(target.owner, "body_script", None) is not None
+                and not self.fight.damage_immune(target.owner))
 
     def hackable(self, player, *, emp=False):
         from ow174.game.combat import Target
@@ -158,27 +161,33 @@ class Controls:
                 yield Target(pack.entity, None, pack.position, 0.7, 0.35, 0.35, pack)
 
     def device_targets(self, player, *, emp=False):
-        from ow174.game import ball_mines, baptiste_field, symmetra_portal, symmetra_sentry, torbjorn_turret
+        from ow174.game import ball_mines, symmetra_portal, symmetra_sentry, torbjorn_turret
         from ow174.game.combat import Target
 
         fight = self.fight
+        for ward in fight.baptiste.fields.values():
+            actor = ward.actor
+            if (actor.health > 0 and actor.owner is not player and not actor.owner.gone
+                    and (fight.match.game_map.free_for_all or actor.team != player.team)):
+                yield fight._deployable_target(actor), frozenset((0x6E6,))
         managers = (
-            (fight.torbjorn_turrets, torbjorn_turret.DEVICE_RADIUS, frozenset((0x34,))),
-            (fight.symmetra_sentries, symmetra_sentry.DEVICE_RADIUS, frozenset((0x36F,))),
-            (fight.baptiste_fields, baptiste_field.DEVICE_RADIUS, frozenset((0x6E6,))),
-            (fight.symmetra_portals, symmetra_portal.DEVICE_RADIUS, None),
+            (getattr(fight, "torbjorn_turrets", None), torbjorn_turret.DEVICE_RADIUS, frozenset((0x34,))),
+            (getattr(fight, "symmetra_sentries", None), symmetra_sentry.DEVICE_RADIUS, frozenset((0x36F,))),
+            (getattr(fight, "symmetra_portals", None), symmetra_portal.DEVICE_RADIUS, None),
         )
         if emp:
-            managers += ((fight.ball_mines, ball_mines.DEVICE_RADIUS, ball_mines.TAGS),)
+            managers += ((getattr(fight, "ball_mines", None), ball_mines.DEVICE_RADIUS, ball_mines.TAGS),)
         for manager, radius, tags in managers:
-            devices = (manager.enemies(player, include_flights=True) if manager is fight.ball_mines
+            if manager is None:
+                continue
+            devices = (manager.enemies(player, include_flights=True) if manager is getattr(fight, "ball_mines", None)
                        else manager.enemies(player))
             for device in devices:
                 if isinstance(device, symmetra_sentry.Sentry) and not device.attached:
                     continue
                 x, y, z = device.centre()
                 device_tags = tags
-                if manager is fight.symmetra_portals:
+                if manager is getattr(fight, "symmetra_portals", None):
                     _, index = manager.endpoint_pair(device.body)
                     device_tags = symmetra_portal.ENDPOINT_TAGS[index]
                 yield Target(device.body, None, (x, y - radius, z), 2 * radius, radius, radius, device), device_tags
@@ -217,6 +226,7 @@ class Controls:
                 duration = expr.to_float(application.find_var(graph.INSTANCE, 215).value())
                 if duration > 0 and math.isfinite(duration):
                     locks = self.locks.setdefault(target.entity, [])
+                    locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
                     locks.append(Lock(application, self.fight.now + duration, pulse))
                     if isinstance(target.owner, symmetra_sentry.Sentry):
@@ -229,12 +239,22 @@ class Controls:
     def drain_device(self, state):
         entity = state.instance.component.entity
         amount = expr.to_float(state.evaluate(state.node.field("m_modifyHealth")["m_amount"], watch=False))
-        if math.isfinite(amount) and amount > 0:
-            self.fight.symmetra_portals.drain_shields(entity, amount)
+        portals = getattr(self.fight, "symmetra_portals", None)
+        if portals is not None and math.isfinite(amount) and amount > 0:
+            portals.drain_shields(entity, amount)
 
     def body_barrier(self, target):
-        barrier = self.fight.body_barriers.get(target.entity)
-        return barrier if barrier is not None and barrier.health > 0 and self.fight.now < barrier.until else None
+        from ow174.game import barriers
+
+        if target.owner is None or not hasattr(target.owner, "body_script"):
+            return None
+        for barrier in self.fight.barriers.scripted.values():
+            protected = barrier.recipient if barrier.recipient is not None else barrier.parent
+            if (protected is target.owner and (barrier.recipient_body or barrier.parent_body) == target.entity
+                    and barrier.component.world.hero == barriers.ZARYA and barrier.vitals is not None
+                    and barrier.vitals.total > 0 and barriers._live(self.fight, barrier)):
+                return barrier
+        return self.fight.barriers.for_target(target.owner) or self.fight._active_projected_barrier(target.entity)
 
     def clear(self, player, origin, ray, reach, *, barriers=True):
         from ow174.game.combat import ray_world
@@ -244,9 +264,27 @@ class Controls:
         wall = ray_world(self.fight._collision(), origin, ray, reach)
         if wall is not None and wall < reach:
             return False
-        if barriers:
-            return self.fight._barrier_contact(player, origin, ray, reach) is None
-        return self.fight.ice_wall.cast(origin, ray, reach) is None
+        if self.fight.walls.cast(origin, ray, reach) is not None:
+            return False
+        return not barriers or (
+            self.fight._barrier_contact(player, origin, ray, reach) is None
+            and self.fight.brigitte.barrier_ray(player, origin, ray, reach) is None
+        )
+
+    def native(self, body, cfg, instance):
+        cls = cfg.get("$")
+        if cls == "STU_AC829876" and cfg is instance.graph.node(204).field("m_condition"):
+            player = self.player(body)
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            return player is not None and any(t.entity == entity for t in self.hackable(player))
+        if (cls == "STU_53F4CA65"
+                and cfg is instance.graph.node(164).field("m_condition")["m_configVars"][0]):
+            entity = expr.to_entity(instance.find_var(graph.INSTANCE, 8909).value())
+            pack = self.fight.health_packs.get(entity)
+            if pack is not None:
+                player = self.player(body)
+                return player is not None and health_packs.available_to(self.fight, pack, player)
+        return NotImplemented
 
     def targets(self, player, state):
         from ow174.game.combat import aim, ray_capsule
@@ -348,7 +386,9 @@ class Controls:
                 else:
                     health_packs.submit(pack.component, definition, resource, request)
         for target in fight._targets():
-            if target.entity not in request.targets or fight.vitals_of(target).dead or fight._protected(target.owner):
+            if isinstance(target.owner, actors.Deployable):
+                continue
+            if target.entity not in request.targets or fight.vitals_of(target).dead or fight.damage_immune(target.owner):
                 continue
             if instance.graph.index == HACK and self.body_barrier(target) is not None:
                 continue
@@ -370,12 +410,12 @@ class Controls:
                     if held:
                         self.held[target.entity] = self.held.get(target.entity, 0) | held
                     if isinstance(target.owner, bots.Bot):
-                        from ow174.game import npc
+                        from ow174.game import assassin, heavy_assault
 
-                        npc.interrupt_specials(fight, target.owner)
+                        assassin.stop(target.owner)
+                        heavy_assault.stop(script.component)
                     self.interrupt(target.owner)
                     fight.breathers.retire(target.entity)
-                    fight.hooks.cancel_owner(target.entity)
             if script.component is not instance.component:
                 script.component.run_now()
         return True
@@ -389,24 +429,31 @@ class Controls:
         if not all(math.isfinite(value) and value > 0 for value in (radius, amount)):
             return
         origin = fight._eye(caster)
-        for manager, closest in (
-            (fight.winston_bubbles, fight.winston_bubbles.nearest_shell),
-            (fight.orisa_barriers, fight.orisa_barriers.closest),
-            (fight.sigma_barriers, fight.sigma_barriers.closest),
-            (fight.symmetra_barriers, fight.symmetra_barriers.closest),
+        from ow174.game import sigma_barrier
+
+        for manager, actors, closest in (
+            (fight.barriers.world, fight.barriers.world.enemies(caster), fight.barriers.world.nearest_shell),
+            (fight.orisa_barriers, fight.orisa_barriers.opponents(caster), fight.orisa_barriers.closest),
+            (fight.photon_barriers, fight.photon_barriers.opponents(caster), fight.photon_barriers.closest),
         ):
-            for barrier in tuple(manager.opponents(caster)):
-                if self.emp_reaches(caster, origin, closest(barrier, origin), radius):
-                    fight._damage_deployable(barrier, amount)
-        for target in fight._enemies(caster, include_phased=True):
-            raised = fight.reinhardt.owners.get(target.entity)
-            if raised is not None and raised.raised and raised.hp > 0:
-                if self.emp_reaches(caster, origin, fight._eye(target.owner), radius):
-                    fight.reinhardt.damage(raised, amount)
-            shield = fight.brigitte_shields.by_body.get(target.entity)
-            if shield is not None and shield.active():
-                if self.emp_reaches(caster, origin, fight._eye(target.owner), radius):
-                    fight.brigitte_shields.damage(shield, amount)
+            for barrier in tuple(actors):
+                point = closest(barrier, origin)
+                if point is not None and self.emp_reaches(caster, origin, point, radius):
+                    manager.damage(barrier, amount)
+        for barrier in tuple(sigma_barrier.enemies(fight, caster)):
+            if barrier.closest_visible_distance(fight, caster, origin, radius) is not None:
+                sigma_barrier.damage_barrier(fight, barrier, amount)
+        raised = fight.barriers.reinhardt
+        for barrier in tuple(raised.enemies(caster)):
+            if barrier.near(origin, radius, lambda point: self.emp_reaches(caster, origin, point, radius)):
+                raised.damage(barrier, amount)
+        for barrier, centre, _, right, up in fight.brigitte._barrier_faces(caster):
+            offset = tuple(origin[k] - centre[k] for k in range(3))
+            horizontal = max(-1, min(1, sum(a * b for a, b in zip(offset, right, strict=True))))
+            vertical = max(-1.1, min(1.1, sum(a * b for a, b in zip(offset, up, strict=True))))
+            point = tuple(centre[k] + horizontal * right[k] + vertical * up[k] for k in range(3))
+            if self.emp_reaches(caster, origin, point, radius):
+                fight.brigitte.damage_barrier(barrier, amount)
 
     def emp_reaches(self, caster, origin, point, radius):
         delta = tuple(end - start for start, end in zip(origin, point, strict=True))
@@ -427,18 +474,25 @@ class Controls:
         amount = expr.to_float(state.evaluate(state.node.field("m_modifyHealth")["m_amount"], watch=False))
         if not math.isfinite(amount) or amount <= 0:
             return
+        from ow174.game import barriers
+
         barrier = self.body_barrier(target)
+        if isinstance(barrier, barriers.Barrier):
+            barriers.damage(fight, barrier, amount)
+            return
+        if isinstance(barrier, barriers.Bubble):
+            fight.barriers.damage(barrier, amount)
+            return
         if barrier is not None:
             barrier.health = max(0.0, barrier.health - amount)
             return
-        for pool in (vitals.adaptive_shield, vitals.sound_shield):
-            if pool is not None:
-                taken = min(amount, pool.amount)
-                pool.amount -= taken
+        amount -= vitals.spend_temporary_shield(amount)
+        for pool in vitals.extra.values():
+            if pool.kind == SHIELDS_POOL and not pool.removed:
+                taken = min(amount, pool.now)
+                pool.now -= taken
                 amount -= taken
-        taken = min(amount, vitals.bonus_shields)
-        vitals.bonus_shields -= taken
-        amount -= taken
+                vitals.changed.add(SHIELDS_POOL)
         vitals.now[SHIELDS_POOL] = max(0.0, vitals.now[SHIELDS_POOL] - amount)
         vitals.changed.add(SHIELDS_POOL)
         fight._sync_body_health(target.owner, vitals)

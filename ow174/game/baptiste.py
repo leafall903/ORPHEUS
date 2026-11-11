@@ -444,6 +444,8 @@ class BaptisteEffects:
                 or isinstance(target.owner, actors.Deployable)
                 or fight.vitals_of(target).dead):
             return False
+        if actor.entity in fight.sombra_controls.locks:
+            return False
         if fight.match.game_map.free_for_all:
             if target.owner is not actor.owner:
                 return False

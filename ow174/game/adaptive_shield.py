@@ -39,7 +39,10 @@ def prepare_count(instance):
     if math.isfinite(radius) and radius > 0:
         origin = fight._eye(player)
         count = sum(segment_distance(origin, *target.segment()) - target.radius <= radius
-                    for target in fight._enemies(player, include_phased=True))
+                    for target in fight._targets()
+                    if target.owner is not player
+                    and (match.game_map.free_for_all or target.team != player.team)
+                    and not fight.vitals_of(target).dead)
     instance.write(expr.lvalue(tracker.field("m_1B89EA79")), count)
 
 

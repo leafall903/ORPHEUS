@@ -228,19 +228,20 @@ class Barriers:
             self.sync(b.caster)
         return next((b for b in self.live.values() if b.entity == entity and self.live_source(b)), None)
 
-    def damage(self, bubble, amount, shooter):
+    def damage(self, bubble, amount, shooter=None):
         if isinstance(bubble, reinhardt_barrier.RaisedBarrier):
             return self.reinhardt.damage(bubble, amount)
         if isinstance(bubble,world_bubbles.FixedBubble):
             return self.world.damage(bubble,amount)
         actor = self.authored_for(bubble.caster_body, bubble.phase)
         if actor is not None:
-            dealt = damage(self.fight, actor, amount, attacker=_source_entity(shooter))
+            attacker = _source_entity(shooter) if shooter is not None else 0
+            dealt = damage(self.fight, actor, amount, attacker=attacker)
             bubble.health = actor.vitals.total
             return dealt
         dealt = min(bubble.health, max(0.0, amount))
         bubble.health = max(0.0, bubble.health-dealt)
-        if dealt:
+        if dealt and shooter is not None:
             #0256/n10 forwards actual pool loss to0242 using0146. Hosting0256 and
             #the upstream0011 filter remain open; retain the authored energy math.
             source = shooter.entity if hasattr(shooter, 'position') else shooter.body
