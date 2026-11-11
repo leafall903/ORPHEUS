@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Persist three-worker original-language integration
+
+- Dispatch three explicitly authorized subagents on separate worktrees/indexes
+  frombf7fad86, partitioning the22 remaining hero deliveries7/7/8. Preserve their
+  branches and per-worker resume records; root alone receives commits and
+  reconciles shared code before fast-forwarding intake.
+- Retain a durable coordination record and continuation protocol. This changes
+  task ownership only, not gameplay or acceptance scope. Verify each worker live
+  before resuming/restarting it. The complete nonappearance merge remains open.
+
 ### Mount delivered Death Blossom clocks and idle Reaper bodies
 
 - Retain0044/0045's34-damage, five-per-second pulses, authored channel duration
