@@ -5,6 +5,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Ana delivered healing credit and respawn lifecycle
+
+- Mount delivered effective-healing charge for allied/self rifle and grenade
+  healing, retaining source-body identity checks. Preserve unspent Ana charge
+  through same-hero respawn alongside Mercy's separate pending-credit handling.
+- Restore the delivery's invalid-value, owner-dead and finite-cost guards on
+  combat charge while retaining the combined retired/faulted-script guards.
+- In the 56-check rifle/charge/Nano/timed/sleep selection, the missing healing,
+  respawn and death-credit checks now pass. Four subtest failures and three
+  errors remain in the existing grenade/sleep fixtures. The baseline already
+  exhibits these gaps: old deadline fields/seconds and a removed Nano helper,
+  plus differing grenade assumptions. Keep the existing graph-driven 0C72
+  damage=60 profile rather than forcing the older 50-damage assertion.
+- All ten Mercy boost-credit checks pass with the prepared effect bundle;
+  all three Genji carry checks pass. Two of five Ana health-query checks retain
+  baseline lazy-pool fixture differences. No client/full-hero acceptance is
+  claimed, and these unfinished checks do not withhold delivered code.
+
+
+
 ### Baptiste delivery history integration
 
 - Merge delivery 6f0bdcc4 after restoring its target-cleanup and throttle

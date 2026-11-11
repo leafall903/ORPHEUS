@@ -1906,14 +1906,15 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
-        if (self.retired or self.component.fault is not None or not math.isfinite(points) or points <= 0
+        if (self.retired or self.component.fault is not None or self.component.owner_dead
+                or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
                 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
-        if cost <= 0 or before >= cost:
+        if not math.isfinite(cost) or not math.isfinite(before) or before < 0 or cost <= 0 or before >= cost:
             return 0.0
-        after = min(cost, f32(before + points))
+        after = min(cost, f32(before + min(points, cost - before)))
         self.set_ult_charge(after)
         return after - before
 

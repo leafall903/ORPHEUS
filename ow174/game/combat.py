@@ -3487,6 +3487,17 @@ class Combat:
         charge.healed(healer.body_script, entity, given, tags, frame=frame)
         return given
 
+    def _charge_ana(self, actor, amount, *, source_entity=None):
+        """Delivered effective-health credit; never transfer it across source bodies."""
+        if (isinstance(actor, bots.Bot)
+                or getattr(getattr(actor, "hero", None), "guid", None) != 0x02E000000000013B):
+            return
+        if source_entity is not None and actor.body != source_entity:
+            return
+        script = actor.body_script
+        if script is not None:
+            script.gain_ult_charge(amount)
+
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
                      end_tick=None):
         vitals = self.vitals_of(target)
@@ -3499,6 +3510,8 @@ class Combat:
         if given > 0.0:
             if not isinstance(shooter, (bots.Bot, SceneHazard)):
                 shooter.stats.add(stats.HEALING, given)
+                if target.owner is shooter or (not self.match.game_map.free_for_all and target.team == shooter.team):
+                    self._charge_ana(shooter, given, source_entity=source_entity)
                 self._charge_echo_health_event(shooter, given, source_body=source_entity)
                 moira.gain_combat_charge(shooter, given, body=source_entity, healing_target=target, healing_tags=tags)
             self.baptiste.healing_charge(shooter, target, min(given, eligible), source_body=source_entity)
@@ -5254,6 +5267,7 @@ class Combat:
                 if given:
                     if not isinstance(shooter, bots.Bot):
                         shooter.stats.add(stats.HEALING, given)
+                        self._charge_ana(shooter, given)
                     self._sync_body_health(target.owner, vitals)
                 vitals.healing_boost = self.now + BIOTIC_BOOST_DELAY, self.now + BIOTIC_DURATION
             elif self._damage(
@@ -6468,9 +6482,10 @@ class Combat:
             return
         old_script = player.body_script
         points, pending = None, ()
-        if old_script is not None and player.hero.guid == regeneration.MERCY:
+        if old_script is not None and player.hero.guid in (regeneration.MERCY, 0x02E000000000013B):
             points = old_script.component.entity_var(ULT_CHARGE).value()
-            pending = getattr(old_script.world, "pending_ult_credits", ())
+            if player.hero.guid == regeneration.MERCY:
+                pending = getattr(old_script.world, "pending_ult_credits", ())
         if not self.match.switch_hero(player, player.hero):
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
@@ -6479,8 +6494,9 @@ class Combat:
 
             script = player.body_script
             script.set_ult_charge(points)
-            charge.set_pending_credits(script.world, tuple(credit for credit in pending
-                                                          if credit[0] > script.component.now))
+            if player.hero.guid == regeneration.MERCY:
+                charge.set_pending_credits(script.world, tuple(credit for credit in pending
+                                                              if credit[0] > script.component.now))
         self.voice.spawned(player, self.now)
         log.info("[game] %s: %s respawned", self.match.label(), player.name)
 
