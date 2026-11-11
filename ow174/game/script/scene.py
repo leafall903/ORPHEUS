@@ -13,6 +13,7 @@ import struct
 import uuid
 from dataclasses import dataclass
 
+from ow174.game.content import authored_map_modes
 from ow174.game.script import (
     animation_alias,
     controller_heroes,
@@ -707,6 +708,13 @@ class SceneWorld(runtime.World):
         return NotImplemented
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if cfg.get("$") == "STU_16753B11" and self.map_guid is not None:
+            modes = authored_map_modes(self.map_guid)
+            if modes is not None:
+                value, success = play.evaluate_scalar_result(instance, cfg.get("m_gamemode"))
+                mode = play._asset(value) if success else 0
+                # CF393C..CF39B3 checks the map header and a special mode ID.
+                return mode != 0 and (mode in modes or mode == 0x0230000000000045)
         if cfg.get("$") == "STU_DB742151" and self.possessors is not None:
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
             return expr.Entity(self.primary_possessor(expr.to_entity(value)))

@@ -12,6 +12,7 @@ HEROES_PATH = DATA_DIR / "game_heroes_174.json"
 MAPS_PATH = DATA_DIR / "game_maps_174.json"  # tools/extract_game_maps.py
 SOLDIER = 0x02E000000000006E
 PRACTICE_RANGE_MODE = 0x0230000000000018
+PRACTICE_RANGE_VARIANT_MODE = 0x023000000000005A
 TUTORIAL_MODE = 0x0230000000000019
 TUTORIAL_MAP = 0x0800000000000661
 # Modes whose loading screen waits for a state of the mode's own script (m_0FC17230 = 1 in the
@@ -127,6 +128,14 @@ def map_name(guid: int) -> str | None:
     return entry.get("name") if entry else None
 
 
+def authored_map_modes(map_guid: int) -> tuple[int, ...] | None:
+    """The catalog header's supported modes, or None if its data is unavailable."""
+    entry = _map_entries().get(map_guid)
+    if entry is None or "modes" not in entry:
+        return None
+    return tuple(int(mode, 16) for mode in entry["modes"])
+
+
 def _first_round_spawns(entry: dict, free_for_all: bool) -> tuple[Spawn, ...]:
     """Each team's spawn points of the first objective (team 1 attacks it, team 0 defends), or of any
     objective when the map names none; the free-for-all points in a free-for-all mode."""
@@ -154,7 +163,7 @@ def game_map(
     """The map as it is played in that mode with that many players per team, or None when the server
     can't host it: no data, a mode the map doesn't support, no spawn points, or a mode whose loading
     needs its own script."""
-    if map_guid == PRACTICE_RANGE.map_guid:
+    if map_guid == PRACTICE_RANGE.map_guid and mode_guid != PRACTICE_RANGE_VARIANT_MODE:
         return PRACTICE_RANGE
     entry = _map_entries().get(map_guid)
     if entry is None:

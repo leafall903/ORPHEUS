@@ -310,9 +310,11 @@ class NativeReplayTests(unittest.TestCase):
             replay_document(document)
 
     def test_match_external_first_access_is_not_mistaken_for_a_constructor_only_trace(self):
-        from test_game_combat import Run
+        from test_game_combat import KANEZAKA_DM, Run
 
-        run = Run()
+        # Isolate first-access ordering from Practice Range possession startup,
+        # which advances the authored charge graph outside the body constructor.
+        run = Run(KANEZAKA_DM)
         player = run.players[0]
         document = {"header": header(player.body_script), "events": []}
         context = document["header"]
@@ -352,6 +354,15 @@ class NativeReplayTests(unittest.TestCase):
         ))
         result = replay_document(document)
         self.assertEqual(len(document["events"]), 13)
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["validated_commands"], 0)
+        self.assertEqual(result["diagnostics"], [{"kind": "initial_state_mismatch"}])
+
+    def test_practice_possession_is_not_replayed_by_the_body_constructor(self):
+        from test_game_combat import Run
+
+        script = Run().players[0].body_script
+        result = replay_document({"header": header(script), "events": []})
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["validated_commands"], 0)
         self.assertEqual(result["diagnostics"], [{"kind": "initial_state_mismatch"}])

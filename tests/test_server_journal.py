@@ -512,6 +512,46 @@ class ServerJournalTests(unittest.TestCase):
                 ):
                     replay_server_session(changed, resolver=session.registry.resolve)
 
+    def test_late_field_press_keeps_its_windup_after_the_scheduler_gap(self):
+        expected = None
+        for stall, earlier in ((0.0, False), (.8, False), (.8, True)):
+            with self.subTest(stall=stall, earlier=earlier):
+                source = SchedulerSource(
+                    ("start", 10.0), ("timeout", 10.0), ("datagram", 101.0),
+                    ("due", 10.0 + stall), ("next_tick", 10.0 + stall), ("tick", 101.0),
+                )
+                session, sent = self.make(source=source)
+                peers, players = self.connected(session, sent, two=False)
+                peer, player = peers[0], players[0]
+                fight = player.match.combat
+                start = session.server.tick
+                frame = player.body_script.frame + 1
+                if earlier:
+                    peer.commands(frame, 1, 16)
+                with mock.patch.object(session, "datagram"):
+                    peer.commands(frame + int(earlier), 1, 0 if earlier else 16)
+                session.run_loop([(peer.last_raw, peer.address)])
+                endpoint = session.server.tick
+                if earlier:
+                    shot, = fight.projectiles.shots
+                    self.assertLess(shot.field_tick, endpoint)
+                    self.assertEqual(shot.frame - frame, expected[0])
+                else:
+                    self.assertFalse(fight.projectiles.shots)
+                    self.assertEqual(player.body_script.world_frame_anchor, (start, frame))
+                    session.tick(102.2, missed=64)
+                    shot, = fight.projectiles.shots
+                    self.assertIsNotNone(shot.field_tick)
+                    missed = endpoint - start - 1
+                    timing = shot.frame - frame - missed, shot.field_tick - endpoint, shot.where
+                    if expected is None:
+                        expected = timing
+                    self.assertEqual(timing, expected)
+                _, replay, _ = self.verify(session)
+                replayed, = replay.server.matches[0].combat.projectiles.shots
+                self.assertEqual((replayed.frame, replayed.field_tick, replayed.where),
+                                 (shot.frame, shot.field_tick, shot.where))
+
     def test_bounded_loop_replays_callback_reentry_after_releasing_the_server_lock(self):
         source = SchedulerSource(
             ("start", 10.0), ("timeout", 10.0), ("due", 10.0), ("next_tick", 10.0), ("tick", 100.1),

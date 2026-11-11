@@ -262,6 +262,13 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -277,6 +284,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -431,6 +456,12 @@ class World:
         """Explicit component47 mapping registry and native namespace availability."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        return NotImplemented
+
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
@@ -452,6 +483,18 @@ class World:
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
+
+    def list_selection_random(self, state: "State"):
+        """Return an explicit uint32 draw for the active list State."""
+        return NotImplemented
+
+    def tagged_entity_world_available(self, instance: "Instance", node: Node):
+        """Declare whether the active tag State can resolve its world."""
+        return NotImplemented
+
+    def tagged_entity_candidates(self, instance: "Instance", node: Node):
+        """Ordered entity records from a declared tag-query service."""
+        return NotImplemented
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
@@ -670,7 +713,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -939,6 +982,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = expr.INVALID_ENTITY
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -1027,6 +1071,10 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # These coalescing flags describe queued callbacks, not permanent state.
+        # Cancelled work must not suppress notifications after a later begin.
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""

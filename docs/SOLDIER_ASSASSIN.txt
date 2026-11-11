@@ -1,0 +1,93 @@
+Soldier:76 versus manual Assassin1157 -- build104319, 006E integration checkpoint
+
+This is a scoped server reconstruction. Full static acceptance and separate
+original-client combat acceptance remain OPEN. No merge readiness or native AI
+completion follows from these cases.
+
+Primary resources and execution
+- Actual01BB/1EBD Assassin body,500 total health and its original mover are loaded
+  from explicit external prepared inputs. Original1157/node3 listens to logical36;
+  the AI definition's primary slot maps to20. Preserve that metadata and raw-slot
+  adapter. Only the manual engagement controller requests the special36 action.
+- Original SetVar51 reads DB742151/self context map key1650 into target536.
+  BotWorld supplies that data-only map for manual Assassin/graph1157/self only.
+  Its target is the selected player's current body, not the player's controller.
+  No synthetic entity/component tuple or B96D3A98/F7262B36 answer is supplied.
+- Node25 supplies contact amount13230=25. Original node15 uses11984=100 with
+  mode1 and follows the authored delayed scope. The scoped host treats mode1 as
+  damage per second, integrating VM elapsed milliseconds; this clock is a
+  reconstruction. Other ModifyHealth nodes remain inert in permissive execution
+  and unsupported in strict execution without an explicit host implementation.
+- Reuse authoritative health/damage/death paths. Pin control is separate from
+  Flashbang's exclusive-deadline stun table. It masks voluntary movement/actions,
+  retains look input and uses the existing scoped interruption policy. It retains
+  active Soldier Visor's original timer and suppresses its firing until release.
+- Manual contact admits eye distance<=3m with static capsule visibility and enemy
+  team/current living body/client checks. This is explicitly sandbox policy.
+  Existing Fortify/Transcendence states reject this manual pin policy. Native
+  acquisition/contact geometry, immunity tags and arbitration are not recovered.
+- Zarya barrier settlement precedes pin admission. If a valid contact or rate
+  event consumes barrier HP, the host drops pin control and aborts the old
+  contact/rate scopes even when that event exhausts the shield.
+
+Lifecycle and causal state
+- Stop releases held and queued raw primary20 and special36 inputs, target map,
+  pin and authored attack scopes. Source death clears context after freezing its
+  live observer baseline. Victim death/retirement and manual removal release pins.
+- Range/LOS/team/target loss or source stun releases the manual context and
+  authored attack scopes on the next NPC update. Real Flashbang releases the pin
+  immediately without adding a stun to the victim. Source/victim death also
+  clears control immediately.
+- Release Anim31 has no resolved duration. New explicit manual engagement ends
+  it through authored exits. No native animation completion/cooldown claim is made.
+- Strict VM snapshots include manual_control/manual_target and ModifyHealth's
+  last_applied clock; server snapshots include source->victim pin identities.
+  The containing server owns world.match; component-only snapshots exclude it.
+
+Repeatable witnesses
+- tests/test_soldier_pve_assassin.py: real selected manual enemy/input, contact25,
+  delay and100/second, no ranged pin, stop/restart, voluntary movement and look,
+  ammo/fire/Helix/ultimate-input suppression, wall/range/team/gone cleanup,
+  source kill by support rifle, real source Flashbang, victim death, replacement,
+  removal, data-only context/rate causal hashing and unknown query boundaries.
+- Actual Field windup cancels without late deployment. Predeployed Field heals
+  while pinned. Active Visor keeps its expiry, rejects pinned fire and resumes
+  after release. Defense cases execute real Fortify/Transcendence activation.
+- Actual projected barriers absorb contact at full HP and at20 HP remaining.
+  The breaking contact gives Zarya the remaining energy, deals no body damage,
+  and cannot carry into delayed damage. Explicit restart can pin after expiry
+  or break. Mid-pin projection absorbs the next rate tick and restores Soldier
+  primary input.
+- The 1157 release path sends 09DA to Assassin itself. The real manual stop,
+  victim death and range-loss routes all reach 13C3/node24's 0.15-second wait,
+  then node112 once and node158's 0.1-second wait. The current 104319 resource
+  expression supplies zero for node112 and its recipient is the source
+  Assassin. The observed recovery does not change its HP.
+- Soldier launches Helix before being pinned at 2.9 metres. Actual contact
+  removes 25 health while the rocket is still in flight. A surviving Assassin
+  takes 120, and the real explosion separates the pair beyond the hosted
+  three-metre range. The pin then releases and 09DA runs. With Assassin
+  fixture-wounded to 110, the same impact kills it and releases control
+  immediately with Soldier credited. Soldier also takes 31 self-splash
+  in both cases. No later pin damage settles.
+- tests/test_server_snapshot.py separately changes only stored pin identity to
+  prove digest sensitivity without changing health. This is storage evidence,
+  not a synthetic combat witness.
+- tests/test_script_notification_lifetime.py ports two reviewed parent fixtures.
+  Canceled-marker reentry already passed. Cleanup writes reproduced an ending
+  state CHANGED marker leak; Component.changed now skips ending states. Parent
+  Ability.stop cleanup-before-arbitration ordering now has separate actual-input
+  witnesses in SOLDIER_CROSS_EYE_ROLL.txt; native order remains OPEN. Parent1151
+  counts are not this lane's.
+
+Evidence and exclusions
+- Lane-local assassin-resource-review.json retains original fields and input hash
+  outside Git. No asset/capture or client interaction was added to the repository.
+- All-five autonomous AI/specials, native possessor-map
+  allocation, pin feedback/animation/counterplay, range/health callback clocks,
+  prediction/replication and full cross-hero control order remain OPEN.
+- The 13C3 self-target recovery is separate from 13B8's logical 20 reader.
+  Actual native AI primary consumers and full recovery callback semantics
+  remain open.
+- Earlier544 validation applies only to its historical tree. The 006E integration
+  checkpoint leaves the full frozen regression and original-client acceptance open.

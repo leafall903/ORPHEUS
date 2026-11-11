@@ -24,7 +24,7 @@ from collections import deque
 from ctypes import wintypes
 from dataclasses import dataclass, field, replace
 
-from ow174.game import combat, correction, messages, movelog, observers, world
+from ow174.game import combat, correction, defenses, messages, movelog, observers, world
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.commands import InputError, read_commands
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -45,6 +45,7 @@ from ow174.game.link import (
 )
 from ow174.game.match import SEND_EVERY, Match, Player, no_skin, pong, sends
 from ow174.game.projectiles import MAX_LEASE_FRAME, _ObservedProjectile
+from ow174.game.script import runtime
 from ow174.game.script.bot import practice_nameplate
 from ow174.game.script.driver import BodyStream, Snapshot, warm_up
 from ow174.jam.codec import DecodeError
@@ -153,6 +154,20 @@ class _BotScriptDelivery:
     death_frames: deque[Snapshot] | None = None  # None until this viewer is registered for death
     death_snapshot: Snapshot | None = None  # latest terminal state for a deferred feed pulse
     nameplate_update: world.EntityUpdate | None = None  # standalone presenter chunk awaiting ACK
+
+
+@dataclass(frozen=True)
+class _CombatAdmissions:
+    rockets: tuple[combat.Rocket, ...]
+    field_timer: runtime.Event | None = None
+
+    def defer(self, tick: int, missed: int) -> None:
+        for rocket in self.rockets:
+            rocket.stamp_launch(tick + missed)
+        if self.field_timer is not None:
+            # Move only this newly armed wait. Earlier timers still use the body clock.
+            self.field_timer.time += missed * round(combat.TICK * 1000)
+            self.field_timer.state.instance.queue.sort(key=runtime.Event.key)
 
 
 class Client:
@@ -942,7 +957,7 @@ class Client:
 
     # --- receiving -----------------------------------------------------------------------------
 
-    def received(self, packet: Packet, now: float) -> None:
+    def received(self, packet: Packet, now: float) -> _CombatAdmissions | None:
         if not self.window.accept(packet.seq):
             return
         self.heard = now
@@ -968,9 +983,9 @@ class Client:
             and not self.player.gone
             and self.leaving_since is None
         ):
-            self._payload_in(packet.payload, now)
+            return self._payload_in(packet.payload, now)
 
-    def _payload_in(self, payload: bytes, now: float) -> None:
+    def _payload_in(self, payload: bytes, now: float) -> _CombatAdmissions | None:
         reader = BitReader(payload)
         try:
             reliable, unreliable = messages.read_channel(reader)
@@ -987,10 +1002,26 @@ class Client:
             self.log(f"[<<<] undecodable input: {error}", logging.DEBUG)
             return
         if commands and self.player.spawned:
+            fight = self.player.match.combat
+            before = {id(rocket): rocket for rocket in fight.rockets}
+            earlier_windup = defenses.soldier_field_windup(self.player)
             boundary = self.player.take_commands(commands)
             if boundary is not None:
                 self.log(f"[!] command clock boundary at {boundary:08X}; leaving", logging.WARNING)
                 self.server.take_out(self.player, "command clock boundary", now=now)
+            rockets = tuple(
+                rocket for rocket in fight.rockets
+                if id(rocket) not in before and rocket.last_tick is None and rocket.launch_tick == fight.tick
+            )
+            windup = defenses.soldier_field_windup(self.player)
+            field_timer = None
+            if windup is not None and windup is not earlier_windup:
+                field_timer = next((
+                    event for event in windup.instance.queue
+                    if event.state is windup and event.kind == runtime.TIMER and event.param == 1
+                ), None)
+            if rockets or field_timer is not None:
+                return _CombatAdmissions(rockets, field_timer)
 
     def _reliable_in(self, seq: int, msg_id: int, value: dict, now: float) -> None:
         if seq < self.expected_in:
@@ -1191,7 +1222,7 @@ class GameServer:
         """Serialize debug-console actions with the ordinary game tick."""
         from ow174.game.npc_console import Console
 
-        if not isinstance(key, str) or key not in ('=', '-', '0', '{', 'Escape', *'123456789'):
+        if not isinstance(key, str) or key not in ('=', '-', '0', '{', '}', 'Escape', *'123456789'):
             raise ValueError('Unknown NPC console key')
         if type(menu_open) is not bool:
             raise ValueError('Invalid NPC menu state')
@@ -1335,14 +1366,20 @@ class GameServer:
                 data = None
             try:
                 with self.lock:
+                    admissions = []
                     if data is not None:
                         self._datagram(
-                            data, address, self.environment.wall_time(callsite="server.run.datagram")
+                            data, address, self.environment.wall_time(callsite="server.run.datagram"),
+                            admissions=admissions,
                         )
                     if self.environment.monotonic(callsite="server.run.due") >= next_tick:
                         next_tick, missed = next_tick_after(
                             next_tick, self.environment.monotonic(callsite="server.run.next_tick")
                         )
+                        if missed:
+                            # Only combat work newly admitted by this packet moves to the endpoint.
+                            for admission in admissions:
+                                admission.defer(self.tick, missed)
                         self._tick(self.environment.wall_time(callsite="server.run.tick"), missed=missed)
             except Exception as error:
                 if on_iteration_error is not None:
@@ -1351,7 +1388,9 @@ class GameServer:
             self._report_leaves()
         self.sock.close()
 
-    def _datagram(self, data: bytes, address, now: float) -> None:
+    def _datagram(
+        self, data: bytes, address, now: float, *, admissions: list[_CombatAdmissions] | None = None,
+    ) -> None:
         conn = peek_connection(data)
         if conn is None:
             self._drop_datagram(address, None, "not a game link datagram", now)
@@ -1368,7 +1407,9 @@ class GameServer:
                     return
                 client.log(f"[+] the game moved to {address[0]}:{address[1]}")
                 client.address = address
-            client.received(packet, now)
+            admitted = client.received(packet, now)
+            if admissions is not None and admitted is not None:
+                admissions.append(admitted)
             return
         waiting = self.handoffs.get(conn)
         if waiting is None:
@@ -1391,7 +1432,9 @@ class GameServer:
         client.log(f"[+] SYN for {player.match.label()}, connection {conn}{self._others_at(address, client)}")
         if self._clock_ticks_left is not None:
             client.go_home(now)
-        client.received(packet, now)
+        admitted = client.received(packet, now)
+        if admissions is not None and admitted is not None:
+            admissions.append(admitted)
 
     def _others_at(self, address, client=None) -> str:
         """The other connections on this address, for the log: a game's links all share one socket."""

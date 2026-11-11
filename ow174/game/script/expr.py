@@ -298,11 +298,29 @@ class Context:
         """`entity.#var`: another entity's entity-scope variable."""
         return None
 
+    def resolved_member(self, entity: int, var: int):
+        self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int) -> Vec3:
         return Vec3(0.0, 0.0, 0.0)
 
     def ruleset(self, key: int):
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
+        return None
+
+    def reset_ruleset_target(self):
+        self._ruleset_target = INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self._ruleset_target = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return getattr(self, "_ruleset_target", INVALID_ENTITY)
+
+    def ruleset_default(self, key: int, entity: int):
+        if not valid_entity(entity) or entity == to_entity(self.owner()):
+            return self.ruleset(key)
         return None
 
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
@@ -443,12 +461,35 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_B5A0CAF0":  # GetOwner
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
+        # CCFAC0: preserve a successful non-null value. Only a null/failed
+        # selector falls back through its variable metadata and last entity.
+        ctx.reset_ruleset_target()
         key = cfg.get("m_value")
+        value = EVALUATION_FAILED if key is None else evaluate(key, ctx, initial=EVALUATION_FAILED)
+        if value is not EVALUATION_FAILED and value is not None:
+            return value
+        # F672D0 changes the result to int only on fallback failure. An
+        # already-int destination survives when selector evaluation did not write.
+        fallback = initial if value is EVALUATION_FAILED and type(initial) is int else 0
+        target = ctx.ruleset_target()
         found = dynamic(key)
-        return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
+        if found is not None:
+            if found[0] != ENTITY:
+                return fallback
+        elif isinstance(key, dict) and key.get("$") == "STU_919FD47C":
+            variables = (key.get("m_expression") or {}).get("m_dynamicVars") or ()
+            found = dynamic(variables[0]) if variables else None
+            if found is None or (found[0] != ENTITY and not valid_entity(target)):
+                return fallback
+        else:
+            return fallback
+        default = ctx.ruleset_default(found[1] & 0xFFFF, target)
+        return fallback if default is None or default is NotImplemented else default
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
         return value if value is not None else evaluate(cfg.get("m_default"), ctx)
+    if cls == "STU_58AA0A3B":  # 104319 1B778E0 tests the child's result type against null (0xFF).
+        return evaluate(cfg.get("m_value"), ctx) is not None
     if cls == "STU_3ACE35FB":  # WouldVarStackToTop
         var = dynamic(cfg.get("m_E50CF556"))
         return ctx.would_stack_to_top(var, stack_priority(cfg.get("m_012B7AF7")))
@@ -559,7 +600,7 @@ def _index(obj, index):
 def _member(obj, key: int, ctx: Context):
     if isinstance(obj, Entity) or (isinstance(obj, tuple) and obj and isinstance(obj[0], Entity)):
         entity = to_entity(obj)
-        return ctx.member(entity, key) if valid_entity(entity) else None
+        return ctx.resolved_member(entity, key) if valid_entity(entity) else None
     if isinstance(obj, Map):
         return obj.get(key)
     return None

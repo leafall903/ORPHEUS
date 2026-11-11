@@ -46,7 +46,9 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.collision import MOVER
+from ow174.game.commands import Command
+from ow174.game.mover import FELL, GRAVITY_SCALE, Mover, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -156,12 +158,53 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.impulse_mover: Mover | None = None  # external-force physics; route/input pauses while active
 
-    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
-        """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
+    def apply_impulse(self, impulse, tick: int, collision, *, category: int) -> None:
+        """Reconstructed external-force adapter using this body's actual mover data."""
+        impulse = tuple(impulse)
+        if len(impulse) != 3 or not all(math.isfinite(value) for value in impulse):
+            raise ValueError("invalid external impulse")
         if self.dead:
             return
-        if not self.route:
+        if self.impulse_mover is None:
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision,
+                                       mover_data(self.body), category=category)
+            self.impulse_mover.velocity = self.velocity
+            self.impulse_mover.last_command = Command(tick)
+            self.last_tick = tick
+        mover = self.impulse_mover
+        mover.velocity = tuple(a + b for a, b in zip(mover.velocity, impulse, strict=True))
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.fall = 0.0
+        self.velocity = mover.velocity
+        self.pace, self.held = 0.0, (0, 0)
+        self.moved_tick = tick
+
+    def _impulse_step(self, tick: int, seconds: float, collision, velocity_override=None) -> None:
+        mover = self.impulse_mover
+        mover.use(world=collision)
+        command = Command(tick, yaw=round(self.yaw), pitch=round(self.pitch))
+        if velocity_override is None:
+            mover.step(command, seconds, tick)
+        else:
+            mover.last_command = command
+            mover.step_pose(command, seconds, tick, velocity_override=velocity_override)
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        self.pace, self.held = 0.0, (0, 0)
+        self.moved_tick = tick
+        if not mover.airborne and math.hypot(mover.velocity[0], mover.velocity[2]) < 1e-3:
+            self.impulse_mover = None
+            self.velocity = (0.0, 0.0, 0.0)
+
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> bool | None:
+        """Move on the map and report obstruction if this tick swept a charge."""
+        if self.dead:
+            return
+        charge_velocity = getattr(self.body_script, "charge_velocity", None)
+        charge = charge_velocity() if charge_velocity is not None and tick >= paused_until else None
+        if not self.route and self.impulse_mover is None and charge is None:
             if tick < paused_until:
                 self._pause(tick)
                 self.last_tick = tick
@@ -171,9 +214,20 @@ class Bot:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            if at < paused_until:
+            if at == tick and charge is not None:
+                if self.impulse_mover is None:
+                    self.apply_impulse((0.0, 0.0, 0.0), at - 1, collision, category=MOVER)
+                    self.last_tick = tick
+                self._impulse_step(at, seconds, collision, charge)
+                # Report the mover's result before combat can add a new impulse.
+                vx, _, vz = self.velocity
+                cx, _, cz = charge
+                return vx * cx + vz * cz <= 0.03 * math.hypot(cx, cz)
+            elif self.impulse_mover is not None:
+                self._impulse_step(at, seconds, collision)
+            elif at < paused_until:
                 self._pause(at)
-            else:
+            elif self.route:
                 self._tick(at, seconds, collision)
 
     def _pause(self, tick: int) -> None:
@@ -296,6 +350,7 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.impulse_mover = None
         self.attack_target = None
         self.attack_input = False
         self.keys = False
@@ -337,11 +392,12 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            (self.impulse_mover.flags if self.impulse_mover is not None else 0) | (DEAD if self.dead else 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
             gravity=GRAVITY_SCALE,
+            air_ticks=self.impulse_mover.air_ticks if self.impulse_mover is not None else 0,
         )
 
 

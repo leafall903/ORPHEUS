@@ -1,6 +1,8 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+import math
+
+from ow174.game import assassin, heavy_charge, observers
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -14,6 +16,11 @@ PRACTICE_NAMEPLATE = 0x0D24
 PRACTICE_NAMEPLATE_PARENT = 0x0C18
 PRACTICE_BOT_HEROES = frozenset(range(0x02E000000000016B, 0x02E000000000016F))
 PRACTICE_NAMEPLATE_FILTER = {"$": "STUConfigVarFilter", "m_84065FD1": 0x3FFFFFFF, "m_4EA686DB": 0x100}
+ENFORCER, ENFORCER_PRIMARY = 0x02E00000000001CE, 0x13EB
+TROOPER, TROOPER_MELEE = 0x02E00000000001AC, 0x1422
+SNIPER, SNIPER_PRIMARY = 0x02E00000000001B8, 0x1122
+MANUAL_ENFORCER_CONTROLLER = frozenset({0x4B})
+PRIMARY_WINDUPS = {ENFORCER: (ENFORCER_PRIMARY, 11), SNIPER: (SNIPER_PRIMARY, 34)}
 
 
 def practice_nameplate(snapshot: Snapshot) -> int | None:
@@ -31,10 +38,50 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, match=None, manual_control: bool = False,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.match = match
+        self.manual_control = manual_control
+        self.manual_target = None
+
+    def _manual_graph(self, instance, hero, graph_id):
+        return (self.hero == hero and self.manual_control and self.match is not None
+                and instance.graph.index == graph_id)
+
+    def _heavy_attack(self, state, graph_id, position):
+        return (self._manual_graph(state.instance, heavy_charge.HERO, graph_id)
+                and state.node.pos == position)
+
+    def track_targets(self, state):
+        if self._heavy_attack(state, heavy_charge.GRAPH, heavy_charge.SEARCH):
+            return heavy_charge.search(self.match.combat, state)
+        if self._heavy_attack(state, 0x1408, 100):
+            return self.match.combat.npc_contact_targets(state, required_target_flag=961)
+        if self._heavy_attack(state, 0x140E, 6) or self._heavy_attack(state, 0x1408, 32):
+            return self.match.combat.npc_contact_targets(state)
+        if self._manual_graph(state.instance, TROOPER, TROOPER_MELEE) and state.node.pos == 5:
+            return self.match.combat.npc_contact_targets(state)
+        return NotImplemented
+
+    def raycast_state(self, state):
+        if (self.hero == 0x02E00000000001BA and self.manual_control and self.match is not None
+                and state.instance.graph.index == 0x1408 and state.node.pos in (170, 172)):
+            self.match.combat.heavy_charge_wall_probe(state)
+
+    def host_modify_health(self, state, elapsed_ms):
+        trooper_contact = self._manual_graph(state.instance, TROOPER, TROOPER_MELEE) and state.node.pos == 4
+        melee_contact = trooper_contact or self._heavy_attack(state, 0x140E, 5)
+        if melee_contact or any(self._heavy_attack(state, 0x1408, position) for position in (35, 102)):
+            if elapsed_ms == 0:
+                self.match.combat.npc_contact_hit(state, knockback=melee_contact)
+            return True
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def host_end_health(self, state):
+        assassin.end_health(self, state)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return self.weapon_buttons.get(str(slot))
@@ -44,6 +91,34 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        if cfg.get("$") == "STU_71A87E92" and (
+            self._manual_graph(instance, TROOPER, TROOPER_MELEE)
+            or self._manual_graph(instance, heavy_charge.HERO, 0x140E)
+        ):
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            for target in self.match.combat._targets():
+                if target.entity == entity:
+                    return expr.Vec3(*target.feet)
+        if (cfg.get("$") == "STU_2200A66D" and self.hero == 0x02E00000000001BA
+                and self.manual_control and self.match is not None and instance.graph.index == 0x1408
+                and instance.evaluate(cfg.get("m_entity")) == expr.Entity(instance.component.entity)):
+            from ow174.game.combat import aim
+
+            source = next((bot for bot in self.match.bots if bot.entity == instance.component.entity
+                           and bot.body_script is not None
+                           and bot.body_script.component is instance.component and not bot.dead), None)
+            if source is not None:
+                return expr.Vec3(*aim(source.yaw, source.pitch))
+
+        value = assassin.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        if (cfg.get("$") == "STU_B96D3A98" and self.hero == ENFORCER and self.manual_control
+                and instance.graph.index == ENFORCER_PRIMARY
+                and instance.evaluate(cfg.get("m_entity")) == expr.Entity(instance.component.entity)):
+            # CC9F61 tests controller component 4B present and 5C absent.
+            # The manual spawn policy supplies this profile for the local weapon only.
+            return 0x4B in MANUAL_ENFORCER_CONTROLLER and 0x5C not in MANUAL_ENFORCER_CONTROLLER
         if cfg.get("$") == "STU_9B7648C3":
             # 104319 CEB6C0 -> D177C0 selects component51 via BCC870.
             # Reconstruct its numeric getter from the authoritative aggregate
@@ -88,7 +163,7 @@ class BotScript(ReplicatedBody):
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, match=None, manual_control: bool = False,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -97,7 +172,7 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, match=match, manual_control=manual_control)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
@@ -116,6 +191,39 @@ class BotScript(ReplicatedBody):
         self._initial_frame: BitWriter | None = observers.full_frame(self, snapshot)
         self.death_frame: int | None = None
         self._produced = snapshot
+
+    def charge_velocity(self):
+        """Read the active 1408 replacement vector for a manual Heavy."""
+        component = self.component
+        if component.world.hero != 0x02E00000000001BA or not component.world.manual_control:
+            return None
+        for instance in component.instances.values():
+            if instance.graph.index != 0x1408:
+                continue
+            node = instance.graph.node(71)
+            state = instance.states.get(node.state) if node is not None else None
+            if state is not None and state.active and not state.ending:
+                rows = node.field('m_BC5E91CF') or ()
+                row = next((row for row in rows if row and row.get('$') == 'STU_09F9B1FE'
+                            and row.get('m_CFEC5F76') == 0), None)
+                if row is None:
+                    return None
+                value = state.evaluate(row["m_9B7A63EA"], watch=False)
+                if isinstance(value, expr.Vec3) and all(math.isfinite(axis) for axis in value):
+                    return tuple(value)
+        return None
+
+    def cancel_primary_windup(self) -> None:
+        """Abort a pending volley through its authored graph state."""
+        windup = PRIMARY_WINDUPS.get(self.component.world.hero)
+        if windup is None:
+            return
+        graph_id, position = windup
+        for instance in self.component.instances.values():
+            if instance.graph.index == graph_id:
+                state = instance.states.get(instance.graph.node(position).state)
+                if state is not None and state.active:
+                    state.request(runtime.ABORT)
 
     def _initial_payload(self) -> BitWriter:
         if self._initial_frame is None:
@@ -156,6 +264,8 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame, edges)
+        assassin.refresh_control(self.component.world, self.component)
+        heavy_charge.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -172,6 +282,7 @@ class BotScript(ReplicatedBody):
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
+        assassin.bind(component.world, component, None)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
@@ -179,6 +290,7 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None:
             component.destroy(self.behavior)
             self.behavior = None
+        self.cancel_primary_windup()
         component.shots.clear()
         component.run_frame(self.frame)
         component.held.clear()

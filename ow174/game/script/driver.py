@@ -97,7 +97,7 @@ TRUSTED_NATIVES = {
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
 # Charge #342e is server-owned. Soldier uses authored0B8B point expressions;
-# the host bridges eligible HP and the inactive passive timer. Positive
+# the host bridges eligible HP and modes without an authored startup route. Positive
 # ult_seconds retains a sandbox time-to-full override; nonpositive disables passive gain.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
@@ -135,8 +135,81 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def entity_var(self, entity: int, var: int):
+        if (var == ultimate.HEAL_TARGET_SUPPRESS or var in ultimate.DAMAGE_TARGET_FLAGS
+                ) and ultimate.practice_timer(self):
+            actor = self.match._message_player(entity)
+            if actor is None:
+                actor = next((bot for bot in self.match.bots if bot.entity == entity), None)
+            script = getattr(actor, "body_script", None)
+            if script is not None and not getattr(script, "retired", False):
+                slot = script.component.entity_var(var, create=False)
+                return slot.value() if slot is not None else None
+        return super().entity_var(entity, var)
+
+    def track_targets(self, state):
+        if self.match is None:
+            return NotImplemented
+        combat = self.match.combat
+        if (state.instance.graph.index == 0x0259
+                and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
+            return combat.visor_targets(state)
+        return combat.zarya_barriers.query_targets(state)
+
+    def host_play_script(self, instance, node) -> bool:
+        """Scoped game host for known permissive actions; not native PlayScript."""
+        if self.match is None:
+            return False
+        handled = self.match.combat.winston_barriers.play(instance, node)
+        if handled is not NotImplemented:
+            return handled
+        return self.match.combat.grasp.play_script(self.body, instance, node)
+
+    def create_entity(self, instance, node):
+        if self.match is None:
+            return NotImplemented
+        return self.match.combat.winston_barriers.create(instance, node)
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if (cls == "STU_021D01CD" and instance.graph.index == 0x0257
+                and self.match is not None and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                angle = player.mover.yaw * math.tau / 65536
+                return Vec3(f32(math.sin(angle)), 0.0, f32(math.cos(angle)))
+        if (cls == "STU_71A87E92" and instance.graph.index == 0x0043
+                and self.match is not None and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            return self.match.script_body_position(self.body, self.body)
+        if instance.graph.index == ultimate.CHARGE_GRAPH and ultimate.practice_timer(self):
+            result = ultimate.tagged_damage_query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if (cls == "STU_F7262B36" and instance.graph.index == ultimate.CHARGE_GRAPH
+                and instance.component.entity == self.body
+                and ultimate.practice_timer(self)
+                and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.spawned and not p.gone
+                           and p.body == self.body and p.hero.guid == self.hero), None)
+            return Entity(player.entity) if player is not None else None
+        if (cls in ("STU_F7262B36", "STU_F76C486C", "STU_0AC15F78")
+                and self.match is not None and instance.graph.index in (0x0276, 0x02CC)
+                and instance.component.entity == self.body):
+            # 0407 reads its current component43 owner and that controller's
+            # component44 possession. Resolve the live pair during bootstrap too.
+            player = next((p for p in self.match.players if p.has_body and not p.gone
+                           and p.body == self.body and p.hero.body == 0x0400000000000407), None)
+            if player is not None:
+                field = {"STU_F7262B36": "m_801B298F", "STU_F76C486C": "m_D63CBEC2"}.get(cls)
+                target = instance.evaluate(cfg.get(field or "m_entity"))
+                # The explicit player-form host binds the authored 0407 pet
+                # component's link to its controller as a separate policy.
+                if cls == "STU_F76C486C" and instance.graph.index == 0x02CC and target == Entity(player.body):
+                    return Entity(player.entity)
+                if cls == "STU_F7262B36" and target == Entity(player.body):
+                    return Entity(player.entity)
+                if cls == "STU_0AC15F78" and target == Entity(player.entity):
+                    return Entity(player.body)
         if cls == "STU_9B7648C3":
             # Captured CEB6C0 -> D177C0/component51 route. Aggregate health is
             # a reconstructed current-self getter; foreign queries stay unknown.
@@ -268,10 +341,14 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float | None = None,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        if body_definition is None:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        else:
+            record = graph.player_body(hero, body_definition)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -287,12 +364,16 @@ class BodyScript(ReplicatedBody):
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
+        self.world_frame_anchor: tuple[int, int] | None = None
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        if health is None:
+            health = sum(pools.body_pools(hero) if body_definition is None
+                         else pools.active_pools(hero, body_definition))
+        self._spawn(start_frame, health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -327,6 +408,7 @@ class BodyScript(ReplicatedBody):
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        ultimate.sync_practice_timer(self)
 
     # --- running -----------------------------------------------------------------------------------
 
@@ -339,6 +421,8 @@ class BodyScript(ReplicatedBody):
         Raise before changing anything, so the caller can establish a fresh lifecycle;
         resetting self.frame would silently keep incompatible timers and client history.
         """
+        if self.retired:
+            return
         self.component.ensure_valid()
         if type(frame) is not int or not 0 <= frame <= FRAME_MASK:
             raise ValueError("command frame must be uint32")
@@ -355,6 +439,7 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        ultimate.sync_practice_timer(self)
         self.component.run_frame(frame, edges)
         self._report_shots()
         self._charge_ult()
@@ -367,12 +452,20 @@ class BodyScript(ReplicatedBody):
         return (not self.retired and not self.component.owner_dead
                 and not any(state.flags & nodes.Ability.RUNNING for state in self.ultimates))
 
-    def gain_ult_charge(self, points: float, *, kind: str = "damage") -> float:
+    def gain_ult_charge(
+        self, points: float, *, kind: str = "damage", target_definition=None, recipient=None,
+    ) -> float:
         """Bridge actual HP into Soldier's authored charge expression, then apply it once."""
         if not math.isfinite(points) or points <= 0 or not self._ult_charge_allowed():
             return 0.0
+        if recipient is not None and ultimate.practice_timer(self.world):
+            if kind == "healing":
+                return ultimate.field_healing_points(self, points, recipient)
+            result = ultimate.tagged_damage_points(self, points, recipient, target_definition)
+            if result is not None:
+                return result
         if self.hero == SOLDIER:
-            points = ultimate.combat_points(self, points, kind)
+            points = ultimate.combat_points(self, points, kind, target_definition)
         return self._gain_ult_points(points)
 
     def _gain_ult_points(self, points: float) -> float:
@@ -394,7 +487,8 @@ class BodyScript(ReplicatedBody):
             self.passive_charge_ms = 0
             return
         if self.ult_seconds is None and self.hero == SOLDIER:
-            ultimate.passive_points(self)
+            if not ultimate.practice_timer(self.world):
+                ultimate.passive_points(self)
             return
         if self.ult_seconds is None:
             step = f32(5.0 * self.frame_ms / 1000)  # other heroes retain the declared reconstruction

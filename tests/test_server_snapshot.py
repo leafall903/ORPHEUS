@@ -16,8 +16,11 @@ import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
 from ow174.game import mover as mover_module
-from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game import projectiles, winston_barrier
+from ow174.game.collision import MOVER, StaticCollisionProvider, flat_world
+from ow174.game.combat import BioticDose, HealingModifier, Rocket, Sleep
 from ow174.game.content import SOLDIER
+from ow174.game.defenses import MEI, ORISA, REAPER, ZARYA
 from ow174.game.link import SYN
 from ow174.game.match import Match
 from ow174.game.mover import Mover
@@ -29,6 +32,222 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_actual_helix_launch_tick_changes_the_causal_digest(self):
+        session, peers, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        peers[0].commands(player.body_script.frame + 1, 1, 2)
+        rocket, = fight.rockets
+        self.assertIsNone(rocket.last_tick)
+        self.assertEqual(rocket.launch_tick, fight.tick)
+        emitted = snapshot_digest(self.capture(session))
+        rocket.launch_tick += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), emitted)
+        self.assertIsNone(rocket.last_tick)
+
+    def test_canister_distance_and_rebound_count_change_the_causal_digest(self):
+        session, _, players = self.scene()
+        soldier = players[0]
+        fight = soldier.match.combat
+        rocket = Rocket(
+            soldier, soldier.team, (0, 1, 0), (0, -1, 0), 50, 10, None, None,
+            launch_tick=fight.tick, gravity=9.8, range_limit=150,
+            rebound_limit=9, rebound_scale=.1,
+        )
+        fight.rockets.append(rocket)
+        before = snapshot_digest(self.capture(session))
+        rocket.distance = 1
+        moved = snapshot_digest(self.capture(session))
+        self.assertNotEqual(moved, before)
+        rocket.rebounds = 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), moved)
+
+    def test_field_airborne_gate_and_placement_change_the_causal_digest(self):
+        session, _, players = self.scene()
+        soldier = players[0]
+        manager = soldier.match.combat.projectiles
+        tick = soldier.match.tick
+        shot = projectiles.Shot(
+            soldier, soldier.body, 0x040000000000072D, tick, 1, 1, (1, tick),
+            spawn=projectiles.FIELD_ENTITY, where=(0, 8, 0), field_due=tick, field_airborne=True,
+        )
+        manager.shots.append(shot)
+        airborne = snapshot_digest(self.capture(session))
+        shot.field_airborne = False
+        landed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(landed, airborne)
+        shot.where = (0, 0, .5)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), landed)
+
+    def test_pending_biotic_rifle_dose_changes_the_causal_digest(self):
+        session, _, players = self.scene()
+        target = players[0]
+        fight = target.match.combat
+        dose = BioticDose(target, target.body, target.body, True, fight.tick, 70, None, fight.tick)
+        before = snapshot_digest(self.capture(session))
+        fight.biotic_doses.append(dose)
+        pending = snapshot_digest(self.capture(session))
+        self.assertNotEqual(pending, before)
+        dose.applied = 10
+        self.assertNotEqual(snapshot_digest(self.capture(session)), pending)
+
+    def test_anti_heal_deadline_changes_the_causal_digest(self):
+        session, _, players = self.scene()
+        target = players[0]
+        fight = target.match.combat
+        modifier = HealingModifier(anti_from=fight.tick, anti_until=fight.tick + 250)
+        fight.heal_modifiers[target.body] = modifier
+        before = snapshot_digest(self.capture(session))
+        modifier.anti_until -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_sleep_deadline_changes_the_causal_digest(self):
+        session, _, players = self.scene()
+        target = players[0]
+        fight = target.match.combat
+        sleep = Sleep(fight.tick, fight.tick + 313)
+        fight.sleeps[target.body] = sleep
+        before = snapshot_digest(self.capture(session))
+        sleep.end -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_orisa_barrier_child_and_pool_are_causal_after_actual_deploy(self):
+        session, peers, players = self.scene(two=True)
+        owner = players[1]
+        service = owner.match.combat.orisa_barriers
+        if service.geometry is None:
+            self.skipTest("original Orisa collision descriptor is required")
+        peers[1].message(21616, pick(owner.entity, ORISA), now=100.8)
+        peers[1].commands(owner.body_script.frame + 1, 100, 16)
+        self.assertTrue(service.flights)
+        session.tick(101.9, missed=65)
+        shield, = service.actors.values()
+        self.assertEqual(shield.health, 600)
+        initial = snapshot_digest(self.capture(session))
+        shield.health -= 20
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_deployed_winston_dome_pool_and_child_clock_change_causal_digest(self):
+        session, peers, players = self.scene(two=True)
+        owner = players[1]
+        peers[1].message(21616, pick(owner.entity, winston_barrier.HERO), now=100.8)
+        peers[1].commands(owner.body_script.frame + 1, 40, 16)
+        dome, = owner.match.combat.winston_barriers.actors.values()
+        self.assertEqual(dome.health, 700)
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            initial = snapshot_digest(self.capture(session))
+            dome.health -= 20
+            damaged = snapshot_digest(self.capture(session))
+            dome.component.frame += 1
+            advanced = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, initial)
+        self.assertNotEqual(advanced, damaged)
+
+    def test_particle_barrier_pool_changes_the_causal_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply("switch_hero", {"account": player.account_lo, "hero": ZARYA})
+        pools = player.match.combat.zarya_barriers.pools
+        pools[player.body] = ((1, 1, 16000), 200.0)
+        initial = snapshot_digest(self.capture(session))
+        pools[player.body] = ((1, 1, 16000), 180.0)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        pools[player.body] = ((1, 1, 16000), 200.0)
+        player.match.combat.zarya_barriers.projected[player.body] = ((2, 1, 16000), 180.0, 5)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_cryo_healing_settlement_changes_the_causal_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply("switch_hero", {"account": player.account_lo, "hero": MEI})
+        samples = player.match.combat.cryo_samples
+        initial = snapshot_digest(self.capture(session))
+        samples[player.body] = ((1, 1, 16000), 10.0)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        samples.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_reaper_world_frame_anchor_changes_the_causal_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply("switch_hero", {"account": player.account_lo, "hero": REAPER})
+        script = player.body_script
+        initial = snapshot_digest(self.capture(session))
+        script.world_frame_anchor = (player.match.tick, script.frame)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        script.world_frame_anchor = None
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_manual_pin_identity_changes_digest_without_body_health_change(self):
+        session, _, players = self.scene(two=True)
+        player = players[0]
+        fight = player.match.combat
+        pool = fight.vitals_of(next(t for t in fight._targets() if t.owner is player))
+        health = pool.total
+        initial = snapshot_digest(self.capture(session))
+        # Stored-state sensitivity only; actual1157 combat is tested separately.
+        source = players[1].body
+        fight.pins[source] = player.body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        self.assertEqual(pool.total, health)
+        fight.pins.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_barrier_pool_and_regen_deadline_change_digest_without_body_hp_change(self):
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply("switch_hero", {"account": player.account_lo, "hero": 0x02E0000000000007})
+        fight = player.match.combat
+        state = fight.barriers.sync(player)
+        if state is None:
+            self.skipTest("explicit original barrier geometry required for barrier storage witness")
+        pool = fight.vitals_of(next(t for t in fight._targets() if t.owner is player))
+        health = pool.total
+        initial = snapshot_digest(self.capture(session))
+        state.current -= 1.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        self.assertEqual(pool.total, health)
+        state.current += 1.0
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        state.regen_after += .016
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        self.assertEqual(pool.total, health)
+
+    def test_grasp_conversion_and_extra_pool_capacity_change_causal_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        pool = fight.vitals_of(next(t for t in fight._targets() if t.owner is player))
+        initial = snapshot_digest(self.capture(session))
+        health = pool.total
+        fight.grasp.conversions[(player.body, 0)] = 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        fight.grasp.conversions.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        pool.bonus_shields_max = 72
+        self.assertEqual(pool.total, health)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        pool.bonus_shields_max = 0.0
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_npc_external_mover_hidden_physics_changes_causal_digest(self):
+        from test_bots import make_bot
+
+        session, _, players = self.scene()
+        match = players[0].match
+        actor = make_bot()
+        actor.entity = max((bot.entity for bot in match.bots), default=actor.entity - 1) + 1
+        match.bots.append(actor)
+        actor.apply_impulse((4, 6, 0), match.tick, match.collision_world, category=MOVER)
+        initial = snapshot_digest(self.capture(session))
+        position = tuple(actor.position)
+        before = actor.impulse_mover.spring
+        actor.impulse_mover.spring += .01
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        self.assertEqual(actor.position, position)
+        actor.impulse_mover.spring = before
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()

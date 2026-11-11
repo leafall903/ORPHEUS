@@ -115,6 +115,16 @@ class RifleTests(unittest.TestCase):
 
 
 class CooldownTests(unittest.TestCase):
+    def test_released_early_helix_press_expires_before_cooldown_recovers(self):
+        session = Session()
+        session.run(1, SECONDARY)
+        session.run(80)
+        session.run(1, SECONDARY)
+        session.run(400)
+        self.assertEqual(session.var(RIFLE, 61), 0)
+        session.run(1, SECONDARY)
+        self.assertGreater(session.var(RIFLE, 61), 5.9)
+
     def test_helix_rockets_start_their_cooldown(self):
         session = Session()
         self.assertEqual(session.var(RIFLE, 472), 6.0)  # the cooldown's length: AbilityCooldownDuration

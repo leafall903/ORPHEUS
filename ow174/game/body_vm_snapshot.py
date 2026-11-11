@@ -10,9 +10,11 @@ import json
 import random
 
 from ow174.game import replay_values
+from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.winston_barrier import DomeWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -28,7 +30,8 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity",
+    "ruleset_target_entity", "auto_retire",
     "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 ))
@@ -39,7 +42,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count", "passive_charge_ms",
+    "reports", "report_count", "passive_charge_ms", "world_frame_anchor",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -89,8 +92,11 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.ModifyHealth: (("last_applied",), ()),
+    nodes.TrackTargets: (("targets", "var", "last_refresh"), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
+    nodes.RecentListSelection: (("recent",), ()),
+    nodes.TaggedEntityState: ((), ()),
 }
 _VALUE_LAYOUTS = {
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
@@ -189,6 +195,9 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        target = fields["ruleset_target_entity"]
+        if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError("invalid ruleset target entity cache")
         frame = fields['initialized_frame']
         if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance initialization frame')
@@ -383,17 +392,22 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, DomeWorld, BarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
+            if kind is DomeWorld:
+                fields.update(("manager", "actor"))
+            if kind is BarrierWorld:
+                fields.add("actor")
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "match",
+                               "manual_control", "manual_target"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "manager", "actor"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

@@ -34,6 +34,74 @@ class Target:
             raise ValueError('expected current possession or known component44 absence')
 
 
+@dataclass(frozen=True)
+class TaggedCandidate:
+    """One candidate with the host's effective uint32 tag keys."""
+
+    entity: int
+    tags: frozenset[int]
+    suppressed: bool = False
+
+
+def collect_tagged(instance, node, *, watcher=None):
+    """CB8EC0/D3FE60 with explicit world services and no authored filter."""
+    component = instance.component
+    output = node.field("m_4AEEE6A1")
+    if output is None:
+        return
+    if watcher is not None:
+        present = component.world.tagged_entity_world_available(instance, node)
+        _check_tag_owner(instance, node, watcher)
+        if type(present) is not bool:
+            component.unsupported(instance, "tag query world availability", node.cls, node)
+        if not present:
+            return
+    target = expr.dynamic(output)
+    if target is None:
+        if isinstance(output, dict) and output.get("$") in expr.CONSTANTS:
+            return
+        component.unsupported(instance, "tag query output target", node.cls, node)
+    if not target[1]:
+        return
+    variable = instance.find_var(*target)
+    if variable.links:
+        component.unsupported(instance, "tag query linked output", node.cls, node)
+    if node.field("m_filter") is not None:
+        component.unsupported(instance, "tag query filter", node.cls, node)
+    before = variable.value()
+    variable.base = ()
+    configs = [node.field(field) for field in ("m_9C7BD8B8", "m_B486603E", "m_8B2A4DF3")]
+    if any(cfg is not None for cfg in configs):
+        any_tags, all_tags, excluded_tags = (
+            frozenset(asset & 0xFFFFFFFF for item in play._iter_values(instance, cfg, watcher=watcher)
+                      if (asset := play._asset(item)))
+            for cfg in configs
+        )
+        candidates = component.world.tagged_entity_candidates(instance, node)
+        _check_tag_owner(instance, node, watcher)
+        if type(candidates) is not tuple:
+            component.unsupported(instance, "tag query enumeration", node.cls, node)
+        matches = []
+        for candidate in candidates:
+            component.consume_work("tag query candidate")
+            if type(candidate) is not TaggedCandidate:
+                component.unsupported(instance, "tag query candidate", node.cls, node)
+            tags = candidate.tags
+            if (not candidate.suppressed and (not any_tags or any_tags & tags)
+                    and all_tags <= tags and not excluded_tags & tags):
+                matches.append(expr.Entity(candidate.entity))
+        variable.base = tuple(matches)
+    instance.changed(variable, before)
+
+
+def _check_tag_owner(instance, node, watcher):
+    component = instance.component
+    component.ensure_valid()
+    if (instance.stopped or component.instances.get(instance.id) is not instance
+            or (watcher is not None and not watcher.active)):
+        component.unsupported(instance, "tag query owner retired", node.cls, node)
+
+
 @dataclass
 class Context:
     owner: int

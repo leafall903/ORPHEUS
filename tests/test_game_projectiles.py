@@ -6,6 +6,7 @@ import struct
 import sys
 import unittest
 from contextlib import nullcontext
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -13,16 +14,18 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from test_game_combat import KANEZAKA_DM, Run
+from test_game_combat import KANEZAKA_DM, Run, aim
 from test_game_packet_budget import MemorySocket, decoded
 from test_game_world import read_movement
 
 from ow174.game import bodytrace, bots, combat, movelog, observers, projectiles, world
 from ow174.game.bits import BitReader
+from ow174.game.collision import flat_world
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, find_hero, heroes
 from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
 from ow174.game.match import sends
+from ow174.game.script import graph
 from ow174.game.script.decode import ClientBody, read_chunk
 from ow174.game.script.driver import Snapshot
 from ow174.game.server import Client, GameServer
@@ -960,6 +963,123 @@ class ObserverProjectileDeliveryTests(unittest.TestCase):
 
 
 class BioticFieldTests(unittest.TestCase):
+    def test_free_for_all_field_heals_only_caster_even_with_shared_team_number(self):
+        run = Run(KANEZAKA_DM, names=("Soldier", "Other"))
+        self.assertTrue(run.match.game_map.free_for_all)
+        soldier, other = run.players
+        other.team = soldier.team
+        run.match.collision_world = flat_world(0)
+        for player, z in ((soldier, 0), (other, 2)):
+            player.mover.position = [0, 0, z]
+            player.mover.body = None
+        fight = run.match.combat
+        pools = {target.owner: fight.vitals_of(target) for target in fight._targets()}
+        for player in (soldier, other):
+            pools[player].damage(50)
+        run.step({soldier: (0, 0, ABILITY_2)})
+        for _ in range(110):
+            run.step({})
+        self.assertGreater(pools[soldier].total, 150)
+        self.assertEqual(pools[other].total, 150)
+
+    def test_cast_reads_field_graph_radius_healing_value_and_waits(self):
+        # Change only an isolated copy of the 0258 inputs to prove the live cast consumes them.
+        field_graph = graph.Graph(deepcopy(graph._records()[projectiles.FIELD_GRAPH]))
+        for position, value in ((2, 1), (3, 2), (4, 10)):
+            field_graph.node(position).fields["m_value"] = {"$": "STUConfigVarInt", "m_value": value}
+        lookup = graph.graph
+        run = Run(names=("Soldier", "Ally"))
+        soldier, ally = run.players
+        match = run.match
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        match.collision_world = flat_world(0)
+        ally.team = soldier.team
+        for player, z in ((soldier, -3), (ally, 1)):
+            player.mover.position = [0, 0, z]
+            player.mover.body = None
+        fight = match.combat
+        pools = {target.owner: fight.vitals_of(target) for target in fight._targets()}
+        for pool in pools.values():
+            pool.damage(100)
+
+        def overridden(index):
+            return field_graph if index == projectiles.FIELD_GRAPH else lookup(index)
+
+        with patch.object(graph, "graph", side_effect=overridden):
+            run.step({soldier: (0, 0, ABILITY_2)})
+            for _ in range(80):
+                run.step({})
+                if fight.projectiles.shots and fight.projectiles.shots[0].field_tick is not None:
+                    break
+            field, = fight.projectiles.shots
+            self.assertEqual(field.field_tick, run.frame)
+            self.assertEqual(pools[soldier].total, 100)
+            for _ in range(31):
+                run.step({})
+            self.assertFalse(field.faded)
+            self.assertAlmostEqual(pools[soldier].total, 100 + 31 * .16)
+            run.step({})
+            self.assertTrue(field.faded)
+            for _ in range(31):
+                run.step({})
+            self.assertNotIn(field, fight.projectiles.shots)
+        self.assertAlmostEqual(pools[soldier].total, 100 + 62 * .16)
+        self.assertEqual(pools[ally].total, 100)
+
+    def test_body_replacement_retires_pending_and_deployed_field_with_late_ack(self):
+        for deployed in (False, True):
+            with self.subTest(deployed=deployed):
+                run = Run(names=("Soldier", "Ally"))
+                soldier, ally = run.players
+                match = run.match
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                match.collision_world = flat_world(0)
+                for player, z in ((soldier, -3), (ally, 1)):
+                    player.mover.position = [0, 0, z]
+                    player.mover.body = None
+                    player.body_script.ult_seconds = 0
+                fight = match.combat
+                pool = fight.vitals_of(next(t for t in fight._targets() if t.owner is ally))
+                angles = aim(fight._eye(soldier), (0, .8, 1))
+                run.step({soldier: (*angles, FIRE)})
+                self.assertEqual(pool.total, 180)
+                ally.team = soldier.team
+                held = []
+                queue = ally.client.queue_entities
+
+                def hold_field_create(updates, held=held, queue=queue):
+                    for item in updates:
+                        if isinstance(item.stream, projectiles.FieldArrived):
+                            held.append((item.entity, item.stream))
+                            item.stream = None
+                    queue(updates)
+
+                with patch.object(ally.client, "queue_entities", side_effect=hold_field_create):
+                    run.step({soldier: (0, 0, ABILITY_2)})
+                    for _ in range(90):
+                        if fight.projectiles.shots and (not deployed or pool.total > 180):
+                            break
+                        run.step({})
+                field, = fight.projectiles.shots
+                self.assertEqual(field.spawn, projectiles.FIELD_ENTITY)
+                self.assertEqual(field.field_tick is not None, deployed)
+                self.assertEqual(len(held), int(deployed))
+                before = pool.total
+                self.assertTrue(match.switch_hero(soldier, soldier.hero))
+                self.assertNotIn(field, fight.projectiles.shots)
+                soldier.body_script.ult_seconds = 0
+                for entity, arrival in held:
+                    self.assertIn((entity, OP_DESTROY), [(u.entity, u.op) for u in ally.client.entities])
+                    count = len(ally.client.entities)
+                    arrival.arrived(0)
+                    self.assertEqual(len(ally.client.entities), count)
+                for _ in range(50):
+                    run.step({})
+                self.assertEqual(pool.total, before)
+                self.assertEqual(soldier.body_script.component.entity_var(342).value(), 0)
+
     def test_other_deployables_do_not_spawn_a_biotic_field(self):
         cases = (("Torbjörn", ABILITY_1, 0x28B7), ("Zarya", ULTIMATE, 0x03E2))
         for name, button, spawn in cases:
@@ -1073,8 +1193,8 @@ class BioticFieldTests(unittest.TestCase):
                 else:
                     self.assertEqual(owner_fields, {})
 
-    def test_gap_across_field_opening_keeps_only_retained_healing(self):
-        def launch():
+    def test_gap_across_field_opening_matches_stepped_healing(self):
+        def launch(*, settle_first):
             run = Run(KANEZAKA_DM)
             player, = run.players
             fight = run.match.combat
@@ -1087,11 +1207,12 @@ class BioticFieldTests(unittest.TestCase):
                     break
                 run.step({})
             field, = fight.projectiles.shots
-            run.step({})  # admit the canister on the world clock before the gap
+            if settle_first:
+                run.step({})
             self.assertIsNone(field.field_tick)
             return run, field, vitals
 
-        normal, field, vitals = launch()
+        normal, field, vitals = launch(settle_first=True)
         for _ in range(80):
             if field.field_tick is not None:
                 break
@@ -1104,15 +1225,17 @@ class BioticFieldTests(unittest.TestCase):
             normal.step({})
             health.append(vitals.total)
 
-        for elapsed in (5, combat.COMBAT_CATCH_UP + 5):
-            with self.subTest(elapsed=elapsed):
-                skipped, field, vitals = launch()
-                self.assertLess(skipped.frame, start)
-                endpoint = start + elapsed
-                skipped.match.update(endpoint * combat.TICK, endpoint)
-                self.assertEqual(field.field_tick, start)
-                retained = min(elapsed, combat.COMBAT_CATCH_UP)
-                self.assertAlmostEqual(vitals.total, 1.0 + health[elapsed] - health[elapsed - retained])
+        for settle_first in (True, False):
+            for elapsed in (5, combat.COMBAT_CATCH_UP + 5):
+                with self.subTest(settle_first=settle_first, elapsed=elapsed):
+                    skipped, field, vitals = launch(settle_first=settle_first)
+                    self.assertLess(skipped.frame, start)
+                    endpoint = start + elapsed
+                    skipped.match.update(endpoint * combat.TICK, endpoint)
+                    self.assertEqual(field.field_tick, start)
+                    self.assertAlmostEqual(vitals.total, health[elapsed])
+                    skipped.match.update(endpoint * combat.TICK, endpoint)
+                    self.assertAlmostEqual(vitals.total, health[elapsed])
 
     def test_active_field_heals_elapsed_ticks_once_and_stops_at_expiry(self):
         run = Run(KANEZAKA_DM)

@@ -94,6 +94,15 @@ def aim(origin, target) -> tuple[int, int]:
     return (yaw + 32768) % 65536 - 32768, pitch
 
 
+def first_canister_sweep(canister):
+    """Expected first gravity sweep for a just-admitted Field cast."""
+    assert canister.flown == 0 and canister.gravity is not None
+    vx, vy, vz = (axis * canister.speed for axis in canister.direction)
+    vy -= canister.gravity * combat.TICK
+    speed = math.hypot(vx, vy, vz)
+    return canister.position, (vx / speed, vy / speed, vz / speed), speed * combat.TICK
+
+
 class Run:
     """A match ticked frame by frame, the players' commands taken as the server takes them."""
 

@@ -12,14 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.game import environment as environment_module
 from ow174.game import match as match_module
-from ow174.game import messages
+from ow174.game import messages, projectiles
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.combat import Rocket
 from ow174.game.content import PRACTICE_RANGE
 from ow174.game.environment import SystemEnvironment
 from ow174.game.link import ACK, SYN, LinkCipher, Packet
 from ow174.game.match import Match, pong
-from ow174.game.server import FIRST_TICK, HANDOFF_SECONDS, PING, Client, GameServer
+from ow174.game.server import FIRST_TICK, HANDOFF_SECONDS, PING, Client, GameServer, _CombatAdmissions
 
 
 @dataclass(frozen=True)
@@ -298,6 +299,42 @@ class GameEnvironmentTests(unittest.TestCase):
         self.assertEqual(server.sock.timeouts, [0.0001])
         self.assertTrue(server.sock.closed)
         self.assertEqual(next(iter(server._dropped.values())), [0, 1000.0])
+        tape.assert_exhausted()
+
+    def test_late_datagram_defers_only_its_new_projectiles_to_the_catch_up_endpoint(self):
+        tape = ReadTape(
+            Read("randbelow", "server.next_conn", 0, 0x100000),
+            Read("monotonic", "server.run.start", 10.0),
+            Read("monotonic", "server.run.timeout", 10.0),
+            Read("wall_time", "server.run.datagram", 1000.0),
+            Read("monotonic", "server.run.due", 10.0),
+            Read("monotonic", "server.run.next_tick", 10.1),
+            Read("wall_time", "server.run.tick", 1000.1),
+        )
+        server = GameServer(environment=tape)
+        def canister():
+            shot = SimpleNamespace(spawn=projectiles.FIELD_ENTITY, field_due=None)
+            rocket = Rocket(None, 0, (0, 0, 0), (0, 0, 1), 50, 10, None, None, shot)
+            rocket.stamp_launch(server.tick)
+            return rocket
+
+        earlier, latest = canister(), canister()
+        observed = []
+        def update(now, tick, *, frames):
+            observed.append((tick, earlier.launch_tick, latest.launch_tick))
+
+        server.matches.append(SimpleNamespace(ended=False, update=update))
+        server.sock = OneReceiveSocket(server, b"late")
+        server.running = True
+        def receive(data, address, now, *, admissions):
+            admissions.append(_CombatAdmissions((latest,)))
+
+        with mock.patch.object(server, "_datagram", side_effect=receive):
+            server._run()
+        self.assertGreater(server.tick, FIRST_TICK + 1)
+        self.assertEqual(observed, [(server.tick, FIRST_TICK, server.tick - 1)])
+        self.assertEqual(earlier.shot.field_due, FIRST_TICK + 1 + projectiles.FIELD_DELAY)
+        self.assertEqual(latest.shot.field_due, server.tick + projectiles.FIELD_DELAY)
         tape.assert_exhausted()
 
     def test_run_cannot_accept_an_expired_handoff_before_its_due_tick(self):

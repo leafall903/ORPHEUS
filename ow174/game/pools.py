@@ -4,8 +4,8 @@
 is set, st3 (type 1, armour) with #1736 when it is set, and st0 (type 0, health) with #199. The values are
 0033's schema defaults (#199 1000, #1736 0, #221 0) or the body's overrides of them (the initial graph
 0033 of its STUStatescriptComponent): Soldier 200, Reinhardt 300 and 200 armour, Zarya 200 and 200
-shields, Wrecking Ball 500 and 100 armour, Zenyatta 50 and 150 shields. D.Va's 150 is her pilot's; the mech's
-pools come from her own graphs (0109), which only her body statescript would add.
+shields, Wrecking Ball 500 and 100 armour, Zenyatta 50 and 150 shields. Prepared alternate bodies
+use their selected definition's 0033 overrides.
 """
 
 import logging
@@ -35,14 +35,25 @@ def _numbers(entries) -> dict[int, float]:
 def hero_pools(hero: int) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
     record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    values = _record_pools(record)
+    if values is None:
+        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
+    return values
+
+
+def _record_pools(record) -> tuple[float, float, float] | None:
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
-        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
         return None
     values = _numbers(body.fields["m_publicSchema"]["m_entries"])
     values.update(_numbers(item.get("m_1EB5A024")))
     return values.get(HEALTH_VAR, 0.0), values.get(ARMOUR_VAR, 0.0), values.get(SHIELDS_VAR, 0.0)
+
+
+def active_pools(hero: int, definition: int) -> tuple[float, float, float]:
+    """Use the selected form's pool overrides."""
+    return _record_pools(graph.player_body(hero, definition)) or body_pools(hero)
 
 
 def body_pools(hero: int) -> tuple[float, float, float]:

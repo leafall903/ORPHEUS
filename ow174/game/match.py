@@ -33,7 +33,20 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    defenses,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    stats,
+    ultimate,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -289,6 +302,8 @@ class Player:
         fresh, boundary = self.commands.before_limit(
             commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
         )
+        if script is not None and script.world_frame_anchor is not None:
+            fresh = [item for item in fresh if item.frame > script.frame]
         if fresh:
             self.mover.use(mover_data(self.hero.body), collision)
         if movelog.ENABLED:
@@ -307,6 +322,15 @@ class Player:
                     if not dead:  # a dead body lies where it fell
                         self.mover.step(command, seconds, self.match.tick)
                     self._advance_body_frame(command)
+                script = self.body_script
+                if (script is not None and script.frame == command.frame
+                        and (defenses.uses_world_clock(self)
+                             or defenses.soldier_input_recovery_active(self)
+                             or defenses.soldier_visor_running(self)
+                             or defenses.soldier_field_windup(self)
+                             or defenses.ana_sleep_dart_windup(self)
+                             or ultimate.practice_passive_clock(script))):
+                    script.world_frame_anchor = (self.match.tick, script.frame)
         if movelog.ENABLED:
             movelog.snapshots(self)
         return boundary
@@ -322,11 +346,13 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
-        stunned = self.match.combat.is_stunned(self, tick=tick)
+        script = self.body_script
+        if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
+            # The world already committed this missing frame without a movement pose.
+            return
+        stunned = self.match.combat.is_controlled(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
-            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
-        script = self.body_script
         requests = []
         if script is not None and not stunned:
             requests = [
@@ -605,6 +631,7 @@ class Match:
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid,
                 bot.health if vitals is None else vitals.total,
                 firing_position=bot.position if firing else None,
+                match=self, manual_control=bot.spawner.get('manual_spawn') is True,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
@@ -653,7 +680,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.active_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -907,15 +934,18 @@ class Match:
             return
         if ready and not self._advance_scene(now, tick):
             return
+        charge_obstructions = {}
         if ready and self.bots:
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                blocked = bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                                   paused_until=self.combat.stuns.get(bot.entity, 0))
+                if blocked is not None:
+                    charge_obstructions[bot.entity] = blocked
         if ready:
-            self.combat.update(now, tick, frames=frames)
+            self.combat.update(now, tick, frames=frames, charge_obstructions=charge_obstructions)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)
         for player in self.players:
@@ -1113,7 +1143,9 @@ class Match:
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
                 match=self,
+                body_definition=player.hero.body,
             )
+            ultimate.start_practice_timer(script, GAME_MODE_ENTITY)
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
@@ -1159,6 +1191,12 @@ class Match:
         """This tick's frames of the body's statescript: the full frame, then owner frames."""
         try:
             script = player.body_script
+            anchor = script.world_frame_anchor
+            if (anchor is not None and script.frame > anchor[1] and script.stream.cmfd >= anchor[1]
+                    and ultimate.practice_passive_clock(script) and not defenses.soldier_visor_running(player)
+                    and not script._unsent_health_changed(client.entities)):
+                # Idle passive frames must not reintroduce a volley from the last owner command.
+                return
             # A newer unsent projection stays non-correcting until the first
             # owner frame goes out. Its command frame starts the settle interval.
             replace_initial = (
@@ -1243,6 +1281,12 @@ class Match:
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        canonical = heroes().get(hero.guid)
+        if (
+            canonical is not None and hero.body != canonical.body
+            and graph.player_body(hero.guid, hero.body) is None
+        ):
+            return False
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
@@ -1250,9 +1294,14 @@ class Match:
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
+            player.hero = hero
             player.new_body(entity)
             self.combat.record_replacement(entity)
-        player.hero = hero
+        else:
+            changed_form = hero.body != player.hero.body
+            player.hero = hero
+            if changed_form:
+                player.mover = player.new_mover()
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:

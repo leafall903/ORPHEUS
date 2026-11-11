@@ -17,18 +17,24 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barrier_mesh,
     bots,
     combat,
     correction,
     heroselect,
     notices,
     observers,
+    orisa_barrier,
     projectiles,
+    reinhardt_barrier,
     replay_values,
+    sigma_grasp,
     statescript,
     stats,
     voicelines,
+    winston_barrier,
     world,
+    zarya_barrier,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -38,7 +44,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import driver, expr, play, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -93,9 +99,18 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns sleeps heal_modifiers biotic_doses pins grasp barriers "
+        "cryo_samples zarya_barriers winston_barriers orisa_barriers"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer ult_healing_deficit"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer ult_healing_deficit "
+                         "bonus_shields bonus_shields_max"),
+    sigma_grasp.SigmaGrasp: _names("fight conversions last_tick"),
+    reinhardt_barrier.ReinhardtBarriers: _names("fight geometry states"),
+    zarya_barrier.Barriers: _names("fight pools projected"),
+    winston_barrier.Barriers: _names("fight actors pending"),
+    winston_barrier.DomeWorld: _names("hero mode manager actor"),
+    orisa_barrier.Barriers: _names("fight geometry flights actors"),
+    orisa_barrier.BarrierWorld: _names("hero mode actor"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,13 +126,14 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count passive_charge_ms"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count passive_charge_ms "
+        "world_frame_anchor"
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position match manual_control manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,13 +147,18 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "impulse_mover"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
+    barrier_mesh.Geometry, reinhardt_barrier.BarrierState,
+    winston_barrier.Bubble, play.Request, play.Resource, play.InvocationContext,
+    orisa_barrier.Flight, orisa_barrier.Shield,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.Sleep,
+    combat.HealingModifier, combat.BioticDose,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

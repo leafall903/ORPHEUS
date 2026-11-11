@@ -69,7 +69,8 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
 }
@@ -149,8 +150,10 @@ class BodyVMSnapshotTests(unittest.TestCase):
         component, instance = fixture(("STU_TestPlainState",) * 3, allocation=(2, 0, 1))
         data = raw(export_component_vm(component))
         self.assertEqual(set(dict(data["component"])), COMPONENT_FIELDS)
-        self.assertEqual(set(fields(data, ["instance", 1])), INSTANCE_FIELDS)
-        allocation = elements(fields(data, ["instance", 1])["states"])
+        stored = fields(data, ["instance", 1])
+        self.assertEqual(set(stored), INSTANCE_FIELDS)
+        self.assertEqual(stored["ruleset_target_entity"], expr.INVALID_ENTITY)
+        allocation = elements(stored["states"])
         self.assertEqual([pair[0] for pair in allocation], [2, 0, 1])
         for index in (2, 0, 1):
             state = fields(data, ["state", 1, index])

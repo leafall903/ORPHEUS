@@ -1,6 +1,524 @@
 Soldier: 76 combat lane / 02E000000000006E / 104319
 Status: OPEN, not combat accepted. Original-client acceptance: none in this lane.
 
+Ana Biotic Rifle versus Soldier
+- 0B94 states5/44 provide the hip projectile and scoped ray and carry70.
+  The indirect rifle effect route supplies the 0.6-second window in 0B95.
+  The host integrates that amount on world ticks on a 1/1024-health grid.
+- Actual hip and scoped shots each deal70 to enemy Soldier and heal70 on
+  an injured ally. An admitted damage dose settles to the same total when
+  the scheduler jumps. A friendly hip dose spanning actual grenade expiry
+  only heals for its unexpired share in either update path.
+- Actual Projected Barrier absorbs hip and scoped contact without admitting
+  a dose. Intact protection loses70. Actual rifle fire can reduce the barrier
+  to20, and the breaking Ana shot leaves Soldier at full HP.
+- Both modes pass through a full-health ally. Genji can redirect either shot
+  back into that Soldier, and Genji owns the resulting70 damage.
+- Both modes deal70 and heal70 on the prepared Trooper, Enforcer, Sniper,
+  Assassin and Heavy Assault bodies. Each case starts with Soldier rifle
+  damage and ends with his deployed Field restoring the remaining deficit.
+  The fixture changes NPC team between hostile and friendly contacts.
+  The combat pools and NPC body-script health agree after each settlement.
+  With passive charge disabled, Soldier earns Visor points for the eligible
+  NPC health restored by his Field. The Field also earns points for Soldier's
+  self-healing after four actual NPC primaries and the manual Assassin pin.
+- With charge seeded 50 below the authored cost and passive gain disabled,
+  actual Visor input rejects. A real Sniper shot wounds Soldier for100.
+  Field heals the wound and reaches the cost. Actual Visor input consumes
+  the charge and the rifle hits the off-axis Sniper for20. After Visor
+  expires, the same aim expends a round and misses again.
+- Heavy Assault takes an actual Visor-assisted rifle hit and then kills
+  Soldier with its authored primary before Visor expires. The lethal tick
+  clears target tracking. Dead-body weapon and ability inputs produce no
+  further damage or projectiles. The scheduler respawns a fresh body at
+  full health with empty charge. The old off-axis shot consumes ammunition
+  and misses. Aimed primary fire from the replacement body hits Heavy Assault.
+- Remaining dose amount and original source/target bodies are causal state.
+  Actual body replacement discards the old recipient's dose. Replacing Ana
+  leaves a landed dose active and the resulting kill belongs to the old body.
+  Native filters, pulse cadence, contact feedback, other interception
+  combinations, wider PvE and original-client validation are open.
+
+Ana Biotic Grenade versus Soldier
+- Actual grenade effect0267 dispatches the normal0C71 relation branch.
+  Host consumers use hostile0C72 damage60 and friendly0B99 healing100,
+  four-second expiry, and 1.5 friendly multiplier after the authored delay.
+  The existing raw blast path supplies shield damage.
+- Enemy grenade leaves an active Field deployed while blocking healing.
+  Across expiry, fixed-pose sequential and jumped updates settle only
+  the four eligible retained ticks in the tested interval. Friendly grenade
+  heals100 after real rifle damage, then increases the Field tick by1.5.
+- A scheduler jump spanning the impact of an admitted grenade matches the
+  fixed-pose sequential impact and expiry ticks. Retained Field healing
+  before impact reaches the health cap before the grenade deals damage.
+- Actual grenade floor impacts damage and inhibit healing on an exposed
+  Soldier. The same throw leaves his health and modifier state unchanged
+  behind a static wall or outside splash range. The resolved ring is 4 m.
+- Projected Barrier absorbs the raw 50 grenade payload. Actual rifle shots
+  can reduce the barrier to 20 before the grenade breaks it. In both the
+  intact and breaking cases, Soldier takes no damage or anti-heal and his
+  deployed Field keeps healing at its normal rate.
+- Actual D.Va Defense Matrix intercepts a grenade thrown toward a wounded
+  Soldier behind the mech. His deployed Field heals at its normal rate.
+  With Matrix idle, the same throw splashes for60 and blocks the Field
+  beginning on the impact tick.
+- A second enemy Ana refreshes the anti-heal deadline. An allied grenade
+  during the refreshed window grants no direct healing. The deployed Field
+  remains blocked through the original deadline and heals at 1.5x on the
+  refreshed expiry tick while amplification remains active.
+- Changing the caster's hero preserves active anti-heal. Soldier death
+  clears it before respawn, and replacing a living Soldier clears it too.
+- The modifier deadline is causal server state. Native filters/cleanse,
+  historical poses, broader PvE interactions and original-client acceptance
+  are open.
+- Projected 025C/node27 invokes shield pet graph0256. Its node44 uses
+  target var2390 with tag0B50. Node3 sends 0053 and then runs the pet effect
+  and destruction chain. Neither route establishes removal of effect0267's
+  hostile modifier in the prepared graph data.
+
+Ana Sleep Dart versus Soldier
+- Actual 0BDD dart deals5. Effect026F resolves through 0BDE/node51 to
+  224E/profile676B. The scoped server uses a five-second control window.
+  224E/nodes166 and145 supply the half-second damage grace and wake duration.
+- Actual rifle damage during grace leaves the deadline intact. Later damage
+  starts wake once. Subsequent damage leaves that deadline intact.
+- Field windup cancels, movement and rifle are suppressed, and fresh primary
+  works on expiry. Active Visor retains its authored clock. Caster switch
+  preserves applied sleep and recipient replacement clears it.
+- An admitted 0BDD/node15 wait now advances on the server clock without
+  later Ana commands. Its node 14 volley uses the last authoritative pose.
+  Gap processing follows release and flight through the contact tick.
+  With both casts admitted, continued Ana input, no input and one 90-tick
+  world update agree on the five damage, sleep onset and expiry, and cancel
+  Soldier's pending Field. The missing-input cases retain Ana's last
+  movement command. The scheduling is a host policy. The control, Enforcer,
+  Flashbang, combat, environment, projectile and ability run passed 160 tests.
+- A real lethal Soldier rifle shot ends Ana's pending dart windup and
+  leaves Soldier at 200 HP. After release, the same lethal shot preserves
+  the dart's source body and the dart deals five damage and applies sleep.
+  The fixture stages Ana at 20 HP before the lethal shot.
+- Separate in-flight fixtures miss behind a wall, outside the target
+  capsule, after a target team change or beyond the host's five-second
+  flight limit. An early recast remains on cooldown. A fresh cast after
+  expiry hits for five damage and sleeps Soldier in all four cases.
+- A real dart breaking a controlled4 HP Projected Barrier leaves Soldier's
+  HP and control untouched. Sleep timing enters causal server storage.
+- Actual Defense Matrix and Kinetic Grasp intercept an Ana dart already
+  in flight toward Soldier. Either defense keeps Soldier at 200 HP and
+  preserves his pending Field through deployment. Grasp records five
+  absorbed damage and converts it to three bonus shields at expiry.
+  Inactive Matrix and Matrix released before the dart reaches its volume
+  both allow five damage and sleep, and cancel the pending Field. The
+  release fixture holds Matrix past its minimum and starts Ana farther
+  back so the release takes effect ahead of contact. The Matrix, Grasp,
+  Deflect and projectile regression passed 95 tests.
+- A real dart into the manual Assassin releases a pinned Soldier. Soldier
+  resumes rifle fire and the old rate damage does not continue.
+- Native status dispatch and stacking, alternate modes and damage tags,
+  broader PvE control and original-client acceptance are open.
+
+Orisa Protective Barrier versus Soldier
+- Actual 0BD7 fire launches the authored projectile, with gravity9.8, and
+  14A1/0BD8 starts on landing. The authored actor supplies600 HP. The pinned
+  104319 collision mesh is supplied through ORPHEUS_ORISA_COLLISION.
+  Eye origin, ground-only placement, bounce and mesh alignment are host policies.
+- Actual rifle, Helix and Visor consume hostile barrier HP without body hit
+  feedback or charge. A breaking Helix at controlled100 HP leaves the body
+  unharmed. A later rifle hit deals15 to armour. Landed barrier expiry
+  proceeds without owner input.
+- Actual early input is refused while the authored cooldown is active. It
+  does not replay after the idle clock reaches zero. A fresh press launches
+  another projectile. Rifle still spends old shield HP during flight; only
+  the new landing retires old cover. The new shield starts at600.
+- A hero switch cancels pending flight while a landed shield keeps its
+  independent lifetime and continues blocking actual rifle. The same landed
+  shield also survives an actual owner kill and respawn, then blocks rifle.
+  A new landing from the respawned body replaces it by owner identity.
+- Actual rifle, Helix and Visor hit the enemy mesh before each of the five
+  prepared NPCs. Allied rifle reaches all five without spending shield HP.
+  Trooper, Enforcer, Sniper and Heavy weapons spend shield HP when deployed
+  and damage Soldier in the no-deploy control. At controlled100 HP the
+  breaking Helix leaves each protected NPC's pool and motion intact.
+- Actual Flashbang hitting the mesh spends25 shield HP. At a controlled20
+  HP it breaks the mesh without Soldier damage, stun or Field interruption.
+  Ground splash spends shield HP and stuns an exposed Soldier on the same
+  side of the mesh as the blast. A same-side throw against the protected
+  target's body deals25 and stuns for50 ticks, canceling Field windup.
+- Actual Helix and the actual barrier throw are both in flight before
+  comparing sequential updates and a 300-tick jump. Before landing, Helix
+  damages Orisa alone. If it crosses the future mesh before landing and hits
+  the body afterward, the blast also damages the mesh. If the mesh is already
+  present when crossed, only the mesh takes damage. Actual Helix crossing the
+  expiry boundary likewise settles against the mesh or body at contact time.
+- The original input-loss probe started cooldown without a launch. The host
+  now consumes the admitted 0BD7 volley report during a missing window with
+  the last committed pose and a world tick mapped from the event frame.
+  Continuous input, ownerless sequential ticks and a 300-tick jump yield
+  the same landing position and tick. Late input cannot repeat the throw.
+  Existing Helix contact order is retained and a hero switch during windup
+  retires the old cast. Native input timing and historical moving poses are open.
+- Actual Flashbang during missing Orisa input cancels the pre-release windup
+  and does not replay it later. After release, the throw lands while the
+  caster is stunned. Sequential and skipped ticks agree. Fresh input after
+  recovery deploys a new shield.
+- Native placement, exact overlap/splash/force order, incoming Assassin
+  control, remaining NPC cases, native timing and client acceptance are open.
+
+Winston Barrier Projector versus Soldier
+- 00FA creation26 emits a private 01C3 entity, then PlayScript starts 00FC
+  with authored700 HP and9s. D02 supplies radius5. Fixed feet+0.1 placement
+  and an independent 16ms world clock are host policies. The authored child
+  owns its expiry and death tail.
+- Rifle, Helix and Visor stop on an enemy shell crossing. A rifle and Helix
+  fired from inside to a body inside leave the pool untouched. Allied rifle
+  passes the dome. A breaking Helix at100 HP leaves Winston at500 HP.
+  Soldier reloads, waits for the reload recovery and deals15 with the first
+  body hit. No-input expiry and a read-only live child snapshot are verified.
+- Actual rifle, Helix and Visor intercept before reaching each of the five
+  prepared NPCs. Trooper, Enforcer, Sniper and Heavy weapons hit the shell
+  when crossing and damage Soldier when both bodies are inside. With the
+  dome pool set to100, actual breaking Helix leaves all five NPCs' HP and
+  movement untouched in their respective cases.
+- Actual Helix launched before expiry hits the shell or Winston based on its
+  contact tick. Sequential updates and a 300-tick jump agree at fixed poses.
+- Actual Flashbang crossing the shell removes25 dome HP without touching
+  Soldier. With a controlled20 HP pool it breaks the dome and still does
+  not stun or interrupt Field windup. A ground detonation outside the shell
+  stuns an exposed Soldier but leaves the protected Soldier at200. An
+  interior detonation away from the shell deals25 and stuns for50 ticks,
+  interrupting Field windup without spending dome HP.
+- Native attachment/placement, filtering and actor replication, exact
+  overlap/splash/force order, melee and remaining status cases are open.
+
+Zarya Projected Barrier versus Soldier
+- 025C/states4 and7 run the scoped target searches. Live ally, range, aim and
+  static cover gates select the authored var536 recipient. State10 owns the
+  cast. A capsule-centre query, stable aim/distance/entity ranking, and the
+  missing cone multiplier default are host policies.
+- Actual Soldier rifle and Helix consume an ally's barrier before HP. The
+  breaking shot grants no Soldier hit/charge, while the caster reaches40 energy
+  and a subsequent rifle hit deals20 to the recipient.
+- Actual rifle is blocked on all five prepared NPC recipients. Actual
+  Trooper, Enforcer, Sniper and Heavy attacks consume a barrier on Soldier
+  without HP damage. Actual Assassin contact is absorbed before pin admission,
+  including the breaking hit. Mid-pin projection releases control when it
+  absorbs the next rate tick.
+- Wrong team, off-axis, range and wall reject. Recipient replacement ends the
+  cast, immediate recast rejects, and idle cooldown permits a fresh cast.
+  That cast expires without input and rifle damage resumes.
+  Projected pool and recipient identity enter the causal server snapshot.
+- Actual Flashbang sphere impact or nearby ground detonation consumes25
+  barrier HP and gives no damage or stun to Soldier. After nine actual rifle
+  hits leave20, Flashbang consumes the remaining20, still leaves Soldier at
+  full HP, and his next primary fires. An absorbed throw leaves Field windup
+  intact. Projection onto an already stunned Soldier stops a fresh rifle hit
+  without changing the original stun deadline.
+- Native selector, pet attachment/transport, caster-death persistence,
+  exact overlapping barriers and remaining status/force interactions are open.
+
+Zarya personal Particle Barrier versus Soldier
+- 0244/state2 owns the personal barrier. The host uses 0256's capacity
+  expression (default200) and 10D7's sphere radius1.5, attached to the
+  current capsule centre. The 0242 message receives actual barrier loss.
+- Actual rifle, Helix, melee and Visor consume the pool without body damage.
+  Five rifle hits leave100, Helix consumes the rest, Zarya gains40 energy
+  total, and a subsequent rifle hit deals20 to the body. The breaking
+  attack grants Soldier no hit notification or charge. A body-miss rifle ray
+  hits the hostile sphere. Allied sphere and replacement cases allow the ray.
+- Body replacement clears the pool. The world clock advances expiry and
+  cooldown without Zarya commands. Pool balance is causal server storage.
+- Native attachment, exact multi-barrier splash/force
+  order, other control paths, and original-client acceptance remain open.
+
+Mei Cryo-Freeze versus Soldier
+- Mei05FE/state41 uses the output-free STU_54FEB21C entry with duration omitted.
+  The host uses its zero default. State17 is the authored D07EBF01 owner-target
+  scope. The scoped host damage guard preserves body contact.
+- Actual rifle and Visor consume ammo. Helix launches and settles. Protected
+  Mei and a rear training target retain HP, with no Soldier hit notification,
+  damage credit or ultimate gain. Actual quick melee also leaves Mei unharmed.
+- Secondary cancels the phase and an immediate recast is refused. Rifle damage
+  resumes after cancel or expiry. With no Mei commands the phase expires and a
+  fresh press after the cooldown succeeds.
+- A real Helix fired before expiry is consumed by the solid Cryo target if
+  contact happens during protection. A later contact deals120 to Mei after
+  expiry. Sequential updates and a 300-tick jump agree at fixed poses.
+- 05FE/state13's self-target ModifyHealth evaluates200 and3.9s (#567 minus
+  0.1). The host reconstructs a continuous rate over the authored healing
+  duration while the roughly four-second protection runs independently.
+  Actual Soldier rifle wounds reduce250 to30, then Cryo restores200 to230
+  with either neutral commands or a world jump. The other player stays
+  unchanged. Cancel, overheal and body replacement stop further credit.
+- Actual Soldier rifle fire and a hostile Ana grenade leave Mei at 50 HP
+  under active anti-heal. Cryo-Freeze entry clears the active grenade
+  anti-heal for that body and self-healing begins before the old deadline.
+  The no-cast control remains at 50 HP. This scope follows the documented
+  [December 2017 Cryo-Freeze fix](https://overwatch.blizzard.com/en-gb/news/patch-notes/live/2017/12/).
+  The authored 05FE activation also routes through node 72 before healing.
+  The native node's full status-removal semantics remain open.
+- The per-body cumulative settlement is causal server storage. Native healing
+  pulses, Mei healing charge, other cleanses, geometry/force and original-client
+  acceptance remain open.
+
+Reaper Wraith Form versus Soldier
+- Reaper0020/state1 uses the output-free, zero-duration STU_54FEB21C entry.
+  Its end plug enters state3's three-second phase and then state7 recovery.
+  Enemy attack queries omit Reaper during state3 and damage settlement checks
+  immunity as well. This is a scoped server policy for the authored lifetime.
+- Player commands verify rifle and Helix reach a target behind Reaper, Helix
+  splash and melee leave Reaper unharmed, and Visor selects an off-axis enemy.
+  Rifle damage resumes at the first frame after phase expiry.
+- Actual hostile Ana grenade passes through active Wraith and applies 60
+  damage and anti-heal to Soldier behind it. An already deployed Field
+  resumes healing at the modifier's expiry. Normal Reaper takes the hit
+  instead. Cryo-Freeze and Transcendence intercept the same throw without
+  damage or anti-heal. This exercises the static phase policy. Native
+  grenade collision and clearing a pre-existing Wraith debuff remain open.
+- An actual Sleep Dart passes through active Wraith and deals 5 damage
+  and sleep to Soldier. It cancels his admitted Field windup before release
+  and leaves cooldown available. A fresh cast heals after sleep expires.
+  Ordinary Reaper takes the dart. Cryo-Freeze and Transcendence stop it
+  without damage or sleep. Soldier's Field opens in all three front
+  interception controls. Native dart status dispatch stays open.
+- The original no-command probe stayed active after 300 world ticks. The host
+  now advances expired Reaper command windows before combat impact checks,
+  preserving the current window for input. It stores the world/owner frame
+  anchor in causal server storage and drops late input for filled windows.
+- Actual rifle damage resumes with no Reaper commands after either sequential
+  ticks or a scheduler jump. A long gap covers recovery and fresh Wraith use
+  at 8/16/32ms owner quanta. Native transport, cross-body same-tick ordering,
+  historical moving poses and client evidence are open.
+- A primary press immediately after entry leaves the phase active. A press
+  after the minimum window cancels it. Soldier rifle damage resumes in recovery.
+  The eight-second cooldown starts after recovery and rejects immediate re-entry.
+- Actual Soldier Helix fired before expiry distinguishes two contact windows.
+  Before expiry it passes through Reaper and removes120 HP from a rear target.
+  After expiry it removes120 HP from Reaper. Sequential updates and a 300-tick
+  jump agree for both cases. The host retains the in-flight rocket interval
+  and uses the latest poses. General historical projectile/pose fidelity and
+  native transport order remain open.
+- Standalone body replay reports an initial-state mismatch for Practice Range
+  possession startup. A Deathmatch fixture isolates first-access order and
+  independently checks rejection of that external match mutation.
+- Actual Soldier inputs check Wraith, Cryo-Freeze and Transcendence in front
+  of each prepared PvE body. Rifle, Helix and Visor reach the rear body through
+  Wraith, while the solid protected bodies stop those attacks without taking
+  damage or granting credit. Quick melee reaches each rear body in its own
+  contact volume during all three phases. In the reverse direction, four
+  actual NPC weapon controllers fire at Soldier behind an allied phase owner.
+  The direct hit routes to Soldier through Wraith and to the protected owner
+  during Cryo-Freeze or Transcendence. The incoming witness observes actual
+  weapon and hit calls. Assassin's capture is a separate path.
+
+Reinhardt mesh barrier and receiver26 candidate
+- A missing-input window now lowers Reinhardt's held shield on the first
+  neutral body frame. At fixed poses a Helix contacting before release takes
+  120 shield HP, with no body damage or Soldier charge. Contact after release
+  takes 110 body HP after armour and grants 110 charge. Sequential and
+  skipped world ticks agree. With no projectile left in flight, the shield
+  still starts its two-second regeneration delay at the same release tick
+  and returns to its authored cap. Native command timing and moving-pose
+  history remain open.
+- Explicit ORPHEUS_REINHARDT_COLLISION supplies the original192-triangle render
+  model descriptor and bind hardpoint29/shieldbone8C anchors. Source helper is
+  adapted from the reviewed private0007 lane. Native collision shape, skeletal
+  animation/attachment and pet replication are NOT recovered by this host.
+- Raised0095/state17 owns activation. Live587 supplies capacity(default1600),
+  ChaseVar4 supplies200*9775/sec, Wait5 supplies2s lowered delay, and472 supplies
+ 5s broken cooldown. Mirror current HP into586. Resource zero is not defaulted
+  away. Native child-actor/pool integration and exact timer phase remain OPEN.
+- Nearest static/body/mesh/Deflect/Grasp contact owns ranged response. Shield
+  rifle/Visor damage is noncritical20; Helix impact consumes40+80 without actor
+  credit/ultimate gain. Normal explosion release remains. Freeze cover before
+  an explosion's shield damage so a breaking hit cannot spill through the mesh.
+  Near splash uses GJK triangle witnesses and static/other-shield cover probes;
+  multi-shield native ordering is not accepted merely from that implementation.
+- Quick melee damages an overlapped enemy mesh and can hit the body behind it.
+  Placement2.4m intersects both original query and raised mesh. The initial1.8m
+  pose was inside the raised shield boundary; no mesh/query enlargement was made.
+  Native receiver/profile penetration semantics are still unverified.
+- Real input covers lower/rear/side/wall, capacity exhaustion by actual rifle,
+  breaking Helix, subsequent body damage, held cooldown recovery, lowered delay/
+  regen/re-raise, near ground explosion, body retirement, death setup and actual
+  front/rear Flashbang. Offset body-miss controls protect every real NPC from
+  rifle/Helix/Visor only with raised enemy mesh; allied/lowered mesh passes damage.
+  Four real NPC weapons hit Soldier when the offset shield is lowered. Explicit
+ 100-cap fixture additionally checks same-breaking-explosion HP/force exclusion
+  for all five NPCs; default1600 exhaustion is a separate actual-rifle witness.
+- Snapshot hero switch uses a controlled journal root. Hidden shield HP and
+  regen deadline change causal digest while body HP stays fixed. Descriptor
+  bytes are sealed independently in replay configuration. No client test occurs.
+- Shared recovery repairs clear cancelled callback flags and notify computed
+  cooldown zero. Portable before/after and owned fixtures establish the defects;
+  actual broken-shield hold/recovery establishes their barrier application.
+- Native movement26 is now consumed in priority/start/key order at impact.
+  Heavy1254/state0 SET0 and Rein00A4/state4 MULTIPLY0.7 execute; isolated removal
+  restores full response without changing damage. This replaces the old Heavy
+  exclusion, not all native force/mass/profile/control-immunity semantics.
+
+Sigma Grasp host candidate (full static acceptance OPEN)
+- Grasp expires on the world clock after Sigma stops sending commands.
+  An actual Helix arriving before expiry adds 120 to the authored absorption
+  sum and converts to 72 extra shields. Sigma retains his base pools and
+  Soldier gains no charge. A Helix launched during Grasp but arriving after
+  expiry deals 120 HP and credits Soldier 120. Sequential and skipped ticks
+  agree at fixed poses, including subsequent shield decay. Native timing
+  and moving-pose history remain open.
+- Real023B/2AB1 selection and Shift activate1D02/state1. Its box is evaluated
+  as(-1,-1.6,.4)..(1,1.1,2.6), angle180. Eye attachment/corner/angle meaning and
+  current-aim frame remain reconstructed. Earlier body/static/deflect contacts
+  win by swept distance; exact coincidence ordering and native history are OPEN.
+- Independent original003 definition metadata is retained on rockets. Explicit
+  ORPHEUS_PROJECTILE_TAGS data is validated for build104319; its immutable mapping
+  distinguishes known empty tags from unknown.0145 exclusion is a host policy,
+  not the recovered native.097 profile evaluator. No data means no absorption.
+- Interception supplies6584 damage and41 source, then actual output160B5DBE
+  runs32 to add to21312. Value is noncritical direct falloff plus splash payload;
+  native amount/tag/filter callbacks remain OPEN. No hit/HP/force/charge occurs.
+- Actual34 PlayScript executes a scoped synchronous BodyWorld host bridge only
+  for1D02/34->1D03 on the current Sigma component/body. It evaluates conversion
+  0.6 and cap11218(default400), and creates unhealable extra shields on the actual
+  ending input frame. Following71 Wait does not grant them again; repeated world
+  updates cannot regrant. Strict native PlayScript and other actions stay separate.
+  Three seconds later active ModifyHealth70 drives reconstructed5/sec decay,
+  including live9527 modifier. No general PlayScript1D03/HealthPool restoration
+  or native over-health transport/classification is claimed.
+- Extra shields use reconstructed id4/slot1 and byte17=0, take damage before
+  ordinary pools, and cannot be healed. Healing eligibility uses only missing
+  base pools; an existing base injury stays eligible while extra capacity exists.
+  Decay is not damage/healing credit. Server snapshots include conversion memory
+  and both extra-pool values; replay config pins the exact tag-input SHA256.
+- Actual input covers Soldier rifle/Visor/Helix, inactive/rear/ally/wall and
+  melee/un-intercepted splash, no-impact retirement, natural end, cap, wait/decay,
+  zero overrides, cooldown rejection/recovery and actual rear Flashbang abort.
+  Death setup is explicit pool damage, not a new incoming-weapon witness.
+- Offset-caster controls place Sigma at x=.8 outside the x0 body ray while
+  retaining the authored interception box. Active enemy Grasp prevents damage;
+  inactive enemy or active allied Grasp permits actual NPC20/120/20 damage.
+  Incoming controller shots hit Soldier when the offset Grasp is off.
+  Under the same continuous attack order, Trooper, Enforcer, both
+  Sniper slots and Heavy first feed the absorb sum, then wound Soldier
+  after Grasp expires without further player commands. The offset stays
+  fixed, and Soldier loses no health while Grasp is active.
+- All five real NPCs behind Sigma are protected from actual Soldier rifle,
+  Helix and Visor. Trooper/Enforcer/Sniper/Heavy controller weapons are absorbed
+  before Soldier. With allied Grasp or Matrix active, the manual
+  Assassin pin still hits Soldier for 25 and Heavy action 35 still
+  captures him. Heavy's side contact also deals 50 to Sigma or 45
+  to the armoured mech. Sigma records no absorb sum from either
+  capture. After the manual order ends, a fresh Soldier rifle input
+  spends a round and deals 20 to the former captor.
+- Remaining native filters/profile/dynamic tags, all overlap orders, unknown or
+  unconfirmed predictions, other absorption types and original-client proof OPEN.
+
+Genji resource-box interception candidate
+- Deflect expires on the world clock when Genji stops sending commands.
+  A Helix contacting during Deflect changes owner and deals 120 HP to
+  Soldier. A Helix launched during Deflect and contacting after expiry
+  keeps its owner and deals 120 HP to Genji. Sequential and skipped world
+  ticks agree at fixed poses, including damage attribution. Native
+  scheduling and historical moving poses remain open.
+- Active03A3/state10 contributes three authored boxes and a90-degree gate.
+  Hitscan and unknown projectiles use ModifyHealth tag003BF. Catalogued
+  projectiles use the authored node's 0145 exclusion against prepared 003
+  tags. Ana's actual 15E8 dart has an empty 003 tag list. It now reflects,
+  deals five damage and sleep to Soldier, cancels his Field windup and
+  awards Genji the damage and charge. Field canister 072D carries 0145
+  and remains excluded. The defense, control and projectile run passed
+  157 tests. Eye anchor, normalized corners, controller basis and outgoing
+  aim are reconstructed. Native filter dispatch and client effects stay OPEN.
+- Tagged rifle and Visor keep their original payload/critical mode and cumulative
+  path falloff/range. Helix ownership/source body/team and actual damage/charge
+  transfer without a new lifetime or hidden extra simulation tick. Original
+  predicted-shot presentation retires; reflected client presentation is absent.
+- Old owner/observer copies use an explicit no-impact interception retirement;
+  confirmed copies destroy without an explosion release record. This protocol
+  model witness does not establish original-client visuals or unconfirmed local
+  prediction cleanup. The ordinary landed release path remains unchanged.
+- Frontal melee blocks without return damage. Rear attacks, earlier walls and
+  un-intercepted splash retain normal damage. Boxes can intercept a rocket whose
+  path misses the body capsule. Eight-segment admission is bounded host policy.
+- Actual input witnesses cover lifespan/cooldown, early press expiration/short
+  buffering, lethal credit, Visor noncritical damage, death/body replacement,
+  cumulative30..50m/floor0.3 falloff and180m rifle range, all five returned rifle
+  NPC targets/team filters and three real controller incoming weapons. The
+  Sniper's two-second windup must precede Deflect so it arrives during the window.
+- Extended actual input returns Helix and Visor to all five actual NPC bodies
+  with new enemy/ally filtering and credit. Replacing the original caster does
+  not retire the transferred flight; replacing its new owner does. A far return
+  exhausts its original100m/2s path, remains alive after Deflect ends and causes
+  no expiry explosion.
+- Ability retries now preserve the original press timestamp and activation;
+  the old renewal made a released early input survive until a long cooldown ended.
+  Rejection and near-ready release buffering have separate execution witnesses.
+- Full static reflection matrix, native semantics, multi-redirect fidelity,
+  NPC specials and original-client presentation/acceptance remain OPEN.
+
+Helix force / NPC external-motion candidate
+- Source force4/6 and enemy/self attenuation rings are evaluated from actual
+  ModifyHealth fields, including defaulted10626 and its explicit zero override.
+  Radial horizontal/upward application is a scoped host reconstruction.
+- Player movement integrates the force. Four actual NPC classes receive Helix
+  force through their extracted mover data; all five raw movers execute capsule
+  collision, gravity, settlement and death/removal cleanup. Route intent pauses
+  during external motion and resumes the same target, without a timer catch-up.
+- At the historical force checkpoint Heavy ability-side force was withheld.
+  Current live26 handling above supersedes that exception using actual1254/state0;
+  raw mover capability alone still cannot prove native immunity/resistance.
+- Fortify rejects the scoped force; Transcendence rejects HP loss but remains
+  solid/displaceable. Historical corroboration, not target-build engine proof:
+  [Blizzard PTR notes, July18 2019](https://eu.forums.blizzard.com/en/overwatch/t/overwatch-ptr-patch-notes-july-18-2019/18111).
+- Stun masks voluntary input; horizontal cancellation occurs at onset, allowing
+  later external motion. Existing force at onset, repeated-control order and
+  complete native224E control/filter behavior remain OPEN.
+- NPC impulse_mover is serialized through the complete Mover physics adapter;
+  a hidden spring change alters server snapshot digest without visible movement.
+- Tests distinguish raw force injection from actual Helix delivery. Mechanical
+  movement tests are not boss/AI/receiver classification or client acceptance.
+- With a static backstop behind each prepared NPC, actual Helix direct
+  contact deals 120 damage to each. Four live receivers travel to capsule
+  clearance from the wall, land and stay still. Heavy Assault takes the
+  same hit with its authored resistance active and stays in place.
+
+Helix self-splash checkpoint
+- Actual0254/node38 explosion supplies m_8A3E3883=.5. This lane scopes the
+  reconstructed self-scalar meaning to Soldier weapon payload008E, retaining
+  authored80 damage/rings. This is not a general native explosion backend.
+- The 104319 compiler reads the explosion from the volley at +0x170
+  (D8C5AC). The lane's probe-soldier-helix-explosion.py runs D8C833–D8C892
+  from the hash-checked capture with expression services stubbed. It observes
+  m_8A3E3883 and m_2FE97560 from config +0x68/+0x70 written independently as
+  float32 values .5 and 1 at record +0x40/+0x44, with two input controls.
+  D8CAAD attaches that record to the compiled volley at +0xB8.
+- The same probe follows the client call from B2BD6D into the B33418 record
+  reader. Its gate needs m_49F60FB8, explosion rings and ModifyHealth data.
+  It also rejects a zero +0x44. The native slices forward +0x44 via B34279,
+  copy it to packet +0xCC at D6DE34, and multiply the output vector by it at
+  D6DAD4. The authored 1 preserves the vector and .25 quarters it. Changing
+  +0x40 alone leaves this calculation intact. The probe seeds the vector and
+  bypasses entity lookup. The .5 impact consumer, native target selection
+  and resulting motion still need execution evidence.
+- After the native vector postprocessing call D73830, the B3429B path
+  checks squared length and queues a 16-byte vector at actor +0x15B0
+  through 5B01F0. B3A2C0 drains that array and B3DDE9 passes entries to
+  C32420. The probe seeds postprocessed vectors and runs these instructions
+  through the movement call boundary. Zero and a subthreshold vector leave
+  the queue count unchanged. Two accepted vectors arrive in order and a
+  second drain is empty. Movement execution and final position are open.
+- Rocket.source_entity retains its emitting body identity. Only that current
+  body joins the enemy splash candidates; ally/dead/replaced bodies are excluded.
+  Self damage shares static capsule visibility, mitigated HP and normal suicide/
+  respawn handling, without HIT/HERO_DAMAGE/charge/healing-deficit credit.
+- Actual input checks cover walls/ring distance, enemy/ally player and all five
+  actual NPC co-victims, self Field healing, Visor death, body retirement and
+  enemy-rifle caster death followed by the still-flying rocket's impact.
+- Actual100m/50mps payload terminates at2s and does not explode against a body
+  just beyond range, for players and every prepared NPC capsule.
+- Scoped force now has the execution witnesses above. Heavy receiver semantics,
+  native resistance and status/impulse overlap remain open. Neither raw velocity
+  nor HP tests alone establish completed displacement, retail hitboxes or native
+  explosion/filter semantics.
+
 State-input join alignment
 - Reviewed parent2ca9178 imports native distinct-arrival1113EBD5 handling and
   VM/server causal storage. Preserve pending join_inputs and plug_source in
@@ -15,7 +533,18 @@ State-input join alignment
   Parent history/ownership is retained. This does not modify shared root main.
 - Real Flashbang input interrupts Sprint, rejects held input/movement/ammo use
   during control, and permits ordinary firing/movement after its exclusive
-  deadline. Field windup cancels with cooldown rejection/recovery; already
+  deadline. Flashbang and Ana's Sleep Dart hit an already sprinting
+  Soldier for 25 and 5 respectively. Held movement and rifle input are
+  rejected through their respective deadlines. Walking reaches 5.5 m/s
+  after release and a fresh Sprint press restores 8.25 m/s. An actual
+  Projected Barrier cast before Sprint preserves full health and 8.25 m/s
+  on either hit, even when the hit breaks the barrier. The fixture seeds
+  the break cases at 24 and 4 remaining barrier HP.
+  Flashbang cancels Field before node8 finishes, leaving the
+  cooldown at zero. In 0257 the node8 completion flows through node31
+  to the volley at node4. Its begin link runs node3, which writes the
+  cooldown. A fresh launch therefore starts cooldown, rejects an early
+  press, and recovers at expiry. An already
   deployed Field continues healing. Already flying Helix retains impact/credit.
 - Do not treat the imported universal Ability.stop loop as a native classifier.
   Active Soldier0259 transformation is scoped out: the unstacked Ability and
@@ -36,14 +565,200 @@ State-input join alignment
 
 2026-11-09 scoped extension (not full acceptance)
 - Soldier0B8B authored damage23/healing32/passive4 expressions now own charge
-  amounts, caps, defaults and multipliers. Passive Wait3 supplies the interval;
-  the host bridges actual eligible HP and reconstructs inactive-timer time.
-  Native message/tag/mode eligibility and phase/long-gap fidelity remain open.
+  amounts, caps, defaults and multipliers. Practice Range delivers the
+  13C0/node3 message0694 to 01C7/node75, which starts the authored #2426
+  permission stack. The current controlled body resolves the scoped owner
+  lookup and runs 0B8B/Wait3 and action4. The host uses #11942 for the sandbox
+  override and death. Visor suppression follows its authored #842 link.
+  The test covers one overdue completion and bounded catch-up frames. Other
+  mode startup, native clock comparison and combat message/tag eligibility
+  remain open.
+- Actual Ana Sleep Dart stops Soldier's rifle but leaves the Practice Range
+  passive wait running. The first 5-point award occurs during sleep. Idle
+  single ticks and idle world gaps agree on 25 points at wake, and a
+  fresh rifle hit adds 20 combat points.
+- A 641-tick world update without Soldier commands formerly lost half the
+  passive points. The world clock now advances the body in retained VM
+  windows. Both sequential and single-update runs award 50 points and agree
+  on wait counter, deadline and body frame. Repeating the endpoint adds
+  nothing. Direct command-gap catch-up still uses the bounded driver policy.
+- The 104319 map record lists 0688 with modes 0018 and 005A. Both bind
+  13C0, whose entry 4 directly starts the 0694 broadcast at node 3.
+  The 005A map path now retains the selected mode and its two team spawns.
+  In a headless match, both Soldier bodies acquire #2426 and earn five
+  idle points. A real enemy rifle hit adds 20 only to the shooter.
+  Other mode startup and original-client comparison remain open.
+- Skirmish 0010 binds 0D76. Entry 36 reaches switch 72. The unset branch
+  runs node 1 then the 0694 broadcast at node 2. The set branch reaches
+  node 84 then the 0695 broadcast at node 85. Message 09A3 can write the
+  tested #13155 through node 74. The lane probe executes the native
+  58AA0A3B evaluator at 1B778E0 with typed child results. It tests presence
+  rather than truthiness, so false and integer zero take the set branch.
+  The host evaluator and the actual switch agree. Mode startup, message
+  delivery and permission transitions in a full Skirmish match stay open.
+- In a scoped VM fixture, entry 36 emits 0694 with #13155 unset. Supplying
+  false or zero through the authored 09A3 parameter takes the 0695 path.
+  With supplied recipients, 0694 activates the Soldier body's #2426 through
+  01C7. 0695 sets controller #19526 through 0C90 and leaves existing body
+  permission as it was. A Practice Range Soldier receiver gains five idle
+  points and 20 points from a real rifle hit only while #2426 is active.
+  The fixture starts the selected controller receivers. Native target
+  enumeration and hosting the mode component in Skirmish remain open.
+- The capture's 1,735-entry runtime registration chain contains no dedicated
+  node 84 registration. Native lookup 1B902B0 resolves the base Action record
+  3294100 through the parent type. Its 1B6EBA0 executor invokes the context
+  callback and follows output +0x88 without reading config +0x90. The probe
+  supplies the callback and output services and verifies null and unreadable
+  config controls. Strict VM now recognizes this output-only action.
+- With explicit engine role policies, the strict manager mounts the actual
+  0D76 senders and 01C7/0C90 receivers on separate components. Node 2
+  registers 0694 on global flags 1 and 16. Node 85 also registers 0695
+  on flag 2. A flag-16 body gets #2426. Flag-16 and flag-2 controllers get
+  #19526. Bodies on flags 2 and 32 do not get #2426. Ending and restarting
+  the 0694 sender withdraws and restores #2426 via queued notifications.
+  The fixture supplies the policies and starts the selected states. Native
+  live roles, the node 85 child graph and full mode hosting remain open.
+- Strict 0D76 entry 36 now resolves node 44's 16753B11 through the selected
+  catalog map header. The native probe executes CF393C..CF39B2 after
+  supplying a header and the evaluated mode Asset. Both array layouts
+  match by membership. A missing Asset or an unmatched ordinary mode
+  returns false. Mode 0045 is accepted with a valid header and empty list.
+  The authored 0017 query returns false on King's Row and true on Nepal.
+  With subgraph scope policy supplied, strict entry on King's Row reaches
+  node 62 (42578342). The world must declare a candidate enumeration service
+  for that node. Full entry and live hosting remain open.
+- Node 62 has a dedicated native registration (2F84750). The probe executes
+  the CB8F58 destination and clearing path, then CB9479..CB9507 up to the
+  DB3850 query. It supplies the writable destination and tag collectors.
+  The authored #12960 path clears two existing rows and forwards tags 030D
+  and 03CE with the other two tag lists empty and filter null. Missing tags
+  clear without querying. An unwritable output preserves the rows and
+  bypasses the query. The separate CBA59B append slice drops zero and
+  duplicate tags in order. DB3850 world enumeration remains open.
+- DB5310 tests any tag from the first list, every tag from the second, and
+  rejects any match from the third. It compares the low 32 bits and reads
+  dynamic additions and removals. The authored 030D/03CE pair admits either
+  tag independently. In the DB3AD0 candidate slice, the metadata +0xB4
+  bit 2 suppresses a matching candidate. Otherwise a match appends a
+  type-0xA Entity row through 687A30/F66C80. The probe supplies one candidate
+  and its identity service. The strict action accepts an ordered candidate
+  tuple with effective tag keys and suppression metadata. The authored node
+  test verifies Entity row order, old row clearing, and continuation to node
+  43. Native traversal and the live candidate source remain open, along with
+  linked output and authored filter behavior.
+- For node 43, native sender table 263AC80 routes world_a through 9FFB50.
+  The probe executes the original State and EntityInstance VM getters and
+  the comparison against global 2F586E0. With VM slot +240 supplied, the
+  matching pointer returns true and different or null pointers return false.
+  The actual node sends 0702 to entities from #12749 and #11018. A strict
+  fixture with the declared world_a role verifies two ordered channel-16
+  registrations and their removal on end. King's Row entry 36 with declared
+  role, scope and an empty candidate tuple reaches child 0C8F node 7
+  (5E805B5A) before the list State integration below. The live world identity
+  provider remains open.
+- Child 0C8F nodes 6 and 7 reset recent-index history at begin and select
+  only on their dedicated input while active. Native D4F214..D4F50B replays
+  strict timeout comparison, swap removal, full-history eviction, unsigned
+  modulo and wraparound probing. The six cases supply time, row count and
+  the random word. The strict VM uses its own clock and an explicit uint32
+  random-word provider. Actual node 7 writes the selected value to #8368,
+  writes integer zero when empty, and reaches the authored action at node 5.
+  The native random stream and live providers remain open.
+- Child 0C8F nodes 1 and 2 (160F2578) now refresh the shared tag matcher
+  while active. Native D3FE60 checks world and destination before clearing
+  old rows. With tag groups it calls DB3850 with the State as watcher.
+  Four native cases cover query preparation, missing groups, missing world
+  and unwritable output. The strict node 2 fixture preserves old rows with
+  no world, updates #8366 on tick and on an authored tag dependency change,
+  then stops enumerating when the State ends.
+- Native lookup 1B902B0 resolves node 76 (109F9DE0) through its parent
+  State record 3294268 and constructs table 27AC800. Removing the supplied
+  parent registration makes the lookup fail. Strict VM now uses the same
+  base State behavior for this class.
+- Strict King's Row entry 36 runs with role, scope, world availability and
+  empty enumeration declared. With #13155 unset, the graph starts 0694 and
+  the actual 01C7 body receiver applies #2426. An authored 09A3 packet
+  writes a one-row array containing false to #13155, which withdraws 0694
+  and starts 0695. The
+  actual 0C90 controller receivers select 0695 on channels 2 and 16 and set
+  #19526. Clearing #13155 directly in the fixture withdraws 0695 and
+  restores 0694 and body permission. Exploratory null-row and empty-row
+  09A3 packets leave a present array and keep 0695 active in the strict VM.
+  Native packet clearing, live role binding, enumeration and full match
+  hosting remain open.
+- The strict Skirmish receiver shares only #2426 with an actual Practice
+  Range combat body in the fixture. The stock Practice permission sender's
+  body state is ended before the strict receiver starts. Three 64-frame
+  waits followed by actual enemy rifle hits cover permission enabled,
+  withdrawn and restored. Each hit removes 20 HP. Passive and damage charge
+  deltas are 5/20, 0/0 and 5/20. The weapon and passive clock run through
+  the combat body and its ordinary host.
+- With passive gain disabled for measurement, one deployed Biotic Field
+  heals three separate 20 HP deficits from actual enemy rifle hits while
+  the strict receiver enables, withdraws and restores #2426. Each deficit
+  heals fully. Healing charge deltas are 20, 0 and 20, so restoration does
+  not retroactively credit healing received while permission was absent.
+- Actual manual engagement by each of the five NPCs injures Soldier.
+  At impact, charge matches only the authored passive wait completions.
+  One 5-point completion is observed while the Assassin pin remains live.
+  After manual stop, Soldier's Field restores the full enemy-caused
+  deficit and charge equals passive points plus restored HP.
+- Actual rifle hits against Heavy Assault and the passive wait earn Visor
+  from zero. The last passive award reaches the cost during a live Assassin
+  pin. The pinned cast attempt leaves full charge intact. After manual
+  release, a fresh cast spends it, lands an off-axis rifle hit on Assassin
+  for 20, grants no charge while active and expires.
+- Practice Range earned charge also reads #2426. The test ends its permission
+  stack explicitly, executes rifle damage and Field healing, and re-delivers
+  0694 before a later rifle hit. Damage and healing continue with the gate
+  closed while charge stays at zero. The 0B8B/node59 and node97 tag branches
+  read the immutable target definition tags. Roadhog 028F has tag11E in the
+  original entity record, so node98 multiplies its damage charge by 0.75.
+  Native message parameters, dynamic tags and the 3C3 case remain open.
+- Practice Range Field credits now execute 0044 through 0B8B/node31.
+  Parameter3F carries the current recipient body and parameter40 carries the
+  actual eligible restored HP. The VM follows node85's recipient17625 check
+  and the authored mode, ultimate and amount branches. Parameter41's native
+  Field classification and activation of the original1537/node145 flag
+  producer remain open. The test supplies the recipient flag explicitly.
+- Actual damage to Practice Range bots with authored tag2ED now reaches
+  0B8B/node0 via 0012. Parameter13 carries settled damage and parameter15
+  carries the current target entity. The host resolves the static tag and
+  enemy relation for these bots. The test supplies source suppression12321
+  explicitly and verifies damage still occurs. Native classification3D,
+  mitigation list624, other targets and event0148 remain open.
+- The 121 alternative now uses the actual 040A pilot and 0407 mech target
+  definition tags with a scoped host enemy relation. Actual enemy pilot hits
+  execute 0012. Active Matrix produces no credit, and released Matrix lets
+  rifle and Helix credit their armour-mitigated damage through 0012.
+  The five prepared PvE bodies require separate native classification
+  evidence.
+- The 0407 mech now follows the world clock while owner input is missing.
+  With a held Matrix past its initial hold period, the neutral command gap
+  releases it. A real Helix contacting before release is intercepted.
+  Contact after release removes 110 HP and grants 110 charge. Both outcomes
+  agree across sequential and skipped ticks at fixed poses. An early
+  Matrix retry is rejected, idle recharge reaches its authored cap and a
+  fresh press starts Matrix again. A separate live attack test holds
+  Matrix until its resource reaches zero. The same Trooper, Enforcer,
+  Sniper primary, Sniper alternate and Heavy orders then hit Soldier
+  without a release, new attack order or change of pose. The offset mech
+  stays undamaged. Native command-gap timing and moving pose history
+  remain open.
 - Fortify0CF4/state4 owns live duration and reduction amount. Reduction before
   armour and direct critical suppression are reconstructed combat consumers.
+  An admitted Helix now resolves Fortify at the contact tick even across a
+  long world-update gap. At fixed poses, both update patterns record 62 HP
+  lost and 62 charge before expiry, then 110 HP lost and 110 charge after
+  expiry. Historical moving poses and native contact scheduling remain open.
 - Transcendence017B/state3 rejects HP damage while retaining solid body hits.
   The output-free zero-duration017B/state13 callback receives a scoped host
-  completion, not a general native54FEB21C implementation. Self restoration,
+  completion. The world clock expires state3 with no Zenyatta commands.
+  An actual Helix contacting before expiry is stopped without HP loss.
+  Contact after expiry deals 120 HP. Sequential and gapped world updates
+  agree in both cases. Actual Zenyatta primary is suppressed during the
+  ultimate and lands a 48 HP orb after idle expiry. Soldier's rifle deals
+  20 HP on the resumed exchange. Native54FEB21C dispatch, self restoration,
   allied healing, movement/animation and the complete ability remain open.
 - Melee uses reviewed parent7cd1ed7 nearest-capsule-surface visibility. Splash,
   Field and Visor retain their separately documented probe policies.
@@ -55,10 +770,16 @@ Implementation checkpoint
 - Authored Soldier volleys feed Combat._shoot; rifle 20 damage, 2x critical,
   falloff 30..50 m to 30%; Helix direct 40 plus splash 80 from asset configs.
 - Shared splash now checks static LOS for both player and NPC targets. Queries
-  use the closest capsule-axis point, current MOVER category and a 0.1 mm
-  incoming-side wall-impact offset. These probe choices are reconstructed,
-  not measured retail splash code. Partial cover/multiple probe points and
-  exact retail collision masks remain open. Helix self-damage remains open.
+  use the nearest capsule surface, current MOVER category and a 0.1 mm
+  incoming-side wall-impact offset. Native sample points, partial cover
+  and collision masks remain open. Scoped Helix self HP damage is covered
+  above. An actual wall impact on each prepared PvE capsule verifies
+  host falloff from 80 damage within 1 m to 40.4 at 2.98 m.
+  The 0.5 m force boundary is independent of damage. Impact velocities
+  scale down toward the 3 m ring on four bodies. Heavy Assault takes
+  damage and rejects motion. A target at 3.02 m or behind the impact
+  wall takes no damage or force and awards no charge. Native scalar
+  semantics, force and retail occlusion remain open.
 - test_soldier_combat_lane.py witnesses actual pools: wall-front/rear damage,
   unobstructed direct+splash 120, direct impact shielding a second target,
   authored player and generic-NPC rifle damage to Soldier, and healing teams.
@@ -71,9 +792,8 @@ Implementation checkpoint
 - Actual rifle pool tests cover 20 body, 40 critical, 6 far-falloff damage,
   miss/ally/static-wall rejection and an empty magazine rejecting aimed fire
   until reload completes, followed by one 20-damage shot consuming one round.
-- Static goal is active: full weapons/skills/ultimate/interactions must pass,
-  separately from original-client combat acceptance. No partial checkpoint
-  completes this goal.
+- Static acceptance requires full weapons, skills, ultimate and interactions.
+  Static and original-client combat acceptance remain open at this checkpoint.
 - Melee now rejects static occlusion. Pool-changing tests cover hit/miss,
   range, ally exclusion and wall blocking; melee and Helix reject cooldown
   represses and deal damage again after recovery. Authored Biotic Field heals
@@ -81,21 +801,323 @@ Implementation checkpoint
   during cooldown cannot add healing and a recovered cast heals again.
 - Soldier rifle Visor acquisition is reconstructed in Combat, gated by the
   authored 0259 TrackTargets active state. It evaluates m_radius=45 and
-  m_A30B383E=45 for range/cone, chooses capsule centres by aim angle then
-  distance, excludes allies/dead/occluded targets and honors startup/expiry.
+  m_A30B383E=45 for range/cone. The host ranks admitted targets by
+  projected-bounds distance plus the weighted world-distance term.
+  The rifle tests static LOS along its chosen centre, upper-axis or lower-axis
+  ray up to capsule contact. Actual player and all-five NPC shots distinguish
+  partial cover from full occlusion. Helix keeps its command direction.
   Graph-supplied rifle stats during Visor remain 20 damage, 1x critical and
-  1.0 falloff floor. Target ranking, aim points and the cone interpretation
-  are reconstructed rather than native search/filter code. Helix steering,
-  target-list replication and client lock effects remain open.
+  1.0 falloff floor. Host projection inputs, aim points and the cone
+  interpretation are reconstructed. Native search/filter, target-list replication and client
+  lock effects remain open.
+- Both 0259 lock branches author a compound score. The projected-bounds
+  term is weighted 1 and the world-distance term 0.01. Captured arithmetic
+  uses the distance from the cursor to the projected rectangle, multiplied
+  by sqrt(2) and clamped to 1. It adds 0.01 times world separation divided
+  by 15 m and clamped to 1. The native sorter orders the totals ascending.
+  In the supplied candidate fixture the shorter distance overcomes a small
+  projected disadvantage. Equal-score records retain input order in the
+  all-equal fixture, but moving a third, lower-score record to the front
+  reverses the two equal-score records. The projection tail was exercised
+  with supplied view and lens matrices and viewport bounds, including
+  perspective division and a rejected negative-depth point. The sampled
+  invalid projection path adds 100.
+  The captured C9774E call site constructs the default cursor reference from
+  the query origin plus ten times its forward basis. It passes two pi/2
+  angles to the scoring camera. The 1A78A25 caller and 1A75B60 setter
+  install a fixed viewport of (0, 0, 1, 1). C977BD checks a separate score
+  subtype before an optional cursor override.
+  C97B82 reads the unencrypted candidate projection origin and up from
+  entity +0x90 and +0x70. C9753A instead supplies +0x130 to the distance
+  term. The two reads were verified with different values on one fixture.
+  The 0x1F mover component supplies the default radius and upper extent
+  through C43F40 and 79A3B0. Both select standing or crouched profile
+  fields and multiply by mover +0xD5C. The probe runs both stances and
+  nonunit scales with original mover values for Soldier and all five PvE
+  bodies. Their base XML definitions have no STU_50BA775C override.
+  The 0x20 component definition lookup can replace both dimensions if
+  abs(radius) exceeds 0.004. Its upper extent is radius plus the runtime
+  field at +0x18, with no further mover scale applied. The native
+  single-table lookup was exercised with a supplied type predicate.
+  With both extents positive, C97F85 projects origin + radius * query
+  right + upper extent * candidate up and origin - radius * query right.
+  Either nonpositive extent selects the single-origin path. The optional
+  horizontal-only mode zeros projected Y. A nonpositive depth on the
+  two-point path adds 100. The projection probe supplies view and lens
+  matrices.
+  The hosted score uses a 90-degree view with the eye as origin, body feet
+  for both projection and world distance, world-up, and the host capsule
+  dimensions. The current list and historical rifle queries share that
+  calculation. The host breaks equal scores by entity ID. Live native
+  pose provenance, effective overrides, exact ties and candidate admission
+  remain open. The original rifle's 0254 node 25 reads #2337 and uses
+  element 0 for its target hardpoint expression. #3544 separately
+  exposes that first entry to the HUD. The Helix volley at node 38
+  has its own muzzle and leaves the corresponding target-aim fields empty.
+  The existing five-body test fires Helix along manual aim with Visor
+  active. Native muzzle and hardpoint transforms remain open.
+  Five actual-input fixtures distinguish the score from raw aim. The
+  normal rifle hits a far player, but with Visor the near PvE body wins
+  despite a small projected disadvantage and takes the 20-point round.
+- Actual sustained Visor rifle input consumes ten rounds against a full
+  Projected Barrier on each of the five NPCs. The breaking hit leaves the
+  original and alternate targets untouched and credits Zarya 40 energy.
+  The next round kills the pre-wounded NPC, and the twelfth round hits an
+  off-axis enemy player. The corpse stays in the match, the second player
+  receives its death event, and Visor gains no ultimate charge.
+- The static fixture activates 0259 node 11 via node 34's false branch.
+  Node 36 is the authored true branch and has a different raw entity filter.
+  Both configure policy 1 and output #2337. Offline execution of the native
+  CA9460 refresh predicate shows a three-frame interval for that policy and
+  rejects a duplicate frame. The test supplies synthetic phase keys.
+  The host anchors its three-frame interval at the initial query and
+  refreshes on the first evaluation after a missed interval. The VM
+  snapshot includes the most recent query frame. The owner stream keeps
+  its previous list through the two intervening frames. A shot fired
+  during that interval still applies the team's current eligibility
+  before ranking its viewed poses. A world tick jump refreshes the owner
+  list without another owner command. Native phase-key provenance stays open.
+  Both branches omit m_C39691D9 at +0x1C0. The native null-config path
+  yields INT_MAX and skips the early bounded ranking call. The authored
+  m_93AB8C13 = 0 sits at +0x1B8. The later list path can still rank with
+  mode 3 and the authored score config, then remaps ranked records to
+  entity IDs before writing the array. The native remap loop preserves
+  supplied rank order for both indexed IDs and entity-resolver records.
+  The output fragment truncates bounded lists and compares the retained
+  sequence against the previous one. It skips a write when only a clipped
+  tail changed, writes order changes, and can publish an empty list after
+  a nonempty one. Its cells store entity IDs under native type 10.
+  The probe intercepts entity-ID resolution and variable resolve/commit
+  calls. Native query integration, filters, phase-key provenance and
+  original-client lock replication still need verification.
+- The static owner-frame witness activates Visor through its normal input
+  and supplies ordered candidates only to 0259/node11 (state 7). The VM
+  updates entity array #2337 and its first-target stack #3544. Actual body
+  encoding and the local receiver model carry the two IDs in order, a
+  reversal, an empty list, and reacquisition. Unchanged input sends neither
+  variable again. Expiry unlinks both and the acknowledged owner stream
+  carries their clears. This witness supplies an enemy player and a generic
+  NPC as ranked inputs. Native search/phase timing, target hardpoint aim,
+  observer behavior and original-client lock presentation still need
+  verification.
+- A separate runtime test drives actual owner commands with no candidate
+  injection. The host uses current poses and aim to populate #2337 and
+  #3544 with the shared sandbox capsule query. Five real PvE bodies and
+  an enemy player enter in rank order. Team changes, full static cover
+  and turning away update or empty the list. Restoring eligibility
+  reacquires, unchanged values stay out of the owner delta, and expiry
+  clears both variables in the local decoder. A rifle shot after the
+  first candidate changes team deals 20 to the next candidate. Rifle
+  acquisition still uses historical command view poses for settlement.
+  Each of the five NPC fixtures also moves the preferred NPC out of the
+  current cone. #2337 changes to the enemy player. A fresh rifle command
+  damages that player, while a command with 64 ms of view delay hits the
+  NPC at its previous pose. Both hits deal 20.
+- The death handler aborts 0259's active countdown or startup wait
+  without waiting for a new owner command. Each of the five NPCs and an
+  enemy Soldier kills the active Visor owner through actual attacks in a
+  one-HP fixture. The old owner delta clears #2337 and #3544 even if the
+  lethal shot followed that owner's input in the same frame. Dead input
+  spends no ammo, and the uncharged replacement cannot reactivate Visor.
+  When Visor kills a one-HP NPC, the retained corpse drops out of #2337
+  at refresh, #3544 advances, and the next rifle shot damages the survivor.
+- A full input sequence earns Visor without charge or wound seeding.
+  Rifle hits contribute from all five PvE bodies and sustained Heavy
+  Assault damage reaches #338. Q consumes the points and restores the
+  magazine. Actual off-axis fire hits each of the five NPCs and an enemy
+  player for 20 each. The fixture stages targets one at a time. The
+  volley settles six rounds and earns no charge. After expiry the same
+  off-axis shot misses. A manual hit earns 20 points, and another Q
+  press leaves the insufficient charge untouched.
+- Separate unseeded sequences earn the first activation through
+  actual Heavy Assault hits. Enemy Flashbang, Sleep Dart and manual
+  Assassin pin each cancel the startup. The countdown never starts,
+  and the undercharged retry is rejected after control ends. Field
+  heals the actual 25, 5 or 25 HP wound respectively and earns matching
+  charge. Rifle hits on a fresh Heavy Assault fill the rest. A second Q
+  reaches the countdown and its off-axis shot deals 20 with no charge gain.
+- The actual enemy observer channel encodes both lock variables for
+  five PvE targets and an enemy player. Its acknowledged H=0 stream
+  carries the team-filter change, expiry during a world-only update,
+  reactivation and lethal cleanup without further Soldier commands.
+  The test decodes queued observer records on normal send ticks.
+- Both nonempty-list branches in 0259 link a status emitter whose target
+  expression is the entire #2337 array. The packed GUID
+  0x04A00000000000A1 resolves to the original XML file 053/00A1. The
+  resource references 025A in m_14AA219A and leaves m_5A4051BC empty.
+  The referenced graph pulses a client-only HUD branch using widget
+  116/0119 and hardpoint 03C/0001. In isolated host evaluation the branch
+  compares local possession to source #27. The widget flag compares the
+  marked body to that source's #3544. The two predicates were exercised
+  separately, including a listed body that is not the primary target.
+  With a supplied #478 value, 025A starts or skips its one-second wait.
+  Completing the wait leaves the instance alive in the host VM. The
+  probe creates and destroys 025A directly. Native status application,
+  source context, membership changes, teardown and client rendering
+  remain open.
+- Actual Flashbang cancels Visor's 0259/node91 windup at early and late inputs
+  after spending charge. No countdown starts from a canceled cast or an
+  uncharged retry. A subsequent rifle hit earns the final points for a fresh
+  cast. Lethal Flashbang ends the windup and the active countdown in separate
+  cases, and a replacement body starts without charge. Nonlethal Flashbang
+  during the active phase preserves its original expiry.
+  Actual Ana Sleep Dart cancels early and late windup, deals five damage
+  and blocks held fire and Visor input during sleep. A fresh uncharged
+  press after expiry leaves the countdown unstarted. After seeding all
+  but 20 points, an aimed body hit reaches the activation threshold.
+  A fresh Visor activation makes the same off-axis aim hit for 20 where
+  it missed before activation. The host sleep test uses a clock jump
+  to the final expiry tick. A separate test starts sleep with full charge.
+  Visor input during sleep leaves the points unspent and the countdown
+  unstarted. Releasing the input and pressing again after expiry starts
+  a new windup and spends the points. Native status timing remains open.
+  Host world updates now advance Visor startup and expiry with no further
+  owner command. When a live Field spans the expiry during retained
+  catch-up, its heal settles per retained tick. Actual rifle wounds on a
+  target then moved to Soldier's team recover equally in sequential and
+  jumped updates. Only healing after Visor expires contributes charge.
+  An already-flying Helix during Visor also enters the world gap sweep.
+  With a stationary enemy player, near and far impacts match their
+  sequential ticks and deal 120 on either side of expiry. Only the
+  later impact earns charge. The replay uses the latest poses. Native
+  accepted-input and server clock behavior remain open.
+  Practice Range also advances its authored 0B8B passive wait from world
+  ticks after the first accepted Soldier command. An idle wait before
+  Visor and a fresh wait after expiry each award five at the deadline.
+  A duplicate world tick adds nothing. A rifle command accepted on the
+  award tick hits for 20 and adds 20 combat points. This uses the host
+  frame anchor and bounded body catch-up. Ordinary idle progress does
+  not emit another owner correction for a command already projected.
+  The next accepted command or a queued health refresh can carry the
+  updated value. The lost-volley fallback keeps the original shot frame.
+  Other mode startup and native owner presentation remain open.
+  Actual manual Assassin contact also cancels early and late windup. Releasing
+  the pin restores manual rifle fire without restoring the canceled lock.
 - All five actual bodies take rifle20, melee30, Helix120 and reconstructed
   Visor20 damage, reject rifle/melee/Helix through full walls, follow allied-only
   and dead-excluding healing, die from sustained rifle/reload input and remain
   corpses beyond respawn until explicit removal. These are actual pool tests.
+- Normal primary input fires body and critical shots against each of the
+  five prepared PvE bodies at seven fixed capsule-contact distances. The
+  70 cases bracket 30 m, 50 m and the normal volley range of 180 m and
+  include the 40 m midpoint. They check pool and body-VM health, spent
+  ammo, ultimate gain, damage credit and the hit notification. A shot
+  beyond 180 m spends ammo without damage or notification. Enemy-player
+  cases also verify far critical damage and both sides of the range edge.
+  The fixed geometry uses the current host capsule and critical proxy.
+  Native hurtbox, contact distance and prediction fidelity stay open.
+- Soldier Quick Melee graph 0043 state 4 supplies a self-feet force origin,
+  horizontal #1257 = 1, vertical #1258 = 0 and a unity force ring.
+  The host passes the authored origin and force values to the shared radial
+  mover path after its existing historical contact, barrier and Deflect gates.
+  Four PvE classes gain horizontal velocity on the hit frame. Heavy Assault
+  takes damage while its movement modifier 26 suppresses the impulse.
+  Range, cover and ally misses leave the NPC movers unchanged. Frontal Deflect
+  suppresses the force on an airborne Genji while a rear hit displaces him.
+  Active Fortify and Particle Barrier also suppress the force. Native force
+  conversion and the original search and hit attachment remain open.
+  Rifle and reload input followed by Quick Melee leaves each defeated PvE
+  body as a corpse, with Soldier credited and no new corpse impulse.
+- Near the range edge, real Quick Melee moves four airborne NPCs outside
+  range by the next recovered swing. It still hits Heavy Assault at the same
+  relative range because Heavy resists the push. Actual forward input lets
+  Soldier close the distance and land a fresh swing on the other four.
+- Actual Quick Melee against five off-ground NPCs with a backstop deals 30
+  per admitted swing. Four NPCs reach capsule clearance, land and settle.
+  Heavy takes the damage in place. An early re-press adds no hit. The next
+  recovered swing hits each recipient again without spending rifle ammo.
+- Five angular boundary cases use the prepared capsule radii and
+  normal player commands. The outside swing executes without damage,
+  charge or impulse. An immediate correction is rejected on cooldown.
+  After recovery, the inside swing deals 30 and earns 30 points. A
+  separate wall is placed 2 cm either side of each capsule's front
+  surface. Both placements block the ray to the axis, but only the
+  nearer wall blocks the swing. These are host geometry and static
+  scene fixtures. Native shape, sampling and visibility remain open.
+- Quick Melee now samples active Particle and Projected Barrier spheres at the
+  same command view tick as their bodies. An active Particle Barrier can take
+  a viewed hit after Zarya moves out of range. Entering range after that view
+  cannot consume the shield, and a static wall can occlude the viewed sphere.
+  The Projected Barrier case consumes 30 shield HP and awards 6 energy while
+  preserving HP and motion on all five moved PvE recipients. Rifle fire
+  followed by a breaking swing leaves Zarya unhurt and stationary. A fresh
+  swing after cooldown damages her. Barrier eligibility is read at impact.
+  Native rewind and shield attachment remain open.
+- Rifle and Tactical Visor use the same viewed position for the initial
+  hitscan ray's body, Zarya spheres, Reinhardt mesh, Grasp and Matrix checks.
+  Actual input tests move each active defense onto and off the ray between
+  the viewed frame and the command. Projected Barrier absorbs the viewed
+  shot on all five PvE bodies and credits the caster. Reinhardt Quick Melee
+  uses the same historical translation for the mesh and still reaches the
+  body under the existing penetration rule. Helix tests move an active
+  Particle Barrier during flight and verify interception at contact.
+  Ability eligibility, facing and mesh scale still use the live state.
+  Native angle rewind, mesh attachment, and ordering between multiple
+  simultaneous defenses remain open.
+- The static Helix blast now checks barrier recipients against the same
+  cover set as the bodies it can affect. The set retains the directly hit
+  shield through the explosion even if it breaks. Actual Winston and Zarya
+  spheres in both orders preserve the rear pool and both bodies. After the
+  front sphere breaks, a fresh rifle shot consumes the rear sphere. Actual
+  Reinhardt and Orisa meshes in both orders likewise consume the rifle and
+  Helix on the front mesh. Active Grasp and Deflect in both orders settle
+  at the nearer defense. The actual reflection damages Soldier and credits
+  Genji, while absorption stops the projectile and credits Sigma's sum.
+  Exact native ties, overlap geometry and all remaining combinations stay open.
 - Explicit NPC slot input uses the asset button mapping and suppresses duplicate
-  presses. Trooper20, Sniper100 projectile and Heavy5 authored weapon paths
-  change Soldier health; allied/missed/wall-blocked attacks do not. Enforcer
-  and Assassin slot0 still do not yield attacks. No replacement weapon is assigned.
-  This input adapter does not implement acquisition, AI or special attacks.
+  presses. Trooper20, Enforcer13EB, Sniper100 and Heavy5 authored weapon paths
+  change Soldier health. Manual Assassin action36 uses the 1157 pin bridge.
+  Native acquisition, AI and remaining specials stay open.
+- Enforcer's manual controller profile supplies component4B and omits5C for
+  its 13EB current-self predicate. The CC9F61 instruction comparison supports
+  that predicate. The CC9BF0 entry runs with a supplied selector and
+  namespace. It rejects a stale ID in the same bucket and resolves a
+  matching later row. DA6910 decodes a component 44 link when the body
+  lacks component 43, then checks 4B and 5C. When 43 is present, the
+  evaluator forwards its dependency and BD3F50 searches the secondary
+  namespace. BD45A0 and BD42D0 execute the original target-ID write and
+  read, using BAD060 to transform the seed. Retargeting to an unlisted ID
+  in the same bucket exits before reading 44. Retargeting to the exact
+  row reads 44 from the resolved body. A missing link or a controller
+  with 5C still yields false. The typed boolean writer also executes.
+  These 18 controls execute original dependency registration (1B7FD30
+  and 1B8EE70) with preallocated watcher vectors. On the same records,
+  a second ID write notifies via 1B8ED40 and triggers a type 9 queue
+  insertion via 1B92990, with the fixture tick, graph and watcher node.
+  The active graph gate can reject insertion. A retired watcher
+  stays clean and never reaches that gate. Repeated evaluation keeps
+  one row in each dependency vector. The fixture supplies selector,
+  outer namespace, process key seed, graph admission and item allocation,
+  and explicitly invokes reevaluation. Queue dispatch is open. Allocation
+  and possession use an explicit sandbox policy.
+  13EB/node24 emits 25 projectiles at80 m/s and100 m range using the authored
+  1/8/16 rings and spread4. Uniform azimuth, phase and muzzle use host geometry.
+  Actual ammo, reload, HP, barrier, reflect and absorb tests run these shots.
+  Manual engagement now aborts a pending 13EB volley at node 11 when
+  interrupted by control, stopped explicitly or released by the controller
+  gate. An actual Flashbang previously left node 11 running until its
+  completion consumed one round while the actor was stunned. The authored
+  abort output retires the windup before node 24 and preserves the round.
+  The host policy uses the existing Sniper interruption entry points.
+  The target remains selected across stun and automatic gate release.
+  Flashbang, cover, range, team and explicit stop fixtures cross the
+  old launch frame without damage or ammo loss, then settle a fresh
+  50-damage volley. Explicit stop requires a new engagement command.
+  Lethal Soldier rifle fire also aborts a pending volley at death.
+  Already launched pellets keep their Enforcer source and hit Soldier
+  for 28 damage at nine metres in the staged case. The fixture wounds
+  Enforcer to 20 HP before the lethal shot.
+  An actual Ana Sleep Dart also hits Enforcer after its fourth volley
+  launches and before the pellets reach Soldier. The last volley still
+  deals four damage at 35 metres. The empty magazine refills during
+  sleep without another launch or damage. At the sleep deadline, the
+  retained engagement can resume and lands a new four-damage volley
+  using one round. A follow-up run also passes with no further Ana
+  commands between casting and contact.
+  The interruption and controller change passed 171 tests. The
+  follow-up death change passed 103 tests including the Enforcer and
+  Sniper death cases and shared bot lifecycle and controller tests.
+  Original controller interruption and restart timing still need proof.
 - NPC initialization now builds declared manager/weapon scripts through the
   player allocator; missing Sniper weapon instances caused its prior lack of
   fire. Player instance order is preserved. NPC initial health now includes all
@@ -124,9 +1146,660 @@ Implementation checkpoint
   reconstruction; this test does not claim native numeric equivalence.
 - Authored Field casts now reject static walls and out-of-radius allies; death
   before the throw and body replacement during windup cannot deploy delayed fields.
+- Replacement retires the old body's pending canister or deployed Field
+  immediately. A delayed create acknowledgement cannot queue the retired
+  Field's script frame. Actual cast tests verify allied healing stops and the
+  replacement does not inherit charge. Native persistence parity stays open.
+- After actual rifle wounds each prepared NPC, the fixture changes that NPC
+  to Soldier's team and admits a Field canister. An enemy player's actual
+  rifle then kills the 15 HP caster before opening. The canister opens and
+  gives four ticks of healing without awarding the dead caster charge.
+  Replacing a living body at the same checkpoint cancels the canister
+  before healing. In both cases a replacement body casts a fresh Field,
+  restores the remaining wound and receives the corresponding charge.
+  NPC pools and body-script health agree. The death fixture sets the
+  caster's starting HP. Native placement and lifetime remain open.
+- The 0257/node8 wait now advances across missing owner input. The
+  original volley at node4 uses the last committed pose and a world tick
+  mapped from its event frame. Sequential updates and an 80-tick jump
+  agree with continuous input on the release, opening and healing
+  credit for each of the five PvE allies wounded by actual rifle fire.
+  Stale input and a new press during cooldown do not repeat the release.
+  An actual in-flight Sleep Dart cancels the windup during missing
+  input, including in a jump. The aborted cast starts no cooldown, and
+  a fresh press after recovery deploys. With no further Soldier input,
+  actual Flashbang crossing an intact or breaking Orisa mesh or Winston
+  dome spends barrier health and leaves Field free to open and heal.
+  Same-side contact deals 25 HP damage and interrupts the windup.
+  Orisa's same-side splash also spends 25 mesh HP. The interior Winston
+  blast leaves dome HP intact. Sequential and skipped updates agree.
+  After stun a fresh cast deploys. The fixture seeds Soldier's wound and
+  the breaking barrier pool. Healing replay keeps the existing retained
+  window. An actual Sleep Dart emitted in the Field press tick now
+  impacts at the same tick in both sequential updates and a 40-tick jump
+  from emission. It deals 5 and cancels the windup before deployment.
+  Rockets retain the launch boundary before their first flight step.
+  The server defers rockets from the latest datagram to the endpoint if
+  that datagram is processed immediately before skipped ticks. Older
+  rockets keep their launch boundary. For a posed Field canister the
+  same boundary sets the opening deadline, including a jump immediately
+  after release. The actual cast opens on the same tick before or after
+  the first world step and heals only on retained post-opening ticks.
+  Late-packet deferral moves the canister deadline with its flight boundary.
+  An actual Helix launch changes the stored digest when only that boundary
+  changes. A late encrypted packet can also start a Field wait before
+  the server settles overdue ticks. The host now moves only the newly
+  armed 0257 timer by the skipped duration, preserving the body clock
+  for earlier timers. The same press with and without a 0.8-second stall
+  has the same launch and opening delay after admission. A prior Field
+  cast followed by a late neutral command still opens inside the gap.
+  All three cases replay through the production packet loop. Native
+  packet/impact ordering, gap timing and historical poses remain open.
+- Field settlement reads 0258's player #420, #422 and the two authored waits.
+  The VM's wait rounding supplies the fade and expiry world ticks. A cast
+  against an isolated one-second, radius-two, value-ten resource fixture
+  verifies all three inputs affect play. The host still integrates per world
+  tick. The native 025F/0B3C duration and amount normalization remain open.
+- Field volley 0257/state1 launches 072D and names 03DC as its spawn.
+  The resource supplies speed 50, gravity 9.8, a ten-second projectile
+  lifetime and contact set 097/011D. The launch expression adds (0,-5,0)
+  to the body-forward query. The native readers D61F30 and D62020 read
+  the configured direction and offset separately. Four cardinal cases
+  exercise direction normalization and the offset (0.2,1,0.3), with
+  supplied body-forward, node lookup and evaluation callbacks. Caller
+  AE709F passes the authored offset to D80AD0 on its populated path.
+  D81494 applies that offset along the three pose axes and adds the pose
+  translation. The probe executes the original arithmetic with supplied
+  axes and translation.
+  D80D4E uses the current mover pose for a zero sample offset. With a
+  nonzero offset it requests the clock time minus that offset, falling
+  back to a copy of the current pose when history lookup fails. All three
+  paths execute the original C5E3C0 quaternion-to-basis calculation,
+  C62A50 translation decoder and final offset transform. Twenty-four
+  cases combine those pose paths with eight low-bit translation seed
+  selectors. The probe supplies the clock, history, pose copy and encoded
+  pose records with no attached parent.
+  Four additional cases give the pose a parent ID and supply a bucket
+  row with the same low 12 bits but a different full ID. C63A90
+  rejects the row. Without a cache the decoded translation survives.
+  With a cached transform C62A50 rotates and translates it. When the
+  pose rotation is local, C62760 and 184BAA0 also compose the cached
+  rotation before the launch offset is applied. The world-rotation
+  flag bypasses that orientation composition. These cases supply the
+  cache and do not bind a resolved parent component.
+  Four resolved-parent controls use a matching full ID and an empty
+  component presence bitset, with or without the same cache. A zero
+  selector takes the direct component path. Selector 17 reaches
+  C61FD0 with the resolved parent and selector. Both paths execute
+  the original key routine with a minimal process fixture and
+  reject the absent component. Neither uses the stale cache after
+  the ID resolves. The decoded translation remains the launch
+  transform's input in all four cases.
+  Two selector-zero controls set the component presence bit and
+  encode a supplied component pointer with keys produced by the
+  original routine. The original decoder resolves the pointer
+  and reads the matrix at component +0x60. It transforms the local
+  translation, and composes the rotation only for the local-rotation
+  case. The resulting launch origins are (24.2, 34, 38.3) and
+  (24.3, 34, 37.8) with an unrelated cache present.
+  Four more controls use the same populated component with selector
+  17. Original C61FD0 decodes the component and passes the selector
+  to 1AFBE10. The lookup returns false when the attachment feature is
+  disabled or when it is enabled and the model table is missing.
+  C625D5 then uses the component matrix, with the same distinct
+  world and local rotation results as the direct path.
+  Four populated model-table cases run native 17B07A0 and 1AFBE10.
+  Selector 17 matches the second row and composes its 64-byte matrix
+  with the fixture component frame. Selector 29 misses the same table
+  and falls back to the component matrix. Both rotation modes are
+  covered. Live pose and model binding remain open.
+  D8BC27 reads the volley spawn config at +0x180, copies its evaluated
+  flags and writes a descriptor at projectile data +0xA8. Its +0x58
+  asset slot receives the resolved 03DC handle. Isolated controls cover
+  missing spawn config, missing definition and failed asset evaluation.
+  D88D8A reads the motion array at volley +0xE8. The captured gravity branch
+  reuses a native pool record and stores the evaluated scalar at +0x20.
+  D71A70 consumes that record and subtracts gravity times elapsed time from
+  vertical velocity. The fixture evaluates the original 9.8 literal with
+  supplied type/expression services and an empty multiplier lookup. Controls
+  cover absent motion, a changed scalar, zero elapsed time and the optional
+  conditional flag. The motion-list call at D7042A updates velocity before
+  D70477 reads the same record to integrate position. The isolated caller
+  runs D72C80 with native distance arithmetic. Time and range controls show
+  that a partial step interpolates position and velocity and scales distance
+  and elapsed time by the same fraction. A zero remainder bypasses D75500.
+  For a positive remainder, a separate slice forwards the old position and
+  candidate record to D75500 with supplied contact inputs. Six D75F52 cases
+  execute native result processing with a supplied world sweep. A miss uses
+  the candidate endpoint. A hit copies the supplied normal, interpolates the
+  contact fraction, and offsets the point 0.005 units back along the path.
+  A near-origin hit inside the supplied squared-distance cutoff uses the
+  original point. Entity-filter results select separate native branches.
+  The D7058F caller slice commits the result point for a supplied nonzero
+  return status and keeps the candidate for zero. The sweep implementation,
+  remaining query branches, terrain classification and deployment remain open.
+  Eight combined cases use the four captured launch-reader fixture
+  outputs as the initial state for successive native gravity and
+  motion steps. The authored 50 speed, 9.8 gravity, 10-second lifetime
+  and 150-unit range drive the replay. The higher plane is crossed on
+  step 2 and the lower one on step 4. An analytical plane supplies
+  the hit fraction and up normal. Original world result processing
+  and its caller commit the contact with the 0.005 path offset.
+  The same eight records continue through native D75110 with the
+  authored response and interpolated impact velocity. The fixture
+  supplies the response status, clock and entity storage. All eight
+  upward contacts finish without rebounding, clear velocity, and
+  send the raw contact point with the terminal bit. The native queue
+  appends the projectile and drains it to the supplied teardown
+  boundary. All eight captures have a populated compiled +0xA8
+  descriptor and asset pointer for 03DC. Neither address is read by
+  this client path, from D75110 through finish marking and queue drain.
+  Six isolated side-contact continuations also leave the descriptor
+  unread, including a second contact that exceeds the rebound limit.
+  Native scene admission and authoritative 03DC placement remain open.
+  D8CB9C reads the authored contact-set expression at volley +0x150 and
+  stores its GUID at compiled +0xC8. Native value extraction and fallback
+  yield 097/011D for the Field literal and 097/0002 for an absent, failed or
+  zero value. D7A829 copies the GUID to the query record at +0x58. The
+  original hit-byte compilation and query builder produce bytes (1,0,1)
+  at +0x198 for the Field. With a missing hit block the bytes are (0,0,1).
+  The six probes use supplied expression evaluation and owner records.
+  The sweep at BEF0EC resolves a nonzero query GUID before considering
+  an owner default. With neither it uses 097/0001. A matching cached GUID
+  skips resolution and category encoding. A changed GUID recomputes both
+  words. A missing or type-rejected replacement asset clears the old
+  cache and returns before querying geometry. Eleven native probes supply
+  the context and lookup services. One feeds the two authored 097/011D
+  category arrays at profile +0x28 and +0x35. The original 17A8FC0 encoder
+  yields 0x1FDF for each. Synthetic arrays distinguish their ordering:
+  BEF34B puts the second word first in the filter record.
+  BEF5E5 applies two more flag-controlled amendments after owner lookup.
+  Sixteen probes supply the candidate and execute this branch. With the
+  Field flags (1,0,1), candidate bit 23 adds filter bit 23 and takes
+  precedence over bit 24. Bit 24 alone adds filter bit 24. Either bit
+  clears the retained candidate pointer. The candidate lookup remains open.
+  BEF719 builds the first sweep packet with both category words but
+  masks the second with 0x81. The resulting Field words are 0x1FDF and
+  0x81. With a supplied first-pass dispatcher, BEE0C0 copies a result
+  into the shared record. The full filter enters the next query with a
+  shortened segment when that result hits. C73720 uses native BDC210
+  scene lookup with key 0x10000 and a supplied table. A missing entry
+  never calls the scene routine. C750B0 and C72740 execute the scene
+  segment setup and tree traversal for an empty or one-leaf scene.
+  Separate fixtures reject a box outside the segment bounds and a box
+  inside those bounds but away from the diagonal segment. A first-pass
+  hit at fraction 0.5 excludes a leaf at x=8 while a leaf at x=4 still
+  reaches shape lookup. C73200 requires overlap with the first 64-bit
+  profile mask and rejects overlap with the second. Those two mask tests
+  use synthetic leaf and profile bits. Those nine probes stop the
+  admitted path at shape lookup.
+  A separate candidate probe starts at BED377 with supplied candidate
+  bounds and an entity policy result. Native 184DA90 tests the segment
+  against the sum of the candidate and sweep radii. With the supplied
+  sphere-result flag, BF1EC0 and BEE0C0 write the admitted point, normal,
+  fraction and entity to the shared result. The crossing fraction is
+  0.5. Adding 0.5 to the sweep radius moves it to 0.4375. Starting
+  inside returns zero. Exact tangency and a candidate beyond the current
+  fraction cap are rejected in the tested geometry.
+  With the sphere-result flag clear, the bounds hit alone does not
+  publish a result. Native BF0C50 and DEAD50 reject a disabled body and
+  stale handle with a supplied registry. A matching handle reaches
+  DE74F0 and returns a miss for the supplied empty tree. With a
+  populated synthetic tree, DF77A0 applies the category masks and the
+  leaf bounds gate precedes the shape cast. DF5110 reads the supplied
+  rigid pose. DF5490 selects the type-zero sphere and DDC7F0 tests it
+  against the segment. The coarse sphere admits at 0.375 and the exact
+  sphere hits at 0.5. BEE0C0 publishes its point, normal, entity and
+  two shape metadata words. Separate controls miss at the category,
+  bounds, primitive geometry and fraction-cap gates. The 1B60630
+  exclusion list also rejects an otherwise valid exact hit when it
+  names the same shape owner and subshape. The native probe uses a
+  supplied registry, pose, geometry and entity policy.
+  Four joined cases pass the same shape record and status through the
+  sweep boundary into D75F52. The query reads the exact hit's subshape
+  and preserves the normal. It offsets x=4 back to x=3.995, returns
+  status 13 at D77A9E and commits the adjusted position at D7058F.
+  Category and primitive misses return zero and leave the step at x=8.
+  The captured +0x108 callback is reached in the ordinary path with
+  the same result pointer. A mode-2 control skips it and preserves
+  the hit and position. These cases supply the scene boundary and the
+  surrounding context, secondary-contact miss, callback and metadata
+  services. Retail shape and mode selection and the first-pass scene
+  dispatcher remain open.
+  The Field volley has a populated m_E365DB20 at +0x130. The native
+  response compiler slice writes integer 9 and bytes (1,1,0,0,0) to
+  the policy at compiled +0x88, using supplied literal evaluation.
+  The omitted hit threshold expressions compile to (0,0) through the
+  original scalar fallback. D75110 compares the resolved normal's
+  vertical component. The exact side hit with vertical component 0
+  reaches D77B80. A supplied upward normal reaches the terminal path.
+  Synthetic thresholds cover the middle band and both equality cases.
+  The response compiler also stores the authored 0.1 normal scale at
+  +0x30. The following eight omitted coefficients compile to
+  (0,0,0,0,1,1,1,1). D77B80 consumes the actual side-hit record and
+  writes velocity (-0.8,3,-2) for a supplied incoming (8,3,-2).
+  It moves the step point another 0.001 outward in this fixture.
+  An already separating velocity bypasses both writes while the count
+  still increments. The count at projectile +0x128 increases before
+  the strict comparison with 9. A ninth rebound continues, while a
+  tenth invokes the captured +0xB8 no-op and the +0xB0 finish callback.
+  It retains the computed rebound velocity through the finish callback
+  and clears it by the response return. The boundary tests seed the
+  prior count.
+  The captured +0x68 callback builds its effect packet from the raw
+  contact at x=4 while the step position is x=3.995. The terminal bit
+  is present before +0xB0 writes finish tick 108 and marks +0x12CD.
+  B24538 forwards the decoded entity through 182C890 and clears the
+  marker. A repeat produces no entity update. Suppression still records
+  the finish tick and bypasses both the effect submission and the
+  marker. Six continuation cases resume D7081B with the same
+  projectile record after response. The original loop spends the
+  remaining 0.125 seconds of a 0.25-second interval and integrates
+  the native rebound velocity with the compiled gravity. With a
+  supplied clear segment it reaches (3.894,-0.153125,0) at velocity
+  (-0.8,-1.225,0) and records the segment distance. Supplied opposite
+  wall results now enter at D7058F. Original code commits the adjusted
+  point, interpolates velocity at the hit fraction and scales time
+  and distance before routing to D7075B. A fraction of 0.5 reaches
+  rebound with vertical velocity -0.6125. On count ten it finishes
+  at elapsed 0.1875 seconds. On count nine it integrates the
+  remaining 0.0625 seconds. A zero-fraction response adds zero time
+  and distance and retains all 0.125 seconds for the next segment.
+  An already finished record exits before motion or gravity. The
+  fixture provides the second scene result and corrected point.
+  The native finish path continues through 1832740 into 1836FA0.
+  With a supplied owner table and queue storage, it inserts the
+  existing projectile, skips duplicate insertion, and compacts an
+  existing flagged row via 184F5C0. The insertion copy is supplied.
+  The drain slice at 1836E97 swaps supplied buffers, clears both
+  counts and passes the existing pointers in order to the supplied
+  1833E20 teardown boundary. A separate replay enters original
+  1833E20 and runs to the common cleanup at 1834890. Original
+  1833860 collects supplied manager rows and calls their supplied
+  vtable +0x68 handlers in row order with the existing entity.
+  Empty rows produce no calls, and entity flag bit 9 bypasses
+  collection. These cases execute the row-copy wrapper 184F5A0
+  with a supplied memory copy and observe no reads of the watched
+  03DC descriptor. The entity count is set to skip native component
+  walks. Four further controls run 1833E20 to return with absent
+  or stale handles, a live key, or a live key and a live payload.
+  Native 1A578C0 retires a supplied entity registry slot and
+  advances its generation. Original 173B370 releases valid handle
+  references and passes the resolved key and payload vector to
+  captured target 674CE0. Original 171CC10 and 171EC20 reach a
+  miss in the supplied empty notification registry. The absent and
+  stale handles produce the same hash, and the live key and payload
+  produce distinct hashes. The probe supplies a TLS result and
+  verifies the cookie at the check boundary. Original code invalidates
+  the handle, compacts a supplied manager bucket and returns the
+  entity through 18313D0. Two populated registry controls keep the
+  live key and payload fixed and vary the stored hash. A matching
+  row behind an unrelated row reaches 1721310 and 17217B0 and
+  decrements its two reference counts. A wrong hash leaves both
+  counts unchanged. A third control takes the matching row's
+  registry reference count to zero while its use count stays positive.
+  Original 171FBC0 clears the fixture entry and 171B150 unlinks
+  only its hash row. The unrelated row is unaffected in all three
+  controls. No control reads the watched 03DC descriptor.
+  Resource 072D.003 contains projectile visual, target tag,
+  model and statescript components, with no initial statescript
+  graphs. The separate 03DC.003 pet starts 0258.01B.
+  D74EC0 calls the captured +0x98 slot B2C2B0. With a supplied
+  projectile record and effect context miss, it sends the terminal
+  packet and calls the secondary handler before +0xB0 marks the
+  projectile finished. Suppression and a consumed flag skip the
+  +0x98 body. The watched compiled +0xA8 descriptor and its
+  contents receive no reads in these cases. D8C14A clears the
+  distinct +0xB0 config from absent source +0x188 (m_747ECB51).
+  A populated control reaches D79250 and exits at its empty
+  candidate gate. The inherited 11F4.003 resource on 03CF.003
+  also mounts 0B16.01B. Its stack at position 18 refers to 03DC
+  inside the numeric config STU_967463AB for variable 7979.
+  The authored 0.1-second wait at XML position 19 leads to the
+  #7979 < 1 condition at position 20. Its true link begins position 7,
+  whose logical button 36 matches the Field activation in 0257.
+  The host condition handler queues that request for supplied 0 and 0.5
+  and queues nothing for 1 or 2. In four joined controls, the original
+  count comes from the empty list, the optional-child rejection,
+  one matching child and two matching children. An explicit start
+  of the extracted wait runs the host timer and condition. The two
+  zero-count cases begin the request state at 100 ms, with no earlier
+  request. The positive counts end the wait without a request.
+  These controls stop at request-state activation.
+  Native CCF2D0 evaluates the asset and owner inputs through the
+  registered numeric type. D24A20 scans a supplied bucket by full
+  entity ID. It skips a stale row with the same low 12 bits and passes
+  an exact owner and the 03DC asset to C6CDA0. A stale-only bucket
+  yields zero. Failed asset evaluation and an invalid owner reject
+  the query. Original code writes the supplied enumeration results
+  zero and two as integer variants. The fixture supplies the context
+  and nested inputs. Boundary cases supply counts at the enumeration
+  entry. Nine additional cases execute C6CDA0 over supplied encoded
+  entity records. Original BD3E40 and the inline decoder resolve the
+  owner child-list pointer. Clearing the presence bit with the same
+  encoded slot returns zero. The child asset route 182C460 runs the
+  captured 173B580 callback and rejects a stale handle generation.
+  Empty, stale-only, retiring-only and wrong-resource lists also
+  return zero. One matching 03DC returns one. A mixed list returns
+  two under both list encodings. B7C60 now runs with a supplied
+  thread and process record. A second process field changes the
+  seed pair. The fixture encodes a list slot with those results
+  before original decoding. With a populated child component,
+  original BCBF00 includes the child when virtual +0x78 returns
+  zero. For a nonzero result it reads +0x70, excludes a value
+  within the absolute threshold, and includes a negative value
+  beyond it. The fixture supplies the two accessor returns.
+  Live accessor producers, input injection and authoritative
+  deployment remain open.
+  The second scene query, effect backend, actual 072D component
+  handlers, notification cleanup with populated dependent objects,
+  and authoritative 03DC placement remain open.
+  D72DE0 can forward the descriptor to context slot +0x150. It appends
+  a temporary entity context and restores the prior context count after
+  the callback. In the captured projectile client vtable the callback
+  is 123CC10, which returns false. The D7734A contact path only reaches
+  this dispatch when the contact flag at +0x7E is set. D8B5C1 derives
+  that flag from m_DBAC4DDB, which is absent from the Field volley.
+  The captured gate bypasses the dispatch with that authored absence.
+  The isolated cases verify the exclusion and use a supplied callback
+  for the positive control. A scan of direct relative branches in the
+  capture finds D77380 as the only direct caller of D72DE0. The continuing
+  D773DC path can instead reach client vtable slot +0x108 at D77428,
+  resolving to B34970. Four isolated cases verify the call arguments,
+  low-bit mask, and bypasses for mode 2 and a set record byte at +0x360.
+  A separate fixture executes B34970 and its BEFF40 gate. The gate reads
+  the R9 argument. It requires a config and admits bits in mask 0x900 in
+  the source record or bit 0x08 in its config. Five cases verify that gate and
+  the forwarded header, vector selection, scalar and packet kind 9, using
+  an empty lookup list and a supplied dispatcher. The packet names thunk
+  B28D70. Eight isolated runs execute its contact copy and call the captured
+  slot +0x78 receiver B2BDF0. The receiver skips a set record byte at +0x360
+  and a parent already present in the contact cache. Admitted contacts call
+  B30110 with the copied point plus a projected offset. The native zero-offset
+  path preserves (1,2,3); a supplied (9,5,7) offset against an X-axis normal
+  yields (1,7,10). B30110 exits when contact configuration lookup fails. With
+  a supplied component and successful type check, the original keyed lookup
+  returns a config. Opposite X-axis normals exercise the native directional
+  rejection and admission paths. On admission the code decodes the supplied
+  context and reads the two entity identifiers. A third identifier and the
+  context type check use supplied callbacks. With a descriptor at config
+  +0xB0, the submission forwards the projected point, all three identifiers,
+  the descriptor and two flag bytes to B2D000. Without it, the call is skipped.
+  The submission fixture stops at that call boundary. Eight separate probes
+  execute B2D000 with supplied context selection. A matching selected context
+  exits before acquiring the queue lock. The no-parent path resolves channel
+  0x0B, normalizes the contact direction or selects the captured default,
+  then passes a packet to 5F2660 and releases the lock. With supplied
+  context selection and preallocated storage, the no-parent preparation
+  runs the original vector transforms. 5F25F0 and 5F1D50 append and initialize
+  a 0x120-byte record. The write preserves the point, descriptor, three
+  identifiers and invalid asset marker. A successful append and a supplied
+  preparation rejection both preserve the existing record byte for byte.
+  With a supplied handle table, DF7270 admits a matching slot generation.
+  A stale generation falls back to the captured invalid asset marker and
+  clears the queued asset-presence byte. Binding these paths to 03DC remains
+  open.
+  The fresh record feeds isolated consumer slices in 6E60E0. The scan at
+  6E6DB0 groups matching descriptors and skips records with bit 0x10. The
+  multi-record fixture stops at the batch boundary. For a single fresh row,
+  6EB110 sets bit 0x40 and does not reprocess its index on a second scan.
+  The update loop skips an invalid instance index or a row with bit 0x04.
+  With supplied lookups, an unresolved main instance prevents child lookups.
+  A resolved main and two resolved children reach 6EF440 in order while the
+  unresolved child is skipped. Each child uses its own 20-byte parameter slot.
+  The sweep at 6E726D keeps the row with bit 0x04 set and otherwise removes it
+  through 5F2E80. A separate 25-case 6EF440 probe executes the first
+  binding update with synthetic source, target, and effect records.
+  Original component descriptors and encrypted vector reads resolve source
+  components 1 and 9. The entity bucket compares the full ID and can skip
+  a stale row to find a later exact match. Effect byte +82 and the target's
+  component 1 presence bit independently gate the pointer forwarded to
+  1AF9D60. That routine selects reuse only when both target and +84
+  parameter match. Otherwise it passes a new descriptor to 1B0AA50.
+  Bit 7 at component +24C on either side rejects the new binding in
+  original code. Reuse executes 1B03150. A fourth-lane-only position
+  change and a small XYZ displacement leave both transforms untouched.
+  A larger position change and a rotation change update the two stored
+  transforms and their checksums, with notification flags 0x22 and
+  0x24 respectively. Combining both yields 0x26. 1B0DEE0 executes
+  default scale, minimum-axis uniform scale and componentwise limits
+  of 0.01 to 1000 when nonuniform scale is allowed. The original accepted
+  change path removes the source from the old head or tail and prepends it
+  to the new target's list. Detach clears the target, sibling and parameter
+  and resets depth to zero. Attach sets depth to the target's depth plus
+  one and writes three checked transforms. Native 1AFA9F0 rejects a cycle.
+  The attachment subroute checks owner component 4. Its absent case
+  clears the pending attachment byte. A set target flag with component 4
+  present preserves that byte while the outer binding still updates.
+  Native 1B028F0 appends a dirty row once per generation. The fixture
+  supplies process key seeding, cookie verification, propagation and
+  pose notification. Later callback phases, populated-parent preparation,
+  multi-record batch and actual 03DC deployment remain open.
+- The captured projectile finish path D72FD0 sets a one-shot byte and calls
+  client slot +0xB0, B2BDA0. That callback copies the current tick and sets
+  a marker when the ID high bit and both record suppression bytes are clear.
+  The marker lives at record +0x12CD. Captured B24538 tests it and calls
+  182C890 with a decoded entity pointer and zero flag. The wrapper reads
+  the entity's manager handle at +0x28 and tail-calls 1832740, the entry
+  independently exercised by the finish queue probe. The client tail then
+  clears the marker. Three emulation controls with supplied encoded entity
+  and manager records exercise a clear marker, a set marker and a repeat
+  after consumption. Only the set marker forwards the original entity.
+  The standalone controls stop at the queue entry. In the joined probe,
+  append, duplicate, flagged compaction and drain all run with the same
+  populated 03DC slot, descriptor and asset under read hooks. None of
+  those four cases reads the watched data. The drain hands the existing
+  entity to the supplied teardown boundary. Direct D72DE0 controls give
+  a positive read witness at D72E33 and D72F1E, but the captured client
+  callback does not read the descriptor or asset. This separates the
+  tested retirement path from the still-open authority that creates 03DC.
+  Client slot +0xA8, B2C420, reaches D72FD0 only with the ID high bit clear.
+  The isolated D73CB0 path tests speed and a quantized deadline before
+  tail-calling D72FD0.
+  With a supplied low-speed policy, the exact deadline and a positive defer
+  value keep the finish callback pending. A later tick with zero defer calls
+  it. The native instructions execute with supplied policy and ID lookup.
+  WeaponVolley's authored m_8236947A is at +0x148 in the extracted schema.
+  0257/state1 leaves that field empty. D8BB40 therefore clears the compiled
+  +0xA0 policy slot. Both captured D73CB0 call sites skip the missing policy.
+  Seven compiler and caller cases cover all three selector bands with that
+  authored absence and with populated controls. The positive controls use
+  supplied allocation and expression results. The authoritative spawn path
+  remains open.
+  The static host now reads the 0257 launch expressions for 072D and
+  evaluates the owner-forward query from the current mover yaw. It
+  rotates the authored offset from the mover feet and normalizes the
+  authored launch direction. Actual casts at two yaws and opposite
+  command pitches verify these initial vectors. This is a current-pose
+  host binding. Native history, sample offset and live parent transforms
+  remain open. The host reads the authored gravity and updates
+  vertical velocity before each world-tick sweep. The 150-unit
+  path limit is independent of the 10-second lifetime. A clear-air
+  cast reaches that limit in under three seconds. Sequential and
+  skipped world ticks agree on path length and the floor finish
+  tick at fixed poses. Seven defense fixtures verify the new
+  sweep and retain their contact, ownership and healing assertions.
+  Host static surface contacts with a nonpositive vertical normal
+  consume the authored rebound policy. The normal velocity reverses
+  at scale 0.1, with the tangent preserved, and the flight consumes
+  the remaining tick after gravity interpolation. An upward floor
+  hit still ends the flight. Side-wall tests witness the first and
+  ninth rebounds and termination on the tenth contact. Counts near
+  the limit are seeded controls. Live scene admission, native
+  collision filters and authoritative 03DC deployment remain open.
+  The host placement candidate waits until the canister terminates
+  and the existing minimum opening delay has elapsed. An upward
+  world contact supplies the ground point for healing and observer
+  placement. Other terminal causes keep the launch-feet fallback.
+  Two elevated casts stay inactive past the old deadline, then open
+  and heal at their respective floor heights. Sequential and skipped
+  ticks agree on the higher floor's opening and healing. A long-drop
+  cast also lands more than 60 ticks after the former deadline.
+  Actual rifle wounds heal during and after Visor. Healing during
+  Visor adds no points, and healing after expiry credits the actual
+  restored HP. A 520-tick jump matches sequential opening, healing
+  and charge. The range and cover fixture stages its 20 controls
+  from the deployed centre and adds cover after opening. All 197
+  PvE, ultimate-charge and control tests passed. A separate snapshot
+  test verifies that the airborne gate and placement coordinates
+  independently affect the causal digest.
+  This is a host policy while the original deployment trigger and
+  fallback remain open.
+  After the rebound change, 84 core projectile, Soldier lane and
+  environment tests and seven targeted defense tests passed. The
+  distance and rebound-count snapshot test passed. The stored
+  two-player damage, respawn and hero-change replay also passed
+  when repeated with a stable source manifest.
+  The canister defense fixtures now stage the authored downward
+  path. A shelf supports the cast above Reinhardt's mesh and ends
+  behind the canister origin. Raised shields stop the flight sooner
+  than lowered shields. Grounded casts intersect Particle Barrier,
+  Winston's dome, Orisa's barrier and allied or hostile projections
+  on all five prepared NPCs. Positive ray controls intersect Deflect,
+  Grasp and Defense Matrix volumes while the Field payload bypasses
+  their eligibility filters. The original damage, ownership and healing
+  assertions still pass. These are host contacts at fixture poses.
+- Active Genji Deflect redirects an actual Helix control but preserves the
+  Field canister's Soldier ownership and subsequent healing. The authored
+  Genji filter also references 0145. This host test exercises the existing
+  hit-payload gate. With Reinhardt's shield raised, the canister's host flight
+  stops at the mesh without shield damage. The lowered control travels
+  farther. Both meet the minimum delay and heal once on the first
+  eligible tick. The blocked cast uses the launch-feet fallback. The
+  lowered control opens at its ground hit. Native reflection and barrier
+  placement remain open.
+- Actual Field canisters contact hostile Reinhardt, Zarya personal,
+  Winston and Orisa barriers. Travel ends at the measured intersection
+  without damaging the shield or defender. Lowering Reinhardt's shield
+  lets the same launch travel farther. In each raised-barrier case the
+  hosted Field retains Soldier ownership and heals an ally on the far
+  side. The ally is fixture-wounded. Native canister landing and aura
+  queries remain open.
+- Actual Projected Barrier on each of the five prepared NPCs has an
+  opposing and an allied case. The hostile projection stops the canister
+  at the sphere intersection and the NPC does not heal. An allied player
+  on the far side heals instead. The allied projection lets the canister
+  pass the same sphere and the projected NPC heals. The projection keeps
+  all 200 HP, Zarya gains no energy, and Soldier retains Field ownership.
+  Wounds are set by the fixture.
+- Enemy rifle input first wounds allied Reaper, Mei and Zenyatta for 60.
+  Actual Wraith, Cryo-Freeze and Transcendence prevent subsequent rifle
+  hits from dealing damage while an active Field heals the allied body.
+  Mei's self-healing stays separate from Soldier's healing and charge.
+  A fixture team change suspends Field healing and charge while
+  protection remains active. Restoring the team resumes both.
+- Field radius and static LOS both use the nearest capsule surface in the
+  host. Actual casts across all five prepared PvE bodies test points 5 cm
+  inside and outside the radius and planes 5 cm before and after capsule
+  contact. The fixed planes isolate the geometric boundary. Native
+  TrackTargets LOS sampling and collision categories remain open.
+- One deployed Field covers Soldier and five allied PvE bodies at once.
+  Actual enemy Ana grenade input wounds and applies 250 ticks of anti-heal
+  to all six. An allied grenade during the overlap grants no direct
+  healing, and its amplification takes effect after anti-heal. Four
+  post-expiry ticks give each body 2.24 HP without amplification or 3.36
+  HP with it. Stepped and jumped updates agree on each pool, healing
+  statistics and earned ultimate charge.
+  The same cases count healing through the last tick before expiry.
+  A press during cooldown leaves the partial wounds untouched. After
+  cooldown, a second cast reaches each recipient's full health before
+  its own expiry. The combined healing and charge equal the actual
+  grenade wounds, with no extra healing from time spent at full HP.
+  Two Soldiers also deploy overlapping Fields against actual grenade
+  wounds on themselves and all five NPCs. The first cast gets the
+  first healing slot on every tick. Each wound's final partial tick is
+  capped per recipient, and both casters earn exactly their own actual
+  healing. Stepping and jumping across or after anti-heal expiry agree.
+  Staggered casts also match when a world update exceeds the 64-frame
+  combat retention window and crosses the first expiry. The first caster
+  earns healing and charge through its last eligible tick. The second
+  finishes all seven actual grenade wounds.
+  With an active Visor and a deployed Field, a 96-frame world update
+  matches stepped updates even when Visor expires before the retained
+  combat window begins. Field healing continues throughout. Ultimate
+  charge starts on the same post-Visor tick as in the stepped run.
+  Replacing one Soldier's body removes its Field immediately. Only the
+  surviving Field heals the six remaining recipients and earns charge
+  in the next 16 ticks. A separate actual enemy rifle kill at one HP
+  leaves both deployed Fields healing those living recipients for the
+  same interval. The dead caster receives healing statistics and no
+  ultimate charge. Its corpse receives no healing.
+- A single deployed Field rechecks team, range and cover on each of the five
+  NPCs. Admission recovery resumes one heal tick without replaying skipped
+  healing. A free-for-all cast heals the caster alone despite another player's
+  shared team number. The primary exclusion mask0x200010 and secondary
+  2A0/.097 00A1 are recorded as raw data pending native mapping.
   Static capsule-axis LOS shares the reconstructed damage probe policy.
+- An admitted Field participates in world-frame catch-up. Earlier retained
+  healing settles before the next replayed combat frame. Healing on the
+  impact frame still follows damage. With a 30 HP fixture wound, two actual
+  Trooper rifle hits now leave 4 HP under both stepped and skipped updates.
+  The 26.5 HP control remains lethal on the second hit. An actual enemy
+  Soldier Helix likewise agrees across stepped and skipped updates, leaving
+  6.56 HP after 120 damage. Native timing and live pose history remain open.
+- Overlapping Fields settle one tick at a time in the host's normal caster
+  order during catch-up. An enemy rifle wounds a shared ally for 20 after
+  both Fields open and both canister flight records finish. Sequential
+  and skipped updates each heal the full wound and assign 10.08 and 9.92
+  healing and ultimate charge to the two casters. This verifies static
+  credit and body-health sync. Native simultaneous-aura ordering is open.
 - Full Player command handling proves Sprint5.5->8.25 speed, return to5.5 and
   delayed rifle damage after sprint-out, plus death preventing movement/shooting.
+- With passive gain disabled, a missing-input window advances the actual
+  0255 Sprint graph through its neutral-throttle exit. The fixture preserves
+  the last movement position during 300 idle ticks. Sequential and skipped
+  updates both resume ordinary 5.5 m/s movement, a 20 HP rifle hit, and
+  8.25 m/s on a fresh Sprint press. Native missing-input movement prediction
+  remains open.
+- An admitted 0254 rifle reload also advances through a missing-input
+  window with passive gain disabled. The world clock follows the reload
+  marker through magazine refill and the remaining recovery. After 300
+  idle ticks the rifle holds 30 rounds. The first actual hit removes 20 HP
+  and spends one round. Sequential and skipped world updates agree.
+  Original command-gap timing remains open.
+- Helix, Quick Melee and Biotic Field also advance their authored cooldowns
+  during missing input. Actual early presses do not add a second hit or
+  Field. Fresh input after cooldown deals a second hit or heals a fresh
+  20 HP rifle wound. Sequential and skipped updates agree. The damage
+  fixture restores the original contact pose after knockback to compare
+  two direct hits. Native cooldown clock and prediction remain open.
+  Actual Trooper, Enforcer, Sniper and Heavy Assault weapons wound a
+  sprinting Soldier at 8.25 m/s without cancelling Sprint. After the
+  manual enemy order stops, actual primary exits Sprint, spends ammo
+  and hits that NPC at normal running speed. Each weapon also kills an
+  actively sprinting Soldier in a 1 HP fixture. Held Sprint and rifle
+  inputs cannot move the corpse or spend ammo. A scheduled fresh body
+  returns at 200 HP and can Sprint again. The fixture gives Sniper
+  a longer approach to complete windup.
+  Actual Heavy action 35 and manual Assassin 1157 capture an actively
+  sprinting Soldier. Control interrupts Sprint and blocks rifle input.
+  After release, forward input reaches 5.5 m/s and a new Sprint press
+  returns to 8.25 m/s. Captor positions are fixture inputs. Native control
+  timing and autonomous NPC acquisition remain open.
+  A teammate uses actual Zarya input to project a barrier onto an already
+  sprinting Soldier. Both Heavy's opening hit and Assassin's contact spend
+  barrier health while Soldier keeps full health and 8.25 m/s, even on the
+  contact that breaks the barrier. Heavy can capture on a later sweep
+  after the break. A fresh Assassin approach after expiry or break deals
+  25 and pins Soldier. The tests stage attacker positions and seed the
+  remaining barrier health in the break cases.
+  Trooper, Enforcer, Sniper and Heavy Assault manual primary fire also
+  spends a full projected barrier's health while sprinting Soldier takes
+  no damage. At one remaining shield HP, the first Enforcer pellet breaks
+  the barrier and the other 24 pellets in the same volley deal 48 body
+  damage. The other three weapons deal zero body damage on the breaking
+  hit. All four wound Soldier under the same order after break without
+  ending Sprint. Sniper starts its windup before the cast so the initial
+  shot reaches Soldier during the barrier's duration.
+  Actual Sniper weapon switch selects the alternate projectile, which
+  spends 5 shield HP during Sprint. A breaking projectile deals no body
+  damage, and the next hit deals 5 with Sprint still active.
+  Manual Trooper and Heavy melee contacts deal 30 and 80 damage.
+  On the ground Trooper leaves forward velocity at 8.25 m/s. Heavy
+  knocks Soldier upward and backward, but Sprint stays active and held
+  forward input recovers 8.25 m/s. Projected Barrier absorbs either
+  contact without a change in health or forward speed, including with
+  a seeded one-HP barrier. The fixture stages each NPC's approach.
   The five declared hero loadouts have no separate Passive category; global
   passive charge remains explicitly in this lane's scope.
 
@@ -134,34 +1807,37 @@ Acceptance matrix: each row applies to enemy player, Trooper, Enforcer, Sniper,
 Assassin and Heavy Assault. Every original-client cell remains OPEN.
 
 Feature             Server evidence                  Remaining acceptance
-Heavy Pulse Rifle   20 damage to all five bodies;     Full crit/falloff matrix,
-                    player crit/falloff/ammo tests    prediction and effects
-Quick melee         30 damage to all five bodies,     Five-body full range/team,
-                    cooldown rejection and recovery   controls, presentation
-Helix Rockets       40+80 to all five bodies, static  Self-hit, full team matrix,
-                    occlusion pool tests              prediction/effects, cover
-Sprint              Actual speed and sprint-out fire; External control effects,
-                    death blocks move/attack          cross-hero interruptions
-Biotic Field        Team/dead/eligible-charge rules,   Full five-body aura/cover,
+Heavy Pulse Rifle   Five-body body/crit falloff,      Native hurtboxes,
+                    max range and player ammo tests prediction and effects
+Quick melee         30 damage, range/team/cover       Native search and contact
+                    and cooldown across all five      shapes, control order
+Helix Rockets       40+80, rings, cover and teams    Native splash and force,
+                    on all five; mixed contacts       prediction and effects
+                    and host self damage
+Sprint              Actual speed, sprint-out fire,    Native control and movement
+                    four NPC weapons and two pins      timing, remaining cross-hero
+                    plus death and respawn             interruptions
+Biotic Field        Team/dead/eligible-charge rules,   Native aura/cover,
                     lifecycle/LOS/cancel tests         placement, visual/audio
 Tactical Visor      Off-axis damage to all five;      Native filters/scoring,
-                    startup/expiry/range/cone/team/LOS Helix, UI/audio
-                    checks on reconstructed policy
-Incoming attacks    Trooper20/Sniper100/Heavy5 plus    Enforcer/Assassin, AI,
-                    enemy player actual HP changes    specials, status and death
+                    startup/control/expiry/cover      UI/audio and replication
+                    and unsteered Helix
+Incoming attacks    Four manual NPC weapons and      Native AI/possession,
+                    Assassin pin with Field recovery, specials, status and death
+                    plus enemy player hits
 Death/corpses       Five bodies killed by rifle and   Body death animations,
                     retained until explicit removal   visible persistent corpses
-Cross-hero          Existing health/shield/armour     Barriers, reflect, absorb,
-                    pool accounting only              invulnerability, control
+Cross-hero          Health pools, Rein barrier,       Other defenses, native order,
+                    Deflect, Grasp and Matrix         invulnerability and control
 
 Concrete implementation gaps
-- nodes.TrackTargets.payload always returns an empty tuple, and the state has
-  no search backend. Soldier graph 0259 contains three TrackTargets nodes.
-  Combat has a scoped reconstructed rifle aim resolver; native target filters,
-  replicated locks and Helix steering are still absent. This does not complete
-  Tactical Visor acceptance.
-- Combat._damage applies health pools directly. It has no shared resolution
-  for barriers, Deflect, Defense Matrix, invulnerability or control effects.
+- TrackTargets now publishes the sandbox's live 0259 ranking in the Soldier
+  owner stream. Native candidate filters, ranking, refresh phase,
+  original-client lock effects and native weapon hardpoint transforms
+  still need proof.
+- Rifle, melee and projectile paths run their applicable defense gates around
+  pool settlement. Native defense filters and exact simultaneous contact
+  ordering still need proof.
 - Combat-derived charge and eligible healing now execute, with a point-rate
   default replacing the automatic time-to-full surrogate. Native fidelity of
   reconstructed generation multipliers and accepted-input gap timing remain open.
@@ -179,8 +1855,23 @@ Reproduce actual-body fixtures
 - From private source cwd with PYTHONPATH=<source>;<source>/tests, run
   python -B -m unittest test_soldier_pve_static -q. Without configured inputs this
   is an explicit skip, not acceptance. This lane supplies all required inputs.
+- For the cross-hero combat and charge suite, set ORPHEUS_ORISA_COLLISION,
+  ORPHEUS_REINHARDT_COLLISION and ORPHEUS_PROJECTILE_TAGS to this lane's
+  prepared orisa_collision_174.json, reinhardt_collision_174.json and
+  projectile_tags_174.json. Run python -B -m unittest test_soldier_defenses
+  test_soldier_combat_lane test_game_combat test_soldier_ultimate_charge -v.
 
 Validation checkpoint (external runtime read-only, source cwd/PYTHONPATH set)
+- The configured cross-hero suite ran 142 tests in 85.020 s with no skips.
+  It includes the Transcendence idle-expiry boundary, Orisa and Reinhardt
+  mesh contacts and the Roadhog, training-bot and D.Va pilot charge inputs.
+  The earlier run lacked collision inputs and skipped 28 cases. The
+  prepared build 104319 data stays outside the source tree.
+- With the same prepared runtime and collision inputs, test_soldier_pve_static,
+  test_soldier_pve_barrier, test_soldier_pve_deflect, test_soldier_pve_absorb
+  and test_soldier_pve_knockback ran 148 tests in 339.890 s with no skips.
+  These run prepared bodies and explicit NPC inputs. Autonomous NPC AI and
+  original-client acceptance remain open.
 - 15 lane tests pass, including player/generic NPC acquisition and active-death
   attack rejection; wall test includes four player/NPC + side cases.
 - 28 game combat, 37 projectile, 12 script ability and 2 Sprint movement tests
@@ -197,6 +1888,229 @@ Validation checkpoint (external runtime read-only, source cwd/PYTHONPATH set)
   methods: 17 combat, 8 actual-NPC, 7 charge and 3 skill-interruption cases.
   One earlier aggregate was stopped after a separate test confirmed replay
   headers rejected the new default; only the fixed, completed runs are counted.
+
+Heavy action 35 pin branch (104319 graph 1408)
+----------------------------------------------
+
+- Node 96 outputs #562. The graph copies its first entity to #536 via
+  nodes 27 and 33. When #59 changes to 2, nodes 3, 10 and 19 can enter
+  node 29, which reads one recipient from #536 and 300 damage from #476.
+- One phase transition comes from node 134. Its #597 filter excludes the
+  first entity in #562 and checks #9161 or the #596 facing predicate.
+  If the first entity in #597 lacks #9161, nodes 133, 131 and 135 can
+  write #59 = 2. Node 26's timeout path through nodes 173 and 60
+  writes #59 = 0 when the current phase is 1.
+- A diagnostic using injected search outputs and real action 35 input
+  observed node 29 with an empty recipient when node 134 returned a target
+  at frame 0. With the return delayed until frame 56, after #536 was
+  populated, node 29 read Soldier and 300. With no return, node 29 did
+  not enter. The diagnostic observed the payload without applying it.
+- At that diagnostic checkpoint, the five existing action 35 tests
+  passed independently. The fixture did not provide a pin damage witness.
+- The expanded 668-graph bundle identifies a live producer for the
+  opposing-charge predicate. Reinhardt 007D/node150 and Heavy 1408/node129
+  each stack entity #596. In this lane, a normal Reinhardt command with
+  button mask 0x08 activated 007D/node150 and set #596 on the press frame.
+  The flag remained set 400 frames into the run, despite releasing at
+  frame 60. Replacing Reinhardt's body removed the flag from the new body.
+  The probe establishes the producer and exposes missing ordinary cleanup.
+- Node 158 requests graph 1407 on #536. Its node 6 stacks entity #2024,
+  which node 96 excludes. Node 132 requests 224E with duration override
+  2 and kind 06BBE on Heavy after a qualifying opposing charge. These
+  are separate capture and counter-control routes.
+- The 0007 lane's filter research identifies the 64/148 masks as static
+  allow/exclude bits, relation mask 4 as a self exclusion and tag 052F
+  as an exclusion clause. Its actual Match still lacks the complete
+  native filter context. The 19EB/node134 write to #6700 is instance-local
+  and feeds an entity selection, so it does not establish a target flag.
+- The 0007 lane demonstrates a separate reconstructed wall-impact route
+  using a 16.5 m/s drive and an explicit host write to #562. Lane 006E
+  retains its authored 15 m/s vector and uses its own collision and
+  control hooks for capture. The 0007 results are separate evidence.
+- In 006E, real action 35 feeds hosted node 96 and writes the selected
+  Soldier body through the graph into #536. The host suppresses Soldier's
+  fire while pinned and carries him forward once Heavy closes the gap.
+  The wall sweep settles node 29's authored amount and loadout through
+  the host and retires the drive. The normal 200 HP fixture dies with
+  Heavy as killer. An explicit 350 HP fixture finishes at 50 HP and
+  verifies early cooldown rejection followed by a second successful
+  impact after expiry. Open-ground release restores fire without impact.
+  Cover, range and allied targets reject capture. Separate side-contact
+  fixtures retain the 50 damage and #961 routes. 18 Heavy tests passed.
+- Actual Flashbang and Sleep Dart hits on the moving Heavy release Soldier
+  immediately and retire Heavy's current drive into cooldown. Soldier
+  can fire after release. The old charge never resumes when either
+  control effect expires. The explicit manual stop also releases the
+  captured Soldier, clears held action 35 and stops the drive without
+  applying wall damage. 20 Heavy tests and 45 shared regressions passed.
+- A real Soldier Helix launch precedes Heavy's capture. The rocket
+  stays in flight during the pin and hits afterward. The nonlethal
+  impact deals 120 to Heavy and the pin remains. A separate fixture
+  wounds Heavy to 110 before the launch. The lethal impact retains
+  Soldier's kill credit, releases control immediately and allows rifle
+  fire after the Helix weapon lock. The close explosion also deals
+  self-splash in both cases. Replacing the captured Soldier's body
+  or removing the Heavy ends the old capture. The live Soldier can
+  fire after either event without a stale pin. A Helix press made and
+  released during the capture creates no projectile during control or
+  after manual release. A fresh press after release lands for 120.
+  All 23 Heavy regressions passed.
+- Capture settlement now receives the obstruction result from Heavy's
+  movement sweep before combat effects run. A diagnostic adds an
+  opposing impulse after an actual nonlethal Helix hit. Previously the
+  reversed velocity caused a false wall kill in open ground. Now the
+  impulse remains visible and the pin continues. The opposing impulse
+  is a fixture. Heavy's ordinary authored Helix force resistance was
+  preserved in the two other launch cases. The full Soldier PvE suite
+  and the bot motion and NPC control suites passed 118 tests together.
+- Heavy's real action 31 wounds Soldier for 80. A deployed Field
+  continues healing during action 35 capture. Healing stops when the
+  charge carries Soldier out of range. Walking back into the same Field
+  after release restores the remaining health and earns a total of 80
+  Visor points with passive charge disabled.
+- Capture interrupts the Field and Visor windups. The 0257/node8
+  0.4-second launch timer lives outside the Ability running scope and previously
+  fired after the victim was released. The combat interrupt now
+  aborts that active timer. Fresh Field input recovers after release.
+  A canister that had already launched before capture opens normally
+  during the pin. Interrupted Visor startup spends its charge and
+  never enters the countdown. An already active Visor retains its
+  original countdown and suppresses fire during capture. An off-axis
+  shot hits after release and misses at the same aim after expiry.
+  All 27 Heavy tests and 93 shared combat regressions passed.
+- Actual Heavy capture rejects a new rifle reload and leaves no delayed
+  refill after release. A reload admitted before capture refills during
+  the pin. Held fire against Heavy spends no ammo after that refill
+  while Soldier stays pinned. After release, the rejected case needs
+  a fresh reload press, and fresh aimed fire in both cases spends one
+  round and deals 20 to Heavy.
+- Actual Zarya Projected Barrier on Soldier rejects the first Heavy
+  capture and absorbs 50 side-contact damage. Casting it after Soldier
+  starts moving with Heavy releases the pin before the wall, preserving
+  all 200 health and all 200 barrier HP. When enemy Helix and rifle
+  contacts leave 40 barrier HP, Heavy breaks the barrier and grants
+  Zarya the remaining energy without damaging or capturing Soldier on
+  that frame. An initial search repeat in the same frame had admitted
+  the newly exposed Soldier. The static host now waits until the next
+  frame, where a real movement sweep can capture him. Retail's precise
+  barrier and charge contact ordering remains open. All 29 Heavy tests
+  and 38 Assassin and barrier regressions passed.
+- The host reconstructs the player admission profile, cone, capsule
+  contact and wall settlement. Native filter/profile semantics, graph
+  1407 attachment, the actual node 29 transition and the separate 134
+  counter route remain open. The wall witness uses the resource payload
+  via the host and does not activate node 29.
+
+Trooper action 31 quick melee (104319 graph 1422)
+------------------------------------------------
+
+- The prepared Trooper mounts graph 1422. Its startup wait at node 42
+  initializes damage and enables the ability after 0.125 seconds.
+  The existing manual melee command now accepts Trooper and Heavy
+  Assault. Trooper uses authored action 31 and retains primary slot 20.
+- Node 5 uses the authored yaw-relative sphere and supplies #375.
+  Node 38 checks live feet positions at strictly less than 1.5 metres.
+  Node 4 settles the authored 30 damage on contact. A target at exactly
+  1.5 metres can appear in the search and still fails the distance check.
+  Static cover and allied targets reject the search. Early repeated
+  input leaves Soldier at 170 HP. A fresh press after recovery takes
+  him to 140. Soldier's real lethal rifle shot during node 14 windup
+  retires the attacker before node 4 can activate.
+- A real allied Flashbang interrupts Trooper 1422 and Heavy 140E
+  during an admitted action 31 windup. Neither damage node activates,
+  Soldier stays at 200 HP, and the manual console rejects another
+  strike during stun. After stun and ability recovery, a fresh strike
+  activates the damage node once and deals 30 or 80 respectively.
+  The Trooper, Heavy and Flashbang selection passed 47 tests.
+- All 32 Trooper and Heavy tests passed. The shared run exposed an
+  unconditional charge-velocity call on ordinary training scripts.
+  Bot movement now treats charge velocity as an optional service.
+  The 41 shared NPC, HTTP console, statescript and motion tests passed
+  after that fix.
+- Trooper 1422/node4 and Heavy 140E/node5 carry a force origin at
+  the attacker and a unity ring. Their horizontal/vertical values
+  are 1/0 and 20/8. The static host applies these direct-contact
+  values through the existing radial mover impulse. An actual jump
+  exposes Trooper's horizontal motion before ground friction can
+  dissipate it. Heavy's actual strike displaces and lifts Soldier.
+  A real Projected Barrier absorbs 30 or 80 and prevents displacement
+  in each case. Range, cover and ally misses produce no impulse.
+  Existing cooldown and Field tests restage position after the new
+  physical displacement so they still exercise their intended gates.
+  All 33 melee/Heavy tests and 46 shared motion and NPC tests passed.
+- The separate 1422 PhysicsExplosion node 27 starts with node 4 on
+  a valid action 31 hit and retires after 330 ms in the static host.
+  The 104319 native entry dispatches immediately. Its authored rate
+  of 1.25 schedules the first repeat at 800 ms, after the observed
+  graph retirement. Native packet construction uses the point
+  1.25 m forward of the owner, radius 0.75 m and strength 30 with a
+  directional mode. A synthetic native scene delivered forward
+  force to in-range rigid bodies on both sides of the point and
+  rejected the outside-radius and disjoint-tree cases. The receiver
+  trace reaches the scene component callback and rigid-body paths.
+  Soldier mover eligibility and the node's static backend remain
+  open. The native probe is in the private 006E evidence directory.
+- Node 19 starts node 18 (`B5C87F3D`, catalog alias
+  `SoundImportanceThreat`) on the same hit. Both retire with node 4.
+  Native begin at RVA 8EF100 resets the timer and enables updates
+  when it resolves the owner. Native tick at 8EF2B0 accumulates time
+  to 80 ms, evaluates position, radius and directional gates, and
+  can add a time-scaled value to component 45 via 646990. Node 18
+  authors a 3 m radius, a 60-degree cone and a rate from #476, which
+  resolves to 30 in the action 31 fixture. The native synthetic
+  sample adds 2.4 over 80 ms and rejects exact radius and an
+  outside-cone sample. The native component factory marks type 0x2D.
+  Its processing block at 8A77AD clears the +0x20 accumulator along
+  with +0x1C. That establishes a transient accumulator. Live component
+  resolution, the contribution's downstream use and the static
+  representation still need verification.
+- Search profile reconstruction, multi-target ordering, contact
+  attachment, native conversion of node 4's direct mover force,
+  native AI and client play remain open.
+
+Sniper alternate weapon slot (104319 graphs 0015, 1122 and 1134)
+----------------------------------------------------------------
+
+- Real logical 16 input selects slot 2 through the authored manager
+  and logical 15 returns to slot 1. The normal NPC engagement then
+  fires each selected graph with logical 20. Slot 2 launches 23BB at
+  200 m/s for 5 damage. Slot 1 launches 1E80 for 100. A slot 2 shot
+  already in flight keeps its source, definition and damage when
+  the Sniper releases fire and switches to slot 1.
+- Both slots check current static cover, team and target pose during
+  flight, and expire after 100 metres. The early slot 2 re-press while
+  #173 is positive creates no delayed shot. A fresh press after
+  recovery hits again. Soldier's real Field restores the two
+  five-point wounds and earns 10 Visor points.
+- Actual Genji Deflect returns the slot 2 round to the Sniper with
+  five damage and Genji credit. Sigma Grasp records five absorbed,
+  D.Va Matrix consumes the round, and Zarya Projected Barrier takes
+  five damage and grants one energy. Soldier stays at 200 health
+  behind each protection.
+- Actual Flashbang interrupts both weapon slots before launch.
+  The 1122 primary charge state is owned by weapon stack node 34,
+  which previously stayed active after the control hit. The host
+  aborts that stack on interruption and explicit manual stop.
+  Fresh engagement starts a new two-second charge and crosses
+  the old deadline without releasing an old shot. Both slots hit
+  again after the Flashbang expires.
+- Soldier's lethal rifle shot prevents either slot from launching
+  when it lands during the windup. The test wounds Sniper to 20
+  before the real rifle shot. If the projectile has already
+  launched, the same lethal hit preserves its source and damage
+  in flight. It still deals 100 from slot 1 or 5 from slot 2.
+  Nine focused tests and 65 shared regressions passed.
+- Before launch, a one-frame loss of visibility, range or hostility
+  now releases logical 20 and aborts the primary windup. The controller
+  retains the selected player. Restoring the gate resumes engagement
+  automatically with a new two-second charge. All three tests cross
+  the old deadline without a shot and then settle a 100-point hit
+  from the new charge. Pose and team changes are fixture inputs.
+  Nine Sniper tests and the 145-test PvE and shared NPC run passed.
+- Both authored volleys omit the VM ammo output m_24E351A4. The
+  observed #53 remains 20 in each slot. Native ammo producers,
+  autonomous slot selection, the alternate muzzle attachment,
+  authored laser targeting and client presentation remain open.
 
 Integration/publication
 - Develop only on private clone main. Supply commit and format-patch to parent.

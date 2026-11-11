@@ -1,0 +1,59 @@
+Soldier cross-hero view and ability exit --104319, 006E integration checkpoint
+
+Primary resource review
+-03CF.003 STUFirstPersonComponent m_E29993A5=1.55 and m_816B830F=1.085:
+  current Soldier values agree.02A3.003 McCree supplies1.425 and.9975; this
+  lane previously used fallback1.55/1.15 for McCree. Both ray origin and player
+  Target.eye now call eye_height(body,crouched), with explicit body entries.
+- Lane-local soldier-mccree-eye-resource-review.json records XML paths, hashes
+  and original attributes outside Git. Runtime does not require those XML files.
+  Animated camera/muzzle/hardpoint and critical-bone equivalence remain OPEN.
+- Actual standing/crouching commands, horizontal rifle rays and two low-cover
+  heights per stance prove both HIT/HP admission and rejection. Target.eye agrees
+  with shot origin offsets. Other unreviewed bodies retain their prior fallback;
+  no global first-person offset or head-zone fidelity is accepted.
+
+Actual outgoing Ability cleanup defect
+- Start actual McCree01D2 with one round expended away from the target (ammo5),
+  execute Roll01F0 through input8, then hold primary through its timed scope.
+  Before repair the first real target hit deals70 but ammo becomes4: the weapon
+  sampled5 before the authored refill6 and saved its old count over that refill.
+- All five real NPC body/mover/pool fixtures reproduce the same partial-magazine
+  failure. The player target is Soldier. These are live graph/input/damage cases,
+  not mocked ammo writes or fabricated high-health players.
+- Ability.stop now queues outgoing scope exit, stop plug and stop variables
+  before removing the arbitration link. Weapon sampling follows refill. Primary
+  deals70 and leaves5; empty-magazine recovery still works. Explicit Fan1x uses
+  all6 rounds and clamps actual loss to min(current health,300), with no overkill
+  HP. NPCs killed before the sixth round do not prove six living-target hits.
+- This cross-object queue ordering is a declared host reconstruction. Original
+  static stop instructions do not prove complete native scheduler ordering.
+  No new global scheduler phase, persistent layout or special ammo-write hook
+  is introduced. Parent source was read only; this private lane was changed.
+- Roll movement/native velocity actions, collision/dash,17/18/19 throttle scope,
+  Fan spread/recoil, camera presentation and client prediction remain OPEN.
+
+Witnesses and reproduction
+- tests/test_soldier_cross_eye_roll.py has six methods: two eye/cover matrices,
+  actual incoming Roll/primary and Roll/Fan versus Soldier, and all-five actual
+  NPC partial/empty primary and Fan matrices. Empty and Fan cases are controls
+  that already passed before the outgoing-order repair.
+- eye-roll-before.txt retains ten failing subcases: four camera offsets and six
+  partial-magazine refill cases. eye-roll-focused.txt records39 passing selected
+  tests in41.254s, including existing Soldier skills/control and McCree combat.
+  Counts overlap with the later broad suite and must not be added together.
+- The full original Soldier static goal and separate original-client acceptance
+  remain OPEN. No further code commit or merge readiness before full acceptance.
+
+Extended read-only resource audit (not execution acceptance)
+- cross-hero-eye-resource-audit.json outside Git records32 hero XML paths/hashes
+  and the original OWLib FirstPerson defaults1.55/1.15.29 other heroes differ
+  from the original fallback. Genji1.2/.84, Reinhardt1.8/1.26,
+  Orisa1.78/1.246 and Sigma2.1/1.75 are now loaded through the configured external
+  catalog, with stance/critical-proxy/interception boundary witnesses documented
+  in SOLDIER_VIEW_OFFSETS.txt. Native camera/bone/geometry equivalence stays OPEN.
+- Mech0407 original camera fields are1.74/1.74. New unmounted candidate inputs
+  contain the real0407 body,300health+300armour, mover and7 new graphs/57 closure,
+  with no conflicting existing graphs and missing0F9C retained. The repeatable
+  probe still gets pilot026A/02B8 and150HP despite selecting0407: body-aware
+  initialization/pools or reviewed owned factory must precede Matrix acceptance.

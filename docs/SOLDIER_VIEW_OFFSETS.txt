@@ -1,0 +1,62 @@
+Soldier cross-hero FirstPerson offsets --104319, 006E integration checkpoint
+
+Input and resource boundary
+- tools/extract_view_offsets.py reads one original FirstPerson component per
+  supplied003, using original OWLib7afe5f52 defaults1.55/1.15 only for omitted
+  scalar fields. The generated33-body catalog and XML hash provenance stay
+  outside Git. It covers32 canonical player bodies and extra0407 for future use.
+- Set ORPHEUS_VIEW_OFFSETS to the prepared external view_offsets_174.json before
+  process import. Runtime validates version1/build1.74.0.0.104319, full003 GUIDs,
+  required fields and positive finite numeric heights; immutable pairs are
+  returned. Unknown bodies retain the old declared fallback. A missing catalog
+  does not accept the complete resource-view matrix.
+- Replay configuration requires ow174.game.view_offsets.CATALOG_SHA256. Different
+  catalog bytes change replay identity. No new VM/server instance field is added.
+- Combat's shot origin, Target.eye and recorded pose history now use the known
+  resource pair. This remains an explicit camera-origin and critical-proxy host
+  reconstruction, not proof of native camera/muzzle/bones, head zones, animated
+  attachments, historical pose timing, dynamic scaling or all alternate forms.
+
+Executed input/ray evidence
+- tests/test_soldier_view_offsets.py validates parser/extractor/defaults/digest
+  and executes256 actual Soldier rifle cases:32 enemy hero bodies x standing or
+  crouch requests x two sides of critical-proxy boundary or low-cover boundary.
+  Every body uses its real mover and health pools. Actual HIT flags and actual
+  HP loss are checked; no high-health replacement or guessed capsule is used.
+- Wrecking Ball1268/state1 (position2) has original SET21=0. Grounded crouch
+  input is rejected while the standing offset remains active; this is explicitly
+  observed, with the live resource modifier asserted, and is not skipped or
+  replaced with a forced crouch.31 other baseline bodies crouch in this fixture.
+  Modifier21's crouch-intent binding remains the existing mover reconstruction;
+  this does not prove complete native posture eligibility or transform behavior.
+- tests/test_soldier_view_interceptions.py executes18 active boundary cases.
+  Genji1.2/.84 uses upper localY=.75, Sigma2.1/1.75 upper localY=1.1. Rifle and
+  Helix rays have body-miss controls and lie.04 inside/outside. Separate support
+  planes hold real physics bodies steady during finite flight. Genji returned
+  rifle40/Helix120 damage and Sigma sum20/120 distinguish interception from miss.
+- Reinhardt raised0095/state2 (position9) also supplies SET21=0, so shield/crouch
+  requests retain standing1.8. Actual mesh shield loses20 while body remains500.
+  This does not implement crouched/animated native shield bone attachments.
+
+Re-audited old expectations
+- view-offset-legacy-focused.txt records496 tests with ten failing subcases from
+  old generic-height assumptions. Horizontal1.55 is body damage against authored
+  Reinhardt1.8/Sigma2.1, not the old accidental critical. Revised body cases aim
+  explicitly at.8 and assert15-after-armour/20. Sigma ledger cases explicitly aim
+  at its camera-level head proxy and retain40-damage/healing-credit assertions.
+- Grasp recovery additionally sees ongoing5/second extra-shield decay. The new
+  assertion keeps base HP unchanged and checks the expected per-tick decay rather
+  than requiring unchanged combined HP. Absorbed amount20 is still required.
+- Focused counts overlap the later aggregate. Full original static acceptance
+  stays OPEN. Matrix inputs remain unmounted: current selected0407 still boots
+  pilot scripts/150HP, requiring body-aware initialization/pools or owned factory.
+- Parent spread_ramp/volley notice remains separately pending review. Its1173
+  tests/native comparison counts are not this lane's and were not imported here.
+- Follow-up spread review finds0254/node10 directly writes229=int0 and node11
+  directly writes230=float0. Normal held rifle observations at1/15/30 frames
+  retain zero angular endpoints. Its existing no-angular-offset ray therefore
+  has a direct resource basis for this base configuration. Normalized decay,
+  recoil/overrides and native seed/client equivalence remain separate OPEN items.
+  The parent no-decay branch does not implement rifle's0.075 decay configuration.
+  New parent Fan cone damage-ray work was not imported; the old Roll/Fan controls
+  prove ammo/order under the lane's unspread model, not actual Fan accuracy.

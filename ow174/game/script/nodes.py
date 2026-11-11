@@ -19,6 +19,7 @@ from ow174.game.script import (
     effect_parameters,
     effect_routing,
     entity_control,
+    entity_queries,
     expr,
     game_message,
     message_receiver,
@@ -80,6 +81,10 @@ def seconds_to_ms(value) -> int:
 
 
 # --- states --------------------------------------------------------------------------------------
+
+
+# The captured registry resolves this class through the base State constructor.
+state_class("STU_109F9DE0")(State)
 
 
 _NUMERIC_ROWS = {
@@ -1303,15 +1308,18 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def pop_press(self, button: int):
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
+
+    def take_press(self, button: int) -> bool:
+        return self.pop_press(button) is not None
 
     # starting and stopping
 
@@ -1319,6 +1327,14 @@ class Ability(State):
         self.activate()
 
     def timer(self, param: int) -> None:
+        if param == 2:
+            # Computed cooldown expiry has no ordinary variable assignment.
+            # Notify dependent ready gates once the rounded timer reaches zero.
+            if self.remaining() > 0.0:
+                self.timer_at(1, 2)
+                return
+            if self.var is not None:
+                self.instance.changed(self.var, self.cur)
         if param in (1, 2):
             self.activate()
 
@@ -1358,10 +1374,10 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        pressed = None
         if start:
-            pressed = self.take_press(start)
-            if not pressed:
+            pressed = self.pop_press(start)
+            if pressed is None:
                 if not self.held(start):
                     self.flags &= ~self.HELD
                     return False
@@ -1376,8 +1392,10 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+            if pressed is not None:
+                # A rejected press keeps its original deadline and activation.
+                # Refreshing its time each tick makes a released input wait forever.
+                self.presses.insert(0, pressed)
             return False
         if start:
             self.flags |= self.HELD
@@ -1430,18 +1448,22 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue running-scope cleanup before releasing the arbitration link.
+
+        This host ordering lets the outgoing scope's refill precede the next
+        weapon's ammo sample. Native cross-object ordering remains unverified.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1811,14 +1833,95 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Optional scoped host health service; other permissive states stay inert."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        bridge = getattr(self.instance.component.world, 'host_modify_health', None)
+        result = NotImplemented if bridge is None else bridge(self, 0)
+        if result is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, 'health service', self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.host_modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        bridge = getattr(self.instance.component.world, 'host_end_health', None)
+        if bridge is not None:
+            bridge(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Only explicitly hosted searches supply an array."""
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = None
+        self.var = None
+        self.last_refresh = None
+
+    def on_begin(self):
+        query = getattr(self.instance.component.world, "track_targets", None)
+        targets = NotImplemented if query is None else query(self)
+        if targets is NotImplemented:
+            return
+        if self.instance.graph.index == 0x0259 and self.node.field("m_DD792FF0") == 1:
+            # Anchor the three-frame host cadence at this search's first query.
+            self.last_refresh = self.instance.component.frame
+        self.targets = tuple(targets)
+        target = lvalue(self.node.field("m_8A2905A0"))
+        self.var = self.link(target) if target is not None else None
+        self.ticks()
+
+    def tick(self):
+        if self.last_refresh is not None:
+            frame = self.instance.component.frame
+            if frame - self.last_refresh < 3:
+                return
+            self.last_refresh = frame
+        targets = self.instance.component.world.track_targets(self)
+        before = self.targets
+        self.targets = () if targets is NotImplemented else tuple(targets)
+        if self.var is not None and before != self.targets:
+            self.instance.changed(self.var, before)
+
+    def on_end(self, finished):
+        if self.var is not None:
+            var, self.var = self.var, None
+            self.unlink(var)
+        self.targets = None
+        self.last_refresh = None
+
+    def output(self, slot):
+        return super().output(slot) if self.targets is None else self.targets
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in (self.targets or ()))}
+
+
+@state_class("STUStatescriptStateRayCast")
+class RayCastState(State):
+    def on_enter(self):
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, "raycast state", self.node.cls, self.node)
+        cast = getattr(component.world, "raycast_state", None)
+        if cast is not None:
+            cast(self)
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1877,6 +1980,97 @@ class ActiveQuery(State):
             self.instance.follow(self.node, "m_7273C81B" if self.active else "m_C6F3744E", self)
             return True
         return super().plug_enter(input_path)
+
+
+
+@state_class("STU_160F2578")
+class TaggedEntityState(State):
+    """D3FE50/D3FE60 keeps the output refreshed while the State is active."""
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.ticks()
+
+    def on_enter(self):
+        if self.instance.component.strict:
+            self.unwatch()
+            entity_queries.collect_tagged(self.instance, self.node, watcher=self)
+
+    tick = reentry = dependency_changed = on_enter
+
+
+@state_class("STU_5E805B5A")
+class RecentListSelection(State):
+    """D43000/D43010/D4F130, with an explicit uint32 randomness source."""
+
+    def __init__(self, instance, node, index):
+        super().__init__(instance, node, index)
+        self.recent = []
+
+    def on_begin(self):
+        self.recent.clear()
+
+    def plug_enter(self, input_path: str) -> bool:
+        if not self.instance.component.strict or input_path != "m_F4DD996D":
+            return super().plug_enter(input_path)
+        if self.active:
+            self._select()
+        return True
+
+    def _select(self):
+        instance, node = self.instance, self.node
+        component = instance.component
+        seconds = to_float(play.evaluate_scalar(instance, node.field("m_82317B5F"), watcher=self))
+        millis = f32(seconds * 1000)
+        rounded = f32(millis + math.copysign(0.5, millis))
+        timeout = math.trunc(rounded) if -0x80000000 <= rounded < 0x80000000 else -0x80000000
+        now = self.now
+        oldest, oldest_age = 0, 0
+        for index in range(len(self.recent) - 1, -1, -1):
+            component.consume_work("list selection history")
+            age = now - self.recent[index][1]
+            if age > timeout:
+                self._drop_recent(index)
+            elif age >= oldest_age:
+                oldest, oldest_age = index, age
+
+        values = tuple(play._iter_values(instance, node.field("m_814F8EC3"), watcher=self))
+        value = 0
+        if values:
+            if len(self.recent) >= len(values) and oldest < len(self.recent):
+                self._drop_recent(oldest)
+            random_word = component.world.list_selection_random(self)
+            component.ensure_valid()
+            if not self.active or instance.stopped or component.instances.get(instance.id) is not instance:
+                component.unsupported(instance, "list selection owner retired", node.cls, node)
+            if type(random_word) is not int or not 0 <= random_word <= 0xFFFFFFFF:
+                component.unsupported(instance, "list selection random word", node.cls, node)
+            occupied = {index: offset for offset, (index, _) in enumerate(self.recent)}
+            choice = random_word % len(values)
+            for _ in values:
+                component.consume_work("list selection search")
+                if choice not in occupied:
+                    break
+                choice = (choice + 1) % len(values)
+            if timeout > 0:
+                stamp = (choice, now)
+                if choice in occupied:
+                    self.recent[occupied[choice]] = stamp
+                else:
+                    self.recent.append(stamp)
+            value = values[choice]
+
+        output = node.field("m_C51AF683")
+        target = expr.dynamic(output)
+        if target is None and output is not None:
+            component.unsupported(instance, "list selection output target", node.cls, node)
+        if target is not None and target[1]:
+            instance.write(target, value)
+        instance.follow(node, "m_1405CDCB", self)
+
+    def _drop_recent(self, index):
+        self.recent[index] = self.recent[-1]
+        self.recent.pop()
 
 
 # --- actions and conditions ------------------------------------------------------------------------
@@ -2125,6 +2319,22 @@ def action_switch(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_88DE7AD3")
+def mode_configuration_output(instance: Instance, node, caller) -> bool:
+    """The 104319 base Action at 1B6EBA0 follows output without reading the config."""
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_42578342")
+def collect_tagged_entities(instance: Instance, node, caller) -> bool | NotImplementedType:
+    if not instance.component.strict:
+        return NotImplemented
+    entity_queries.collect_tagged(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 def message_params(instance: Instance, node) -> dict:
     params = {}
     for item in node.fields.get("m_params") or []:
@@ -2192,6 +2402,21 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        bridge = getattr(instance.component.world, "host_play_script", None)
+        if bridge is not None:
+            bridge(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_B6E3C77D")
+@handler("STU_523EE38D")
+def hosted_entity_action(instance: Instance, node, caller):
+    name = "create_entity" if node.cls == "STU_B6E3C77D" else "destroy_entity"
+    bridge = getattr(instance.component.world, name, None)
+    if bridge is None or bridge(instance, node) is NotImplemented:
+        return NotImplemented
     instance.follow(node, "m_outPlug", None)
     return True
 
