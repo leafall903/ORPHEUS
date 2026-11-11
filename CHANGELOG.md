@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Integrate delivered Helix self splash and external force
+
+- Preserve the delivered self-damage scalar, force fields and enemy/own ring
+  interpolation. Route Helix self injury through the current lifetime, cover,
+  death and health-sync paths without hit markers, damage credit or charge.
+- Preserve authored Fortify and resistance decisions, and retain external force
+  for solid invulnerable bodies and stunned recipients. Reuse the combined NPC
+  displacement and player external-impulse interfaces.
+- Keep Helix's delivered point-ray world impact and separate the exact damage
+  point from the incoming-side LOS offset. Retain the combined body-contact
+  extent and range boundary for other current projectile consumers.
+- All 16 original Helix self/force/range checks passed. The preceding 93-check
+  shared run exposed only the impact-distance and range assertions corrected
+  by that focused rerun. The broader 125-check imported Soldier baseline still
+  has cross-service/fixture failures; no complete acceptance is required to
+  retain these implementations. Original-client acceptance remains pending.
+
+
 ### Restore delivered FirstPerson inputs and Soldier verification sources
 
 - Mount the original external FirstPerson offset reader and extractor. Use its

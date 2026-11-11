@@ -28,6 +28,15 @@ KANEZAKA_DM = PRACTICE_RANGE.__class__(**{**PRACTICE_RANGE.__dict__, "mode_guid"
                                          "free_for_all": True, "team_sizes": (8,)})  # fmt: skip
 
 
+def first_canister_sweep(canister):
+    """Expected first gravity sweep for a just-admitted Field cast."""
+    assert canister.flown == 0 and canister.gravity is not None
+    vx, vy, vz = (axis * canister.speed for axis in canister.direction)
+    vy -= canister.gravity * combat.TICK
+    speed = math.hypot(vx, vy, vz)
+    return canister.position, (vx / speed, vy / speed, vz / speed), speed * combat.TICK
+
+
 class FakeClient:
     controller_ready = True
 

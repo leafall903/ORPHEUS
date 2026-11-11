@@ -58,6 +58,7 @@ from ow174.game import (
     baptiste,
     barrier,
     deflection,
+    defenses,
     earthshatter,
     graviton,
     health_packs,
@@ -196,6 +197,7 @@ BEAM_STATES = {
     0x02E0000000000016: (0x157C, 100, 86),  # Symmetra
     0x02E0000000000068: (0x0241, 81, 10),  # Zarya
 }
+SOLDIER_WEAPON_LOADOUT = 0x0B9000000000008E
 HELIX_BARRIER_PROJECTILES = frozenset((0x040000000000072C, 0x0400000000001C86))  # 0254 pos38
 
 
@@ -852,6 +854,29 @@ class HitDef:
     line_of_sight: bool = False
     health_operation: int | None = 1
     boost_credit: tuple | None = None  # Exact launch caster and outgoing multiplier.
+    self_scale: float = 0.0
+    horizontal_impulse: float = 0.0
+    vertical_impulse: float = 0.0
+    impulse_rings: tuple = ()
+
+    def impulse_scale(self, distance: float, *, own: bool = False) -> float:
+        column = 2 if own else 1
+        rings = tuple((row[0], row[column]) for row in self.impulse_rings)
+        return self._ring_scale(rings, distance)
+
+    @staticmethod
+    def _ring_scale(rings, distance: float) -> float:
+        if not rings:
+            return 0.0
+        last_radius, last_scalar = rings[0]
+        if distance <= last_radius:
+            return last_scalar
+        for radius, scalar in rings[1:]:
+            if distance <= radius:
+                share = (distance - last_radius) / max(EPSILON, radius - last_radius)
+                return last_scalar + (scalar - last_scalar) * share
+            last_radius, last_scalar = radius, scalar
+        return 0.0
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -948,6 +973,18 @@ def hit_def(state, cfg) -> HitDef | None:
             scalar = ring.get("m_B399CACB")
             scalar = state.evaluate(scalar, watch=False) if scalar is not None else 0.0
             rings.append((_number(radius, 0.0), _number(scalar, 0.0)))
+    impulse_rings = []
+    for ring in modify.get("m_knockbackRings") or []:
+        if not isinstance(ring, dict):
+            continue
+        values = tuple(_number(state.evaluate(ring.get(key), watch=False), 0.0)
+                       for key in ("m_radius", "m_579D7CFF", "m_10399AE7"))
+        impulse_rings.append(values)
+
+    def force(name):
+        cfg = modify.get(name)
+        return _number(state.evaluate(cfg, watch=False), 0.0) if cfg is not None else 0.0
+
     return HitDef(
         amount=amount,
         loadout=loadout.guid if isinstance(loadout, expr.Asset) else None,
@@ -956,6 +993,10 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_floor=value("m_72A81154"),
         critical=value("m_A872C70E", 2.0 if graph_index in (0x0304, 0x0BD4) else critical_default),
         rings=tuple(sorted(rings)),
+        self_scale=value("m_8A3E3883", 0.0),
+        horizontal_impulse=force("m_E33EFEE1"),
+        vertical_impulse=force("m_583C208B" if modify.get("m_583C208B") is not None else "m_10399AE7"),
+        impulse_rings=tuple(sorted(impulse_rings)),
         deflectable=any(
             (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
             for tag in modify.get("m_148F3152") or [] if isinstance(tag, dict)
@@ -4850,7 +4891,7 @@ class Combat:
             best = (scene_barrier[0], None)
         collision = self._collision()
         wall = ray_world(collision, rocket.position, rocket.direction, step)
-        if padding > 0:
+        if padding > 0 and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
             swept = collision.sweep_sphere(rocket.position, rocket.direction, step, padding)
             if swept is not None and (wall is None or swept < wall):
                 wall = swept
@@ -5109,8 +5150,12 @@ class Combat:
             self._stick(rocket, point, duration - contact_time)
             return 0.0
         self._landed(rocket)
+        damage_point = (_along(point, rocket.direction, 1e-4)
+                        if struck is None and rocket.direct is not None
+                        and rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT else point)
         self._explode(rocket, point, impact_barrier=impact_barrier, ice=ice, shield=shield,
-                      deployed=deployed, struck=struck, broken_particle_barriers=broken_particle_barriers)
+                      deployed=deployed, struck=struck, broken_particle_barriers=broken_particle_barriers,
+                      damage_point=damage_point)
         return 0.0
 
     def _sweep(self, rocket: Rocket, duration: float, start_tick: float) -> None:
@@ -5400,7 +5445,9 @@ class Combat:
             self._landed(rocket)
 
     def _explode(self, rocket, point, *, impact_barrier=None, ice=None, shield=None, deployed=None,
-                 struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None):
+                 struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None,
+                 damage_point=None):
+        damage_point = point if damage_point is None else damage_point
         blast = rocket.blast
         if blast is not None and blast.healing:
             self._apply_blast_hits(rocket, self._blast_hits(
@@ -5426,6 +5473,10 @@ class Combat:
                     manager.splash(actor, blast, distance, multiplier=boost)
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
+        if (blast is not None and blast.loadout == SOLDIER_WEAPON_LOADOUT and blast.self_scale > 0
+                and rocket.source_entity == _source_entity(rocket.shooter)):
+            candidates = list(candidates)
+            candidates.extend(t for t in self._targets() if t.entity == rocket.source_entity)
         ice_damage = rocket.direct.amount if ice is not None and rocket.direct is not None else 0.0
         shield_damage = [(shield[1], rocket.direct.amount)] if shield and rocket.direct else []
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
@@ -5475,10 +5526,12 @@ class Combat:
             denominator = _dot(ab, ab)
             factor = max(0.0, min(1.0, _dot(ap, ab) / denominator)) if denominator > EPSILON else 0.0
             centre = _along(a, ab, factor)
-            delta = _sub(centre, point)
+            delta = _sub(centre, damage_point)
             centre_distance = math.sqrt(_dot(delta, delta))
             distance = max(0.0, centre_distance - target.radius)
             scalar = blast.splash(distance)
+            if target.entity == rocket.source_entity:
+                scalar *= blast.self_scale
             if scalar <= 0.0:
                 continue
             centre = (a[0], min(b[1], max(a[1], point[1])), a[2])
@@ -5525,11 +5578,19 @@ class Combat:
                 self._biotic_impact(rocket.shooter, blast, victims, broken_particle_barriers)
         else:
             for target, amount in victims:
-                if self._damage(
+                landed = self._damage(
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
                     source_body=rocket.source_body, boost_credit=rocket.boost_credit,
-                ):
+                    award_ult=target.owner is not rocket.shooter,
+                )
+                if (blast.loadout == SOLDIER_WEAPON_LOADOUT and not self.vitals_of(target).dead
+                        and (landed or defenses.invulnerable(target.owner))):
+                    self._blast_impulse(target, point, blast, blast.impulse_scale(
+                        max(0.0, segment_distance(point, *target.segment()) - target.radius),
+                        own=target.entity == rocket.source_entity,
+                    ))
+                if landed:
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
                     if rocket.accretion_source is not None and (
                         target is not struck or rocket.direct is None or rocket.direct.knockback is None
@@ -5632,6 +5693,32 @@ class Combat:
             if slot is not None and expr.truthy(slot.value()):
                 vitals.healing_block = vitals.healing_block[0], self.now
                 break
+
+    def _blast_impulse(self, target: Target, point, blast: HitDef, scalar: float) -> None:
+        """Scoped radial/upward Helix force; native resistance/order remain open."""
+        self._radial_impulse(target, point, blast.horizontal_impulse * scalar, blast.vertical_impulse * scalar)
+
+    def _radial_impulse(self, target: Target, point, horizontal: float, vertical: float) -> None:
+        if defenses.fortify_scale(target.owner) is not None:
+            return
+        dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
+        length = math.hypot(dx, dz)
+        scale = horizontal / length if length > EPSILON else 0.0
+        response = defenses.knockback_scale(target.owner)
+        impulse = tuple(value * response
+                        for value in (dx * scale, vertical, dz * scale))
+        if not all(math.isfinite(value) for value in impulse):
+            raise ValueError("invalid authored blast impulse")
+        if not any(impulse):
+            return
+        if isinstance(target.owner, bots.Bot):
+            target.owner.impulse(impulse, self.tick, self._collision(),
+                                 free_for_all=self.match.game_map.free_for_all)
+        else:
+            mover = target.owner.mover
+            mover.add_external_impulse(impulse)
+            if mover.velocity[1] > 0:
+                mover.fall = 0.0
 
     def _landed(self, rocket: Rocket, *, release: bool = True, ground_point=None) -> None:
         """Finish authority and release or retire the predicted copy."""
@@ -6527,8 +6614,9 @@ class Combat:
             vitals.sleep_until = min(vitals.sleep_until, wake)
         if not isinstance(shooter, (bots.Bot, SceneHazard)):
             flags = (CRITICAL if critical else 0) | (KILLING if killed and not copy_break else 0)
-            self._tell_hit(shooter, target, dealt, flags, frame)
-            shooter.stats.add(stats.HERO_DAMAGE, dealt)
+            if shooter is not target.owner:
+                self._tell_hit(shooter, target, dealt, flags, frame)
+                shooter.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:
                 orisa_charge.damage(shooter, target, dealt, loadout)
                 if source_body is None or source_body == shooter.body:
