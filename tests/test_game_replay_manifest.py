@@ -257,6 +257,32 @@ class ReplayManifestTests(unittest.TestCase):
                 with self.assertRaises(manifest.ManifestError):
                     manifest.manifest_digest(invalid)
 
+    def test_authored_supplements_and_selected_combat_knobs_change_identity(self):
+        from ow174.game import assassin, deflection, mover, sigma, venom, zarya
+        from ow174.game.script import graph
+
+        first_path, second_path = self.base / "first.bin", self.base / "second.bin"
+        first_path.write_bytes(b"first authored graph")
+        second_path.write_bytes(b"second authored mover")
+        with (mock.patch.object(graph, "GRAPH_SUPPLEMENT_PATH", first_path),
+              mock.patch.object(mover, "MOVERS_SUPPLEMENT_PATH", second_path)):
+            first = manifest.runtime_configuration(quanta_us=16000, run_options={})
+            first_path.write_bytes(b"changed authored graph")
+            with (mock.patch.object(venom, "GRAVITY", -31.0),
+                  mock.patch.object(sigma, "SHIELD_TAG", sigma.SHIELD_TAG + 1),
+                  mock.patch.object(assassin, "PIN_RANGE", 2.5)):
+                second = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        self.assertNotEqual(first["input.graph_supplement.sha256"], second["input.graph_supplement.sha256"])
+        self.assertEqual(first["input.movers_supplement.sha256"], second["input.movers_supplement.sha256"])
+        self.assertNotEqual(first["ow174.game.venom.GRAVITY"], second["ow174.game.venom.GRAVITY"])
+        self.assertNotEqual(first["ow174.game.sigma.SHIELD_TAG"], second["ow174.game.sigma.SHIELD_TAG"])
+        self.assertNotEqual(first["ow174.game.assassin.PIN_RANGE"], second["ow174.game.assassin.PIN_RANGE"])
+        blob = deflection.catalog().blob
+        self.assertEqual(first["input.projectile_tags.sha256"],
+                         hashlib.sha256(blob).hexdigest() if blob else None)
+        self.assertIn("ow174.game.zarya.HERO", first)
+        self.assertIsNotNone(zarya.HERO)
+
     def test_current_repository_coverage_includes_actual_helpers_without_reading_collision_contents(self):
         captured = manifest.capture_manifest(
             root=ROOT, data_dir=DATA_DIR, configuration=self.configuration,

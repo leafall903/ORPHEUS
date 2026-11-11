@@ -53,12 +53,14 @@ field for field as the client compares it with the server's (0x7FF789B73E00, see
 
 import json
 import math
+import os
 import struct
 import threading
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, fields, replace
 from functools import cache
+from pathlib import Path
 
 from ow174.game import contacts
 from ow174.game.collision import MOVER, NOT_GROUND, Ground, World, flat_world
@@ -66,6 +68,8 @@ from ow174.game.commands import CROUCH, JUMP, SUBFRAME, Command
 from ow174.paths import DATA_DIR
 
 MOVERS_PATH = DATA_DIR / "game_movers_174.json"  # tools/extract_game_movers.py
+_supplement_path = os.environ.get("ORPHEUS_MOVERS_SUPPLEMENT")
+MOVERS_SUPPLEMENT_PATH = Path(_supplement_path).resolve() if _supplement_path else None
 SOLDIER_BODY = 0x04000000000003CF
 
 RUN_SPEED = 5.5  # m/s, most heroes
@@ -168,6 +172,7 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
@@ -263,6 +268,15 @@ def _movers() -> dict[int, MoverData]:
             else:
                 names = {field.name for field in fields(MoverData)}
                 table = json.loads(MOVERS_PATH.read_text(encoding="utf-8"))
+                if MOVERS_SUPPLEMENT_PATH is not None:
+                    extra = json.loads(MOVERS_SUPPLEMENT_PATH.read_text(encoding="utf-8"))
+                    for body, entry in extra.items():
+                        identifier = int(body, 16)
+                        if body != f"0x{identifier:016X}" or identifier >> 48 != 0x0400:
+                            raise ValueError("mover supplement needs canonical full003 GUID keys")
+                        if body in table and table[body] != entry:
+                            raise ValueError(f"mover supplement conflicts with body {body}")
+                        table[body] = entry
                 _mover_table = {
                     int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
                     for body, entry in table.items()
@@ -289,6 +303,11 @@ def mover_data(body: int | None) -> MoverData:
     """The body's mover values; Soldier: 76's (most heroes') when the data does not know it."""
     movers = _movers()
     return movers.get(body or 0) or movers.get(SOLDIER_BODY) or MoverData()
+
+
+def defined_mover_data(body: int) -> MoverData | None:
+    """An explicit alternate form must not silently borrow Soldier's capsule."""
+    return _movers().get(body)
 
 
 def quantise(value: float) -> float:
@@ -386,6 +405,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -452,6 +483,7 @@ class Mover:
         self.on_map = world is not None  # else a flat floor at the start height, until use() gives the map
         self.world = world if world is not None else flat_world(self.position[1])
         self.category = category  # the query category: the team's proxy bit
+        self.external_impulse = False
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
         self.yaw = int(yaw)
@@ -622,7 +654,7 @@ class Mover:
 
     def step_pose(
         self, command: Command, seconds: float, tick: int,
-        *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        *, move_to: tuple[tuple[float, float, float], float] | None = None, speed_scale: float = 1.0,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -633,6 +665,9 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        if speed_scale != 1.0:
+            active.append(Mod(0, 1, speed_scale, frame, priority=99))
+            active.sort(key=Mod.order)
         self.values = data = modded(self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
@@ -663,6 +698,7 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        right, forward = modified_throttles(active, right, forward)
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
@@ -682,7 +718,21 @@ class Mover:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne:
+            self.external_impulse = False
         return outcome
+
+    def stop_drive(self) -> None:
+        self.driven = False
+        self.velocity = (0.0, self.velocity[1], 0.0)
+
+    def add_external_impulse(self, impulse) -> None:
+        """Keep externally supplied momentum in the normal collision solver."""
+        self.velocity = tuple(f32(v + delta) for v, delta in zip(self.velocity, impulse, strict=True))
+        self.driven = False
+        self.external_impulse = True
+        if self.velocity[1] > 0.0:
+            self.flags_word |= FELL
 
     def _fall_after(self, vertical: float) -> None:
         """The state's +832 after the move (0x7FF789B4F530): gravity's part of the velocity, added up in the
@@ -828,6 +878,10 @@ class Mover:
             vx, vy, vz = self.velocity
             nx, ny, nz = ground.normal if ground is not None else (0.0, 0.0, 0.0)
             limit = intent(active, LAND_LIMIT_MOD, LAND_LIMIT) if active else LAND_LIMIT
+            # Let an upward external launch leave its support before applying
+            # the authored landing modifier to the falling body.
+            if self.external_impulse and vy > 0:
+                limit = min(limit, LAND_LIMIT)
             if ground is not None and vx * nx + vy * ny + vz * nz < limit:
                 if flags & (JUMPED | FELL):  # 0x7FF789AD0400
                     flags &= ~(JUMPED | FELL)

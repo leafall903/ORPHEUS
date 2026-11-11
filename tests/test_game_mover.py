@@ -685,6 +685,28 @@ class MoverStateTests(unittest.TestCase):
 
 
 class ModTests(unittest.TestCase):
+    def test_throttle_modifiers_split_forward_back_and_preserve_lateral_sign(self):
+        from ow174.game.mover import MULTIPLY, modified_throttles
+
+        self.assertEqual(modified_throttles([Mod(17, MULTIPLY, 0, 0)], -0.5, 1), (-0.5, 0))
+        self.assertEqual(modified_throttles([Mod(17, MULTIPLY, 0, 0)], -0.5, -1), (-0.5, -1))
+        self.assertEqual(modified_throttles([Mod(18, MULTIPLY, 0, 0)], 0.5, -1), (0.5, 0))
+        self.assertEqual(modified_throttles([Mod(19, SET, 2, 0)], -0.5, 0), (-1, 0))
+        self.assertEqual(modified_throttles([Mod(17, SET, 2, 0)], 0, 0), (0, 1))
+        self.assertEqual(modified_throttles([Mod(17, SET, 1, 0), Mod(18, SET, 0.5, 0)], 0, 0), (0, 0.5))
+
+    def test_throttle_restriction_starts_and_ends_on_next_pose(self):
+        from ow174.game.mover import MULTIPLY
+
+        mover = soldier((0, 1, 0))
+        mover.track_mods({(1, 2, 3): (17, MULTIPLY, 0, 0)}, 10)
+        mover.step(Command(11, forward=127), TICK, 11)
+        self.assertEqual(mover.velocity, (0, 0, 0))
+        self.assertEqual(mover.throttles, (0, 127))
+        mover.track_mods({}, 11)
+        mover.step(Command(12, forward=127), TICK, 12)
+        self.assertGreater(mover.velocity[2], 0)
+
     def test_a_mod_acts_from_the_frame_after_the_statescript_turned_it_on_up_to_the_one_it_went_off(self):
         mover = soldier((0.0, 1.0, 0.0))
         mover.track_mods({(5, 0, 0): (SPEED, ADD, 0.5, 0.0)}, 10)

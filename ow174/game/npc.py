@@ -87,34 +87,45 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     return bot
 
 
+def remove_body(match, bot: bots.Bot) -> None:
+    """Retire a concrete spawned body and its VM, projectiles and deliveries."""
+    if bot not in match.bots:
+        return
+    bot.died(match.tick)
+    match.combat.clear_pins(bot.entity)
+    match.combat.hooks.retire(bot.entity)
+    script, bot.body_script = bot.body_script, None
+    if script is not None:
+        component = script.component
+        component.owner_dead = True
+        component.held.clear()
+        component.shots.clear()
+        for instance in list(component.instances.values()):
+            component.destroy(instance)
+        if hasattr(component.world, "match"):
+            component.world.match = None
+            component.world.manual_target = None
+    for shot in list(match.combat.projectiles.shots):
+        if shot.player is bot:
+            match.combat.projectiles._end(shot, match.tick, False)
+    match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
+    match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
+    for table in (match.combat.vitals, match.combat.history,
+                  match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+        table.pop(bot.entity, None)
+    match._pending_bot_scripts = type(match._pending_bot_scripts)(
+        item for item in match._pending_bot_scripts if item is not bot)
+    match.bots.remove(bot)
+    for viewer in match.players:
+        if viewer.client is not None and viewer.slot in match.bots_shown:
+            viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
+
+
 def remove_spawned(match) -> tuple[int, ...]:
-    """Explicitly remove only manual NPCs, including corpses and owned attacks."""
+    """Explicitly remove manual NPCs, including corpses and owned attacks."""
     removed = []
     for bot in tuple(match.bots):
-        if bot.spawner.get('manual_spawn') is not True:
-            continue
-        bot.died(match.tick)
-        script, bot.body_script = bot.body_script, None
-        if script is not None:
-            component = script.component
-            component.owner_dead = True
-            component.held.clear()
-            component.shots.clear()
-            for instance in list(component.instances.values()):
-                component.destroy(instance)
-        for shot in list(match.combat.projectiles.shots):
-            if shot.player is bot:
-                match.combat.projectiles._end(shot, match.tick, False)
-        match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
-        match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
-        for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen):
-            table.pop(bot.entity, None)
-        match._pending_bot_scripts = type(match._pending_bot_scripts)(
-            item for item in match._pending_bot_scripts if item is not bot)
-        match.bots.remove(bot)
-        for viewer in match.players:
-            if viewer.client is not None and viewer.slot in match.bots_shown:
-                viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
-        removed.append(bot.entity)
+        if bot.spawner.get('manual_spawn') is True:
+            remove_body(match, bot)
+            removed.append(bot.entity)
     return tuple(removed)

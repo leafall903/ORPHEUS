@@ -4,6 +4,220 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+- Package the current Widowmaker server implementation for integration with
+  its shared combat, StateScript, NPC and replay dependencies and tests.
+  The delivery includes the earlier D.Va ejection and self-destruct work and
+  the later owned Matrix, quick melee, Boosters and snapshot work.
+  The full static acceptance matrix and original-client acceptance remain open.
+  Original health application, reflected damage ownership and message 0012
+  production still need evidence.
+
+### 2026-11-09
+
+#### Widowmaker static-combat work in progress
+
+- Expand the five Archives NPC combat checks to cover team changes, static
+  cover, manual attack range, death, and reacquisition after mode respawn.
+  Exercise actual allied Defense Matrix, Deflect and Kinetic Grasp against
+  the four NPC weapons. Verify Venom Mine damage and charge through
+  projected barrier expiry on all five bodies, plus Assassin pin damage
+  against a projected barrier.
+- Integrate selected shared notification-lifetime/Ability-exit repair and
+  declared manual Enforcer/Assassin context, control and health bridge. Actual
+  Widow pin tests cover blocked actions/resources, poison, rescue/reacquisition,
+  range/LOS, source removal and poison kill release. Enforcer now sends all 25
+  authored projectiles per round; its four-degree pattern uses declared host
+  ring orientation. Actual control, elevation and projected-shield checks
+  cover Enforcer alongside the other three conventional NPC weapons.
+- Apply the authored Widow primary spread ramp and preserve scoped zero spread.
+  Scope the shared Flashbang launch bias, gravity and expiry blast to the
+  authored McCree cast; accelerated flight state is captured in server replay.
+- Add selected world-clock invulnerability and healing scopes for Reaper,
+  Zenyatta and Mei, and Fortify reduction and control resistance for Orisa.
+  Actual Ana dart hits apply sleep, wake after qualifying damage, and release
+  blocked commands on the world deadline.
+- Host Winston's authored bubble and Reinhardt's curved shield interception.
+  Mesh collision reads a checked external descriptor. Both defenses apply
+  selected contact rules to shots, melee and mine flight. Their authoritative
+  behavior does not create a native Pet replica or assert native filter parity.
+- Add Brigitte's selected shield health bridge and the authored physical
+  meshes for Orisa and Sigma. Actual casts verify deployment, shot admission,
+  break or recall, regeneration, world expiry and body replacement as applicable.
+- Host selected Sombra Hack and EMP effects against Widowmaker and preserve
+  weapon input during skill silence. Add Sigma Accretion and Mei spray controls
+  with authored damage and timing inputs. Remember the last admitted command
+  so a gap after control expiry cannot replay blocked movement or skills.
+- Host Orisa Halt's authored launch, second-press detonation and target MoveTo
+  with a scoped server adapter. Actual inputs verify damage-free pull, cooldown,
+  wall and team rejection, and expiry while the target body is paused.
+- Host the selected Roadhog Chain Hook flight from the authored launch graph.
+  Actual commands verify Widowmaker damage, pull, input suppression, cooldown,
+  range, team and wall rejection, and projected barrier interception.
+- Host Mei's selected Blizzard release, ballistic flight and world-clock area.
+  Actual casts verify delayed damage, freeze and thaw, wall and team rejection,
+  and that an area already released continues after its caster dies.
+- Host selected Mei Ice Wall placement and authoritative pillar health. Actual
+  Widow inputs verify rifle damage and reopening, grapple contact, and mine
+  attachment with retirement when the supporting wall is removed.
+- Resolve Ice Wall before generic projectile body contact and check splash
+  occlusion. Swept player movement stops at a pillar. Removing a grapple's
+  anchor cancels the cast and preserves any cooldown already started.
+- Resolve Ice Wall contacts during each Archives route step. Actual attack
+  tests cover all five bodies, and Chain Hook, Halt and Blizzard respect
+  the same dynamic wall geometry.
+- Host Brigitte Shield Bash and Whip Shot contacts against Widowmaker. Recheck
+  State completion after watched changes so Bash ends on contact and can
+  recast after cooldown. Share the authored 224E target gates with Accretion.
+- Host Reinhardt Earthshatter's authored release and sampled ground wave.
+  Verify damage, stun, caster death timing, wall and projected interception,
+  and one barrier damage event with no spill through a broken Rein shield.
+- Host Reinhardt Charge from the authored 007D drive. Actual player checks
+  cover capture, transport, blocked fire, wall impact, release, and projected
+  barrier interception without displacement.
+- End a running Charge through its authored exit when externally interrupted.
+  Keep the current capture when another capture or pull attempts to take over.
+- Host Doomfist Rocket Punch against Widowmaker from the actual 0D06 release.
+  Verify charge-scaled contact, knockback, control, a single wall bonus, and
+  projected barrier rejection. The confirmed hit grants 0DDD temporary shields.
+- Publish the selected Doomfist Uppercut target list to its authored damage
+  state. Actual commands verify body damage and lift, landing and recovery,
+  and projected-barrier interception without a passive shield grant.
+- Host Doomfist Seismic Slam from the authored indexed phase switch. Ground
+  hop and downward aerial targeting enter the landing wave, and upward
+  impulses leave the floor before applying the authored landing threshold.
+- Host Doomfist Meteor Strike using its authored selection, impact and
+  recovery stages. Confirm without spending Hand Cannon ammo and resolve
+  visible landing damage, knockback and the ultimate passive shield.
+  Resolve a stalled caster’s landing from authored frame deadlines and
+  resume through the authored charge recovery without repeating damage.
+- Drive combat from the simulation frame clock so Unix wall time cannot
+  expire active body defenses and reveal windows.
+- Verify both Widowmaker weapon modes critically hit the five actual Archives
+  NPC bodies through the selected capsule head proxy.
+- Host Tracer Recall using the authored warmup, playback and cooldown.
+  Protect the body during playback and restore sampled health, pose and ammo
+  once, including when caster poses stop.
+- Host Tracer Pulse Bomb from the actual ultimate release, including body
+  attachment, a world-clock impact fuse, radial damage, Deflect and Grasp.
+  Follow raised Reinhardt, Brigitte and Sigma shields in local coordinates.
+- Host Tracer Blink with authored charges, a capsule sweep and a rewind
+  boundary that preserves hits at the sampled pre- and post-Blink poses.
+- Verify Widowmaker Grappling Hook paths across all five actual Archives NPC
+  bodies and the Assassin pin interruption and cooldown.
+- Use raw001C FirstPerson1.5/1.05 and reviewed02A3 offsets1.425/.9975 for
+  shot origins and target head proxies. Eight low-cover stance cases and the
+  selected owned-McCree primary2x/explicit Fan1 policy pass. Bones/muzzle and
+  native critical equivalence remain unproved.
+- Project0067's independently committed OnStart Wait9 plus authored15s effect
+  onto world time. Stun releases Ability while commitment continues; death
+  rejects authoritative targets. Paused commands do not postpone/refresh the
+  window, and autonomous poison cannot charge during the stopped-Ability cast
+  gap.38 focused checks pass76.983s; no new persistent VM fields are added.
+- The previous98-input boundary passes567 checks844.829s (558 passed,9
+  real-map cache skips) plus4 separate stored replay checks378.333s. Selected
+  new code requires its own full freeze; complete hero acceptance stays open.
+
+- Archive494 regression methods and4 distinct stored-journal methods passing
+  with77 input hashes unchanged after defense-clock/original-press repair.
+  New paused-input probes then expose stale released Q revival from autonomous
+  poison charge, backdated Zarya energy decay and backdated barrier-break cooldown.
+  Selected world-time fixes and applicable parent throttle17/18/19 support are
+  pass111 focused methods75.743s (102 passed,9 missing-map-cache skips);
+  whole static/client acceptance and a fresh full regression remain open.
+
+- Preserve original buffered Ability press timestamps until start gates pass.
+  Reuse two reviewed parent working-source methods and validate actual Widow
+  hook/mine cooldown and Infra charge/startup paths.38 combined buffer/Ability/
+  world-defense-clock methods pass; fresh full verification follows the shared fix.
+
+- Repair authoritative stalled-input protection lifetime for selected Grasp,
+  Matrix, Deflect and Zarya barrier hosts using their live native countdown
+  records. Grasp grants/decays once at world expiry without advancing held-fire
+  queues or shortening resumed native cooldown. Reject future activation on
+  earlier-world hits.21 actual-command clock methods pass; full regression pending.
+
+- Add selected Sigma Grasp nominal absorption and separate temporary-shield
+  host from committed e6a9550; retain Matrix/Deflect/mine/status ordering and
+  capture helper constants plus external input hashes in replay identity.
+  Pass468 regression methods and4 separate stored replay methods,75 pins
+  unchanged. A new actual-shot no-input probe finds Grasp remains protective
+  after its world duration; repair required. Native1D03 and full acceptance open.
+
+- Add selected Genji Deflect authority for Widow bullets/melee and independent
+  ballistic mine flights, preserving range/falloff/critical, attribution,
+  resource gates, gravity/lifetime and existing Matrix/Zarya ordering. Recheck
+  all five NPC capsules with explicit43-row extracted mover input instead of
+  base-runtime fallback. Pass422 regressions in718.231s and4 separate stored
+  replay methods in473.814s;67 input hashes unchanged. Native Deflect filter,
+  geometry/direction/per-hit statistics and complete reflected battle remain open.
+
+- Add selected authored DVa Matrix interception for Widow bullets and venom
+  flight, with explicit mech graph/mover/pool inputs and referenced ruleset
+  fallback. Store immutable projectile catalog bytes and native query contexts.
+  Broad408-method run passed407 with one test-only read-only-property error;
+  corrected10 Matrix methods and4 separate stored replay methods pass. Runtime
+  inputs stayed fixed; Matrix geometry/tag policy remains reconstruction.
+
+- Reuse committed Zarya barrier/recovery services with selected target-array
+  hosting. Intercept body damage before hit notices/charge/status, preserving
+  Widow critical/mine/control/NPC behavior and stored layouts. Direct input
+  tests cover personal/projected capacity, energy, cooldown/expiry/replacement,
+  blocked Flashbang, shield recovery, five protected NPC targets and three
+  incoming NPC weapons. Pass352 expanded regressions in770.475s including the
+  full13-method server snapshot module and active barrier domain causality;
+  39 pinned inputs unchanged, Ruff/diff pass. Native independent pet geometry,
+  raycast/critical routing, cleanse/immunity and presentation remain open.
+- Reuse parent2ca9178's native-backed distinct-input joins and causal VM fields,
+  preserving existing Widow cast/target snapshot layouts. Pass47 initial methods
+  in69.776s and333 broad methods in378.392s, including body/domain snapshots;
+  36 pinned inputs unchanged, Ruff/diff pass. Four expensive stored-journal replay
+  methods are excluded. A scoped1..4-ammo first-shot edge remains unaccepted:
+  native count/timer leaf behavior is proven, complete shot dispatch is not.
+- Reuse parentfbcaf76/64bf71c's canonical manual NPC input/aim controller, helper
+  console contract and stored target/input/pitch fields without importing the
+  dashboard/server console integration. Full NPC weapon dispatch matches parent.
+  Pass289 broad methods in187.346s; subsequent test-only extensions pass9 actual
+  NPC methods/42 subcases in71.705s and9 domain snapshot methods in127.105s.
+  Actual Trooper/Sniper/Heavy stun expiry resumes damage to Widow; explicit stop
+  prevents resumption. Raised-platform aim hits Widow; all five friendly NPCs
+  reject her weapons/melee/mine/Infra enemy effects. This remains manual sandbox
+  targeting, not native AI, Enforcer/Assassin offense or all-five specials.
+- Selectively reuse parent64bf71c's resource-backed Flashbang control and stored
+  stun deadlines while retaining Widow critical/mine logic. Core control helper
+  ASTs match parent; private NPC firing gates fit the pre-controller baseline.
+  Add actual enemy-input Widow tests for movement/action/resource suppression,
+  grapple interruption/cooldown, established reveal expiry and autonomous poison.
+  Pass279 expanded regressions in221.460s and17 control/snapshot methods in
+  452.350s (4 overlap,13 additional snapshot methods). All30 pinned Python/data
+  inputs remain unchanged. Pre-control230-test revision also passed its encrypted
+  mine/pending-hook stored replay in881.371s; that older boundary is preserved.
+  Full native status/immunity/cleanse/presentation remains unaccepted.
+- Add selected critical fallback, static grapple cast/pull, mine throw/arming/
+  poison/destruction and Infra-Sight target/reveal hosting. Reconstruct actual
+  damage-based charge with active-effect suppression and register new stored
+  state explicitly. Native equivalence and full hero acceptance remain open.
+- Correct initial grapple search to20 after read-only native field selection
+  analysis;22 applies to an existing-contact branch. Add boundary, repress,
+  cancel, cooldown, weapon range/reload and actual cross-hero pool/healing tests.
+  Include mine melee/direct/splash destruction, team filtering and wall occlusion;
+  prevent a splash visibility ray from skipping its own impact plane.
+- Exercise real supplemental five-NPC body/weapon graphs without modifying or
+  copying runtime inputs. Trooper/Sniper/Heavy reverse weapon damage passes;
+  all-five melee, actual scoped weapon kills/retained corpses and wall rejection
+  also pass. Enforcer/Assassin reverse attacks and all-five specials remain open.
+- Reuse reviewed parent create_body_graphs, array_item and capsule_visible
+  implementations from d1286b7/6debff3/7cd1ed7 in this private WIP. Exact helper
+  ASTs match;117 selected post-alignment regressions pass. No parent source write.
+- Earlier frozen revision passed212 regressions and an encrypted mine/pending-
+  hook stored replay (stored_state_verified=true, complete_battle_replay=false).
+  Later focused pool, hook and mine checks pass; current broad result belongs
+  in the external lane verification record. See WIDOWMAKER_COMBAT.txt for exact
+  reconstructed mechanisms and unaccepted defenses/control/native semantics.
+- No client acceptance, root-source changes, commit, merge, push or deployment.
+  This WIP entry does not complete the goal or supersede MERGE_READY=false.
+
 ### 2026-11-08
 
 #### Widowmaker command-to-health coverage and melee occlusion

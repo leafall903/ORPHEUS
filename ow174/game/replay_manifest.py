@@ -41,6 +41,25 @@ _CONFIG_MODULES = (
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
     "ow174.game.server", "ow174.game.statescript",
     "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world",
+    "ow174.game.sigma_barrier", "ow174.game.sigma_accretion", "ow174.game.mei_frost",
+    "ow174.game.brigitte_control", "ow174.game.earthshatter",
+    "ow174.game.reinhardt_charge", "ow174.game.doomfist_punch", "ow174.game.doomfist_uppercut",
+    "ow174.game.doomfist_slam",
+    "ow174.game.doomfist_meteor",
+    "ow174.game.dva_destruct",
+    "ow174.game.dva_body",
+    "ow174.game.script.placement",
+    "ow174.game.tracer_recall",
+    "ow174.game.tracer_blink",
+    "ow174.game.pulse_bomb",
+    "ow174.game.mei_blizzard", "ow174.game.mei_wall",
+    "ow174.game.sombra_control", "ow174.game.brigitte_shield",
+    "ow174.game.orisa_shield", "ow174.game.orisa_halt",
+    "ow174.game.bubbles", "ow174.game.flashbang", "ow174.game.rein_barrier",
+    "ow174.game.defenses", "ow174.game.deflection", "ow174.game.venom", "ow174.game.zarya",
+    "ow174.game.sigma",
+    "ow174.game.npc_control", "ow174.game.npc_console", "ow174.game.npc_context", "ow174.game.assassin",
+    "ow174.game.weapon_launch", "ow174.game.weapon_spread",
     "ow174.game.script.driver", "ow174.game.script.expr", "ow174.game.script.runtime",
     "ow174.jam.codec",
 )
@@ -213,6 +232,25 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
             limit = field.startswith("MAX_") or field.endswith("_MAX") or "BUDGET" in field
             if numeric or limit or field in required:
                 values[f"{name}.{field}"] = value
+    # Optional external authored inputs are relocated by bytes, never by host paths.
+    from ow174.game import deflection, mover, orisa_halt, orisa_shield, rein_barrier, sigma_barrier
+    from ow174.game.script import graph
+
+    blob = deflection.catalog().blob
+    values["input.projectile_tags.sha256"] = hashlib.sha256(blob).hexdigest() if blob is not None else None
+    for key, path in (("graph_supplement", graph.GRAPH_SUPPLEMENT_PATH),
+                      ("movers_supplement", mover.MOVERS_SUPPLEMENT_PATH)):
+        values[f"input.{key}.sha256"] = hashlib.sha256(path.read_bytes()).hexdigest() if path else None
+    rein = rein_barrier.geometry_bytes()
+    values["input.reinhardt_barrier_geometry.sha256"] = hashlib.sha256(rein).hexdigest() if rein else None
+    orisa = orisa_shield.geometry_bytes()
+    values["input.orisa_barrier_geometry.sha256"] = hashlib.sha256(orisa).hexdigest() if orisa else None
+    sigma_geometry = sigma_barrier.geometry_bytes()
+    values["input.sigma_barrier_geometry.sha256"] = (
+        hashlib.sha256(sigma_geometry).hexdigest() if sigma_geometry else None
+    )
+    halt_data = orisa_halt.input_bytes()
+    values["input.orisa_halt.sha256"] = hashlib.sha256(halt_data).hexdigest() if halt_data else None
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)

@@ -51,10 +51,29 @@ def evaluate_value(instance, cfg, *, initial=0, watcher=None):
     with instance.component.operation():
         if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
             return tuple(_iter_values(instance, cfg, watcher=watcher))
+        if isinstance(cfg, dict) and cfg.get("$") == "STU_A6B80C63":
+            count = cfg.get("m_418D9D9D")
+            if isinstance(count, dict) and count.get("$") == "STUConfigVarInt":
+                literal = count.get("m_value")
+                # 1B78A50 returns a typed empty array before reading the source.
+                if type(literal) is int and literal == 0:
+                    return ()
         result = controller_heroes.collect(instance.context(watcher), cfg)
         if result is not NotImplemented:
             return result
         return instance.evaluate(cfg, watcher, initial=initial)
+
+
+def array_item(instance, cfg, *, watcher=None):
+    """104319 1B79A60: scalar index, collecting +28 container, array-only lookup.
+
+    Failed/missing index evaluation selects zero. Missing/non-array containers
+    and out-of-range indices successfully write null, rather than preserving the
+    caller's destination. Unlike expression MEMBER_BY_INDEX, scalars never match.
+    """
+    index = expr.to_int(evaluate_scalar(instance, cfg.get("m_index"), initial=0, watcher=watcher))
+    values = evaluate_value(instance, cfg.get("m_814F8EC3"), initial=None, watcher=watcher)
+    return values[index] if isinstance(values, tuple) and 0 <= index < len(values) else None
 
 
 def _iter_values(instance, cfg, *, _depth=0, watcher=None):

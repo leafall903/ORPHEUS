@@ -29,7 +29,7 @@ MOVER_FIELDS = (
     "flags_word", "air_ticks", "spring", "spring2", "spring_steps", "spring_speed", "fall", "landed",
     "crouch_end", "throttles", "input_throttles", "input_tick", "input_frame", "last_command", "mods",
     "history", "corrected", "body", "slope", "slope_cos", "slope_tan", "slope_cos32", "spring_low",
-    "spring_high",
+    "spring_high", "external_impulse",
 )
 DATA_FIELDS = (
     "stand_height", "stand_radius", "stand_pogo", "crouch_height", "crouch_radius", "crouch_pogo",

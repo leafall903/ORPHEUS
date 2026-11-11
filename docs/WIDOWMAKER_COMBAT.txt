@@ -11,7 +11,9 @@ tests/test_widowmaker_combat.py uses the real extracted hero graphs, normal
 Match/Player command handling, Combat and health pools. The peers immediately
 acknowledge records and the scene has synthetic flat collision. The manual NPC
 test uses a real Bot object with training-bot health/mover data, but has no native
-NPC body script. It does not validate Archives AI, client visuals or specials.
+NPC body script. Separately, test_widowmaker_npcs.py uses the real five-body
+supplement with explicit permissive peer/observer adapters. Neither fixture
+validates Archives AI, client visuals, native hitboxes, navigation or specials.
 
 Primary weapon (001B/state6): a body hit removes 13 health; releasing fire stops
 additional damage. Scoped weapon (001B/state9): charging before fire removes 120
@@ -30,52 +32,235 @@ notice; the unobstructed case still loses 30 health.
 Acceptance matrix
 -----------------
 Legend: POOL = offline actual command-to-pool evidence for the stated subset;
-OPEN = not accepted. All original-client cells are OPEN.
+PATH = actual static-surface and movement-path evidence. OPEN = not accepted.
+All original-client cells are OPEN.
 
 Action                 Enemy player       Trooper Enforcer Sniper Assassin Heavy Assault
-Unscoped weapon        POOL body only      OPEN    OPEN     OPEN   OPEN     OPEN
-Scoped weapon          POOL body/charge    OPEN    OPEN     OPEN   OPEN     OPEN
-Quick melee            POOL range/wall     OPEN    OPEN     OPEN   OPEN     OPEN
-Incoming attacks       POOL rifle/death    OPEN    OPEN     OPEN   OPEN     OPEN
-Grappling Hook         OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
-Venom Mine             OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
-Infra-Sight             OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
-Critical damage        OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
-Status/control         OPEN                OPEN    OPEN     OPEN   OPEN     OPEN
-Manual NPC corpse      n/a                 OPEN    OPEN     OPEN   OPEN     OPEN
+Unscoped weapon        POOL body/head      POOL    POOL     POOL   POOL     POOL
+Scoped weapon          POOL body/head      POOL    POOL     POOL   POOL     POOL
+Quick melee            POOL range/wall     POOL    POOL     POOL   POOL     POOL
+Incoming attacks       POOL rifle/death    POOL    POOL     POOL   POOL     POOL
+Grappling Hook         PATH static/cancel  PATH    PATH     PATH   PATH pin PATH
+Venom Mine             POOL poison/LOS     POOL    POOL     POOL   POOL     POOL
+Infra-Sight            POOL reveal/expiry  POOL    POOL     POOL   POOL     POOL
+Critical damage        POOL selected       POOL    POOL     POOL   POOL     POOL
+Status/control         POOL selected       POOL    OPEN     POOL   POOL pin POOL
+Zarya event blocking   POOL selected       POOL    POOL     POOL   POOL     POOL
+Manual NPC corpse      n/a                 POOL    POOL     POOL   POOL     POOL
 
-Allies: primary and melee reject a same-team player in the tests. This does not
-establish all free-for-all, reveal-sharing or cross-hero support semantics.
+Each POOL cell covers the stated behavior. The actual Enforcer attack uses
+the25-pellet host and the Assassin cell uses manual1157 pin execution.
+Both weapon modes critically hit each actual NPC through the selected capsule
+head proxy. The tests verify26/300 damage before overkill clamping and check
+critical and lethal hit flags.
+The original poison test's NPC terminal lifecycle uses a separate direct lethal
+hit. An additional five-body test now executes actual melee30, scoped weapon
+kills with real ammo/reload/partial-charge behavior, owner-dead flags and corpse
+retention, without injected terminal damage or replenishment. Another five-body
+test blocks primary/scoped/melee through static collision. Four pool/healing
+tests cover Reinhardt armour, Zenyatta shields, actual
+damage charge excluding overkill, and Soldier field healing allied Widowmaker
+while preserving enemy wounds. These do not establish barrier behavior.
+Additional weapon-edge tests cover aim miss, empty clip, actual reload bit0x400,
+reload fire lock/end, falloff floors3.9/36 and primary100/scoped400 max ranges.
 
 Concrete unresolved dependencies
 --------------------------------
-1. Critical damage: hit_def reads m_A872C70E and defaults to 1. Both Widowmaker
+1. Baseline critical damage: hit_def read m_A872C70E and defaulted to 1. Both Widowmaker
    volleys have null m_A872C70E in the target-build extraction, so neither gets
    critical damage. Their m_66D29548 is 2; scoped m_BC54C84B is 1.25. Their native
    meanings are not established here; do not reinterpret these fields from
-   modern hero web pages or assume these observations prove a fix.
-2. Grappling Hook (005A): authored state activation alone has no authoritative
-   hook anchor, pull motion, collision handling, jump cancel or movement host.
+   modern hero web pages or assume these observations prove native semantics.
+   Current WIP reconstructs these two volleys only as2 and2*1.25. Executed player
+   tests verify26 primary head damage and300 scoped head damage/kill flags.
+2. Grappling Hook (005A): WIP supplies a static-surface cast using authored
+   speed40/initial range20, then the existing swept MoveTo at speed20. Actual pull,
+   blocking wall, jump cancel, death, hit-cooldown rejection and later second
+   pull,19.9/20.1 range boundary and repeated-input-during-pull tests pass.
+   Actual casts intersect the proxy capsules of all five Archives NPCs.
+   Without a surface the cast misses. With a wall behind each NPC it anchors
+   to the wall and pulls Widowmaker while leaving NPC health and position
+   unchanged. The Assassin's authored pin interrupts a live pull, preserves
+   cooldown and permits a fresh pull after expiry. These are selected host
+   path tests. Native bone and entity-anchor semantics remain open.
+   Read-only native analysis (base7FF79FED0000, ctorC8AAE0/vtable265F330,
+   virtual14 C93AB0) selects config field170 (m_2AFC083F=20) normally, and
+   field1E8 (m_2C40C158=22) only when existing static-contact output field140
+   (m_9169D109, variable1221) is true. This host performs only the initial cast,
+   not native contact rechecks. A selected terminal host invokes stop action93
+   because an unhosted final typed request otherwise occupies Ability forever.
+   Further native inspection maps node50/state30 (1F5ED928) to component31,
+   request kind10, scalar0.2 and target-vector data; this does not prove that it
+   implements bone retraction. Its native completion observes request state2.
+   Native surface filters, bone/entity hooks, final-request timing, momentum and
+   miss cooldown remain open. Current miss path yields cooldown0; this is not
+   asserted to be correct. World movement accepts explicit zero entity/bone
+   branches; nonzero or unresolved entity/bone destinations remain unsupported.
 3. Venom Mine (0056): the graph fires projectile entity 04000000000000AF at speed
-   20. This does not implement armed placement, enemy trigger, destructible
-   health, poison-over-time, victim reveal, ownership/replacement or cleanup.
-4. Infra-Sight (0067): state0 is TrackTargets with radius200. TrackTargets.payload
-   currently returns an empty tuple unconditionally; the real search, per-target
-   subgraph execution and teammate-visible reveal consumer are absent.
-5. Shared barriers, reflection, absorption, invulnerability, stun/sleep/hack and
-   their damage/input/status rules are not established by this lane's tests.
-6. The supplied runtime game_graphs_174.json.gz contains 32 hero bodies and ZERO
+   20 and spawns00AE/0057. WIP now consumes real throw reports and world ticks:
+   reconstructed gravity-30 from projectile00AF's m_A0D912A2, static attachment,
+   0057's1s arm delay, trigger radius3, effect radius4 and health1. 0073's total
+   amount evaluates75 over5s at one stack. Integer damage pulses preserve75
+   in both pools and hit notices. Tests exercise actual poison/reveal, allies,
+   wall blocking, rifle/melee/direct and splash Helix destruction, allied melee
+   and splash retention, wall-blocked melee/direct/splash destruction,15s cooldown/
+   replacement and hero cleanup. Mine splash visibility backs off the impact
+   plane0.001 along the incoming ray to prevent a same-plane LOS miss.
+   Native tick/filter/armor/stack/cleanse semantics, other area/status damage,
+   replicated deployed entity, visuals and projectile ownership timing remain
+   open. A mine number is a local handle, not a guessed network entity ID.
+4. Infra-Sight (0067): state0 is TrackTargets with radius200.
+   One actual match now rejects an undercharged press, earns 13 damage charge
+   from a rifle hit and reaches full cost via admitted neutral frames at the
+   configured server rate. The actual cast spends charge, suppresses further
+   charge during reveal, expires on the world frame boundary and then resumes
+   charging. The test leaves the charge variables and fill rate untouched. TrackTargets.payload
+   now asks an explicit host for enemy target rows; the selected0067/state0
+   backend and authoritative revealed_to query share enemy/FFA/range/death
+   semantics and ignore walls. Seven executed cases cover charge/spending,
+   sharing, range, death, re-press rejection and15s expiry with owner commands.
+   No-input world-clock expiry, live-source identity and damage-charge suppression
+   throughout the full effect also pass. Full per-target authored execution and
+   native presentation remain open; generic target filters are not implemented.
+5. Shared Flashbang reconstruction64bf71c is now selected into the private WIP:
+   HitDef preserves m_modifyHealth.m_277A4ECA; effect053/0079 maps to0.8/1.7s
+   exclusive stun deadlines from0228's mode flag. Real input is released and
+   authored Ability.stop interrupts active channels; movement and combat reports
+   are gated, with body identity/death/replacement/removal cleanup. The new stun
+   map has explicit stored-state layout. The core is_stunned/_hit_effect ASTs
+   match the parent. The later NPC-control update reuses the parent's canonical
+   npc_control/npc_console helper modules and full _bot_weapons dispatch at64bf71c,
+   including target controller, queued input and pitch fields. Dashboard/server
+   console integration is not imported. Manual selection/aim policy is not
+   restored autonomous acquisition, navigation or native AI range. This is
+   not full224E execution or proof of immunity/cleanse/stacking/unstoppable/client
+   semantics. Full barriers, reflection, absorption, invulnerability, sleep/hack
+   and their native damage/input/status rules remain OPEN. The selected Zarya
+   body-event interception subset below now has direct tests.
+   Four actual enemy-input Widow tests now pass:0.8s action/movement/ammo/charge/
+   skill-counter suppression and recovery; active-hook interruption preserving
+   cooldown and allowing gravity; established Infra-Sight retaining its original
+   expiry; existing poison continuing damage and damage charge through the stun.
+   Their279-method post-adaptation broad regression passes in221.460s. The30
+   Python/data pins are unchanged. The separate17-method control/snapshot run
+   passes in452.350s:4 control methods overlap the279,13 server snapshot methods
+   add stored-state verification, including the new stun-map digest sensitivity.
+6. The normal runtime game_graphs_174.json.gz contains 32 hero bodies and ZERO
    non-player entity-body records. BotScript rejects the training-bot definition
    0400000000001403 with ValueError: no statescript data. The five Archives
-   enemy-body/AI spawn integration belongs to the parent lane and is still needed.
+   enemy-body data is now separately available from the parent. Reviewed parent
+   commits c2d3ae1/a15d554 are private cherry-picks4d050ef/7792818; normal runtime
+   remains read-only. Explicit ORPHEUS_NPC_TEST_DATA points tests to that external
+   catalog/bundle without copying it. All five real bodies now take scoped120,
+   poison75 and retain native-script corpses in adapter fixtures. Actual native
+   button20 damages Widowmaker with Trooper/Sniper/Heavy Assault after restoring
+   Sniper's authored manager and sparse slots. Enforcer/Assassin reverse attacks
+   and all-five specials remain open. Eleven methods now cover50 NPC subcases, including
+   five Infra-Sight/charge/no-input expiry cases. Base pools are not difficulty
+   totals. Variable221 is shields,
+   not armor. Collision/hitboxes and transport are synthetic/permissive inputs.
+   The canonical controller supplies actual slot0 logical input; no direct20
+   injection is needed for the three reverse-weapon cases. Six real-stun cases
+   prove Trooper/Sniper/Heavy stop damaging Widow while stunned, resume after
+   expiry, and remain stopped when explicit stop is issued during stun. Three
+   raised-platform cases prove actual upward aim/damage against elevated Widow.
+   All five allied bodies reject both weapon modes, melee, mine and Infra enemy
+   effects, with mine deployed and Infra active so negative cases are not inert.
+   Current production passes289 broad regressions in187.346s. After test-only
+   extensions, all9 NPC methods pass in71.705s and9 controller-domain snapshot
+   checks pass in127.105s; target/input/pitch each change stored digests. The
+   four expensive stored-journal replay methods are not rerun by that snapshot
+   batch. STATIC_VERIFY_NPC_CONTROL_BASE.json preserves the289-test input set.
+   Two later methods add5 projected-protection cases on the actual NPC bodies
+   against Widow scoped120 and3 actual-NPC weapon cases against protected Widow.
+   The latter stop attacks explicitly while waiting for protection expiry, then
+   restart normal input and observe real body damage. Sniper's observed first
+   impact is127 ticks after start, beyond125-tick protection; its explicit test
+   cast occurs20 ticks into windup. This is reactive fixture timing, not AI.
+7. Damage-based ultimate charging is WIP: explicitly reconstruct one charge
+   point per actual pool damage, capped at resource cost1540. The authored
+   initial graph0B8B has a one-second Wait at node3 linked to SetVar node4,
+   which computes min(cost, charge + 5 * modifier9532 * modifier12918) with
+   defaults of1, then links back to the Wait. Other0B8B entries also reference
+   and write charge. The controlling branch, modifier provenance, message
+   payloads and end-to-end execution remain open. The current host still
+   uses its configurable 60-second fill. Active-effect suppression, cap,
+   actual pool loss/overkill and restart-after-expiry tests pass. Hero/loadout
+   roots expose no separate standalone passive; selected scope critical damage
+   is an inherent weapon test, not proof of every passive rule.
+8. Low-ammo scoped edge remains OPEN: the current host clears residual1..4 ammo
+   without reporting a damaging shot. An exact read-only native leaf probe at
+   D60767..D6079C verifies9 count/timer cases: integer ammo/per-shot count clamped
+   by configured maximum, timer index max(count-1,0). It stops before timing/
+   event calls and does not prove native first-shot dispatch or final damage.
+   No guessed minimum-one-shot rule or correctness assertion is added.
+9. Selected shared Zarya services: zarya.py is byte-identical to committed
+   b17930b from lane0068 (personalca67b32/projectedb827e5f); central hit-effect
+   ordering follows14d2510. Interception precedes body pool loss, Widow damage
+   charge, body hit notices and body status. A breaking event is blocked in full
+   and only remaining capacity credits authored0242 energy. Projected searches
+  025C nodes11/18 use the declared ally/range/cone/LOS host and target-array
+   outputs, preserving the existing Infra target-age dictionary. The source
+   body owns barrier/recovery records and retires them on replacement. Domains
+   have explicit stored layouts/dataclasses; no deployed pet entity is guessed.
+   Eleven direct barrier methods pass across personal and projected protection:
+   primary13, scoped120/ammo5, reconstructed head event300, melee30, energy,
+   no charge through protection, exhaustion/next hit, cooldown/recast, expiry,
+   ally/enemy/wall/range, caster/target replacement, and absorbed Flashbang
+   blocking both25 damage and stun. A later unprotected real Flashbang does stun.
+   Selected Zarya shield recovery3s/30-per-second passes after scoped pool loss;
+   a blocked hit does not restart delay, and source retirement clears the clock.
+   These are body-event host policies, not full native barrier acceptance.
+   Original13F4/03DA pet definitions contain their own health and raycast receiver
+  002A.098. Native shape/profile/critical routing, pet transport, cleanse and
+   immunity remain OPEN; no assertion equates the300 body event with a native
+   critical hit on a pet. Resource trace is external ZARYA_PET_RESOURCE_TRACE.json.
+
+Static goal
+-----------
+The goal is ACTIVE and requires every weapon/skill/passive/ultimate, cooldown,
+resource, status and applicable cross-hero/player/five-NPC interaction to pass
+executed static tests. This record's partial checks do not complete that goal.
+The earlier broad180-test run exposed an unregistered Combat storage field.
+Mines/flight/poison, target rows and cast results now have explicit layouts.
+A frozen212-test regression passed in88.149s; its encrypted actual-mine/pending-
+hook controlled stored replay passed in652.559s (stored_state_verified=true,
+complete_battle_replay=false). The20 pinned inputs were unchanged during both
+runs. Earlier37 snapshot/storage/movement-replay tests also passed. A subsequent
+221-test expanded regression passed in150.428s before common-helper alignment.
+After reusing parent d1286b7's create_body_graphs,6debff3's array_item and
+7cd1ed7's capsule_visible (exact AST matches),117 selected regressions pass in
+97.691s. No parent source or commit is modified. Later hook range, NPC weapon-
+lethality and mine destruction edits have focused passing checks; the current
+broad result is recorded in lane STATUS.txt/GOAL_STATUS.json. The older replay is
+evidence for its pinned revision, not blanket proof of subsequent changes.
+The current shared-helper-aligned revision passed230 tests in206.430s and its
+encrypted mine/pending-hook stored replay in881.371s (stored_state_verified=true,
+complete_battle_replay=false). All23 pinned Python/data inputs stayed unchanged;
+STATIC_VERIFY_PRE_FLASHBANG.json preserves this boundary before control work.
+Later shared input-join2ca9178 is selected privately, preserving this lane's
+cast/target storage fields. Distinct producer/output edges join before output;
+Instance.join_inputs and plug_source are causal stored fields. The join/_follow
+ASTs match parent exactly. Initial47 join/Widow/control methods pass in69.776s;
+333 broader methods pass in378.392s with36 pinned Python/data inputs unchanged.
+The333 includes23 body-VM snapshot methods,8 ServerSnapshotTests and1 NPC-domain
+snapshot method, but excludes4 expensive stored-journal replay methods. It is
+not a new encrypted full-battle replay or native engine-scheduler acceptance.
+The subsequent selected Zarya integration passes352 expanded methods in770.475s
+with39 frozen Python/data inputs unchanged. This run includes the complete13-
+method server snapshot module, including its4 stored-journal replay methods,
+plus an active barrier/recovery domain digest case. These checks establish
+declared snapshot causality; they do not establish full native pet geometry or
+an encrypted actual-barrier battle replay. STATIC_VERIFY_PRE_ZARYA.json keeps
+the previous boundary; STATIC_VERIFY_CURRENT.json names this tested source set.
 
 Client coordination
 -------------------
-2026-11-08: an existing Overwatch window, PID12292, was present. The process's
+2026-11-08 historical observation: an existing Overwatch window was present. Its
 path/command line was unavailable from the read-only process query. This lane
 did not acquire an exclusive client lease, launch a service/client, send input,
 attach a debugger, or close an existing process. Existing-window presence is
-not acceptance and not evidence that this lane is performing a live test.
+not acceptance, current process state, or evidence of this lane doing a live test.
 
 Integration and publication
 ---------------------------
@@ -83,3 +268,625 @@ Work belongs to verification/hero-lanes/000A/source on private main. Supply the
 tested commit as a format-patch for parent review. No root-source merge, manual
 push, service deployment or publication is authorized by this lane's patch.
 The overall hero and every original-client acceptance requirement remain OPEN.
+
+
+Defense Matrix selected host (2026-11-09, WIP)
+---------------------------------------------
+Reuse007A committed ee2db6d Matrix boxes, with explicit0407 body support from
+301c61c, component43 owner lookup190bc7c and referenced ruleset fallback6941c22.
+These are private adaptations, not merges or full DVa hero acceptance.
+ORPHEUS_GRAPH_SUPPLEMENT and ORPHEUS_MOVERS_SUPPLEMENT add nonconflicting data
+outside the immutable104319 pack; missing alternate body inputs reject selection.
+The mech uses its own0033 health300/armour300 and capsule, not pilot/Soldier data.
+
+Combat stores immutable ProjectileTags actual bytes, not just an environment
+pathname or unrecorded lookup cache. Missing/unknown metadata does not absorb.
+Enemy live0407 Matrix02CC/state3 boxes intercept Widow primary/scoped definitions,
+ordinary Rocket segments and separately simulated venom00AF flight segments.
+Static walls and nearer bodies/mines constrain the interception interval.
+An absorbed venom flight cannot deploy a mine or poison. Melee is unaffected.
+
+Eye anchoring/current aim orientation and tag0145 exclusion are selected host
+reconstruction, pending original native comparison. This does not establish all
+shield/reflect/absorb/invulnerability behavior, native projectile attachment,
+full mine lifecycle/networking, or full encrypted Matrix battle replay.
+
+Matrix verification: broad408 selected methods in610.180s,407 pass and one
+new test fixture error (assigned read-only Vitals.dead). After correcting only
+that fixture to died_at, all10 Matrix methods pass in23.259s. Four independent
+stored-journal replay methods pass in355.934s. All55 inputs unchanged across
+both frozen batch runs; only the recorded test fixture hash changed afterward.
+No runtime changes followed those runs. Ruff and diff checks pass. This is not
+a fresh single408-method green batch and does not close the full hero goal.
+
+
+Genji Deflect selected host (2026-11-09, WIP)
+-------------------------------------------
+Reuse d714f0c _genji_deflects capsule/frontal approximation. The two Widow
+bullet ModifyHealth records explicitly include003BF; reflected rays preserve
+remaining range, cumulative falloff and raw critical factor, reevaluate the
+returned contact and transfer damage/kill notices to the reflector. Original
+ammo/cooldown is spent once. Melee blocks without return damage. Status effects
+still apply centrally only after unblocked body damage.
+
+Venom00AF uses an independent ballistic path. Genji03A3/state10 and Matrix02CC
+share the authored tag0145 filter/profile reference. Known00AF without0145 is
+admitted by the same selected filter policy, not by inventing a damage tag.
+Nearest static/Matrix/Genji contacts are compared. Reflection transfers owner,
+body/team and prediction retirement, preserving instantaneous speed, gravity,
+remaining lifetime and residual same-frame flight. Eight same-frame transfers
+are bounded by retirement; retail limit/order, native direction and filter
+polarity remain open. Deployed mines and established poison do not reflect.
+A reflected mine/poison belongs to Genji and survives original body retirement;
+original Widow mine cooldown is not refunded. New reflected network presentation
+and original-client comparison are unaccepted. Generic Rocket transfer follows
+the selected shared source and does not establish full native subframe timing.
+
+NPC input correction: previous five-NPC tests used the base mover fallback
+because runtime104319 had only38 mover rows. The separate read-only
+verification/retribution/npc-navigation-runtime has43 rows extracted from the
+five actual body XMLs. Use it for current capsule/reach/LOS evidence; retain
+ORPHEUS_NPC_TEST_DATA for the prepared NPC graph/catalog bundle. The new explicit
+mover method asserts all five actual dimensions and forward speeds. Native
+animated hitboxes, AI/navigation/specials and real-map collision remain OPEN.
+
+Genji/mover verification:24 focused methods PASS216.384s, all included in
+422-method broad PASS718.231s.4 additional stored-journal replay methods
+PASS473.814s.67 source/data input hashes unchanged across both frozen runs;
+Ruff/diff pass. Native Genji03A3/state10 per-hit output leads to node109
+STU_CEBDAF17 stats02CF/02D1 using6584 then129; the selected helper does not
+host this output. Native callback/nominal amount/stat semantics remain OPEN.
+This is selected host evidence, not complete original-engine hero acceptance.
+
+
+Sigma Grasp selected host (2026-11-09, WIP)
+----------------------------------------
+Reuse dedicated023B committede6a9550: original Vitals baseline AST was identical
+before importing its separate tagged temporary shield pool. Actual1D02/state1
+bounds and output6584 feed authored node32 accumulation. The selected tag145
+metadata policy matches its authored filter and normal Matrix admission;
+unknown metadata passes through. Nearest Matrix/Grasp/static/body/mine ordering
+is shared across ordinary bullets/rockets and separate ballistic00AF flights.
+Captured projectile team is preserved. Widow primary/scoped spends original
+ammo, causes no body damage/hit/charge while absorbed, then contributes nominal
+13/120 to the actual end-request parameters. The host grants60 percent as
+separate shields, cap/decay/idempotence from committed self-only request code.
+The native1D03 HealthPool graph is NOT executed by this compatibility grant.
+Do not accept it as complete native named-pool semantics or visual replication.
+
+00AF has no immediate damage: selected absorbed-damage contribution0, never
+its future75 poison. It cannot deploy/poison after absorption. Existing poison
+and melee bypass Grasp; actual scoped death ends it and dead repress cannot
+restore it. Selected temporary shields precede base shields, cannot be healed,
+use stable separate component51 IDs, decay after authored grace, and retire
+with the body. Native priority/cap/stack/filter/transform and full pool engine
+remain OPEN. The reused module is scoped to Grasp, not full Sigma acceptance.
+
+Runtime replay configuration now seals selected helper constants and SHA256 of
+actual immutable projectile-catalog bytes plus explicit graph/mover supplement
+bytes. Sources were already sealed recursively. Host paths are not serialized;
+missing optional inputs are explicitNone. Tests alter helper constants and
+supplement bytes to establish sensitivity. This is model identity, not a full
+battle restorer or native equivalence proof.
+
+Sigma verification boundary:468 methods PASS636.995s plus4 separate stored
+journal methods PASS325.270s;75 inputs unchanged. Additional actual no-input
+probe FAILS duration: cast at1123, world advances1323 without defender commands,
+owner VM stays1123, Grasp1 active and absorbs13. Thus the positive batch does
+not accept no-input expiry or full Grasp lifecycle. Next repair must track the
+actual authored absorption deadline independently of owner VM, grant once at
+world expiry without advancing unrelated held-fire queues, and let resumed VM
+retain its original cooldown timeline. Matrix needs equivalent no-input audit.
+
+
+World-clock defense lifetime repair (2026-11-09, WIP)
+---------------------------------------------------
+Actual paused-defender probes also reproduced stale Matrix, Genji Deflect,
+personal Zarya and projected Zarya protection after200 world ticks. The
+Grasp controlling clock is ChaseVar20/node45, not its adjacent Anim2s timer;
+Matrix fuel is ChaseVar45/node104. Read current remaining value/time/rate or
+fixed remaining duration without ticking the VM. Genji uses its actual Wait1;
+Zarya uses personalChase1/projectedChase11. Gameplay rejects expired windows
+and activations beyond the current command window, including catch-up hits.
+No unrelated held-fire queues are advanced; owner native timeline is preserved.
+
+Expired Grasp runs the same declared self-grant once at its projected expiry
+before incoming world damage. Its original grace/decay age from that time;
+resumed native exit is idempotent and keeps native cooldown timing. The owner
+VM's presentation phase may remain pending until commands resume. This repairs
+authoritative damage/protection lifetime, not client-frame reconciliation or
+full native timing. Scalar float projection/cross-domain timestamp fidelity
+remains reconstruction pending original comparison.
+
+21 new actual-command clock methods pass21.250s, including before/after expiry,
+changed duration/fuel/drain rate, earlier-world versus future activations,
+late mines through stale defense phases, single grant/decay/cooldown and both
+Zarya barriers. Zarya energy messages remain queued until caster VM resumes;
+the tests distinguish body interception from deferred energy materialization.
+Native energy-message timestamp/decay under stalled input is a separate OPEN
+boundary; the lifetime repair is not proof that this whole resource path is done.
+
+
+Ability press timestamp dependency (2026-11-09, WIP)
+-------------------------------------------------
+Parent reproduced an indefinitely refreshed early press in can_start. Private
+logic matched it. Selected uncommitted parent take_press/can_start methods are
+copied exactly and independently tested: peek without consuming or retiming,
+consume only after every start gate passes. Ability.presses storage is unchanged.
+This is not a parent merge or proof its full static gate passed.
+
+Actual Widow buffer tests cover hook/mine expired early tap plus fresh recast,
+held activation, and near-ready released taps. Those two resources omit an
+explicit early window, so the existing host fallback0 is retained; native
+missing-field default remains unverified. Infra explicitly has0.15s: recent
+charge-gated taps buffer once, old taps do not activate when charge arrives;
+startup/charge consumption are distinguished from the delayed reveal phase.
+38 focused methods PASS65.652s (5 buffer+12 generic Ability+21 defense clocks).
+An earlier43-module batch was intentionally cancelled before editing source,
+not timed out or counted as passing; a new combined batch is required.
+
+
+External resource-clock follow-up (2026-11-09, WIP)
+--------------------------------------------------
+The original-timestamp combined boundary passes494 methods980.334s plus4
+separate stored-journal methods478.022s;77 inputs unchanged. Archive:
+STATIC_VERIFY_CLOCK_BUFFER.json. This is partial evidence, not full acceptance.
+
+An actual deployed mine fills the last charge after100 ticks without owner
+commands. Previously a released Q at the old VM time then starts retroactively.
+Before a world damage award, expire the ultimate's old buffered presses by the
+actual world timestamp; held input and the authored0.15s recent buffer remain.
+This is an explicit host reconstruction, not a proven native world/VM API.
+
+An actual13 hit on a paused Zarya barrier previously backdates energy decay.
+Queue its existing MESSAGE at the world hit timestamp; default message callers
+retain component-now behavior. A300 critical breaking hit also exposed a~0.944s
+premature cooldown after60 paused caster ticks. Queue the existing finish
+request at hit time too. These changes defer delivery until the owner VM reaches
+the event; they do not advance it or add snapshot fields. Focused checks pending.
+
+Selected parent working-source modified_throttles/constants/call support17/18/19
+without replacing this lane's alternate-body mover loader. Hook005A/node12
+explicitly sets property19 to0. Its node state is resolved through node_state,
+not by mistaking the node index for a state index. Natural/jump termination and
+next-pose raw-input/modifier recovery are checked through actual commands.
+Other static reference graphs use17/18/19 too; reference closure does not prove
+all dynamic entity-spawn routes. Parent reported native scalar-stub checks are
+provenance only; this lane's full native throttle acceptance is not claimed.
+
+Focused resource/throttle/API checks:111 methods75.743s;102 passed and9
+real-map collision-cache checks skipped. No skipped check counts as acceptance.
+Ruff passes. Fresh full regression/stored replay must use the new frozen inputs.
+
+
+Lifecycle, manual NPC context and authored eye follow-up (2026-11-09, WIP)
+------------------------------------------------------------------------
+Archive STATIC_VERIFY_RESOURCE_CLOCK.json:567 checks844.829s,558 passed and9
+real-map collision-cache skips;4 distinct stored checks378.333s.98 pins stayed
+unchanged. The following source is newer and has not passed that old boundary.
+
+State.end now clears canceled CHANGED/CHECK markers; Component.changed excludes
+an ending state. Selected parent Ability.stop queues scope/resource cleanup
+before arbitration release. This ordering is a declared server reconstruction.
+Two minimal marker tests fail on old private code and pass on selected methods.
+Actual shooting/reload/interruption does not acquire a new persistent VM field.
+
+Selected uncommitted npc_context/assassin helpers declare only manual contexts.
+Enforcer13EB's self health/controller gates now read its authoritative owner
+slot and declared4B-present/5C-absent manual controller. Assassin1157 uses explicit
+manual button36 and target context,3m contact/LOS and authored health amounts
+under the declared mode1 rate integration. Pins interrupt player input; stop,
+Flashbang, death, body replacement and source removal retire control. New fields
+(pins, controller context/target and ModifyHealth.last_applied) enter strict
+stored snapshots; helper numeric configuration enters replay identity.
+
+All five nominal actual NPC attack paths now damage Widow. Actual pin checks
+cover resources/actions/movement blocked, stop recovery, ongoing poison, real
+teammate Flashbang rescue and reacquisition/explicit stop, range/LOS, removal,
+and poison killing the attacker with immediate release and Widow kill credit.
+Enforcer's25-projectile13EB/node24 definition still produces one authority
+projectile per report: full pellet/spread execution is an OPEN functional gap.
+Native autonomous AI/navigation/specials, contact/rate equivalence and observer
+transport/presentation are not certified by the manual bridge.
+
+Raw FirstPerson001C fields E29993A5=1.5 and816B830F=1.05 replace the generic
+Widow offsets. Reviewed02A3 McCree fields are1.425/.9975. One eye_height helper
+feeds shot origins and player Target.eye. Eight actual standing/crouched low
+cover cases check both shooters. Owned McCree01D2/node31's missing primary
+critical scalar uses the selected declared2x policy; explicit Fan node37 remains
+1 with authored50 damage. No global critical default changes. Camera/muzzle
+animation and native bone equivalence remain unproved.
+
+Grapple boundary tests now aim horizontally at the actual Widow eye, instead of
+using Soldier's1.55 height at a20m wall (a longer slanted ray). Miss releases the
+action with the declared host cooldown0 and allows a fresh cast. Scoped residue
+1..4 is exercised as the declared host floor(ammo/5) policy: residue consumed,
+no hit, real reload restores a120 body hit. Native first-shot/miss equivalence
+is separate and unproved; these selected policies are not full native claims.
+
+
+Committed Infra-Sight world window (2026-11-09, WIP)
+--------------------------------------------------
+0067 Ability/node11 has an empty m_B969AFC9 running scope. Its OnStart output
+independently begins Wait9/node12, whose finish starts the effect. Thus stopping
+Ability does not cancel the committed Wait; the initial test assumption that
+Flashbang must cancel it was unsupported by the actual resource. The original
+VM/data flow is retained. Death still excludes targets under this host policy.
+
+Derive cast/effect bounds from retained Wait.start/ms and live duration567.
+Combat projects the active effect window onto world time even while owner
+commands pause; native owner presentation can remain pending. Resume cannot
+refresh a late15s native TrackTargets scope. Charge suppression includes the
+committed cast gap after Ability is stopped and uses the actual world hit time
+for damage awards. The existing stored Wait/Var fields are sufficient; no extra
+persistent timeline is invented. Future casts cannot reveal earlier world.
+
+38 combined clock/control/buffer/Infra/Ability checks pass76.983s, including
+actual autonomous poison after world expiry and during stunned commitment,
+paused begin/end/resume, dead source, original15s expiry, and live1.2s/3s
+cast/effect overrides.44 earlier dependency checks pass55.591s;23 actual/synthetic
+NPC-context checks pass14.332s;6 eye/five-NPC nominal rechecks pass17.559s;2
+resource-edge checks pass17.773s. These overlap and must not be summed.
+Full new freeze/stored replay remains required. Overall goal and MERGE_READY
+remain open. Resource-based server reconstruction is permitted by the latest
+scope; unsupported functional interactions remain blockers, while unproved
+original equivalence/client differences are explicitly reported separately.
+
+
+Selected spread, cross-hero control and physical shields (2026-11-09, WIP)
+------------------------------------------------------------------------
+
+The archived pre-spread lifecycle/NPC boundary ran604 methods (595 pass,
+nine missing real-map collision cache skips) and four separate stored methods;
+all109 frozen inputs stayed unchanged. The corrected scope/spread fixture
+has42 passing checks; a later73-method command focus passed after integrating
+Wraith, Transcendence, Cryo-Freeze, Sleep Dart, Winston bubble, Flashbang motion
+and Fortify. The intervening61-method invocation passed its actual encrypted
+mine plus pending hook replay but had four third-actor fixture errors; the
+corrected fixture was covered in the later73-method pass.
+
+Widow001B/node9 uses the authored ramp3 and angular bounds0..3 degrees with
+selected shared native sampling math and a declared server seed identity.
+Node19 stays on the exact scoped input direction. Enforcer13EB/node24 emits all
+25 authored projectiles, spends one round, and uses a declared orientation for
+its four-degree concentric ring pattern. Neither launch path establishes
+native animated muzzle, seed caller identity or whole-client equivalence.
+
+The selected zero-output startup callback bridge lets actual Reaper0020,
+Zenyatta017B and Mei05FE enter authored defense scopes. Their world-clock
+deadlines are3,6 and4 seconds. Wraith is transparent to damage rays and remains
+eligible for Infra-Sight. Cryo-Freeze and Transcendence retain body collision.
+Transcendence applies selected allied healing with static LOS; Cryo-Freeze
+heals only Mei. Existing poison ages while damage is blocked; it is not
+cleansed. Catch-up poison and mine triggers evaluate defense at each retained
+tick rather than using the final tick for the entire gap.
+
+Ana0BDD emits the authored Sleep Dart effect, routed here to selected
+224E/676B behavior: five-second control, a half-second damage grace and a
+half-second wake phase. Damage or control absorbed by a shield or immunity
+cannot sleep the body. Orisa0CF4 uses its authored reduction, countdown and
+9161 control marker; body critical rejection and reduction before armour are
+declared policies. McCree01E9/node7 uses the selected parent launch/gravity
+arithmetic, plus declared fixed-step sweep and range-expiry detonation. See
+the parent flashbang-flight-validation.json for offline arithmetic evidence.
+
+Winston00FA uses actual deployed700 capacity,9-second duration and the
+authored radius5 sphere; centre/placement and collision policies are declared.
+Reinhardt0095 reads real capacity and Pet phase, using the selected checked
+external curved mesh via ORPHEUS_REINHARDT_BARRIER_GEOMETRY. World pose, health
+query and break notification host the selected behavior without Pet replication.
+A surface intercepts a shot before the body without damage spill, and can take
+melee damage independently of body reach. Enemy shields stop mine flight
+without shield damage or dynamic attachment; friendly shields pass it. Static
+cover, nearest interception and world lifetime remain separate from native
+collision masks and filters. Registered snapshot fields cover physical shield
+actors, mesh input, sleep state and accelerated projectile motion.
+
+Full static acceptance remains open. This section does not certify all
+shield families, other ability-specific control, native cleansing/stacking,
+autonomous NPC AI/specials, or original-client combat.
+
+
+The subsequent frozen defense boundary ran643 methods (634 passes, nine
+real-map cache skips), four stored replay checks, and 133 unchanged input
+hashes. The same nine real-map methods passed separately with the compatible
+read-only Practice Range and King's Row caches. Later source adds the following
+scoped services; neither count is a claim of whole-hero acceptance.
+
+Sombra's body acquisition reads the authored lock radius, graph-selected target
+and continuous ray. Hack/EMP execute the matching remote graph against Widow,
+set the scoped five-second skill-silence clock and leave weapon/quick-melee
+input admitted. A real Widow damage event enters Sombra's authored interruption
+branch; the lock clears and the short cooldown starts before the channel exits.
+A new wall clears selection before application. Native devices and all EMP
+shield/drain cases are outside this selected Widow adapter.
+
+Brigitte0EE3 uses actual250 capacity, the authored broken-health sentinel,
+two-second recovery delay and85HP/s. Its forward rectangular collision proxy
+is declared; quick melee passes to the body. Orisa0BD7's actual non-damaging
+launch uses25 speed,9.8 gravity and the authored deployment delay. Host swept
+landing places the checked4062 mesh;0BD8 supplies600 capacity and20s.
+Sigma1B55 links a server-local handle and authorizes movement/recall of the
+checked C015 mesh, with700 capacity and the2s authored recharge delay. Default
+static model queries still omit dynamic holders. External authored inputs:
+ORPHEUS_ORISA_GEOMETRY and ORPHEUS_SIGMA_BARRIER_MODEL. Placement, sweep phase,
+Pet replication and native collision masks remain separate.
+
+Sigma1BBB rock uses its authored gravity18, launch bias, direct/splash damage,
+ring impulse and scoped 224E control request. Fortify reduces both damage events
+and rejects control/impulse; a static wall rejects damage and control. External
+impulse state is stored with the mover. Mei05E6 spray reads its actual projectile
+target limit and applies selected0B77 frost per source. A hit reduces run speed,
+continuous hits can freeze actions and aim, an existing freeze does not extend,
+and world expiry clears the authoritative state.
+During freeze, the mover used to keep the raw blocked command and reissue its
+skills when filling a gap after thaw. Store the admitted command instead; the
+actual first post-thaw primary spends ammo and no blocked mine/ultimate appears.
+
+
+Orisa0CCB launches its authored orb at25m/s. The live handle is available to
+the entity query used by the second press, which sends the authored detonation
+message. The selected0CCC/0CCE server adapter uses a5m selection radius and
+the target graph's20m/s MoveTo. Actual commands verify damage-free movement,
+wall and ally rejection, cooldown, and world expiry while a target body is
+paused. Active pull state contributes to the stored digest. Target selection
+and collision are resource-based server reconstruction. Native Pet replication
+and native collision phase equivalence remain separate.
+
+
+Roadhog01C8 starts the selected Chain Hook server consumer from the actual
+launch state. Its sweep reads20m reach, the authored radius and projectile
+speed, and the30 damage event. The authored01C9 speed and timing guide the
+horizontal pull to a3m minimum separation. The selected static sweep and
+relative destination are server reconstruction. Actual Widow inputs verify
+ammo and fire suppression during the pull, cooldown rejection, sweep-front
+reach, ally and wall rejection, lethal contact, and release when the caster
+body is replaced. An actual projected barrier absorbs the event and prevents
+displacement. Stored-domain encoding includes active flight and timing state.
+Native collision phase and the physical shield sweep thickness remain open.
+
+
+Mei064A's actual ultimate release launches0946 at20m/s with authored gravity.
+First static contact anchors a server area with a200ms startup, a10m selection
+radius and a4.25s lifetime. The exposed target takes85 total damage and receives
+the0B77 area frost cadence, independently of the spray channel. Actual casts
+verify insufficient charge, delayed damage, wall and team rejection, range,
+blocked fire, thaw and recovery. A released area continues damaging after
+the caster dies, and stored state includes its target exposure clocks.
+An actual projected Zarya barrier prevents area damage and frost until expiry.
+First-contact anchoring, static occlusion and frost aggregation are selected
+server reconstruction. Native deployable replication and collision parity
+remain separate.
+
+
+Mei0622's preview and actual confirmation create five 0636-derived columns
+with400 health and a5s world lifetime, using a declared oriented-box host
+and static-ground placement checks. Widow primary and scoped shots damage
+the first hostile column, and a later shot reaches Mei through the broken
+column. Grapple can select a nearer pillar surface, and a thrown mine can
+attach to a pillar and retires with it. These are resource-based contact
+policies. Shared static map geometry retains the same fingerprint.
+General projectile sweep resolves an earlier pillar contact before a body.
+Actual Helix damages the pillar while the wall occludes splash to Widow.
+Player movement clips the swept capsule against the oriented wall and can
+cross after removal. Pillar removal cancels a pending or active grapple.
+The selected pre-contact cancellation spends no cooldown, and cancellation
+after contact preserves the cooldown already started by the graph.
+Dynamic walkable tops, remaining special projectile consumers,
+and client presentation remain open for Ice Wall.
+
+
+Each of the five actual Archives bodies follows an assigned route into the
+wall and crosses after removal. Each actual attack, including Assassin1157
+contact, is blocked until the wall is removed. This covers the manual route
+and input hosts with extracted mover dimensions. Authored NPC navigation and
+target acquisition remain separate. Actual Chain Hook and Halt cannot pull
+through the wall. Blizzard anchors on the first pillar face and the wall
+occludes its damage and frost on the far side.
+
+
+Brigitte0EE3 feeds its nearest eligible capsule into the authored hit branch.
+Actual Shield Bash deals5, interrupts active Grapple, keeps its cooldown,
+and shares the224E target gates with Accretion. Watched changes now recheck
+State completion, so the authored contact signal ends the dash and permits
+a later cast. Whip1259 consumes its authored launch phase, reach and damage.
+Actual Whip deals70 and transfers the authored impulse to Widow's mover.
+Walls reject it, and a projected barrier blocks damage and displacement.
+
+Reinhardt00BE spends charge and launches the authored ground wave. The
+sampled front uses authored range, speed, angle and damage with declared
+server terrain and capsule tests. Actual casts verify50 damage, stun and
+recovery, wall and projected interception, windup death and survival of the
+released wave. A raised Reinhardt shield spends50 once per wave. Its captured
+mesh keeps blocking that wave after the shield breaks. Wave travel and
+captured shield pose participate in the stored state. The same physical
+shield intercepts all four Archives weapon graphs before their shots can
+damage Widowmaker. Native shockwave, contact and presentation parity remain
+separate.
+
+Reinhardt007D's empty marker advances the original windup and drive scope.
+The host reads the authored16.5m/s drive, steering and contact widths, and
+sweeps player capsules through static geometry and Ice Wall. Actual Charge
+pins Widow without initial damage, blocks fire, transports her, and applies
+the authored wall impact. Timeout or body retirement releases the capture.
+The projected Zarya barrier absorbs the50 damage bump without capture or
+impulse. Stored state includes the active drive heading and victim.
+The directional sweep and separation are server reconstruction. NPC Charge
+transport, opposing-charge arbitration and native attachment remain open.
+
+
+An actual Ana dart interrupts the running Charge through its authored end
+variable, releases Widow without impact damage and preserves the cooldown.
+The drive stays retired after sleep expiry. A target already captured by
+Charge, Hook or Assassin cannot be captured again by those paths or acquire
+a competing Halt pull. The running holder keeps the target under the selected
+server policy. Opposing Charge clash arbitration remains separate.
+
+
+Doomfist0D06 releases the actual Rocket Punch drive. The host reads movement
+and charge-scaled50..100 contact,50..150 wall bonus and timed control from
+the authored fields. Actual Widow tests cover minimum and maximum contact,
+temporary input suppression and recovery, obstruction, and one wall bonus.
+A projected barrier consumes contact without body control, impulse or a
+passive grant. Confirmed damage grants30 temporary shields from0DDD;
+Widow's subsequent primary consumes that pool before body health. The
+pool decays on the selected world clock. Swept capsule and impulse mapping
+are resource-based server reconstruction. Native collision and filter parity remain open.
+
+Doomfist0DD8's actual Uppercut input drives its authored target sphere and
+ModifyHealth state. The selected body-facing query feeds the original
+target output. A hit deals50 once and reads the authored source and target
+lift values. Actual inputs verify both bodies land and Widow can fire again,
+with rear, range, wall and ally rejection. Projected protection absorbs
+the event without lifting Widow or granting Doomfist temporary shields.
+Confirmed body damage shares0DDD's existing tagged pool. Native air
+steering and exact impulse composition remain separate.
+
+
+Doomfist0B27 uses the authored indexed phase switch for Seismic Slam.
+The selected ground hop reads its authored speed and the aerial path
+uses a downward ground query and authored25m/s movement. An upward external
+impulse can leave its support before the authored landing limit applies.
+Both actual inputs release damage only after landing, using the original
+charge amount and expanding wave fields. The wave lifts and pulls Widow,
+and it progresses on the world clock after release without more caster
+poses. Static walls and projected barriers block the selected body events.
+Wave timing is stored. Ground direction, aerial targeting, hit geometry and
+impulse mapping are resource-based server reconstruction.
+
+Doomfist0C51 consumes normal command-earned charge. Selection protects the
+Doomfist body from Widowmaker's rifle, and primary confirms without spending
+Hand Cannon ammo. The selected landing query uses the authored radius, damage
+falloff and knockback fields, with static and Ice Wall LOS checks. Confirmed
+pool damage grants the authored75-point ultimate passive shield. A projected
+Zarya barrier absorbs the hit and prevents knockback and passive gain. The authored
+recovery spends charge and ends the cast. Cast state participates in stored
+state and body replacement retires the selection. Ground targeting and
+protection are server reconstructions. Early confirm buffering, original
+targeting movement and other interruption combinations remain open.
+
+Meteor Strike's startup Wait6, selection Chase18 and descent Wait16
+provide the world landing deadline when no more caster poses arrive.
+A live posed query takes priority through its normal command frame.
+The fallback resolves one impact, ends host protection and preserves the
+last selected point. When commands resume, the host traverses the original
+script links and recovery to spend charge. Reconciliation waits for the
+actual landing frame to avoid awarding passive charge to older gap frames.
+Recovery presentation and the script charge value can remain pending until
+the caster's command VM resumes.
+
+The live scheduler supplies Unix wall seconds to Match.update. Combat now
+uses the simulation tick epoch at that boundary. The same mid-window Grasp
+shot with a Unix epoch offset previously removed13 Sigma health with zero
+absorption, while the frame-aligned case absorbed13 and left400 health.
+Transport and lobby deadlines continue to consume the scheduler wall time.
+
+Tracer001A's actual Recall entry samples the body pose and health from the
+authored lookback and uses the fade and playback intervals for protection.
+Primary fire and scoped lethal fire miss the protected target. Incoming
+damage and ammo expenditure resume after Recall. The return restores a
+recorded pose, lost health up to that sample and the pistol clip once. The
+match frame can resolve the return while Tracer sends no poses. The original
+script controls cooldown, with graph transitions pending until command
+processing resumes. Body retirement removes the pending return and history.
+The rewind, movement freeze and protection are server reconstructions.
+Native cleanse and other Tracer-specific mechanics need separate evidence.
+
+Tracer0034 reports the actual Pulse Bomb release after its authored delay.
+The selected host uses authored launch bias, speed, gravity, contact damage,
+lifetime and blast rings. The verified 015D.130 default supplies 350 blast
+damage. Swept contact attaches to bodies or stops on solid geometry, then
+the authored fuse field drives one explosion on the world clock. Body
+attachment follows target motion and detaches when a body is removed or
+protected. Static walls and Ice Wall participate in blast visibility.
+Actual Widowmaker cases exercise the charge gate, body contact, fuse,
+lethality without further caster poses, team rejection, static cover and
+authored Ice Wall. A hostile Genji can return a
+friendly bomb into Widowmaker, and allied Sigma Grasp consumes a hostile
+bomb before contact. Ballistics, attachment and blast LOS are reconstructed.
+The selected moving attachments follow Reinhardt, Brigitte and Sigma shield
+local coordinates. The blast charges a still-raised shield once. Lowering or
+recalling the shield detaches the bomb at its last position. The physical
+shield sweep uses a radius-aware Brigitte plane and a projected radius
+adjustment for the other shield queries. Full native edge and filter behavior,
+the remaining defense combinations and client replication remain open.
+
+Tracer0024's actual Blink action consumes a graph charge on a posed frame.
+The host uses the authored7.5m distance, horizontal throttle and swept
+capsule, with static and Ice Wall clipping. The movement correction uses
+the post-Blink pose. Combat history preserves a discontinuity across Blink
+and Recall so rewind samples on either side remain valid. Tests verify a
+delayed Widow shot can hit the actual pre-Blink pose, a midpoint shot misses,
+and fresh fire can hit the new pose. The charge and recovery tests cover
+exhaustion and refill, Recall lockout and lethal scoped damage. Throttle
+mapping, capsule clipping and rewind discontinuity are server policies.
+
+Owned D.Va follow-up verification (WIP)
+--------------------------------------
+
+The normal selection path exposes Matrix, Boosters, Micro Missiles and
+quick melee through the owned mech. Matrix blocks Widowmaker fire and
+airborne Venom Mine until release or resource exhaustion. Already
+applied poison continues. Commands drive recharge and reactivation.
+
+The controlled mech fires all 18 missiles, inflicts 126 total damage
+without cover, and respects team, cover and immediate cooldown checks.
+Quick melee applies 30 once. Boosters applies 10 once with radial
+impulse, which the pilot ruleset can suppress independently. Actual
+pilot fire resumes after ejection and applies 14 on a single hit.
+
+Widowmaker can poison and reveal the owned body, and Infra-Sight
+tracks it through cover until world expiry. Body replacement clears
+poison and reveal. The scoped hit and poison tests credit actual pool
+loss toward Infra-Sight with passive gain disabled.
+
+Separate combined Infra-Sight scenarios use a scoped body hit to supply the
+final120 charge, then execute Q, reveal and expiry before a counterattack.
+The same five NPC bodies damage Widowmaker through manual input after expiry.
+The enemy player also fires while revealed through a solid wall. The wall
+blocks damage until cover is removed. The fixtures seed the preceding charge
+and disable passive fill.
+
+Each actual NPC body also has an executed scoped range check. At150m the
+shot removes36 pool points and awards36 charge. At450m it spends5 ammunition
+with no pool loss, hit notice or charge. The test uses the private host's
+flat collision fixture and authored weapon graph.
+
+The pre-follow-up freeze ran 786 methods with nine compatible cache
+skips and five export errors caused by BotWorld.body missing from the
+VM snapshot schema. All 534 input pins held. The three affected methods
+passed on the updated private main. An encrypted-input snapshot
+fixture exercises active Matrix, release and booster contact dedup.
+
+The five manually driven Archives NPCs recheck team, static cover and
+engagement range after target selection. All five release attack input
+during Widowmaker's death, then damage the replacement body after mode
+respawn when the fixture restores the encounter distance.
+
+An allied mech's Defense Matrix intercepts the four weapon projectiles.
+An allied Genji returns the same attacks and receives hit credit. An allied
+Sigma absorbs them and gains temporary shields worth 60 percent of the
+recorded damage when Grasp ends. Each defense preserves Widowmaker's health,
+and the attacks reach her once the defense is clear.
+
+Projected Barrier absorbs active Venom Mine pulses on each NPC without
+awarding Widowmaker charge for the absorbed amount. The poison reveals the
+target and resumes body damage and charge after barrier expiry. Against
+Assassin, the projected barrier absorbs damage while the host pin remains
+active. Original barrier control immunity and cleanse rules remain open.
+
+The original node 84 expression keeps incoming damage when node 83
+supplies the authored empty deduction array and clamps negative damage
+to zero. The private host now implements the zero-literal count case
+of the collecting interface. An injected 0012 test overwrites a stale
+deduction with an empty array and credits 13 charge even when parameter
+0624 arrives. The test supplies gate and tag predicates. Original
+message production and live charge remain open.
+
+The third node 53 eligibility route reads entity member 28985 on the
+damage target. The original condition rejects false or missing values.
+The private host reads live player and NPC body values without creating
+a foreign slot or registering a cross-VM watcher. The directly invoked
+1544 entry activates stack 66 and exposes the value while active.
+Retiring the writer removes the value. Automatic 19EB invocation and
+the original damage-message producer remain open.
