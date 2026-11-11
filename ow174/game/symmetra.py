@@ -13,6 +13,46 @@ from ow174.game.script import expr, graph
 
 HERO = 0x02E0000000000016
 WEAPON = 0x157C
+ORB_PROJECTILE = 0x04000000000026F1
+ORB_LIFETIME = 25.0  # 104319 projectile lifetime in seconds
+
+
+def placement_direction_query(world, cfg, instance):
+    """Expose native direction queries for the owned upright placement body.
+
+    CE8460 and CCDD80 select rows0 and2 of D1B5E0's transform, respectively.
+    CC94D0/D18780/C5E040 adds the stored pitch for the view-forward query.
+    Arbitrary transforms, parent attachments and the native component contracts
+    remain open; this maps only the known upright server mover pose.
+    """
+    queries = {"STU_66F3B89E": "lateral", "STU_021D01CD": "forward", "STU_2200A66D": "view"}
+    kind = queries.get(cfg.get("$"))
+    if (kind is None or world.hero != HERO or world.match is None
+            or instance.graph.index not in (0x156B, 0x1571)):
+        return NotImplemented
+    if instance.evaluate(cfg.get("m_entity")) != expr.Entity(world.body):
+        return NotImplemented
+    owner = next((p for p in world.match.players if p.body == world.body), None)
+    if (owner is None or owner.gone or not owner.has_body or not owner.spawned
+            or world.match.combat.is_dead(owner)):
+        return NotImplemented
+    yaw = owner.mover.yaw
+    if type(yaw) not in (int, float) or not math.isfinite(yaw) or not -32768 <= yaw <= 32768:
+        return NotImplemented
+    angle = yaw * math.tau / 65536
+    sine, cosine = math.sin(angle), math.cos(angle)
+    if kind == "view":
+        pitch = owner.mover.pitch
+        if type(pitch) not in (int, float) or not math.isfinite(pitch) or not -32768 <= pitch <= 32768:
+            return NotImplemented
+        # Original C5E040 converts the signed stored pitch with this f32 scale.
+        radians = expr.f32(expr.f32(pitch) * 9.58738019107841e-05)
+        horizontal = math.cos(radians)
+        return expr.Vec3(expr.f32(sine * horizontal), expr.f32(-math.sin(radians)),
+                         expr.f32(cosine * horizontal))
+    axes = (expr.Vec3(expr.f32(cosine), 0.0, expr.f32(-sine)),
+            expr.Vec3(expr.f32(sine), 0.0, expr.f32(cosine)))
+    return axes[0 if kind == "lateral" else 1]
 
 
 def play_transit_script(world, instance, node):
@@ -88,7 +128,7 @@ def teleport_body(world, instance, node):
 
 
 def target_query(world, cfg, instance):
-    """Supply 157C's charge gate only for registered combat bodies.
+    """Supply 157C's charge and shield-ammo target queries.
 
     This reconstructs the exact state-25 target/filter profile, not arbitrary
     native tag/filter evaluation. Unknown entities and other profiles retain
@@ -96,6 +136,12 @@ def target_query(world, cfg, instance):
     """
     if world.hero != HERO or world.match is None or instance.graph.index != WEAPON:
         return NotImplemented
+    if cfg.get("$") == "STU_25ECB55F":
+        if cfg != instance.graph.node(185).field("m_condition"):
+            return NotImplemented
+        target = instance.evaluate(cfg.get("m_entity"))
+        contact = world.beam_barrier
+        return contact is not None and target == expr.Entity(contact)
     queries = instance.graph.state(25).field("m_condition")["m_configVars"]
     if cfg not in queries:
         return NotImplemented
@@ -103,6 +149,8 @@ def target_query(world, cfg, instance):
     if not isinstance(target, expr.Entity):
         return False
     fight = world.match.combat
+    if world.beam_barrier is not None and target.id == world.beam_barrier:
+        return True
     if cfg.get("$") == "STU_E72F6348":
         return any(body.entity == target.id for body in fight._targets())
     if cfg.get("$") == "STU_AC829876":
@@ -113,7 +161,8 @@ def target_query(world, cfg, instance):
 
 def primary(combat, player, command):
     # Import locally: combat owns geometry and calls this bridge after body input.
-    from ow174.game.combat import _number, aim, ray_capsule, ray_world
+    from ow174.game import projectile_tags
+    from ow174.game.combat import _number, aim, ray_capsule
 
     if player.hero.guid != HERO:
         return
@@ -130,10 +179,13 @@ def primary(combat, player, command):
         view_tick = (command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
                      if active else combat.tick)
         selected = None
+        beam_barrier = None
+        barrier_id = None
         with script.component.operation():
             for index in (100, 101):
                 state = instance.states.get(index)
                 target = None
+                barrier_target = None
                 hit = False
                 if active and state is not None and state.active and reach > 0:
                     radius_cfg = state.node.field("m_57DAE1B5")
@@ -149,27 +201,58 @@ def primary(combat, player, command):
                             best is None or distance < best[0]
                         ):
                             best = distance, candidate
-                    wall = ray_world(combat._collision(), origin, direction, reach)
+                    wall = combat.cover_ray(origin, direction, reach)
+                    barrier = combat.trace_barrier(
+                        player, origin, direction, min(reach, wall if wall is not None else reach))
+                    if barrier is not None:
+                        if best is None or barrier[0] <= best[0]:
+                            _, shield, service = barrier
+                            definition, entity = service.beam_identity(shield)
+                            if projectile_tags.has_tag(definition, 0x0D6000000000003A):
+                                barrier_target = entity
+                            if selected is None and beam_barrier is None:
+                                beam_barrier = barrier
+                                barrier_id = barrier_target
+                        wall = min(wall, barrier[0]) if wall is not None else barrier[0]
                     if best is not None and (wall is None or best[0] < wall):
                         target, hit = best[1], True
                     elif wall is not None:
                         hit = True
                 # TrackRay 100 is preferred; 101 supplies the authored 0.2 m fallback.
-                if selected is None and target is not None:
+                if selected is None and beam_barrier is None and target is not None:
                     selected = target
                 output = instance.graph.state(index).field("m_target")
                 for name, value in (
-                    ("m_692DFF72", expr.Entity(target.entity if target else expr.INVALID_ENTITY)),
+                    ("m_692DFF72", expr.Entity(target.entity if target else
+                                               barrier_target or expr.INVALID_ENTITY)),
                     ("m_750377AA", hit),
                 ):
                     cfg = output.get(name)
                     if cfg is not None and cfg.get("$") == "STUConfigVarDynamic":
                         instance.write((cfg.get("m_60DB8F99", graph.INSTANCE), cfg["m_identifier"]), value)
-        if not active or selected is None:
+            if selected is not None:
+                bubble = combat.zarya_barriers.contact(selected.owner)
+                if bubble is not None:
+                    _, pet, _ = bubble
+                    definition = expr.guid_of(pet.node.field("m_entityDefinition.m_entityDef"))
+                    if projectile_tags.has_tag(definition, 0x0D6000000000003A):
+                        barrier_id = selected.entity
+            if script.world.beam_barrier != barrier_id:
+                script.world.beam_barrier = barrier_id
+                for index in (25, 94):
+                    switch = instance.states.get(index)
+                    if switch is not None and switch.active:
+                        switch.dependency_changed()
+        if not active:
             continue
         damage = instance.state(86)
         modify = damage.node.field("m_modifyHealth")
         amount = _number(damage.evaluate(modify.get("m_amount"), watch=False), 0.0)
         loadout = damage.evaluate(modify.get("m_loadout"), watch=False)
+        if selected is None:
+            if beam_barrier is not None:
+                _, shield, service = beam_barrier
+                service.damage(shield, amount * player.quanta / 1e6, beam=True)
+            continue
         combat._damage(player, selected, amount * player.quanta / 1e6, False,
-                       loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+                       loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame, beam=True)

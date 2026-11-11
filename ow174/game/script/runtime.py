@@ -141,7 +141,7 @@ class Var:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
-        self.watchers: dict[State, None] = {}
+        self.watchers: dict[State, bool | None] = {}
         self.resolving = False
         self.partial = None
 
@@ -278,12 +278,15 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def ruleset_selector(self, selector):
+        return self.instance.component.world.ruleset_selector(self.instance, selector)
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            self.watcher.watch(target, stack_order=True)
         return would_stack_to_top(target, priority)
 
     def poll_native(self, cfg: dict):
@@ -375,6 +378,12 @@ class World:
 
         return rulesets.default(key, self.hero, self.mode)
 
+    def ruleset_selector(self, instance, selector):
+        return NotImplemented
+
+    def track_targets(self, state):
+        return NotImplemented
+
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
             variables = mode_variables(self.mode)
@@ -453,12 +462,76 @@ class World:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
+    def modify_health(self, state, elapsed_ms):
+        return NotImplemented
+
+    def end_health(self, state):
+        pass
+
     def teleport_body(self, instance: "Instance", node: Node):
         """A world host must explicitly supply body/physics relocation."""
         return NotImplemented
 
     def play_body_script(self, instance: "Instance", node: Node):
         """Optional permissive body host; strict PlayScript uses its native backend."""
+        return NotImplemented
+
+    def placement_clock(self, state):
+        """Explicit native instance frame, phase clock and update interval."""
+        return NotImplemented
+
+    def confirm_placement(self, state):
+        """An explicit authoritative host may own the special placement input."""
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        """True for an admitted history result, False for calculation, or unknown."""
+        return NotImplemented
+
+    def calculate_placement(self, state, *, commit: bool):
+        """Publish an admitted static-world outcome; geometry stays an owner service."""
+        from ow174.game.script import placement
+
+        result = self.placement_geometry(state)
+        if result is NotImplemented:
+            return NotImplemented
+        if result is None:  # Known missing owner: native returns without any result writes.
+            return True
+        component, instance, node = state.instance.component, state.instance, state.node
+        if type(result) is not placement.StaticResult:
+            component.unsupported(instance, "placement result shape", node.cls, node)
+
+        def unknown(feature):
+            if component.strict:
+                component.unsupported(instance, feature, node.cls, node)
+
+        def frame():
+            context = self.placement_clock(state)
+            if context is NotImplemented:
+                unknown("placement result clock")
+                return NotImplemented
+            if type(context) is not placement.Clock:
+                component.unsupported(instance, "placement result clock shape", node.cls, node)
+            return context.frame
+
+        def record(value):
+            accepted = self.record_placement(state, value)
+            if accepted is NotImplemented:
+                unknown("placement history recording")
+            return accepted
+
+        return placement.publish_static(
+            result, commit=commit,
+            write=lambda field, value: instance.write(expr.lvalue(node.field(field)), value),
+            frame=frame, record=record, follow=lambda plug: instance.follow(node, plug, state),
+        )
+
+    def placement_geometry(self, state):
+        """StaticResult, known absent owner (None), or unknown; no synthetic hit."""
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        """Explicit history owner service, including a declared disabled role."""
         return NotImplemented
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
@@ -658,7 +731,7 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, links_changed=False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
         changed = not expr.same(before, after)
@@ -672,13 +745,13 @@ class Component:
                     above_source.add(link.state)
                 elif link.state is stack_source:
                     above = True
-        for state in list(var.watchers):
+        for state, watches_order in list(var.watchers.items()):
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (links_changed and watches_order):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1001,8 +1074,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, links_changed=False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, links_changed=links_changed)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1493,6 +1566,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Coalescing flags describe events removed by cancel, not the next activation.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1525,9 +1600,10 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, stack_order=False) -> None:
         if self.active and not self.ending:
-            var.watchers[self] = None
+            if stack_order or self not in var.watchers:
+                var.watchers[self] = True if stack_order else None
             self.watched[var] = None
 
     def unwatch(self) -> None:
@@ -1627,7 +1703,7 @@ class State:
         var = self.instance.find_var(*target)
         before = var.value()
         insert_link(var, Link(self, slot, priority, above, stack))
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, links_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
         return var
@@ -1636,8 +1712,9 @@ class State:
         before = var.value()
         if bake:
             var.base = self.output(0)
+        count = len(var.links)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, links_changed=len(var.links) != count)
         for state in var.stack_states():
             state.stack_changed(var)
 

@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, heavy_charge
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -60,16 +60,35 @@ def start(match, player):
     return bot.entity
 
 
+def start_charge(match, player):
+    bot = selected(match, player)
+    charge = heavy_charge.instance(bot) if bot is not None else None
+    if charge is None:
+        raise ValueError("No living Heavy Assault under the crosshair")
+    if match.combat.is_stunned(bot):
+        raise ValueError("Heavy Assault is controlled")
+    if bot.charge_requested or heavy_charge.phase(charge):
+        raise ValueError("Heavy Assault is already charging")
+    x, _, z = player.mover.position
+    bot.yaw = float(bots.heading(x - bot.position[0], z - bot.position[2]))
+    bot.firing = False
+    bot.attack_target = None
+    bot.charge_requested = True
+    return bot.entity
+
+
 def stop(match):
     count = 0
     for bot in match.bots:
         if not manual(bot):
             continue
+        heavy_charge.stop(match.combat, bot)
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
@@ -96,7 +115,8 @@ def update_input(fight, bot):
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -106,6 +126,8 @@ def update_input(fight, bot):
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    if bot.hero == assassin.HERO:
+        assassin.bind(component.world, component, target.body if enabled else None)
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

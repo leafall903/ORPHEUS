@@ -1,5 +1,6 @@
 """Authored launch input and real world/pool/aura/movement execution for sentries."""
 
+import math
 import os
 import unittest
 from unittest.mock import patch
@@ -7,7 +8,7 @@ from unittest.mock import patch
 from test_game_combat import aim
 from test_symmetra_combat import arena, fire, health
 
-from ow174.game import combat, npc
+from ow174.game import combat, deflection, npc, symmetra_turrets
 from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import SOLDIER, heroes
@@ -21,6 +22,53 @@ def wall(blocker=False):
         triangles += [(1, -5, -2, 1, 8, -2, 1, 8, 2.9),
                       (1, -5, -2, 1, 8, 2.9, 1, -5, 2.9)]
     return World(triangles)
+
+
+def check_sentry_crosses_live_defense(test, run, owner, defender, step, active):
+    fight = run.match.combat
+    weapon = next(i for i in owner.body_script.component.instances.values()
+                  if i.graph.index == symmetra_turrets.LAUNCH_GRAPH)
+    charges = weapon.find_var(graph.INSTANCE, 11)
+    test.assertEqual(charges.value(), 3)
+    cover = World([(-10, 0, 9, 10, 0, 9, 10, 8, 9),
+                   (-10, 0, 9, 10, 8, 9, -10, 8, 9)])
+    before = health(run, defender).total
+    owner_before = health(run, owner).total
+    with patch.object(fight, "_collision", return_value=cover):
+        for _ in range(40):
+            step(8)
+            if fight.sentries.sentries:
+                break
+        [sentry] = fight.sentries.sentries
+        test.assertIsNone(sentry.attached_at)
+        state = active()
+        test.assertIsNotNone(state)
+        target = next(target for target in fight._targets() if target.owner is defender)
+        contact = deflection.box_contact(target, state, sentry.bot.position, sentry.direction, 8)
+        test.assertIsNotNone(contact)
+        test.assertLess(contact, 8)
+        launch = weapon.state(12)
+        test.assertFalse(combat.hit_def(launch, launch.node.field("m_6396149F")).deflectable)
+        test.assertEqual(sentry.bot.body, symmetra_turrets.BODY)
+        for _ in range(45):
+            step()
+            test.assertIsNotNone(active())
+            if sentry.attached_at is not None:
+                break
+        test.assertIsNotNone(sentry.attached_at)
+        test.assertIs(sentry.owner, owner)
+        test.assertEqual(sentry.bot.team, owner.team)
+        test.assertAlmostEqual(sentry.bot.position[2], 8.99)
+        test.assertEqual(health(run, sentry.bot).total, 30)
+        test.assertEqual(health(run, defender).total, before)
+        test.assertEqual(charges.value(), 2)
+        for _ in range(75):
+            step()
+        test.assertEqual(fight.sentries.sentries, [sentry])
+        test.assertEqual(sentry.target, defender.body)
+        test.assertIsNotNone(sentry.slow)
+        test.assertLess(health(run, defender).total, before)
+        test.assertEqual(health(run, owner).total, owner_before)
 
 
 @unittest.skipUnless(os.environ.get("ORPHEUS_EXTRA_GRAPH_BUNDLES"), "requires explicit summon graph shard")
@@ -55,6 +103,18 @@ class SentryTests(unittest.TestCase):
             enemy.take_commands([Command(run.frame + 1, forward=127)])
             self.assertGreater(enemy.mover.position[2], old[2])
             self.assertAlmostEqual(enemy.mover.values.run_forward, 5.5 * .8, places=4)
+
+    def test_actual_sentry_damage_credits_its_living_owner(self):
+        run, owner, enemy = self.setup_arena()
+        component = owner.body_script.component
+        component.set(12918, 0)
+        run.match.collision_world = wall()
+        self.launch(run, owner)
+        self.assertEqual(component.entity_var(342).value(), 0)
+        fire(run, owner, 80, buttons=0)
+        loss = 200 - health(run, enemy).total
+        self.assertGreater(loss, 0)
+        self.assertAlmostEqual(component.entity_var(342).value(), loss, places=4)
 
     def test_three_beams_stack_slow_and_each_retirement_removes_only_its_effect(self):
         run, owner, enemy = self.setup_arena()
@@ -141,6 +201,51 @@ class SentryTests(unittest.TestCase):
             self.assertNotIn(sentry.bot, run.match.bots)
             self.assertFalse(any(who is sentry.bot for _, who in fight.respawns))
             self.assertFalse(enemy.body_script.component.entity_var(23186).value())
+
+    def test_expired_short_press_during_empty_charges_does_not_launch_after_recovery(self):
+        run, owner, _enemy = self.setup_arena(distance=30)
+        with patch.object(run.match.combat, "_collision", return_value=wall()):
+            for _ in range(3):
+                self.launch(run, owner)
+            weapon = next(i for i in owner.body_script.component.instances.values()
+                          if i.graph.index == 0x157E)
+            entities = {s.bot.entity for s in self.sentries(run)}
+            self.assertEqual(weapon.find_var(graph.INSTANCE, 11).value(), 0)
+            recovery = weapon.find_var(graph.INSTANCE, 61).value()
+            self.assertGreater(recovery, 1)
+            fire(run, owner, buttons=8)
+            fire(run, owner, math.ceil(recovery / combat.TICK) + 40, buttons=0)
+            self.assertEqual({s.bot.entity for s in self.sentries(run)}, entities)
+            self.assertEqual(weapon.find_var(graph.INSTANCE, 11).value(), 1)
+            self.launch(run, owner)
+            self.assertNotEqual({s.bot.entity for s in self.sentries(run)}, entities)
+            self.assertEqual(weapon.find_var(graph.INSTANCE, 11).value(), 0)
+
+    def test_near_recovery_buffer_and_held_press_launch_when_a_charge_returns(self):
+        for held in (False, True):
+            with self.subTest(held=held):
+                run, owner, _enemy = self.setup_arena(distance=30)
+                with patch.object(run.match.combat, "_collision", return_value=wall()):
+                    for _ in range(3):
+                        self.launch(run, owner)
+                    weapon = next(i for i in owner.body_script.component.instances.values()
+                                  if i.graph.index == 0x157E)
+                    if not held:
+                        for _ in range(650):
+                            if weapon.find_var(graph.INSTANCE, 61).value() <= .08:
+                                break
+                            fire(run, owner, buttons=0)
+                        else:
+                            self.fail("authored sentry recovery did not approach expiry")
+                    recovery = weapon.find_var(graph.INSTANCE, 61).value()
+                    self.assertGreater(recovery, 0)
+                    entities = {s.bot.entity for s in self.sentries(run)}
+                    fire(run, owner, buttons=8)
+                    self.assertEqual({s.bot.entity for s in self.sentries(run)}, entities)
+                    fire(run, owner, math.ceil(recovery / combat.TICK) + 40,
+                         buttons=8 if held else 0)
+                    self.assertNotEqual({s.bot.entity for s in self.sentries(run)}, entities)
+                    self.assertEqual(weapon.find_var(graph.INSTANCE, 11).value(), 0)
 
     def test_owner_death_keeps_sentry_but_hero_switch_removes_it(self):
         run, owner, enemy = self.setup_arena()

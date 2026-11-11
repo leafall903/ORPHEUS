@@ -13,19 +13,22 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import test_server_journal as journal_tests
+from test_game_combat import aim
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import combat, cryo, npc, symmetra
 from ow174.game import mover as mover_module
-from ow174.game import npc
-from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.collision import MovementOverlay, StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
 from ow174.game.match import Match
 from ow174.game.mover import Mover
-from ow174.game.script import runtime
+from ow174.game.script import nodes, runtime
 from ow174.game.script.driver import BodyScript, Snapshot
 from ow174.game.server_journal import RecordingServerSession, ServerJournalError, _ReplaySession
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state, snapshot_digest
+from ow174.game.symmetra_barriers import Barrier
+from ow174.game.symmetra_portals import PortalPair
 from ow174.game.symmetra_turrets import Sentry
 from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
@@ -40,7 +43,8 @@ class ServerSnapshotTests(unittest.TestCase):
     @staticmethod
     def capture(session):
         return export_server_state(session.server, archives=session._matches.values(),
-                                   collision_provider=session._collision_reads, assets=session.registry)
+                                   collision_provider=session._collision_reads,
+                                   assets=getattr(session, "registry", None))
 
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()
@@ -106,9 +110,176 @@ class ServerSnapshotTests(unittest.TestCase):
             sentry.slow = None
             cleared = snapshot_digest(self.capture(session))
             self.assertNotEqual(cleared, after)
+            sentry.support_pillar = 0xC0000001
+            attached = snapshot_digest(self.capture(session))
+            self.assertNotEqual(attached, cleared)
             vitals = fight.vitals[bot.entity]
             vitals.last_damage_at = 17.0
-            self.assertNotEqual(snapshot_digest(self.capture(session)), cleared)
+            self.assertNotEqual(snapshot_digest(self.capture(session)), attached)
+
+    def test_barrier_lifetime_plane_and_deployment_deduplication_are_causal_storage(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        bot = npc.spawn(player.match, npc.Definition(player.hero.guid, player.hero.body, 'Fixture', 4000),
+                        (0, 0, 3), team=1)
+        wall = Barrier(player, bot, (0, 0, 1), 12, (player.body, 7, 1))
+        fight.barriers.walls.append(wall)
+        fight.barriers.seen.add(wall.key)
+        with (
+            mock.patch.object(runtime.Var, 'value', side_effect=AssertionError('no variable evaluation')),
+            mock.patch.object(runtime.Instance, 'state', side_effect=AssertionError('no lazy allocation')),
+            mock.patch.object(type(fight.barriers), 'update',
+                              side_effect=AssertionError('no actor callback')),
+        ):
+            before = snapshot_digest(self.capture(session))
+            wall.expires_at += .016
+            after = snapshot_digest(self.capture(session))
+            self.assertNotEqual(before, after)
+            wall.normal = (1, 0, 0)
+            rotated = snapshot_digest(self.capture(session))
+            self.assertNotEqual(after, rotated)
+            fight.barriers.seen.clear()
+            self.assertNotEqual(rotated, snapshot_digest(self.capture(session)))
+
+    def test_pin_target_and_projectile_impact_policy_are_causal_storage(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        definition = npc.Definition(player.hero.guid, player.hero.body, 'Fixture', 50)
+        bot = npc.spawn(player.match, definition, (0, 0, 4), team=1)
+        shot = combat.Rocket(bot, bot.team, bot.position, (0, 0, -1), 80, 1.25, None, None)
+        fight.rockets.append(shot)
+        before = snapshot_digest(self.capture(session))
+        shot.distance_falloff = True
+        flying = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, flying)
+        shot.implicit_absorbable = True
+        eligible = snapshot_digest(self.capture(session))
+        self.assertNotEqual(flying, eligible)
+        shot.implicit_absorbable = False
+        shot.motion = ((0, 0.5, False, 0.25, 2, 0.1, 0),)
+        moving = snapshot_digest(self.capture(session))
+        self.assertNotEqual(flying, moving)
+        shot.concussion = (20, 5, ((8, 1, 1),))
+        pushing = snapshot_digest(self.capture(session))
+        self.assertNotEqual(moving, pushing)
+        shot.definition = 0x0400000000000001
+        tagged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(pushing, tagged)
+        fight.pins[bot.entity] = player.body
+        pinned = snapshot_digest(self.capture(session))
+        self.assertNotEqual(tagged, pinned)
+        bot.impulse_mover = Mover(bot.position, world=player.match.collision_world)
+        moving_bot = snapshot_digest(self.capture(session))
+        self.assertNotEqual(pinned, moving_bot)
+        bot.impulse_mover.velocity = (0, 5, 20)
+        self.assertNotEqual(moving_bot, snapshot_digest(self.capture(session)))
+
+    def test_grasp_conversion_and_temporary_pool_are_causal_storage(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        pool = fight.vitals_of(target)
+        before = snapshot_digest(self.capture(session))
+        fight.grasp.conversions[(player.body, 1)] = 1
+        admitted = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, admitted)
+        pool.bonus_shields = pool.bonus_shields_max = 72
+        self.assertNotEqual(admitted, snapshot_digest(self.capture(session)))
+
+    def test_held_barrier_pool_and_break_clock_are_causal_storage(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        state = combat.reinhardt_barrier.BarrierState(100, 1600, 0, 2)
+        fight.reinhardt_barriers.states[player.body] = state
+        before = snapshot_digest(self.capture(session))
+        state.current = 0
+        broken = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, broken)
+        state.broken_until = 5
+        locked = snapshot_digest(self.capture(session))
+        self.assertNotEqual(broken, locked)
+        player.body_script.world.beam_barrier = 0xA00000F0
+        self.assertNotEqual(locked, snapshot_digest(self.capture(session)))
+
+    def test_winston_sphere_pool_and_expiry_are_causal_storage(self):
+        session, _, players = self.scene()
+        owner = players[0]
+        fight = owner.match.combat
+        actor = combat.winston_barrier.Bubble(owner, owner.body, (0, 1, 0), 700, 9)
+        fight.winston_barriers.actors[owner.body] = actor
+        before = snapshot_digest(self.capture(session))
+        actor.health -= 120
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, damaged)
+        actor.expires -= 1
+        self.assertNotEqual(damaged, snapshot_digest(self.capture(session)))
+
+    def test_phase_world_anchor_is_causal_storage(self):
+        session, _, players = self.scene()
+        owner = players[0]
+        fight = owner.match.combat
+        before = snapshot_digest(self.capture(session))
+        fight.phase_clocks[owner.body] = (fight.tick, owner.body_script.frame)
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_early_projectile_respawn_body_is_causal_storage(self):
+        session, _, players = self.scene()
+        owner = players[0]
+        fight = owner.match.combat
+        before = snapshot_digest(self.capture(session))
+        fight.early_projectile_respawns.add(owner.body)
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+        fight.early_projectile_respawns.clear()
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+        del fight.early_projectile_respawns
+        self.capture(session)  # Older snapshots can omit this optional field.
+
+    def test_symmetra_charge_world_clock_is_causal_storage(self):
+        session, _, players = self.scene()
+        owner = players[0]
+        self.assertTrue(session.apply("switch_hero", {"account": owner.account_lo, "hero": symmetra.HERO}))
+        script = owner.body_script
+        tick, charged_through = script.charge_clock
+        before = snapshot_digest(self.capture(session))
+        script.charge_clock = tick, charged_through + 1
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_portal_pair_and_transit_deadline_are_causal_storage(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        definition = npc.Definition(player.hero.guid, player.hero.body, 'Fixture', 50, shields=250)
+        endpoints = tuple(npc.spawn(player.match, definition, (0, 0, z), team=1) for z in (0, 8))
+        pair = PortalPair(player, endpoints, 7, player.body, 1.5)
+        fight.portals.pairs.append(pair)
+        before = snapshot_digest(self.capture(session))
+        pair.ready_at += .016
+        pending = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, pending)
+        fight.portals.transits[player.body] = (8, 2.5)
+        self.assertNotEqual(pending, snapshot_digest(self.capture(session)))
+
+    def test_placement_frame_markers_change_server_hash_without_running_callbacks(self):
+        session, _, players = self.scene()
+        player = players[0]
+        session.apply("switch_hero", {"account": 1, "hero": symmetra.HERO})
+        self.assertEqual(player.hero.guid, symmetra.HERO)
+        component = player.body_script.component
+        instance = next(i for i in component.instances.values() if i.graph.index == 0x156B)
+        state = instance.node_state(instance.graph.node(57))
+        self.assertIsInstance(state, nodes.Placement)
+        with (
+            mock.patch.object(runtime.Var, "value", side_effect=AssertionError("no variable evaluation")),
+            mock.patch.object(nodes.Placement, "tick", side_effect=AssertionError("no placement callback")),
+            mock.patch.object(runtime.Instance, "state", side_effect=AssertionError("no lazy allocation")),
+        ):
+            before = snapshot_digest(self.capture(session))
+            state.latest_frame = 17
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()
@@ -186,6 +357,60 @@ class ServerSnapshotTests(unittest.TestCase):
 
 
 class StoredJournalTests(unittest.TestCase):
+    def test_recorded_ice_wall_movement_contact_and_cancel_replay(self):
+        fixture = journal_tests.ServerJournalTests()
+        session, sent = fixture.make()
+        peers, (mei, sym) = fixture.connected(session, sent)
+        session.apply("switch_hero", {"account": 1, "hero": cryo.HERO})
+        session.apply("switch_hero", {"account": 2, "hero": symmetra.HERO})
+        fight = mei.match.combat
+        mx, my, mz = mei.mover.position
+        sx, _, sz = sym.mover.position
+        center = ((mx + sx) / 2, my, (mz + sz) / 2)
+        yaw, pitch = aim(fight._eye(mei), center)
+
+        def mei_command(buttons):
+            peers[0].commands(mei.body_script.frame + 1, 1, buttons, yaw=yaw, pitch=pitch, now=101.0)
+
+        for button in (16, 0, 1, 0):
+            mei_command(button)
+        self.assertEqual(len(fight.ice_wall.pieces), 5)
+        facing, _ = aim(fight._eye(sym), center)
+        peers[1].commands(sym.body_script.frame + 1, 30, 0, forward=127, yaw=facing, now=101.0)
+        self.assertIsInstance(sym.mover.world, MovementOverlay)
+        self.assertIsNotNone(sym.mover.body)
+        self.assertTrue(any(contact.shape in sym.mover.world.addition.engine.shapes
+                            for contact in sym.mover.body.contacts))
+        contact_root = len(session._roots)
+        contact_digest = snapshot_digest(ServerSnapshotTests.capture(session))
+
+        mei_command(16)
+        self.assertFalse(fight.ice_wall.pieces)
+        peers[1].commands(sym.body_script.frame + 1, 20, 0, forward=127, yaw=facing, now=101.0)
+        self.assertIs(sym.mover.world, mei.match.collision_world)
+        session.report_callbacks()
+        end_digest = snapshot_digest(ServerSnapshotTests.capture(session))
+        replay = _ReplaySession(session.finish(), session.registry.resolve)
+        root = replay._root
+        replayed_roots = 0
+        contact_digests = []
+
+        def run_root(operation, arguments):
+            nonlocal replayed_roots
+            result = root(operation, arguments)
+            replayed_roots += 1
+            if replayed_roots == contact_root:
+                contact_digests.append(snapshot_digest(ServerSnapshotTests.capture(replay)))
+            return result
+
+        with mock.patch.object(replay, "_root", side_effect=run_root):
+            self.assertEqual(replay.run()["status"], "matched_controlled_roots_and_wire")
+        self.assertEqual(contact_digests, [contact_digest])
+        self.assertEqual(snapshot_digest(ServerSnapshotTests.capture(replay)), end_digest)
+        replay_match = replay.server.matches[0]
+        self.assertFalse(replay_match.combat.ice_wall.pieces)
+        self.assertEqual(replay_match.players[1].mover.position, sym.mover.position)
+
     def make(self):
         sent = []
 

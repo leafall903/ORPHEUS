@@ -371,7 +371,8 @@ def replay_document(document: dict) -> dict:
                 fail("epoch_boundary", seq=seq, reason="Native body timers/CmFD need a fresh lifecycle")
                 break
             try:
-                script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+                script.command(command.frame, command.buttons, command.action, command.forward, command.right,
+                               aim=command.aim())
                 after, shots = snapshot_hash(script), shot_summary(script)
             except (ValueError, RuntimeError) as error:
                 fail("runtime_fault", seq=seq, error=str(error))

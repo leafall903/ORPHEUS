@@ -46,6 +46,16 @@ class ManualNpcTests(unittest.TestCase):
         self.assertFalse(any(who is bot for _, who in self.match.combat.respawns))
         self.assertEqual(npc.remove_spawned(self.match), (bot.entity,))
 
+    def test_authored_controller_reference_survives_spawn_without_claiming_control_mounting(self):
+        self.definition = replace(self.definition, controller=0x040000000000227A)
+        count = len(self.match.bots)
+        bot = self.create()
+        self.assertEqual(bot.spawner['controller_definition'], '0x040000000000227A')
+        self.assertEqual(len(self.match.bots), count + 1)
+        for invalid in (True, 0, 0x02E00000000001CE, '0x040000000000227A'):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                replace(self.definition, controller=invalid)
+
     def test_remove_cancels_attacks_and_keeps_training_bots_and_player(self):
         original = list(self.match.bots)
         bot = self.create()

@@ -319,6 +319,16 @@ def world_fingerprint(world) -> dict:
         raise CollisionFingerprintError(reason) from error
 
 
+def movement_overlay_fingerprint(world, base=None) -> dict:
+    """Describe a transient overlay without registering it as a map input."""
+    _fields(world, collision.MovementOverlay, {"base", "addition", "lowest", "engine"})
+    if world.engine is not world or world.lowest != world.base.lowest:
+        _fail("invalid movement overlay")
+    base = world_fingerprint(world.base) if base is None else base
+    addition = world_fingerprint(world.addition)
+    return {**base, "sha256": _digest({"base": base["sha256"], "addition": addition["sha256"]})}
+
+
 def _descriptor_key(value):
     if (type(value) is not dict or any(type(key) is not str for key in value)
             or set(value) != DESCRIPTOR_FIELDS):

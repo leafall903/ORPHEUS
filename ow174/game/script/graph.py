@@ -351,6 +351,15 @@ def entity_body(body: int) -> dict | None:
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
 
 
+def player_body(hero: int, definition: int) -> dict | None:
+    record = bodies().get(definition)
+    if record is not None and int(record["hero"], 16) == hero:
+        return record
+    if hero == 0x02E000000000007A and definition == 0x0400000000000407:
+        return entity_body(definition)
+    return None
+
+
 def entity_script_component(definition: int):
     """Actual entity component dict, known absence None, or unknown old/missing data.
 

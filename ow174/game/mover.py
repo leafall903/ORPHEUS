@@ -40,7 +40,7 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
+heroes whose statescript the server does not run, general velocity mods (STU_FF3471E9
 states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
 other bodies.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
@@ -61,7 +61,7 @@ from dataclasses import dataclass, fields, replace
 from functools import cache
 
 from ow174.game import contacts
-from ow174.game.collision import MOVER, NOT_GROUND, Ground, World, flat_world
+from ow174.game.collision import MOVER, NOT_GROUND, Ground, MovementOverlay, World, flat_world
 from ow174.game.commands import CROUCH, JUMP, SUBFRAME, Command
 from ow174.paths import DATA_DIR
 
@@ -168,6 +168,7 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
@@ -386,6 +387,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -488,7 +501,7 @@ class Mover:
         self.spring_low = f32(-lowest)
         self.spring_high = f32(2.0 * data.step_down)
 
-    def use(self, data: MoverData | None = None, world: World | None = None) -> None:
+    def use(self, data: MoverData | None = None, world: World | MovementOverlay | None = None) -> None:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
         if data is not None and data is not self.data:
             self.data = self.values = data
@@ -498,6 +511,19 @@ class Mover:
             self.world = world
             self.on_map = True
             self.body = None
+
+    def add_impulse(self, velocity, frame: int) -> bool:
+        """Apply an external velocity delta with the authored response modifier 26."""
+        active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        response = max(0.0, intent(active, 26, 1.0))
+        applied = tuple(f32(delta * response) for delta in velocity)
+        if not any(applied):
+            return False
+        self.velocity = tuple(f32(base + delta) for base, delta in zip(self.velocity, applied, strict=True))
+        if self.velocity[1] > 0:
+            self.flags_word |= FELL
+            self.fall = 0.0
+        return True
 
     def track_mods(self, active: dict, frame: int) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
@@ -581,13 +607,17 @@ class Mover:
     def _engine_body(self) -> contacts.CharacterBody:
         """The physics engine's body of this mover, made at the feet + the lift when first needed."""
         if self.body is None:
-            radius, segment = self._capsule()
-            body = contacts.CharacterBody(radius, f32(segment + radius), world=self.world.engine,
-                                          category=self.category)  # fmt: skip
-            x, y, z = self.position
-            body.teleport((x, f32(y + self._lift()), z))
-            self.body = body
+            self.body = self.body_at(self.position, self.world)
         return self.body
+
+    def body_at(self, feet, world) -> contacts.CharacterBody:
+        """Build an independent capsule at the requested feet using the current stance and lift."""
+        radius, segment = self._capsule()
+        body = contacts.CharacterBody(radius, f32(segment + radius), world=world.engine,
+                                      category=self.category)
+        x, y, z = feet
+        body.teleport((x, f32(y + self._lift()), z))
+        return body
 
     # ---- the tick
 
@@ -663,6 +693,7 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        right, forward = modified_throttles(active, right, forward)
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)

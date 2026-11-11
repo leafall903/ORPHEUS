@@ -38,6 +38,8 @@ STATE_MODELS = (
     ("STUStatescriptStateLogicalButton", nodes.LogicalButton),
     ("STU_E4A30BCF", nodes.DisableLogicalButton),
     ("STUStatescriptStateWait", nodes.Wait),
+    ("STU_54FEB21C", nodes.FinishOnSignal),
+    ("STU_4C96470A", nodes.Placement),
     ("STU_E3CEF6B9", nodes.WaitForServerFrames),
     ("STU_D74D4F47", nodes.WaitFrames),
     ("STUStatescriptStateChaseVar", nodes.ChaseVar),
@@ -162,7 +164,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 37)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -507,7 +509,8 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        self.assertEqual(set(dict(body["world"]["fields"])),
+                         {"hero", "mode", "body", "throttles", "beam_barrier", "target_aim"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

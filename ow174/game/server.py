@@ -516,17 +516,17 @@ class Client:
         in_flight = (batch[0][0] for batch, _ in self.in_flight.values() if batch)
         return min(queued, min(in_flight, default=queued))
 
-    def body_id_available(self, entity: int) -> bool:
-        """Whether a previous player body can no longer be referenced by this peer."""
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
+        """Whether this peer's body reservation had ended at the allocation time."""
         if entity not in self._player_body_reuse_after:
             return True
         ready = self._player_body_reuse_after[entity]
         tail = self._combat_notice_tail.get(entity)
-        return (
-            ready is not None
-            and (tail is None or self._oldest_pending_reliable() > tail)
-            and self.server.environment.monotonic(callsite="client.body_id_available") >= ready
-        )
+        if ready is None or (tail is not None and self._oldest_pending_reliable() <= tail):
+            return False
+        if at is None:
+            at = self.server.environment.monotonic(callsite="client.body_id_available")
+        return at >= ready
 
     def _body_destroy_pending(self, entity: int, oldest: int) -> bool:
         if any(body == entity for body, _, _ in self._display_notices):
@@ -1315,15 +1315,29 @@ class GameServer:
                 data = None
             try:
                 with self.lock:
+                    datagram = None
                     if data is not None:
-                        self._datagram(
-                            data, address, self.environment.wall_time(callsite="server.run.datagram")
-                        )
+                        datagram = (data, address, self.environment.wall_time(callsite="server.run.datagram"))
+                        client = self.clients.get(peek_connection(data))
+                        if client is None or not client.open:
+                            self._datagram(*datagram)
+                            datagram = None
                     if self.environment.monotonic(callsite="server.run.due") >= next_tick:
-                        next_tick, missed = next_tick_after(
+                        following, missed = next_tick_after(
                             next_tick, self.environment.monotonic(callsite="server.run.next_tick")
                         )
-                        self._tick(self.environment.wall_time(callsite="server.run.tick"), missed=missed)
+                        # Established peers can change combat and acknowledge entity reuse. Apply
+                        # their late input after the world reaches the receive checkpoint.
+                        if datagram is not None and not missed:
+                            self._datagram(*datagram)
+                            datagram = None
+                        next_tick = following
+                        self._tick(
+                            self.environment.wall_time(callsite="server.run.tick"),
+                            missed=missed, late_datagram=datagram,
+                        )
+                    elif datagram is not None:
+                        self._datagram(*datagram)
             except Exception as error:
                 if on_iteration_error is not None:
                     on_iteration_error(error)
@@ -1442,9 +1456,13 @@ class GameServer:
             self._clock_ready_pending = True
             log.info("[game] renewed the server frame clock")
 
-    def _tick(self, now: float, *, missed: int = 0) -> None:
+    def _tick(
+        self, now: float, *, missed: int = 0, late_datagram: tuple[bytes, tuple, float] | None = None,
+    ) -> None:
         candidate = self.tick + missed + 1
         if self._clock_ticks_left is not None or candidate > MAX_SIMULATION_TICK:
+            if late_datagram is not None:
+                self._datagram(*late_datagram)
             self._drain_clock(now)
             return
         # Emit the current state once when a normal send boundary was crossed,
@@ -1454,6 +1472,8 @@ class GameServer:
         self._expire_handoffs(now)
         for match in list(self.matches):
             match.update(now, self.tick, frames=frames)
+        if late_datagram is not None:
+            self._datagram(*late_datagram)
         for client in list(self.clients.values()):
             if now - client.heard > SILENCE_SECONDS:
                 client.log("[!] no datagrams for 10 s, dropping the game")

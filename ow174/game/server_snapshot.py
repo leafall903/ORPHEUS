@@ -27,13 +27,15 @@ from ow174.game import (
     replay_values,
     statescript,
     stats,
+    symmetra_barriers,
+    symmetra_portals,
     symmetra_turrets,
     voicelines,
     world,
 )
 from ow174.game.bits import BitWriter
-from ow174.game.collision import LoadState, World
-from ow174.game.collision_fingerprint import WorldRegistry
+from ow174.game.collision import LoadState, MovementOverlay, World
+from ow174.game.collision_fingerprint import WorldRegistry, movement_overlay_fingerprint
 from ow174.game.commands import CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
@@ -94,11 +96,21 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice sentries stuns"
+        "projectiles observers voice sentries stuns barriers portals pins grasp "
+        "reinhardt_barriers winston_barriers zarya_barriers phase_clocks cryo_samples "
+        "frost_hits frost_sources blizzard heavy_charge_pins ice_wall"
     ),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer "
-                         "last_damage_at shield_accounted_at"),
+                         "last_damage_at shield_accounted_at bonus_shields bonus_shields_max"),
+    combat.mei_wall.Walls: _names("combat pieces inputs _movement_overlay"),
+    combat.mei_blizzard.Blizzard: _names("combat flights areas"),
+    combat.sigma_grasp.SigmaGrasp: _names("fight conversions last_tick"),
+    combat.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry states"),
+    combat.winston_barrier.Barriers: _names("combat actors seen"),
+    combat.zarya_barriers.Barriers: _names("combat active projected"),
     symmetra_turrets.Turrets: _names("combat sentries"),
+    symmetra_barriers.Barriers: _names("combat walls seen"),
+    symmetra_portals.Portals: _names("combat pairs transits"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -116,11 +128,11 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles beam_barrier target_aim match"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -135,14 +147,26 @@ FIELDS = {
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
         "last_held input_tick moved_tick last_tick retain_corpse movement_data _status_speed combat_owner "
-        "attack_target attack_input pitch"
+        "attack_target attack_input pitch charge_requested charge_contacts impulse_mover"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    combat.Combat: _names("early_projectile_respawns"),
+    driver.BodyScript: _names("charge_clock"),
+}
 DATACLASSES = (
+    combat.winston_barrier.Bubble,
+    combat.zarya_barriers.Barrier,
+    combat.reinhardt_barrier.BarrierState,
+    combat.reinhardt_barrier.barrier_mesh.Geometry,
+    symmetra_barriers.Barrier,
+    symmetra_portals.PortalPair,
     symmetra_turrets.Sentry,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    combat.mei_blizzard.Flight, combat.mei_blizzard.Area,
+    combat.mei_wall.Pillar, combat.mei_wall.Input,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -217,6 +241,11 @@ class _Graph:
         self.asset_descriptors[key] = descriptor
         self.asset_worlds[id(obj)] = descriptor
         return descriptor
+
+    def _movement_descriptor(self, world):
+        if type(world) is MovementOverlay:
+            return movement_overlay_fingerprint(world, self._asset(world.base))
+        return self._asset(world)
 
     def _fields(self, obj, required, optional=frozenset()):
         actual = object.__getattribute__(obj, "__dict__")
@@ -306,13 +335,15 @@ class _Graph:
             data = self._function(obj)
         elif kind is World:
             data = {"asset": self._asset(obj)}
+        elif kind is MovementOverlay:
+            data = {"base": self.value(obj.base), "derived": self._movement_descriptor(obj)}
         elif kind is Mover:
             from ow174.game.commands import Command
             from ow174.game.mover import Snapshot
             from ow174.game.physics_snapshot import snapshot_mover_with_identities
 
             physics, identities = snapshot_mover_with_identities(
-                obj, world_descriptor=self._asset(obj.world)
+                obj, world_descriptor=self._movement_descriptor(obj.world)
             )
             for _, owned in identities:
                 if owned is obj or type(owned) in (tuple, MoverData, Command, Snapshot):

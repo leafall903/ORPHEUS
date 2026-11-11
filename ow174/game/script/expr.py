@@ -305,6 +305,9 @@ class Context:
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
 
+    def ruleset_selector(self, selector):
+        return NotImplemented
+
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
         return True
 
@@ -445,6 +448,10 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
         found = dynamic(key)
+        if found is None:
+            scoped = ctx.ruleset_selector(key)
+            if scoped is not NotImplemented:
+                return scoped
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)

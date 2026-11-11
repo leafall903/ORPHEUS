@@ -86,6 +86,15 @@ def _graphs(script) -> dict:
 
 def full_frame(script, snap: Snapshot):
     graphs = _graphs(script)
+    # A bot's last live snapshot can outlast an aura instance removed
+    # just before death. Encode it using the snapshot's graph identity.
+    for item, (index, _) in snap.instances.items():
+        definition = graphs.get(item)
+        if definition is None or definition.index != index:
+            definition = graph.graph(index)
+            if definition is None:
+                raise ValueError(f"missing observer graph {index:04X} for instance {item}")
+            graphs[item] = definition
     wires = {
         item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
     }

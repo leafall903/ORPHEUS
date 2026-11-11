@@ -35,6 +35,8 @@ _RUNTIME_FIELDS = {
 _CONFIG_MODULES = (
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
+    "ow174.game.deflection", "ow174.game.matrix", "ow174.game.projectile_tags", "ow174.game.sigma_grasp",
+    "ow174.game.barrier_mesh",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
     "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
@@ -45,6 +47,8 @@ _CONFIG_MODULES = (
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
+    "ow174.game.barrier_mesh": {"DESCRIPTOR_SHA256"},
+    "ow174.game.projectile_tags": {"CATALOG_SHA256"},
     "ow174.game.match": {"HEALTH", "BODY_SCRIPT_HEROES", "SEND_EVERY", "RETAIL_QUANTA", "TOURNAMENT_QUANTA"},
     "ow174.game.correction": {"CORRECTIONS", "HEROES"},
     "ow174.game.script.runtime": {

@@ -85,6 +85,13 @@ The export records the source hash, ordered label rows and `StatEventScoreScaler
 
 ### Additional statescript definitions
 
+`tools/extract_pve_npcs.py` also preserves a body's optional `m_8B9A461F`
+linked control definition as `controller`, with its initial script-component
+evidence and input fingerprints. `npc.load_catalog` validates the full003 GUID;
+manual spawn retains it in metadata. This records authored input, not mounted
+AI/controller behavior. Prepare those linked definitions separately with
+`tools/extract_graph_shard.py --entity <index>` before implementing a control host.
+
 Use the build 104319 `003` and `01B` XML dumps and the pinned OWLib checkout to include additional entity definitions in a separate local graph bundle. Repeat `--entity` for each hexadecimal `003` asset index.
 
 ```powershell
@@ -109,3 +116,63 @@ To serve the bot spawn and death graphs from a prepared pack, include the six Pr
 ```powershell
 .\.venv\Scripts\python.exe tools\prepare_server_runtime.py --source 'C:\path\to\local-research' --destination 'C:\path\to\orpheus-bot-runtime' --map 0688 --game-graphs 'C:\path\to\entity-graphs.json.gz'
 ```
+
+For offline Symmetra placement direction verification, use
+`tools/compare_placement_axes_native.py --image <authorized-loaded-image> --base <module-base> --output <external-report>`.
+Unicorn must be available from a separate research environment. The tool runs
+original evaluator/basis/view arithmetic with documented engine and trig ABI
+adapters, fingerprints the input and refuses reports inside source or over the
+input. It does not launch a client or accept placement collision/actor behavior.
+
+Projection math can be checked with `tools/compare_placement_projection_native.py`
+using the same `--image`, `--base` and external `--output` arguments. It compares
+original polynomial return words, native late-block retry directions and contact
+refinement under declared pose/query/contact/clearance services. The final
+candidate validator explicitly rejects in refinement profiles. Actual casts,
+candidate validation, geometry-owner
+admission and actor deployment remain outside this verification scope.
+
+`tools/compare_placement_samples_native.py` uses the same external image/base/output
+arguments to compare C9C760/C9E800 sample queries, ordered status checks and output
+metadata, plus CA5550's declared static/no-body-sentinel fallback. Cast, clipping
+and final geometry replies remain adapters. Dynamic body/mesh/material handling
+and actual placement are outside this report's scope.
+
+`tools/compare_placement_candidates_native.py` compares original CA0E50 count,
+sampling-loop and height-selection blocks independently. It uses declared sample,
+contextual predicate and coordinate-transform services plus preallocated arrays.
+It verifies request order and output metadata, including both success-shortening
+flag values. It does not verify complete CA0E50, real geometry or allocation failure.
+It also verifies post-contact C90212 minimum-range correction before CA0E50.
+
+`tools/compare_placement_camera_native.py` compares original1A77F80 projection
+instructions and their use in the original candidate selection loop. Resolved
+camera matrices/mode/viewport and decoded-key lookup are fixtures. Output/depth
+float32 words and below-guard no-write behavior are checked. Camera/basis/FOV
+construction, real key/display services, actual geometry and placement remain open.
+The same tool also compares default perspective construction against1A86910 and
+1A86F30, retaining the actual mirrored-x coefficient and separately clamped angle
+metadata. View-matrix construction and nondefault shift/scale/reverse-depth remain
+outside the accepted builder profile; sinf/cosf ABI values are explicit adapters.
+Resolved decoded-pose view construction is also compared with1A77779..1A778F3/
+974260, including constructed-camera selection. Input sanitization, owner binding,
+encoded key services and physical reciprocal-estimate behavior remain separate.
+
+`symmetra_placement.py` mounts an explicitly reconstructed static preview host
+for156B/57 and1571/69. It consumes prepared collision read-only and authored
+range/sampling/output fields; it does not write caches or modify graph bundles.
+Its line casts, no-clip policy, ground predicate and constructed camera are
+server policies, not proof of native swept/footprint/filter/camera parity.
+The static/null-parent156B position bridge accepts the resource integer0 and
+typed Entity(0); unknown, dynamic-parent and bone transforms remain unsupported.
+Actual-input confirmation, Pet deployment and effect acceptance remain open.
+
+Photon Barrier's subsequent server host requires26B0 in the explicit actor shard
+and156C in the prepared graphs before owning156B/57 confirmation. It reads4000HP
+from26B0/0033,12s from156B/9/567 and the30s watchdog from156C/42. The actor's
+ordinary lifetime is measured from server world creation, independent of the VM
+clock origin. The wall uses a reconstructed unbounded vertical plane;6880 is a
+model resource identifier, not a proved width. Native mesh/filter/Pet prediction
+and client presentation are unaccepted. No runtime inputs are modified. Whole
+projectile activation absorption leaves same-side explosive splash unaccepted;
+the full ability/hero interaction matrix and teleporter deployment remain open.

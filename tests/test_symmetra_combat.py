@@ -7,14 +7,15 @@ from test_game_combat import KANEZAKA_DM, Run, aim
 from test_game_graph_analysis import make_graph, node
 
 from ow174.game import bots, combat, symmetra
-from ow174.game.collision import World
+from ow174.game.collision import World, flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes
-from ow174.game.script import expr
+from ow174.game.mover import statescript_mods
+from ow174.game.script import expr, graph
 
 
-def arena():
-    run = Run(KANEZAKA_DM, ("Symmetra", "Enemy"))
+def arena(game_map=KANEZAKA_DM):
+    run = Run(game_map, ("Symmetra", "Enemy"))
     run.match.bots.clear()
     run.match._pending_bot_scripts.clear()
     shooter, enemy = run.players
@@ -34,6 +35,48 @@ def fire(run, shooter, count=1, buttons=1, yaw=0):
     _, pitch = aim((0, 2.55, 0), (0, 2.0, 6))
     for _ in range(count):
         run.step({shooter: (yaw, pitch, buttons)})
+
+
+class SymmetraThrottleScopeTests(unittest.TestCase):
+    def test_authored_utility_throttle_scope_blocks_input_then_restores_on_next_frame(self):
+        # Explicit utility-state admission covers the mover bridge, not the
+        # unrecovered natural parent/ability route to graph23A.
+        for sign in (-1, 1):
+            with self.subTest(sign=sign):
+                run, owner, enemy = arena()
+                enemy.mover.position[:] = (0, 0, 30)
+                world = flat_world(0)
+                run.match.collision_world = world
+                owner.mover.use(world=world)
+                owner.mover.position[:] = (0, 0, 0)
+
+                def step(run=run, owner=owner, sign=sign):
+                    run.frame += 1
+                    run.match.update(run.frame * combat.TICK, run.frame)
+                    owner.take_commands([Command(run.frame, forward=sign * 127, right=sign * 127)])
+
+                fire(run, owner, 30, buttons=0)
+                component = owner.body_script.component
+                instance = component.create(graph.graph(0x23A), init=False)
+                instance.write((0, 2101), 0)
+                state = instance.node_state(instance.graph.node(2))
+                state.begin()
+                component.run_now()
+                owner.mover.track_mods(statescript_mods(component), run.frame)
+                position = tuple(owner.mover.position)
+                for _ in range(10):
+                    step()
+                self.assertEqual(tuple(owner.mover.position)[::2], position[::2])
+                self.assertEqual(owner.mover.throttles, (sign * 127, sign * 127))
+                self.assertEqual(owner.mover.input_throttles, owner.mover.throttles)
+                state.end(False)
+                component.run_now()
+                step()  # end is collected after this command; still applies here
+                self.assertEqual(tuple(owner.mover.position)[::2], position[::2])
+                step()
+                self.assertNotEqual(tuple(owner.mover.position)[::2], position[::2])
+                self.assertLess(owner.mover.velocity[0] * sign, 0)
+                self.assertGreater(owner.mover.velocity[2] * sign, 0)
 
 
 class PhotonProjectorTests(unittest.TestCase):
@@ -235,6 +278,81 @@ class SymmetraPassiveTests(unittest.TestCase):
 
 
 class SymmetraMeleeTests(unittest.TestCase):
+    def test_buffered_melee_crosses_only_gaps_with_reconstructed_poses(self):
+        for command_delta, recovered in ((64, True), (65, False)):
+            with self.subTest(command_delta=command_delta):
+                run, shooter, enemy = arena()
+                enemy.mover.position = [0, 1, 2]
+                fire(run, shooter, buttons=0x800)
+                first_frame = run.frame
+                fire(run, shooter, 53, buttons=0)
+                fire(run, shooter, buttons=0x800)
+                fire(run, shooter, buttons=0)
+                self.assertEqual(run.frame - first_frame, 55)
+                self.assertEqual(health(run, enemy).total, 170)
+
+                run.frame += command_delta - 1
+                run.step({})
+                expected = 140 if recovered else 170
+                self.assertEqual(health(run, enemy).total, expected)
+                frames = [hit["+0x84"] for hit in shooter.client.messages(combat.HIT)]
+                self.assertEqual(frames, [first_frame, first_frame + 62] if recovered else [first_frame])
+                shooter.take_commands([Command(run.frame)])
+                fire(run, shooter, 10, buttons=0)
+                self.assertEqual(health(run, enemy).total, expected)
+                fire(run, shooter, buttons=0x800)
+                self.assertEqual(health(run, enemy).total, expected - 30)
+
+    def test_melee_buffer_opens_at_frame_54_and_uses_recovery_aim(self):
+        for tap_frame, recovery_yaw, expected in (
+            (53, 0, 170),
+            (54, 0, 140),
+            (54, -32768, 170),
+        ):
+            with self.subTest(tap_frame=tap_frame, recovery_yaw=recovery_yaw):
+                run, shooter, enemy = arena()
+                enemy.mover.position = [0, 1, 2]
+                fire(run, shooter, buttons=0x800)
+                first_frame = run.frame
+                instance = next(i for i in shooter.body_script.component.instances.values()
+                                if i.graph.index in combat.MELEE)
+                impact = instance.state(combat.MELEE[instance.graph.index][0])
+                first_swing = impact.counter
+                self.assertEqual(health(run, enemy).total, 170)
+                fire(run, shooter, tap_frame - 1, buttons=0)
+                fire(run, shooter, buttons=0x800)
+                fire(run, shooter, 61 - tap_frame, buttons=0)
+                self.assertEqual(run.frame - first_frame, 61)
+                self.assertEqual(health(run, enemy).total, 170)
+                self.assertEqual(impact.counter, first_swing)
+                fire(run, shooter, buttons=0, yaw=recovery_yaw)
+                self.assertEqual(run.frame - first_frame, 62)
+                self.assertEqual(health(run, enemy).total, expected)
+                self.assertEqual(impact.counter, first_swing + int(tap_frame == 54))
+                fire(run, shooter, 10, buttons=0)
+                self.assertEqual(health(run, enemy).total, expected)
+
+    def test_melee_recovery_boundary_and_buffered_press(self):
+        melee = 0x800
+        for mode, during, early, recovered, expected in (
+            ("fresh press", 0, 0, melee, 140),
+            ("buffered tap", 0, melee, 0, 140),
+            ("held first press", melee, melee, melee, 170),
+        ):
+            with self.subTest(mode=mode):
+                run, shooter, enemy = arena()
+                enemy.mover.position = [0, 1, 2]
+                fire(run, shooter, buttons=melee)
+                first_frame = run.frame
+                self.assertEqual(health(run, enemy).total, 170)
+                fire(run, shooter, 60, buttons=during)
+                fire(run, shooter, buttons=early)
+                self.assertEqual(run.frame - first_frame, 61)
+                self.assertEqual(health(run, enemy).total, 170)
+                fire(run, shooter, buttons=recovered)
+                self.assertEqual(run.frame - first_frame, 62)
+                self.assertEqual(health(run, enemy).total, expected)
+
     def test_melee_miss_range_and_ally_filter(self):
         for reason in ("miss", "range", "ally"):
             with self.subTest(reason=reason):

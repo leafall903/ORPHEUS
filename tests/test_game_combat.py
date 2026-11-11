@@ -43,7 +43,7 @@ class FakeClient:
     def bot_create_acked(self, entity: int) -> bool:
         return True  # this model acknowledges every create immediately
 
-    def body_id_available(self, entity: int) -> bool:
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
         return True  # this model retains no retired entities
 
     def queue_possession(self, update: world.EntityUpdate, body: int) -> None:
@@ -669,7 +669,9 @@ class DeathTests(unittest.TestCase):
         self.assertTrue(match.switch_hero(self.a, self.a.hero))
         self.assertNotEqual(self.a.body, old)
         # Model the ring after every other ID has recently been retired.
-        with patch.object(self.a.client, "body_id_available", side_effect=lambda entity: entity == old):
+        with patch.object(
+            self.a.client, "body_id_available", side_effect=lambda entity, *, at: entity == old,
+        ):
             self.assertTrue(match.switch_hero(self.a, self.a.hero))
         self.assertEqual(self.a.body, old)
 

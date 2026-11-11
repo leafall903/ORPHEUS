@@ -22,11 +22,17 @@ class Definition:
     armour: float = 0.0
     shields: float = 0.0
     mover: MoverData | None = None
+    controller: int | None = None  # authored linked003 definition; not mounted by manual spawn
 
     def __post_init__(self):
         for value, kind in ((self.hero, 0x02E0), (self.body, 0x0400)):
             if type(value) is not int or value >> 48 != kind or not value & 0xFFFFFFFFFFFF:
                 raise ValueError('NPC definition needs full hero and body GUIDs')
+        if self.controller is not None and (
+            type(self.controller) is not int or self.controller >> 48 != 0x0400
+            or not self.controller & 0xFFFFFFFFFFFF
+        ):
+            raise ValueError('NPC controller needs a full entity definition GUID')
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError('NPC definition needs a name')
         if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0
@@ -58,12 +64,16 @@ def load_catalog(path: Path) -> dict[str, Definition]:
         if not isinstance(key, str) or key not in '123456789' or len(key) != 1 or key in result:
             raise ValueError('NPC catalog needs unique selection keys 1..9')
         mover = row.get('mover')
+        controller = row.get('controller')
+        if controller is not None and not isinstance(controller, str):
+            raise ValueError('NPC controller catalog needs a hexadecimal GUID string')
         if mover is not None:
             if not isinstance(mover, dict) or set(mover) != {f.name for f in fields(MoverData)}:
                 raise ValueError('NPC mover catalog must contain all authored mover fields')
             mover = MoverData(**mover)
         result[key] = Definition(int(row['hero'], 16), int(row['body'], 16), row['name'],
-                                 row['health'], row['armour'], row['shields'], mover)
+                                 row['health'], row['armour'], row['shields'], mover,
+                                 int(controller, 16) if controller is not None else None)
     return result
 
 
@@ -83,6 +93,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if definition.controller is not None:
+        data['controller_definition'] = f'0x{definition.controller:016X}'
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     bot = bots.Bot(entity, data, hero, {}, mover=definition.mover)
     bot.yaw = float(bots.s16(yaw))
@@ -126,6 +138,8 @@ def remove_summoned(match, bot) -> bool:
 
 
 def _remove_body(match, bot) -> None:
+    match.combat.clear_frost(bot)
+    match.combat.clear_pins(bot.entity)
     bot.died(match.tick)
     script, bot.body_script = bot.body_script, None
     if script is not None:

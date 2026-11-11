@@ -16,6 +16,7 @@ from ow174.game.collision_fingerprint import (
     TRIANGLE_FIELDS,
     WORLD_FIELDS,
     CollisionFingerprintError,
+    movement_overlay_fingerprint,
     world_fingerprint,
 )
 from ow174.game.collision_fingerprint import SCHEMA as WORLD_SCHEMA
@@ -104,17 +105,28 @@ def _descriptor(value):
 
 class _StaticReferences:
     def __init__(self, world):
-        _stored(world, collision.World, WORLD_FIELDS)
+        if type(world) is collision.MovementOverlay:
+            _stored(world, collision.MovementOverlay, ("base", "addition", "lowest", "engine"))
+            if world.engine is not world or world.lowest != world.base.lowest:
+                raise PhysicsSnapshotError("invalid movement overlay")
+            worlds = (world.base, world.addition)
+        else:
+            worlds = (world,)
+        shapes = []
+        for layer in worlds:
+            _stored(layer, collision.World, WORLD_FIELDS)
+            engine = layer.engine
+            _stored(engine, contacts.StaticWorld, ("shapes", "huge", "grid"))
+            if type(engine.shapes) is not list:
+                raise PhysicsSnapshotError("unsupported static shape sequence")
+            shapes.extend(engine.shapes)
         engine = world.engine
-        _stored(engine, contacts.StaticWorld, ("shapes", "huge", "grid"))
-        if type(engine.shapes) is not list:
-            raise PhysicsSnapshotError("unsupported static shape sequence")
         self.world, self.engine = world, engine
         self.refs = {id(world): (world, {"static": "world"}),
                      id(engine): (engine, {"static": "engine"})}
         self.geometry = {}
         shape_count = 0
-        for shape in engine.shapes:
+        for shape in shapes:
             if id(shape) in self.refs:
                 if self.refs[id(shape)][0] is not shape:
                     raise PhysicsSnapshotError("ambiguous static identity")
@@ -241,13 +253,19 @@ def _capture_mover(mover, world_descriptor):
     try:
         fields = _stored(mover, Mover, MOVER_FIELDS)
         static = _StaticReferences(fields["world"])
-        descriptor = _descriptor(world_fingerprint(fields["world"]) if world_descriptor is None
-                                 else world_descriptor)
+        if world_descriptor is None:
+            describe = (movement_overlay_fingerprint if type(fields["world"]) is collision.MovementOverlay
+                        else world_fingerprint)
+            world_descriptor = describe(fields["world"])
+            validation = "fingerprinted"
+        else:
+            validation = "caller_supplied"
+        descriptor = _descriptor(world_descriptor)
         graph = _Graph(static)
         root = graph.value(mover)
         state = replay_values.encode({"root": root, "nodes": graph.nodes})
         document = {"schema": SCHEMA, "scope": SCOPE, "world_descriptor": descriptor,
-                    "world_validation": "fingerprinted" if world_descriptor is None else "caller_supplied",
+                    "world_validation": validation,
                     "state": state}
         identities = tuple(sorted(((number, obj) for obj, number in graph.identities.values()),
                                   key=lambda item: item[0]))

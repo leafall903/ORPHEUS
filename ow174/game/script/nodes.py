@@ -25,6 +25,7 @@ from ow174.game.script import (
     message_state,
     model_look,
     modifiers,
+    placement,
     play,
     scopes,
     shared_vars,
@@ -857,6 +858,72 @@ class Wait(State):
             self.request_finish()
 
 
+@state_class("STU_54FEB21C")
+class FinishOnSignal(State):
+    """Priority1 callback: RVA C880C0 finishes only on timer/event parameter 1.
+
+    Its OnEnter is inherited/no-op. Priority2 owns additional scheduling and
+    predicates; do not infer authoritative scheduling from priority alone.
+    Factory role selection and event admission/transport are separate services.
+    """
+
+    def timer(self, param: int) -> None:
+        if param == 1:
+            self.request_finish()
+
+
+@state_class("STU_4C96470A")
+class Placement(State):
+    """Priority1 C83C30/C83C50 begin and +70 tick; geometry remains a world service."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_frame = 0xFFFFFFFF
+        self.latest_frame = 0xFFFFFFFF
+
+    def on_begin(self):
+        self.last_frame = 0xFFFFFFFF
+        self.ticks()
+
+    def plug_enter(self, input_path):
+        if input_path == 'm_6647ED22' and self.active:
+            result = self.instance.component.world.confirm_placement(self)
+            if result is not NotImplemented:
+                if type(result) is not bool:
+                    raise ValueError('placement confirmation host must return boolean or explicit unknown')
+                return result
+        return super().plug_enter(input_path)
+
+    def _unknown(self, feature):
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, feature, self.node.cls, self.node)
+
+    def tick(self):
+        world = self.instance.component.world
+        context = world.placement_clock(self)
+        if context is NotImplemented:
+            self._unknown("placement clock")
+            return
+        if type(context) is not placement.Clock:
+            self.instance.component.unsupported(
+                self.instance, "placement clock shape", self.node.cls, self.node)
+        if self.last_frame != 0xFFFFFFFF and not context.ready():
+            return
+        self.last_frame = context.frame
+        if self.latest_frame == 0xFFFFFFFF or context.frame > self.latest_frame:
+            self.latest_frame = context.frame
+        replayed = world.replay_placement(self, context.frame)
+        if replayed is NotImplemented:
+            self._unknown("placement history")
+            return
+        if type(replayed) is not bool:
+            self.instance.component.unsupported(
+                self.instance, "placement history result", self.node.cls, self.node)
+        if not replayed and world.calculate_placement(self, commit=False) is NotImplemented:
+            self._unknown("placement geometry")
+
+
 @state_class("STU_E3CEF6B9")
 class WaitForServerFrames(State):
     """Finishes after its number of server frames (unverified: one frame = one command frame)."""
@@ -1196,7 +1263,9 @@ class Anim(State):
         ms = seconds_to_ms(self.evaluate(duration, watch=False))
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
-        if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
+        portal_cancel = (self.instance.graph.index == 0x1571 and self.node.pos == 30
+                         and getattr(self.instance.component.world, "match", None) is not None)
+        if portal_cancel or removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
             self.request_finish(max(0, ms))
 
     def timer(self, param: int) -> None:
@@ -1303,13 +1372,14 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, retain: bool = False) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if not retain:
+                    self.presses.remove(item)
                 return True
         return False
 
@@ -1357,10 +1427,14 @@ class Ability(State):
     def can_start(self) -> bool:
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
+        if self.instance.graph.index == 0x1571 and self.node.pos == 46:
+            match = getattr(self.instance.component.world, "match", None)
+            if match is not None and match.combat.portals.has_pair(self.instance.component.entity):
+                return False
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, retain=True)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1376,9 +1450,9 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
+        if pressed:
+            self.take_press(start)  # Consume after start gates pass, keeping the original timestamp.
         if start:
             self.flags |= self.HELD
         return True
@@ -1430,28 +1504,29 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue running-scope cleanup before releasing its arbitration link.
+
+        This server reconstruction prevents incoming weapons sampling outgoing
+        resource state before cleanup. Native inter-object order remains open.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
         self.stop()
         if self.var is not None:
             var, self.var = self.var, None
-            before = var.value()
-            var.base = self.remaining()
-            var.links = [item for item in var.links if item.state is not self]
-            self.instance.changed(var, before)
+            self.unlink(var, bake=True)
 
     def payload(self) -> dict:
         return {"flags": self.flags, "cur": self.cur, "rate": self.cooldown_rate, "last": self.last}
@@ -1811,14 +1886,61 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyBodyHealth(State):
+    """Run a health clock where the world provides a state-specific service."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        component = self.instance.component
+        if component.world.modify_health(self, 0) is not NotImplemented:
+            self.ticks()
+        elif component.strict:
+            component.unsupported(self.instance, "body health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = self.now - self.last_applied
+        if elapsed > 0:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """An explicitly hosted target search, empty for undeclared graphs."""
 
     family = "targets"
 
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.targets = ()
+
+    def on_begin(self) -> None:
+        self.targets = ()
+        if self.refresh():
+            self.ticks()
+
+    def refresh(self) -> bool:
+        found = self.instance.component.world.track_targets(self)
+        if found is NotImplemented:
+            return False
+        self.targets = tuple((entity, 0) for entity in found)
+        self.instance.write(lvalue(_field(self, "m_8A2905A0")), tuple(Entity(entity) for entity in found))
+        return True
+
+    def tick(self) -> None:
+        self.refresh()
+        self.try_complete()
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": self.targets}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -2075,6 +2197,34 @@ def branch(instance: Instance, node, caller, result: bool) -> bool:
     if instance.follow(node, "m_truePlug", caller):
         return True
     return not node.links("m_truePlug") and not node.links("m_falsePlug")
+
+
+@handler("STU_B6E3C77D")
+def portal_factory(instance: Instance, node, caller) -> bool:
+    if instance.graph.index != 0x1571 or node.pos not in (3, 70):
+        return NotImplemented
+    world = instance.component.world
+    match = getattr(world, "match", None)
+    if match is None:
+        return NotImplemented
+    result = match.combat.portals.factory(instance, node)
+    if result is NotImplemented:
+        return result
+    if result:
+        instance.follow(node, "m_outPlug", None)
+    return result
+
+
+@handler("STU_187D5125")
+def portal_end_placement(instance: Instance, node, caller) -> bool:
+    world = instance.component.world
+    if (instance.graph.index != 0x1571 or node.pos not in (39, 47)
+            or getattr(world, "hero", None) != 0x02E0000000000016
+            or getattr(world, "match", None) is None):
+        return NotImplemented
+    # Scoped server recovery at the authored end of the cast/cancel chain.
+    instance.node_state(instance.graph.node(46)).stop()
+    return True
 
 
 @handler("STU_1113EBD5")

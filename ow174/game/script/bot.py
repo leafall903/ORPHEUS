@@ -1,6 +1,6 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+from ow174.game import assassin, npc_context, observers
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -31,12 +31,18 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None, match=None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = match
+        self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if slot == 0 and self.hero == assassin.HERO and self.controller_components is not None:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +50,17 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        value = assassin.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        if (self.hero == npc_context.ENFORCER and instance is not None
+                and instance.graph.index == npc_context.WEAPON
+                and cfg.get("$") == "STU_9B7648C3"
+                and instance.evaluate(cfg.get("m_entity")) == expr.Entity(instance.component.entity)):
+            return instance.component.entity_var(OWNER_HEALTH).value()
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,13 +88,20 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def modify_health(self, state, elapsed_ms):
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def end_health(self, state):
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, controller_components: tuple[int, ...] | None = None,
+        match=None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +110,8 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position,
+                         controller_components=controller_components, match=match)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms

@@ -38,8 +38,9 @@ class PoolExtractionTests(unittest.TestCase):
         nodes.append({'pos': 90, 'class': 'STUStatescriptStateHealthPool',
                       'fields': {'m_amount': {'$': 'UnsupportedDifficultyExpression'}, 'm_7E8B666C': 0}})
         model = {'nodes': nodes, 'fields': {'m_publicSchema': {'m_entries': entries}}}
-        xml = SimpleNamespace(root=None, field=lambda *args: {'GUID': '000000001403.003'})
-        record = {'graphs': [{'graph': 1}]}
+        refs = {'m_gameplayEntity': '000000001403.003', 'm_8B9A461F': '00000000227A.003'}
+        xml = SimpleNamespace(root=None, field=lambda root, key: {'GUID': refs[key]})
+        record = {'graphs': [{'graph': 1}], 'script_component': None}
         with (patch.object(tool, 'StuXml', return_value=xml),
               patch.object(tool, 'body_record', return_value=(record, set())),
               patch.object(tool, 'GraphXml', return_value=SimpleNamespace(record=lambda i: model)),
@@ -49,3 +50,7 @@ class PoolExtractionTests(unittest.TestCase):
         self.assertEqual((row['health'], row['armour'], row['shields']), (250, 0, 100))
         self.assertEqual(row['pool_evidence'][1]['pool_kind'], 2)
         self.assertEqual(row['unapplied_pool_nodes'][0]['node'], 90)
+        self.assertEqual(row['controller'], '0x040000000000227A')
+        self.assertEqual(row['controller_evidence']['graphs'], [{'graph': 1}])
+        self.assertIn(str(Path('synthetic/003/00000000227A.003.xml').resolve()),
+                      catalog['source_sha256'])

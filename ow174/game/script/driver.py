@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import pools, symmetra_charge
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -125,6 +125,8 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
+        self.beam_barrier = None
+        self.target_aim = (0, 0)
         self.match: Match | None = None
 
     def position(self, entity: int) -> Vec3:
@@ -134,15 +136,103 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def track_targets(self, state):
+        if self.match is None or self.match.collision_world is None:
+            return NotImplemented
+        return self.match.combat.zarya_barriers.track_targets(state, self.target_aim)
+
+    def placement_clock(self, state):
+        from ow174.game import symmetra
+        from ow174.game.script import placement
+
+        if (self.hero == symmetra.HERO and self.match is not None
+                and (state.instance.graph.index, state.node.pos) in ((0x156B, 57), (0x1571, 69))):
+            frame = state.instance.component.frame
+            # Explicit authoritative forward-server policy: one VM frame per
+            # update. Native render/prediction clock reconciliation is separate.
+            return placement.Clock(frame & 0xFFFFFFFF, frame, 1)
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        if self.placement_clock(state) is not NotImplemented:
+            return False  # This server has no admitted client placement history.
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        if self.placement_clock(state) is not NotImplemented:
+            return True  # Explicit forward-server policy: no admitted prediction storage.
+        return NotImplemented
+
+    def placement_geometry(self, state):
+        from ow174.game import symmetra_placement
+
+        return symmetra_placement.preview(self, state)
+
+    def confirm_placement(self, state):
+        if self.match is not None:
+            if state.instance.graph.index == 0x1571:
+                return self.match.combat.portals.confirm(self, state)
+            return self.match.combat.barriers.confirm(self, state)
+        return NotImplemented
+
+    def ruleset_selector(self, instance, selector):
+        """Resolve the prepared Mech's authored possession-relative Matrix rules."""
+        if instance.graph.index != 0x02CC or self.match is None or not isinstance(selector, dict):
+            return NotImplemented
+        variables = (selector.get("m_expression") or {}).get("m_dynamicVars") or ()
+        configs = selector.get("m_configVars") or ()
+        if len(variables) != 1 or len(configs) != 1:
+            return NotImplemented
+        key = expr.dynamic(variables[0])
+        if (key not in ((expr.INSTANCE, 9743), (expr.INSTANCE, 9777), (expr.INSTANCE, 9778))
+                or configs[0].get("$") != "STU_0AC15F78"
+                or instance.evaluate(configs[0]) != Entity(self.body)):
+            return NotImplemented
+        value = instance.evaluate(selector)
+        return self.ruleset(key[1]) if value is None or value is expr.EVALUATION_FAILED else value
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if (cls in ("STU_F7262B36", "STU_F76C486C", "STU_0AC15F78", "STU_E72F6348")
+                and self.match is not None and instance is not None
+                and instance.graph.index in (0x0276, 0x02CC)
+                and instance.component.entity == self.body):
+            player = next((p for p in self.match.players if p.has_body and not p.gone
+                           and p.body == self.body and p.hero.body == 0x0400000000000407), None)
+            if player is not None:
+                field = {"STU_F7262B36": "m_801B298F", "STU_F76C486C": "m_D63CBEC2"}.get(cls)
+                target = instance.evaluate(cfg.get(field or "m_entity"))
+                if cls == "STU_E72F6348":
+                    return target in (Entity(player.body), Entity(player.entity))
+                # The explicit Mech form binds the authored pet to its current controller.
+                if target == Entity(player.body) and (cls == "STU_F7262B36"
+                        or (cls == "STU_F76C486C" and instance.graph.index == 0x02CC)):
+                    return Entity(player.entity)
+                if cls == "STU_0AC15F78" and target == Entity(player.entity):
+                    return Entity(player.body)
+        if instance is not None and instance.graph.index == symmetra_charge.GRAPH:
+            value = symmetra_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if cls == "STU_C5148EFE":
+            from ow174.game import symmetra_placement
+
+            answer = symmetra_placement.static_transform(self, cfg, instance)
+            if answer is not NotImplemented:
+                return answer
+        if cls in {"STU_66F3B89E", "STU_021D01CD", "STU_2200A66D"}:
+            from ow174.game import symmetra
+
+            answer = symmetra.placement_direction_query(self, cfg, instance)
+            if answer is not NotImplemented:
+                return answer
         if cls == "STU_71A87E92" and instance.graph.index == 0x15F5 and self.match is not None:
             target = instance.evaluate(cfg.get("m_entity"))
             if isinstance(target, Entity):
                 position = self.match.script_body_position(target.id, self.body)
                 if position is not None:
                     return Vec3(*position)
-        if cls in {"STU_E72F6348", "STU_AC829876"}:
+        if cls in {"STU_E72F6348", "STU_AC829876", "STU_25ECB55F"}:
             from ow174.game import symmetra
 
             answer = symmetra.target_query(self, cfg, instance)
@@ -206,6 +296,8 @@ class BodyWorld(runtime.World):
     def play_body_script(self, instance, node):
         from ow174.game import symmetra
 
+        if self.match is not None and self.match.combat.grasp.play_script(self.body, instance, node):
+            return True
         return symmetra.play_transit_script(self, instance, node)
 
 
@@ -297,10 +389,14 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        if body_definition is None:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        else:
+            record = graph.player_body(hero, body_definition)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -321,6 +417,8 @@ class BodyScript(ReplicatedBody):
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
         self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        if match is not None and hero in symmetra_charge.AUTHORED_HEROES:
+            self.charge_clock = match.tick, self.component.now
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -358,7 +456,8 @@ class BodyScript(ReplicatedBody):
 
     # --- running -----------------------------------------------------------------------------------
 
-    def command(self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0) -> None:
+    def command(self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
+                *, aim: tuple[int, int] = (0, 0)) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
 
@@ -378,14 +477,21 @@ class BodyScript(ReplicatedBody):
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
             self._run(missing, [])
         self.world.throttles = (forward, right)
+        self.world.target_aim = aim
         self._run(frame, button_edges(self.buttons, buttons, action))
         self.buttons = buttons
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        authored_charge = self.hero in symmetra_charge.AUTHORED_HEROES and self.world.match is not None
+        if authored_charge:
+            symmetra_charge.sync(self)
         self.component.run_frame(frame, edges)
         self._report_shots()
-        self._charge_ult()
+        if authored_charge:
+            symmetra_charge.sync(self)
+        else:
+            self._charge_ult()
 
     def set_ult_charge(self, points: float) -> None:
         """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""

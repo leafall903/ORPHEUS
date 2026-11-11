@@ -35,10 +35,16 @@ def _numbers(entries) -> dict[int, float]:
 def hero_pools(hero: int) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
     record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    values = _record_pools(record)
+    if values is None:
+        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
+    return values
+
+
+def _record_pools(record) -> tuple[float, float, float] | None:
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
-        log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
         return None
     values = _numbers(body.fields["m_publicSchema"]["m_entries"])
     values.update(_numbers(item.get("m_1EB5A024")))
@@ -48,3 +54,7 @@ def hero_pools(hero: int) -> tuple[float, float, float] | None:
 def body_pools(hero: int) -> tuple[float, float, float]:
     """hero_pools, or FALLBACK (logged) for a hero without data."""
     return hero_pools(hero) or FALLBACK
+
+
+def active_pools(hero: int, definition: int) -> tuple[float, float, float]:
+    return _record_pools(graph.player_body(hero, definition)) or body_pools(hero)

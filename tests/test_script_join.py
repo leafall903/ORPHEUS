@@ -10,6 +10,22 @@ from ow174.game.script import nodes, runtime
 
 
 class JoinTests(unittest.TestCase):
+    def test_canceled_completion_check_does_not_suppress_the_next_join_cycle(self):
+        component, instance = self.setup_join()
+        state = instance.state(0)
+        self.arrive(instance, 4)
+        self.assertTrue(state.flags_check)
+        state.end(False)
+        self.assertFalse(state.flags_check)
+        self.assertFalse(any(event.state is state for event in instance.queue))
+        self.assertTrue(self.arrive(instance, 5))  # Completes and clears the old join registrations.
+        state.request(runtime.BEGIN)
+        component.run_now()
+        self.assertTrue(state.active)
+        self.arrive(instance, 4)
+        self.assertTrue(state.flags_check)
+        self.assertTrue(any(event.state is state and event.kind == runtime.CHECK for event in instance.queue))
+
     def setup_join(self, *, linked=True, count=2):
         definition = make_graph(1, [
             node(0, "STUStatescriptState", state=0),

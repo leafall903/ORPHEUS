@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, MoverData, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, MoverData, mover_data, statescript_mods
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -123,6 +124,8 @@ class Bot:
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
+        self.charge_requested = False
+        self.charge_contacts: set[int] = set()
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
@@ -161,12 +164,43 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.impulse_mover: Mover | None = None
 
-    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
+    def apply_impulse(self, velocity, tick, collision, category) -> None:
+        """Use prepared body physics for manual NPCs outside the route controller."""
+        if (self.dead or not self.retain_corpse or self.spawner.get("manual_spawn") is not True
+                or self.movement_data is None or self.route or collision is None):
+            return
+        mover = self.impulse_mover
+        if mover is None:
+            mover = Mover(self.position, s16(round(self.yaw)), collision, self.movement_data, category)
+            mover.velocity = self.velocity
+        mover.use(world=collision)
+        component = getattr(self.body_script, "component", None)
+        if component is not None:
+            mover.track_mods(statescript_mods(component), tick - 1)
+        if mover.add_impulse(velocity, tick):
+            self.impulse_mover = mover
+            self.velocity = mover.velocity
+            self.moved_tick = self.last_tick = tick
+
+    def step_impulse(self, tick, seconds, collision) -> None:
+        mover = self.impulse_mover
+        if mover is None or self.dead or tick <= self.last_tick:
+            return
+        mover.use(world=collision)
+        mover.step_pose(Command(tick, yaw=s16(round(self.yaw)), pitch=s16(round(self.pitch))), seconds, tick)
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        self.moved_tick = self.last_tick = tick
+        if not any(self.velocity) and not mover.air_ticks:
+            self.impulse_mover = None
+
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0,
+             frost=0.0, ice_wall=None) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
-        self._apply_status_speed()
+        self._apply_status_speed(frost)
         if not self.route:
             if tick < paused_until:
                 self._pause(tick)
@@ -180,7 +214,7 @@ class Bot:
             if at < paused_until:
                 self._pause(at)
             else:
-                self._tick(at, seconds, collision)
+                self._tick(at, seconds, collision, ice_wall)
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -188,7 +222,7 @@ class Bot:
         self.held = (0, 0)
         self.moved_tick = tick
 
-    def _apply_status_speed(self) -> None:
+    def _apply_status_speed(self, frost=0.0) -> None:
         """Reconstruct the shared movement slow for server-driven NPC movement.
 
         Player movers consume 01C7's authored MovementMod. NPC route movement
@@ -203,12 +237,12 @@ class Bot:
                 var = component.entity_var(identifier, create=False)
                 if var is not None:
                     slow = max(slow, expr.to_float(var.value()))
-        if slow > 0 or self._status_speed:
+        if slow > 0 or frost > 0 or self._status_speed:
             data = self.movement_data or mover_data(self.body)
-            self.speed = data.run_forward * max(0.0, 1.0 - slow)
-        self._status_speed = slow > 0
+            self.speed = data.run_forward * max(0.0, 1.0 - slow) * max(0.3, 1.0 - frost)
+        self._status_speed = slow > 0 or frost > 0
 
-    def _tick(self, tick: int, dt: float, collision) -> None:
+    def _tick(self, tick: int, dt: float, collision, ice_wall) -> None:
         before = (self.position, round(self.yaw))
         self.held = (0, 0)
         if not self.keys:
@@ -220,17 +254,17 @@ class Bot:
                 self.keys = True
                 self.turning = 0.0
         if self.keys:
-            self._walk(tick, dt, collision)
+            self._walk(tick, dt, collision, ice_wall)
         else:
             if self.target is not None:
-                self._slide(dt, collision)
+                self._slide(tick, dt, collision, ice_wall)
             if self.turning > EPSILON:
                 self.turning -= dt
                 self._turn(dt)
         if (self.position, round(self.yaw)) != before:
             self.moved_tick = tick
 
-    def _walk(self, tick: int, dt: float, collision) -> None:
+    def _walk(self, tick: int, dt: float, collision, ice_wall) -> None:
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -251,16 +285,19 @@ class Bot:
             self.keys = False
             self.wait = WALK_GAP
             self.turning = TURN_AFTER
-        self._advance(stride, distance, dt, collision)
+        self._advance(stride, distance, dt, collision, ice_wall, tick)
 
-    def _slide(self, dt: float, collision) -> None:
+    def _slide(self, tick: int, dt: float, collision, ice_wall) -> None:
         """No keys: its friction stops it, never past its point."""
         self.pace = max(0.0, self.pace - self.brake * dt)
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
         moving = self.pace > 0.0 and distance > EPSILON
-        if moving and self._advance(self.pace * dt, distance, dt, collision) < distance - EPSILON:
+        if (
+            moving
+            and self._advance(self.pace * dt, distance, dt, collision, ice_wall, tick) < distance - EPSILON
+        ):
             return
         self._stand()
 
@@ -281,12 +318,21 @@ class Bot:
     def _turn(self, dt: float) -> None:
         self.yaw = turned(self.yaw, heading(*self.direction), TURN_RATE * dt)
 
-    def _advance(self, stride: float, distance: float, dt: float, collision) -> float:
+    def _advance(self, stride: float, distance: float, dt: float, collision, ice_wall, tick: int) -> float:
         """Move `stride` along the floor the way it walks, not past its point (`distance` away); the
         ground distance gone."""
         x, y, z = self.position
         dx, dz = self.direction
         probe = min(stride, distance)
+        if ice_wall is not None and probe > 0:
+            values = self.movement_data or mover_data(self.body)
+            allowed = ice_wall.clip_walk(tick, self.position, (dx, 0.0, dz), probe,
+                                         values.stand_radius, values.stand_height)
+            if allowed < probe:
+                stride = probe = allowed
+                self.pace = 0.0
+                self.keys = True
+                self.turning = 0.0
         probe_y = self._floor(x + dx * probe, y, z + dz * probe, collision)
         rise = probe_y - y
         if 0.0 < abs(rise) <= MAX_SLOPE * probe:
@@ -322,6 +368,7 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.impulse_mover = None
         self.attack_target = None
         self.attack_input = False
         self.keys = False
@@ -363,10 +410,11 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else self.impulse_mover.flags if self.impulse_mover is not None else 0,
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
+            air_ticks=self.impulse_mover.air_ticks if self.impulse_mover is not None else 0,
             gravity=GRAVITY_SCALE,
         )
 

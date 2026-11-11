@@ -48,6 +48,16 @@ def extract(folder, enums, selections):
         record, _ = body_record(body_path, enums, None, name)
         fingerprint(hero_path)
         fingerprint(body_path)
+        body_xml = StuXml(body_path, enums)
+        linked = body_xml.field(body_xml.root, 'm_8B9A461F')
+        controller_ref = linked.get('GUID') if linked is not None else None
+        controller_record = None
+        if controller_ref is not None:
+            if not controller_ref.endswith('.003'):
+                raise ValueError('NPC linked control definition is not an entity asset')
+            controller_path = folder / '003' / f'{controller_ref}.xml'
+            controller_record, _ = body_record(controller_path, enums, None, name + ' control')
+            fingerprint(controller_path)
         movement = mover_of(body_path.read_bytes().decode('utf-8'))
         pools, evidence, unapplied = {}, [], []
         for entry in record['graphs']:
@@ -84,10 +94,15 @@ def extract(folder, enums, selections):
                     'setter_node': setters[0]['pos'], 'variable': var, 'pool_kind': kind})
         definition = Definition(full_guid(f'{int(index, 16):012X}.075'), full_guid(body_ref),
                                 name, pools.get(0, 0), pools.get(1, 0), pools.get(2, 0),
-                                MoverData(**movement) if movement is not None else None)
+                                MoverData(**movement) if movement is not None else None,
+                                full_guid(controller_ref) if controller_ref is not None else None)
         rows.append({'key': key, 'hero': f'0x{definition.hero:016X}', 'body': f'0x{definition.body:016X}',
             'name': name, 'health': definition.health, 'armour': definition.armour,
             'shields': definition.shields, 'mover': movement,
+            'controller': f'0x{definition.controller:016X}' if definition.controller is not None else None,
+            'controller_evidence': None if controller_record is None else {
+                'body_field': 'm_8B9A461F', 'graphs': controller_record['graphs'],
+                'script_component': controller_record['script_component']},
             'pool_evidence': evidence, 'unapplied_pool_nodes': unapplied})
     return {'format_version': 1, 'definitions': rows, 'source_sha256': sources,
             'limits': ['Base body pools only; no mission difficulty scaling, AI or client acceptance.']}

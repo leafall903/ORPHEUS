@@ -5,6 +5,23 @@ Scope: hero 02E0000000000016. Complete static combat acceptance is the goal;
 original-client presentation/gameplay is a separate subsequent acceptance.
 The first packet restores weapon entry paths, not full hero combat fidelity.
 
+Static placement preview frontier (private WIP, 2026-11-09):
+- Actual ultimate and teleporter commands now run the static collision host;
+  no injected success/point is needed for these preview checks. Read outputs
+  via each placement node: teleporter point1626 differs from ultimate2478.
+  Ultimate max35m; teleporter dynamic min4m/max30m in the tested resource profile.
+- Server reconstruction composes native-verified contact/sample/view/selection
+  math with static line casts, no clipping volumes, the ground flag predicate,
+  static visibility and a unit-viewport/near1 camera using the sampling angle.
+  Native sweep, footprint, receiver/filter and dynamic geometry parity stays open.
+- C5148EFE is admitted only for the two156B static/null-parent position configs.
+  Resource node39's integer0 and typed Entity(0) mean identity; dynamic parents,
+  unknown values and bone transforms are unsupported. Explicit fixture commit
+  now retains the real preview point in17085 and spends authored charge.
+- Photon Barrier now has an explicit server confirmation/Pet host, described
+  below. The teleporter host now covers actual confirmation, deployment and
+  bidirectional use in the tested static cases. Both full ability matrices stay open.
+
 Resource-backed facts:
 - Weapon graph 157C primary uses TrackRay 100/101, target 0218 and ModifyHealth
   86, amount 01F3, loadout 0038. Its default base amount is 60 and reach is 12.
@@ -16,7 +33,8 @@ Resource-backed facts:
   and 250 shields. Photon Barrier uses 156B (logical button 37, ultimate
   charge/cost gate), Pet body 26B0 with 4000 health. Earlier research notes
   reversed the two deployment graphs; the logical-button/cost wiring resolves
-  that error. Authoritative deployment services remain missing.
+  that error. Photon Barrier and the teleporter have reconstructed server hosts.
+  Native Pet and teleporter child-graph parity remain open.
 - Shared 01CF compares 32E6E4D8 / 7D7D2470 against low-health fractions.
   157C node 93 requires 32E6E4D8(owner) > 0 before releasing the charged orb.
 - Shared 0033 state 27 configures a recovery delay of 3 * entity 556C seconds;
@@ -48,6 +66,23 @@ Execution evidence: tests/test_symmetra_combat.py
   player pools: ten primary frames remove 9.6 health and generate ten hits.
 - Release, miss, outside range, real triangle wall, empty ammo stop damage.
 - Ally protection outside FFA; incoming enemy damage drains Symmetra shields.
+- In the five-NPC resource fixtures, a second actual attack restarts the
+  three-second delay when it damages Symmetra. Recovery starts with 0.24
+  shield points on the first eligible 16 ms tick, continues at 30 points
+  per second and caps at 125 shields. Health stays at its post-hit value.
+  When Zarya's Projected Barrier absorbs the second attack, shield recovery
+  starts on the first hit's original schedule. The tests use manually aimed
+  NPC attack inputs.
+- The same recovery deadline holds when the follow-up breaks the barrier.
+  The cast starts at 200 points. The fixture leaves 1 point for each of
+  four NPCs and 50 for Enforcer so the last pellet at 4 m breaks it.
+  With only 1 point against Enforcer, later pellets on the break tick
+  remove 48 shields and restart the delay from that body damage.
+- A second Sniper shot lands after recovery starts, inside a 42-frame
+  world update. The host credits the 6.96 shields earned through the tick
+  before impact. Stepped and retained runs end at the same hit time with
+  31.96 health and zero shields. The fixture keeps the poses fixed and
+  uses a separate second Sniper so the windup starts from a fresh graph.
 - Dead shooter and duplicate input cannot add damage. A 200-frame gap applies
   one posed endpoint damage interval, not accumulated damage during the gap.
 - Training NPC lethal beam retains the corpse, omits respawn and selects the
@@ -60,6 +95,67 @@ Execution evidence: tests/test_symmetra_combat.py
   match one-gap and contiguous updates, and apply actual runtime Stack modifiers.
 - Hero quick melee tests prove one 30-point hit per activation, recovery before
   reuse, miss/range/ally filtering and triangle-wall occlusion.
+- Quick melee also activates 0043 state 4 against all five NPCs in each
+  contact fixture. At two metres, an exposed enemy takes 30 damage and
+  grants 30 ultimate charge plus one hit marker. Facing away, attacking
+  from four metres, a static triangle wall and an allied target each
+  preserve all target pools and grant no hit marker, damage or charge.
+  Every swing leaves the magazine unchanged. NPCs in these cases are
+  stationary. Concurrent control and mitigation have separate coverage.
+- A horizontal quick melee is tested 6.25 cm inside and outside the
+  derived contact distance for each NPC capsule. Each NPC then walks
+  into and out of reach on a live route. Zero-delay commands use the
+  current position, while delayed commands use the retained starting
+  position. Hit cases grant 30 damage and charge and one marker. Miss
+  cases grant none. For each route crossing, fractional commands pick
+  the whole millisecond immediately before and after contact between the
+  same two retained poses. The resulting hit and miss follow the
+  interpolated position. A separate elevated stationary fixture aligns
+  the swing with the capsule segment and tests tangency and offsets of
+  1 mm on either side. Heavy Assault exposed upward floating-point
+  rounding at tangency. A one-step allowance preserves contact while
+  the tested outside offset still misses.
+- With a live NPC route and an allied Mei, delayed melee uses the stored
+  target pose and checks Ice Wall at command execution. A wall deployed
+  after the viewed frame blocks a previously open swing. A canceled wall
+  permits the swing when the selected pose is in range. A persistent
+  wall blocks and takes no allied melee damage. Tested for each NPC with
+  matched open-path and current-position controls.
+- An enemy Mei deploys five full-health pillars. Two actual Symmetra
+  beams wear down the center. The breaking melee removes the center and
+  deals 30 to each adjacent pillar without damaging the NPC. After
+  recovery, the four remaining pillars are still live. The next swing
+  hits a stationary target or an in-range retained pose of a departing
+  target. A current swing misses the same departing NPC. Verified for
+  all five NPCs with damage, hit marker and ultimate charge checks.
+- At 1.5 m, measure each manual NPC's first hit, then press quick melee
+  one tick before or on that tick in paired runs. All first attacks spend
+  Symmetra's shields while her base health stays at 100. Four ranged
+  NPCs also take the 30-point same-tick melee hit. The Assassin takes 30
+  from the earlier swing, but a pin on the command tick blocks melee.
+  Stopping the manual attack releases the pin. Only a fresh melee press
+  then damages the Assassin.
+- Heavy Assault's actual charge attaches graph 1407 and prevents melee
+  on the capture tick. A swing one tick earlier lands for 30. Both a
+  manual stop and Projected Barrier remove the attachment with Symmetra
+  still at 225 total health. The suppressed press does not replay, and
+  a fresh press can land on the same tick as the projected release.
+- In the static wall fixture, a second melee press queues at tick 75
+  while the first swing is recovering. Capture clears the queue at
+  tick 76. The wall crush at tick 98 kills Symmetra from 225 total unless
+  Projected Barrier was cast at tick 97. Casting on tick 98 is too late
+  because world damage resolves before player input. Neither the rescue
+  nor a scheduled respawn replays the buffered swing. A fresh press
+  deals 30 and grants the corresponding charge and hit marker.
+- The nonlethal variant uses a declared 400-health fixture with the
+  normal 125 shields. The actual crush deals 300, leaving the original
+  body with 225 base health and zero shields. No melee replays during
+  recovery. Shields remain zero 187 ticks after impact and reach 0.24
+  at tick 188. A fresh melee then deals 30 to Heavy Assault.
+- On the nonlethal crush tick, damage dispatch records the 300-point
+  crush before the new 30-point melee. A fresh press one tick earlier
+  is blocked by the capture, and a press on the lethal crush tick is
+  blocked by death. Neither press replays after the body can act.
 
 Five-NPC resource fixtures: tests/test_symmetra_npc_combat.py
 - Explicit ORPHEUS_PVE_CATALOG and ORPHEUS_PVE_GRAPHS select read-only external
@@ -104,16 +200,20 @@ Teleporter          OPEN: valid/invalid placement, two ends, allied transit,
                     duration/cancel/death/range and cooldown lifecycle.
                     Shared 15F5->1647 relocation has declared-input evidence;
                     this does not prove actual use eligibility or placement.
-Photon Barrier      OPEN: ultimate charge/cost, release/orientation, infinite
-                    plane bounds, team filtering, health, duration, death,
-                    destruction, client entities/effects and all attacks.
+Photon Barrier      PARTIAL: actual confirm/cost/.25s cast, rotated4000HP plane,
+                    hitscan/beam/orb/sentry interactions, ally/owner pass-through,
+                   12s expiry, break/death/switch/leave and causal storage.
+                    Charge generation, complete attack/status/NPC matrix,
+                    native/client parity OPEN. See the splash cases below.
 Enemy players       PARTIAL weapon proof only; all applicable interactions OPEN.
-Trooper             PARTIAL outgoing weapons/death and incoming damage dispatch;
-                    actual NPC attack input/AI/specials/control remain OPEN.
-Enforcer            PARTIAL same executed scope; full bidirectional combat OPEN.
-Sniper              PARTIAL same executed scope; full bidirectional combat OPEN.
-Assassin            PARTIAL same executed scope; full bidirectional combat OPEN.
-Heavy Assault       PARTIAL same executed scope; full bidirectional combat OPEN.
+Trooper             PARTIAL outgoing weapons/death; actual incoming primary
+                    input/hit/miss/wall/team. AI/specials/full control OPEN.
+Enforcer            PARTIAL outgoing and incoming dispatch only; actual attack
+                    input/controller and full bidirectional combat OPEN.
+Sniper              PARTIAL same incoming primary scope as Trooper; full matrix OPEN.
+Assassin            PARTIAL outgoing and incoming dispatch only; actual attack
+                    input/controller and full bidirectional combat OPEN.
+Heavy Assault       PARTIAL same incoming primary scope as Trooper; full matrix OPEN.
 Cross-hero          OPEN shield/reflect/absorb/invulnerability/control/death matrix.
 Original client     OPEN: no client or lease used in this packet; an existing
                     shared original client was observed and left untouched.
@@ -194,3 +294,2453 @@ Teleporter shared relocation action (declared inputs only)
   Entity records independently have0033 pool defaults. The meaning and runtime
   effect of those extra parameters are unresolved; do not assume that8994 is
   a shield pool or replace the actor's pool maximum from its number alone.
+
+Native priority1 finish signal (54FEB21C)
+- Registration priority1 factoryC8DD30 uses constructorC8B6A0 and vtable
+  261E338. Enter60/beginB8/updateE0 all point to no-op1CE5640; timer90 points to
+  C880C0. Original instructions compare the32-bit parameter with1 and only then
+  call finish-request helper1B712E0 with zero delay. The priority2 variant has
+  extra scheduling/predicates. Its authoritative role/scheduling is not proved
+  by registration priority alone; no server timeout is inferred from its field.
+- nodes.FinishOnSignal implements that callback without inventing a scheduler.
+  Four tests cover no self-timeout, other/duplicate/retired signals and actual
+  15F5 primary-use input. With an explicitly admitted parameter1 event, the
+  authored flow reaches node28/550D0C5C; it still does not complete transit.
+- tools/compare_finish_signal_native.py executes the original callback and
+  compares1,295 state-address/parameter cases with production. The helper request
+  is intercepted; no live process or client transport runs. Supply an authorized
+  loaded image, its base and an external output path. The report fingerprints
+  the image and verifies the callback bytes and server lifecycle vtable.
+- Read-only VM export includes all36 current concrete State classes. Native
+  signal generation/admission, reconciliation,550D0C5C hit/target context,
+  placement and complete teleporter acceptance remain OPEN.
+
+Incoming real NPC weapon input
+- Reuse reviewed shared body-weapon mounting and native4BD39CFD array selection.
+  The resource fixture mounts each actual body, weapon manager and sparse slots.
+  Start the shared manual engagement host through crosshair selection; it
+  supplies the actual slot0 primary edge and tracks Symmetra. Authored volleys and
+  projectile/hitscan handling remove shield pools: Trooper20, Sniper100, Heavy5.
+  No test damage amount or direct _damage dispatch creates these attack results.
+- Nine negative cases (three actors times miss/wall/ally) verify actual shot
+  production with no damage. Those raw-weapon fixtures deliberately opt out
+  of the manual targeting host so it cannot re-aim intentional misses or suppress
+  the actual weapon dispatch under test. The10-test NPC suite includes outgoing
+  weapon/charge/sentry/death cases. These are static fixtures with permissive
+  body VMs, flat/triangle collision and omitted observer projectile transport.
+- A240-frame input probe still produces no shot/damage for Enforcer/Assassin.
+  This is an open controller/attack path, not expected behavior encoded as a
+  passing regression. Autonomous acquisition/navigation, specials, NPC movement
+  during firing, all defense/control interactions and full bidirectional combat
+  remain unaccepted for every NPC class.
+
+Linked NPC control inputs
+- Body003 field m_8B9A461F references separate definitions: Trooper1D41,
+  Enforcer227A, Sniper1E7E, Assassin1EBE and Heavy1EBC. These contain AI behavior,
+  weapon-fire control and controller script components. Enforcer227A starts
+  142A/E5C/C83/13E9/13EA; mounting only its body2279 does not supply that host.
+- The catalog extractor now fingerprints these inputs and preserves the linked
+  GUID and initial script-component evidence. npc.Definition/load_catalog/spawn
+  retain the GUID as controller_definition metadata. No controller is silently
+  fabricated or claimed mounted. A separate graph shard reproducibly contains
+  five definitions and18 missing graphs, outside source and canonical runtime.
+- Native B96D3A98 evaluatorCC9BF0 resolves an entity, component43/control object
+  and then uses182C470 to require component75 and exclude92 on the resolved
+  object. Source bits at entity+88 are component membership, not a guessed fire
+  flag. Native health-query9B7648C3/CEB6C0 separately callsD177C0/component51's
+  virtual40 getter; 32E6E4D8 usesD18110/virtual48. Their float meanings must not
+  be conflated. A health-only diagnostic leaves Enforcer unable to fire across
+  400 frames, so no predicate is forced true in production.
+- Controller ownership/possession, exact native object/component contracts,
+  live graph execution and full AI behavior remain required. These extracted
+  references and diagnostic results do not prove Enforcer/Assassin acceptance.
+
+Shared Flashbang control versus Symmetra
+- Import parent fbcaf76/64bf71c as private b21bc29/7b6af26. Preserve turret
+  ownership, NPC status-speed application, shield timestamps and all existing
+  snapshot fields; use the existing nearest-capsule LOS helper for splash.
+  tests/test_mccree_combat.py is the exact shared7cd1ed7 test dependency.
+- Four direct tests use actual McCree Flashbang input against a Symmetra body.
+  Beam input damages before control, stops throughout the exclusive deadline,
+  suppresses movement/held inputs, then damages again on actual held input at
+  expiry. Charging an orb is interrupted without a leftover report/rocket;
+  fresh charge/release subsequently deals120 damage through actual flight.
+- Body replacement retires old-body control and the new Symmetra can fire.
+  Walls, allies and distant targets receive neither Flashbang damage nor control.
+  Initial hero swap relocates the body, so the fixture explicitly restores its
+  declared combat position; production behavior is unchanged.
+- These verify the shared reconstructed control policy, not complete native
+  immunity, cleanse, status stacking, sentry/portal/barrier interruption rules,
+  or all cross-hero CC. Those matrix entries remain OPEN. No client gameplay
+  acceptance, new owned lane commit, parent merge or publication is claimed.
+
+Teleporter550D0C5C target-scope frontier (native inspection only)
+- FactoryD4A980 installs server vtable2671F00; beginD45B80 registers the state
+  with the host, endD45C70 unregisters it, updateD45DB0 reconciles target lists.
+  A branch-following inspection decodes168 reachable update instructions,
+  including prediction/ownership guards and child-scope calls; linear decoding
+  had stopped at a split function boundary. Indirect execution is not validated.
+- TimerD46080 parameter1 dispatches resource offsetE8 (m_0647CAD7), parameter2
+  dispatchesF0 (m_C41A9BE2), and parameter3 updates a state revision inside a
+  native scope. OWLib07AD90EE offsets independently identify those fields;
+  inherited550D0C5C target264/0x108 matches collectorD411B0's resource access.
+- This narrows the next service to target-scope/event admission and reconciliation.
+  It does not justify firing event2 automatically, converting the state to an
+  unconditional output, or claiming complete transit. No production code added
+  from this inspection. External evidence fingerprints the loaded image/schema.
+
+Beam versus armour: explicit historical OW1 policy
+- Official2019-03-19 notes classify Symmetra primary fire and sentry turrets as
+  beams for armour reduction. Official2020-08-31 notes change that reduction to
+  30%. The same patch's120 maximum secondary damage agrees with the local graph.
+  Applying that historical rule to104319 is a reconstruction; the client image
+  does not independently prove the native server's damage implementation.
+- Previously every .016-second beam sample used the generic flat5/half minimum:
+  primary60/120/180 DPS became30/60/90 DPS against surviving armour. Explicit
+  beam damage now uses70% of the sample remaining after shields, giving42/84/126
+  DPS while armour survives; sentries likewise use70% of their authored rate.
+  Orb direct/splash and quick melee retain the existing per-hit armour policy.
+- Four tests exercise real input against authored Reinhardt/Bastion armour at
+  all three charge levels, actual launched/attached sentry damage, actual orb
+  and melee dispatch, plus isolated pool/packet-size invariance while armour
+  survives. Per-tick healing in the level fixture is declared and keeps the
+  authored finite armour alive without substituting maximum pools or graph DPS.
+- A single integrated sample that exhausts armour still uses the established
+  reduced-remainder policy. Exact native exhaustion/continuous integration,
+  arbitrary damage tags/modifiers, all other heroes and full armour acceptance
+  remain OPEN; these tests do not prove those cases. No new owned commit yet.
+Sources:
+https://eu.forums.blizzard.com/en/overwatch/t/overwatch-retail-patch-notes-march-19-2019/15547/3
+https://us.forums.blizzard.com/en/overwatch/t/overwatch-retail-patch-notes-%E2%80%93-august-31-2020/545051
+
+Ultimate resource gate/cancel/interruption (before barrier deployment)
+- Three actual-input tests directly execute156B Ability state20. With the
+  provisional automatic filler disabled and declared fixture charge, logical37
+  rejects0/1679 and accepts the authored1680 threshold. This verifies admission,
+  not native passive/damage/healing charge generation or charge consumption.
+- During placement, right-click/logical29 begins node72's authored0.35-second
+  Wait. The queued deadline and actual frame crossing are checked; the ability
+  stops at expiry, retains1680 charge, and accepts a subsequent ultimate input.
+  An initial20-frame probe was shorter than that wait and incorrectly suggested
+  cancel was stuck; the longer real execution and regression correct that.
+- Actual McCree Flashbang stops the running placement ability without spending
+  its charge, suppresses held ultimate input through the exclusive stun deadline,
+  and permits actual input to reopen placement at expiry. This is the shared
+  reconstructed control policy, not native status/immunity proof.
+- No positive barrier creation/confirmation is established. Placement services,
+  Pet world host, geometry/orientation, ally pass/enemy block, health/damage,
+  duration/end and full ultimate acceptance remain OPEN. Tests do not assert
+  that a missing barrier is expected behavior or replace it with a fake actor.
+
+Placement confirmation frontier and shared join import
+- Review/import parent2ca9178 as private795708c, preserving existing native
+  FinishOnSignal model/export. Distinct producer/plug joins replace the permissive
+  immediate output; VM exports include join_inputs and plug_source. Owned WIP
+  was stashed/restored around the import; no new owned hero packet committed.
+- 1571 teleporter joins73/83 each require two arrivals, with one producer being
+  placement69/4C96470A's success output. Input reaches placement but no actual
+  actor is created; cancellation also remains incomplete in this teleporter
+  probe. These missing behaviors are diagnostics, not passing expectations.
+- An observed actual ultimate/confirm/release/cancel probe reaches4C96470A but
+  no Pet. Right-click cancellation completes after its authored wait. Native
+  answers are observed without substitution; only view query66F3B89E is requested
+  by the current active graph path. This isolates missing placement execution.
+- Native priority1 factoryC8DA30/constructor8F0BA0 installs vtable261CE58.
+  BeginC83C30 resets the stored frame; E0 ordinary update and90 timer are no-ops.
+  The +70 callbackC83C50 selects stored history viaC98E90 or a fallback
+  engine/config geometry pathCB6BA0. Existing State.tick is explicitly +70;
+  the earlier claim that this required a separate host phase was incorrect.
+  The native frame/clock frontend is now reconstructed as described below;
+  prediction history and complete engine geometry remain unresolved.
+  Fingerprinted inspection and the actual input probe stay outside source.
+
+Additional teleporter control test after join import
+- Actual logical36 input opens1571 placement Ability23. Actual McCree Flashbang
+  stops it, held placement input cannot restart it through the exclusive stun
+  deadline, and actual input reopens the ability at expiry. The five-method
+  Symmetra Flashbang module passes after this addition.
+- This is a positive placement-ability/control check only. It does not encode
+  missing portal creation/cancellation as expected behavior, supply fake portal
+  endpoints, or close the native placement, full cancel or cooldown matrix.
+
+Owned placement direction queries (native math plus explicit upright-pose mapping)
+- FactoryD07850 installs66F3B89E vtable2663690/evaluatorCE8460. FactoryD075B0
+  installs021D01CD vtable26612F0/evaluatorCCDD80. Both callD1B5E0, but66F copies
+  transform row0 while021D copies row2.184BC70 constructs quaternion axes and
+  D1B6A0..D1B6E4 builds the matrix: row0 is cross(up,forward), row2 is forward.
+  Therefore66F is not the same forward/view query as021D.
+- FactoryD07580 installs2200A66D vtable2660B48/evaluatorCC94D0. Its D18780
+  movement-context branch usesC5E040: signed pitch at+42 times f32 scale
+  9.58738019107841e-05, cos/sin, then the body quaternion rotates that vector.
+  For the upright mover this is view-forward with positive pitch looking down.
+- placement_direction_query supplies only the known living, spawned owned
+  Symmetra body in156B/1571. Body axes use upright yaw; view-forward adds stored
+  pitch. Other entities/graphs/classes, invalid word poses and missing/dead/
+  retired owners remain unsupported. Arbitrary parents, bones, nonupright
+  transforms and complete native component ownership are not inferred.
+- Six tests use real bodies/graphs/current commands and guard cases. Actual
+  ultimate input now gives the authored3192 Stack a changing lateral Vec3.
+  This is positive graph execution evidence. Later route inspection shows
+  SetVar82/2483 executes only after57 success starts Wait0; it is not gated by
+  the BD02E168 client-only children. Actual placement success remains open.
+- tools/compare_placement_axes_native.py executes all three original evaluator
+  wrappers,184BC70, the original basis block andC5E040.504 yaw/pitch cases agree
+  within absolute2e-6. Entity/config/transform lookup and typed output use
+  adapters; C5E040's sinf/cosf ABI is supplied because the captured nonzero SIMD
+  library path uses instructions unavailable to Unicorn. Native math/selection
+  is verified separately from reconstructed mover-to-quaternion pose mapping.
+- Reports fingerprint the authorized external image; no live client/process is
+  launched. Placement collision/filtering, host phase/frame admission, full
+  confirmation/cancel, Pet actors and complete teleporter/barrier remain OPEN.
+
+Placement role and resource-route correction
+- Inspect actual role flags before selecting host services.156B scopes106/107
+  lead to61 CosmeticEntity/97 BooleanSwitch;1571 scope124 leads to84
+  BooleanSwitch. All three children are explicitly client-only, and the server
+  Instance correctly rejects them. A trial authoritative forward-host binding
+  was removed; no new host/epoch/snapshot fields remain in production.
+- The server confirmation route is57.m_F6955E81 ->89 -> Wait0. On Wait0 begin,
+  36 writes entity342 to0 and then82 selects body X/Z direction into2483. This
+  explains the pre-confirmation null axis without inventing a missing server
+  BD02 phase. Geometry/frame/filter admission at4C96470A remains the real gate.
+- Three tests cover the role boundary, actual confirm input followed by an
+  explicitly admitted success callback, and an explicitly admitted failure.
+  Success spends1680 and assigns the chosen Vec3 before the authored0.25s
+  wait; failure preserves charge. Actual ultimate input toggles the selector
+  for both tested orientations. These callbacks are declared fixture inputs:
+  their native generation/validation/transport and full placement remain OPEN.
+- tools/inspect_symmetra_placement_routes.py writes a compact external report
+  with canonical bundle fingerprint, role flags and exact confirmation edges.
+  No callback admission, collision result or Pet actor is faked in production.
+
+Placement +70 clock/frontend (private WIP)
+- Existing State.tick maps to native +70. Placement now modelsC83C30 begin
+  reset andC83C50 dispatch: first call bypasses the phase gate; later calls
+  use signed int64 idiv remainder, record uint32 last/high-water frames and
+  choose stored replay or preview calculation with commit=False. Begin resets
+  last_frame only. No success/failure plug is inferred from a backend result.
+- Typed World clock/replay/calculation services retain explicit unsupported
+  behavior. The known Symmetra156B/57 and1571/69 forward server uses one VM
+  frame per update and no admitted prediction records. This is reconstructed
+  scheduling policy, not proof of native engine clocks or rollback ownership.
+  Geometry remains unsupported, so positive placement is still missing.
+-3459 original-instruction cases pass, including real1B71860 frame and1B92FE0
+  clock getters. World/resource lookup, replay and calculation are adapters;
+  frame values stay stable within each declared epoch. Negative clocks,
+  sentinel reset, unsigned high-water and replay suppression are covered.
+-31 placement/VM tests,73 current Symmetra tests,553 game regressions and837
+  script regressions pass. Groups overlap. A separate real-server snapshot
+  test selects Symmetra through a controlled journal root and proves changed
+  frame storage changes the digest without variable evaluation, callbacks or
+  lazy state allocation. The VM now exports37 concrete State models. Earlier
+  full14 server snapshot tests retain their earlier scope; this is one new case.
+
+Photon Barrier receiver/filter research (external immutable-input extraction)
+- Manifest-verified body26B0 references ray receiver002A/098. Export that676-byte
+  receiver and21 referenced097 filters to lane/barrier-resources, preserving
+  manifest size/MD5 plus SHA256. barrier-raycast-metadata.json retains typed
+  profiles/receiver fields and source hashes via extract_raycast_metadata.py.
+- Receiver default flags7 and per-profile overrides are data evidence only.
+  Ally/enemy relation bits, accept/block decisions, surface orientation/extents,
+  ray/projectile/damage routing and full blocking remain OPEN. Model6880,
+  health metadata and radius0/height1 fields do not establish an infinite plane.
+- STUStatescriptStatePet metadata hash2CBEBF06 exists in captured type metadata,
+  but not the1735 registered runtime records. This prevents using that registry
+  as factory proof; it does not prove native Pet reconstruction impossible.
+  Pet spawning/ownership/replication,4000-health damage routing, movement,
+  cleanup and positive barrier/teleporter deployment still require evidence.
+
+Placement history storage and confirmation frontier (private WIP)
+- CAB450 first asks component virtual148 for admission. With an admitted role
+  and available storage it callsC9FCE0 with uint32(frame-60), then ignores an
+  existing same-frame row or appends the new record. C9FCE0 traverses backward
+  and replaces a removed row with the last row, preserving native swap order.
+  The cutoff retains equal frames; subtraction underflows for frames below60.
+- placement.Record/prune/remember model these storage semantics independently.
+  Rows preserve uint32 frame/entity, uint64 typed identifier, f32 point and bool.
+  No extra State storage or implicit client-history mounting is introduced.
+  Existing BodyWorld still has no admitted prediction records. Native component
+  role, allocator failure/debug checks and prediction provenance stay OPEN.
+-8192 original CAB450/C9FCE0 instruction cases pass. Component role is an
+  adapter, capacity is preallocated, native debug entity checks are disabled.
+  Seven behavior methods cover actual swap ordering/whole row preservation,
+  cutoffs, role rejection, duplicate retention, small-frame underflow and types.
+  One initial test expected stable ordering after two swaps; that fixture was
+  corrected to native order. All38 placement/VM methods then pass.
+- CB6BA0's actual path callsC8EB30 for geometry. Success publishes entity/id/
+  point/valid outputs and records history; failure publishes valid=false and
+  records failure without clearing the previous point binding. The final
+  success/failure output plug is gated by the explicit commit parameter.
+  Current +70 caller supplies commit=false, so preview is not confirmation.
+- C98E90 checks admitted component role and unsigned frame/high-water before
+  scanning records. It validates referenced entities through engine services,
+  then restores entity/id/point/valid output bindings. Full replay validation,
+  result publication, commit input admission/transport and real geometry remain
+  OPEN. Direct call-site inspection is an aid, not proof that indirect or
+  obfuscated confirmation entry points cannot exist. No production commit
+  callback or actor deployment is inferred from these disassembly traces.
+
+Original result processing and confirmation-property input
+- tools/compare_placement_results_native.py executesCB6BA0 from its original
+  entry.384 cases cover present/absent owner lookup, success/failure, preview/
+  commit, uint32 frames and all eight entity/point/valid binding masks. Geometry
+  is an explicit adapter with no dynamic hit entity. Typed write/history/output
+  services are adapters; the native entity-bucket decode and control flow run.
+- An absent owner produces no geometry request, history, writes or output. On
+  admitted geometric success with no hit entity, native writes the null entity,
+  point and true validity before history. Failure writes false validity without
+  clearing point/entity, then records zero/default failure history. Commit-only
+  output follows history using exact resource offsets188(success)/190(failure).
+  Preview never follows those plugs. Dynamic entity-relative transforms and
+  actual collision generation remain unaccepted by these comparisons.
+- Incoming edges from156B/92 and1571/117 target m_6647ED22/A1AAB8C4. The ordinary
+  native1B73D80 input handler invokes +198 before requesting begin. Priority1
+  vtable261CE58 has123CC10 (false) there. Priority2 factory8F58C0/ctor8F0CD0
+  installs261E920 with extension8E8AC0, which recognizes A1AAB8C4, opens a
+  property scope, sets340 once and calls1BEB2F0 on property2C8, then closes scope.
+-144 additional original-input cases check both variants, matched/other plug,
+  latched/unlatched state, active/inactive state and different value/dirty bits.
+  Type tests, property-scope registration/destruction and begin-request helpers
+  are adapters. Native1BEB2F0 bitset and dirty-marker writes execute unchanged.
+  A recognized priority2 input consumes the plug and never requests begin;
+  repeated latched input opens/closes its scope without rewriting dirty bits.
+- The captured-client codec registry explicitly chooses highest priority
+  (tools/extract_statescript_codecs.py). Priority alone is not proof of server
+  versus client execution. Earlier 'server/client variant' labels should be read
+  as scoped priority1/priority2 observations until authoritative factory/role
+  selection is established. Current production models implement only their
+  stated priority1 callbacks. Do not copy priority2 confirmation or timers into
+  server behavior without its role/property-forwarding contract.
+- C8EB30 reaches iterative castsD617C0/D8D430 and candidate validatorCA0E50;
+  the initial C1F280 query is another service, not proof of the final placement.
+  D0B680 appends a filter-config pointer to an array; it is not itself a filter
+  decoder. Geometric extents, candidate checks, receiver flags, property replay/
+  forwarding, accepted commit and positive Pet deployment remain OPEN.
+
+Nested confirmation scope primitive and expanded native proof
+- placement.Confirmation now models the admitted priority2 input's latch and
+  one-bit property fields independently of BodyWorld. World role/type/owner
+  services must be supplied; this primitive is not automatically bound to the
+  authoritative placement State and publishes no success/failure plug.
+- The probe now executes1B6F700 enter,1B6F950 leave,1BEB260 clear and1BEB2F0
+  dirty instructions. Owner register/unregister, type identity, byte memset and
+  begin requests remain adapters.864 native input cases compare the production
+  primitive, covering depths0/1/2 and initially pending/clean markers.
+- Only entry at depth0 clears flags74/75 and ceil(1/8) value bytes before owner
+  registration. Nested entry does not clear or re-register. Exit unregisters
+  only when the count reaches0. A clear leaves the dirty mask and touched76
+  intact. Repeated latched input therefore can clear the value byte even though
+  the latch does not call the setter again. Earlier144-case scope-adapter proof
+  did not establish these clear/nesting effects; it is superseded for this scope.
+- Four behavior methods and848 complete script methods pass. Counter overflow/
+  unbalanced-call guards are local invalid-service checks, not native invalid
+  memory semantics. No extra causal State attributes were added; VM models stay37.
+
+Parent-supplied NPC mover revalidation
+- The private catalog already binds explicit MoverData on manual spawn. All
+  authored fields for the five definitions match the parent's independent43-row
+  npc-navigation-runtime and the fingerprinted original body XML. Confirmed
+  (height/radius/forward speed): Trooper1.7/.5/5.75, Enforcer1.9/.5/5,
+  Sniper1.75/.5/4.5, Assassin1.5/.5/14, Heavy2.3/.7/2.2. Fixtures now assert the
+  spawned Bot holds that exact MoverData object, plus target dimensions.
+- Existing10 NPC methods pass under the new external runtime. Two additional
+  methods use actual primary commands for20 radius/top inside/outside cases
+  across all five capsule shapes and establish a hit before checking wall
+  suppression for each NPC. Boundary fixtures read the actual state101 .2-radius
+  configuration; state100's radius is zero. Relative vertical offsets isolate
+  the capsule and do not claim grounded-map placement or full native geometry.
+- These runtime files are immutable shared inputs; metadata may be hardlinked
+  to the normal pack. The new runtime has no real-map collision caches. Tests
+  use declared flat/triangle worlds. All NPC autonomous controller/special
+  behavior, Enforcer/Assassin incoming attacks, full defenses, general native
+  filters and complete hero acceptance remain OPEN.
+- All75 current Symmetra regression methods pass with the parent's new runtime,
+  in133.312s. This includes12 NPC resource methods (groups overlap with the
+  separately recorded10+2 runs). Ruff across30 changed Python files and diff
+  checks pass. Parent/canonical inputs stay read only and all own work stays WIP.
+
+Static result publication backend (declared geometry/commit only)
+- placement.StaticResult is an admitted finite-f32 outcome for the no-dynamic-
+  hit-entity branch. It does not produce a raycast or validate a candidate.
+  World.placement_geometry remains unsupported by default; None means a known
+  missing owner and leaves all bindings/history/output untouched. Other result
+  shapes are rejected. Dynamic entity-relative transforms are not inferred.
+- World.calculate_placement now invokes publish_static for such an outcome.
+  Valid result writes m_2FECD1E3(Entity0), m_30710B76(point), then m_2339572B(true).
+  Invalid result only writes m_2339572B(false), retaining the point and entity.
+  Frame lookup follows these writes. History receives null entity/id and either
+  the valid point or zero failure point. Only explicit commit then follows
+  m_F6955E81/m_425337C6. Nullable output configurations produce no assignment.
+- Clock/history services must be declared. Unknown clock/history in strict mode
+  reports its exact missing service after the known writes; permissive execution
+  returns unsupported without forwarding confirmation. There is no rollback of
+  writes that preceded the unknown service. BodyWorld's known156B/57 and1571/69
+  explicitly retain the reconstructed no-prediction-storage policy. Its actual
+  geometry service remains unknown; no success or actor is invented in production.
+-384 CB6BA0 cases now compare production publish_static, replacing manual trace
+  expectations. The native frame getter executes and its order is observed.
+  Native null-entity and failure-vector constants are asserted from the image,
+  not replaced. Owner/config lookup storage and geometry/writers/history/output
+  services remain adapters; this does not accept the full native engine backend.
+- Six backend methods cover preview/commit/failure/missing-owner/unknown services/
+  invalid types. Two actual156B methods admit declared geometry, check preview
+  variable binding and unchanged charge on real confirm input, then explicitly
+  admit commit through calculate_placement. The real authored Wait/charge chain
+  runs on success. Invalid geometry retains preview and charge. An initial test
+  seeded its old point before authored entry reset; corrected to seed after entry.
+  Geometry and commit are fixture inputs, so positive native deployment is OPEN.
+-8 focused,854 script,77 hero,553 game and23 passive VM snapshot methods pass;
+  groups overlap.37 State models remain unchanged and no new State/BodyWorld
+  storage attributes are introduced. Full15 server snapshot methods were not
+  rerun in this change; prior14+1 results retain their historical scopes.
+
+Projection math inside the original geometry path
+- The late native C8FAB3..C904DC block computes a dot from admitted up/direction
+  vectors and calls5C7970. That helper is a clamped odd polynomial with original
+  f32 operations; it is not established by substituting a library inverse trig.
+  For example, native input.9 returns1.1181392669677734. Its return bits, including
+  clamp behavior, are now reproduced by placement_geometry.angle_polynomial.
+- projection_angles preserves pi/2 minus that return, degree conversion,
+  nonpositive-step fallback, signed integer truncation, count capped at10 and
+  the initial residual adjustment. This count is additional attempts. advance
+  reproduces two884090 rotations and accepts the current vector after a caller's
+  validator; it does not preclude the validator changing that vector. Native
+  raw axis math is retained without implicit normalization. Owner pose and axis
+  admission are separate services, not inferred by these arithmetic helpers.
+- The reference tool executes the original polynomial and rotation.6109 scalar
+  samples compare returned float32 words exactly; FP flags are outside scope.
+  48 direct rotation cases include different/nonunit axes.216 late-block profiles
+  vary yaw, pitch and step with declared pose and no initial clipping, admitted
+  cast misses and candidate retries. Schedule fields and every queried direction
+  match production; maximum observed component error is0 (tolerance2e-6).
+- Config/owner lookup, query setup/lifecycle, memcpy and sinf/cosf ABI are
+  adapters. The late entry bypasses the initial pose and owner/component lookup.
+  No real cast, hit-refinement result, candidate validity or actor is accepted.
+  This math is not silently mounted as BodyWorld's missing geometry generator.
+  Invalid-service type/counter guards are local boundaries, not claims about
+  native integer overflow, invalid memory or arbitrary FP environments.
+- An initial external experiment substituted acos at5C7970, changing retry
+  counts/directions. Disassembly and original execution rejected that assumption.
+  The rejected report remains in placement-projection-wrong-acos-unaccepted.json;
+  accepted evidence is placement-projection-native-validation.json. No production
+  math used that substitution. Six witness/boundary methods and860 complete
+  script methods now pass; Ruff35 changed Python files and diff checks pass.
+- Contact/Candidates and refine_contact now reproduce C8FE99..C90212 with admitted
+  primary contact data and two explicit clearance replies. Strict normal.y above
+  .7193400263786316 selects global up; otherwise the raw normal is retained.
+  Normal-offset and direction-backward candidates use the supplied offset.
+  Probe origin interpolates the cast fraction and backs off .015, except when
+  squared advance is below .00022499999613501132. Query scalar preserves the
+  padded/subtracted f32 arithmetic; no authored-field binding is inferred here.
+- Both clearance replies are requested when known. Both blocked returns known
+  failure before CA0E50; one blocked duplicates the other candidate; neither
+  blocked preserves the distinct pair. Unknown service stays NotImplemented.
+  Returned candidates do not imply accepted placement.
+- 1,680 original-instruction profiles cover threshold neighbours, fraction/backoff
+  boundaries, poses, offsets, scalars and all four clearance combinations. Maximum
+  component error9.313225746154785e-10 is below2e-5 tolerance, with original
+  sqrt instructions retained. Eleven direct and865 script methods pass.
+  Actual cast/filter/contact admission and CA0E50 validation remain OPEN, together
+  with authoritative role/property commit and positive actor deployment.
+
+Ability input age while start gates are closed
+- Parent notification prompted local review of Ability.can_start. Consuming a
+  press then reinserting it with now refreshed its age on every activation.
+  Actual157E sentry input reproduced an unexpected fourth launch after empty
+  charges recovered, despite releasing the early press several seconds before.
+- take_press(retain=True) now checks without consuming; only a successful gate
+  consumes the original entry. The resource's150ms early-input window therefore
+  expires. New input after recovery, near-recovery short input and held input
+  remain usable. Tests exercise actual input/charge recovery/actor identifiers
+  with the existing explicit summon shard and static wall fixture.
+- After repair:79 hero methods (parent navigation runtime),865 script,553 game
+  and23 VM snapshot methods (original runtime) pass. Ruff36 changed Python files
+  and diff checks pass. No complete server-snapshot suite rerun is claimed.
+- This fixes reconstructed timing behavior; the obfuscated native start-check
+  parity remains unverified. Complete sentry native deployment/lifetime and the
+  full hero/cross-hero/five-NPC matrix remain OPEN.
+
+Placement samples and static surface fallback
+- C9E800 calls C9C760 to derive downward extent from remaining sample distance,
+  reference dot, angle, sine scale, drop cap and placement offset. C9C760 uses a
+  linear dot-to-angle expression and sinf, not acos or5C7970. Sample origin is
+  origin+direction*(index*step). Enabled sweep spans one signed neighbouring
+  sample; a downward direction disables that sweep at index0. Disabled sweep
+  zeroes query scalar. No engine shape/filter is inferred by SampleQuery.
+- validate_sample returns3 on miss/clip/surface/final rejection,1 when an enabled
+  height limit is exceeded,2 when squared separation is strictly below the
+  exclusion squared, and0 only after all explicit checks pass. Exact height and
+  exclusion boundaries pass. Callback order and short-circuiting match native.
+  Success retains raw hit point/entity/id; final geometry receives the separately
+  fraction-corrected point with upward correction capped at.015. Unknown service
+  remains NotImplemented. Native clipping that mutates a reply remains unadmitted.
+-432 original query profiles and576 check profiles match with zero observed
+  error (2e-5 component tolerance). Query/cast context, config, sinf ABI, clipping,
+  surface and final geometry are explicit adapters, not actual physics proof.
+- CA5550 static fallback is separately executed using native no-body sentinel
+  FFFF0000FFFFFFFF.72 cases cover raw normal threshold neighbours, flag bit0 and
+  ignore-flag policy. Normal.y>.7193400263786316 and allowed flags are required.
+  The dynamic body/geometry path is OPEN. Generic collision triangle normals do
+  not establish native material flags or which fallback path is applicable.
+- New helpers are independent of BodyWorld placement_geometry; full pose, cast
+  engine/filter/receiver/contact admission, CA0E50 sample scheduling/selection,
+  C9DA00 final geometry, role/property commit and positive actors remain OPEN.
+
+Throttle modifier bridge on a declared utility scope
+- Parent notification exposed unapplied movement attributes17/18/19. Local
+  67-graph reachability audit finds9 records inCB,23A,1CB; one referenced graphF9C
+  is missing. This is incomplete resource coverage, not absence proof elsewhere.
+- modified_throttles now evaluates forward/backward magnitudes separately,
+  evaluates unsigned lateral magnitude, restores its original sign and clamps.
+  Raw current/last-input byte records are preserved. The normal mover timeline
+  continues to collect state mods after command movement for the next frame.
+- A declared actual23A MovementMod state with authored variable2101=0 reproduces
+  unintended movement before repair, for both input signs. After repair input is
+  blocked; state removal still applies through its collection frame and movement
+  resumes on the following command. The test uses actual Symmetra commands and
+  a flat fixture. Natural caller/ability routing is not accepted by this injection.
+- Regression checkpoint:18 placement direct methods,1 throttle scope method
+  with both signs,80 complete hero methods(parent navigation runtime),872 script,
+  553 game and23 VM snapshot methods(original runtime) pass. Ruff39 changed Python
+  files/diff checks pass. No full server-snapshot suite rerun claimed.
+
+Placement candidate counts, collection and selection
+- SamplingPlan reproduces CA1262..129E andCA1924..1943: fallback count is
+  trunc(f32(f32(distance/abs(spacing))+.5)), with spacing recomputed as distance/
+  count when positive. Primary count is similarly rounded then capped at2.
+  Resolved finite positive step/counter guards do not claim native overflow or
+  invalid service behavior; signed counter increments are explicitly bounded.
+- collect_candidates reproduces CA18BD..1CF3 with preallocated aligned point and
+  metadata arrays admitted by the reference harness. Primary indexes start0;
+  fallback uses the supplied start, both advance by stride. Probe status0 alone
+  triggers result-context installation/predicate evaluation. Accepted hits retain
+  phase/index/point/entity/id. Predicate rejection continues scanning; unknown
+  probe/predicate stays unknown. Nonnegative counters do not take the cached
+  preferred-index detour; no invented skip or priority effect is assigned to it.
+- Global2E2EBC8 is1 in the captured image. Under this shortening flag, the first
+  accepted primary sample ends that phase. An accepted fallback sample sets its
+  stop to min(currentStop,index+3); later successes do not expand it. Both flag
+  values, preferred-index values, strides, starts, result statuses and contextual
+  predicate outcomes are covered by1,296 original-instruction loop profiles.
+- select_candidate reproduces CA21CD..22B1 using an explicit coordinate transform
+  service. Reference transforms even for an empty candidate array. Each point's
+  absolute transformed-y difference is compared strictly against the current
+  best (initial FLT_MAX); ties keep the first. The selected raw point/entity/id/
+  sample index is published. This is not Euclidean-nearest selection.
+-96 count and72 selection profiles match exactly.24 direct geometry methods and
+  878 complete script methods pass; Ruff40 changed Python files/diff checks pass.
+  Prior80 hero/553 game/23 VM snapshot results retain their earlier scopes. No new
+  State fields or authoritative BodyWorld geometry binding were added.
+- Scope remains partial: early CA0E50 owner/degenerate-vector guards, pose/basis
+  and encoded transform construction, actual result-context expression evaluation,
+  real sample casts/clipping/surfaces/C9DA00 final geometry, allocation failure,
+  role/property commit and positive actor deployment remain OPEN. Full hero/
+  cross-hero/five-NPC acceptance is incomplete.
+
+Resolved camera projection and post-contact minimum distance
+- The transform called by CA21DF/CA221C is1A77F80, a camera projection. Prior
+  transformed-y comparison evidence remains correct but does not imply world-y.
+  CameraProjection now performs original view/clip column operation order,
+  optional homogeneous divide and viewport x/y mapping. The input view-z guard
+  is1.1920928955078125e-6, with equality admitted.
+- Below that guard native returns-1 and leaves output untouched. selection_point
+  returns unknown in that case because the outer caller ignores the return and
+  its unwritten buffer contents have not been admitted. It does not invent a
+  discard rule. Zero-w/overflow profiles remain outside local finite admission.
+- Native returns undivided clip-z after the clip transform overwrites its stack
+  buffer. Output z can instead be divided. An initial unaccepted model that
+  returned view-z was rejected by the original-instruction comparator and fixed.
+-1,728 profiles execute original matrix decode/projection instructions with a
+  declared decoded-key service, resolved matrices/mode/viewport. Point/depth
+  float32 words match; below-guard no-write is verified.216 coupled profiles use
+  original1A77F80 inside the original selection loop, replacing the prior generic
+  transform adapter. Camera/basis/FOV construction, real key/viewport services and
+  caller-buffer/depth admission remain OPEN; no authoritative provider is bound.
+- range_candidates now reproduces C90212..C902BC after contact refinement. Strict
+  squared-distance checks replace a too-close primary/fallback with the other;
+  if both are too close, native status2 bypasses CA0E50. Exact range equality
+  passes; a negative minimum is squared as native.224 original profiles pass.
+-30 direct geometry methods and884 complete script methods pass; Ruff41 changed
+  Python files/diff checks pass. Prior80 hero/553 game/23 VM snapshot results
+  retain their earlier scopes; no broad gameplay rerun for these unmounted
+  primitives. Actual casts/clipping/surfaces/C9DA00 geometry, property commit,
+  positive actors and the complete cross-hero/five-NPC matrix remain OPEN.
+
+Default perspective builder and notification lifetime
+- perspective_matrix reproduces default1A86510/1A86910/1A86F30/1A86540 behavior:
+  nonzero horizontal half-angle selects the horizontal branch; otherwise the
+  vertical branch applies. A zero other angle derives its extent from viewport
+  aspect and saves an angle using original2500A04. Main angle minimum is.025;
+  saved half-angles clamp separately to[.025,1.5] after the matrix extents have
+  already been computed. Rebuilding from saved clamped angles would be wrong.
+- Native horizontal bounds produce a negative x coefficient. A conventional
+  positive coefficient was rejected by192 original profiles before acceptance;
+  the actual stored bound order is now retained. Default shift/scale, positive
+  viewport/depth planes and forward depth only are admitted.192 matrix/angle
+  word comparisons pass with zero angle error. Original derived-angle code runs;
+  sinf/cosf are explicit ABI adapters.1,728 projection/216 coupled cases still pass.
+- A three-pose research probe executes1A77779..1A778F3 including974260 inverse
+  arithmetic. It is research only: there is no production view-matrix builder,
+  owner/basis binding or encoded key transport acceptance from this probe.
+- Parent notification exposed stale coalescing markers after State.end cancels
+  events. Both CHANGED failures reproduced locally before repair. Clearing CHECK/
+  CHANGED markers after cancel and suppressing changed-to-ending-state scheduling
+  now passes shared cleanup/reentry methods plus a real repeated join-cycle test.
+- Ability.stop queues scope exit/on-stop/resource updates before unlinking its
+  arbitration variable. This is server reconstruction; native cross-object order
+  remains unverified. Actual Symmetra ultimate input/cancel wait/beam input is
+  repeated three times with charge retained and actual enemy pool damage after
+  each cancellation. No geometry/positive actor deployment is inferred.
+-37 focused,81 hero(parent navigation runtime),890 script,553 game and23 VM
+  snapshot methods(original runtime) pass. No new persistent VM fields are added.
+  All15 complete server snapshot methods pass in610.046s, including stored
+  two-player damage/death/respawn/hero-change replay. Ruff43 files/diff checks pass.
+  Full combat and original-client acceptance remain OPEN.
+
+Resolved view builder and authored first-person combat offsets
+- view_matrix executes the decoded1A77779..1A778F3 contract: right=up cross forward,
+  eye=position-near*forward,974260-style cofactor/determinant inverse and native
+  transpose/negative translation order. Raw nonunit/skewed bases are retained;
+  prior sanitization/owner lookup is not inferred. Singular/nonfinite services
+  are outside local admission, not silently normalized or accepted as placement.
+-1,620 matrices match emulated native float32 words, including near-vertical
+  poses, scales, up vectors, offsets and translations.60 selections couple the
+  original view block/default perspective builder/projection/selection. Hardware
+  reciprocal-estimate/FP parity, full encoded transport and input binding remain
+  separate.37 direct geometry and894 complete script methods pass.
+- FirstPerson26F0 XML explicitly supplies standing m_E29993A5=1.3 and crouched
+  m_816B830F=.91. The prior generic1.55/1.15 leaked rays over low cover. The same
+  fields for opposing McCree02A3 are1.425/.9975; Soldier03CF remains1.55/1.085.
+  Shared eye_height now drives shot origin and player Target.eye together. Other
+  unrecorded bodies and NPC eyes keep their existing scoped policy/fallback.
+- Eight baseline assertions fail on old offsets; three methods now cover both
+  stances' origins, both player target descriptors, actual Symmetra beam cover
+  and opposing McCree shots versus Symmetra cover. These are static server rays;
+  animated camera/muzzle and native bone hitboxes are unaccepted. No McCree
+  implicit-critical policy was imported by this change.
+-84 hero methods(parent navigation runtime),553 game,894 script and23 VM snapshot
+  methods(original runtime) pass; Ruff44 files/diff checks pass. Previous complete
+ 15 server snapshots retain their lifetime checkpoint scope. No persistent state
+  fields or geometry-provider binding added.
+- Full goal scope remains unchanged: all attacks/reload/melee/passive, ability
+  hit/miss/effects/resources/cooldown/interruption/lifetime, ultimate acquisition/
+  cast/effect/cancel/end, all five Talon types in both directions, all applicable
+  cross-hero defenses/status/death. Resource-based server reconstruction is allowed
+  with differences/unproven matters recorded. Functional deployment and complete
+  interaction evidence are still missing; no complete/merge-ready claim or commit.
+
+Photon Barrier actual-input server host (private WIP, subsequent frontier)
+------------------------------------------------------------------------
+-156B/57 m_6647ED22 is explicitly owned by this server only when26B0/156C
+ resources are prepared. Missing owner/resources/geometry do not invent success.
+ Actual primary confirm follows authored cost/.25s wait into active Pet17.
+ Barriers.update mounts an NPC-hosted26B0 actor once per Pet activation and
+ binds output38. This is a reconstructed host, not generic native Pet semantics.
+-4000HP comes from the actor override.12s comes from caster567;156C/42's30s
+ watchdog is not normal duration. Active duration starts at world creation,
+ at most one ordinary update after Pet begin. A1000s world/VM clock offset
+ reproduced immediate expiry before the fix; no common clock origin is assumed.
+- Actual static fixtures cover rotation, wall damage versus protected owner,
+ own beam/explicit team ally pass-through, enemy beam once per command, orb
+ termination, nearer static cover, sentry damage/slow occlusion and reacquisition,
+ breaking-shot absorption/subsequent hits, expiry and no respawn, death survival,
+ hero change and leave cleanup. Destruction clears output38 and ends the Pet
+ scope via authored end wiring. The actor is excluded from ordinary NPC capsule
+ target selection; the wall plane owns projectile/beam hits and health storage.
+- The plane is vertical and map-spanning; physical character collision is absent.
+ Enemy projectile impact currently absorbs the complete activation including
+ splash. Same-side explosive splash, melee/remaining attacks/statuses/defenses,
+ complete enemy-player/five-NPC interactions and actual ultimate charge generation
+ remain OPEN. Sentries do not acquire a wall as a target; native behavior is open.
+- Manager walls/seen and wall owner/bot/normal/expiry/activation key are registered
+ causal server fields. Read-only hashes distinguish lifetime/normal/deduplication
+ changes. No persistent body-VM state fields were added.156C presentation/filter
+ states are not fully executed by this host. Original-client acceptance is separate.
+- Parent announced spread_ramp/weapon_spread/McCree Fan ray work; it is not
+ imported in this checkpoint. Seed/uniform-radius and actual-client parity stay
+ outside this lane's claims. Full static goal and merge readiness remain false.
+
+Actual reload acceptance subset (no runtime changes required)
+------------------------------------------------------------
+- Correct input is0x400 -> logical14.0x04 is logical30 and does not establish
+ a reload defect. Three actual command methods cover partial magazine reload,
+ full magazine rejection, pre-refill melee cancellation and fresh reentry.
+-157C Wait118 uses581 *6884 =1.5 *.73 =1.095s; ammo53 becomes authored max198
+ (70) at its boundary. Anim14 ends at1.5s;51 clears and actual beam fire resumes.
+ Just-before/first-crossing command frames are checked for both boundaries.
+- Actual Flashbang before, across, and after refill blocks primary fire.
+ The server keeps both authored reload deadlines. The crossing case
+ verifies refill and animation completion during the stun, and each
+ case verifies primary damage after control and reload end.
+- Actual lethal rifle fire before or after refill clears both reload
+ states. No pending refill survives the old deadline, and the naturally
+ respawned body starts with a full magazine and fires normally.
+- Actual Mei spray reaches full freeze before or after refill. The
+ already-started reload keeps both deadlines while the freeze blocks
+ primary fire. Attempts to start a fresh reload during freeze leave
+ no pending refill at thaw, and a fresh input afterwards works.
+- A manually targeted Talon Assassin pins Symmetra and continues to
+ damage her across both reload deadlines. The pin blocks primary fire.
+ After the pin is released, the finished reload feeds actual beam
+ damage to the Assassin.
+- Other reload and melee combinations, applicable player and five-NPC
+ interactions, and native reload behavior under control remain open.
+
+Latest barrier/reload verification:109 hero methods(parent navigation runtime,
+explicit actor/controller/PvE resources),894 script/553 game/23 VM/16 complete
+server snapshot methods(original runtime) pass. Stable16 took807.653s. An earlier
+snapshot attempt correctly rejected a source edit during replay; it is retained
+as a diagnostic and superseded by the stable pass. Ruff51 changed Python files
+and diff checks pass. No owned commit; full functional static acceptance and
+merge readiness remain false. Teleporter factories1571/3 and70 and15F5 logical30
+(command0x04) are resource-profiled for next work; deployment/use is not proved.
+
+Teleporter actual-input server host
+-----------------------------------
+1571/69 uses the existing static placement query and publishes the authored
+success result. The host supplies the grounded producer at82 for join83 and
+discards the unused alternative join73 arrival. Nodes3 and70 bind both resource
+bodies from the existing actor shard. Each endpoint has50 health and250 shields.
+The caster's Wait2 uses the resource0.75s cast. Endpoint use starts at1.5s from
+creation, using the startup wait from157D/41. The server holds the pair until
+dismissal, destruction, hero change or leave. A12s post-startup fixture verifies
+persistence, with no ordinary lifetime countdown recovered in the child graphs.
+
+Actual0x04 interaction uses the1.5m TrackTargets radius and a static sight ray
+to the endpoint. After ownership/team admission the host calls1647 with the
+resource position lift and1s transit duration from15F5. Both endpoint directions
+preserve the real mover and combat pose discontinuity. Host-created instances
+retire after that duration so the relocation stack does not block later use.
+The static host checks the current stance capsule at the authored destination
+before opening the transit graph. Static geometry and live Ice Wall can block
+the selected destination without consuming the transit lock. Static tests
+cover both directions and a low overhang that admits crouched use. An actual
+ice pillar at the exit blocks use until cancellation, destruction or expiry.
+After clearance, a fresh interaction succeeds. Partial and full orbs
+released on the blocked interaction frame still launch from the entrance
+with their ordinary ammo cost and damage. Native alternate landing
+points, dynamic body occupancy, full endpoint filters, actor orientation
+and child presentation graphs remain open.
+
+Enemy fire through shield and health pools destroys the pair. Actual ability36
+dismissal starts the same resource cooldown from1571/87 and variable472
+(default10s). Actual right click during preview completes the resource wait and
+animation chain, including the server-owned end for Anim30. The cast can restart
+after cancellation. The pair survives actual caster death, while a dead caster
+cannot use it. A replacement Symmetra can use the surviving pair. Dismissal
+then starts the authored cooldown on the replacement body. Hero change and
+leave remove both endpoints. Pair readiness and
+transit retirement are causal server snapshot fields. Full status/special and
+cross-hero/five-NPC interactions remain open.
+
+Five Talon fixtures exercise actual attacks against the same transit host.
+Trooper and Heavy Assault rays deal 20 and 5 before the same-frame
+interaction moves Symmetra. A launched Sniper round and all 25 launched
+Enforcer pellets keep their entrance trajectories. The stepped controls
+take 100 and 50 damage. In the transit cases the owner and both endpoints
+keep full pools through those flights. The Sniper's later shot tracks the
+exit and deals 100 to the owner there.
+
+Actual Assassin contact removes 25 shields and pins the owner at the
+entrance, rejecting the interaction. Zarya's actual Projected Barrier
+releases the pin. Held interact then transits on that frame, while an
+earlier released input requires a fresh press. The Assassin loses range
+after the transit and deals no follow-up damage.
+
+Three actual Sniper hits exhaust either endpoint from its full 300 points.
+The lethal third hit removes the pair before the same-frame interaction.
+The owner stays in place, starts cooldown, and can be hit by the following
+shot. When three hits instead kill the owner, the lethal tick still rejects
+the interaction, and the pair remains available after respawn. These
+scenarios use fixed poses and manually selected NPC attack targets.
+
+An actual enemy rifle command processed after relocation on the transit
+frame misses when aimed at the entrance, including with a 1 ms
+pre-transit view delay. A current view aimed at the exit deals 40.
+The test follows the host's discontinuity rule and keeps the two
+endpoint pools intact.
+
+Heavy Assault's actual charge captures Symmetra beside the entrance and
+blocks interact. Projected Barrier removes the attachment. Held interact
+works on that release when she is still within 1.5 m. A later rescue
+leaves her outside the radius. She walks back with interact held, then
+uses the pair on a fresh press.
+
+A separate charge lane lets the Heavy strike the entrance while carrying
+Symmetra. The impact releases her and leaves a full 300-point device at
+75, so she can use it on the impact frame. If actual Soldier fire first
+reduces the device to 220, the Heavy destroys it, removes the pair and
+starts cooldown before she can use it. Stepped and retained updates
+agree on both outcomes.
+
+Actual ultimate charge host
+---------------------------
+Symmetra in an attached match uses the shared authored 0B8B charge graph.
+The host dispatches the original configuration-changed message to 01C7 and
+resolves the character's real player controller for the passive gate.
+The graph owns the one-second timer, 5-point gain, both passive multipliers,
+damage multiplier and the 1680-point cap. Debug ult_seconds=0 still disables
+the live host for isolated fixtures. A context without a Match retains the
+existing standalone diagnostic fill.
+
+The match also services due 0B8B timers on world updates with no owner
+commands. This keeps the authored one-second cadence and cap without
+advancing the body's command frame. An actual late primary command can
+still hit and credit damage. Death pauses passive gain, and the
+replacement body resumes from its retained charge.
+
+The combat resolver sends final enemy character pool loss through the authored
+0012 message after damage and death bookkeeping. The scoped static inventory
+covers 44 character bodies and the three direct tag queries used by 0B8B,
+including the separately checked 0407 Mech and its direct target tags.
+This uses empty damage-tag and exclusion buckets for supported attacks.
+Native dynamic tags and tagged modifier buckets remain open.
+
+Actual primary, orb, melee and sentry damage grant charge. Fatal overkill credits
+only the available health. Actual portal damage, missed shots and ally inputs
+grant no charge in the tested cases. The barrier lifetime suppresses passive and
+damage gain through the resource gate, and natural gain resumes after removal.
+Actual death and automatic same-hero respawn preserve charge, and explicit hero
+selection resets it. Tests use actual beam input on all five Talon bodies. A
+Heavy Assault case earns all 1680 points and confirms a 4000-health wall without
+supplying charge. Full cross-hero, status and five-NPC bidirectional coverage
+remains open.
+
+Actual primary, orb, quick melee and sentry damage to the 0407 Mech
+contribute their resolved pool loss. Matrix absorption gives no charge.
+One full orb can remove 110 Mech points, splash one of the five Talon
+NPCs, and also damage an enemy Teleporter. Only the Mech and NPC losses
+count toward the ultimate. Starting at 1565 declared charge, the
+two character contributions reach the 1680 cap and admit a confirmed
+Photon Barrier. While the barrier is live, further Mech damage gives
+no charge.
+
+An owner's full orb deals 120 body damage three ticks before, on, or
+two ticks after Photon Barrier expiry. The first case gives zero charge.
+The latter two give 120. Stepped and retained updates agree, including
+the expiry tick with separate command and world clock origins.
+
+An active sentry damages across a 19-frame interval around the owner's
+wall expiry. Its 12.16 total damage includes 5.76 eligible charge from
+the expiry tick onward. A repeated endpoint adds neither damage nor
+charge. An actual hostile orb can also break the owner's wall. In the
+declared 100-point remaining wall fixture, the owner's sentry resumes
+charge on the breaking tick. It gains 3.2 across that tick and the
+four following ticks in both stepped and retained updates.
+
+An actual Pharah Rocket Launcher hit spends 120 from Photon Barrier.
+An approach-side player receives splash, while the wall protects the
+owner and a second player behind it on the same impact, even if it breaks.
+An allied Pharah rocket instead passes through and deals 120 to the
+enemy behind the wall. Incoming rockets that reach the plane one tick
+before, on, and one tick after expiry give the same results in stepped
+and retained updates. The first hits the wall, and the latter two hit
+Symmetra for 120.
+
+In two live exchanges, Symmetra's fully charged orbs pass through her
+own wall and kill Pharah. The wall spends 120 on each of Pharah's
+returning rockets. A separately tested first actual Barrage rocket
+breaks the wall with 30 declared remaining health, splashes the
+approach side, and leaves Symmetra's pools intact.
+
+With horizontal fixed aim in the static host, all 76 Barrage rockets impact the wall
+for 40 each, leaving 960 wall health and 225 owner health. An actual
+lethal primary beam stops new Barrage launches, and rockets already in
+flight finish against the wall. The launch cone and two motion rows
+are sampled at emission. Each world tick sweeps a chord, including
+retained ticks. Tests match the first two sampled endpoints and hit
+narrow terrain that lies clear of the launch ray. A curved rocket
+crossing the Photon plane on or after expiry reaches Symmetra for
+40 instead of spending wall health. Stepped and retained updates
+agree. The native animated muzzle, owner seed writes, and remaining
+cast and interruption boundaries stay open.
+
+The Barrage projectile reports the authored 0052 entity with target tag
+0535 and no 0145 exclusion. A nearer allied Defense Matrix or Kinetic
+Grasp absorbs the tested rocket before Photon Barrier. Grasp records 40
+and converts it to 24 temporary shields. When the wall is nearer it
+spends 40 and the defender receives no conversion. Releasing Matrix
+mid-burst allows a later round to reach the wall. Actual interception
+times match the contact times calculated from the sampled curve endpoints.
+
+An actual curved Barrage rocket deals 10 direct and 30 splash against
+Zarya's personal barrier or her projected barrier on Symmetra. Declared
+remaining pools of 5, 25, 40 and 200 cover direct break, splash break,
+exact exhaustion and survival. The caster gains energy only for the
+amount spent, and the recipient takes no damage. A breaking rocket
+leaves an overlapping projected barrier at 200. Stepped and retained
+world updates agree before and after both barrier expiries.
+
+Actual Pharah Concussive Blast reports entity 010F and zero damage.
+Graph 007B state 0 supplies horizontal 20, vertical 5 and an 8 m ring
+with enemy and self factors of 1. The player host interprets those
+values as a radial velocity delta scaled by movement modifier 26.
+An active hostile Photon Barrier or a Projected Barrier on Symmetra
+prevents the push without losing pool points. After either expires,
+the hit displaces Symmetra by more than two metres in the tested
+poses. An allied Photon Barrier lets the projectile reach its enemy.
+The enemy and shooter move, and the nearby ally stays in place.
+Matrix and Grasp intercept the projectile before it applies impulse.
+Grasp records zero damage. The five prepared manual NPC bodies consume
+the same impulse through their actual capsule and response modifier.
+Trooper, Enforcer, Sniper and Assassin move and land. Heavy Assault
+receives the impact with zero movement response. Actual beam damage
+and NPC return fire run after the landing. The Trooper also matches
+stepped and retained flight. An actual lethal beam stops its airborne
+physics and preserves the corpse pose until manual removal. Autonomous
+navigation, native force conversion and remaining status combinations
+remain open.
+
+An actual concussion carries Trooper, Enforcer, Sniper and Assassin
+across the range of a deployed sentry in either direction. The sentry
+adds or removes its own slow aura at that boundary. Each locked tick
+removes 0.64 from the target pool and credits the owner by the same
+amount. Heavy Assault stays on its original side of the range boundary.
+The lock timeline, damage, charge, position and velocity agree in
+stepped updates and a 25-frame retained update.
+
+A fixed world fixture puts two deployed sentries in range and gives
+one of them a temporary line-of-sight obstruction as the same four
+NPCs move. The unobstructed sentry retains its own aura. The other
+removes its aura at occlusion and creates a new one on reacquisition.
+Combined slow and per-tick damage go from 0.4 and 1.28 to 0.2 and 0.64,
+then recover. The owner receives the resolved damage as charge.
+Heavy Assault remains in view of both sentries. A 25-frame retained
+update reproduces the stepped result.
+
+When two allied Symmetra players each deploy one of the sentries,
+each receives the damage and charge from her own beam. The temporarily
+occluded owner stops earning charge until her sentry reacquires. In a
+separate Trooper case, an actual Helix Rocket kills one owner during
+the same world interval. Her sentry keeps its attribution, and she
+receives no charge from the death tick onward. The other owner
+continues to receive 0.64 on each tick. Stepped and retained updates
+agree on the death tick, aura changes and charge.
+
+When the actual respawn deadline falls inside a retained interval,
+combat resolves the death-body sentry tick first and then replaces the
+owner. The original sentry and its target's aura survive. The new body
+keeps the stored charge and receives 0.64 per following locked tick.
+The replacement and charge clocks use the respawn tick. Stepped and
+retained runs each credit 4.48 over the first seven post-respawn ticks.
+
+When the deadline is earlier than the retained window, the replacement
+still takes its scheduled tick and advances passive charge through
+elapsed world time. A surviving sentry earns 40.96 across all 64
+retained ticks. At 67 and 132 ticks after respawn, passive gain adds
+5 and 10 respectively. Damage from the omitted ticks stays outside
+the retained replay.
+
+If body ID allocation fails, each retry keeps its own scheduled tick
+across the omitted and retained portions of the same update. With two
+simulated allocation failures, the sentry keeps dealing damage and
+maintains its slow throughout the 64 retained ticks. Replacement during
+the window earns charge only on later hits. Replacement before the
+window earns charge on all 64 hits and advances passive charge from the
+successful retry.
+
+Separate update checkpoints also verify that two unsuccessful allocations
+leave exactly one future retry each. The fixture simulates the peer's
+body-ID availability decision and runs the server's ID ring normally.
+An actually deployed allied Photon Barrier survives death and replacement.
+The sentry's damage and slow continue while the wall is active, and the
+replacement earns charge only after the wall's authored expiry. When
+expiry precedes the retained window, elapsed unsuppressed time advances
+passive charge and the sentry credits all 64 retained hits.
+
+The Rocket Launcher projectile reflects through actual Deflect. A
+nearer hostile wall blocks the rocket before Deflect, while a nearer
+allied Genji returns it for 120 damage credited to Genji. A wall allied
+to the original shooter also blocks the reflected return. Graph 0023
+state 6 has no projectile entity definition for the primary rocket.
+The host uses that exact authored volley to admit the implicit primary
+rocket to Matrix and Kinetic Grasp. A nearer absorber consumes it
+without damage or splash. A nearer wall spends 120 and protects the
+defender. An absorbed rocket credits Grasp with 120 and converts 72
+temporary shields. After Deflect transfers ownership, the original
+shooter's allied Matrix or Grasp can intercept the returning rocket.
+The native projectile identity and profile for the primary remain open.
+
+With the owner sending no commands, Photon Barrier suppresses passive
+gain through the last tick before expiry. The authored wait restarts at
+expiry and yields two 5-point grants by 126 ticks after expiry. Stepped
+and single skipped world updates agree, including a shifted world time
+origin. The longer skip uses the known wall lifetime while combat
+continues to bound replay of attacks.
+
+Actual Enforcer and Assassin incoming attacks
+---------------------------------------------
+The previous actual manual inputs selected both NPCs and mounted 13EB/1157,
+but neither dealt damage over 200 frames. For Enforcer, the supported
+controller context and own-body health query enable 13EB/24. Its resource
+launch is a projectile volley. A single center projectile was the next
+observed gap. The existing ring math now feeds all 25 independent projectile
+sweeps at the authored 80 metres per second. Hit distance drives the authored
+falloff. The 4-metre first volley removes 50 shield points, and 14-metre
+hits apply less than 2 damage each. Actual in-flight cover, moving the target
+off the paths, allied targets and stop are covered. A live Photon Barrier
+absorbs a full close volley and protects the owner. Muzzle and random seed
+identity are declared server mappings.
+
+The Assassin manual 1157 context maps the controller's contact action to
+logical 36. A visible enemy within the reconstructed 3-metre contact radius
+can take 25 contact damage and be pinned. The original delayed damage state
+applies 100 points per second on the server VM clock. The pin blocks actual
+held beam input. Stop, cover, range, changed team, source death and actual
+third-player Flashbang release it. The contact and damage clock use authored
+states and amounts. Autonomous acquisition, native contact geometry and
+additional rescue/defense interactions are open.
+
+The snapshot model includes the live pin relation, BotWorld manual target and
+controller context, health tick time and per-flight falloff policy. The active
+Assassin VM export and stored server digest probes observe these fields. This
+extends incoming actual basic attack evidence to all five Talon NPCs alongside
+the earlier outgoing inputs. Full controller, special, mitigation, interruption
+and cross-hero matrices remain open.
+
+Live player defense interactions
+
+Genji 03A3 state 10 provides the active angle and authored boxes. The orb's
+157C direct hit carries 03BF. A frontal interception transfers the live flight
+to Genji, keeps the remaining travel budget and uses Genji's current aim.
+Static cover and earlier Photon Barrier or capsule contacts take precedence.
+The return shot removes 120 points from Symmetra's shields and credits Genji.
+Rear shots and primary beam damage reach Genji. The eye frame and redirect
+aim use server poses. Original reflected visuals and broader Deflect
+attack/status combinations remain open.
+
+Tagged hitscan uses the same Deflect angle and box checks. A redirect
+keeps the unused reach and accumulates distance for falloff. Genji
+owns the returned ray, which uses his current aim and world poses.
+The Soldier rifle fixture verifies a 40-point critical return, an
+off-axis return that misses, a rear hit that damages Genji, and a wall
+that stops the ray before interception. Against a live Photon Barrier,
+the nearer plane takes 20 damage when it is first. A nearer Deflect
+box redirects the shot and leaves the plane at its full 4,000 points.
+When the wall belongs to Soldier's team, the incoming shot passes
+through. The returned ray now opposes the wall and spends 20 points
+without reaching Soldier.
+
+With allied Genji covering Symmetra, actual Trooper, Enforcer, Sniper and
+Heavy Assault attacks return 20, 50, 100 and 5 damage to their sources.
+Both players keep full pools and Genji receives the damage credit.
+The Trooper and Heavy Assault fire tagged rays. Enforcer and Sniper
+launch tagged projectiles. Assassin's selected-target contact still
+deals 25 damage and pins Symmetra through this setup. The fixture uses
+manually engaged NPCs and places Genji in the line after target selection.
+
+The explicitly selected 0407 Mech uses authored controller/possession links
+and the scoped 02CC ruleset selectors. Matrix state 3 consumes an eligible
+projectile at its box, without direct or splash damage. Eligibility uses
+the opt-in build 104319 external projectile tags and the reconstructed 0145
+exclusion. The orb hits again after release and the primary can damage the
+Mech while Matrix is held. Default pilot-to-Mech transitions and native
+profile and tag evaluation remain open.
+
+Allied Defense Matrix and Kinetic Grasp stop an actual Enforcer volley
+of 25 pellets and an actual Sniper round before body impact. The two
+players keep full pools while Symmetra returns actual primary fire
+through her ally. Kinetic Grasp records the NPC source and
+converts 50 and 100 absorbed damage into 30 and 60 bonus shields.
+Later live shots after the defense ends reach the defender. The Mech's
+armour reduces the two incoming volleys to 25 and 95 damage. Sigma's
+follow-up takes 50 or 100 damage and spends the bonus shields first.
+When Matrix and Grasp both cover the same line, each tested ordering
+absorbs the Sniper round only at the nearer volume. Only Grasp's
+interception credits the authored sum.
+Releasing Matrix after a Sniper round has launched, before it reaches
+the box, lets that same round reach the Mech for 95 damage. A 40-frame
+update without commands now matches the stepped release. A charged
+Symmetra orb also matches across a 48-frame update. Matrix still
+absorbs the orb when a short hold is within the minimum activation
+period. After a longer hold, release lets the orb deal 110 to the Mech.
+
+Grasp's authored timer also advances during retained combat. In a
+20-frame gap, an actual first Sniper round is absorbed at cast frame
+plus 118. Grasp converts it to about 60 bonus shields before a second
+round hits at plus 126. The second spends the bonus shields and
+leaves Sigma with about 360 base pool points. Symmetra stays at 225.
+
+In a separate fight, a full Symmetra orb hits at tick 13 of a 25-frame
+retained update after Grasp has started decaying. The first 60-point
+damage event sees 70.88 bonus shields. The second spends the remaining
+10.88 and leaves Sigma at 350.88 base pool points. Both damage entries
+and the endpoint match stepped updates with the same poses.
+
+A rear Flashbang resolves on either side of the same timer in a
+20-frame gap. The hit at cast frame plus 121 interrupts Grasp and
+prevents conversion. At plus 131, the stun still applies and the
+25 damage spends already-converted shields, leaving 47. The impact
+and stun deadline match stepped updates.
+
+The Trooper and Heavy Assault have projectile visuals on their actual
+volley definitions. Their damaging rays still hit the defender during
+both defenses. The Assassin's selected contact also keeps its 25-point
+hit and pin on Symmetra. The fixture selects NPC targets manually and
+positions the allied defenders along the firing line.
+
+Zenyatta's 017B state 3 suppresses actual beam, orb direct/splash, melee and
+sentry damage. The output-free state 13 completion enters the authored wait.
+No pool loss, damage credit or charge comes from the blocked weapon attempts.
+The sentry applies or retains its 20 percent slow during damage immunity
+in the static host. The 017B timer advances on world ticks while Zen sends
+no commands, and sentry damage resumes at expiry. Native slow and other
+control behavior remain open.
+
+When an idle world update crosses Transcendence expiry, the sentry
+integrates damage from the first vulnerable world tick within the
+retained window. Gaps of 16, 64 and 80 ticks match contiguous updates
+at the tested endpoint. Repeating that world tick adds no damage.
+
+Wraith, Fade and Cryo-Freeze use the same idle expiry boundary. The
+sentry loses the protected target and its slow, reacquires after
+expiry, and deals damage only for vulnerable ticks. The tested gaps
+are 16 and 40 ticks for Fade and 16, 64 and 80 ticks for Wraith and
+Cryo-Freeze.
+
+An allied Mei in Cryo-Freeze can cover an enemy from Symmetra's
+sentry. When idle catch-up crosses thaw, the expired capsule at its
+retained pose still limits damage on the previously covered ray. Gaps
+of 16, 64 and 80 ticks match contiguous damage to the rear enemy. An
+off-axis capsule leaves the full retained damage window available.
+
+Natural Photon Barrier expiry limits sentry catch-up along rays that
+cross the former hostile plane. A gap of 16, 64 or 80 world ticks
+matches contiguous damage to the protected player. An allied wall
+leaves all retained ticks available. The expiry boundary also agrees
+when the world and body command clocks use different origins.
+
+If an orb breaks a hostile Photon Barrier during world processing,
+the sentry's catch-up window starts on the breaking tick. Gaps of
+four and eight ticks match the contiguous hit and slow result. The
+breaking orb remains blocked by the wall.
+
+If the gap continues four ticks beyond the break, retained projectile
+updates still resolve the hit on the twelfth flight tick in the test.
+The sentry deals 3.2 damage by the common endpoint. A new orb launched
+alongside a previously admitted Helix joins only on the endpoint tick.
+
+Winston's sphere limits sentry catch-up until a crossing ray clears.
+Both entry and exit rays match contiguous damage across natural
+expiry, while a ray wholly inside keeps its damage window. An orb
+break four retained ticks before the endpoint matches the contiguous
+break tick and subsequent sentry damage through Winston's armour.
+
+A hero switch or leave removes Winston's sphere at the owner event.
+A 16-tick update across the former expiry deals the same 10.24 sentry
+damage to the exposed ally as contiguous updates. A lethal primary hit
+on Winston outside his sphere leaves it at full health and covering the
+ally until natural expiry. Contiguous and skipped updates agree there too.
+
+Same-hero replacement retires the old sphere immediately. In the
+Practice Range timing fixture, a lethal beam leaves the sphere alive
+through the three-second respawn tick. Respawn retires it before its
+scheduled expiry. The next 16 ticks yield 10.24 sentry damage in
+both contiguous and skipped updates. A new cast on either replacement
+body creates a full-health sphere and clears the sentry lock and slow.
+
+A retained gap can span the Practice Range respawn deadline. The old
+sphere covers the ally through that tick, with eight exposed ticks
+dealing 5.12 damage by the skipped update's endpoint. When replacement
+has no free body ID, the old sphere keeps covering the ally until the
+server's respawn retry succeeds. The retry is scheduled from the
+attempt tick.
+
+An actual sentry launch crosses the hostile Photon Barrier plane,
+Winston's sphere or Reinhardt's raised mesh, then attaches to the
+test wall with 30 health. The barrier keeps its full pool. The
+deployed beam cannot reach the covered target until the Photon
+Barrier owner switches, Winston's sphere expires or Reinhardt
+lowers his shield. The beam then deals damage and applies slow.
+Native flight and collision filters remain open.
+
+The static host treats Ice Wall as a solid attachment surface for
+sentries. Actual allied and hostile wall casts catch a launch at the
+first pillar without taking damage. The attached sentry can damage
+and slow an exposed enemy. Cancel, natural expiry or a breaking beam
+retires a sentry supported by that pillar and clears its slow. A
+nearer static wall takes precedence and keeps its sentry after the
+ice is removed. Original-client support-loss behavior remains open.
+
+Retained world updates advance an already airborne sentry against Ice
+Wall at each retained tick. If contact precedes pillar expiry, the
+sentry attaches and is removed with the pillar. Expiry on the contact
+tick clears the path before the sentry sweeps. A new launch advances
+once at the endpoint, even when an older sentry is replayed.
+
+An ice-supported sentry runs its boot and beam on retained ticks.
+Contiguous and skipped updates agree on damage and hit ticks if the
+sentry boots or was already active before pillar expiry. The slow
+is removed with the support. Longer gaps deal damage only within the
+normal retained window.
+
+An actual full orb that breaks the supporting pillar within the gap
+also matches contiguous processing. The sentry can boot during the
+gap or start it already active. Its last damage is one tick before
+the break. The breaking orb removes only the pre-damaged pillar, and
+its support removal clears the sentry slow before that tick's damage.
+
+Soldier's actual Helix can break the supporting pillar by impact or
+by splash from an adjacent pillar. In the splash case, the pillar
+that takes the impact retains 280 health and the 5 HP support breaks.
+A sentry booting during the gap and an already active sentry both
+match contiguous damage and slow cleanup at the break tick.
+
+One Helix can break the impacted support and its adjacent support on
+the same tick. Two of three sentries retire and their shared target's
+slow falls from 60 to 20 percent. The third sentry retains the same
+aura and keeps firing on the impact tick and afterwards. Contiguous
+and retained updates agree on every hit tick and the damage total.
+
+Sigma's actual 1D02 state 1 consumes a tagged frontal orb before contact.
+The interception causes neither direct nor splash damage. The host sends
+the authored orb value to 1D02's accumulation route. Normal ability exit
+feeds 120 points through the 60 percent conversion into a separate 72-point
+pool. Actual beam damage consumes that pool first. The authored delay holds
+its value before a 5-point-per-second drain. The server limits catch-up
+using relative state age because body and combat clocks can have different
+origins. Rear hits and prior static cover produce no absorption credit.
+A rear Flashbang ends Grasp and the absorbed value never converts.
+The volume transform, intercepted value and extra pool transport use
+declared server policies. Five and seven simultaneous charged orbs add
+600 and 840 on one tick and convert to 360 and 400 temporary shields.
+Primary beam spends those shields first. An early Grasp input is rejected.
+At zero cooldown, a second cast starts with decaying shields and a clear
+accumulator. One new orb adds 120 to the sum. The old pool decays by
+0.08 before exit conversion adds 72, yielding 372.24 or the 400 cap.
+A frontal charged orb and Flashbang are both absorbed with the orb first,
+Flashbang first or both on the same tick. The graph sums 120 and 25 and
+converts the 145 total to 87 temporary shields. With Grasp inactive the
+same releases deal 145 and stun Sigma. In the recast interruption case,
+two sequential charged orbs first grant 144 shields. After natural
+cooldown, a new cast absorbs one orb before a rear Flashbang stuns Sigma.
+The Flashbang spends 25 from the decaying pool. The canceled cast does
+not dispatch conversion, and the old 144 maximum and base pools persist
+while the bonus pool continues to decay. A separate test starts a recast
+with decaying shields from one orb and absorbs another frontal orb. Four
+charged orbs released from behind deplete the pool and kill Sigma. The
+canceled cast does not convert before respawn. The replacement body has
+full base pools and zero current or maximum bonus shields, then converts
+one fresh orb to 72. The test sets the spawn point to the original lane.
+Other mixed projectile sources, lethal sources and interruption timings,
+decay boundaries, native filters and client presentation remain open.
+
+Reinhardt's 0095 barrier uses the external build 104319 mesh and the
+reconstructed raised pose. The server takes the nearest shield within the
+current body and world sweep. Actual beam and charged orb impact drain
+the 1600-point pool without damaging the wearer or granting character
+charge. A breaking orb is tested from a declared 100-point shield fixture.
+Its excess does not reach the wearer, and a following beam can hit the body.
+Lowered regeneration starts after the authored wait. Rear exposure and nearer
+static cover retain their own hit ordering. The melee sphere may overlap
+both mesh and wearer. Raised mesh occludes sentry target selection until
+release. Off-axis explosive splash, sentry damage to the shield, and native
+pose/history remain open.
+
+The 157C ammo route checks target #536 for tag 03A at node 185, then
+selects node 186, which chases the magazine maximum at 7 per second.
+Actual shield contacts supply the authored tagged definition from the
+build 104319 catalog. Photon Barrier supplies its live actor ID. The
+Reinhardt host uses the wearer's ID only as a tracked proxy for his
+unreplicated 011A shield. The per-command shield contact distinguishes
+this proxy from a subsequent hit on the wearer with the same ID.
+Actual orb release creates the deficit, beam contact recovers ammunition
+and the magazine cap holds while the beam continues. Cover, lowering
+and release stop recovery. The server publishes rays after the command VM
+step, so acquisition can spend an ordinary initial round before the
+tagged refill state is active. Native acquisition-edge timing and other
+tagged shield actors remain open.
+
+Zarya 0244 and 025C activate personal and projected particle barriers
+from actual inputs. The projected search uses authored radius and cone
+with a reconstructed ally, static sight and ordering policy. The 0256 pool
+supplies 200 points and actual intercepted events feed 0242's authored
+energy message. The tested pool exhaustion grants 40 energy and absorbs
+the breaking event. A later beam damages the body. Both barrier definitions
+carry 03A and recover beam ammo at the authored rate. The protected body's
+ID serves as the ammo query proxy while contact lasts.
+
+Personal bubble interception also consumes actual sentry damage without
+applying the slow. After expiry the same sentry applies slow and damages
+the body. This host intercepts damage admitted by the existing body trace.
+The bubble's independent native surface, separate direct and splash events
+straddling a break, other crowd control and energy decay remain open.
+
+During retained combat, the host advances the caster's authored barrier
+graphs through missing command frames. In a 20-frame update, the first
+of two actual Sniper shots spends 100 Projected Barrier points at cast
+frame plus 119. The second hits Symmetra at plus 127 after expiry and
+leaves 25 shields and 100 health. A full orb at cast frame plus 124
+spends 120 barrier points. At plus 130 it deals 120 body damage. Both
+orb timings match in stepped and retained updates for personal and
+projected barriers. An attached sentry's 30-frame trace also matches.
+The first 14 ticks drain the barrier with no slow. The following 16
+damage and slow the body. These tests hold poses fixed.
+
+The same timing holds when a sentry starts a 49- to 55-frame update in
+flight. In the earliest case it attaches to the static wall at cast frame
+plus 88.5, then spends 2.72 barrier points over five ticks. It deals 5.12
+body damage and applies slow starting at plus 125, the first unprotected
+tick. Sentries booting at plus 125 or 126 hit the body immediately and
+leave the expired barrier at 200 points. Both personal and projected
+fixtures match their stepped controls.
+A separate two-launch fixture checks the input boundary. The older
+sentry attaches inside the gap. The sentry admitted just before the
+gap moves only once at the endpoint.
+
+Flashbang's damage and hit effect share the body admission path. Actual
+projected protection absorbs 25 damage and awards five Zarya energy.
+Symmetra keeps her orb charge and releases a live projectile. The
+unprotected control takes the damage, is stunned and cannot release.
+A declared 10-point personal barrier fixture absorbs a breaking
+Flashbang and grants two energy without body damage or stun.
+Allied Grasp consumes a tagged Flashbang before its splash reaches
+Symmetra. A live Transcendence target rejects the Flashbang damage
+and stun after the projectile makes contact. Independent CC sources
+such as the Assassin pin remain separate from this damage-effect path.
+
+The independent 1157 Assassin host now checks whether its actual damage
+event removed body points before admitting a pin. A projected barrier
+can absorb the initial 25-point contact and grant five energy with
+Symmetra still able to fire. A declared 10-point barrier fixture absorbs
+the breaking event and grants two energy with no pin. A projected barrier
+cast during the sustained phase releases the pin on the first absorbed
+damage tick, then expiry permits a later actual body hit to admit control
+again. Projection during the initial damage-free wait clears the pin
+on the next Assassin control update. No shield points or energy change
+until a later actual hit. Native forced-interaction timing remains open.
+
+Projected protection also absorbs actual first impacts from Trooper,
+Enforcer, Sniper and Heavy Assault. The observed shield losses are 20,
+50, 100 and 5 points. The Sniper fixture casts after 85 frames of actual
+aiming so the barrier remains active when the first shot arrives.
+
+Orisa's live 0CF4 state 4 supplies the authored 40 percent reduction.
+Actual primary, orb, melee and sentry damage apply this scale before
+armour. The server suppresses Flashbang stun, Assassin pin and sentry
+slow while this state is active. Actual Flashbang and Assassin contact
+still deal reduced damage. Actual beam damage and sentry slow resume
+on expiry. Native modifier ordering for combined defenses and other
+control and critical interactions remain open.
+
+With Photon Barrier and Barrier Projector on the same team, hostile
+primary and charged orb each strike the nearer layer. The farther
+layer is within splash reach and takes no damage, even when the
+outer layer starts at a declared 5 health and breaks. Five subsequent
+beam ticks remove 4.8 from the remaining layer. Neither defender takes
+body damage or grants the attacker damage credit or ultimate charge.
+
+Two allied attackers can release full-charge orbs that reach the two
+shield surfaces on the same world tick. Both spend the nearer layer
+if it survives the first orb. If the first orb breaks it, the second
+rechecks cover and reaches the farther layer. Zero, one and two seeded
+breaks are verified with either layer nearer. After one tick establishes
+both flights, a 90-tick jump preserves the impact tick and the pool state
+after each orb. If both releases lack a flight clock, the same jump
+advances each by one world step at its endpoint with no shield damage
+yet. With one established flight and one fresh release, the established
+orb lands during the skipped ticks. The fresh orb starts at the
+endpoint and later sees the updated barrier pools. The tests submit
+ordinary server commands and advance the world directly.
+
+Kinetic Grasp can sit behind both the Photon plane and the Winston
+sphere. Three actual charged orbs are released together. With both
+layers intact, all three spend the near layer. With only the near layer
+pre-damaged to 5, the first breaks it and the next two spend the far
+layer. With both layers pre-damaged to 5, the first two break them
+separately, and Grasp absorbs only the third for 120. Its normal exit
+grants 72 temporary shields. Both barrier orders match when stepped
+or advanced by 90 ticks after flight begins.
+
+Without pre-damage, five volleys from nine Symmetra attackers break
+both layers before expiry. Photon Barrier takes 34 orbs and Barrier
+Projector takes six in either order. The remaining five orbs enter
+Kinetic Grasp for 600, which grants 360 temporary shields on exit.
+Each attacker spends 10 ammunition per volley, with no body damage,
+damage credit or hit marker during the volley.
+
+Each full-health volley is replayed from the first flight tick to
+the last impact tick in one world update. Charging and release keep
+their original schedules. In either barrier order, all 45 impact
+ticks, both shield pools and Grasp's running absorption match the
+contiguous run. Normal Grasp exit grants the same 360 shields.
+With a 90-tick final-flight update, all nine final contacts resolve
+before the ordinary 64-tick retained window. In both barrier orders,
+the complete impact trace still matches. A rear Flashbang at cast plus
+125 then takes 25 from the converted shields, leaving 335 bonus and
+735 total health after a separate 20-tick flight update.
+
+A separate volley mixes two charged orbs and a Flashbang. With both
+shield layers at a declared 5 health, the first two projectiles break
+the two shields. Flashbang first leaves a 120-point orb for Grasp and
+grants 72 temporary shields. Flashbang last is absorbed for 25 and
+grants about 15. With the near layer at 200, Flashbang first leaves
+the far layer intact, while Flashbang last breaks it. Neither of
+these stronger-layer cases reaches Grasp. Per-impact pools and timing
+match for both barrier orders with contiguous ticks and a 90-tick
+jump after all projectiles start flying.
+
+When both layers are full, the two orbs and Flashbang land on the
+same tick and spend 265 from the near layer in either release order.
+The far layer stays full and Grasp converts nothing.
+
+A full-health break also mixes Flashbang into the fifth nine-orb
+volley. In the early case, 36 orbs have removed the outer layer and
+damaged the inner one. Flashbang spends 25 from the remaining layer,
+leaving 375 on Photon Barrier or 435 on Barrier Projector. Four more
+orbs destroy it, and the final five give Grasp 600 to convert into
+360 shields. In the late case, both barriers break before Flashbang
+arrives. Grasp absorbs it and five orbs for 625 and converts that to
+375 shields. Neither sequence damages or stuns a body. Flashbang
+contact adds no ultimate charge. Both launch orders and barrier
+orders reproduce all 46 contacts and pool transitions when the
+final update skips 90 ticks after all ten projectiles start flying.
+
+After three charged orbs break both seeded layers and load Grasp with
+120, the test moves Winston aside to open a rear throw lane. Both
+Flashbangs are released while Grasp is active. A hit at cast plus 124
+ticks deals 25 to base pools, stuns Sigma and prevents conversion. A
+hit at cast plus 126 ticks stuns Sigma and spends 25 of the converted
+72 shields, leaving 47. Both barrier orders reproduce the hit and stun
+deadline with a retained 20-tick Flashbang update.
+
+The exact first unprotected projectile tick is also tested. A rear
+Flashbang at cast plus 125 sees 72 converted shields and spends 25.
+The conversion dispatch is logged on tick 124 after world impacts in
+the contiguous command loop. With a retained gap, it dispatches on
+tick 125 before the Flashbang impact. Impact tick, stun deadline and
+resolved pools agree in both modes.
+
+The full-health five-volley sequence also continues into the rear
+Flashbang test after both layers break and Winston moves aside to
+clear the throw lane. A hit at cast plus 124 stuns Sigma and cancels
+conversion of all 600 absorbed damage, leaving 375 total health and
+no bonus shields. A hit at cast plus 125 stuns Sigma and spends 25
+of the 360 converted shields, leaving 335 bonus and 735 total. Both
+barrier orders and both impact ticks run with contiguous updates and
+with a 20-tick jump after Flashbang starts flying.
+
+Winston's authored 00FA deploys a 700-point barrier with a nine-second
+world lifetime and a five-metre sphere from the 01C3 geometry descriptor.
+The server centers it at the cast feet plus 0.1 metres. A shot entirely
+inside can hit a body. Entering or exiting through an enemy sphere can
+hit the barrier instead. Earlier static cover takes precedence, while
+allied beams pass through. Actual beam and orb impacts spend the barrier,
+and an actual breaking beam sample from a declared 0.5-point fixture
+does not spill. Quick melee can overlap both sphere and body. The sphere
+occludes a deployed sentry until expiry. 01C3 carries the ammo tag and
+uses the caster body ID as a lookup proxy. A second cast requires the
+ordinary cooldown even after sphere expiry. Native deployment pose,
+retained entity presentation, death and replacement timing, independent
+blast and sentry flight interactions remain open.
+
+Orb impacts on a barrier preserve splash exposure on the approach side.
+The server samples static visibility and the nearest capsule path
+against the active barrier before it deducts barrier HP. Actual breaking
+orbs hit exposed targets on the approach side of Photon Barrier and
+Winston's sphere without damaging the protected bodies. An independent
+body impact also respects the nearby Photon Barrier. The unobstructed
+control shows that its protected victim is otherwise in splash range.
+Independent body impacts now also spend nearby barrier HP. The host
+projects onto the Photon plane, the Winston sphere or the nearest triangle
+of Reinhardt's mesh, then applies authored splash falloff with static and
+intervening shield occlusion. A pre-damaged Photon Barrier can break from
+this splash while still protecting the body for that explosion. A static
+wall between the blast and the shield prevents the shield loss. Exposed
+farther mesh facets, overlapping capsules and native collision remain open.
+A raised Reinhardt shield between the explosion and Photon Barrier also
+protects the farther shield for that explosion, even if the nearer shield
+breaks. The lowered-shield control takes splash at Photon Barrier.
+
+Reaper 0020 and Moira 0F7C use their actual phase inputs and stacks.
+The host completes the scoped output-free zero-delay entry. Their
+authored waits are 3000 ms and 750 ms. During the stack lifetime they
+are excluded from enemy targeting and hostile body damage. Actual
+beam can hit a rear player, and the orb continues past the phase body.
+Quick melee and Flashbang do not damage or stun a phase target. The
+sentry removes an existing slow and reacquires after expiry. Reaper's
+actual primary cancel removes protection and early recast stays gated.
+Phased outgoing quick melee cannot damage Symmetra and is not replayed
+after exit. An actual cast now anchors the world and body clocks.
+On missing input, neutral unposed frames advance the authored
+phase, recovery and cooldown before combat traces. The current
+command slot stays available. Sequential catch-up avoids starting
+cooldown at the end of a large gap. Actual idle expiry restores
+beam damage, a stale command does not reactivate, and a fresh
+command can recast after cooldown. Body replacement removes the
+old anchor. Native input rollback, movement collision, broader
+cleansing and other phase actors remain open.
+
+Mei's 05FE Cryo-Freeze uses its live protection state and the scoped
+entry callback. The host removes Mei from damageable target selection
+and supplies her current capsule as solid cover for combat traces.
+Actual beam, orb, melee, sentry and Flashbang stop at or are occluded
+by the ice. Explicit allied Cryo also blocks a beam to an enemy.
+Primary cancel and world-idle expiry restore incoming damage.
+The official [May 2020 patch notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2020/05/)
+describe Cryo-Freeze blocking line of sight and collision. The capsule
+shape, movement collision and further ability interactions remain open.
+The server integrates the 05FE ModifyHealth total of 200 over the authored
+four seconds. Actual Symmetra beam damage supplies the deficit in tests.
+World-idle expiry restores all 200 with enough missing health. Early
+cancel settles only elapsed healing, and overheal neither counts in
+the healing stat nor carries forward into later damage. The native
+ModifyHealth pulse cadence and Mei's healing-to-ultimate credit remain open.
+If a sentry is already slowing Mei, Cryo entry drops its lock and
+destroys that sentry's 23186 slow contribution on the same combat frame.
+After cancel the next eligible sentry tick creates a fresh aura and
+resumes damage. Broader status cleansing remains open.
+
+Mei's actual 05E6 icicle deals 75 to Symmetra's shields on a body hit
+and a reconstructed 150 on a head contact. Two headshots produce one
+kill and death notice. A body shot lands at 99 metres and expires at
+101 metres, spending 10 ammo in both cases. Aim misses, friendly bodies
+and static cover prevent damage. A deployed Photon Barrier intercepts
+75 and protects Symmetra. Primary spray deals 2.75 per noncritical
+contact and respects range, static cover and team filters. A live
+probe originally showed damage with no frost state in variable 2427.
+The server now writes 2427 from actual damaging spray contacts. The
+first contact applies 0.2, later contacts add 0.0285, the movement
+penalty caps at 70%, and partial progress expires after 1 second
+without a hit. At full progress the 1.3-second deadline locks
+movement, aim and input and stops running abilities. Actual teleporter
+preview is interrupted and can be reopened after thaw. Photon Barrier,
+range, static cover and team filtering prevent frost on Symmetra.
+Frost is body-local and recorded by the server snapshot. The spray
+volley's authored target cap is 99. A real single shot now damages
+and applies frost to the front enemy and Symmetra once each. The
+projectile keeps a unique contact set as it sweeps its remaining
+distance. Static cover beyond the front enemy still blocks the shot.
+An active Zarya particle barrier consumes the spray and protects
+both the front and rear bodies.
+
+Two actual Mei attackers now retain independent progress per source
+body. The server reconstructs 0B77 composition as the maximum
+non-stacking source plus explicitly stacking contributions from
+the 0x301F settings slot. When the stronger source expires, the live
+weaker source remains. Hits during a freeze still damage but do not
+extend its deadline. The first post-thaw hit starts fresh. Separate
+source state participates in server snapshot hashing.
+
+Mei's 064A Blizzard uses actual ultimate input. With seeded full
+charge it spends charge at the authored windup and launches the
+gravity projectile. Static contact anchors an area with 200 ms of
+delay and 4.25 s of active time. Symmetra takes 85 total damage over
+an uninterrupted exposure and freezes, then thaws. The area
+resamples static cover, range and team membership, and discards
+blocked intervals. The same Mei's spray and Blizzard use separate
+frost channels. Body replacement retires the old area. Server
+snapshots include flight, area and frost deadlines. An active enemy
+Defense Matrix absorbs the airborne throw before any area appears.
+Frontal enemy Genji Deflect redirects the same flight and owns its
+area damage and frost. Allied and rear Deflect preserve Mei ownership.
+These checks use the host's current collision and resource catalog.
+Active Sigma Grasp also consumes the airborne carrier and prevents
+area damage and frost. It records zero impact damage. In a mixed
+Grasp, an actual Symmetra orb followed by Blizzard still accumulates
+120 and converts it to 72 temporary shields. Reflected lease and
+area actor replication, other frost settings, NPC control and
+original-client behavior remain open.
+
+Actual Symmetra beam damage sets up a lethal charged orb at three
+Blizzard phases. Killing Mei during the authored windup prevents
+flight and area effects. A lethal orb during flight leaves the
+projectile in flight, and a lethal orb after area activation leaves
+the existing area active. Both released cases continue to damage
+and frost Symmetra. Each orb produces one kill notice. The fixture
+seeds Mei's ultimate charge before the actual cast.
+
+Landed Blizzard destroys an actually deployed enemy sentry, removes
+its live slow aura and leaves an allied sentry at 30 health. The
+exposed teleporter end loses 85 shields while its remote end keeps
+300 total. If three actual icicles first leave the near end at 75,
+Blizzard destroys it, retires both actors and starts cooldown.
+Actual Blizzard flights cross a live enemy Photon Barrier without
+damaging it. When the carrier instead lands on the near side, the
+host applies the full 85 area damage and freeze to Symmetra on the
+opposite side, with the shield remaining at 4000. The historical
+[Blizzard PTR notes](https://overwatch.blizzard.com/en-gb/news/20243886/)
+support projectile traversal. Build 104319 native filtering of
+the landed area remains open.
+
+An actual nonlethal 25-point Flashbang interrupts Mei's active
+Blizzard windup. The same stun after release leaves the projectile
+and its damage and frost intact. A deployed allied Photon Barrier
+takes the 25-point Flashbang instead. Mei remains unstunned and
+throws Blizzard, which hits Cassidy and spares allied Symmetra.
+
+During partial Blizzard frost, actual transit can move Symmetra out
+of the area. Damage stops and her existing frost expires. Returning
+through the same pair applies one current tick of damage and fresh
+initial frost. Full freeze blocks live portal use, and an actual
+interaction after thaw can transit again.
+
+Actual Genji-reflected Blizzard damages and freezes each of the
+five Talon NPC bodies. At full progress, a configured route stays
+paused and manual attack targeting cannot submit fire. Each NPC
+can damage Symmetra after thaw. NPC route speed consumes frost
+alongside the existing sentry slow, and death or removal retires
+the body's frost state. Native AI acquisition, specialized
+interruptions of other active NPC abilities and client presentation
+remain open. Actual allied Mei spray now verifies that full freeze
+interrupts a sustained Assassin pin. Symmetra immediately regains
+beam input. The Assassin can repin after thaw under manual targeting.
+
+Manual Heavy Assault console input now feeds the authored 1408 charge.
+The NPC holds position during windup and then drives at 15 m/s.
+Symmetra's actual beam damages the driving NPC. Manual stop and a
+static wall end travel. Actual Mei spray can freeze and interrupt
+windup, and a frozen NPC rejects another request. The active 1408
+side search now hits Symmetra for 50 shield points and pushes her
+outward. Its side cone, range, team and static cover gates are
+verified. One charge damages each selected body once, and stop
+clears the target output and hit history. Close impact now deals 175 and
+controls Symmetra for 2 seconds. Photon Barrier remains at 4000, while
+a projected particle barrier absorbs the impact and prevents control.
+Front capture, pinning,
+wall crush, drive-phase freeze and scheduler gaps remain open.
+
+Frontal capture activates 1407, blocks weapon input and carries
+Symmetra at a capsule offset. Manual cancel, projected protection,
+source removal and victim replacement release the attachment.
+Static wall crush deals the authored 300 before removing the
+attachment. Actual projected protection before contact releases
+Symmetra without damage. Other wall types and native attachment
+geometry remain open.
+
+Active charge participates in the 64-frame combat retention window.
+Actual 6-frame and 45-frame gaps match sequential travel, wall damage,
+release and death tick. New requests enter at the current frame.
+Older frames and historical target poses remain open.
+
+A live Cryo-Freeze block in the charge path also stops Heavy Assault
+and triggers the captured victim wall crush. The actual test kills
+Symmetra and releases her attachment while Mei stays at 250 health.
+The host uses its reconstructed Cryo capsule.
+
+Mei Ice Wall uses 0622 actual preview and confirm inputs and creates
+five 400-point pillars in the static host. Symmetra beam and charged
+orb stop and damage a hostile pillar. The beam breaking frame protects
+Mei, and the next frame can damage her. Allied walls stop the beam
+without taking damage. Cancel and expiry remove the pillars. Native
+placement, movement, wire actors and other interactions remain open.
+
+A live deployed Ice Wall stops a captured Heavy Assault charge and
+triggers wall crush without damaging any pillar. Actual cancel
+before contact clears the route and prevents damage to Symmetra.
+
+Actual quick melee removes 30 points from an enemy ice pillar. A
+breaking swing leaves Mei protected and a later swing can hit her.
+Allied ice and nearer static cover keep the corresponding pools intact.
+
+Actual orb impact damages the centre pillar by 120 and each adjacent
+pillar by 51.75 in the tested geometry. The outer pair is out of range.
+An approach-side enemy takes splash, while Mei behind the centre is
+protected even when the same explosion destroys that pillar.
+
+An Ice Wall clears an existing sentry lock and its 20 percent slow by
+the first world update after deployment. Mei and the pillars take no
+sentry damage while the wall occludes the ray. The first world update
+after cancel reapplies the slow and resumes damage.
+
+The player mover stops at live Ice Wall pillars. Forward input crosses
+the former wall after cancel or expiry and crosses the gap after the
+beam breaks the centre pillar, with four pillars still alive. The break
+case seeds the centre pillar at 2 HP.
+
+All five authored NPC movers stop at the Ice Wall with zero route
+velocity, retain the fixture route destination and cross after Mei
+cancels. This test uses straight patrol routes and no pathfinder.
+
+A controlled wire journal matches snapshots while Symmetra touches
+the ice and after Mei cancels and Symmetra moves again. The derived
+geometry is included in the mover fingerprint as match state.
+
+Each manually selected Talon NPC drains Symmetra from 225 to zero
+through its live attack and is named in the death notice. Death clears
+the Assassin pin. The next update releases the held attack input.
+Scheduled respawn restores full pools after stopping manual engagement.
+
+Symmetra drains the authored full pools of each of the five Talon NPCs
+using primary beam commands. Heavy Assault requires a manual refill.
+Each run records one fatal hit and kill notice, then retains the corpse
+without allowing further beam hits or scheduling a respawn.
+
+Full-charge orbs spend 10 ammo and remove up to 120 per actual impact
+until each Talon NPC dies. Heavy Assault requires manual reload. Each
+kill yields one fatal hit and notice and retains the corpse.
+
+Trooper, Enforcer, Sniper, Assassin and Heavy Assault each kill
+Symmetra while a full charge is still held. Each actual attack is timed
+before automatic release. The pending charge yields no orb during
+death or on replacement. After natural respawn, a fresh charge and
+release hits the same attacker for 120. The lethal fixtures start at
+one health and zero shields.
+
+In a separate fixture, each of those five NPCs kills Symmetra one
+world tick after she releases a full orb. The orb is still in flight
+on the death tick. It later deals its combined 120 direct and splash
+damage to the surviving attacker, with both hit records and unchanged
+ultimate charge. With the attacker set to 100 health and no other
+pools, the same sequence yields a later NPC death, one elimination
+credited to the original body, and a retained NPC corpse.
+
+A long flight can also span natural PvP respawn. The authored orb
+launch yields 25 m/s and 25 seconds of server flight. On a flat
+static test map, impacts at 245 m and 265 m fall on opposite sides of
+the ten-second respawn. The first kill uses the old body and leaves
+its charge intact. In the current server, the second uses the
+replacement body in damage attribution and notices, and adds 100
+charge to it. Stepped and segmented world updates agree. The
+post-respawn source and charge policy still need build evidence.
+The lifetime also has a direct range check on the same flat fixture.
+The orb deals 120 at 624 m and expires without a hit at 626 m.
+
+An actual 265 m launch also reaches active defenses after its
+owner's natural respawn. Genji returns it into the repositioned
+replacement body for 120 credited damage and preserves the original
+flight budget. A front-facing Mech absorbs the orb with Defense
+Matrix, while an active Matrix facing away allows 110 resolved damage.
+Sigma's Kinetic Grasp absorbs the orb and converts 120 accumulated
+points to 72 temporary shields. The return and both absorptions
+grant no damage charge to Symmetra's replacement.
+Genji now uses his mounted 0B8B graph for the returned damage. The
+two 60-point hits each add 60 to Genji's charge, up to the authored
+cost. An actual Dragonblade cast suppresses both payments while the
+returned orb still deals damage. The same graph supplies no-input
+passive charge and keeps the earned balance through natural respawn.
+
+With Genji protecting an allied Symmetra, actual Talon returns award
+charge per hit from resolved pool loss. The initial Trooper, Enforcer,
+Sniper and Heavy Assault returns credit 20, 50, 100 and 5 respectively.
+Assassin contact bypasses Deflect and pins Symmetra, with no Genji
+damage or charge. Actual Projected Barrier on each ranged attacker
+absorbs its reflected attack. The loss becomes Zarya energy and the
+energy graph identifies Genji as the source. The protected body and
+Genji's damage, hit messages and charge are unaffected by the return.
+An actual Projected Barrier with one point left protects against the
+breaking return from each of the four attackers. Zarya gains 0.2
+energy from the last point. Enforcer fires a 25-pellet volley at two
+points per pellet in this fixture. Breaking on pellet one or two
+leaves 48 or 46 body damage and equal charge from the remaining
+pellets on that world tick. A subsequent Trooper or Heavy Assault
+return awards 20 or 5 respectively on a later tick.
+The next natural Sniper and Enforcer volleys arrive after Deflect
+expires. Its recovery animation precedes an eight-second cooldown.
+An actual new press during cooldown leaves Deflect inactive. The
+next attack hits Genji for 100 or 50 respectively and leaves the
+allied Symmetra unharmed. After cooldown, manual re-engagement and
+a fresh Deflect return 100 or 50 to the exposed NPC and award
+equal damage charge. The fixture stops the NPC between these two
+checks while the cooldown runs.
+Deflect now follows the defensive world clock when Genji sends no
+commands. A charged Symmetra orb reaching the box 125 world ticks
+after activation still reflects and later deals 120 on the return.
+An orb reaching it one tick later hits Genji for 120. Individual
+updates and a retained update spanning the boundary agree. Recovery
+starts the eight-second cooldown, and sparse input can start a
+fresh Deflect once that cooldown ends.
+An update ending 205 ticks after the cast starts retained combat at
++142. It still resolves the +125 Deflect contact before expiry, and
+the +126 approach reaches Genji. Active Deflect and a reflectable
+flight at the beginning of the gap admit all projectiles already
+in motion. They advance together through the omitted part, including
+after Deflect closes. Other attacks keep the ordinary 64-tick
+replay window. The selected
+flights' body-impact ticks agree with individual
+updates when the direct hit or reflected return lies before the
+retained window. A lethal direct hit sets the ordinary respawn
+deadline from that same impact.
+If the same update reaches that deadline, Genji's replacement
+appears at cast +752. Stepped and retained cases agree when the
+deadline is inside, at the start of, or before the retained window.
+They also agree when a second actual orb is still in flight at
+replacement. The old body's charge is preserved and the new
+body's passive clock starts at +752.
+The pending body identity also persists when one update applies the
+lethal hit and a later update reaches the deadline. Replacement still
+occurs at +752. If the first allocation fails, a single retry is
+scheduled from +752 and succeeds at +768. The dead body remains
+until then, and the new passive clock starts at the successful
+attempt. Server snapshots include this pending identity.
+With both flights admitted, an actual Accretion that arrives first
+kills Genji and the orb hits a target behind him. If the orb reaches
+Deflect first, the rock can still kill Genji and the reflected orb
+can hit Symmetra afterwards. Both orders preserve the actual impact
+and death ticks under long gaps.
+Actual Ice Wall also expires before the early projectile sweep on
+its scheduled expiry tick. An orb arriving one tick earlier removes
+120 from the centre pillar. Arrivals on the expiry tick or one tick
+later reach Genji's Deflect and return for 120 damage to Symmetra.
+The tests let the deployed wall expire naturally and compare
+individual and retained updates.
+Actual Helix and orb can also break the centre pillar during the
+early sweep. With five points remaining, whichever projectile reaches
+the pillar first breaks it and is consumed. If both contact it on the
+same world tick, the first-launched projectile breaks it. The other
+reaches Deflect and returns for 120 damage to Symmetra. The tests
+verify both launch orders, adjacent-tick arrivals, the surrounding
+pillar pools and the return's actual damage tick.
+Mei can also cancel the wall between two world updates. Canceling
+one tick before inbound contact lets the orb reach Deflect and
+return for 120. Canceling on the contact tick after the world's
+collision step, or one tick later, leaves the pillar's 120 damage
+recorded and the orb consumed. Actual placement between updates
+intercepts the inbound orb for 120 pillar damage. Placement after
+Deflect blocks the returning orb on the defender's allied ice
+without damaging the wall. The tested command is admitted after
+the world has reached its input checkpoint.
+The production server also receives actual encrypted Mei commands
+while its world is behind. After a missed tick, it resolves the
+world through the receive checkpoint before routing the open peer's
+packet and sending a world frame. Cancellation just before orb
+contact preserves the flight. At contact or one tick later the
+pillar first loses 120 and the flight ends. Confirmation after an
+unobstructed impact leaves Mei at 130 and all five new pillars at
+400. Recording and replay match these outcomes in a two-player
+fixture.
+In a three-player encrypted journal, the world catches up over
+160 ticks from an admitted orb while Genji has actual Deflect
+active at the start. A late cancel preserves the pillar's 120
+damage and consumes the original orb. Cancel one tick before
+wall contact and Genji instead returns it for 120 damage.
+Confirmation after the reflected hit creates five full pillars.
+The two returned hits occur at the same world ticks in stepped,
+skipped and replayed simulation, before the 64 retained frames.
+Reinhardt can turn the raised resource-backed Barrier Field across
+the orb path. Turning out before the possible mesh contact sends the
+orb into Genji's Deflect for a 120-damage return. Turning in at that
+checkpoint consumes it and leaves the shield at 1480. Turns received
+after the omitted flight preserve the earlier hit and change the
+current pose. Both encrypted turn directions agree with stepped
+simulation, including the reflected damage tick.
+The same checkpoint comparison now moves Reinhardt laterally with
+a 24-command encrypted batch while keeping his aim fixed. The
+shield translates about 1.44 metres into or out of the orb ray.
+Before contact, that translation decides whether the shield loses
+120 or Genji returns the orb for 120 on tick 1106. After the omitted
+flight, the translation changes the final pose and preserves the
+earlier hit. This covers a movement batch at one world checkpoint.
+Two actual charged orbs from one Symmetra verify separate flight
+admission. The older orb still reflects and deals 120 before the
+retained window. With a second release already decoded, the new
+orb steps just once at the catch-up endpoint. A release processed
+by the skipped scheduler iteration or injected after catch-up
+leaves the new orb at the muzzle until the next world tick.
+The new orb then reaches Genji after Deflect expires, deals 120
+and credits Symmetra. The old hit tick is identical across all
+three schedules. The latter two new hit ticks are one tick later.
+Two charged orbs also put Genji at 80, then kill him after Deflect
+expires in an omitted interval. A later skipped update creates his
+replacement at the historical respawn deadline. The owning peer
+acknowledges the old body destroy first. The observer drops its first
+destroy packet and starts its own 30-second reservation from the
+encrypted retry ACK. The old ID becomes available at that boundary.
+With all 255 IDs reserved, historical retry attempts leave Genji
+dead. A later catch-up crosses the observer's availability deadline.
+It evaluates the existing quarter-second retry schedule at each
+historical tick and assigns the first retired ID on tick 2907.
+When the observer's ACK is delayed by half a second, the same
+test reuses the ID on tick 2931. Using the endpoint's clock
+for every attempt replaces it on tick 2867. Checking only the
+owning peer replaces it on tick 2899.
+The 104319 charged orb keeps its 25-second lifetime when a scheduler
+gap exceeds 1024 frames. A 450-metre lethal hit, a 624-metre hit
+and a 626-metre miss preserve their collision or expiry ticks
+across a single 1880-frame gap. Splitting the gap after Deflect
+expires leaves the same result. Historical flight work stays
+bounded by the existing budget or the orb's remaining lifetime.
+The production receive loop also replays the 1880-frame gap with
+an encrypted second release waiting. The old orb hits at 624 metres
+or expires at 626 metres. The fresh orb stays at the muzzle until
+the next tick. A defender keepalive dispatched before catch-up
+preserves the link. With a silent defender the earlier hit is
+credited before the server drops that connection.
+Manual Talon NPCs also use their Concussive Blast displacement
+before each omitted projectile test. Against Trooper, Enforcer,
+Sniper and Assassin, a blast arriving first moves the capsule off
+the orb ray. Heavy Assault's mover rejects the displacement and
+the orb still removes 120. If the orb arrives first, all five take
+120 before the blast. Stepped and skipped updates agree on impact
+ticks, ending poses, damage attribution and Symmetra's charge.
+An admitted orb also sees the route-driven poses of the five Talon
+NPCs during combat catch-up. Routes crossing into or out of the ray
+after the orb passes preserve the earlier miss or hit. Routes crossing
+first determine the new contact result. A 180-tick gap agrees with
+stepped updates for all twenty NPC and route-order combinations.
+An independent Soldier: 76 link moves across the ray with a 24-command
+encrypted strafe batch. Movement admitted before contact can create a
+hit or miss. Late movement preserves the earlier result. Both hits
+land at tick 1041 for 120 damage, and both misses end at tick 1078
+without damage charge. The recording and replay agree on the final
+pose, terminal tick and actual pool changes.
+When a naturally expiring Ice Wall blocks a Talon route beside
+the orb ray, the route can resume after the orb ends. All
+five NPCs resume on the wall's expiry tick. Earlier expiry lets
+them enter the ray and take 120. Later expiry leaves them at
+full health while the orb ends against static geometry. The
+240-tick gap agrees with stepped simulation for both orders.
+When allied Mei freezes any of the five Talon NPCs, a locked Sentry
+Turret keeps its beam and 20 percent slow. The route stays paused
+until the thaw tick, then moves with the same sentry aura. Stepped
+and split updates match damage and charge. One 74-tick update
+inside the freeze credits all 47.36 damage. One 89-tick update
+through thaw credits all 56.96 damage, with movement resuming
+at tick 1217 under the same slow. The longer replay starts from
+a confirmed frozen pose with one locked sentry, one enemy NPC
+and stable cover. With 48 starting health each NPC dies four
+ticks before thaw and its route stays paused. With 52 starting
+health each NPC dies three ticks after thaw. Stepped and skipped
+updates agree on the death tick, final pose and charge. The kill
+credits Symmetra once and clears the aura. Longer gaps, other
+lethal boundaries and mixed cover remain open.
+Two sentries from separate allied owners also preserve their
+existing lock and slow auras on the sole frozen enemy NPC.
+Across the 89-tick update, each owner receives 56.96 damage
+and the corresponding charge. The NPC resumes its route on
+the thaw tick with 40 percent stacked slow. The same-target
+case is verified for all five Talon bodies. Independent
+targets and changing cover remain open.
+With a static wall beside the route, every blocked tick clears
+only the left beam's damage and slow. The other beam keeps
+its aura and credits its owner throughout. Stepped and skipped
+updates agree on blocked ticks, final pose and each owner's
+charge. At 96.32 starting health the first tower kills three
+ticks before thaw and the route stays paused. At 104.64 health
+the second tower kills three ticks after thaw. Both schedules
+agree on the killer's body, damage and charge for each owner,
+one elimination, and removal of both auras.
+An attached sentry on a single allied Ice Wall damages through
+the tick before the wall's natural expiry. Expiry retires the
+tower and clears its aura. The frozen NPC first moves on the
+later of thaw and wall expiry. Stepped and skipped updates
+agree on both orders for all five Talon NPCs. When Mei cancels
+the wall after the world checkpoint, the beam still damages on
+that tick. The command immediately retires the device and aura.
+Cancellation four ticks before thaw, on thaw, and three ticks
+after thaw gives the same results under stepped and skipped
+updates. Route movement starts on the later of thaw and the
+tick after cancellation. A hostile Soldier entering after the
+checkpoint can break a weakened supporting pillar with one
+actual rifle round. Only that pillar, the attached sentry and
+its slow are removed. The four neighboring pillars survive the
+shot. The same three checkpoint offsets agree with stepped
+updates for all five bodies. A Soldier already present beyond
+the beam range can also take the supporting pillar from 400
+to 20 health with 19 rifle rounds and break it on the next
+shot. A recorded unchanged out-of-range pose permits the same
+historical beam damage and charge. When a known in-flight
+Helix hits that support before thaw, the last beam damage
+falls one tick before impact. The support, device and slow
+are removed on impact. The frozen body is protected from
+the blast and resumes the route on thaw. If impact occurs
+on thaw or three ticks later, the route is still blocked
+through impact and moves on the following tick. All five
+Talon bodies match stepped damage and charge in both cases.
+An allied Helix can hit hostile support ice before thaw and
+splash the frozen target on the exposed side. Symmetra keeps
+her beam damage and charge, and Soldier receives the actual
+splash pool loss. Lethal splash leaves the NPC at the impact
+pose and keeps its terminal body script after the sentry aura
+is removed. Surviving NPCs move on thaw. An exposed stationary
+enemy player can also take nonlethal splash on the same impact
+tick. Soldier receives both pool losses, while Symmetra keeps
+the beam damage and corresponding charge. Lethal splash also
+resolves player death and kill notices at impact, with a new
+full-health body ten seconds later, when respawn falls beyond
+the replay window. The same checks pass with a surviving NPC
+and with both bodies dying on impact. A stationary Talon NPC
+can also take the same blast beside the frozen target. The
+second body keeps its authored starting pools in the surviving
+cases, including Enforcer and Assassin shields. With both
+bodies set to 30 health, the blast kills both and Soldier
+receives two eliminations. The five Talon definitions rotate
+through both roles. A second Talon on a route can enter or leave
+the splash before impact. All five definitions agree on the
+impact pose, actual pool loss or miss, and final position in
+stepped and skipped updates. This replay requires the route to
+leave the existing sentry lock and direct flight path intact.
+Moving bodies can also intercept the actual rocket segment.
+At the farther intercept, the body takes direct and splash
+damage and the sentry keeps firing until natural wall expiry.
+At the nearer intercept, the blast destroys the weakened
+support and removes the sentry and its slow on that tick.
+All five Talon definitions rotate through both roles. The
+frozen target either dies to splash with Soldier credited or
+resumes movement on thaw. Both schedules agree on the impact
+tick, pool changes, damage credit, charge, and final poses.
+With the interceptor at 30 health, the direct hit kills it
+before splash selects targets. Its corpse and death script
+remain at the contact pose. The blast still breaks the pillar,
+and Soldier gets one elimination per killed NPC. Both frozen
+target outcomes also agree across all five lethal interceptors.
+At the farther contact, a lethal hit still leaves all pillars
+intact. The sentry keeps firing until natural wall expiry.
+A moving Talon NPC can also become the nearest visible target
+before Helix strikes the support. In the tested isolated
+deployment the original slow ends on that tick and the new
+target takes beam damage and slows. Both bodies take splash,
+the support retires the sentry and its new aura on impact,
+and the original target moves on thaw. All five Talon
+definitions rotate through both roles. Splash can kill the
+former target, the new target, or both. The dead retain their
+body scripts and credit Soldier once each. The new target
+continues its route if it survives. With the moving target
+at one health, the second sentry pulse kills it and clears
+the slow. The sentry reacquires the original target on the
+next tick. Helix ignores the corpse, breaks the support and
+retires the new slow on the frozen NPC. Symmetra gets the
+sentry kill and Soldier gets the kill if the frozen NPC
+dies to splash. All five pairs agree between both schedules.
+The new target can also cross into Helix while still slowed.
+All five Talon definitions rotate through this interception.
+The direct hit offers 40 damage and a survivor takes 80 more
+from the explosion. A lethal direct hit excludes the corpse
+from splash. The blast breaks the support and retires the
+sentry and transferred slow on impact. The original frozen
+NPC dies to splash or moves on thaw. At the farther contact,
+the blast leaves all pillars at their starting health. The
+sentry keeps the interceptor locked if it survives. If the
+interceptor dies, the sentry reacquires a surviving original
+target in the same tick after splash. With both targets dead,
+the sentry stops dealing damage and stays attached until
+natural ice expiry. In the three-NPC setup, the new sentry
+target stays outside the rocket ray and a third NPC takes the
+direct hit. The other two NPCs take splash and survive, the
+sentry keeps firing at its new target, and all five pillars
+retain their health. Each Talon definition rotates through
+all three roles. Lethal splash on the new target causes the
+sentry to reacquire the original NPC if it survives. If only
+the interceptor survives, the sentry slows and damages it
+starting on the impact tick. With all three dead, the sentry
+clears its slow and stops firing until ice expiry removes it.
+At the nearer three-body contact, Helix hits the third NPC
+before its splash breaks the supporting pillar. That removes
+the sentry and the second NPC's slow on the impact tick.
+Each of the five rotating Talon trios agrees across both schedules
+for every combination of survival and death. Pharah's actual
+Rocket Launcher primary also replays the wall hit and the
+separate third-body intercept after a lock change. Both
+contacts break the weakened support and retire the sentry and
+its active slow on impact. Each wall-hit splash outcome and
+each near-interception lethal combination agrees in stepped
+and skipped runs. A direct kill excludes the interceptor's
+corpse from splash. Pharah receives one elimination per
+death, and the frozen survivor moves on thaw. At farther
+contacts, both the current sentry target and a separate third
+NPC can intercept. The blast leaves all pillars intact. The
+sentry keeps a surviving lock or reacquires a survivor on the
+impact tick. With no survivors it stops firing and stays
+attached until ice expiry. After actual Deflect transfers
+the Pharah rocket to an allied Genji, the returned rocket can
+strike the ice support during a lock change. The blast removes
+the sentry and transferred slow and credits Genji for each
+splash kill. All five Talon pairings agree for the four
+wall-hit survival outcomes. At the nearer reflected contact,
+a third Talon takes the direct hit and the blast breaks the
+support. The sentry and transferred slow end on impact.
+Both schedules agree across the eight survival outcomes
+in each rotating Talon trio. At farther reflected contacts,
+either the new beam target or a distinct third Talon can
+intercept while every ice pillar retains its health. The
+sentry keeps its lock if that target survives, switches to
+an eligible survivor, or stops firing when all targets die.
+Other projectiles, in-window respawns and mixed defenses
+remain open.
+A single active Projected Barrier on a moving Talon can
+absorb Helix splash when the rocket strikes the ice support.
+The full barrier retains capacity and the 30-point checkpoint
+barrier breaks. The recipient's body pools and last damage
+time are preserved. The support, sentry and original slow
+end on impact in both schedules. With the same stable sentry
+lock, the projected recipient can also intercept the rocket
+directly. Starting at 40 barrier points, the direct hit breaks
+the barrier and the same rocket's splash skips the recipient.
+At 41 points the splash breaks the barrier. At 200 points the
+barrier absorbs 120 and retains 80. Body pools and last damage
+time agree across both schedules. Near contact breaks the
+support, retires the sentry and clears its slow on impact. Far
+contact preserves the support and lets the sentry expire
+naturally. The isolated history replay also covers a lock
+change to a second Talon followed by a projected third Talon's
+interception. The second Talon takes the beam and the rocket's
+splash. The third retains its body pools and damage time at
+all three barrier capacities. Both schedules agree on the
+lock and impact ticks, damage, movement and sentry removal.
+The new beam target can also carry the projected barrier and
+intercept. The beam drains 0.64 capacity per tick and applies
+no slow while the barrier holds. A 30-point starting barrier
+breaks on the rocket's direct hit. A 70-point start breaks
+during splash. A 200-point start survives both and continues
+to absorb the beam until sentry expiry in the far case.
+After a far break the sentry applies the slow and begins body
+damage on the impact tick. After a near break the ice support
+and sentry are removed before another beam update. Zarya gets
+energy for absorbed damage from both weapons. When the rocket
+reaches the ice after the lock change, its wall-hit splash
+breaks the 30-point starting barrier or leaves part of the
+200-point barrier after earlier beam drain. The new target
+keeps its body pools and damage time as the support and
+sentry disappear. The frozen target takes splash and either
+survives to thaw or dies on impact. If Zarya projects onto the
+original target after freeze, the beam spends barrier
+capacity and clears its slow while the freeze keeps its
+original deadline. Helix wall splash that would otherwise be
+lethal leaves the target's body pools and damage time intact.
+The target moves at thaw, whether the sentry kept its lock or
+switched to the second Talon before impact. If the second
+Talon intercepts near the ice, it takes the direct hit first.
+A direct kill excludes its corpse from splash. A surviving
+interceptor takes splash as well. The original frozen target
+absorbs its own splash through Projected Barrier in both
+cases, and the splash still breaks the support. Farther away,
+the direct hit and splash leave the ice intact. A survivor
+keeps the sentry lock. A direct kill returns it to the frozen
+target on the impact tick. If splash broke its barrier, the
+sentry reapplies slow and begins body damage on that tick.
+If the barrier survived, the beam continues to spend barrier
+capacity without slow or body damage until the sentry
+expires. With wall contact after a lock change, a separate
+third Talon can move into splash under Projected Barrier
+without taking the beam. Its barrier absorbs splash across
+all survival and death outcomes for the unprotected targets.
+Zarya gains energy from that absorption, and the third Talon
+keeps its body pools and damage time. When the second Talon
+intercepts near the support, the same third recipient
+absorbs splash. The interceptor can survive the direct hit
+and take splash, or die before splash is selected. The
+protected Talon keeps its body pools and damage time in both
+cases, whether the sentry changed locks or kept its original
+target. The frozen target can independently die from splash
+or survive to thaw. Far interception after a lock change
+leaves the ice intact while the third Talon absorbs splash.
+If both unprotected Talon die, the sentry locks onto the
+third on the impact tick. A depleted barrier lets that
+tick's beam apply slow and damage. A surviving barrier
+absorbs the beam without slow until the sentry expires.
+When the lock stays on the original frozen target, a far
+interception can still splash a separate projected Talon.
+The frozen target stays outside the blast and thaws on
+schedule. If it carries the projection instead, only the
+beam spends barrier capacity. The 30-point barrier breaks
+on a beam tick and the next tick applies slow and damage.
+The 200-point barrier outlasts the sentry. Both paths
+preserve the support until natural expiry. A player with a
+recorded pose can absorb wall-hit splash before thaw while
+the sentry keeps its lock on the frozen Talon. The projection
+keeps the player's body pools and damage time intact. A
+30-point barrier breaks and a 200-point barrier has capacity
+left. The ice and sentry disappear on impact. A recorded
+player can also intercept the rocket close enough for splash
+to break the support before thaw. A 40-point barrier breaks
+on contact and excludes the player from that rocket's splash.
+At 41 points splash breaks the barrier. At 200 points it
+retains 80 after direct and splash. Health, native shields
+and damage time remain intact. Far interception can preserve
+the ice and continue the original lock when all enemy players
+have recorded poses outside sentry range. The same three
+barrier outcomes protect the interceptor, and the original
+target thaws on schedule. A recorded interceptor inside
+range also preserves the lock when the original Talon stays
+closer, visible and alive through thaw and the remaining
+beam ticks. When the original moves farther away after thaw,
+the same recorded interceptor can take the lock. A surviving
+barrier absorbs the beam without slow. A barrier spent on
+Helix permits slow and damage on the first tick of the new
+lock. This replay covers a single sentry and keeps player
+respawns outside the interval. If the original Talon survives
+the rocket but dies to the beam before thaw, its retained corpse
+leaves the lock. The sentry selects the player on the following
+tick, where the remaining barrier decides whether slow and body
+damage apply. Changing player poses, respawns inside the
+interval and overlapping defenses remain open.
+The beam can also kill the Talon after thaw. The final
+movement step resolves before the fatal beam tick. The
+retained corpse keeps that position, and the player takes
+the lock on the following tick under the same barrier rules.
+A thawed Talon can also walk behind static cover while it
+remains closer than the interceptor. The first blocked ray
+clears its slow and moves the lock to the visible player on
+that tick. Remaining projection absorbs the beam, or the
+beam applies slow and body damage if Helix exhausted it.
+A stationary projected player can absorb splash after a
+separate Talon intercepts near the ice. The Talon takes the
+direct hit and either dies before splash or survives to take
+it. The player keeps their body pools and damage time, and
+the blast removes the ice support and sentry on impact.
+When the Talon intercepts farther away, a separate player
+outside sentry range can absorb splash without changing the
+original beam lock. The support retains its health until
+natural expiry, and the original target thaws on schedule.
+The same far interception can splash a player inside range
+when the original Talon stays nearer than both other bodies,
+visible and alive throughout the replay. The check also
+covers an interceptor that dies on impact and leaves a corpse.
+If the beam later kills the still-frozen original Talon, the
+player takes the lock the following tick. A barrier depleted
+by splash permits slow and body damage. A surviving barrier
+absorbs the remaining beam without slow.
+If the interceptor survives, the first tick after the frozen
+Talon dies selects the closer of the two visible in-range
+capsules. A nearer interceptor takes beam damage and slow,
+leaving the player's post-splash barrier and body pools intact.
+A nearer player takes the beam while the interceptor keeps
+its post-rocket pools. Remaining barrier capacity absorbs the
+beam, or the beam slows the player and damages health or
+native shields if splash exhausted the barrier.
+The same handoffs work when the original Talon survives past
+thaw. In the 47.5-health checkpoint it moves through tick 1335,
+takes the final 0.14 damage, and keeps the fatal-tick pose as
+a corpse. The new target receives five beam ticks from 1336
+through 1340. A nearer player's remaining barrier absorbs 3.2
+damage. If splash exhausted the barrier, those ticks apply
+slow and 3.2 damage to health or native shields. A nearer
+interceptor takes 3.2 damage and slow.
+A static obstruction can hide the thawed original Talon
+while it is still closer than either splash candidate. The
+beam drops the original slow and changes targets on the
+first occluded tick. When both candidates are visible and
+in range, their capsule distances determine the new lock.
+If the interceptor died on impact, the separate player
+takes the beam. The player's remaining projection controls
+whether the beam applies damage and slow.
+The isolated far body replay also accepts splash on the
+original frozen Talon when it can retain its corpse and
+no player respawn enters the replay window. Helix kills
+the original target with splash before the sentry update.
+The old slow clears and the nearest visible survivor takes
+the beam on the impact tick. The player's remaining barrier
+can absorb the first beam tick immediately after the blast.
+Nonlethal splash removes health while the original freeze
+and sentry slow continue. The 150-health checkpoint thaws
+and stays locked through natural support expiry. At the
+95-health checkpoint the beam kills the original Talon
+before thaw, retains its frozen pose and credits Symmetra.
+The nearest visible survivor gets the lock on the following
+tick. The player's projection absorbs remaining beam ticks
+or permits slow and damage after the splash depleted it.
+Far Talon interception can land on the thaw tick or the
+following tick. The original Talon steps before the rocket
+and receives splash at its new capsule position. With the
+150-health checkpoint it stays locked through support expiry.
+The separate player's projected barrier absorbs splash and
+the support stays intact.
+With the 30-health checkpoint, the original Talon dies from
+splash at the capsule position reached on that tick. Its
+corpse keeps that position, Soldier gets the elimination,
+and the sentry updates to the nearest visible survivor on
+the same tick. Both interceptor survival outcomes and both
+distance orders with a survivor are covered.
+A recorded in-range player can take the direct hit on either
+thaw boundary tick while the moving Talon receives splash.
+A 40-point projection breaks on the direct hit and protects
+the player from the same blast. At 41 points the blast spends
+the final point. A 200-point projection keeps 80 after both
+offers. If the Talon dies, the player takes the beam on impact
+and the remaining projection can absorb it immediately.
+A wall hit on either boundary samples the original Talon
+after movement. The support breaks, retiring the sentry
+and slow before the beam update. The four adjacent pillars
+remain on the impact tick. A fatal blast leaves a corpse
+at the moved position and credits Soldier. A nonlethal
+blast allows movement to continue. The projected player's
+body pools stay intact in both cases.
+The wall replay also admits a farther, recorded player
+inside beam reach. The original Talon must stay closer than
+each candidate through the last pre-impact beam tick.
+Zarya can cast from this position and keep her pools and
+damage time. The measured damage and removal agree with
+the same wall hit when she casts from outside beam reach.
+Fixed overhead cover can hide the thawed Talon from the
+beam while allowing the rocket blast to reach it. The beam
+switches to the projected player on the first blocked tick.
+The old slow ends and the Talon continues moving before the
+wall hit five ticks after thaw. The Assassin is outside
+splash when the wall hit comes eight ticks after thaw.
+The projection absorbs the intervening beam and the splash. The support
+and sentry retire before an impact-tick beam.
+A visible Talon can also move farther than the projected
+player. The first distance crossover transfers the lock.
+The projection absorbs the remaining beam until the wall hit.
+If the original Talon clears narrow cover while still closer,
+the sentry resumes damage and applies a fresh slow that tick.
+The projection absorbs the intervening beam ticks and splash.
+Actual Swift Strike also closes Deflect before an in-flight orb
+arrives. With the dash, Genji takes 120 damage. The matched control
+keeps Deflect open and transfers the orb to Genji.
+
+Quick melee kills each full-pool Talon NPC from two metres with up to
+30 damage per recovered swing. Early repeat is rejected, ammo stays
+full, and each lethal swing yields one fatal hit and retains the corpse.
+
+One sentry kills each full-pool regular Talon NPC. Three kill Heavy
+Assault. Each applies its own 20 percent slow aura. Attribution goes
+to Symmetra, and the next world update clears all locks and slow auras.
+
+Staggered manual engagement lets all five authored Talon NPC attacks
+land in one fight. Distinct sources remove points in the same tick.
+The final damaging source gets the only death notice attribution,
+with pin cleanup and attack input release on death.
+
+In the five-NPC encounter, Symmetra damages Heavy Assault on a tick
+when she also loses pools. The subsequent Assassin pin prevents
+continued held primary damage. The five attackers still resolve
+one death and release inputs afterward.
+
+All five NPC attackers consume one 200-point projected barrier,
+including distinct sources in one tick. Symmetra can beam Heavy
+Assault during a protected tick. Zarya gains 40 energy on depletion.
+
+In one five-NPC encounter the Photon Barrier intercepts crossing
+Sniper, Enforcer and Heavy Assault attacks. Same-side Trooper and
+Assassin damage reach Symmetra. She can return fire while the wall
+takes damage, and a same-side Assassin can still pin her.
+
+Crossing fire from Sniper, Enforcer and Heavy Assault reaches
+Symmetra only after her Photon Barrier retires. The expiry branch
+starts at 4000 health. The break branch seeds 200 health.
+
+Ten manually engaged Heavy Assault NPCs break the actual 4000-point
+Photon Barrier before expiry. Symmetra is at full pools when the wall
+retires. Continued fire then reaches her.
+
+A quick melee tap 61 frames after the initial hit queues damage for
+frame 62, even if released then. A fresh press at frame 62 also hits.
+Holding the original press does not repeat at recovery.
+
+A released melee tap at frame 53 does not repeat. A tap at frame 54
+executes at frame 62 and traces using the recovery command aim.
+
+Flashbang cast at frame 55 interrupts damage from the quick melee tap
+buffered at frame 54. No delayed hit appears on stun expiry. A fresh
+press after recovery hits for 30.
+
+A fatal enemy revolver shot at frame 55 stops the melee tap buffered
+at frame 54. No delayed hit appears during death or after respawn.
+A fresh press on the new body hits for 30.
+
+A received command delta of 64 frames reconstructs the buffered melee
+hit at frame 62. A delta of 65 skips that hit. A repeated endpoint does
+not duplicate it, and a later fresh press works in both cases.
+
+Flashbang suppresses buffered melee across a recoverable 64-frame command
+gap, even when input resumes after stun expiry.
+
+An actual Assassin pin suppresses buffered melee across a recoverable
+64-frame gap even when released before input resumes.
+
+Projected Barrier releases an Assassin pin during a recoverable command
+gap. No old buffered hit returns and a fresh melee press hits.
+
+Projected Barrier rescue before the buffered melee deadline also leaves
+the interrupted swing suppressed across a recoverable command gap.
+
+Projected Barrier deployed before Assassin contact prevents the pin
+and preserves buffered melee across the recoverable command gap.
+
+Actual Assassin contact before orb release suppresses launch and leaves
+ammo at the partial cost already incurred while charging. Manual stop
+or a Projected Barrier rescue admits a fresh charge, with no delayed
+launch from the canceled one. An orb released before contact remains
+in flight and hits for 120 while the owner is pinned. A barrier cast
+before contact absorbs 25, preserves the held charge and admits the
+ordinary release for the same damage.
+
+The 157C secondary gate observes priority-link removal after 1571
+confirmation, even when the resolved variable value is unchanged.
+A released orb retains its path and credit across own or allied transit.
+
+Held primary retains 120 DPS and switches to the exit target on the
+actual Teleporter transit frame. The entrance target stops taking damage.
+
+Flashbang blocks Teleporter during stun. A released tap does not queue.
+Continuously held interaction transits on the first unstunned frame.
+
+An exit-side static wall blocks level-two primary on the transit frame
+and afterward. The uncovered control hits the exit target on transit.
+
+An enemy Ice Wall at the exit takes the level-two beam on the Teleporter
+transit frame. The next held-beam frame after wall cancel hits Mei.
+
+Held primary destroys the central exit pillar from full health. The
+breaking tick protects Mei, and the next tick hits her.
+
+Cryo-Freeze protects Mei and a rear enemy on the Teleporter transit frame.
+The next held-beam frame after cancellation hits Mei.
+
+A Winston sphere takes the level-two beam on the Teleporter transit frame.
+The authored shield tag enables ammo recovery. The breaking tick leaves
+Winston unharmed and the following tick hits him.
+
+Personal Barrier at the Teleporter exit absorbs the transit beam and
+gives Zarya 40 energy on depletion. The following tick hits her.
+
+Projected Barrier at the Teleporter exit takes the transit beam and
+credits 40 energy to Zarya on depletion. The following tick hits
+the protected Soldier.
+
+Secondary held to full charge at the entrance releases from the exit
+on the transit command or the next one, spends ten ammo, and hits
+only the exit target for 120.
+
+A 20-frame partial orb releases at the Teleporter exit on transit or
+one frame later. It matches the stationary control at about 46.452
+damage and 2.871 ammo.
+
+Flashbang cancels a partial charge at the Teleporter entrance. Held
+interact transits at stun expiry without an orb. A fresh charge can
+fire from the exit.
+
+Projected Barrier absorbs Flashbang and preserves the full secondary
+charge at the entrance. The transit command releases the orb from
+the exit for 120 damage.
+
+Teleporter devices are excluded from the static projected ally search.
+An overlapping ally can receive the barrier and keep a charged orb
+through Flashbang and transit.
+
+The static projected ally search accepts an attached sentry. Soldier
+primary exhausts its 200-point barrier and credits Zarya 40 energy.
+Native eligibility remains open.
+
+Zarya's Projected Barrier selects each of the five allied Talon NPCs
+in the static host. A full Symmetra orb takes 120 of 200 barrier points
+and gives Zarya 24 energy. Primary fire consumes the remaining 80 and
+brings her energy to 40. The NPC keeps its full pools through the
+breaking tick and takes damage from subsequent primary fire. Original
+recipient eligibility remains open.
+
+Soldier: 76's hostile Helix Rocket deals 120 to Photon Barrier and
+80 splash to an exposed near-side target in the full-damage radius.
+A detonation on a nearby enemy body can also damage the hostile wall
+by splash alone. Far-side targets remain protected through the
+explosion that breaks the wall in both cases. In the team fixture,
+an allied rocket and its blast can cross the wall without damaging it.
+
+Helix Rocket's 40 direct and 80 splash damage resolve against the
+same personal or projected particle barrier. If either
+part depletes it, the recipient keeps all body pools through that
+explosion. Zarya gains energy on the absorbed points, an exposed
+neighbor still takes splash, and subsequent primary can hit the
+former recipient. The projected test uses Symmetra as the recipient.
+
+In both cast orders, a personal particle barrier on Zarya takes
+precedence over a teammate's projected barrier. An orb or Helix that
+depletes the personal layer leaves the projected layer at 200 and
+credits only the recipient's energy. Later primary fire can deplete
+the projected layer and credits the teammate. Body damage resumes on
+subsequent primary fire. Native overlap priority remains open.
+
+With two projected barriers on the same ally, the static host uses
+match player order for precedence in both tested cast orders. A full
+orb charges only the first caster. After break, expiry, caster switch
+or caster death, the second barrier keeps all 200 points. Symmetra's
+following quick melee spends 30 of those points and gives its caster
+6 energy. The ally keeps full pools. Native priority remains open.
+
+The actual 157E sentry volley has no Deflect damage tag, and its 2658
+entity carries the 0145 exclusion used by the static absorption
+filter. A live launch crosses the active Genji, D.Va Mech and Sigma
+defense volumes, attaches to the test wall with its original owner,
+and spends one charge. The launch deals no body damage. The deployed
+beam then damages and slows. Native projectile filters remain open.

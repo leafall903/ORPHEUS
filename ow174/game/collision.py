@@ -687,6 +687,25 @@ class World(_TriangleScene):
         return cls(triangles, masks, surfaces, header.get("name", ""), engine)
 
 
+class MovementOverlay:
+    """Temporary movement geometry over an immutable map."""
+
+    def __init__(self, base: World, addition: World) -> None:
+        self.base = base
+        self.addition = addition
+        self.lowest = base.lowest
+        self.engine = self
+
+    def query(self, low, high):
+        return self.base.engine.query(low, high) + self.addition.engine.query(low, high)
+
+    def ground(self, x, z, top, bottom, category=MOVER):
+        extra = self.addition.ground(x, z, top, bottom, category)
+        if extra is None:
+            return self.base.ground(x, z, top, bottom, category)
+        return self.base.ground(x, z, top, extra.y, category) or extra
+
+
 class RayWorld(_TriangleScene):
     """Explicit static query geometry from the core chunk and indexed static props."""
 
