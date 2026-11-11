@@ -977,6 +977,18 @@ class World:
     def placement_probe(self, state: "State") -> bool:
         return False
 
+    def list_selection_random(self, state: "State"):
+        """Return an explicit uint32 draw for the active list State."""
+        return NotImplemented
+
+    def tagged_entity_world_available(self, instance: "Instance", node: Node):
+        """Declare whether the active tag State can resolve its world."""
+        return NotImplemented
+
+    def tagged_entity_candidates(self, instance: "Instance", node: Node):
+        """Ordered entity records from a declared tag-query service."""
+        return NotImplemented
+
     def stop_tracking_targets(self, state: "State") -> None:
         """Optional cleanup of a host-owned target query."""
 
@@ -1590,7 +1602,8 @@ class Instance:
                     self.component.unsupported(self, "state reference", str(index))
                 return None
             model = state_type(node.cls, self.component.strict, self.graph.index, node.pos)
-            if self.component.strict and node.cls != "STUStatescriptState" and model is State:
+            registered_base = (STATE_CLASSES.get(node.cls) is State or STRICT_STATE_CLASSES.get(node.cls) is State)
+            if self.component.strict and node.cls != "STUStatescriptState" and model is State and not registered_base:
                 if self.component.world.native_state_factory_miss(node.cls):
                     return None
                 self.component.unsupported(self, "state", node.cls, node)

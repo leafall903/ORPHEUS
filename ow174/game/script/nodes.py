@@ -28,6 +28,7 @@ from ow174.game.script import (
     effect_parameters,
     effect_routing,
     entity_control,
+    entity_queries,
     expr,
     game_message,
     health_queries,
@@ -98,6 +99,10 @@ def seconds_to_ms(value) -> int:
 
 
 # --- states --------------------------------------------------------------------------------------
+
+
+# The delivered captured registry resolves this fieldless class to State.
+state_class("STU_109F9DE0")(State)
 
 
 _NUMERIC_ROWS = {
@@ -4638,18 +4643,79 @@ class SummonerBarrierPet(State):
 class RecentInputState(State):
     """D43000 starts with an empty input history. D4F130 handles active input."""
 
+    def __init__(self, instance, node, index):
+        super().__init__(instance, node, index)
+        self.recent = []
+
     def on_enter(self) -> None:
         self.history = []
+        self.recent.clear()
 
     def plug_enter(self, input_path: str) -> bool:
         if input_path != 'm_F4DD996D':
             return super().plug_enter(input_path)
         component = self.instance.component
         if self.active and component.strict:
-            if self.instance.graph.index != 0x0CBA:
-                component.unsupported(self.instance, 'input history update', self.node.cls, self.node)
-            self.select_spawn_position()
+            if self.instance.graph.index == 0x0CBA:
+                self.select_spawn_position()
+            else:
+                self._select()
         return True
+
+    def _select(self):
+        instance, node = self.instance, self.node
+        component = instance.component
+        seconds = to_float(play.evaluate_scalar(instance, node.field("m_82317B5F"), watcher=self))
+        millis = f32(seconds * 1000)
+        rounded = f32(millis + math.copysign(0.5, millis))
+        timeout = math.trunc(rounded) if -0x80000000 <= rounded < 0x80000000 else -0x80000000
+        now = self.now
+        oldest, oldest_age = 0, 0
+        for index in range(len(self.recent) - 1, -1, -1):
+            component.consume_work("list selection history")
+            age = now - self.recent[index][1]
+            if age > timeout:
+                self._drop_recent(index)
+            elif age >= oldest_age:
+                oldest, oldest_age = index, age
+
+        values = tuple(play._iter_values(instance, node.field("m_814F8EC3"), watcher=self))
+        value = 0
+        if values:
+            if len(self.recent) >= len(values) and oldest < len(self.recent):
+                self._drop_recent(oldest)
+            random_word = component.world.list_selection_random(self)
+            component.ensure_valid()
+            if not self.active or instance.stopped or component.instances.get(instance.id) is not instance:
+                component.unsupported(instance, "list selection owner retired", node.cls, node)
+            if type(random_word) is not int or not 0 <= random_word <= 0xFFFFFFFF:
+                component.unsupported(instance, "list selection random word", node.cls, node)
+            occupied = {index: offset for offset, (index, _) in enumerate(self.recent)}
+            choice = random_word % len(values)
+            for _ in values:
+                component.consume_work("list selection search")
+                if choice not in occupied:
+                    break
+                choice = (choice + 1) % len(values)
+            if timeout > 0:
+                stamp = (choice, now)
+                if choice in occupied:
+                    self.recent[occupied[choice]] = stamp
+                else:
+                    self.recent.append(stamp)
+            value = values[choice]
+
+        output = node.field("m_C51AF683")
+        target = expr.dynamic(output)
+        if target is None and output is not None:
+            component.unsupported(instance, "list selection output target", node.cls, node)
+        if target is not None and target[1]:
+            instance.write(target, value)
+        instance.follow(node, "m_1405CDCB", self)
+
+    def _drop_recent(self, index):
+        self.recent[index] = self.recent[-1]
+        self.recent.pop()
 
     def select_spawn_position(self) -> None:
         instance = self.instance
@@ -4707,6 +4773,13 @@ class StaticTagTarget(State):
 
     def on_enter(self) -> None:
         component = self.instance.component
+        if component.strict and self.node.field("m_filter") is None:
+            present = component.world.tagged_entity_world_available(self.instance, self.node)
+            if present is not NotImplemented:
+                self.ticks()
+                self.unwatch()
+                entity_queries.collect_tagged(self.instance, self.node, watcher=self, _world_available=present)
+                return
         output = lvalue(self.node.field("m_4AEEE6A1"))
         filter_config = self.node.field('m_filter')
         if (isinstance(filter_config, dict) and filter_config.get('$') == 'STUConfigVarFilter'
@@ -4745,6 +4818,12 @@ class StaticTagTarget(State):
         self.instance.write(output, targets)
 
 
+    def tick(self):
+        self.on_enter()
+
+    reentry = dependency_changed = on_enter
+
+
 # --- actions and conditions ------------------------------------------------------------------------
 
 
@@ -4755,6 +4834,10 @@ def collect_targets(instance: Instance, node, caller) -> bool:
     if not component.strict:
         return NotImplemented
     filter_config = node.field('m_filter')
+    if instance.graph.index == 0x0D76 and filter_config is None:
+        entity_queries.collect_tagged(instance, node)
+        instance.follow(node, 'm_outPlug', None)
+        return True
     output = lvalue(node.field('m_4AEEE6A1'))
     if (output is None or node.field('m_ADEB6E05') not in (None, 1) or node.field('m_2BBEEAB8') not in (None, 0)
             or any(node.field(key) is not None for key in ('m_9C7BD8B8', 'm_8B2A4DF3'))):

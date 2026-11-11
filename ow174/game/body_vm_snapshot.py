@@ -78,6 +78,7 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     nodes.FilterArray: ((), ()),
     nodes.StaticTagTarget: ((), ()),
+    nodes.RecentInputState: (("recent",), ("history",)),
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),

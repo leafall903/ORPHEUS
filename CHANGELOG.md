@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Integrate delivered Skirmish selection and tag services
+
+- Preserve the delivered recent-list selection, declared ordered tag candidates,
+  live tag-state refresh and channel broadcast checks alongside the combined
+  spawn-position and hero-specific query implementations. Register recent
+  selection history in the inert body snapshot codec.
+- Honor explicitly registered fieldless base States in strict execution while
+  continuing to reject unknown State classes.
+- All 37 Soldier charge checks passed. The 135 focused shared/Skirmish checks
+  retain only the existing health-query, movement-output and tire-wave failures
+  (three failures, two errors); the registered-base change resolves three
+  pre-existing scene errors. Client acceptance remains pending. Existing code
+  is submitted independently of complete acceptance.
+
+
 
 ### Preserve Soldier charge eligibility across phase boundaries
 
