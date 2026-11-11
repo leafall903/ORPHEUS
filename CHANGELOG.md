@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered D.Va weapon consumers and launch arithmetic
+
+- Mount the original D.Va weapon policy, Fusion ring sampler and104319 aim
+  round trip. Preserve each pellet as an independent hit, and keep scoped
+  Light Gun criticals, authored radius, ordinary-contact priority and near cover.
+- Restore0407/040A view heights and retired body-query behavior. Register the
+  delivered controlled-body reference and retain its player-target resolver.
+  Both existing and incoming pilot fixtures remain present unchanged.
+- The28-check weapon run passed27 checks and exposed the missing source
+  player-target API. Its original contact-priority check passed after mounting
+  that API. All14 targeted contact/shared Echo sticky/inert snapshot checks
+  passed; the final resolver check also passed.
+- Owned mech construction, control routing, ejection and remaining D.Va/shared
+  services are still pending; this commit preserves the admitted weapon work
+  without claiming the whole line or original-client acceptance.
+
 ### Preserve delivered Zenyatta passive and admitted-flight clocks
 
 - Restore the source lane's five-point-per-second passive ultimate policy at

@@ -257,6 +257,7 @@ class Player:
         self.commands = CommandQueue()
         self.impulse_correction: tuple[int, int] | None = None
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
+        self.controlled_mech: bots.Bot | None = None
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
         self.genji_mobility = Mobility()
         # Other players' bodies this player's client has: body -> False in the frame of its create.

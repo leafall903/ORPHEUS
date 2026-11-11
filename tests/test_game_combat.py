@@ -103,6 +103,19 @@ def aim(origin, target) -> tuple[int, int]:
     return (yaw + 32768) % 65536 - 32768, pitch
 
 
+def dva_pilot_input(player) -> None:
+    """Use the authored return message in fixtures that specifically exercise the pilot."""
+    from ow174.game.script import nodes
+
+    mech = player.controlled_mech
+    if mech is None:
+        return
+    instance = next(i for i in mech.body_script.component.instances.values() if i.graph.index == 0x276)
+    nodes.send(instance, instance.graph.node(5), None)
+    player.match.deliver_body_messages()
+    assert player.controlled_mech is None
+
+
 class Run:
     """A match ticked frame by frame, the players' commands taken as the server takes them."""
 

@@ -330,6 +330,8 @@ class BodyWorld(runtime.World):
         return None
 
     def _lookup_body_owner(self, entity):
+        if self.match is None:
+            return None
         for player in self.match.players:
             if not player.gone and player.has_body and player.body == entity:
                 return body_owner.Target(entity, player.entity)
@@ -1963,7 +1965,7 @@ class BodyScript(ReplicatedBody):
         separate configured policy; this does not establish native charge rates.
         """
         if (self.retired or self.component.fault is not None
-                or (self.hero in (0x02E000000000013B, 0x02E000000000006E) and self.component.owner_dead)
+                or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
                 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return 0.0

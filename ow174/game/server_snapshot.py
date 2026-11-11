@@ -123,7 +123,7 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed genji_mobility seen shown script mode_script "
+                   "body_script controlled_mech body_script_failed genji_mobility seen shown script mode_script "
                    "next_countdown select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),

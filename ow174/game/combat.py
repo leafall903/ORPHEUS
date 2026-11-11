@@ -125,6 +125,7 @@ MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notic
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 # 104319 FirstPerson standing and crouched fields. Unlisted bodies use the fallback.
 EYE_STANDING = {
+    0x0400000000000407: 1.74, 0x040000000000040A: 1.32,
     0x0400000000000001: 1.25,
     0x0400000000001424: 1.25,
     0x0400000000001C46: 1.7,
@@ -134,6 +135,7 @@ EYE_STANDING = {
     0x0400000000002AB1: 2.1, 0x04000000000003BF: 1.6,
 }
 EYE_CROUCHED = {
+    0x0400000000000407: 1.74, 0x040000000000040A: .8,
     0x0400000000000001: 0.875,
     0x0400000000001424: 0.875,
     0x0400000000001C46: 1.1,
@@ -1067,6 +1069,83 @@ def _source_entity(actor) -> int:
     return actor.entity if isinstance(actor, (bots.Bot, actors.Deployable)) else actor.body
 
 
+def _volley_directions(actor, state, direction, *, number=0, counter=0):
+    """Resolve authored Fusion and Talon volley counts with a static muzzle pose."""
+    from ow174.game import dva, npc_context
+
+    hero = getattr(actor, "hero", None)
+    hero = getattr(hero, "guid", hero)
+    site = state.instance.graph.index, state.node.pos
+    if hero == dva.HERO and site in ((dva.LIGHT_GUN, 10), (0x1128, 10)):
+        from ow174.game import weapon_aim
+
+        return (weapon_aim.normalize_direction(weapon_aim.quantized_direction(direction)),)
+    if hero == 0x02E00000000001BA and site == (0x114F, 47):
+        count = state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False)
+        if count != 2:
+            raise ValueError("unexpected Heavy Assault dual-muzzle volley count")
+        return (direction,) * count
+    if ((hero, site) != (dva.HERO, (dva.FUSION_CANNONS, 6))
+            and (hero, site) != (npc_context.ENFORCER, (npc_context.WEAPON, 24))):
+        return (direction,)
+    cfg = state.node.field("m_5EC1EB38") or {}
+    if cfg.get("$") != "STU_613BDDB0":
+        raise ValueError("weapon volleys require their authored ring pattern")
+    count = state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False)
+    spread = state.evaluate(cfg.get("m_spread"), watch=False)
+    rings = []
+    for ring in cfg.get("m_0D30E40C") or ():
+        radius = state.evaluate(ring.get("m_6425FFB9"), watch=False)
+        size = state.evaluate(ring.get("m_B19BD35D"), watch=False)
+        if (type(radius) not in (float, int) or not math.isfinite(radius) or radius < 0
+                or type(size) is not int or size <= 0):
+            raise ValueError("invalid weapon volley ring")
+        rings.append((radius, size))
+    if (type(count) is not int or not 1 <= count <= 256
+            or type(spread) not in (float, int) or not math.isfinite(spread) or spread < 0
+            or sum(size for _, size in rings) != count
+            or any(spread * radius >= 90 for radius, _ in rings)):
+        raise ValueError("invalid weapon volley count/spread")
+    if hero == dva.HERO:
+        from ow174.game import fusion_spread, weapon_aim
+
+        jitter_field = cfg.get("m_92308789")
+        jitter = state.evaluate(jitter_field, watch=False) if jitter_field is not None else 0
+        phase_field = cfg.get("m_391F15AF")
+        degrees = state.evaluate(phase_field, watch=False) if phase_field is not None else None
+        if (type(jitter) not in (int, float) or not math.isfinite(jitter) or jitter < 0
+                or (phase_field is not None and
+                    (type(degrees) not in (int, float) or not math.isfinite(degrees)))):
+            raise ValueError("invalid Fusion Cannon jitter or phase")
+        phase = -1 if degrees is None else expr.f32(expr.f32(degrees) * expr.f32(math.pi / 180))
+        if degrees is not None and phase < 0:
+            phase = math.fmod(phase, math.tau) + math.tau
+        # D74B68 takes the m_states index. The body and instance identities
+        # remain host mappings for the native entity and script words.
+        seed = fusion_spread.seed_base(_source_entity(actor), state.instance.id, state.index, counter)
+        forward = weapon_aim.quantized_direction(direction)
+        rays = fusion_spread.directions(forward, spread, jitter, phase, rings, seed, number)
+        return tuple(weapon_aim.normalize_direction(ray) for ray in rays)
+    # Enforcer still uses the existing tangent projection and zero ring phase.
+    x, y, z = direction
+    right = (z, 0.0, -x) if abs(y) < 0.99 else (0.0, -z, y)
+    length = math.sqrt(sum(v * v for v in right))
+    right = tuple(v / length for v in right)
+    rx, ry, rz = right
+    up = (ry * z - rz * y, rz * x - rx * z, rx * y - ry * x)
+    rays = []
+    for radius, size in rings:
+        offset = math.tan(math.radians(spread * radius))
+        for pellet in range(size):
+            phase = 2 * math.pi * pellet / size
+            horizontal, vertical = offset * math.cos(phase), offset * math.sin(phase)
+            ray = tuple(d + horizontal * r + vertical * u
+                        for d, r, u in zip(direction, right, up, strict=True))
+            length = math.sqrt(sum(v * v for v in ray))
+            rays.append(tuple(v / length for v in ray))
+    return tuple(rays)
+
+
 @dataclass
 class Target:
     entity: int
@@ -1206,6 +1285,10 @@ class Rocket:
 
     def flight_cursor(self):
         return self.launch_tick if self.last_tick is None else self.last_tick
+
+    @property
+    def collision_radius(self):
+        return self.direct.projectile_extent if self.direct is not None else 0.0
 
     def __post_init__(self):
         if self.source_entity is None:
@@ -3247,6 +3330,13 @@ class Combat:
                 found.append(self._deployable_target(actor))
         return [self.pulse_bombs.sampled(target) for target in found]
 
+    def player_target(self, player):
+        """Resolve a player controller to the body currently taking combat."""
+        if player is None or player.gone or not self.match._shown(player):
+            return None
+        actor = player.controlled_mech or player
+        return next((target for target in self._targets() if target.owner is actor), None)
+
     @staticmethod
     def _deployable_target(actor):
         return Target(actor.entity, actor.team, actor.position, actor.height, actor.radius,
@@ -4070,6 +4160,12 @@ class Combat:
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
         direct = hit_def(state, node.field("m_6396149F"))
+        from ow174.game import dva
+
+        dva_critical = dva.direct_hit_critical(shooter, state)
+        if direct is not None and dva_critical is not None:
+            direct = replace(direct, critical=dva_critical,
+                             projectile_headshot=state.instance.graph.index == dva.LIGHT_GUN)
         charge_context = None
         if (not npc and direct is not None and direct.loadout == 0x0B9000000000003E
                 and shooter.hero.guid == regeneration.MERCY
@@ -4183,6 +4279,8 @@ class Combat:
                 genji_fan(state, direction) if state.instance.graph.index == 0x0304
                 else projectile_directions(state, direction, number, activation)
             )
+            if getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None)) == dva.HERO:
+                directions = _volley_directions(shooter, state, direction, number=number, counter=activation[0])
             target_limit = 1
             if direct is not None:
                 if definition == MEI_SPRAY_ENTITY:
@@ -4297,6 +4395,8 @@ class Combat:
             if not npc and shooter.hero.guid == 0x02E000000000006E:
                 direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
+        if getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None)) == dva.HERO:
+            directions = _volley_directions(shooter, state, direction, number=number, counter=activation[0])
         if not npc and shooter.hero.guid == 0x02E0000000000003:
             from ow174.game import tracer_pistol
 
@@ -4973,6 +5073,8 @@ class Combat:
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
         best = None
+        light_gun = rocket.definition == 0x0400000000001000
+        assisted = None
         for target in candidates:
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
                 continue
@@ -4982,19 +5084,24 @@ class Combat:
             if immunity.wraith_active(target.owner, target.entity):
                 continue
             a, b = target.segment()
-            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius + padding)
+            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius + (0.0 if light_gun else padding))
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
+            if light_gun and padding > 0:
+                t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius + padding)
+                if t is not None and t <= step and (assisted is None or t < assisted[0]):
+                    assisted = (t, target)
         scene_barrier = self._barrier_hit(rocket.shooter, rocket.position, rocket.direction, best[0] if best else step)
         if scene_barrier is not None:
             best = (scene_barrier[0], None)
         collision = self._collision()
-        wall = ray_world(collision, rocket.position, rocket.direction, step)
-        if padding > 0 and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
+        assisted_rank = assisted[0] + padding if assisted is not None else 0.0
+        wall = ray_world(collision, rocket.position, rocket.direction, max(step, assisted_rank))
+        if padding > 0 and not light_gun and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
             swept = collision.sweep_sphere(rocket.position, rocket.direction, step, padding)
             if swept is not None and (wall is None or swept < wall):
                 wall = swept
-        if wall is not None and (best is None or wall < best[0]):
+        if wall is not None and wall <= step and (best is None or wall < best[0]):
             best = (wall, None)
             scene_barrier = None
         ice = self.walls.cast(rocket.position, rocket.direction, best[0] if best else step)
@@ -5002,6 +5109,10 @@ class Combat:
             best = (ice[0], None)
         else:
             ice = None
+        if (assisted is not None and (best is None or (best[1] is None and assisted_rank < best[0]))
+                and (wall is None or assisted_rank < wall)):
+            best = assisted
+            scene_barrier = ice = None
         redirect = None
         pulse_facing = None
         if getattr(rocket, "pulse_bomb", False) and best is not None:
