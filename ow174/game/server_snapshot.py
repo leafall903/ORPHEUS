@@ -56,6 +56,7 @@ from ow174.game import (
     statescript,
     stats,
     tracer_recall,
+    pulse_bomb,
     voicelines,
     winston_barrier,
     world,
@@ -129,12 +130,13 @@ FIELDS = {
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
-        "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     tracer_recall.Recalls: _names("fight history phases"),
+    pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     breather.Breathers: _names("fight channels"),
     sombra_control.Controls: _names("fight locks held device_receivers"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
@@ -253,10 +255,11 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    pulse_bomb.CommandPoseAnchor,
     support_effects.Attachment, combat.Soundwave, sombra_control.Lock, sound_barrier.Shield, sound_barrier.Landing, sound_barrier.Wave, sound_barrier.Grant, lucio.Lease,
     driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.RangedContact, combat.MeleeContact, combat.PendingAttack, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley, combat.TimedHit,
+    heroselect.Controller, notices.Switch, combat.RangedContact, combat.MeleeContact, combat.PendingAttack, combat.HitDef, combat.Target, combat.Rocket, pulse_bomb.Bomb, combat.SplitVolley, combat.TimedHit,
     combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
     winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
     npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,

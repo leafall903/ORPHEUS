@@ -1369,6 +1369,9 @@ class Combat:
         self.pending_attacks: list[PendingAttack] = []
         self.timed_hits: list[TimedHit] = []
         self.recalls = tracer_recall.Recalls(self)
+        from ow174.game.pulse_bomb import PulseBombs
+
+        self.pulse_bombs = PulseBombs(self)
         self.breathers = breather.Breathers(self)
         self.sombra_controls = sombra_control.Controls(self)
         self.sound_barriers = sound_barrier.SoundBarriers(self)
@@ -1601,7 +1604,7 @@ class Combat:
             rocket for rocket in self.rockets
             if rocket.shooter is not player
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
-                and rocket.deploy_body is None)
+                and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False))
         ]
         self.frost_hits.pop(player.body, None)
         self.genji_strikes.pop(player.body, None)
@@ -2932,6 +2935,7 @@ class Combat:
         from ow174.game import defenses
 
         self.echo_duplicates.update(now)
+        self.pulse_bombs.prepare_gap(tick, self._targets())
         self.barriers.world.update(tick)
         for player in self.match.players:
             self.barriers.sync(player)
@@ -3223,7 +3227,7 @@ class Combat:
         for actor in self.deployables.values():
             if actor.health > 0:
                 found.append(self._deployable_target(actor))
-        return found
+        return [self.pulse_bombs.sampled(target) for target in found]
 
     @staticmethod
     def _deployable_target(actor):
@@ -3374,7 +3378,7 @@ class Combat:
             if not free_for_all and target.team == shooter.team:
                 continue
             if (self.vitals_of(target).dead or self._has_protection(target, PHASE_STATES)
-                    or self.recalls.active(target.owner)):
+                    or self.pulse_bombs.recalling(target)):
                 continue
             if damageable and immunity.wraith_active(target.owner, target.entity):
                 continue
@@ -4079,6 +4083,9 @@ class Combat:
                     origin = (x + offset.x * forward_z + offset.z * forward_x, y + offset.y,
                               z - offset.x * forward_x + offset.z * forward_z)
                     direction = (launch.x / length, launch.y / length, launch.z / length)
+        from ow174.game import pulse_bomb
+
+        pulse = not npc and pulse_bomb.is_pulse(shooter, state)
         speed = field("m_projectileSpeed")
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
@@ -4140,6 +4147,12 @@ class Combat:
                 )
                 velocity = tuple(expr.f32(axis * speed) for axis in direction)
             sticky = (state.instance.graph.index, state.index) == (0x1C36, 0)
+            if pulse:
+                direction = pulse_bomb.launch_direction(state, direction)
+                gravity = projectiles.unconditional_gravity(state)
+                velocity = tuple(axis * speed for axis in direction)
+                if blast is not None:
+                    blast = replace(blast, self_scale=1.0)
             if sticky:
                 for motion in node.field("m_projectileMotions") or ():
                     if motion.get("$") == "STU_E1A5B579":
@@ -4210,7 +4223,8 @@ class Combat:
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
                 for pellet, launch in enumerate(directions):
-                    rocket = Rocket(
+                    model = pulse_bomb.Bomb if pulse else Rocket
+                    rocket = model(
                         shooter, shooter.team, origin, launch, speed, lifetime, direct, blast,
                         shot if pellet == 0 else None,
                         last_tick=projectile_tick,
@@ -4220,9 +4234,10 @@ class Combat:
                         spray=moira.spray_trace(shooter, state, direct), dose_scalar=dose_scalar,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
-                        detonate_on_expiry=flashbang_gravity is not None,
+                        detonate_on_expiry=flashbang_gravity is not None or pulse,
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
-                        split_on_expiry=split, sticky_delay=1.0 if sticky else None,
+                        split_on_expiry=split, sticky_delay=(
+                            field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
                         source_body=_source_entity(shooter) if server_ability or not npc else None,
                         damage_charge=charge_context,
                         boost_credit=(direct.boost_credit if direct is not None else
@@ -4686,6 +4701,15 @@ class Combat:
         return best
 
     def _fly(self, rocket: Rocket) -> None:
+        previous = self.pulse_bombs.context
+        if getattr(rocket, "pulse_bomb", False):
+            self.pulse_bombs.context = self.tick
+        try:
+            self._fly_current(rocket)
+        finally:
+            self.pulse_bombs.context = previous
+
+    def _fly_current(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
         if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY:
             cursor = rocket.flight_cursor()
@@ -4719,6 +4743,10 @@ class Combat:
             if rocket.attached_entity is not None:
                 anchor = next((target for target in self._targets()
                                if target.entity == rocket.attached_entity), None)
+                if (anchor is not None and getattr(rocket, "pulse_bomb", False)
+                        and (self.pulse_bombs.recalling(anchor) or immunity.wraith_active(anchor.owner, anchor.entity))):
+                    rocket.attached_entity = None
+                    anchor = None
                 if anchor is not None:
                     rocket.position = tuple(p + d for p, d in zip(
                         anchor.feet, rocket.attached_offset, strict=True
@@ -4731,7 +4759,9 @@ class Combat:
                         ))
             for _ in range(elapsed):
                 rocket.fuse_left -= TICK
-                if rocket.fuse_left <= EPSILON:
+                if getattr(rocket, "pulse_bomb", False):
+                    rocket.left -= TICK
+                if rocket.fuse_left <= EPSILON or getattr(rocket, "pulse_bomb", False) and rocket.left <= EPSILON:
                     self._explode(rocket, rocket.position)
                     self._landed(rocket)
                     break
@@ -4859,7 +4889,7 @@ class Combat:
             # Apply the recovered velocity update before this frame's sweep.
             # This semi-implicit sweep order is a server reconstruction.
             velocity = rocket.velocity
-            if rocket.sticky_delay is not None:
+            if rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -4921,7 +4951,7 @@ class Combat:
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
                 continue
             if (target.entity in rocket.hit_entities or self._has_protection(target, PHASE_STATES)
-                    or self.recalls.active(target.owner)):
+                    or self.pulse_bombs.recalling(target)):
                 continue
             if immunity.wraith_active(target.owner, target.entity):
                 continue
@@ -5516,7 +5546,8 @@ class Combat:
                     manager.splash(actor, blast, distance, multiplier=boost)
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
-        if (blast is not None and blast.loadout == SOLDIER_WEAPON_LOADOUT and blast.self_scale > 0
+        if (blast is not None and (blast.loadout == SOLDIER_WEAPON_LOADOUT or getattr(rocket, "pulse_bomb", False))
+                and blast.self_scale > 0
                 and rocket.source_entity == _source_entity(rocket.shooter)):
             candidates = list(candidates)
             candidates.extend(t for t in self._targets() if t.entity == rocket.source_entity)
@@ -6572,7 +6603,7 @@ class Combat:
         vitals = self.vitals_of(target)
         if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
                 or immunity.wraith_active(target.owner, target.entity) or moira.fading(target.owner)
-                or self.recalls.active(target.owner) or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
+                or self.pulse_bombs.recalling(target) or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
             return False
         if loadout in (FLAIL_LOADOUT, WHIP_LOADOUT) and self._deflects(target, self._eye(shooter)):
             return False

@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Tracer Pulse Bomb on the combined projectile host
+
+- Preserve the delivered damage resource, authored upward launch bias, gravity,
+  contact fuse, attachment, self damage and body-retirement behavior using the
+  existing original-language accelerated projectile and explosion services.
+- Retain complete command/world pose batches and per-command Recall admission
+  for Pulse flight and fuse expiry; export their causal state with server snapshots.
+- All24 original Pulse checks passed. All21 shared Echo sticky, Soldier self-hit
+  and inert server-snapshot checks passed. Original-client acceptance remains open.
+  Other delivered cross-hero Tracer integrations remain pending.
+- The earlier92-check Lucio/snapshot run finished with two failures, nine errors
+  and three skips: retain the Zarya damage and Mei wall failures, service/API
+  differences and unregistered AIControlOverride for later source reconciliation.
+  Two replay errors also observed source manifest changes during that long run.
+  These results do not prevent preserving or committing the implementation.
+
 ### Preserve delivered Recall protection and cancellation
 
 - Apply Tracer's delivered untargetable/protected interval across warmup and

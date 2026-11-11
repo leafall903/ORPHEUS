@@ -362,6 +362,7 @@ class Player:
                     if not dead:  # a dead body lies where it fell
                         self.mover.step(command, seconds, self.match.tick, simulate_pose=self._move_pose)
                     self._advance_body_frame(command)
+                self.match.combat.pulse_bombs.observe_command_pose(self, command.frame, first_pose == command.frame)
                 script = self.body_script
                 if script is not None and script.hero == SOLDIER and script.frame == command.frame:
                     from ow174.game import defenses, ultimate
