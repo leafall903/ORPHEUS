@@ -1076,7 +1076,7 @@ class SceneHazard:
 
 def _source_entity(actor) -> int:
     """The combat actor's live entity ID."""
-    return actor.entity if isinstance(actor, (bots.Bot, actors.Deployable)) else actor.body
+    return actor.entity if isinstance(actor, (bots.Bot, actors.Deployable, SceneHazard)) else actor.body
 
 
 def _volley_directions(actor, state, direction, *, number=0, counter=0):

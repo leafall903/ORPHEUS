@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile the original Python scenario delivery history
+
+- Verify that all13 code/check file patches from95cd0b5d match the admitted
+  389d9b07 integration, then merge the original delivery ref. Resolve shared
+  conflicts in favor of the later combined implementations, retaining their
+  D.Va, Genji, Soldier, native-state and mode-query consumers.
+- Restore SceneHazard alongside Bot/Deployable in the live source-entity
+  resolver; later body adapters had accidentally dropped the no-body hazard
+  case. Preserve the source document's remaining blank-line change.
+- Refresh six existing scene Bot mocks with the real default unowned fields
+  (owner/source_body zero); original assertions remain unchanged. All33 scene
+  host checks passed. A direct no-body hazard probe also passed through the
+  combined damage consumers. No hero-completion count or client acceptance
+  is inferred from this already implemented scenario delivery.
+
 ### Persist three-worker original-language integration
 
 - Dispatch three explicitly authorized subagents on separate worktrees/indexes
