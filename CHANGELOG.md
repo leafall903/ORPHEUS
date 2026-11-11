@@ -5,6 +5,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Genji delivery history integration
+
+- Merge delivery e7e17067. The Genji implementation module is byte-identical
+  to the delivery; keep the combined weapon, movement, interception, charge,
+  body-replacement and shared defense adapters. Preserve its posthumous credit
+  policy through the preceding scoped charge fix.
+- Keep Moira's integrated self-heal instead of the older private Grasp helper,
+  and retain generic linked/pet hosting, phase entry and script action services
+  instead of older shared-node wrappers. Discard the automatic merge's duplicate
+  sweep_sphere method, already present with the identical implementation.
+- This history merge changes documentation only. The preceding entry records
+  recovered behavior and baseline fixture gaps; unfinished client/cross-hero
+  acceptance does not withhold the implementation or tests.
+
+
+
 ### Preserve Genji's delivered posthumous projectile credit
 
 - Scope the delivered Ana owner-dead charge rejection to Ana. Keep Genji's
