@@ -2140,6 +2140,17 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        elif player.hero.guid == 0x02E000000000006E:
+            for state, number, time, activation in shots:
+                if state.instance.graph.index != 0x0257 or state.node.pos != 4:
+                    continue
+                anchor = script.world_frame_anchor
+                if anchor is not None and player.mover.last_command is not None:
+                    anchor_tick, anchor_frame = anchor
+                    elapsed = max(0, time // script.frame_ms - anchor_frame) * script.frame_ms
+                    release_tick = min(self.tick, anchor_tick + math.ceil(elapsed / (TICK * 1000)))
+                    self._shoot(player, player.mover.last_command, state, number, time,
+                                activation=activation, launch_tick=release_tick)
         self.baptiste.command(player, command)
         try:
             self._weapon_beam(player, command, script)
@@ -2834,6 +2845,34 @@ class Combat:
                         and not deflection.blocks_melee(player, target, state)):
                     self._damage(player, target, amount, False, loadout, command.frame)
 
+    def _advance_idle_protection(self, player):
+        """Delivered Soldier body-clock recovery without a new movement pose."""
+        from ow174.game import defenses, ultimate
+        from ow174.game.script.driver import MAX_GAP
+
+        script = player.body_script
+        if (script is None or script.hero != defenses.SOLDIER or script.world_frame_anchor is None
+                or script.retired or script.component.owner_dead or not player.spawned or not player.has_body):
+            return
+        visor = defenses.soldier_visor_running(player)
+        recovery = defenses.soldier_input_recovery_active(player)
+        windup = defenses.soldier_field_windup(player)
+        passive = ultimate.practice_passive_clock(script)
+        if not (visor or recovery or windup or passive):
+            return
+        anchor_tick, anchor_frame = script.world_frame_anchor
+        elapsed_ms = max(0, self.tick - anchor_tick) * round(TICK * 1000)
+        target = min(projectiles.MAX_LEASE_FRAME - 1, anchor_frame + elapsed_ms // script.frame_ms - 1)
+        while target > script.frame:
+            player._advance_body_gap(min(target, script.frame + MAX_GAP) + 1)
+            if player.body_script is not script:
+                break
+            visor = visor and defenses.soldier_visor_running(player)
+            recovery = recovery and defenses.soldier_input_recovery_active(player)
+            windup = windup and defenses.soldier_field_windup(player)
+            if not (visor or recovery or windup or passive):
+                break
+
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
         other players' body frames only on the ticks that send (`frames`)."""
@@ -2862,6 +2901,9 @@ class Combat:
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
+        self.now, self.tick = now - (tick - first) * TICK, first
+        for player in self.match.players:
+            self._advance_idle_protection(player)
         canisters = [rocket for rocket in self.rockets
                      if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY]
         for at in range(field_first, first):
@@ -2879,6 +2921,8 @@ class Combat:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
             self.now, self.tick = now - (tick - at) * TICK, at
+            for player in self.match.players:
+                self._advance_idle_protection(player)
             self.sombra_controls.update()
             self.recalls.update()
             self.breathers.update()
@@ -4123,8 +4167,9 @@ class Combat:
                     )
                     if field_canister and rocket.shot is not None:
                         rocket.shot.field_airborne = True
-                        if self.tick:
-                            rocket.stamp_launch(self.tick)
+                        release_tick = self.tick if launch_tick is None else launch_tick
+                        if release_tick:
+                            rocket.stamp_launch(release_tick)
                     self._submit_attack(shooter, shot_frame, rocket)
             return
         if direct is None or direct.amount <= 0.0:

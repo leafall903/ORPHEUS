@@ -1707,6 +1707,7 @@ class BodyScript(ReplicatedBody):
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
+        self.world_frame_anchor: tuple[int, int] | None = None
         if ult_seconds is None and hero not in (0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         self.ult_seconds = ult_seconds

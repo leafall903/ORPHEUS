@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Restore delivered Soldier idle body clocks
+
+- Anchor admitted Soldier body frames to world ticks. Advance the delivered
+  reload, cooldown, Sprint, Visor, Field windup and passive waits without a
+  new movement pose; discard commands for frames the world already committed.
+  Other heroes retain their integrated world-clock consumers.
+- Emit the delayed Field volley at its reconstructed release tick using the
+  retained input pose. Mount the delivered passive owner-frame rule so timer
+  progress cannot reintroduce a previous command's volley confirmation.
+  Register the world/frame anchor as causal server snapshot state.
+- All 79 existing Soldier-combat, projectile and copied-Soldier checks passed.
+  The four focused no-input recovery checks and two snapshot checks passed too.
+  Remaining charge classification, cross-hero and other delivery reconciliation
+  stays open; no client acceptance or full-line merge is claimed.
+
+
+
 ### Integrate delivered Soldier Field canister physics
 
 - Mount 0257's body-yaw direction input, local launch offset, gravity, ten-second

@@ -332,6 +332,8 @@ class Player:
         fresh, boundary = self.commands.before_limit(
             commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
         )
+        if script is not None and script.world_frame_anchor is not None:
+            fresh = [item for item in fresh if item.frame > script.frame]
         if fresh:
             data = echo_movement.effective_data(self)
             self.mover.use(data if data != self.mover.data else None, collision)
@@ -360,6 +362,13 @@ class Player:
                     if not dead:  # a dead body lies where it fell
                         self.mover.step(command, seconds, self.match.tick, simulate_pose=self._move_pose)
                     self._advance_body_frame(command)
+                script = self.body_script
+                if script is not None and script.hero == SOLDIER and script.frame == command.frame:
+                    from ow174.game import defenses, ultimate
+
+                    if (defenses.soldier_input_recovery_active(self) or defenses.soldier_visor_running(self)
+                            or defenses.soldier_field_windup(self) or ultimate.practice_passive_clock(script)):
+                        script.world_frame_anchor = (self.match.tick, script.frame)
         if movelog.ENABLED:
             movelog.snapshots(self)
         return boundary
@@ -387,6 +396,9 @@ class Player:
             self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        script = self.body_script
+        if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
+            return
         fight = self.match.combat
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
@@ -1596,6 +1608,13 @@ class Match:
         """This tick's frames of the body's statescript: the full frame, then owner frames."""
         try:
             script = player.body_script
+            from ow174.game import defenses, ultimate
+
+            anchor = script.world_frame_anchor
+            if (anchor is not None and script.frame > anchor[1] and script.stream.cmfd >= anchor[1]
+                    and ultimate.practice_passive_clock(script) and not defenses.soldier_visor_running(player)
+                    and not script._unsent_health_changed(client.entities)):
+                return
             # A newer unsent projection stays non-correcting until the first
             # owner frame goes out. Its command frame starts the settle interval.
             replace_initial = (
