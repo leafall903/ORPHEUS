@@ -10,6 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
+from ow174.game.barrier_pet import BarrierWorld
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -50,6 +51,8 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.PhaseEntry: ((), ()),
+    nodes.Pet: ((), ()),
+    nodes.HealthPool: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -66,7 +69,7 @@ _STATE_LAYOUTS = {
     nodes.BooleanSwitch: (("current", "pending"), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
-    nodes.AIBehavior: ((), ()),
+    nodes.AIBehavior: (("ai_previous",), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
@@ -76,6 +79,8 @@ _STATE_LAYOUTS = {
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
+    nodes.DestinationSearch: ((), ()),
+    nodes.CompatiblePlacement: ((), ()),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
@@ -90,7 +95,10 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.FilterArray: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "var"), ()), nodes.Effect: ((), ()),
+    nodes.TrackHackRay: (("result", "outputs"), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -384,14 +392,14 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
-            fields = {"hero", "mode"}
+            fields = {"hero", "mode", "health_pools"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "match"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}

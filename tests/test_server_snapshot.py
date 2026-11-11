@@ -15,7 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import combat, hook, mei_wall, npc_navigation, steel_trap, zenyatta_discord
 from ow174.game import mover as mover_module
+from ow174.game.bots import Bot
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
@@ -39,6 +41,110 @@ class ServerSnapshotTests(unittest.TestCase):
     def capture(session):
         return export_server_state(session.server, archives=session._matches.values(),
                                    collision_provider=session._collision_reads, assets=session.registry)
+
+    def test_reflected_rocket_body_credit_and_motion_are_causal(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        rocket = combat.Rocket(player, player.team, fight._eye(player), (0, 0, 1),
+                               35, 1.0, combat.HitDef(amount=40), None)
+        fight.rockets.append(rocket)
+        before = snapshot_digest(self.capture(session))
+        rocket.reflected_by = player.body
+        reflected = snapshot_digest(self.capture(session))
+        self.assertNotEqual(reflected, before)
+        rocket.motion = ((0.0, .2, True, .1, .2, .3, .4),)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), reflected)
+
+    def test_discord_target_cooldown_and_los_deadline_are_causal(self):
+        session, _, players = self.scene(two=True)
+        owner, victim = players
+        fight = owner.match.combat
+        baseline = snapshot_digest(self.capture(session))
+        orb = zenyatta_discord.Orb(owner, buttons=8, target=victim.body, ready=1.75, visible_at=1.0)
+        fight.discord[owner.body] = orb
+        active = snapshot_digest(self.capture(session))
+        self.assertNotEqual(active, baseline)
+        orb.visible_at += .016
+        extended = snapshot_digest(self.capture(session))
+        self.assertNotEqual(extended, active)
+        orb.ready += .016
+        self.assertNotEqual(snapshot_digest(self.capture(session)), extended)
+
+    def test_live_hook_travel_and_caught_target_are_causal(self):
+        session, _, players = self.scene(two=True)
+        owner, victim = players
+        fight = owner.match.combat
+        target = next(t for t in fight._targets() if t.owner is victim)
+        instance = next(iter(owner.body_script.component.instances.values()))
+        baseline = snapshot_digest(self.capture(session))
+        flight = hook.Flight(
+            owner=owner, body=owner.body, instance=instance, origin=fight._eye(owner),
+            direction=(0.0, 0.0, 1.0), reach=20.0, speed=40.0, radius=.5,
+            damage=combat.HitDef(amount=30), pull_speed=40.0, separation=3.0,
+            gap=.5, recovery=.3, limit=2.0, last_tick=fight.tick, launch_tick=fight.tick,
+        )
+        fight.hooks.flights[owner.body] = flight
+        flying = snapshot_digest(self.capture(session))
+        self.assertNotEqual(flying, baseline)
+        flight.travelled = 4.0
+        advanced = snapshot_digest(self.capture(session))
+        self.assertNotEqual(advanced, flying)
+        flight.target = target
+        self.assertTrue(fight.hooks.controlled(victim.body))
+        self.assertNotEqual(snapshot_digest(self.capture(session)), advanced)
+
+    def test_steel_trap_flight_arming_root_and_durability_are_causal(self):
+        session, _, players = self.scene(two=True)
+        owner, victim = players
+        fight = owner.match.combat
+        instance = next(iter(owner.body_script.component.instances.values()))
+        status = next(iter(victim.body_script.component.instances.values()))
+        flight = combat.Rocket(owner, owner.team, fight._eye(owner), (0, 0, 1),
+                               20, 5.0, None, None, last_tick=fight.tick, source_body=owner.body)
+        trap = steel_trap.Trap(fight.next_bot, owner.body, owner.team, flight, instance, None,
+                               combat.HitDef(amount=80), .5, 1.0, 3.0, .01)
+        baseline = snapshot_digest(self.capture(session))
+        fight.steel_traps[owner.body] = trap
+        fight.rockets.append(flight)
+        flying = snapshot_digest(self.capture(session))
+        self.assertNotEqual(flying, baseline)
+        flight.flown += .016
+        advanced = snapshot_digest(self.capture(session))
+        self.assertNotEqual(advanced, flying)
+        fight.rockets.remove(flight)
+        trap.armed_tick = fight.tick + 32
+        landed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(landed, advanced)
+        trap.armed_tick += 1
+        delayed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(delayed, landed)
+        trap.victim, trap.end_tick, trap.status = victim.body, trap.armed_tick + 188, status
+        rooted = snapshot_digest(self.capture(session))
+        self.assertNotEqual(rooted, delayed)
+        trap.end_tick += 1
+        extended = snapshot_digest(self.capture(session))
+        self.assertNotEqual(extended, rooted)
+        trap.health -= 30
+        self.assertNotEqual(snapshot_digest(self.capture(session)), extended)
+
+    def test_active_ice_wall_preview_pillar_health_and_expiration_are_causal(self):
+        session, _, players = self.scene()
+        player = players[0]
+        walls = player.match.combat.walls
+        baseline = snapshot_digest(self.capture(session))
+        walls.inputs[player.body] = mei_wall.Input(buttons=16, preview=True, rotated=True)
+        preview = snapshot_digest(self.capture(session))
+        self.assertNotEqual(preview, baseline)
+        walls.create(player, [tuple(player.mover.position)], (1.0, 0.0, 0.0))
+        live = snapshot_digest(self.capture(session))
+        self.assertNotEqual(live, preview)
+        piece, = walls.pieces.values()
+        piece.health -= 1
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, live)
+        piece.expires -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), damaged)
 
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()
@@ -75,11 +181,40 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         player.match.combat.stuns.pop(player.body)
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins[0xC0100000] = player.body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.pins.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))
         self.assertNotEqual(changed, initial)
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        # This synthetic map intentionally has no default AI spawners. Add an
+        # explicit stored Bot fixture; actor spawning/transport is not under test.
+        bot = Bot(0xC0100000,
+                  {"hero": f"0x{player.hero.guid:016X}", "team": 1, "position": (0, 0, 8),
+                   "rotation": (0, 0, 0, 1), "graphs": [], "vars": {}},
+                  {"name": "stored NPC", "body": f"0x{player.hero.body:016X}", "health": 200}, {})
+        player.match.bots.append(bot)
+        baseline = snapshot_digest(self.capture(session))
+        bot.impulse_mover = Mover(bot.position, world=player.match.collision_world,
+                                  data=mover_module.mover_data(bot.body))
+        before = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, baseline)
+        bot.impulse_mover.fall += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        bot.impulse_mover = None
+        self.assertEqual(snapshot_digest(self.capture(session)), baseline)
+        route = bot.combat_detour = npc_navigation.Detour.begin(
+            player.match.collision_world, player.entity, player.match.combat._eye(player), bot.position)
+        queued = snapshot_digest(self.capture(session))
+        self.assertNotEqual(queued, baseline)
+        self.assertEqual(snapshot_digest(self.capture(session)), queued)
+        route.queue.clear()
+        self.assertNotEqual(snapshot_digest(self.capture(session)), queued)
+        del bot.combat_detour
+        self.assertEqual(snapshot_digest(self.capture(session)), baseline)
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()

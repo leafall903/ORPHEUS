@@ -134,7 +134,29 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def controller_components(self, instance, entity):
+        # Scoped local Match relationship, not the native actor/cache service.
+        # The server actually creates44/75 on this human controller through
+        # _possession. NPC selection/component92 and strict hosts must supply
+        # their own explicit native relation instead of inheriting this mapping.
+        if (self.match is not None and not instance.component.strict
+                and entity == self.body == instance.component.entity):
+            player = next((p for p in self.match.players if p.has_body and not p.gone
+                           and p.body == self.body), None)
+            if player is not None:
+                return frozenset(self.match._possession(player))
+        return NotImplemented
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import sigma_flux
+
+        return sigma_flux.flux_modify_health(self, state, elapsed_ms)
+
     def velocity_action(self, instance, node):
+        from ow174.game import sigma_flux
+
+        if sigma_flux.flux_velocity(instance, node):
+            return True
         # Reconstructed adapter for Pharah's authored Jump Jet only. Other
         # velocity modes must not accidentally inherit this subset's semantics.
         match = self.match
@@ -166,7 +188,64 @@ class BodyWorld(runtime.World):
         return True
 
     def native(self, cfg: dict, instance):
+        if instance.graph.index in (0x1E41, 0x1DBC):
+            from ow174.game import sigma_flux
+
+            query = sigma_flux.flux_effect_native if instance.graph.index == 0x1DBC else sigma_flux.flux_position_query
+            value = query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         cls = cfg.get("$")
+        if self.hero == 0x02E0000000000079:
+            from ow174.game import soundwave
+
+            value = soundwave.query(self, instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if cls == "STU_F7262B36":
+            from ow174.game.dva_matrix import controller
+
+            value = controller(self, instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if cls == "STU_9B7648C3" and instance.graph.index == 0x0EE3:
+            from ow174.game import brigitte_bash
+
+            value = brigitte_bash.barrier_health(self, instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if instance.graph.index == 0x1BBB:
+            from ow174.game import sigma_accretion
+
+            value = sigma_accretion.query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if self.hero == 0x02E000000000023B and instance.graph.index == 0x1B55:
+            from ow174.game import sigma_barrier
+
+            value = sigma_barrier.barrier_owner_query(self, cfg, instance)
+            if value is NotImplemented:
+                value = sigma_barrier.barrier_health_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if cls == "STU_783B4CF0" and instance.graph.index == 0x95:
+            from ow174.game.barrier_pet import pool_value
+
+            value = pool_value(instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if (cls == "STU_295F1CDE" and self.match is not None
+                and self.hero == 0x02E0000000000007 and instance.graph.index == 0x95
+                and not instance.component.strict and instance.component.entity == self.body
+                and any(p.has_body and p.body == self.body and p.hero.guid == self.hero
+                        for p in self.match.players)):
+            # Scoped local-actor reconstruction of CC9A80/C1BBB0. The native
+            # cached override is254B; a missing/null override falls back to1.
+            # Inherited actor/controller stats and native2537 subscriptions are
+            # not hosted here. Strict worlds must supply those services instead.
+            override = instance.component.entity_var(0x254B, create=False)
+            value = override.value() if override is not None else None
+            return 1.0 if value is None else expr.to_float(value, 1.0)
         if cls == "STU_C8C4C20D" and self.match is not None and self.hero == 0x02E0000000000008:
             # Reconstructed body yaw service used by the authored Jump Jet vector.
             entity = instance.evaluate(cfg.get("m_entity"))
@@ -195,6 +274,11 @@ class BodyWorld(runtime.World):
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            from ow174.game.sombra_hack import filter_target
+
+            value = filter_target(instance, cfg)
+            if value is not NotImplemented:
+                return value
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -240,8 +324,11 @@ class ReplicatedBody:
     component: runtime.Component
     server_only: set[int]
 
-    def set_health(self, health: float, most: float) -> None:
+    def set_health(self, health: float, most: float, *, health_pools=None) -> None:
         """Update the shared health input. Player bodies also use the maximum for their HUD."""
+        # Only actual component51 records bind numeric getters. An aggregate
+        # health value alone cannot reconstruct pool flags/order/temporary pools.
+        self.component.world.health_pools = tuple(health_pools) if health_pools is not None else None
         self.component.set(OWNER_HEALTH, float(health))
 
     def initial_exclusions(self) -> set[int]:
@@ -295,10 +382,17 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        health_pools=None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        from ow174.game import dva_matrix
+
+        if hero == dva_matrix.HERO and body_definition == dva_matrix.MECH:
+            record = dva_matrix.record()
+        else:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -318,21 +412,28 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        self._spawn(start_frame, sum(pools.body_pools(hero, body_definition)) if health is None else health,
+                    health_pools)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
 
     # --- the instances -----------------------------------------------------------------------------
 
-    def _spawn(self, frame: int, health: float) -> None:
+    def _spawn(self, frame: int, health: float, health_pools=None) -> None:
         """The body's instances: its initial graphs 1..N in definition order with
         their schema overrides, the weapon manager, the weapon scripts (#28 = the slot), all run from their
         Entries in the start frame."""
         component = self.component
         component.frame = frame
         component.now = frame * self.frame_ms
-        self.set_health(health, health)
+        most = health
+        if health_pools is not None:
+            from ow174.game.script.health_queries import pool_sum
+
+            health_pools = tuple(health_pools)
+            most = pool_sum(health_pools, maximum=True, normal_only=True)
+        self.set_health(health, most, health_pools=health_pools)
         component.set(ULT_CHARGE, 0.0)
         for instance in create_body_graphs(component, self.record):
             instance.init()
@@ -345,11 +446,11 @@ class BodyScript(ReplicatedBody):
                 if _reads(node.field("m_150F0D92"), ULT_CHARGE):  # the ultimate: starts on its charge
                     self.ultimates.append(instance.state(node.state))
 
-    def set_health(self, health: float, most: float) -> None:
+    def set_health(self, health: float, most: float, *, health_pools=None) -> None:
         """The owner's health: #253e for the graphs (01CF st13: 0 or less is dead), #1732e/#1737e for the
         HUD panel's number (no graph writes them: current and maximum). The
         body's pools added up, health, armour and shields (unverified: as OW1's HUD showed one number)."""
-        super().set_health(health, most)
+        super().set_health(health, most, health_pools=health_pools)
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
@@ -381,6 +482,9 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        from ow174.game import sigma_flux
+
+        sigma_flux.sync_world_airborne(self.component)
         self.component.run_frame(frame, edges)
         self._report_shots()
         self._charge_ult()
@@ -389,15 +493,15 @@ class BodyScript(ReplicatedBody):
         """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
 
-    def damage_charge(self, dealt: float, loadout: int | None) -> None:
-        """Reconstructed Pharah damage credit: one point per actual enemy pool loss.
-
-        Cost comes from the authored body. Barrage must never recharge itself,
-        including missiles that land after the channel ended. The retail server
-        credit multiplier/mode policy is not available from the client graphs.
-        """
-        if (self.hero != 0x02E0000000000008 or dealt <= 0 or self.ultimate_running()
-                or loadout is None or loadout == 0x0B9000000000000B):
+    def damage_charge(self, dealt: float, loadout: int | None, *, reflected: bool = False) -> None:
+        """Credit actual enemy pool loss for the hosted loadouts."""
+        pharah = self.hero == 0x02E0000000000008 and loadout not in (None, 0x0B9000000000000B)
+        genji = self.hero == 0x02E0000000000029 and reflected
+        brigitte = (self.hero == 0x02E0000000000195 and loadout in (0x0B900000000001DB, 0x0B900000000001A3)
+                and not self.component.owner_dead)
+        accretion = (self.hero == 0x02E000000000023B and loadout == 0x0B9000000000028A
+                     and not self.component.owner_dead)
+        if not (pharah or genji or accretion or brigitte) or dealt <= 0 or self.ultimate_running():
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
@@ -414,6 +518,24 @@ class BodyScript(ReplicatedBody):
             for instance in self.component.instances.values() if instance.graph.index == 0x2B
             for state in instance.states.values()
         )
+
+    def interrupt_control(self) -> None:
+        """Scoped Barrage abort for the reconstructed authoritative control service.
+
+        Graph002B's #33 stack aborts itself when a higher control stack wins,
+        unwinding its #7605 stack, duration Wait, volley and movement mods. The
+        persistent ultimate button listener stays alive for a later activation.
+        This does not host the native status/priority manager or other heroes.
+        """
+        if self.hero != 0x02E0000000000008 or self.component.owner_dead:
+            return
+        for instance in list(self.component.instances.values()):
+            if instance.graph.index != 0x2B:
+                continue
+            for state in list(instance.states.values()):
+                if (state.active and state.node.cls == "STUStatescriptStateStack"
+                        and expr.lvalue(state.node.field("m_out_Var")) == (graph.ENTITY, 33)):
+                    state.end(False)
 
     def _charge_ult(self) -> None:
         if self.ult_seconds <= 0 or self.ultimate_running():
@@ -591,6 +713,10 @@ class BodyScript(ReplicatedBody):
     def retire(self) -> None:
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
+        if self.world.match is not None:
+            from ow174.game.barrier_pet import retire
+
+            retire(self.world.match.combat, self.component.entity)
         self.retired = True
         self.world.match = None
         if self.stream.full_update is not None:

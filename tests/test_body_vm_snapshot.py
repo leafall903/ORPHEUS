@@ -55,6 +55,9 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
+    ("STUStatescriptStatePet", nodes.Pet),
+    ("STUStatescriptStateHealthPool", nodes.HealthPool),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
@@ -170,7 +173,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 36)
+        self.assertEqual(len(STATE_MODELS), 39)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -515,7 +518,8 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        self.assertEqual(set(dict(body["world"]["fields"])),
+                         {"hero", "mode", "health_pools", "body", "throttles"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

@@ -76,7 +76,8 @@ Explicit class/field whitelists cover:
 - All Mover instance fields, including body, world/on_map/category, data/values,
   pose/velocity/flags, both springs and their stored steps/speed/limits, fall,
   input tick/frame/throttles, last_command, mods, full history, corrected, all
-  slope values and landing/crouch state. Public computed properties are not used.
+  slope values, landing/crouch state, and external impulse carry. Public computed
+  properties are not used.
 - Every MoverData field; every Mod field (index/op/value/start/end/priority/key);
   every stored Command field, including subframe/click aim; every Snapshot field.
 - CharacterBody radius/top/capsule/world/category/position/aabb/fat/moved/contacts

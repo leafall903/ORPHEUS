@@ -369,6 +369,7 @@ class World:
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
+        self.health_pools: tuple[bytes | None, ...] | None = None
 
     def ruleset(self, key: int):
         from ow174.game.script import rulesets
@@ -395,6 +396,21 @@ class World:
     def velocity_action(self, instance: "Instance", node: Node):
         """Optional body mover adapter; unknown semantics must remain explicit."""
         return NotImplemented
+
+    def ai_behavior_context(self, entity: int, *, component: "Component | None" = None):
+        """Explicit component87 callback state; None is known absence, unknown stays unsupported."""
+        return NotImplemented
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        """Explicit state-health host; unknown services do not grant damage."""
+        return NotImplemented
+
+    def destination_search(self, state: "State"):
+        """Optional authored destination query provider."""
+        return NotImplemented
+
+    def end_health(self, state: "State") -> None:
+        pass
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -435,12 +451,34 @@ class World:
         """Explicit component47 mapping registry and native namespace availability."""
         return NotImplemented
 
+    def array_filter(self, state: "State"):
+        """Return a candidate predicate for an authored array projection."""
+        return NotImplemented
+
+    def target_record_scalar(self, owner: int, target: int):
+        """A component46 scalar, known missing record or an unknown service."""
+        return NotImplemented
+
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
         return NotImplemented
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
         """Ordered native hero catalog, controller lookup and availability services."""
+        return NotImplemented
+
+    def controller_components(self, instance: "Instance", entity: int):
+        """B96D3A98: selected controller components, known absence, or unknown.
+
+        Supplying a set declares that the source entity/component43/DA6910
+        relation has actually been resolved. A UUID/body alone does not do so.
+        """
+        return NotImplemented
+
+    def health_records(self, instance: "Instance", entity: int):
+        """An explicitly bound component51 record set; unknown stays unsupported."""
+        if entity == instance.component.entity and self.health_pools is not None:
+            return self.health_pools
         return NotImplemented
 
     def entity_team_context(self, entity: int, *, component: "Component | None" = None):
@@ -451,6 +489,28 @@ class World:
         """Discard external effects of a component that strict execution poisoned."""
 
     def native(self, cfg: dict, instance: "Instance | None"):
+        from ow174.game.script import controller_query, health_queries
+
+        if cfg.get("$") == controller_query.CLASS and instance is not None:
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            components = self.controller_components(instance, entity)
+            instance.component.ensure_valid()
+            if components is not NotImplemented:
+                if (instance.stopped or instance.teardown
+                        or instance.component.instances.get(instance.id) is not instance):
+                    instance.component.unsupported(instance, "controller query source lifecycle", cfg["$"])
+                try:
+                    return controller_query.matches(components)
+                except ValueError as error:
+                    instance.component.unsupported(instance, "controller query component set", str(error))
+        getter = health_queries.GETTERS.get(cfg.get("$"))
+        if getter is not None and instance is not None:
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            records = self.health_records(instance, entity)
+            instance.component.ensure_valid()
+            if records is not NotImplemented:
+                maximum, normal_only = getter
+                return health_queries.pool_sum(records, maximum=maximum, normal_only=normal_only)
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
@@ -674,7 +734,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1489,6 +1549,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Coalescing markers describe queued events, which cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1570,6 +1632,12 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        if (not self.instance.component.strict and self.instance.graph.index == 0x1408
+                and self.node.cls == "STU_CB4905E9"):
+            from ow174.game import heavy_charge
+
+            heavy_charge.pin(self.instance.component.world, self.instance, self.node)
+
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""

@@ -1,0 +1,83 @@
+Pharah Barrage movement and Flashbang interruption -- partial static acceptance
+Target: original build104319. Source lane0008 only; no live client controlled.
+
+Observed failure and authored input
+Graph002B state2 is a persistent MovementMod. It includes09F9B1FE mode0 with
+literal float0, plus scalar indexes27/21. The existing extractor ignored the
+vector entry. During a real Barrage,20 forward-input frames moved Pharah1.708m
+and reached5.5m/s. After the fix the same active interval has zero displacement.
+No timer or cached hero-position lock replaces the resource state.
+
+Native evidence from the existing authorized image
+- CRT initializer267240 registers class09F9B1FE, with typeinfo2DEDB88 loaded
+  at267239. D354C0 checks this type. D3C7B2..D3C809 evaluates its vector through
+  1B721B0 and registers mode/op through C33FC0, operation2 (SET).
+- 1B721B0 calls F65E70 for non-entity values. Scalar numeric0 does not convert
+  to Vec3: the converter rejects its tag and the getter uses default3241710,
+  which is the zero vector. Three offline original-getter/converter probes
+  confirm int0/float0 fallback and a typed(1,2,3) Vec3 result. Config values and
+  trivial destruction are explicit adapters, not restored STU/engine allocation.
+- C31CD8 selects mode0 and C31CF3..C31D03 replaces the entire world velocity
+  for op2. Five offline original-block cases pass, including ascending/falling
+  velocity cleared to zero and nonzero typed-vector operands.
+- Native tick order is acceleration C3B957, gravity C3B975, velocity mods at
+  C3BA8A (C31870), then collision movement C3BAD8. Apply the modeled SET at
+  that same phase, before the ordinary capsule sweep and movement quantization.
+
+Local evidence files, outside Git and the immutable runtime:
+verification/hero-lanes/0008/asset-research/probe_world_velocity_set.py and.json
+verification/hero-lanes/0008/asset-research/vector-getter-default-validation.json
+The existing image SHA256 is
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+These bounded CPU probes do not prove an original-client combat session.
+
+Host behavior and stored state
+Keep vector operands as tuples in the existing Mod.value field. They retain
+the existing keyed priority/start/end storage and next-command-frame lifetime.
+Scalar speed/intents skip vector entries; the world-vector SET runs after
+gravity/acceleration and before collision. Existing physics snapshot traversal
+stores the tuple and detects a changed vector operand. No extra hidden state,
+callback, environment-dependent cache or snapshot schema field is introduced.
+Only09F9B1FE/mode0 SET with typed Vec3 or the known scalar0/default path is
+hosted. Other modes, general getter branches, platform-relative motion and
+simultaneous phase-hook/world-target arbitration remain open. Scalar27 is not
+given a new inferred meaning by this change.
+
+Five real-input Barrage cases cover ground momentum/throttle suppression,
+Jump Jet momentum/gravity suppression in air, movement/fall recovery at end,
+body replacement without a sticky lock, blocked primary/melee/flight/concussion
+and crouch without resource spending, and passive stored-vector inspection.
+Two mover cases separately pin the post-gravity/pre-sweep phase, first/last
+active frames and isolation from a simultaneous speed scalar.
+
+Actual Flashbang against Pharah
+Reviewed parent64bf71c is reused as1f996b5. The shared reconstructed server
+service carries the authored Flashbang effect0079.053 ->0228 ->224E,25 damage
+and its normal0.8s exclusive tick deadline. Its Ability.stop path did not end
+Barrage: this hero uses LogicalButton/Volley. A real Flashbang test reproduced
+the still-running channel after control applied.
+
+BodyScript.interrupt_control now scopes the abort to Pharah002B's active
+entity#33 Stack. That stack's authored under plug aborts itself when another
+control priority wins. Its ordinary abort unwinds the#7605 stack, duration Wait,
+volley and movement mods. The permanent ultimate button listener stays active.
+The shared control service invokes this hook; stunned movement skips hover
+thrust, while normal gravity and the native-state cooldown/resource paths run.
+
+Four real Flashbang-input cases cover Barrage abort with no later continuation,
+fresh recharged Barrage still activating, hover release/fall/fresh recovery,
+primary/melee/Jet/concussion blocking and Jet recovery at exclusive expiry,
+and full-charge ultimate rejection without spending or a buffered auto-cast.
+These do not execute the complete224E status manager. Immunity, cleanse,
+unstoppable/stacking/other controls, barriers and native HUD/audio/animation
+remain open. General projectile motion/spread/muzzles, charge policy and the
+full hero/NPC matrix remain open. Keep all new lane changes uncommitted until
+complete static acceptance; no completed hero or native-client acceptance claim.
+
+Executed regression checkpoint
+All74 Pharah test-module cases pass in110.599s with the external five-enemy pack,
+zero skips.125 shared combat/projectile/NPC/McCree/control cases pass in34.403s.
+The earlier velocity implementation boundary passed91 mover/physics snapshot/
+combat cases in19.968s. Seven focused movement cases pass in5.424s; the final
+four Flashbang cases pass in4.903s. Ruff and staged diff review pass. Tests pin
+the supported subset; the full static goal remains active and incomplete.

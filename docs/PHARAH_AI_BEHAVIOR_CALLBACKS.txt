@@ -1,0 +1,97 @@
+Associated AI behavior callbacks -- partial, full Pharah goal OPEN
+Target: original1.74.0.0.104319. Addresses below are module RVAs.
+
+Correction to the earlier phase hypothesis
+91EF24A9 is already represented by nodes.AIBehavior, not an unknown plain State.
+Its previous local implementation selected only the explicitly reconstructed
+Practice Range firing graph on entry. Native C79120 is the State+90 TIMER
+callback, not an initialization phase dispatcher. Parameters1/2 are externally
+delivered selection events. They cannot be scheduled merely because a graph
+entry begins this State. Native component87 selection/scheduling remains open.
+
+Native class and callback evidence
+Priority1 record2F83B08 constructs1E0-byte state viaC80F40/C82100 ->C7E890;
+primary vtable265BF70. Enter/+60=C78E30, timer/+90=C79120,
+cleanup/+C0=C78E60. This exact class's+1B8 returns false123CC10, and+1C0 is
+empty. Enter clears saved handle1C8 and flag1CC. Ordinary begin/+B8 is empty.
+BC1A00 selects word1 bit23, runtime component87. Its D0/D8 fields are distinct
+from possession components43/44 and from a statescript's own entity variables.
+
+Timer2 callsC80890: follow authored120/m_6F92F4BD, then obtain component87,
+write its current/D0 to this State and clear pending/D8. Timer1 first exits120,
+follows128/m_AFA8C3AE, then callsC79440 to clear current/D0 unconditionally.
+If the saved handle's low16 bits are nonzero, resolve it through1B8D420 and,
+when found, runC80890 on that previous State. Clear saved1C8 and pending/D8
+after the restore attempt. With a zero low word, pending and saved remain as
+they were. Other timer parameters do nothing and need no component lookup.
+
+Cleanup clears/restores only when component87 exists and current/D0 is this
+State. It exits120 afterwards even if the State is not current or component87
+is known absent. It does not dispatch128. Native state/instance/handle lifetime
+services and derived classes' flag callbacks are not established by this core.
+
+Executed proof and adapters
+validate_ai_behavior_callbacks.py executes the original enter/timer/cleanup/
+clear/restore/select functions in two existing offline captures.186 cases per
+capture,372 total, compare plug order, D0/D8 and saved handles to production
+AIBehavior callbacks, including zero-low-word handles, missing prior states,
+other owners and ignored timers. Original packed component87 lookup/key code
+executes. Both captures use their recorded SHA256 hashes from the probe report.
+Synthetic node/state/owner/component/slot memory, observed-key slot encoding,
+and synthetic GS/TEB->PEB+30 seed are explicit inputs. Get-node, get-instance/
+component, get-owner, saved-state lookup and plug traversal have named adapters;
+plug traversal is recorded rather than running a second native child VM. No
+instruction patch or live client is used. This is not native AI acquisition.
+
+Runtime implementation and ownership
+World.ai_behavior_context defaults to unknown; None declares known absence.
+ai_behavior.Context owns the explicit component87 current/pending values and
+saved-handle resolver for one VM component. Context retirement drops references.
+Saved handle ai_previous is passive VM storage. Callback/source/context/world
+replacement and foreign/retired prior states fail; failure/destruction drops
+references without following more authored plugs. The historical permissive
+Practice Range entry/exit policy remains scoped to its existing host. Strict
+callbacks use the native timer route and never infer a selected behavior.
+
+Actual Assassin13C2/node1 timer2 follows its authored node4 TrackTargets link
+in an isolated strict-node test with explicit component87. The next operation
+now fails as native target search at graph13C2/node4. No unrelated entries,
+target list, damage, input or AI scheduler is fabricated for this test.
+Strict TrackTargets cannot silently return the old empty compatibility payload.
+Its permissive payload is retained until a real search host exists.
+
+Next search frontier -- inspection only
+TrackTargets hash41E3C7A7 has priority1 C8DC70/C957F0 ->C8B3B0, size4D0,
+vtable265EEF8. Its priority2 client wrapper installs261EAE8. Both tables have
+beginC93570, ordinary tickC95590 and cleanupC93AA0. Begin enables native ticking
+through1B72D80, resets search-cache4B0 and may callCAE3B0 depending on its native
+begin mode. Tick reads the component430 period, tests the native frame modulus,
+refreshes configuration throughCA9460 and dispatchesCAE3B0 when needed.
+Subsequent validate_target_search_tick.py executes those three outer callbacks:
+3970 cases per capture,7940 total, with explicit component/frame/node/
+configuration-refresh/search/tick-enable adapters. Original1B71860 reads the
+supplied component1D0 sample directly; no helper hook replaces that read.
+For a positive period and
+nonnegative native frame, a populated4B0 cache refreshes only at frame modulus
+period-1; initialFFFFFFFF bypasses that cadence. Unchanged configuration caches
+the current component1D0 sample and updates4B4 by unsigned maximum, treatingFFFFFFFF as
+unset. Begin modes1/2 skip the immediate search; mode0 clears1C8. Cleanup only
+clears1C8 for mode0. Search/filter/geometry and output bindings remain unexecuted
+backend boundaries. No production TrackTargets implementation is claimed by
+these timing cases, and they do not increase the hero-test inventory.
+
+Final runtime regression:303 tests PASS186.596s, zero skips, with actual43-row
+NPC movers and the complete five-associated-entity external graph closure.
+Inventory:80 Pharah cases,7 associated-host cases,13 AI callback prerequisites,
+203 other shared/prerequisite cases. Earlier74 targeted cases PASS33.561s
+preceded the extra zero-low-word-handle case; do not sum the runs.
+Final13 server snapshot/replay tests PASS430.168s, zero skips, using the original
+external mover runtime. Source remained frozen throughout both final runs.
+
+The component87 host is not installed into Match by this change. Full NPC
+selection, targets, reverse possession/message routing, authored ModifyHealth,
+navigation/specials/resistance and full cross-hero combat/client acceptance stay
+open. No own completion commit is authorized until the entire static goal passes.
+Later PHARAH_TARGET_SEARCH_PRIMITIVES.txt implements and independently verifies
+the category/radial predicates. It still does not install the complete search
+host, choose targets or establish an Assassin return attack.

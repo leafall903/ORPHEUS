@@ -443,6 +443,11 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_B5A0CAF0":  # GetOwner
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
+        from ow174.game.dva_matrix import ruleset
+
+        scoped = ruleset(ctx, cfg)
+        if scoped is not NotImplemented:
+            return scoped
         key = cfg.get("m_value")
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))

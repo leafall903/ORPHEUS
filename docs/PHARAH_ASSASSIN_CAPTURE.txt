@@ -1,0 +1,78 @@
+Pharah / manual Assassin capture, build104319
+
+Scope and evidence
+This permissive server host uses the actual five-associated-entity graph bundle
+(SHA7585d486b0ad9a28a5cb97b52d5d40ed2c05bb22ab22e4b38cc8c874e7b6fd1b),
+the actual Assassin1EBD->1EBE association, associated13C2 and attack1157.
+It is resource-backed server reconstruction. Native actor factories, automatic AI,
+animation contact/poses, transport and the full five-NPC matrix remain open.
+
+The manual console chooses a living enemy human player. The host sends authored
+message0A73/parameter05C5 to the associated component; actual13C2 writes14365,
+evaluates its real masks/condition and writes1650. The production host never
+directly writes1650 or1157/536. A scoped DB742151 bridge returns the declared
+associated Entity, whose actual member1650 then feeds1157/536. It does not return
+a synthetic target Map. Manual Assassin slot0 maps to its authored logical36.
+Other NPC input mappings are unchanged. Strict components receive neither bridge
+nor health/control reconstruction.
+
+The filter uses explicitly declared local human-body classification40000,
+component97 and Match enemy/FFA policy with the native-backed mask/condition
+primitives. This does not establish native actor classification, component25/43/
+72 producers, affiliation stacks or a complete generic AC829876 service.
+Member reads poll values and retain no foreign Var or watcher references.
+
+Damage and control reconstruction
+Actual1157 node25 supplies25 damage on entry; node15 supplies100 damage with
+mode1 after the authored delay. The local health service interprets mode1 as
+per second, using elapsed integer VM milliseconds and f32 damage. For the fixed
+16ms fixture: first contact leaves175HP, first partial DOT tick at frame63 deals
+0.7, then each16ms deals1.6; frame75 leaves155.1HP. These are server clock
+results, not proof of native ModifyHealth timing or difficulty scaling.
+
+Contact is an explicit eye-to-eye3m range plus static capsule LOS policy. It is
+not native animation reach. While active, the source-body->victim-body pin map
+blocks victim movement and ability commands, stops running ability scopes and
+Pharah hover/Barrage, and preserves fresh listeners. Existing gravity is retained;
+native cinematic grounding, displacement and poses are not implemented.
+
+The local contact handler applies the same attached Zarya pool and Fortify
+control checks used by Heavy Assault. A projected barrier present on entry
+absorbs the authored 25 and blocks the pin. Applied after entry, it absorbs
+periodic damage while the existing pin remains active. Health damage resumes
+after expiry for an established pin. An entry blocked by the barrier or by
+Fortify cannot start a delayed pin from the periodic health node. The body hit
+against Fortify still goes through reduction and armor. This is static server
+policy using the actual skill graphs. Native capture and shield interaction
+remain open.
+
+Manual stop/target loss/occlusion/team change, source stun/death/removal/failure
+and victim death/replacement clear control. A new manual target aborts unresolved
+release Anim31; stop aborts capture scopes23/12. That manual lifetime policy does
+not invent a native animation duration or automatic reengagement. The new health
+State has stored last_applied timing; Combat pins and this field participate in
+passive causal snapshots without evaluating scripts.
+
+A real enemy quick-melee body hit releases an active Assassin pin after
+applying its normal damage. Range, cover and team filtering still come
+from the melee operation. Manual engagement releases its target and
+input. The autonomous host ends capture scopes 23 and 12, lets the
+authored two-second Wait37 complete for the selected target and rearms
+through a fresh logical 36 press. The host ends the unresolved release
+animation on rearm. Native melee-rescue dispatch remains open.
+
+Executable coverage
+Fourteen separate Assassin tests cover the actual message/member writer, once
+damage and delayed DOT, stop, range, LOS, friendly transition, command/resource
+blocking, Barrage and hover interruption, recovered input, source stun, damage
+death, source/victim death, removal/replacement/failure, strict refusal and passive
+health clock storage. Source-stun and some cleanup tests invoke the common combat
+service directly; they do not claim full projectile-to-stun or native choreography.
+Hero-module inventory stays89; these14 are a separate NPC integration group.
+
+The full static goal remains active. No partial completion commit or MERGE_READY
+is authorized by these tests. Physical barriers, complete specials/navigation/
+resistance and remaining cross-hero behavior still require acceptance. Native
+client acceptance stays separately open.
+
+Final measured checks:407 runtime tests PASS355.285s; 13 server snapshot tests PASS632.563s, zero skips, final Python source frozen. Earlier targeted suite23 PASS37.511s.

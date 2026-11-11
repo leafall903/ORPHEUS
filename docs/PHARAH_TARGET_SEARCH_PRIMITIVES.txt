@@ -1,0 +1,261 @@
+Target-search routing, radial and condition primitives -- partial, goal OPEN
+Target: Overwatch1.74.0.0.104319. Addresses below are module RVAs.
+
+Implemented scope
+script.target_search exposes the exact category/dispatch predicates and the
+finite radial capsule accept/reject branch used by C8E660 with angular bounds
+disabled, and the separate authored-condition scope stage. No default Match
+search, entity enumeration, complete game filter, target list,
+sorting metric or variable binding is created by these primitives. Strict
+TrackTargets remains unsupported until its complete search host is supplied.
+
+Classification and dispatch
+C72D50 reads STUConfigVarFilter+20/m_84065FD1 and+28/m_1E14CCA8. The second
+mask has priority1,40000,40 (either bit40 or80),10000. Otherwise a one-bit first
+mask may select1,40000 or40; notably10000 in the first mask does not select the
+10000 category. Do not replace this asymmetric logic with a generic bit test.
+
+CAACF0 sends direct categories1/40/10000/40000 to CAAB40. Other routes first
+enumerate150041 when the first mask intersects400C1, then use the spatial
+backend if that mask is empty or has bits outside400C1. A null filter uses the
+spatial backend. Both sources may be used, in that order. The actual Assassin
+13C2/node4 first mask40000/second0 selects category40000 alone. That does not
+prove whether enumeration supplies controller or possessed-body transform
+objects; the candidate producer and its final predicates remain open.
+
+validate_target_query_dispatch.py executes original C72D50/CAACF0 and compares
+the production primitive across721 cases per existing capture,1442 total. Raw
+filter/request/owner/world/stack memory is synthetic. CC6EF0 supplies the owner;
+CAAB40 and1B57840 record enumeration/spatial requests without supplying targets.
+No instruction patch or live client is used.
+
+Radial geometry
+C8E660 consumes a query centre, outer/inner radii and capsule feet/radius/height.
+Without horizontal projection, its nearest capsule height clamps query Y to
+feetY+min(radius,height/2)..feetY+max(height-radius,height/2). Horizontal mode
+uses query Y directly. Float32 squared distance includes X,Y,Z in native order.
+Outer contact is accepted at (radius+outer)^2. Inner rejection is strictly below
+max(0,inner-max(radius,height/2))^2. Native input/intermediate rounding is retained.
+The primitive rejects negative dimensions, nonfinite inputs and overflow rather
+than claiming native semantics outside its explicitly tested finite domain.
+
+validate_target_radial_shape.py compares the Boolean result of the complete
+original C8E660, including original DC8720 and764460, to the production primitive:
+2464 cases per capture,4928 total. Fixtures use the actual five mover radius/
+height pairs, outer contacts +/-0.1mm, inner holes, vertical/horizontal policies
+and seeded geometry. No helper hook/instruction patch is used. The capsule data
+producer, final LOS/team/filter semantics and actual target acquisition remain
+separate evidence; supplying mover dimensions is not native anatomy acceptance.
+
+Distance and authored-field boundary
+The native output distance uses764460's RSQRTSS/Newton sequence, not ordinary
+sqrt. For a5.5m case with target radius0.5, the captured-code emulator returns
+4.999999523162842. target_search.radial_capsule deliberately exposes no inferred
+sorting distance. Angular tests and their metrics remain unsupported here.
+
+validate_radial_request_suffix.py executes the C9B8C6..C9BC8C request-builder
+suffix with native getters/trig code. With a supplied resolved centre, zero view
+offset/interpolation input, absent other configs and an integer radius evaluator,
+radii0/1/5/9999 reach query40 unchanged; query44/48 are0, angular bounds are
+-1/-1/1/1 and flags4C/4D are0. Eight rows across two captures establish this
+limited field route, not the complete actor/bone/pose prefix. The emulator lacks
+FMA3 support, so the CRT FMA dispatch DATA at32D084C is explicitly supplied as0
+to execute the original SSE2 path. Captured default1/FMA3 execution is not
+accepted by this probe. This is an environment adapter, not an instruction patch.
+
+Shared-draft review
+Read-only parent source review found an uncommitted tracked_targets bridge for
+McCree. Its immediate/per-frame refresh and age-zero payload are reconstruction
+policies; they are not imported as native NPC search evidence. The parent tree
+and all external runtime inputs remain unchanged by this lane.
+
+Authored condition stage
+The game component's filter vtable+150 is D0DA20. Its complete game filter is
+not C95840: that helper supplies an additional special-volume test. D0DA20
+delegates its authored m_condition to the library wrapper1B8D970. An absent
+condition succeeds even without an instance; a present condition needs an
+instance. Valid candidate IDs temporarily push a provider into component+4F8,
+shared across its instances. Invalid ID0 or low29bits all ones leave existing
+providers visible. The wrapper pops the provider after Boolean evaluation.
+
+The provider vtable27AEDE8/+0 is1B8D810. It recognizes exactly the full parameter
+key0A40000000000008 and writes an Entity/type10 variant, including invalid IDs
+when called directly. Other full keys fail without changing the destination.
+The production CandidateParameter exposes this exact full-key contract and its
+existing VM low16 parameter adapter. condition() uses the component scope stack,
+passes the actual watcher into expression evaluation, uses true as an evaluator
+failure default, and preserves successful null as false. Exceptions unwind the
+scope through the existing component context manager. No persistent VM field
+or default World/Match query is added.
+
+The actual13C2/node4 condition is !param(8).id(14695): opcode13 obtains a typed
+candidate parameter, opcode15 reads its entity member, then opcode30 negates it.
+The focused test checks the candidate's real variable slot and watcher rather
+than guessing a target from proximity or writing1650. Related tests cover
+cross-instance/nested scope restoration, invalid candidates preserving outer
+providers, failure-default versus null, and exact typed key matching.
+
+validate_target_condition_scope.py executes original1B8D970/1B8D810/F66C80 on
+both existing captures and compares the production wrapper/provider. Per image:
+288 wrapper cases and1566 provider cases;576/3132 total, all PASS.90BFC0 is an
+explicit condition-evaluator adapter returning supplied bytes and recording the
+visible provider;184F5A0 is an explicit eight-byte pointer-copy adapter. Original
+push/pop, invalid-ID branches, default flag, Boolean normalization and typed
+provider writing execute. Full native expression evaluation, game mask/team
+gates, candidate acquisition and engine lifetime are not accepted by this probe.
+
+Mask and component97 stages -- subsequent checkpoint
+The six STUConfigVarFilter fields at20/28/30/38/40/48 are respectively
+m_84065FD1/m_1E14CCA8/m_4EA686DB/m_27CF71D5/m_66747E7D/m_89831602.
+Their BCAAE0 roles are any/all/excluded tags, then any/all/excluded relationships.
+This follows both the typed local schema and the original D0E10E..D0E14A
+argument setup.312 in Assassin m_4EA686DB is an excluded-tag mask, not a
+collection of unknown query flags. The six fields are uint64 masks.
+
+mask_matches combines any-tag acceptance (or exactly3FFFFFFF), required tags
+and excluded tags with the low three relationship bits. Given explicit native
+query result Q and pointer identity S, relationship bit1 is !(Q && !S), bit2
+is Q && !S, and bit4 is S. Any-relation can admit a candidate but cannot undo
+missing required tags or excluded tags. All-relation masks intersect rather
+than OR; high relation bits do not change these three tests. A known absent
+reference skips relation gates. Unknown services must not be called absence.
+Relationship is an explicit typed input; no team-equality approximation is used.
+
+candidate_masks adds D0DA20's preceding gate. If the first mask is not exactly
+3FFFFFFF, a nonzero aggregate of the six masks requires component97. Exactly
+3FFFFFFF bypasses that presence test. If every mask is zero, D0DA20 skips
+BCAAE0 entirely and passes this stage, although a direct BCAAE0 call with no
+any-mask would reject. BCACB0 selects component25 (word0/bit25), whose58 holds
+tags; component97 presence is a separate gate. No native tag producer is installed.
+
+validate_target_mask_gate.py now compares production behavior:8528 cases per
+capture,17056 total, including actual Assassin masks, all low relationship-mask
+combinations, special-tag dispatch and288 absent-component cases per image.
+Original source-record decoding executes. Classification C1ECD0 and relation
+C1C690/C1CF60 remain explicit adapters; their upstream semantics are not accepted.
+The schema path/hash and exact field offsets are recorded in the external report.
+
+validate_target_game_filter.py executes the complete original D0DA20 function
+for1920 cases per capture,3840 total. Original component97 presence, packed
+component25 selection, mask gate and condition wrapper run. The selected query
+has no auxiliary configs; original D0EC70 takes its empty path. Candidate world
+is explicitly known absent, so original DA8BD0 returns its native default2.
+Tail animation predicate is absent/default false. The probe compares production
+candidate_masks, records exact lookup/presence/classification/relation/condition/
+tail ordering, verifies short circuits, and checks scope depth after every case.
+
+Adapters are entity lookup+168/known absent fallback+240, classification/relation
+answers, Boolean evaluation, provider pointer copy and synthetic GS/TEB/PEB seed.
+This is no acceptance of a live rule manager, auxiliary config evaluation,
+watcher/dependency routing, animation predicates, actor creation or search host.
+No instruction patch/live client is used. The actual extracted Assassin13C2
+test checks component97, excluded-tag and explicit relation requirements, then
+still stops at its strict unsupported target search. No target1650 is fabricated.
+
+Ordinary relation research -- not installed
+validate_target_ordinary_relation.py executes full C1CF60, original C1F000
+special-bit read, C1B570 team index, packed component25 reads and declared
+component43 absence.1024 cases per capture,2048 total, pass. Both actors have
+explicit filters; no possession/controller fallback runs. Equal unknown/team4
+uses an explicit C6C0A0 fallback answer. Synthetic GS/TEB/PEB data is supplied.
+The existing production entity_team.index_from_filters supplies the comparison
+team values; no new production relation helper or search host is installed.
+
+Within this declared domain, equal actor IDs reject. Ordinary equal teams0..3
+reject; unequal teams can pass. Either special bit28 rejects the ordinary path.
+Equal unknown/team4 also depends on C6C0A0. Thus a general native relation must
+not be replaced with team equality. C1C690's special-candidate route additionally
+reads world affiliation rules, optional controller fallback and a callsite check;
+it remains a separate next frontier. Static function inspection alone does not
+accept its branches or native identity/relationship producer.
+
+Subsequent special-relation execution
+validate_target_special_relation.py calls original BCAAE0, which invokes
+C1C690 at its actual native callsite and preserves its return-address checks.
+8192 cases across the two captures pass. Original special/unknown-team predicate,
+world service30 lookup, C1F000/C1B570 packed25 reads and C6C9F0 registry lookup
+with known absent72 all execute. No helper return hook or instruction patch.
+Only synthetic entity/world/registry/GS/TEB/PEB data is supplied. This proves the
+declared special-candidate branch, not live factory/affiliation producers.
+
+validate_reference_controller_lookup.py executes1152 fixtures per image,
+6912 function comparisons total: native C6C9F0, DA6910/DA5FA0, and the actual
+special-relation callsite using a present72-linked reference whose team is1.
+World hash collisions, packed ranks, missing72/rows/44, signed activity values,
+allow flag and raw identifier boundaries vary without helper return hooks.
+
+Important correction from execution: C6C9F0 resolves the reference's world row,
+selects component72 and follows its+D8 identifier to another world row. Its
+lookup does not use72+E0. With component43 absent, DA5FA0 instead directly
+selects component44 and returns that result even if absent; allow=true does not
+make that branch fall through to72. Its apparent72/+E0 fallback in a linear
+listing belongs to a different preceding43 path. That path is not accepted by
+this probe. No connection between72 runtime fields and the extracted ai_entity
+declaration is invented from these synthetic records.
+
+validate_special_affiliation_rules.py executes8960 cases with service30 absent,
+negative/zero count or positive stacks. A positive count at manager+20 selects
+the last32-byte entry at manager+18. Comparing reference team to entry+18 then
+determines the relation before ordinary/special/controller fallback. Original
+service selection, callsite check, team getter and registry path execute; no
+helper return hook or instruction patch. Native stack ownership/push/pop and
+watcher services are separate requirements. These are research-only services.
+
+Actual Assassin authored-message prototype
+The actual13C2 entry receives message0A73 with parameter05C5 and writes its
+authored override14365. Without a filter host it then clears target/override;
+this is reproduced in probe_assassin_authored_target_message.py/.json.
+A separate prototype supplies the local Match's declared human-body filter/
+component97/team policy and foreign member values through native-backed
+candidate_masks/condition. The actual entry/node7 writes typed target1650 and
+keeps it across selection timer2 and five real Match frames. No direct target
+variable write or health mutation is used; Pharah stays200. This is patched
+prototype evidence, not production/static NPC combat acceptance. It identifies
+an authored manual-target route for a scoped server reconstruction while full
+automatic acquisition, native factory/selection and skill-health/control remain
+open. Prototype callbacks never become a default query or forced-target table.
+
+Thirteen focused primitive tests pass. Prior movement/input/primitive regression:
+32 tests PASS68.400s; replay-manifest plus primitive regression21 PASS7.681s,
+zero skips. These do not replace or inflate the prior303/13 VM baseline.
+Current condition checkpoint: combined scope/callback/budget/primitive60 tests
+PASS1.759s. Frozen-source final runtime320 PASS281.618s, zero skips, with
+explicit five-NPC data/associated closure and actual43-row mover table. Inventory:
+84 hero+7 associated+13 AI callback+13 target primitive+203 shared/prerequisite.
+Manifest/primitive27 PASS2.599s, zero skips. Prior13 server snapshot tests remain
+the430.168s baseline; they are not rerun for this unmounted helper. Ruff and
+staged diff checks pass. No own completion commit; full static goal remains OPEN.
+Subsequent mask-stage regression:22 primitive cases; combined associated host,
+AI callback, entity/team query and replay-manifest96 PASS32.673s, zero skips.
+This was before the later shared notification/order fix; its new final evidence
+is tracked separately in PHARAH_NOTIFICATION_LIFETIME.txt.
+Match/AI scheduler integration, enumeration,
+native candidate transforms, authored query prefix, final filtering/LOS, distance
+and result order, target-variable writes and NPC damage/skill interactions remain
+open. New research material stays external in lane0008/asset-research.
+
+Scoped stationary Assassin search
+--------------------------------
+An explicit autonomous Assassin sandbox spawn enables 13C2's selected
+branch. Its actual node 4 reads the authored radius and candidate filter,
+then exposes eligible player IDs to the graph. Node 7 writes target 1650.
+The body uses its actual 1157 input and capture path. No manual override
+message supplies the target. The local host polls visibility, team and
+foreign-condition changes so node 10 can execute the authored clear and
+restart branch. Without a candidate the search waits for a later match
+frame. A candidate outside contact range can be tracked without attacking.
+
+The player cohort, match-team relation, visibility policy and distance
+ordering are explicit server reconstructions. The opt-in host covers
+stationary engagement and does not supply navigation, native enumeration,
+native scheduling, or other NPCs' autonomous selection. Strict VM target
+search remains unsupported outside the permissive local host.
+
+Assassin approach
+-----------------
+The opt-in Assassin consumes forward input on the same prepared body
+mover used for Pharah's Concussion. Its authored target remains the goal.
+Losing visibility or control releases throttle, leaving friction and
+ongoing impulses to the mover. An available target can be approached
+again and captured through the actual body graph. No path planner,
+jump route, or native navigation producer is installed.

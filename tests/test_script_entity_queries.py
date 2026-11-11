@@ -156,6 +156,58 @@ class EntityQueryTests(unittest.TestCase):
         current.current = BODY
         self.assertEqual(instance.evaluate(config(query.POSSESSED, expr.Entity(OWNER))), expr.Entity(BODY))
 
+    def test_body_reference_reads_independent_field_after_observing_component(self):
+        _, _, instance, state, context, targets, events = setup()
+        record = query.Possession(BODY, body_reference=0)
+        target = query.Target(OWNER, record)
+        targets[OWNER] = target
+
+        def observe(watcher, observed):
+            events.append(('reference', watcher, observed))
+            record.body_reference = 0xFFFFFFFF
+
+        context.watch_body_reference = observe
+        cfg = {'$': query.BODY_REFERENCE, 'm_00903303': {'$': 'STU_B5A0CAF0'}}
+        self.assertEqual(instance.evaluate(cfg, state), expr.Entity(0xFFFFFFFF))
+        self.assertEqual(events, [('lookup', OWNER), ('reference', state, target)])
+        self.assertEqual(instance.evaluate(config(query.POSSESSED, expr.Entity(OWNER))),
+                         expr.Entity(BODY))
+
+    def test_body_reference_typed_zero_for_missing_entity_or_component(self):
+        _, _, instance, state, context, targets, events = setup()
+        context.environment_present = False
+        cfg = {'$': query.BODY_REFERENCE, 'm_00903303': {'$': 'STU_B5A0CAF0'}}
+        self.assertEqual(instance.evaluate(cfg, state, initial=42), expr.Entity(0))
+        self.assertEqual(events, [('lookup', OWNER), ('environment', state, 46)])
+        events.clear()
+        targets[OWNER] = query.Target(OWNER, None)
+        self.assertEqual(instance.evaluate(cfg, state, initial=42), expr.Entity(0))
+        self.assertEqual(events, [('lookup', OWNER)])
+
+    def test_linked_lookup_observes_then_converts_both_operands(self):
+        _, _, instance, state, context, _, events = setup()
+        context.lookup_linked = lambda owner, key: events.append(('linked', owner, key)) or BODY
+        for selector, key in ((None, 0), (True, 1), (-1.5, 0xFFFFFFFE),
+                              (((2,),), 2), (expr.Entity(BODY), 0),
+                              (float('nan'), 0x80000000), (2147483648.0, 0x80000000)):
+            with self.subTest(selector=selector):
+                cfg = {'$': query.LINKED, 'm_152B6961': {'$': 'STU_B5A0CAF0'},
+                       'm_A60150E2': {'$': 'Literal', 'value': selector}}
+                self.assertEqual(instance.evaluate(cfg, state), expr.Entity(BODY))
+                self.assertEqual(events, [('environment', state, 0x20), ('linked', OWNER, key)])
+                events.clear()
+
+    def test_linked_missing_namespace_preserves_output_and_missing_record_writes_zero(self):
+        _, _, instance, state, context, _, events = setup()
+        context.lookup_linked = lambda owner, key: events.append(('linked', owner, key))
+        cfg = {'$': query.LINKED}
+        context.namespace_present = False
+        self.assertEqual(instance.evaluate(cfg, state, initial=42), 42)
+        self.assertEqual(events, [])
+        context.namespace_present = True
+        self.assertEqual(instance.evaluate(cfg, state, initial=42), expr.Entity(0))
+        self.assertEqual(events, [('environment', state, 0x20), ('linked', 0, 0)])
+
     def test_nested_query_evaluates_body_before_existence_lookup(self):
         _, _, instance, state, _, targets, events = setup()
         targets[OWNER] = query.Target(OWNER, query.Possession(BODY))

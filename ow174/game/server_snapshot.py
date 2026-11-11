@@ -16,20 +16,35 @@ import weakref
 from collections import deque
 from pathlib import Path
 
+from ow174.game import steel_trap
 from ow174.game import (
+    baptiste_field,
     bots,
+    brigitte_bash,
     combat,
+    defense_geometry,
     correction,
     heroselect,
+    mei_blizzard,
+    mei_wall,
+    hook,
+    mei_frost,
     notices,
+    npc_navigation,
     observers,
     projectiles,
     replay_values,
+    sigma_grasp,
+    sombra_hack,
+    sound_barrier,
     statescript,
     stats,
     voicelines,
     world,
+    zarya_barrier,
+    zenyatta_discord,
 )
+from ow174.game.barrier_pet import BarrierWorld
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
@@ -38,9 +53,12 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
+from ow174.game.orisa_deployable import Flight, Shield
 from ow174.game.script import driver, expr, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
+from ow174.game.sigma_barrier import Barrier as SigmaBarrier
+from ow174.game.winston_barrier import Bubble
 from ow174.paths import ROOT
 
 SCHEMA = "ow174.controlled-server-stored-state.v1"
@@ -93,9 +111,41 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "projectiles observers voice stuns pins heavy_pins heavy_grazes heavy_impact_requests barrier_pets barrier_geometry winston_bubbles "
+        "orisa_geometry orisa_flights orisa_shields zarya_bubbles sigma_geometry sigma_barriers brigitte_geometry brigitte_barriers "
+        "grasp_shields grasp_grants transcendence_seen baptiste_flights baptiste_fields hacks frost "
+        "blizzard_flights blizzards walls hooks discord sound_barriers nano_casts nano_buffs steel_traps"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now temporary_shields ids changed died_at death_tick killer "
+                          "sleep_until healing_blocks healing_boosts"),
+    combat.TemporaryShield: _names("pool_id most now"),
+    sigma_grasp.ShieldDecay: _names("starts last rate"),
+    sound_barrier.SoundBarriers: _names("fight landings waves shielded"),
+    sound_barrier.Decay: _names("at rate"),
+    sound_barrier.Landing: _names("ready grounded_at"),
+    sound_barrier.Wave: _names("until radius duration recipients"),
+    sombra_hack.Hack: _names("component instance deadline"),
+    mei_frost.Frost: _names("sources until yaw pitch"),
+    mei_blizzard.Flight: _names("owner body position velocity gravity left tick shot flown"),
+    zenyatta_discord.Orb: _names("owner buttons ready target visible_at"),
+    hook.Hooks: _names("combat flights seen"),
+    hook.Flight: _names("owner body instance origin direction reach speed radius damage pull_speed "
+                        "separation gap recovery limit last_tick launch_tick travelled target caught_at "
+                        "arrived_at npc_mover"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    mei_wall.Pillar: _names("entity owner team feet axis health expires width depth height"),
+    mei_wall.Input: _names("buttons preview rotated"),
+    mei_blizzard.Area: _names("entity owner body point ends sampled frost_due"),
+    Bubble: _names("body team activation centre health expires"),
+    Flight: _names("body team position velocity yaw gravity left tick due"),
+    steel_trap.Trap: _names("entity body team flight instance output damage arm_delay trigger_radius duration "
+                            "short_duration health armed_tick victim end_tick status"),
+    baptiste_field.Field: _names("entity body team position zone_radius active_tick expires health bindings "
+                                 "restoration_seen"),
+    Shield: _names("body team position yaw geometry component"),
+    SigmaBarrier: _names("entity owner_body owner instance vitals position basis last phase active "
+                         "child_request_seen recharge_at"),
+    zarya_barrier.Bubble: _names("entity caster target body caster_body graph_index stamp health"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -113,12 +163,14 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode health_pools body throttles match"),
+    BarrierWorld: _names("hero mode health_pools"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior "
+        "retired associated_definition associated_record associated_component"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
-    runtime.World: _names("hero mode"),
+    BotWorld: _names("hero mode health_pools weapon_buttons owner_position match"),
+    runtime.World: _names("hero mode health_pools"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -131,13 +183,19 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "impulse_mover melee_input charge_input"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    bots.Bot: _names("combat_detour sniper_target"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    npc_navigation.Detour,
+    brigitte_bash.Barrier, defense_geometry.AttachedMesh,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

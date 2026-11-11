@@ -50,24 +50,34 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0, autonomous: bool = False) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
+    from ow174.game import assassin, npc_control
+
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
     if not isinstance(definition, Definition):
         raise ValueError('NPC spawn needs a validated definition')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
+    if type(autonomous) is not bool or (autonomous and definition.hero != assassin.HERO
+                                       and definition.body not in npc_control.TARGET_GRAPHS):
+        raise ValueError('Autonomous sandbox engagement is unavailable for this NPC')
     position = tuple(position)
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
     entity = match.combat.next_bot
-    if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(b.entity == entity for b in match.bots):
+    if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(
+            b.entity == entity or (getattr(b.body_script, 'associated_component', None) is not None
+            and b.body_script.associated_component.entity == entity) for b in match.bots):
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
+    if autonomous:
+        data['autonomous_assassin' if definition.hero == assassin.HERO else 'autonomous_weapon'] = True
     bot = bots.Bot(entity, data, hero, {})
+    bot.firing = autonomous
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True
     # Import locally to keep Match's existing module graph acyclic.
@@ -75,10 +85,10 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
     match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
-    match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match.bots.append(bot)
+    match._prepare_bot_script(bot)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -93,15 +103,19 @@ def remove_spawned(match) -> tuple[int, ...]:
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
+        match.combat.clear_pins(bot.entity)
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None
         if script is not None:
-            component = script.component
-            component.owner_dead = True
-            component.held.clear()
-            component.shots.clear()
-            for instance in list(component.instances.values()):
-                component.destroy(instance)
+            if hasattr(script, 'retire'):
+                script.retire()
+            else:
+                component = script.component
+                component.owner_dead = True
+                component.held.clear()
+                component.shots.clear()
+                for instance in list(component.instances.values()):
+                    component.destroy(instance)
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)

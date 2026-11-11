@@ -4,7 +4,904 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Pharah server integration
+
+- Consolidate the lane implementation, shared combat and NPC dependencies,
+  and regression tests. All 375 Pharah test cases passed with the prepared
+  build 1.74.0.0.104319 runtime inputs.
+- Full static matrix coverage, trap-specific journal replay, and original
+  client acceptance remain open.
+
+#### Steel Trap against Pharah
+
+- Actual Junkrat deployment deals 80 contact damage and starts the
+  09BC victim graph for 188 ticks. Forward and Jump Jet inputs hold
+  position until release. A fresh Jump Jet input launches after expiry.
+- Pharah primary and quick melee can destroy the planted trap without
+  granting ultimate charge. Nano on Junkrat preserves the 80 contact
+  damage and Nano on Pharah reduces it to 40.
+- An active allied Defense Matrix consumes the airborne trap before it
+  plants. The same throw lands with Matrix inactive.
+- Batched world updates preserve landing, arming, and root deadlines.
+
+#### Gravitic Flux against Pharah
+
+- Run the actual 1E41 confirmation and 1DBC lift and slam on the static
+  host. Entry and landing damage are 50 and 100. Nano on Sigma raises
+  entry to 75 and leaves landing at 100 through the authored 3FCE tag.
+  Nano on Pharah reduces the two hits to 25 and 50.
+- The movement lock defers both held Hover Jets inputs and rejects Jump
+  Jet without spending cooldown. A fresh Jump Jet press works after
+  landing. Barrage can start during lift and continues through the slam.
+- A lethal Pharah rocket releases a target before descent. The same
+  input during committed descent leaves the pending slam active.
+- Projected Barrier absorbs entry or slam while the lift continues.
+  A breaking bubble absorbs the full hit and credits only its lost
+  durability as energy. Experimental Barrier stays intact, and a
+  live Immortality Field clamps lethal landing damage to 20 health.
+- A legal placement excludes Pharah behind solid cover, on Sigma's
+  team or outside its target volume. Unconfirmed placement times out
+  without delivering an effect or refunding charge.
+- Static target selection and placement are reconstructed. Additional
+  cancellation and defense interactions and native acceptance remain open.
+
+#### Sniper reposition against Pharah
+
+- Route manual and autonomous Sniper requests through the 142C search,
+  750 ms windup, and MoveTo. The static search uses the configured cone
+  and checks reachable floor, capsule collision and visibility.
+- Verify blocked search retry, cancellation during windup and travel,
+  Concussive Blast displacement, lethal rockets and return fire. Recast
+  opens after 750 ms of recovery and the 10-second graph cooldown.
+- The NPC and Assassin suite passed 104 cases with Rialto collision data.
+  Native destination scoring, controller allocation and client acceptance
+  remain open.
+
+### 2026-11-10
+
+#### Concussive Blast during Sniper reposition
+
+- Preserve the admitted NPC impulse through the next physics sweep. The
+  Sniper finishes the displacement before resuming the original MoveTo.
+
+#### Pharah Concussive Blast during Hack
+
+- An already launched Concussive Blast still pushes Sombra after Hack
+  applies. Cooldown continues after Hack expires, and a fresh input
+  launches the next shot after cooldown. Hack one frame before release
+  cancels the pending shot without spending cooldown. Releasing the key
+  during Hack allows the next press to launch after the effect expires.
+- Zarya's projected barrier rejects Hack before acquisition or during
+  the channel without losing durability. A new Hack lands after expiry.
+- An applied Hack lasts until its original deadline when Sombra dies.
+  Pharah's death ends the effect immediately, and her respawned body
+  can use Jump Jet.
+
+#### Ana Nano Boost on Pharah
+
+- Actual Ana input selects an eligible ally and follows the authored
+  cost and windup. Pharah receives the capped heal and eight seconds
+  of body damage modifiers from the extracted 0B9F status data.
+- Verify primary, melee, Barrage, incoming rifle damage, body replacement
+  and Flashbang interruption before the effect applies.
+- Resolve the outgoing bonus at rocket impact, including shield damage.
+  An active Winston barrier loses 180 durability without giving Pharah
+  charge. Genji's redirected rocket credits him for 60 damage to
+  Nano-boosted Pharah. A rocket landing after expiry deals 120 damage.
+  A rocket launched before application gains the bonus if it lands during
+  the boost. Nearby splash removes 50 percent more Brigitte shield durability.
+- Boosted rockets remove 180 durability from Mei's central Ice Wall pillar
+  and destroy Baptiste's 150 durability device in one hit. Neither hit grants
+  ultimate charge. Enemy Biotic Grenade blocks the immediate Nano heal while
+  the damage modifiers still apply. Pharah still deals 180 with her primary
+  while antiheal is active. Boosted melee removes 45 durability from Ice Wall
+  and both Zarya barriers. Zarya gains 9 energy from the absorbed swing,
+  and Pharah gains no charge. Boosted Barrage removes 60 durability on its
+  first Winston barrier impact. Concussive Blast keeps its zero damage
+  and the same self and enemy displacement with or without the boost.
+- Actual Nano Boost, Discord and Fortify combine before armor and deal
+  125 damage to Orisa. Primary self splash stays the same without charge.
+- Nano acquisition spends charge at 39.99 m and preserves it at 40.01 m
+  or when the only ally is dead. A recipient killed, replaced, or switched
+  to the opposing team during windup receives no heal or damage modifiers.
+- Boosted primary deals and credits 180 against each of the five authored
+  NPC bodies. Actual Trooper, Enforcer, Sniper, Assassin and Heavy Assault
+  attacks deal 10, 25, 50, 12.5 and 2.5 damage to boosted Pharah. Assassin
+  capture still suppresses primary fire until release and a fresh press.
+  Heavy Assault charge deals 87.5 on direct impact, 25 on a graze and
+  150 on wall crush. Direct impact still stuns for two seconds. Wall
+  crush releases Pharah and leaves her at 50 health.
+- Actual Zarya Particle Barrier loses 180 durability and grants 36 energy.
+  Actual Sigma Kinetic Grasp consumes the rocket without damage or charge.
+  The local interception adapter feeds 120 base payload into the authored
+  accumulator and grants 72 temporary shield. Native ordering remains open.
+  Exact native combat filters and client effects remain open.
+
+#### Pharah primary contact and reload timing
+
+- Primary rockets use the target's current team and Winston barrier
+  state at contact, including barriers deployed or expired in flight.
+- Manual and automatic reload reach a full magazine on the same frame
+  with or without actual Flashbang stun.
+
+#### Pharah Jump Jet airborne control
+
+- Actual Flashbang clears horizontal movement from an already fired
+  Jump Jet while ascent and cooldown continue. Sleep Dart preserves
+  both axes of the existing trajectory and blocks new input.
+- Jump Jet reverses a fall and aims horizontally by yaw. An early press
+  released outside the 150 ms cooldown buffer does not recast.
+
+#### Pharah quick melee control and defense boundaries
+
+- Actual Flashbang ends the active melee scope after its hit. The
+  existing recovery timer continues and gates the next swing.
+- Quick melee bypasses active Defense Matrix and Kinetic Grasp, skips
+  Wraith Form and Fade targets while they are phased, and respects
+  Immortality Field's health floor until expiry.
+
+#### Barrage earned through live combat
+
+- From zero charge, Pharah earns Barrage with primary rockets against
+  the actual Heavy Assault. Holding the ultimate input before the
+  finishing hit does not queue a cast. A fresh press spends the charge.
+- The same encounter completes all 76 rounds without gaining charge
+  from Barrage, then the next primary hit earns 120.
+
+#### Concussive Blast phase and chained defenses
+
+- Actual Wraith Form and Fade input verifies phase entry and expiry
+  while Concussive Blast is in flight. Contact uses the live phase state.
+- Actual Genji Deflect followed by Defense Matrix or Kinetic Grasp
+  consumes the redirected Concussive Blast without impulse or charge.
+  Kinetic Grasp gains no temporary shield from its zero-damage payload.
+- Flashbang on the scheduled launch frame cancels Concussive Blast
+  before cooldown starts. A stun one frame later preserves the fired
+  projectile and its committed cooldown.
+
+#### Pharah Hover Jets fuel recovery
+
+- Actual inputs verify depleted Hover Jets with either binding, including
+  the 10-fuel restart gate, the additional 0.2 s jump hold, release before
+  restart, and switching from a pending jump restart to secondary.
+- Actual Lúcio Soundwave displaces Pharah during held hover while thrust
+  and fuel consumption continue until release.
+
+#### Five NPCs exchange hits with Pharah after Rialto detours
+
+- Trooper, Sniper and Heavy Assault use the local floor search when static
+  geometry blocks sight. They use their existing target and weapon graphs
+  once they have a clear shot. Enforcer retains its authored walk gate.
+- On the extracted Rialto collision map, each of the five NPCs navigates
+  from an occluded start, damages Pharah and takes her primary rocket in
+  the same encounter.
+
+#### Assassin static cover pursuit against Pharah
+
+- Reuse the local floor search to approach an eligible but occluded target.
+  Authored target selection and capture still require live sight.
+- On the extracted Rialto collision map, the Assassin follows a local
+  detour, pins Pharah for 25 damage, and takes 120 from her primary rocket
+  after the pin is released.
+
+#### Enforcer local cover detours against Pharah
+
+- The opted-in Enforcer searches nearby walkable floor when static cover
+  blocks its target. It follows the route through the authored walk gate
+  and fires the authored fan once it regains sight of Pharah.
+- Verify that a short wall can be bypassed, broad cover holds the Enforcer
+  in place, and stopping the NPC releases movement and weapon input.
+
+#### Brigitte Whip Shot against Pharah
+
+- Host the outbound phase of graph 1259 using its damage, speed, range,
+  head radius and contact-time knockback values. Actual casts verify 70
+  damage and displacement during Barrage while the volley continues.
+- Use Brigitte's authored standing and crouched FirstPerson offsets.
+  Actual inputs bracket low cover in both stances, confirm the cooldown
+  and range limit, and cancel when Pharah kills the caster.
+- Verify Genji blocking, Wraith passage, Cryo stopping and midflight
+  Winston and projected Zarya barriers. The server reconstructs the head
+  sweep and retains the authored cooldown. Native hit-to-retract routing
+  and animated pose remain open.
+
+#### Brigitte attached shield mesh
+
+- Load the verified build 104319 motion 1 shield mesh when the external
+  model is configured. Actual Pharah primary input brackets the shield edge
+  at 0.69 m and 0.70 m at the same height.
+- Preserve shield interception, splash cover and break behavior where the
+  server's mover capsule overlaps the mesh. The host places the mesh at the
+  authored Pet offset with its bind pose. Live animation remains open.
+
+#### Brigitte Shield Bash and Barrier Shield against Pharah
+
+- Actual Bash deals 5 damage and 47 ticks of control, interrupts Barrage
+  and gates Jump Jet until expiry. Actual casts verify the recast cooldown,
+  allied and range exclusion, and Winston's barrier stopping the dash.
+- Raised Barrier Shield intercepts primary, Concussive Blast and Barrage.
+  Verify shield-edge splash, break, recharge, re-raise and passive capture.
+  Quick melee passes through the shield and spends 25 points on armor.
+  The shield uses a reconstructed frontal rectangle. The target-build
+  model export contains both a dynamic hull and a dynamic mesh.
+
+#### Sigma Accretion against Pharah
+
+- Host the authored Accretion launch and route its tagged direct hit through
+  the scoped control request. Actual commands verify 70 total damage on
+  a direct hit, equivalent Sigma ultimate credit, and 50 frames of stun
+  that interrupt Barrage and allow Jump Jet at expiry.
+- Verify gravity, allied body exclusion, wall splash without stun, and cover
+  occlusion. The mover preserves the rock's momentum through the stun and
+  stores that state in the passive physics snapshot.
+
+#### Pharah quick melee barrier verification
+
+- Verify actual melee through held and deployed barrier surfaces.
+  The authored 002B sight profile resolves to a zero-result override
+  on the shared receiver. A projected Zarya pool still absorbs
+  melee damage for its target and awards energy.
+  All 10 final melee tests and 26 focused combat tests pass with zero skips.
+- Evaluate the authored TrackTargets radius for quick melee. Actual
+  input distinguishes a half-metre test radius from the authored
+  unit-radius expression. The 61-test regression passes with zero skips.
+  Native target geometry and original-client acceptance remain open.
+- Bound quick melee pitch using the existing mover rule. Actual attacks
+  distinguish up, level and down aim at an elevated target in two yaw
+  directions. The 68-test regression passes with zero skips.
+
+#### Soundwave against Pharah
+
+- Consume Lúcio's authored Soundwave damage and impulse on actual
+  secondary input. Pharah is displaced during Barrage while the
+  volley continues. The queued delta expires after one pose and
+  is discarded with the victim body.
+- Actual inputs verify damage, sustained-button deduplication,
+  ally, cone, range and world-cover rejection, and replacement
+  with an unconsumed impulse. Native direction matches 35 cases.
+  The 63-test combat regression and 20-test final input and physics
+  snapshot suite pass with zero skips.
+- Block Soundwave sight at hostile Reinhardt, Winston, Orisa,
+  Sigma and Zarya surfaces. Actual casts cover both Winston
+  crossings, inside the same sphere, friendly passage, and
+  Zarya personal and projected bubbles. Blocked casts spend
+  no shield pool. The 42-test barrier and rocket regression and
+  13-test final Soundwave and Zarya suite pass with zero skips.
+  Native target routing and client acceptance
+  remain open.
+
+#### Pharah Barrage projectile motion
+
+- Evaluate both authored motion rows and advance the shared projectile
+  collision sweep along their seeded curve. The original sample table
+  is generated in the server without capture or client dependencies.
+- The original motion instructions match the production calculation in
+  1,044 comparisons. Actual Barrage commands cover the first two
+  endpoints, collision with a narrow wall, and the authored splash and
+  self-damage boundaries at curved wall impacts.
+- Apply the authored 8-degree launch cone before the curved sweep.
+  The production quantization and spread calculation match 608
+  original-instruction launch cases. The post-change 227 Pharah tests
+  and 122 NPC and shared projectile tests pass with no skips.
+- Add the current stance spring to the launch height of Pharah primary,
+  Concussive Blast and Barrage. Seventeen focused tests pass, including
+  stance changes at launch and a rocket clearing low cover while crouching.
+  The post-change 229 Pharah cases and 122 NPC and shared projectile
+  cases pass with zero skips.
+- Restart Barrage curve phase and restore its flight bound after Genji
+  Deflect. Original instruction probes and an actual command test cover the
+  first reflected chord. Reflected lethality still cancels the channel.
+- Start reflected Barrage at Genji's authored standing or crouched eye
+  with the current stance spring. Real inputs verify the reflected launch
+  origin and low-cover contact.
+- Reapply the authored Barrage launch cone on reflection when the
+  original volley still resolves. Preserve raw reflector aim after
+  replacing the original body. Actual casts match the original direction
+  and first chord while retaining the original flight curve.
+- Continue the returned Barrage rocket in the current tick after Deflect.
+  Actual inputs match the original remaining chord and next full chord,
+  including a wall impact during the reflection tick and a batched replay.
+- Accumulate Barrage's 100 m range along its swept chords while tracking
+  the authored lifetime separately. Clip before collision selection and
+  reset range on Deflect. Actual commands bracket the original cutoff by
+  two millimetres. All 232 Pharah cases pass at this checkpoint.
+- Orient Genji Deflect, Sigma Kinetic Grasp and D.Va Defense Matrix
+  using aim and the current stance eye position. Actual elevated
+  Pharah rockets bypass level Deflect and Grasp and are intercepted
+  when the defenders look up.
+- Apply the primary rocket's authored 0.2 m extent to projectile-defense
+  boxes and preserve it after Deflect. Actual rockets bracket Genji's
+  expanded side boundary by two millimetres. All 234 Pharah cases
+  pass with zero skips.
+- Use the primary rocket's authored extent for the separate body
+  query. Compare its distance plus extent against the ordinary
+  contact. Actual shots verify the side and 100 m boundaries, wall
+  ordering, and grazing hits on all five prepared NPC bodies. All
+  237 Pharah cases pass with zero skips.
+- Verify that primary rockets register an immediate hit when their
+  launch starts inside either the ordinary or expanded body query.
+- Apply ModifyHealth knockback ring multipliers separately to horizontal
+  and vertical impulse. The outer ring uses a strict distance check.
+  Actual Concussive Blast commands exercise both channels on the
+  firing player and an enemy player.
+- Evaluate Concussive Blast's authored minimum separately from its
+  vertical coefficient. The firing player's prediction path uses a
+  zero reference and the static enemy adapter uses impact-time velocity.
+- Apply the primary rocket's 1.875 self-knockback multiplier to the
+  current projectile source body. Deflect transfers that source
+  identity, and replacing the body drops its self-knockback.
+- Calculate self-knockback distance from the source center and project
+  the impulse along the raised segment point. Actual rockets verify
+  the outer impulse ring separately from splash damage.
+- Trace self-knockback from a point 0.2 m back along the incoming
+  path. Check the source midpoint, then the height-clamped point
+  if the first ray is obstructed. Splash damage keeps its own sight check.
+- Verify primary direct contact plus secondary enemy splash with actual
+  commands, including a wall that blocks only the rear target.
+  The new fixture and 30 focused rocket and PvE cases pass with zero skips.
+- WeaponComponent seed changes after construction and animated launch
+  transforms remain open. Client acceptance remains separate.
+
+
 ### 2026-11-09
+
+#### Enforcer movement and spread against Pharah
+
+- Run the associated walk gate and expand the authored 25-pellet volley.
+  Verify range, partial cover, walking fire, and real Pharah counterattacks.
+
+#### Heavy Assault charge against Pharah
+
+- Run authored Heavy Assault charge and victim graphs through manual sandbox
+  input. Verify travel, wall and body impact, grazing, carry and release,
+  team filtering, Ice Wall interception, Concussive Blast resistance,
+  and lethal Pharah rocket interruption.
+
+#### Trooper and Heavy Assault melee against Pharah
+
+- Run the actual 1422 and 140E melee graphs through explicit sandbox
+  attack input. Verify damage, Heavy Assault knockback, held input,
+  range and static cover. Verify mode switching and lethal melee
+  interruption of Pharah Barrage.
+
+#### Trooper and Enforcer reload against Pharah
+
+- Run the Trooper's actual manual reload input through the sandbox
+  controller. Verify partial refill, Enforcer auto-reload after four
+  rounds, and real fire against Pharah after both reloads.
+
+#### Sniper reposition against Pharah
+
+- Run the actual Sniper MoveTo state through an explicit sandbox request.
+  The capsule can block on low cover, primary pauses during travel and
+  resumes at the destination, and Pharah can knock the Sniper back. Stop
+  and lethal rocket cases cover cancellation and cooldown recovery.
+- Explicit weapon selection switches Sniper between actual alternate
+  and primary fire. Stop cancels the alternate projectile in flight.
+
+#### Pharah flight over a ramp beneath a roof
+
+- Actual Jump Jet hits the roof, lands back on the slope and still
+  spends its cooldown. Held Hover Jets resume ascent after clearing
+  the roof edge, then release, land and refill.
+
+#### Reflected Pharah rocket attribution
+
+- Genji can reflect a live rocket after Pharah dies. The reflected hit
+  credits actual enemy pool loss to the reflecting body and cannot grant
+  charge to a replacement body after a hero switch. Actual Defense Matrix
+  and Kinetic Grasp can absorb the redirected rocket without a blast.
+  Two successive Deflects credit the final reflecting body only.
+
+#### Barrage interruption and released rockets
+
+- Actual Sleep Dart and lethal dart tests verify that interruption stops
+  further volleys while already released rockets can still hit without
+  awarding Barrage charge. Actual casts also verify all 76 emissions
+  on the 30 Hz schedule and the 100 m collision cutoff. Wall impacts
+  verify splash falloff, the outer cutoff and half self damage.
+
+#### Concussive Blast boundaries
+
+- Verify the eight-metre impulse ring and hundred-metre projectile
+  cutoff with actual casts, plus the horizontal and vertical velocity
+  increments and unchanged damage and charge.
+
+#### Pharah melee versus Deflect and Flashbang
+
+- Active Genji Deflect blocks frontal melee using the authored cone.
+  Rear melee and hits after expiry still apply normally.
+- Flashbang suppresses melee and requires fresh input after recovery.
+
+#### Orisa Fortify against Pharah
+
+- Consume the active Fortify damage filter before armour and suppress
+  Pharah blast displacement while the authored control stack is active.
+- Verify Fortify at projectile impact, post-expiry knockback and the
+  combined damage result with Zenyatta Discord. Sleep Dart, Flashbang
+  and Chain Hook still deal reduced damage while control is blocked.
+
+#### Zenyatta Discord against and alongside Pharah
+
+- Apply the local Discord damage multiplier at body impact. Actual
+  input covers Pharah rocket and melee damage, charge attribution,
+  unchanged zero-damage Concussion and enemy fire into Pharah.
+- Use static and Ice Wall visibility, a three-second retention window,
+  and Zarya barrier cleanse. Caster death clears the orb, and
+  two simultaneous casts retain a single damage multiplier.
+
+#### Assassin approach against Pharah
+
+- Use the prepared body mover to walk toward an eligible target.
+  Occlusion releases forward input, and reacquisition allows a fresh
+  approach and capture. Pharah Concussion uses the same body mover.
+
+#### Assassin authored target search
+
+- Add opt-in stationary Assassin engagement to the static sandbox.
+  The actual associated graph selects and clears its target, then the
+  body graph captures an eligible Pharah through its authored attack.
+- Exercise wall and team exclusion, the authored candidate predicate,
+  release, and reacquisition with real match frames.
+
+#### Five NPC return attacks and Ice Wall
+
+- Ice Wall blocks manual NPC selection and releases active attack input.
+  Hitscan can damage a hostile pillar even without a body behind it.
+- All five NPCs resume their authored return attack after actual wall
+  cancellation and can then be killed with a Pharah primary rocket.
+
+#### Roadhog Chain Hook against Pharah
+
+- Sweep the authored Chain Hook release against bodies, map collision,
+  Ice Wall and hostile barriers, then pull and release a caught target.
+- Actual input tests cover Hover Jets and Barrage interruption, Jump
+  Jet lockout and recovery, Winston's barrier, and a lethal Pharah
+  rocket already in flight releasing a hooked Pharah. Hook reuses the
+  prepared NPC mover after Concussion and preserves the release pose.
+
+#### Mei Ice Wall against Pharah
+
+- Deploy five independently damageable pillars from Mei's wall inputs,
+  with rotation, cancellation, cooldown and expiry.
+- Stop primary rockets, Barrage, Concussion Blast and melee at the wall. A
+  blast uses the impact-time geometry even if it breaks a pillar.
+- Land Blizzard on the incoming side and recheck visibility as pillars
+  disappear. Persist preview and pillar state in server snapshots.
+- Live walls block walking, lift player bodies at deployment, support
+  standing on top and allow Pharah to clear them with Jump Jet. Prepared NPCs
+  also use the wall surface for lift, support and Concussion contact.
+
+#### Mei Blizzard against Pharah
+
+- Route the authored 064A release into a ballistic flight and
+  a timed area with visibility, range, team and frost checks.
+- Actual inputs cover 85 damage over full exposure, Barrage
+  interruption, charge and death boundaries, and Genji redirection.
+- Actual Defense Matrix and Kinetic Grasp inputs consume the
+  airborne projectile before it can create a damaging area.
+
+#### Mei spray against Pharah
+
+- Consume spray effect 0169 with the extracted slow and freeze
+  parameters. Partial frost slows movement. Full frost locks aim
+  and voluntary input and interrupts running abilities.
+- Actual inputs cover Barrage cancellation, thaw and fresh Jump Jet,
+  slow timeout, non-refreshing freeze, and team and wall exclusion.
+
+#### Sombra Hack against Pharah
+
+- Host the authored 0B1B search, ray and finish filter for live enemy
+  bodies, then route its PlayScript request to 0B1F.
+- Actual Pharah inputs verify the flight and skill lockout, Barrage
+  interruption, retained weapon and melee input, and recovery. Actual
+  tagged rocket damage interrupts Sombra's channel and starts cooldown.
+
+#### Baptiste Immortality Field against Pharah
+
+- Launch the 1761 field through the server's ballistic sweep. The
+  deployed device uses 1762 timing and zone values and mounts 1763 on
+  eligible allies. Pharah rockets can damage and destroy the device.
+- Actual inputs cover the 10 percent health floor, arming, expiry,
+  range, static LOS, team eligibility and device destruction.
+- Consume 1763's positive-health State for living targets below the
+  floor. Ana's anti-heal defers restoration while the floor still
+  limits damage.
+
+#### Zenyatta Transcendence against Pharah
+
+- Complete the scoped zero-delay cast entry so normal ultimate input
+  reaches authored 017B state 3. The active phase stops Pharah damage
+  and charge while still allowing Concussive Blast displacement.
+- Actual inputs cover primary, melee, Barrage and the return of damage
+  after the authored phase ends.
+- Restore Zenyatta once on entry and heal visible nearby allies.
+  The aura respects hostile barriers and Ana's healing modifiers.
+
+#### Ana Biotic Grenade against Pharah
+
+- Route 0267 from eligible grenade impacts into a four-second healing
+  block. Biotic Field catch-up counts each retained tick outside the
+  block and overlapping grenades refresh its deadline.
+- Friendly grenade splash restores 100 health and boosts subsequent
+  healing by 50 percent for four seconds. Batched Biotic Field updates
+  separate boosted, blocked and ordinary healing ticks.
+- Actual inputs verify the damage and expiry boundary, batch healing
+  across expiry, team and wall exclusion, refresh and projected barrier
+  protection.
+
+#### Ana Sleep Dart against Pharah
+
+- Route the 026F hit effect into a body-local sleep deadline. Sleep
+  interrupts running abilities, suppresses voluntary input and ends
+  on later effective damage, expiry or body retirement.
+- Actual inputs verify Barrage interruption, airborne hover release,
+  wake and recovery, and team and static wall exclusion.
+
+#### D.Va Defense Matrix
+
+- Load the prepared 0407 mech's body graphs, mover and health pools when
+  the server selects that form. Bind the authored owner and ruleset reads
+  used by the Matrix startup and resource cycle.
+- Intercept Pharah's three finite volley states through active 02CC boxes.
+  Input tests cover absorption, rear exposure, friendly passage, nearer
+  walls, depletion, release, recovery and a fresh press.
+
+#### Sigma Kinetic Grasp
+
+- Feed absorbed Pharah payloads into the 1D02 accumulator and follow the
+  authored 1D03 request at expiry. Store temporary shields separately
+  from base shields and consume them first.
+- Actual Pharah inputs verify primary absorption and conversion,
+  Concussion without impulse or shield gain, Barrage accumulation, and
+  the temporary shield's grace period and decay.
+
+#### Sigma projectile barrier
+
+- Bind the 1B55 Pet and 1A2A shield request to a moving barrier using the
+  verified C015 physics mesh. Pharah's rockets share the existing
+  deployable contact and impact-time occlusion paths.
+- Actual input tests cover primary, Concussion, Barrage, friendly passage,
+  break, cooldown, recall, recharge and hero replacement.
+
+#### Zarya attached barriers
+
+- Bind personal and projected barriers to Zarya's authored Pet scopes.
+  The combat host applies the 10D7 sphere and 0256 pool and sends actual
+  shield loss through the 0146 energy message.
+- Four Pharah input tests cover direct and splash damage, Barrage,
+  Concussion, melee, break and expiry.
+
+#### Orisa projectile barrier
+
+- Run the 0BD7 deployment volley through a scoped server ballistic flight.
+  The map impact starts 0BD8 after its deployment delay. The authored pool
+  scope and 4062 mesh drive Orisa's static collision and expiry.
+- Actual Pharah inputs cover primary, Concussion, Barrage, break, friendly
+  passage, and an Orisa who moves away from the mesh. All 32 related
+  combat tests passed. A whole-server export probe captures the live
+  deployed shield and distinguishes changes to its health.
+
+#### Winston projectile barrier
+
+- Consume Winston's completed 00FA deployment in the combat host and place
+  a fixed sphere using the D02 resource radius. Hostile Pharah rockets stop
+  at the first crossing in either direction. The collision present at impact
+  also occludes splash if that impact breaks the barrier.
+- Actual input tests cover primary, Concussion, Barrage, friendly passage,
+  break, expiry and redeployment. The final four Winston tests and 37
+  related regression cases passed. Placement and collision are server
+  reconstructions.
+
+#### Reinhardt shield Pet initialization
+
+- Notify graph watchers when a clock-derived ability cooldown expires. The
+  Reinhardt shield gate now reopens after the authored break cooldown and a
+  new secondary press. Tests cover early press rejection, wall priority,
+  rear and lateral bypass, and Pet retirement on owner death.
+- 35 related runtime cases and the final 12 shield cases passed.
+
+- Pharah rockets now sweep the raised Reinhardt mesh. Hits debit the owned
+  Pet pool, and the impact-time mesh shields bodies from the same explosion
+  even when the impact breaks the Pet. Concussion, Barrage, friendly fire
+  filtering and lowered-shield recharge have executable input coverage.
+- 52 targeted regression cases passed. The expanded shield suite passed
+  all 9 cases. The raised pose and the damage and break bridge use local
+  server reconstruction.
+
+- Raising the shield creates a scoped server Pet from definition 011A. The
+  authored 0095 call starts 0096 after the 25B4 root and initializes a 1600-point
+  health pool. Lowering the shield or retiring its owner discards the Pet.
+- 77 targeted runtime tests passed, including live input, Pet retirement and
+  passive component export. Projectile interception, damage feedback, shield
+  break and recharge interactions remain open.
+
+#### Pending full acceptance: manual NPC impulse and authored response
+
+- Reuse actual NPC body Mover data for Concussion collision/gravity/landing,
+  wire air flags and death cleanup. Respect Heavy1254 SET26=0 and human
+  Reinhardt00A4 MULTIPLY26=.7 through a shared explicit impulse service;
+ 192 original captured load/gate/vector-multiply boundary comparisons pass
+  with declared synthetic storage and unexecuted lookup/queue boundaries.
+- Nine new real-input cases cover all-five NPC impulse/Barrage damage,
+  team/LOS exclusions, channel-versus-projectile lifetime and physical
+  cleanup/storage.98 Pharah module cases and14 separate Assassin cases
+  remain distinct. Final416 runtime PASS461.577s and13 server
+  snapshots PASS808.918s, zero skips on frozen Python source.
+- Actual external Pet011A/25B4/0096 closure and a declared initialization
+  request fixture retain a missing health service; no shield acceptance.
+  Native impulse routing/force conversion, physical barriers and the full
+  remaining goal stay open. See docs/PHARAH_NPC_IMPULSE.txt.
+
+#### Pending full acceptance: actual manual Assassin capture path
+
+- Connect actual0A73/13C2 target-message writers and typed associated-entity
+  lookup to1157 logical36, without directly substituting its target variables.
+  Host authored25 damage and delayed100/s through an explicitly reconstructed
+  health clock and manual contact policy; interrupt Pharah input/hover/Barrage
+  and clean up control on stop, occlusion, team change, stun, death and retirement.
+  Store the health clock and pin ownership in passive snapshots. Strict AI stays
+  unsupported. See docs/PHARAH_ASSASSIN_CAPTURE.txt for native differences and
+  the separate14-test integration inventory. Full static acceptance stays open.
+- Final407 runtime tests PASS355.285s and13 server snapshot
+  tests PASS632.563s, zero skips on frozen source.
+
+#### Pending full acceptance: authored eye offsets and relationship frontier
+
+- Freshly read build104319 FirstPerson components with the pinned tool. Pharah
+  body0032 uses1.35/0.945 standing/crouched, McCree02A3 uses1.425/0.9975. Share
+  these values between player command origins, target descriptors and retained
+  pose history. Four new real-input low-cover/history cases fail before the fix
+  and pass12.393s afterwards;89 hero-module cases now exist. The camera/muzzle/
+  bone model and other actors' offsets remain open. See PHARAH_FIRST_PERSON.txt.
+- Execute8192 special-relation cases,6912 reference lookup/direct44 comparisons
+  and8960 affiliation-stack cases across existing captures, without helper return
+  hooks or instruction patches. A controlled authored Assassin message/filter
+  prototype reaches the actual1650 writer; it causes no health change and is not
+  production acquisition/combat acceptance. Full native actor producers,43 paths,
+  special services and complete search stay open. No partial completion commit.
+- Final393 runtime tests pass240.309s and13 server snapshot tests pass499.445s,
+  zero skips on frozen Python source.89 hero cases remain distinct from target/
+  callback/notification/shared prerequisites. Ruff and staged diff checks pass.
+
+#### Pending full acceptance: mask gates and notification lifetime
+
+- Implement native BCAAE0's six-mask gate with explicit tag/relationship inputs,
+  and D0DA20's separate component97/zero-mask/universal-mask rules.17056 original
+  mask cases and3840 complete-function cases agree with production on two offline
+  captures, with named lookup/relation/evaluator/environment adapters. Actual
+  Assassin filters are checked without providing a target. Full native search,
+  world-rule/auxiliary/animation gates and classification producers remain open.
+- Review/reuse the parent's shared notification fix after independently reproducing
+  three canceled CHANGED/CHECK/cleanup failures. Actual enemy McCree Roll against
+  Pharah also reproduces empty-magazine failure and partial-magazine refill loss.
+  Marker cleanup fixes the first; outgoing Ability cleanup before arbitration
+  release fixes the second. This cross-object order is explicitly reconstructed,
+  not native-proven. All4 focused cases pass3.619s; hero inventory85. See
+  docs/PHARAH_NOTIFICATION_LIFETIME.txt and PHARAH_TARGET_SEARCH_PRIMITIVES.txt.
+- Prior to the shared fixes, the mask/associated/query/manifest96 tests pass
+  32.673s. Final runtime/server checks for changed live VM behavior are separate.
+  No completion commit or MERGE_READY acceptance; the full static goal stays open.
+- Final389 runtime tests pass268.161s and13 server snapshot tests pass568.792s,
+  zero skips on frozen Python source. Inventory85 Pharah+7 associated+13 AI
+  callback+22 target primitive+3 notification lifetime+259 shared/prerequisite.
+  Ruff and staged diff checks pass. No new persistent VM field is introduced.
+
+#### Pending full acceptance: target-filter condition scope
+
+- Add the separately verified1B8D970 authored-condition stage and exact builtin8
+  typed candidate provider. Valid candidates shadow the component's parameter
+  scope across instances; invalid candidates preserve outer providers; failure
+  defaults and successful null remain distinct. Actual Assassin condition member
+  reads retain the receiving state's dependency. Nested queries and exceptions
+  restore the previous scope. No default Match search/target is installed.
+- Compare576 original wrapper and3132 provider cases across two offline captures
+  to production behavior, with explicit evaluator/pointer-copy adapters. The full
+  native game filter, enumeration and NPC AI/combat remain open. Thirteen focused
+  primitive cases pass within60 scope/callback/budget cases; see
+  docs/PHARAH_TARGET_SEARCH_PRIMITIVES.txt. Full static/client acceptance is open.
+- Final320 runtime tests pass281.618s, zero skips, with explicit five-NPC data
+  and actual43-row mover table. Inventory84 Pharah+7 associated+13 AI callback+
+  13 target primitives+203 shared/prerequisite. Manifest/primitive27 pass2.599s.
+  Prior13 server snapshot tests remain the430.168s baseline, not rerun for this
+  unmounted helper. Ruff/staged diff checks pass; changes remain uncommitted.
+
+#### Pending full acceptance: target-search primitives and input-age review
+
+- Add native-backed category/dispatch and finite radial capsule predicates.
+  Original functions agree across1442 routing and4928 radial cases from two
+  offline captures, with explicit adapters and disabled angular bounds. A bounded
+  request-builder suffix also verifies radius/default-angle fields through an
+  explicit SSE2 environment path. Full search, filters, metrics and target lists
+  remain open; no default Match search or NPC target is installed.
+- Review the parent's early-press defect against this lane's existing a8614518
+  timestamp-preserving implementation. Add four actual Pharah input-age cases,
+  each covering Jet/Concussion early tap, near-expiry tap, held and fresh input.
+  Concussion's authored windup is preserved. Relevant32 tests pass68.400s,
+  zero skips;84 hero-module cases now exist, without inflating the earlier303/13
+  baseline. See docs/PHARAH_TARGET_SEARCH_PRIMITIVES.txt and
+  docs/PHARAH_INPUT_BUFFER.txt. Full static/client acceptance stays open.
+- Replay-manifest/primitive regression21 tests pass7.681s, zero skips; Ruff and
+  staged diff checks pass. The earlier303/13 live-VM baseline is not rerun.
+
+#### Pending full acceptance: native AI behavior callback core
+
+- Implement91EF24A9 enter, timer1/2 and cleanup ordering with an explicit
+  component87 context, saved-state restore, source/context lifetime checks and
+  passive saved-handle storage. Selection events remain host inputs; retain the
+  scoped permissive Practice Range policy without making it a strict AI default.
+- Compare372 original callback cases across two offline captures to the runtime
+  implementation, with named engine/plug/environment adapters. Add13 separate
+  callback prerequisites and an actual isolated Assassin13C2 selected-subgraph
+  test. Strict unimplemented TrackTargets now fails explicitly. Component87
+  scheduler/search/filters, NPC damage routing and full combat/client goals stay
+  open. See docs/PHARAH_AI_BEHAVIOR_CALLBACKS.txt.
+- Final303 runtime tests pass186.596s, zero skips, with actual NPC mover rows
+  and all five associated AI graph closures.80 hero cases are separate from7
+  associated-host and13 AI callback prerequisites.7940 original TrackTargets
+  outer timing/cache cases pass with explicit search/refresh adapters; search,
+  geometry/filtering and output bindings are not accepted by those cases.
+- Final13 server snapshot/replay tests pass430.168s, zero skips, with source
+  frozen throughout both final runs. Ruff and staged diff checks pass.
+
+#### Pending full acceptance: Assassin acquisition and native possessor evidence
+
+- Trace actual1157 logical36/DB742151().id(1650) target input and13C2/node7
+  target writer fed by TrackTargets. Correct the earlier zero173 interpretation:
+  it enters the input listener; positive values enter the countdown branch.
+- Independently execute original direct-component44 selection, owner-record
+  decoding and Entity variant writing:260 cases per offline capture,520 total,
+  with varied packed ranks, explicit synthetic environment data and no instruction
+  patch/helper hook. Missing44 registry fallback and native actor relations remain
+  open; add no guessed NPC target or query mapping. Details in
+  docs/PHARAH_NPC_POSSESSOR_QUERY.txt.
+- No production Python changes this checkpoint. Prior289 runtime and13 server
+  snapshot passes remain the code baseline; they are not rerun or inflated.
+
+#### Pending full acceptance: local associated-script ownership and NPC geometry
+
+- Host a declared NPC associated entity in its own VM namespace with actual
+  script roots/overrides, monotonic identity, shared clock, removal/replacement/
+  failure retirement and passive server storage. Peer variable values and real
+  health records are readable only within the live declared pair.
+- Reconstruct F726/0AC relation answers only for that pair in permissive mode.
+  Native selection, subscriptions/messages, actor transport and strict AI remain
+  open. Actual Enforcer slot0 reaches two2-damage hits without a test adapter;
+  this does not establish complete NPC combat or native balance/timing.
+- Recheck five-body fixtures with external actual NPC mover dimensions. Correct
+  torso aiming for the shorter Assassin and add above-head selection rejection.
+  The original runtime and parent source remain unchanged. Full static and native
+  client acceptance stay open; all new work remains uncommitted.
+- Frozen-source final runtime regression:289 tests pass215.675s, zero skips,
+  including80 Pharah module cases and6 separate associated-host cases. The latter
+  independently pass33.327s. External five-associated-entity closure has no missing
+  graphs; four actual manual primary inputs damage Pharah, Assassin remains open.
+- Final13 passive server snapshot/replay tests pass512.265s, zero skips, with
+  source frozen throughout the run. Earlier transient source-manifest mismatch
+  and initial mocked-constructor guard failure are superseded by final passes.
+
+#### Pending full acceptance: associated NPC AI entity scripts
+
+- Fix opted-in additional-entity extraction discarding the actual associated AI
+  identity/scripts after reading weapon slots. Preserve ai_entity and recursively
+  collect its component, ordered roots/overrides and graph references with cycle
+  deduplication. Keep default hero extraction and explicit missing-root reporting.
+- Actual Enforcer2279 references227A with five initial graphs, previously omitted;
+  selected six-graph closure now includes the missing13EA entity9134 Stack writers.
+  Inputs/candidate remain external. Strict startup still stops at C3619A38.
+- A diagnostic relation adapter using actual AI scripts, slot0 and combat yields
+  two2-damage hits without forcing B96/9134/damage. It does not prove or install
+  production factory/lifetime/selection/storage/transport or complete NPC attacks.
+  Full static/client matrix remains open and new work uncommitted.
+  Final68 extraction/graph/driver/strict/array regressions pass7.686s, zero skips;
+  earlier21 extractor/catalog cases pass0.374s. Ruff/diff checks pass.
+  See docs/PHARAH_NPC_AI_ASSOCIATION.txt.
+
+#### Pending full acceptance: native controller component predicate
+
+- Correct B96D3A98 interpretation:182C470 tests entity component presence,75
+  present and92 absent.261 original suffix cases pass with an explicit selected-
+  entity adapter; native entity/component43/DA6910 lookup and observation stay open.
+- Add a typed explicit controller-component provider with strict unknown/malformed
+  refusal and source-lifetime checks. Bind only the current non-strict human Match
+  owner from its actual44/75 possession records; no NPC/foreign/retired mapping
+  or global trusted-native shortcut. Seven prerequisites cover data and lifecycle.
+- Decompile Enforcer's F726 member-variable gate; do not force7681/9134 or B96.
+  NPC attacks and the full static goal remain incomplete and new work uncommitted.
+  Final282 relevant tests pass183.470s, zero skips; Ruff/diff checks pass.
+  See docs/PHARAH_CONTROLLER_QUERY.txt.
+
+#### Pending full acceptance: explicit native health-pool queries
+
+- Reuse read-only Bastion getter research and independently verify three original
+  component51 functions against256 pool arrays in each of two existing captures:
+  1536 bit-for-bit comparisons. Preserve record order, float32 adds and flags17/18.
+- Bind owning-body queries to actual Vitals records at initialization, damage,
+  healing and death; aggregate-only input cannot fabricate pools. Correct player
+  script fixed200 initialization and preserve an injured body's current/max values.
+- Five-NPC death assertions exposed stale records on the special terminal path.
+  Supply terminal pools through BotScript.die while retaining #253/message order.
+  Extend passive body/server snapshots with this causal pool state.
+- Add seven query prerequisites and strengthen existing all-five primary/death
+  cases. Enforcer's health gate now passes, but controller/context gates and its
+  actual damage still fail. Full static/client acceptance stays open; no own commit.
+  Final275 relevant tests pass176.262s, zero skips; earlier13 server-storage tests
+  pass412.817s before final terminal-pool/HUD-max adaptations. Final actual held-
+  shield probe still fails500->390; no physical shield acceptance is claimed.
+  See docs/PHARAH_HEALTH_QUERIES.txt for native evidence, tests and limits.
+
+#### Pending full acceptance: Pharah flight collision and fuel boundaries
+
+- Add five actual-input cases for Jet/hover against a full ceiling, resource use
+  despite collision, landing/recharge/cooldown rejection, real roof-edge clearance,
+  secondary's authored10-fuel restart gate and empty-jump release/fresh recovery.
+  A fresh grounded jump precedes hover; no identical jump/secondary timing claim.
+- 21 relevant movement/control/Barrage cases pass in16.783s, zero skips. Inventory
+  now79 Pharah-module cases; prior74-case full checkpoint remains separately dated.
+  Correct exploratory room binding via Mover.use(), preserving real swept geometry.
+  Production code is unchanged. Slopes/native phase parity/all controls and remaining
+  combat matrix stay open; own changes remain uncommitted until full static pass.
+  See docs/PHARAH_FLIGHT_BOUNDARIES.txt.
+
+#### Pending full acceptance: Reinhardt shield resources prerequisite
+
+- Trace native295F1CDE through CC9A80/C1BBB0: local override254B, typed numeric
+  conversion and fallback1. Twelve original-byte cases pass with explicit value
+  provider/destruction adapters; inherited/controller lookup and2537 observers
+  remain outside the probe. Add only a scoped non-strict local-owner adaptation.
+- Four prerequisite cases cover authored1600 initialization, real secondary input
+  reaching Pet17, local typed values, lowered-resource delay/recharge/cap and strict
+  refusal. Physical interception still FAILS: actual Pharah primary reduces held-
+  shield Reinhardt body500 ->390, with resource1600 and output entity#38=None.
+- Inspect actual body04F2 hardpoint29/bone8C bind frame externally; this does not
+  establish an animated shield pose. Pet lifetime,0096 health bridge, interception
+  and all remaining static acceptance stay open. See PHARAH_BARRIER_RESOURCES.txt.
+- Reuse parent2ca9178 ased10e40 for distinct-input joins and snapshot fields,
+  preserving lane PhaseEntry behavior. Post-dependency175 tests pass in126.734s,
+  zero skips:74 Pharah,4 resource prerequisites and97 shared regressions. New
+  lane work remains uncommitted until complete static acceptance.
+- Later actual011A extraction resolves initial graph25B4;0095 node6 separately
+  plays0096 onto output#38 with current/max parameters0043/0044. Non-strict play
+  and Match Pet message routing are missing, alongside the factory. Captured
+  client Pet inherits plain state with no direct registration; do not infer an
+  authoritative server factory from it. External selected assets stay outside Git.
+
+#### Pending full acceptance: Barrage movement and Flashbang interruption
+
+- Restore persistent09F9B1FE/mode0 world-velocity SET after gravity and before
+  collision, using native type/operation/phase evidence and existing tracked Mod
+  storage. Fix real Barrage still moving1.708m over20 forward frames. Scalar
+  speed/intents remain separate; active vector operands export in physics snapshots.
+- Reuse parent64bf71c as1f996b5 while preserving Pharah blast/phase/reflect/impulse
+  behavior. A real Flashbang exposed Barrage surviving Ability.stop. Abort its
+  authored002B entity#33 skill stack, retaining the permanent button listener;
+  suppress hover thrust during reconstructed control and use existing cleanup.
+- Five new Barrage cases and four real Flashbang cases cover momentum/gravity,
+  resource/input gates, interruption, expiry/fresh recovery and recharged recast.
+  Two mover tests pin phase/frame boundaries. Five original-vector-operation
+  probes and three original-getter/converter probes pass with explicit adapters.
+- All74 hero-module tests pass in110.599s, zero skips;125 shared combat/NPC/
+  projectile/control tests pass in34.403s. Earlier91 mover/physics/combat tests
+  pass in19.968s; Ruff/diff checks pass. No original-client run is claimed.
+- Keep these lane changes uncommitted until full static acceptance. Other vector
+  modes/phase arbitration, complete native control manager, immunity/cleanse,
+  barriers, projectile motions and all remaining NPC requirements stay open.
+  See docs/PHARAH_BARRAGE_MOVEMENT.txt for native evidence and limits.
+
+#### Pending full acceptance: Pharah rocket boundaries
+
+- Add four actual primary-input tests for authored inner/interpolated/outer
+  explosion rings,100m contact +/-2mm, no range-expiry explosion, and half-scale
+  self damage without outgoing credit. Calculate expected damage at the settled
+  1/1024m mover pose; point/capsule/interpolation remain reconstructed policies.
+- All65 Pharah-module tests pass in109.300s with zero skips before common melee
+  reuse. Parent7cd1ed7 is reviewed/reused as3ed923a; post-change44 melee/rocket/shared
+  tests pass in31.031s and two five-NPC/Mei regressions pass in5.492s. Ruff passes.
+- Native radius meaning remains unverified; unnamed57DAE1B5=.2 is not installed
+  as a radius. Existing-image probes stay external and no live client is touched.
+  These tests/docs remain uncommitted pending complete static goal acceptance.
 
 #### Pharah actual NPC primary-input acceptance
 

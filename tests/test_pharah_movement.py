@@ -67,6 +67,38 @@ class PharahMovementTests(unittest.TestCase):
         self.assertGreater(jet.vars[61].value(), 9.8)
         self.assertGreater(player.mover.velocity[1], 18)
 
+    def test_jump_jet_reverses_a_fall_and_uses_yaw_independent_of_pitch(self):
+        for pitch in (-10923, 10923):
+            with self.subTest(pitch=pitch):
+                run, player, _ = self.encounter()
+                self.step(run, player, 65, 2)
+                self.step(run, player, 20)
+                self.assertTrue(player.mover.airborne)
+                self.assertLess(player.mover.velocity[1], 0)
+                before = tuple(player.mover.position)
+                run.step({player: (16384, pitch, 8)})
+                for got, want in zip(player.mover.velocity, (10, 20, 0), strict=True):
+                    self.assertAlmostEqual(got, want, places=5)
+                self.assertGreater(self.instance(player, 0x27).vars[61].value(), 9.9)
+                self.step(run, player, 8, yaw=16384)
+                self.assertGreater(player.mover.position[0], before[0] + 1)
+                self.assertGreater(player.mover.position[1], before[1] + 2)
+
+    def test_jump_jet_rejects_a_released_press_outside_authored_buffer(self):
+        run, player, _ = self.encounter()
+        jet = self.instance(player, 0x27)
+        self.step(run, player, 1, 8)
+        self.step(run, player, 612)
+        self.assertGreater(jet.vars[61].value(), .17)
+        self.step(run, player, 1, 8)
+        self.assertGreater(jet.vars[61].value(), .15)
+        self.step(run, player, 30)
+        self.assertEqual(jet.vars[61].value(), 0)
+        self.assertFalse(player.mover.airborne)
+        self.step(run, player, 1, 8)
+        self.assertEqual(player.mover.velocity[1], 20)
+        self.assertGreater(jet.vars[61].value(), 9.9)
+
     def test_hover_jump_button_also_lifts_and_empty_fuel_cannot_keep_flying(self):
         run, player, _ = self.encounter()
         hover = self.instance(player, 0x25)
@@ -79,6 +111,72 @@ class PharahMovementTests(unittest.TestCase):
         # thrust cannot continue indefinitely after the authored resource empties.
         self.assertLess(hover.vars[87].value(), 15)
         self.assertLess(player.mover.velocity[1], 0)
+
+    def test_overlapping_hover_buttons_use_one_fuel_and_thrust_path(self):
+        baseline, held, _ = self.encounter()
+        run, player, _ = self.encounter()
+        single = self.instance(held, 0x25)
+        combined = self.instance(player, 0x25)
+        for buttons in (2, 2 | 0x40, 2):
+            self.step(baseline, held, 10, 2)
+            self.step(run, player, 10, buttons)
+            self.assertEqual(combined.vars[87].value(), single.vars[87].value())
+            self.assertEqual(player.mover.velocity, held.mover.velocity)
+            self.assertEqual(player.mover.position, held.mover.position)
+
+        thrust = combined.state(combined.graph.node(12).state)
+        fuel = combined.vars[87].value()
+        y = player.mover.position[1]
+        self.step(run, player, 40)
+        self.assertGreater(combined.vars[87].value(), fuel)
+        self.assertLess(player.mover.position[1], y)
+        self.assertFalse(thrust.active)
+
+    def test_jump_hover_handoff_obeys_authored_hold_timer(self):
+        for overlap in (0, 5, 10, 12, 13, 20):
+            with self.subTest(overlap=overlap):
+                run, player, _ = self.encounter()
+                hover = self.instance(player, 0x25)
+                wait_node = hover.graph.node(2)
+                wait = hover.state(wait_node.state)
+                thrust = hover.state(hover.graph.node(12).state)
+                self.assertAlmostEqual(wait.evaluate(wait_node.field("m_timeout"), watch=False), .2)
+                self.step(run, player, 30, 2)
+                self.step(run, player, overlap, 2 | 0x40)
+                fuel = hover.vars[87].value()
+                for _ in range(12 - overlap):
+                    self.step(run, player, 1, 0x40)
+                    self.assertTrue(wait.active)
+                    self.assertFalse(thrust.active)
+                    self.assertEqual(hover.vars[87].value(), fuel)
+                self.step(run, player, 1, 0x40)
+                self.assertFalse(wait.active)
+                self.assertTrue(thrust.active)
+                self.assertLess(hover.vars[87].value(), fuel)
+
+    def test_releasing_jump_cancels_hover_wait_and_new_press_restarts_timer(self):
+        run, player, _ = self.encounter()
+        hover = self.instance(player, 0x25)
+        wait = hover.state(hover.graph.node(2).state)
+        thrust = hover.state(hover.graph.node(12).state)
+        self.step(run, player, 30, 2)
+        self.step(run, player, 10, 0x40)
+        self.assertTrue(wait.active)
+        self.assertFalse(thrust.active)
+        fuel = hover.vars[87].value()
+        for _ in range(4):
+            self.step(run, player, 1)
+            self.assertFalse(wait.active)
+            self.assertFalse(thrust.active)
+            self.assertGreaterEqual(hover.vars[87].value(), fuel)
+
+        for _ in range(12):
+            self.step(run, player, 1, 0x40)
+            self.assertTrue(wait.active)
+            self.assertFalse(thrust.active)
+        self.step(run, player, 1, 0x40)
+        self.assertFalse(wait.active)
+        self.assertTrue(thrust.active)
 
     def test_hover_does_not_replace_faster_jump_jet_impulse(self):
         run, player, _ = self.encounter()

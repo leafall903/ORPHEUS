@@ -481,10 +481,11 @@ class Projectiles:
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
         # The opening tick has no heal, and the field ends before the expiry tick.
         # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
+        first, last = max(first_tick, start + 1), min(tick, expires - 1)
+        steps = last - first + 1
         if steps > 0:
             amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount, ticks=(first, last))
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return

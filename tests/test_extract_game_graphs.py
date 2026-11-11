@@ -297,7 +297,10 @@ class AIWeaponButtonTests(unittest.TestCase):
             baseline = extractor.collect(self.root, self.enums, (0x1403,))
             opted_in = extractor.collect(self.root, self.enums, (0x1403,), ai_spawners=spawners)
         self.assertNotIn("ai_weapon_buttons", baseline["entities"][body])
+        self.assertNotIn("ai_entity", baseline["entities"][body])
         self.assertEqual(opted_in["entities"][body]["ai_weapon_buttons"], {"0": 20, "2": 29})
+        self.assertEqual(opted_in["entities"][body]["ai_entity"], "0x0400000000001404")
+        self.assertIn("0x0400000000001404", opted_in["entities"])
         self.assertEqual(opted_in["bodies"], baseline["bodies"])
         self.assertNotIn("ai_weapon_buttons", opted_in["bodies"][body])
 
@@ -329,6 +332,58 @@ class AIWeaponButtonTests(unittest.TestCase):
         self.write_body('<dragon:ref dragon:name="m_8B9A461F" GUID="000000001404.01B" />')
         with self.assertRaisesRegex(ValueError, r"m_8B9A461F must reference a \.003"):
             self.body_record()
+
+    def test_associated_entity_script_roots_and_overrides_survive_without_weapon_controls(self):
+        self.associated.write_text('''
+          <STUEntityDefinition xmlns:dragon="https://yretenai.com/dragonml/v1">
+            <dragon:map dragon:name="m_componentMap">
+              <STUStatescriptComponent>
+                <STUStatescriptComponent dragon:name="dragon:value" m_clientOnly="0">
+                  <dragon:array dragon:name="m_B634821A">
+                    <STUStatescriptGraphWithOverrides m_75408640="0">
+                      <dragon:ref dragon:name="m_graph" GUID="00000000142A.01B" />
+                      <dragon:array dragon:name="m_1EB5A024">
+                        <STUStatescriptSchemaEntry>
+                          <dragon:ref dragon:name="m_0D09D2D9" GUID="000000002391.01C" />
+                          <STUConfigVarBool dragon:name="m_value" m_value="1" />
+                        </STUStatescriptSchemaEntry>
+                      </dragon:array>
+                    </STUStatescriptGraphWithOverrides>
+                  </dragon:array>
+                </STUStatescriptComponent>
+              </STUStatescriptComponent>
+            </dragon:map>
+          </STUEntityDefinition>
+        ''', encoding="utf-8")
+        heroes = self.root / "heroes.json"
+        heroes.write_text("{}", encoding="utf-8")
+        spawners = self.root / "spawners.json"
+        spawners.write_text('{"maps": {}}', encoding="utf-8")
+        with patch.object(extractor, "HEROES", heroes), patch.object(extractor, "ROOT_GRAPHS", {}):
+            result = extractor.collect(self.root, self.enums, (0x1403,), ai_spawners=spawners)
+        body = result["entities"]["0x0400000000001403"]
+        self.assertEqual(body["ai_entity"], "0x0400000000001404")
+        self.assertNotIn("ai_weapon_buttons", body)
+        associated = result["entities"][body["ai_entity"]]
+        self.assertEqual(associated["graphs"][0]["graph"], 0x142A)
+        self.assertEqual(associated["graphs"][0]["m_1EB5A024"][0]["m_value"]["m_value"], 1)
+        self.assertIsNotNone(associated["script_component"])
+        self.assertEqual(result["missing"], [0x142A])
+
+    def test_association_cycle_is_retained_once_without_recursing_forever(self):
+        self.associated.write_text('''
+          <STUEntityDefinition xmlns:dragon="https://yretenai.com/dragonml/v1">
+            <dragon:ref dragon:name="m_8B9A461F" GUID="000000001403.003" />
+          </STUEntityDefinition>
+        ''', encoding="utf-8")
+        heroes = self.root / "heroes.json"
+        heroes.write_text("{}", encoding="utf-8")
+        spawners = self.root / "spawners.json"
+        spawners.write_text('{"maps": {}}', encoding="utf-8")
+        with patch.object(extractor, "HEROES", heroes), patch.object(extractor, "ROOT_GRAPHS", {}):
+            result = extractor.collect(self.root, self.enums, (0x1403, 0x1404), ai_spawners=spawners)
+        self.assertEqual(set(result["entities"]), {"0x0400000000001403", "0x0400000000001404"})
+        self.assertEqual(result["entities"]["0x0400000000001404"]["ai_entity"], "0x0400000000001403")
 
 
 class NumericScalarTests(unittest.TestCase):

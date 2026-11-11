@@ -3,8 +3,8 @@ Target: Overwatch 1.74.0.0.104319, hero 02E0000000000008, body 0400000000000032.
 Baseline: 100c66c45bea81083a410a4ba13830ab5532ca93.
 
 Evidence boundary
-61 tests in tests/test_pharah*.py cover Match/player input, attack outcomes
-and an explicit passive-state export case using
+84 tests in tests/test_pharah*.py cover Match/player input, attack outcomes
+and explicit passive-state export cases using
 the extracted body graphs and Combat damage/death. They do not substitute
 hand-authored weapon definitions. They are headless server tests, not native
 client or five-PvE-NPC acceptance. Existing native VM proofs are not acceptance.
@@ -21,9 +21,19 @@ Quick melee 0043     partial: hit/miss/wall/recast; five NPC hits      OPEN
 Jump Jet 0027        partial: impulse/motion/cooldown/input buffer    OPEN
 Hover Jets 0025      partial: lift/fuel/recharge/empty/cap             OPEN
 Concussive 007B      partial: enemy/self push, zero damage/LOS/ally   OPEN
-Barrage 002B         partial: channel stops passive charge           OPEN
-Incoming attacks     partial enemy rifle  Three primary inputs    OPEN
+Barrage 002B         partial: velocity SET/control/resource gates    OPEN
+Incoming attacks     partial enemy rifle  Four reconstructed inputs OPEN
 Death                partial offline      five retained bodies    OPEN
+
+Latest local associated-host checkpoint: six separate ownership/storage cases,
+actual Enforcer associated scripts/slot0 now reach combat without a test relation
+adapter. The F726/0AC relations remain explicitly permissive reconstruction;
+strict AI/message routing/actor transport and full native NPC attacks stay open.
+Actual five-body mover dimensions now inform torso-hit/above-head selection
+fixtures; earlier generic-dimension evidence is superseded for those checks.
+Final289 runtime cases PASS215.675s and13 server snapshot cases PASS512.265s,
+zero skips. Assassin8m/1.8m has no damage over300frames. See
+PHARAH_NPC_AI_ASSOCIATION.txt for evidence, external hashes and precise limits.
 
 Five enemy NPCs means Trooper, Enforcer, Sniper, Assassin, Heavy Assault,
 individually, including both directions of damage and their special attacks.
@@ -120,7 +130,7 @@ Reconstructed cross-hero defense checkpoint
   an explicit reconstructed state adapter. Strict contexts reject this missing
   native backend. Full class semantics and native transition fidelity are OPEN.
 - Active Genji/Sigma DeflectProjectiles nodes supply evaluated local boxes and
-  distinct modes. Reconstructed placement uses eye origin/body yaw. The nearest
+  distinct modes. The aimed branch uses the stance eye and full aim. The nearest
   valid gate wins only before body/static collision; allied gates do not consume
   friendly shots. Genji redirects actual rockets to defender aim/ownership;
   Sigma consumes without an impact blast. Back attacks bypass these front boxes.
@@ -133,7 +143,7 @@ Reconstructed cross-hero defense checkpoint
   Eight initial defense cases plus shared suites pass150 tests; five subsequent
   boundary/payload cases and nine strict-guard regressions pass separately.
 
-Still OPEN: native phase/box placement and pitch/filter/resistance semantics;
+At this checkpoint, open items included phase, projectile filters and resistance;
 Genji hitscan/melee blocking, all cooldown edges and full attribution/transport;
 Sigma absorption-to-shields and its source messages; D.Va matrix; actual dynamic
 barriers/bubbles and transcendence/immortality; control and all NPC defenses.
@@ -155,16 +165,20 @@ node identity and fails explicitly on unsupported/malformed geometry. Shape-loca
 ray tests hit the center and miss beyond its real width/height. No actor/bone or
 hardpoint pose is inferred. Querying this geometry does not create a barrier.
 
-Reinhardt graph0095 declares max#587=1600, but current#586 remains0 after startup
-and shield input in the present VM. Its health initialization/regen/native bridge
-is not restored. Zarya self-Pet13F4/effect00A2.053 resolves to missing effect
-graph025D, now exported separately for inspection; no base bubble HP is inferred.
-Diagnostic override of only native query295F1CDE in graph0095 to explicit1.0
-lets the authored initializer set current#586 and saved#1616 to1600. Holding
-shield input reaches Pet state17, but output entity#38 stays None: the present
-VM has no Pet creator. This override is diagnostic only and is not production
-code or proof of a normal-game multiplier. On release #38 becomes0. Both the
-native scalar and real Pet/health bridge must be restored before interception.
+Reinhardt graph0095 previously initialized current#586 to0 despite max#587=1600.
+Native295F1CDE/C1BBB0 evidence identifies local cached override254B and fallback1;
+twelve original-byte typed-conversion cases pass with explicit provider adapters.
+A scoped non-strict local-owner adaptation now lets the authored initializer set
+current#586 and saved#1616 to1600. Four separate prerequisite tests cover typed
+local inputs, initialization, lowered-resource delay/recharge/cap and strict refusal.
+Inherited/controller lookup and native2537 observer routing remain unhosted.
+Actual held-shield input reaches Pet17 but output entity#38 remains None. A real
+primary-input probe reduces Reinhardt body health500 ->390 while resource stays
+1600: physical interception FAILS. Pet creation,0096 health/damage bridge and
+active attachment pose are still missing. Actual body04F2 bind-frame research
+does not establish the raised-shield animation pose. See PHARAH_BARRIER_RESOURCES.txt.
+Zarya self-Pet13F4/effect00A2.053 references025D, exported for inspection; no bubble
+HP is inferred. These four resource tests do not increase the74 Pharah-module count.
 Physical shield placement, health, interception, projected bubbles and their
 resource/defense interactions remain OPEN. These three geometry tests and the
 selected-asset exporter are prerequisites, not completed skill interactions.
@@ -176,6 +190,43 @@ held-button versus rapid presses across recovery, and death ending the active
 damage state/rejecting fresh presses. The earlier56-case checkpoint passed with the
 five-NPC pack and zero skips. The boundary test does not validate native hitboxes;
 melee defenses, control interruption and exact native tracking remain open.
+
+Rocket boundary checkpoint -- static partial
+Four new actual-input tests cover primary wall-impact .5/2.5 rings, inner80,
+linear falloff (nominal midpoint52.32) and outer cutoff, actual100m contact
+bracket +/-2mm, no explosion on range expiry, and half-scale self splash at
+three wall distances with no outgoing notice/stats/charge. Expected amounts use
+the settled1/1024m mover pose; this retains the two-mm hit/miss bracket.
+All65 hero-module tests pass before shared melee dependency reuse. The point-ray,
+capsule-distance, linear ring interpolation and self-scale policy remain explicit
+reconstructions. These tests do not establish native projectile collision radius.
+The primary direct definition's unnamed57DAE1B5 evaluates to.2; its native meaning
+is unresolved. Offline native consumer/descriptor research from an existing
+image remains external; no currently running client or collision-radius override.
+Parent common melee fix7cd1ed7 is reviewed/reused as3ed923a: one shared nearest-
+capsule visibility helper replaces this lane's equivalent melee blast-visibility
+call. Pharah phase checks remain. Full hero acceptance remains OPEN; this new
+checkpoint stays uncommitted until complete static acceptance.
+
+Barrage movement/control checkpoint -- static partial
+Persistent09F9B1FE/mode0 world-velocity SET now runs after gravity before the
+ordinary sweep. Original type, SET operation, getter fallback and phase evidence
+are recorded in PHARAH_BARRAGE_MOVEMENT.txt. Actual Barrage stops ground/air
+momentum and input, recovers at end, does not leak its lock across hero switch,
+and suppresses competing attacks/flight/crouch without their resource costs.
+Parent Flashbang service64bf71c is reviewed/reused as1f996b5, preserving this
+lane's impulses/phase/reflect and static blast policy. Its Ability.stop did not
+stop Barrage. A scoped body control hook aborts002B's #33 skill stack through
+its authored cleanup; the permanent button listener remains for a later cast.
+Four real Flashbang-input tests prove25 damage/control, Barrage/hover abort,
+no automatic channel continuation, full-charge rejection without spending,
+and fresh Jet/hover/recharged-Barrage recovery at exclusive expiry.
+All74 hero-module cases pass110.599s zero skips with external NPC data.125 shared
+combat/control/NPC/projectile cases pass34.403s. Earlier91 mover/physics/combat
+cases pass19.968s. Five original SET and three original getter/conversion cases
+pass offline with explicit adapters. Full native224E status hosting, other
+controls/immunities, vector modes/platforms/arbitration and full hero acceptance
+remain OPEN. Pending changes stay uncommitted until all static criteria pass.
 
 Original-client status
 Existing PID 12292 / window 守望先锋 was observed without an accompanying lane
@@ -189,3 +240,703 @@ python -B -m unittest discover -s tests -p test_pharah_combat.py -q
 python -B -m unittest test_pharah_combat test_pharah_weapon test_pharah_impulse test_pharah_movement -q
 ORPHEUS_NPC_DATA_DIR=<read-only npc-runtime/data>
 python -B -m unittest test_pharah_pve test_game_npc test_extract_pve_npcs -q
+
+Flight boundary checkpoint
+Five new ceiling/roof-edge/fuel recovery cases execute real input and swept
+collision;21 relevant tests PASS16.783s zero skips. Inventory79; prior74-case
+full run remains a separate checkpoint. See PHARAH_FLIGHT_BOUNDARIES.txt
+for fixture lifecycle, normal jump versus hover gate and remaining limits.
+
+Health-query checkpoint
+Actual raw component51 owner queries now follow native48-slot/float32/flag
+semantics;1536 original-function comparisons PASS. Correct fixed200 player
+script initialization, injured390/500 recreation and stale NPC death records.
+Final275 tests PASS176.262s, zero skips;79 hero cases plus11 prerequisites
+and185 shared regressions. Separate earlier13 server-storage tests passed
+before final death/HUD-max adaptations. Actual held shield still fails
+500->390. See PHARAH_HEALTH_QUERIES.txt; full static goal remains open.
+
+Controller query checkpoint
+B96 is a component75-present/92-absent predicate, not dynamic flags.261 original
+suffix cases PASS with explicit selected-entity adapter. Scoped actual Match
+human owner binding and7 separate prerequisites added; NPC/F726 contexts still
+unbound. Final282 tests PASS183.470s, zero skips,79 hero-module inventory.
+See PHARAH_CONTROLLER_QUERY.txt. No full static/client acceptance claimed.
+
+Associated AI entity checkpoint
+Opted-in extractor now retains actual associated AI identity/components/scripts,
+instead of only its weapon buttons. Enforcer2279->227A five initial graphs
+and six-graph closure expose13EA entity9134 writers. Diagnostic relation
+adapter reaches real2-damage hits without forced values; permissive VM and
+unhosted factory/selection/storage mean this is not accepted NPC combat.
+68 relevant regressions PASS7.686s. See PHARAH_NPC_AI_ASSOCIATION.txt.
+
+Input-age follow-up: four new Jet/Concussion buffer cases plus seven separate
+target-search primitive tests.32 relevant cases PASS68.400s; the earlier303/13
+full baseline is not rerun or inflated. Native search dispatch/radial primitives
+have independent original-byte comparisons; full target search remains open.
+See PHARAH_INPUT_BUFFER.txt and PHARAH_TARGET_SEARCH_PRIMITIVES.txt.
+
+Mask and notification-lifetime checkpoint
+Native six-mask/97 gates have22 separate primitive cases. Actual Assassin's
+resource filter is checked, but strict target acquisition remains unsupported.
+Three shared notification regressions and an actual enemy post-Roll first hit
+against Pharah isolate/recover canceled notifications and outgoing refill order.
+The latter is an explicit server reconstruction, not native inter-object order.
+Hero inventory85; final389 runtime PASS268.161s plus13 server snapshot
+PASS568.792s, zero skips on frozen Python source. Full static goal remains OPEN:
+physical shield interception, complete AI/search/producers and five-NPC special/
+navigation/resistance/control requirements are not accepted by these tests.
+See PHARAH_TARGET_SEARCH_PRIMITIVES.txt and PHARAH_NOTIFICATION_LIFETIME.txt.
+
+Authored FirstPerson checkpoint
+Pharah body0032 has1.35/0.945 standing/crouched offsets, enemy McCree02A3
+has1.425/0.9975. Both player rays and target/history descriptors now use these
+resource values. Four actual-input cover/history cases execute before/after;
+generic heights wrongly fired over blocking cover. Hero inventory89. Final393
+runtime PASS240.309s and13 server snapshot PASS499.445s, zero skips on frozen
+Python source. Eye-origin/capsule model is still reconstructed; native animated
+camera/muzzle/bones and other actor offsets remain open. See PHARAH_FIRST_PERSON.txt.
+Actual Assassin authored0A73/13C2 target writer is reached only by a local-filter
+prototype; no health/control effect or automatic AI acquisition is accepted.
+
+
+Barrage projectile motion checkpoint
+Graph002B state1 evaluates both authored STU_7A5DFFF8 rows at emission.
+The server generates the 64 KiB SFMT table, seeds by instance, raw state,
+frozen activation and shot ordinal, and sweeps the chord of each 16 ms
+interval. The server supplies zero for WeaponComponent +98 from the verified constructors
+and uses the reconstructed eye and command aim. Native post-construction
+weapon seed writes and animated origin/orientation remain open. The
+server preserves the sampled curve coefficients on reflection and rebases
+its phase on the new aim. Native overlap ordering and moving-collider
+pose during catch-up remain open.
+
+1,044 original motion comparisons use the production code, with maximum
+offset error below1e-6 on the tested inputs. Real commands verify two
+initial endpoints, a wall above the original aim ray, and wall splash
+and self-damage from independently sampled impact positions. Catch-up
+uses the same chord segmentation. The full static matrix remains open.
+
+Launch cone follow-up
+Original registration maps m_7F0FED02 and m_429A6C85 to the two angle
+operands at +40 and +48. Both Barrage resources evaluate to8 degrees.
+Five original D5EAA0 cases keep this cone constant across normalized
+spread. The original circular sampler matches456 supplied launch vectors
+with unit aspect and uniform mode. The server applies that launch cone
+and both motion rows with one sample index. The 48-case common direction quantizer probe and
+152-case native muzzle record chain establish separate prerequisites.
+Actual animated aim, origin, weapon seed updates and native client
+acceptance remain open.
+
+The composed launch comparison runs the original quantizer and spread
+sampler with 608 supplied launch inputs. The production direction matches
+within 5.96e-8 per axis. Actual commands verify the first seeded direction,
+two native curve endpoints, and a capsule bracket around the first rocket's
+100m final chord. Other revised fixtures preserve team, device destruction,
+post-channel damage and barrier-break assertions with spread enabled.
+
+The post-spread focused run passed42 Barrage cases. The full227-case
+curve-only run passed before cone integration. The primary and Concussive
+Blast cone configs are null, and ten native evaluator cases confirm zero
+angles. Their authored hardpoints are06 and38. Native animated muzzle
+transforms remain open for all three volleys.
+
+Native initial collision origin
+Six original vector getters confirm null pose overrides on all three
+volleys. All three null aim IDs use record key zero. Eight origin probes
+trace launch +80 into simulation +E0 and the first collision query.
+Varying pose correction +CA0 does not change the tested first chord.
+The original later target-directed record can add +CA0. Its trigger,
+physical role after spawn, and presentation remain separate.
+
+The native aim writer stores the local position at +10 and direction
+at +20. Eight original affine transform cases confirm that the supplied
+1.35/0.945 local heights are transformed by a supplied basis. The server
+adds the current mover spring before launch for all three Pharah volleys.
+Actual commands cover both stance transitions for primary and Concussive
+Blast, and standing recovery for Barrage. A primary clears low cover while
+the crouch spring holds the launch origin above the settled eye. See
+PHARAH_FIRST_PERSON.txt for the native height arithmetic, Bastion's separate
+offset state and the component 1 scale probe. Animated basis, live scale
+production and later launch corrections remain open.
+
+Barrage phase after Deflect
+The original Deflect state registers as 0EC57928. Its runtime state stores
+active boxes in component 41. The projectile query reads that component and
+passes the resolved contact to the native reflection path. At commit, D74C5B
+clears accumulated flight distance and D74C98 changes the frame base used by
+D6B1E0. D693E0 initializes the remaining frame correction to zero. Four
+original commit and curve cases verify the rebased phase with both motion
+rows. Four original cutoff cases show how elapsed and distance affect the
+next flight fraction.
+
+Actual commands previously left the first reflected round at phase .1565 s.
+The server now starts the reflected curve from zero and restores its flight
+bound. The first returned chord matches the two original motion offsets for
+seed 14883 at the server's 16 ms step. The focused run also verifies that
+lethal reflected damage ends Pharah's Barrage. The full phase checkpoint
+passed 230 tests in 622.482 seconds with zero skips before the origin change.
+
+Probe and results in asset-research/probe_pharah_barrage_reflect_phase.py and
+asset-research/pharah-native-barrage-reflect-phase.json.
+
+The wider defense, motion, Matrix, rocket-edge, NPC and shared projectile
+regression passed 92 cases in 225.640 seconds with zero skips.
+
+The component 28 branch calls C62A50 for movement position and adds the
+D9F3F0 result to y. Twelve captured executions exercise packed lookup
+with and without the component. Six present cases match the origin splice
+and an explicit handoff through the original commit and next chord start.
+The mounted 104319 Genji body 0225 supplies 1.20 standing and 0.84 crouched.
+Real standing Deflect uses this eye height plus current spring for the
+returned Barrage. A crouched Deflect stops the returned rocket at low
+cover inside the defense box. Both focused tests pass in 5.440 seconds.
+
+The full reflected origin checkpoint passed 231 tests in 780.449 seconds
+with zero skips. The primary and Concussive Blast prediction branch requires
+separate evidence. Probe and results in
+asset-research/probe_pharah_deflect_eye_origin.py and
+asset-research/pharah-native-deflect-eye-origin.json.
+
+The wider defense, motion, Matrix, rocket-edge, NPC and shared projectile
+regression passed 93 cases in 288.294 seconds with zero skips. The direction
+probe verifies the original mover base aim and identity mixer for 16 supplied
+cases.
+
+Barrage spread after Deflect
+The native path looks up the original weapon state and the saved shot and
+pellet counters. It mixes the current source state identity and optional
+WeaponComponent word, evaluates the authored Barrage cone and applies it
+around the reflected aim. A missing source state goes directly to the raw
+aim. Twenty-four original dispatch cases and three missing-state cases
+verify these branches with supplied source records.
+
+The server retains the original owner, volley and shot across reflection.
+It reapplies the authored eight-degree cone when the original instance
+still resolves and preserves raw Genji aim after body replacement. The
+rocket retains its original motion rows. Five actual-command cases pass,
+including the native direction and first reflected chord, source-body
+replacement, reflected lethal damage and firing after Deflect expiry.
+The full reflected-spread checkpoint passed 232 tests in 863.348 seconds.
+
+Live owner seed updates and alternate transforms remain open. Probe and results in
+asset-research/probe_pharah_barrage_reflected_spread.py and
+asset-research/pharah-native-barrage-reflected-spread.json.
+
+Barrage continuation within the Deflect tick
+Eight isolated original loop-tail cases show that the resumed chord uses the
+consumed fraction as its curve phase after the reset and sweeps the remainder
+of the current step. The server tracks this phase separately from the returned
+rocket's actual flight duration. An actual first reflection covers 3.50048 ms
+in its contact tick and starts the next full step at phase 16 ms. The resulting
+two endpoints match the original curves. Batched updates reach the same pose
+under the same collider snapshot. A crouched Deflect against a nearby low wall
+resolves the reflected impact in the same command step. Six focused cases pass.
+
+Current colliders are used during catch-up. Native overlap ordering remains
+open. Probe and result are in
+asset-research/probe_pharah_barrage_reflect_remainder.py and
+asset-research/pharah-native-barrage-reflect-remainder.json.
+
+The wider defense, motion, Matrix, rocket-edge, NPC, shared projectile and
+combat regression passed 122 cases in 326.062 seconds with zero skips.
+
+The full same-tick reflection checkpoint passed 232 tests in 604 seconds
+with zero skips before the cumulative range change.
+
+Barrage cumulative range
+Five original trajectories compose both curves with D72C80 clipping and
+D70830 accumulation. Seed 14883 reaches the authored 100 m in the 138th
+chord. The original ends at z 98.843262 for horizontal input and z 99.098129
+for pitch word 800, relative to launch.
+
+The server accumulates swept distance separately from the authored 5 s
+lifetime. The final chord is clipped before testing collision. Actual
+commands hit a capsule 2 mm inside the original range and leave the
+outside capsule at full health. Range expiry is within 1 mm of the original
+endpoint and does not cause splash damage. Deflect resets distance to the
+returned path while restoring the lifetime. Four focused cases pass in
+6.266 seconds. Probe and results are in
+asset-research/probe_pharah_barrage_curved_range.py and
+asset-research/pharah-native-barrage-curved-range.json.
+
+The native initialization writes the serialized lifetime and range to
+separate slots in three original evaluator cases. The cadence test now
+checks those independent authored values and still verifies all 76 rockets
+and the 2.5 s emission span. It passed after the old forward-budget
+assertion was replaced.
+
+The wider defense, motion, Matrix, rocket-edge, NPC, shared projectile and
+combat regression passed 122 cases in 348.634 seconds with zero skips.
+All 232 Pharah tests passed in 484.270 seconds with zero skips.
+
+Aimed projectile-defense boxes
+The mounted Genji 03A3 state 10, Sigma 1D02 state 1 and D.Va mech 02CC
+state 3 set m_ED96CD23. D5BE28 reads serialized +0x1A1 and D5BE2F writes
+the active entry flag at +0xC. D70EA7 uses that flag to select mover aim,
+the world-up basis and the mover eye. The captured C5E040 and 5F3BB0 code
+matches 21 host axis cases within 0.0000003, including the right-axis sign
+at vertical pitch. The probe supplies the yaw quaternion and scalar trig.
+
+Build 104319 FirstPerson data sets Genji eye heights to 1.2/0.84 m,
+Sigma to 2.1/1.75 m and D.Va mech to 1.74/1.74 m. The same stance
+spring used for the returned Barrage origin applies to the defense
+box. The test sends elevated primary shots through the level boxes
+and verifies Deflect and Grasp interception at 45 degrees up. Three
+earlier Barrage tests use aim or stance that puts their volleys inside
+the corrected boxes and still verify their original motion and shield
+assertions.
+
+Eight posed-box probes run D70EA4 through D7160D with supplied mover feet,
+final eye height and projectile extent. They match the box centers and
+confirm the extent expands all three local half axes. The complete
+aimed-box checkpoint passed 233 Pharah tests in 584.443 seconds.
+
+D8AFA8 writes the evaluated WeaponVolley m_6396149F.m_57DAE1B5 into
+the runtime hit definition at +0x28. D7B4BE supplies it to D70AF0,
+where D715D6 adds it to the box. Pharah primary supplies 0.2 m.
+Concussive Blast and Barrage use zero in this branch. Actual primary
+shots at x=0.949 m and x=0.951 m bracket the Genji side boundary.
+The server preserves the extent across reflection. Ordinary world
+and body radius queries and native overlap ordering remain open.
+The extent checkpoint passed 234 Pharah tests in 546.172 seconds
+with zero skips.
+
+Ordinary collision query research
+D76228 reads the same primary extent for a separate query. The
+selected radius and mode flag go to BEEEB0, which packs the radius
+into its collision payload. D762E8 requires a hit entity and D762FF
+checks it through D6F190 before result selection. If another hit
+already exists, D7633C compares distance along the segment plus the
+corresponding radius, and the earlier hit wins ties. Seven setup and
+five ordering cases execute in the original instructions with
+supplied query context and results.
+
+D6F190 checks the indexed shape through component 4 when component
+57 is present and the hit has a shape index. When the indexed table
+is unavailable, that branch uses the component 57 count. In the
+absence of component 57, the predicate reads health component 51 at
++0x4B1. BCC914 initializes the flag from serialized +0x61,
+m_CDB100D1. All 32 roster bodies, the D.Va mech and five prepared NPC
+bodies export 1. Fifteen original target fixtures and 38 authored
+health bodies pass the predicate probe.
+
+B23D50 uses the source relation's component 44 view-body ID at +0xD4
+to choose the nominal radius when it resolves to the source body.
+Five original cases cover matching, mismatched and missing relations
+with supplied type and controller lookup results. The primary
+alternate extent is zero in the authored configuration.
+
+The host tests the expanded capsule separately from the ordinary
+contact and uses the original distance-plus-radius ordering for
+players and prepared NPCs. Four actual-input tests cover the player
+side boundary, clipped 100 m reach, contact ordering against a wall
+and grazing direct-plus-splash damage on all five NPCs. The complete
+checkpoint passed 237 Pharah tests in 622.100 seconds with zero skips.
+The runtime
+still uses mover capsules and its existing team and status filters.
+Exact native hit shapes, per-shape runtime routing and source modes
+after losing or changing possession remain open.
+
+Model hit shape research
+The pinned build model inventory follows ten body-to-model references,
+including all five prepared NPC bodies. Their MSTU m_CB4D298D arrays
+contain 298 records. Of these, 281 carry geometry with 262 capsules,
+11 spheres and eight complex convex records. Native registration
+13667A1 links the array to +0x100. Category hashes 8437BB52 and
+574B0D20 register as 1 and 4. All 281 shape binding values match
+skeleton IDs. Treating those values as direct array indexes only
+found 246 entries and could select the wrong joint.
+
+Native 1AC0FC7 dispatches capsules and spheres through their
+separate constructors. In 819 original cases, both capsule endpoints
+or the sphere center and radius match the source shape under supplied
+identity, model bind and scaled poses.
+
+DF5490 dispatches the built primitives to DDBEB0 and DDC7F0.
+D704FE uses projectile context slot +0xE0 to select D7A6C0, which
+writes the query's initial-overlap flag at +0x19A. The original
+packing path propagates it to the leaf at +0x72. In 1,365 native
+cast cases, fractions match the host primitive solver. Start-overlap
+contacts occur at fraction zero with the flag set. The radius query
+returns a surface point, then D7635B reconstructs the projectile
+center along the chord for the chosen hit. Actual primary commands
+verify immediate damage when the launch starts inside the ordinary
+or expanded body range. All 12 rocket edge tests pass.
+
+The separate category 1 cache counts only m_89AABA94=1 rows at
+1B2CECC. Original cache construction resolves m_30F925F4 through
+1AE5F10 and 17B0971 and stores local shape geometry with the resolved
+index. All 134 rows match, including 13 for each of the five NPC
+models. Sigma's selected model contributes zero rows to this cache.
+1B2C160 prepares a bone-local query before invoking the shape
+predicate. In 804 original cases, 1B2FE50 inverse-transforms the
+segment and divides its radius by the largest pose scale. Both
+primitive overlap predicates match the supplied hit and miss cases.
+
+The runtime still needs a verified animated pose producer and
+the per-query choice between the model cache and physics shapes.
+The server's real-input tests continue to use mover capsules.
+
+Radius-hit refinement research
+D7656A only enters the refinement when the selected hit is one of
+two radius-query results and contains an entity. D6AF00 resolves the
+result's shape slot. The model branch calls 1AFBE10 with the
+resolved ID and uses its position. Other branches can supply a
+model root or a fallback target point.
+
+The mounted primary, Concussive Blast and Barrage volley states
+leave m_29CB31D5 unset. D8B1C3 defaults it to -1 and D8B22A stores
+it at hit definition +0x3C. D76B8A uses a nonnegative override up
+to 11, or rounds the radius divided by projectile speed times the
+snapshot's 62.5 Hz ratio and clamps the result to 0 through 11.
+The selected origin is entry (counter + 12 - offset) modulo 12 in
+the projectile trail at +0x290.
+
+D76CEB queries from that origin to the resolved target with zero
+radius. D72FC0 sets bit 0x40 at filter +0x10 and clears bit 0x100
+in the word at filter +2. A nonzero query return restores the
+earlier candidate metadata. A zero return retains the selected
+radius candidate. Original instruction probes pass eight entry
+gate, 160 history and selection, and five filter mutation cases.
+The scene query return, earlier candidate and target point are
+supplied to the history probe.
+
+Explosion data starts from WeaponVolley +0x170 at D8C5AC. The
+compiler evaluates the authored radius and multiplier pair for each
+ring, stores the pairs in the vector at explosion +0x30, and
+attaches the explosion definition at runtime volley +0xB8.
+Projectile context slot +0x80 selects B2BB10. It invokes B333F0
+when the resolved projectile source body matches the current body.
+B333F0 reads the explosion definition at volley +0xB8 and prepares
+the local source-body impulse. B34124 calls 5E2610 for distance to
+the target point, then B3412D subtracts the supplied target radius.
+B34160 admits the first ring with a radius strictly greater than
+that distance. In 168 original cases, the ring choice follows the
+measured distance. Exact supplied distances at ring boundaries
+select the next ring or reject the target. Distance computed from
+points can round slightly below the mathematical boundary.
+
+The explosion probe supplies posed points and stops before LOS and
+impulse dispatch. The scene's filter interpretation, animated target
+position and damage multiplier calculation remain open. The host
+collision behavior is unchanged by this research checkpoint.
+
+ModifyHealth knockback rings
+D853A0 packs m_radius, m_579D7CFF and m_10399AE7 from serialized
+ring offsets 0, 0x10 and 0x18 into a runtime triplet. D6DC70 copies
+the ring array into the D6B3C0 packet. D6D87C clamps the point
+distance minus target radius to zero. D6D8B0 selects the first
+ring with radius strictly greater than the resulting distance.
+Between rings it interpolates both columns independently using a
+minimum 0.0001 interval. At or beyond the last ring, both columns
+are zero. An empty ring array yields two unit multipliers.
+D6D97A applies the first multiplier to the horizontal vector and
+the second to the vertical coefficient. This ordering holds for
+the source-body prediction path. The knockback ring probe passes
+135 cases, with supplied ring rows and direction coefficients.
+
+D855F9 stores m_10399AE7 as the base vertical coefficient.
+D85627 stores m_583C208B as a separate minimum, with a negative
+maximum-float default. D6DADC applies the minimum after the
+packet multiplier when the vertical ring channel is positive.
+The operation takes the larger of the calculated vertical delta
+and the minimum minus the reference vertical component. The
+local source prediction call supplies a zero reference vector.
+Thirty-six cases verify this stage before the final velocity cap.
+The host now applies the Concussion minimum separately when the
+vertical channel is positive. The source uses the zero reference
+from local prediction. For enemy players and NPCs the host uses
+current mover velocity as its reconstructed reference. The
+actual-input fixtures check a half-scale vertical ring, airborne
+source and enemy references, and the unchanged zero damage.
+The vertical minimum checkpoint passes 240 Pharah tests and 75
+focused combat tests, with zero skips in both runs.
+
+The host now applies those channels separately for both the source
+and an enemy using its existing radial direction and mover geometry.
+An actual Concussive Blast input with distinct test ring multipliers
+checks both recipients. The resource-backed Concussive Blast rows
+use equal multipliers. Heavy Assault graze still passes its two
+authored impulse magnitudes through the shared mover helper.
+The full Pharah regression passes 239 tests with zero skips.
+The focused NPC and combat selection passes 68 tests, and the
+shared combat module passes 29 tests, both with zero skips.
+
+For source-body prediction, B34176 can bypass LOS. Otherwise it
+queries from one origin to a first target point. If a world hit or
+a different entity blocks that trace, it tries a second target point.
+A miss or a hit on the intended target is clear. The probe passes
+32 cases with supplied target points and scene returns through the
+original B34176 and D607F0 branch instructions. The host still uses
+the nearest mover capsule point for visibility. In 50 cases B3408A
+uses a supplied posed anchor and axis to construct the first point.
+It clamps the second point's Y to the resulting vertical bracket.
+Four cases verify the 0.2 direction offset at B33C67. DB1AA0 can
+fall back to 79A3B0 and C43F40 for stance-specific height and radius
+times body scale. Twelve cases exercise these leaves with supplied
+Pharah and Soldier mover data. The animated point producer, the
+host's native impulse direction and damage multiplier remain open.
+
+Blast direction and local source multiplier
+D6D678 reads target stance height and radius. D6D6C6 builds a
+vertical segment around the chosen target center. Its endpoints are
+one half-height above and one third of a half-height below the
+center. D6D723 normalizes the impact-to-center delta and retains
+its length for ring selection. D6D79A obtains the segment's
+nearest point and can move an impact inside the radius out to its
+surface. D6D843 lifts the selected target point by 0.2 m before
+the final direction is normalized. The geometry stage passes 54
+original cases with supplied target centers, heights and radii.
+
+D73830 limits the resulting vector. The cap branch subtracts the
+reference velocity projected onto the impulse direction from the
+cap, clamps the available length, and preserves the direction.
+Forty-eight original cases exercise this calculation with supplied
+references. All three Pharah explosion definitions omit the cap
+field m_8394CF8C, which compiles to maximum float.
+
+D8C88E stores the authored m_2FE97560 at explosion +0x44.
+The source prediction branch B33460 reads it and B34279 forwards
+it to the impulse solver. Original binding cases cover primary
+1.875, Concussion 1.0, and Barrage 0.0. Barrage skips the
+local source impulse branch. The host applies the authored
+source multiplier before the vertical minimum and keeps damage
+scaling separate. The enemy impulse uses its normal multiplier.
+
+D7465C appends a 20-byte reflection history record with the
+reflecting body ID. D6DEB0 uses the last record when available,
+then an explicit body override, then the launch body. B2BD5C
+compares that result to the current body before local impulse.
+Thirty cases cover body selection and equality, and three
+execute the original reflection history append and source gate.
+Three additional cases run the D6FF81 override store and verify
+that reflection history still wins. The override's native lookup
+uses the projectile's stored relation at +0x24. Alternate
+possession lookup remains open in the host.
+The host stores the live body ID at launch and replaces it on
+Deflect. Actual wall impacts exercise the multiplier on the
+firing player, on Genji after Deflect, and the source-body check
+after Genji switches heroes with a reflected rocket in flight.
+The Pharah regression passes 242 tests and the focused combat
+selection passes 65 tests, with zero skips in both runs.
+The host's blast geometry, impulse direction, and damage
+falloff remain open.
+
+B33E33 composes the parent and local model rotations for the
+explosion visibility axis. It rotates the local anchor, applies
+parent scale per world axis, and adds parent translation. The
+direct path at B33F62 reads the axis and anchor from the model
+state. The original instructions pass 32 composed cases and
+four direct cases with supplied transforms. DB1AA0 also probes
+component 116 for dimensions and falls back to mover component
+31. Live model transform and dimension selection remain open.
+
+Self-knockback geometry in the static runtime
+The source impulse now passes its upright mover anchor to the
+D6D6C6 reconstruction. Ring distance comes from the midpoint
+of the authored height, minus body radius. Direction comes from
+the asymmetric segment and its 0.2 m raised nearest point.
+Impacts inside the radius move out to its surface before direction
+normalization. The current static triangle supplies the escape
+normal when the projectile strikes the world. Other collision
+shapes currently supply a zero fallback.
+
+Fifty-four host cases agree with the original direction and distance
+at supplied poses, including zero-length local-source fallbacks.
+Actual primary wall impacts verify vertical projection, Genji
+Deflect, and the 2.5 m impulse cutoff at plus or minus 2 mm.
+The outer cutoff fixture still deals self-splash damage on both
+sides of the impulse boundary. A separate actual shot into a
+ceiling checks the downward impulse sign. Enemy impulse direction and
+the host's damage distance and visibility still use the existing
+capsule adapter. Live model pose and native source LOS remain open.
+The Pharah regression passes 243 tests and the shared combat
+selection passes 53 tests, with zero skips. The ceiling shot
+was added after discovery and passes separately.
+
+Native source LOS filter
+D8C90F binds 0690000000000019 when the explosion filter is
+unset, as it is for all three Pharah volleys. B33C96 passes the
+body and filter ID to query offsets +0x40 and +0x58 when LOS is
+enabled. Six cases execute the original default binding, query
+initializer tail and option stores. The 32 original LOS routing
+cases now also execute the hit-record initializer 87FA10.
+
+The two local CASC exports are STU_8EFC337B profiles. The blast
+profile 0019 has mode 1 and two rules. Generic fallback 0001 has
+mode 9 and no rules. The probe records both profiles and their
+raw hashes. The original scene filter evaluation remains open.
+
+Self-knockback sight in the static runtime
+D7532F copies the projectile's incoming velocity into the impact
+event at +0x10. B33C54 normalizes it, and B33C67 backs the LOS
+origin up by 0.2 m. Four original event cases cover zero velocity
+and three nonzero directions. The static host uses the matching
+chord heading and an upright mover to form the two sample points.
+It admits the source against the outer blast ring before tracing
+the midpoint and then the height-clamped fallback. World and
+deployed barrier geometry can obstruct the two rays. Actual primary
+commands cover low, high and full cover. The high cover case still
+applies self-knockback while occluding self-splash damage.
+
+BEF234 packs two category byte records into two 16-bit masks.
+BEF34B copies them, the two 64-bit profile masks, and the low two
+mode bits into the scene descriptor. A separate extractor at
+BEFF40 selects category bits 0x900 and mode bit 8. Fifty-four
+original cases cover the two profile records and one-hot flags.
+
+BDF420 loads the profile and BDF010 appends its 40-byte rows.
+BDF100 runs DA8CB0 in order. The first row rejects when the
+candidate category includes bit 0x8. Otherwise the second row
+returns the relationship decision when model bit 0x80 and
+category bit 1 are set and category bit 2 is clear. Other results
+defer to the receiver. The probe runs 64 original rule cases,
+12 receiver routing cases with supplied relation results, and 24
+cases that execute C1CF60 with packed component25 team inputs and
+absent component43. With an absent receiver handle, BEE420 uses
+the same relation result to select 0 or 13. BD6490 reads the
+STU_F387032E category value m_AC53342B when the component lookup
+supplies it.
+
+Reinhardt 011A, Winston 01C3, Orisa 14A1 and Sigma 2D25 all
+reference STURayCastReceiver 002A. Its XML lists no override for
+0019 or 0001 and defines default m_DE3392C3 with flags 7. The
+body and receiver exports are retained in pharah-source-los-receivers.
+The original BEEB69 selector runs 46 cases covering both default
+profiles and all 21 override references for both relation inputs.
+That fixture supplies a compiled representation of the XML. The
+production adapter uses static collision and deployed defenses.
+Native asset binding, scene category inputs, and animated pose
+remain open.
+
+Detonation physics query and enemy splash
+B27A80 selects the maximum positive explosion ring radius and
+B20740 appends a 48-byte record to the projectile. The record
+contains the impact point, that radius and five fields from the
+compiled explosion. It does not carry the ring multiplier column.
+D8C933 through D8CA5C binds m_792F0B4D, m_E03B193A, m_EF63D0A4,
+m_97149C3A and m_66D29548 to explosion +0x5C through +0x6C.
+The authored field binding is verified with supplied evaluator
+returns and compiler defaults.
+
+B26C51 drains those records into 1B4F670 with callback 994B60.
+The original query setup clamps both extents at zero and adds
+them, then builds an AABB centered on the impact. The original
+probe passes 32 record cases, 16 query submissions and 48 AABB
+cases. It uses a preallocated record vector and a supplied
+world handle. The scene query and the callback's body are
+outside the probe. This path gives no evidence for actor damage
+multipliers or for which body point controls their LOS.
+
+The actual primary command now also tests a two-enemy line
+with and without a wall between the enemies. The first enemy
+takes 40 direct and 80 splash in both cases. The second takes
+52.32 splash and one rounded hit notice only with an open path.
+This verifies the static capsule adapter for that configuration.
+
+Lúcio Soundwave against Pharah
+The server consumes the authored 0776 state 11 activation and
+uses state 10's 7 m radius, 70-degree angle and 1.2 m origin
+offset. The local target adapter uses the rewound capsule and
+body-center angle, with world and Ice Wall visibility. Damage is
+the authored 25 in the tested mode. The direction expression
+limits look relative to body-forward and scales it by 17 and
+ruleset 10615. The production evaluator matches all 35 retained
+104319 CEB820 direction fixtures within 0.00005 per component.
+The original direction probe and fixtures come from lane 0079.
+
+For human victims, a one-frame external velocity delta applies
+on their next pose after persistent world-velocity SET and before
+the collision sweep. The delta uses the existing mover modifier
+storage and is discarded when its body retires or dies. This
+keeps Barrage's ordinary movement lock while allowing Soundwave
+to displace Pharah for one frame without aborting the volley.
+Actual inputs verify damage, held-button deduplication, no damage
+or impulse for an ally, outside the cone or range, or behind a wall,
+and the body replacement boundary. The pending delta is visible
+in repeatable passive mover snapshots.
+
+The target geometry and relative ordering of the two velocity
+operations are server adaptations. Native target selection and
+authoritative impulse dispatch remain open.
+
+Soundwave barrier visibility
+The 0776 state 10 TrackTargets leaves m_3D667CE3 empty. Native
+CAF17A and CA3A08 use 002D.097 as the default. The native probe
+also verifies a supplied .097 override and rejection of a wrong
+resource type on both paths. Profile 002D's two authored rows
+reject category 0x10 first, then send model 0x80 and category 1
+to the relation gate. Other rows defer to the receiver. D607F0
+accepts a miss or a hit on the intended body and reports other
+hits as occlusion. The probe supplies the candidate and scene
+result. Reinhardt, Winston, Orisa, Sigma and both Zarya barrier
+actors use receiver 002A, which has no 002D override. The
+compiled default fixture selects flags 0 or 7 according to the relation result.
+
+The static adapter uses the hosted shield surfaces for
+Soundwave sight, with hostility from the existing team filters.
+Actual inputs cover both directions across the hostile Winston
+surface, both players inside it, a friendly crossing, raised
+Reinhardt, deployed Orisa and Sigma meshes, a personal Zarya
+sphere in front of Pharah, and a projected sphere on Pharah.
+A blocked query applies neither health damage nor impulse,
+spends no shield pool, and awards no Zarya energy. Full native
+collision routing and simultaneous overlap handling remain open.
+
+Quick melee and barrier visibility
+The common 0043 state 5 TrackTargets uses m_3D667CE3 and
+m_C1903771 to explicitly select 002B.097. The original
+1B85C30 getter emits that GUID with variant tag 4. Original
+CAF17A and CA3A08 select 002B for that authored value and
+002D when the override is absent. The two extracted XML files
+are byte-identical. The receiver differentiates them by GUID.
+Receiver 002A has a 002B override with both results absent.
+The original BEEB69 selector returns zero for either relation
+in the compiled XML fixture. With 002D the same receiver uses
+its defaults of zero and seven. The probes supply the native
+candidate category and the scene's ray return.
+
+The static melee tests cast across actual Winston, Reinhardt,
+Orisa and Sigma surfaces and check body damage without shield
+pool loss. A projected Zarya barrier still absorbs 30 for its
+target and grants six energy, through the separate health
+routing. These cases use the existing sphere and capsule
+adapter. Original target point selection, animated pose, and
+full native scene classification remain open.
+
+Quick melee search volume
+The server evaluates the 0043 state 5 m_radius expression when
+state 4 activates. The authored expression multiplies 1 by the
+owner scale. The existing unit-scale body service supplies that
+input. At the same settled target pose, an actual melee input
+misses with a test radius of 0.5 m and hits with the authored
+1 m radius.
+
+C9A5CD evaluates the start and end offsets and interpolates by
+the supplied fraction. C9AFB0 transforms the local vector by
+the actor basis and translation. C9BA41 reads m_radius and
+C9BA51 reads the second radius, with the first radius as the
+default. The original arithmetic passes 24 cases. The probe
+supplies evaluated values and a synthetic actor basis. The
+server still places the center along command aim from its
+authored eye height. Original basis selection, animated poses,
+and target enumeration remain open.
+
+Quick melee pitch adjustment
+The 0043 search enables m_0297060F and omits m_762A56C0.
+C9A8DF reads the signed mover pitch through C61F70. With no
+hardpoint, C9A926 obtains the D9F3F0 first-person pivot.
+C9A92F rotates local Y and Z about that pivot. When local Y
+matches the pivot and the actor basis is upright, this reduces
+to the server's eye plus forward offset along the pitched aim.
+The original instructions pass 56 cases with fixture offsets,
+mover pose and pivot values, using the scalar native trig path.
+The native local-Y producer, live model basis and timing
+remain open.
+
+The runtime now applies its mover's signed pitch bound to
+quick melee aim. Actual commands hit an elevated enemy when
+aiming up and miss at level or downward pitch, for two yaws.
+An out-of-range upward command is bounded before the search.

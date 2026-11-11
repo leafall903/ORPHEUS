@@ -1,0 +1,63 @@
+Pharah static flight boundaries -- partial acceptance
+Build1.74.0.0.104319. Existing reconstructed force and native-derived swept mover;
+actual Match/commands and extracted graphs, static triangle rooms, immediate-ACK
+client adapter. No native-client presentation or exact native force-phase parity.
+
+Five new actual-input cases
+- Jump Jet hits a ceiling3.2m above the floor. The actual2m capsule stops with
+  feet1.1953125m above the floor; no top exceeds the underside. The authored
+ 10s cooldown is spent despite collision, the body falls/lands, and a new press
+  during cooldown cannot apply a fresh impulse.
+- Hover against the same ceiling remains bounded and consumes exactly the same
+  authored fuel as unobstructed hover under identical input. Release removes
+  thrust, the body lands and the resource reaches its authored maximum.
+- Actual Jet plus held hover travels under an overhang ending at z2. Capsule
+  remains below the roof while wholly covered, then clears the real edge and
+  rises above the roof underside. No rectangle/teleport/position override is used.
+- Held secondary reaches zero fuel, stops thrust and decelerates under gravity.
+  Authored0025 node21 gates restart below10 fuel; after recovery crosses that
+  gate, held secondary resumes thrust. Release then recovers fully.
+- Held jump exhausts fuel and cannot maintain thrust. After release/recovery,
+  a fresh grounded jump first performs normal jump without spending fuel, then
+  reaches the authored hover path and spends fuel.
+
+Depleted fuel restart
+
+- Held jump, including when secondary is released during recovery, waits for
+  10 fuel and the authored 0.2 s jump wait. Thrust resumes 13 command frames
+  after the threshold and can spend the recovered fuel down to zero again.
+- Releasing jump during the wait cancels it. A fresh jump starts another wait.
+  Switching to secondary with enough fuel starts thrust on that command.
+- Releasing secondary before the threshold keeps thrust off across recharge.
+  A new secondary press starts immediately above the threshold and waits if
+  pressed below it.
+- Actual Lúcio Soundwave damages and displaces Pharah during airborne hover.
+  Held thrust and fuel debit continue through the hit and end on release.
+
+Verification
+python -B -m unittest test_pharah_flight_boundaries test_pharah_movement
+  test_pharah_control test_pharah_barrage_movement -q
+21 tests PASS16.783s, zero skips. Source-only subsequent change renames an unused
+unpacked x variable to _. Ruff/diff/staged checks pass after that change.
+External durable log:verification/hero-lanes/0008/asset-research/
+flight-boundary-tests.log. Five new cases raise the Pharah-module inventory from
+74 to79; no claim that all79 were rerun together. The prior logged175-test run
+covered the preceding code with74 hero cases,4 resource prerequisites and97
+shared regressions. Production behavior is unchanged by this checkpoint.
+
+Development findings and limits
+The first exploratory room incorrectly assigned Mover.world while retaining its
+old CharacterBody, so its roof did not participate in contacts. Correct fixtures
+use the existing Mover.use(world=...) lifecycle, rebuilding the physical body;
+do not call that initial probe a production penetration bug. Two initial fuel
+assertions assumed jump matched secondary or entered hover on the first grounded
+command. Executed traces exposed that unsupported assumption; separate cases now
+verify grounded jump/released recovery and secondary's fuel gate. Slopes,
+native input/force/phase ordering, resistance and all remaining
+control/cross-hero/NPC interactions remain open. These five cases do not close the
+full movement action, static matrix, goal, client gate or commit gate.
+
+Pet execution remains a separate open frontier. Reuse of existing PlayScript
+request/queue code alone supplies neither authoritative Pet creation/destruction
+nor cross-entity messages, active pose, damage pools or their stored snapshots.
+No Pet service was fabricated to pass the known failing shield probe this turn.

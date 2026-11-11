@@ -31,19 +31,114 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, match=None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.match = match
+
+    def entity_var(self, entity: int, var: int):
+        from ow174.game import assassin
+
+        value = assassin.member(self, entity, var)
+        if value is not NotImplemented:
+            return value
+        if self.match is not None:
+            source, peer = self.match.script_npc_peer(self)
+            if source is not None and not source.strict and peer is not None and peer.entity == entity:
+                # Compatibility polling: never retain foreign Var/State watcher
+                # references across independently stored component namespaces.
+                slot = peer.entity_var(var, create=False)
+                return slot.value() if slot is not None else None
+        return super().entity_var(entity, var)
+
+    def health_records(self, instance, entity):
+        from ow174.game import assassin
+
+        records = assassin.health_records(self, instance, entity)
+        if records is not NotImplemented:
+            return records
+        if self.match is not None and not instance.component.strict:
+            source, peer = self.match.script_npc_peer(self)
+            if (source is instance.component and peer is not None and peer.entity == entity
+                    and peer.world.health_pools is not None):
+                return peer.world.health_pools
+        return super().health_records(instance, entity)
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        from ow174.game import assassin
+
+        if slot == 0 and assassin.owner(self) is not None:
+            return assassin.BUTTON
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
-        # Reconstruction policy for the single authored firing placement behavior.
-        return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
+        from ow174.game import assassin
+
+        return ((self.owner_position is not None and instance.graph.index == FIRING_GRAPH)
+                or assassin.selects_search(instance))
+
+    def velocity_action(self, instance, node):
+        from ow174.game import sigma_flux
+
+        return True if sigma_flux.flux_velocity(instance, node) else NotImplemented
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, npc_melee, sigma_flux
+
+        value = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+
+        from ow174.game import heavy_charge
+
+        handled = heavy_charge.impact_health(self, state, elapsed_ms)
+        if handled is not NotImplemented:
+            return handled
+        handled = npc_melee.apply(self, state, elapsed_ms)
+        return assassin.modify_health(self, state, elapsed_ms) if handled is NotImplemented else handled
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
+    def destination_search(self, state):
+        from ow174.game import sniper_reposition
+
+        return sniper_reposition.search(self, state)
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, sigma_flux, sniper_reposition
+
+        if instance.graph.index == sigma_flux.FLUX_EFFECT:
+            value = sigma_flux.flux_effect_native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        value = sniper_reposition.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = assassin.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        if self.match is not None and not instance.component.strict:
+            source, peer = self.match.script_npc_peer(self)
+            if source is instance.component and peer is not None:
+                if (cfg.get("$") == "STU_F7262B36" and source is not peer
+                        and self.match.script_npc_is_body(source)
+                        and instance.evaluate(cfg.get("m_801B298F")) == expr.Entity(source.entity)):
+                    return expr.Entity(peer.entity)
+                if (cfg.get("$") == "STU_0AC15F78" and not self.match.script_npc_is_body(source)
+                        and instance.evaluate(cfg.get("m_entity")) == expr.Entity(source.entity)):
+                    return expr.Entity(peer.entity)
+                if instance.graph.index == 0x102F and not self.match.script_npc_is_body(source):
+                    if (cfg.get("$") == "STU_71A87E92"
+                            and instance.evaluate(cfg.get("m_entity")) == expr.Entity(peer.entity)):
+                        return self.match.script_body_position(peer.entity, source.entity)
+                    if (cfg.get("$") == "STU_00707E1E"
+                            and instance.evaluate(cfg.get("m_00903303")) == expr.Entity(source.entity)):
+                        return expr.Entity(peer.entity)
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -77,20 +172,24 @@ class BotScript(ReplicatedBody):
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, health_pools=None, match=None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
             raise ValueError(f"no statescript data for entity body {body:016X}")
         self.frame = frame
+        self.retired = False
+        self.associated_definition = None
+        self.associated_record = None
+        self.associated_component = None
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, match=match)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
-        self.set_health(health, health)
+        self.set_health(health, health, health_pools=health_pools)
         for instance in create_body_graphs(component, record):
             instance.init()
         component.run_frame(frame)
@@ -105,6 +204,61 @@ class BotScript(ReplicatedBody):
         self._initial_frame: BitWriter | None = observers.full_frame(self, snapshot)
         self.death_frame: int | None = None
         self._produced = snapshot
+
+    def bind_associated(self, definition: int, entity: int) -> None:
+        """Create the declared associated script namespace under this body's ownership.
+
+        Local server reconstruction: no native factory/transport/strict-AI parity
+        is inferred. The Match allocates the identity and owns both lifetimes.
+        """
+        if self.retired or self.associated_component is not None:
+            raise ValueError("associated script already bound or body retired")
+        if (type(definition) is not int or definition >> 48 != 0x0400
+                or type(entity) is not int or not expr.valid_entity(entity)
+                or entity == self.component.entity):
+            raise ValueError("invalid associated script definition or identity")
+        record = graph.entity_body(definition)
+        if record is None:
+            raise ValueError(f"missing associated entity definition {definition:016X}")
+        roots = [item["graph"] for item in record["graphs"]]
+        roots.extend(item for item in record.get("weapons", ()) if item is not None)
+        if record.get("manager") is not None:
+            roots.append(record["manager"])
+        if any(graph.graph(item) is None for item in roots):
+            raise ValueError("associated entity has missing script roots")
+        world = BotWorld(
+            self.component.world.hero, self.component.world.mode, {}, match=self.component.world.match)
+        component = runtime.Component(entity, self.component.frame_ms, world, seed=entity)
+        component.frame, component.now = self.frame, self.frame * component.frame_ms
+        self.associated_definition, self.associated_record = definition, record
+        self.associated_component = component
+        for instance in create_body_graphs(component, record):
+            instance.init()
+        component.run_frame(self.frame)
+
+    def retire(self, *, failed: bool = False) -> None:
+        """Explicit removal/failure retires both namespaces; a retained corpse keeps its association."""
+        if self.retired:
+            return
+        self.retired = True
+        for component in (self.component, self.associated_component):
+            if component is None:
+                continue
+            if component.world.match is not None:
+                component.world.match.combat.clear_pins(component.entity)
+            component.world.match = None
+            component.owner_dead = True
+            component.held.clear()
+            component.shots.clear()
+        for component in (self.component, self.associated_component):
+            if component is not None and not failed and component.fault is None:
+                for instance in list(component.instances.values()):
+                    component.destroy(instance)
+
+    def _advance_associated(self, frame: int) -> None:
+        component = self.associated_component
+        if component is not None and frame > component.frame:
+            component.run_frame(frame)
 
     def _initial_payload(self) -> BitWriter:
         if self._initial_frame is None:
@@ -121,12 +275,17 @@ class BotScript(ReplicatedBody):
 
     def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
-        if frame <= self.frame or self.component.owner_dead:
+        if self.retired or frame <= self.frame or self.component.owner_dead:
             return None
+        self._advance_associated(frame)
         self.frame = frame
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
+        from ow174.game import assassin, sigma_flux
+
+        sigma_flux.sync_world_airborne(self.component)
         self.component.run_frame(frame)
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -134,7 +293,7 @@ class BotScript(ReplicatedBody):
             self._initial_frame = None
         return snapshot
 
-    def die(self, frame: int, params: dict, sender: int) -> Snapshot | None:
+    def die(self, frame: int, params: dict, sender: int, *, health_pools=None) -> Snapshot | None:
         """Deliver 003E.025 and capture the change that happens immediately."""
         component = self.component
         if component.owner_dead:
@@ -151,6 +310,10 @@ class BotScript(ReplicatedBody):
             component.destroy(self.behavior)
             self.behavior = None
         component.shots.clear()
+        # The actual component51 is already terminal before its death event.
+        # Keep the existing #253/message order, but never expose pre-hit pools
+        # to native queries while the death frame is being evaluated.
+        component.world.health_pools = tuple(health_pools) if health_pools is not None else None
         component.run_frame(self.frame)
         component.held.clear()
         component.set(OWNER_HEALTH, 0.0)
@@ -162,9 +325,10 @@ class BotScript(ReplicatedBody):
 
     def advance_death(self, frame: int, lifetime_ticks: int) -> list[Snapshot]:
         """Run due graph events within this death's lifetime and retain each frame's change in order."""
-        if self.death_frame is None:
+        if self.retired or self.death_frame is None:
             return []
         limit = min(frame, self.death_frame + lifetime_ticks)
+        self._advance_associated(limit)
         component = self.component
         payloads = []
         while (due := component.next_event_time()) is not None:

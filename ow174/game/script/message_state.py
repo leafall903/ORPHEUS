@@ -63,15 +63,19 @@ class Host:
 
 class Context:
     def __init__(self, component, host, *, policy, frame, priority, timer_notify=None,
-                 receiver_policy=None, receiver_generation=None, receiver_filter=None):
+                 receiver_policy=None, receiver_generation=None, receiver_filter=None,
+                 permissive_nodes=None):
         if type(host) is not Host or not all(callable(item) for item in (policy, frame, priority)):
             raise ValueError('message-State services must be declared explicitly')
+        if permissive_nodes is not None and not callable(permissive_nodes):
+            raise ValueError('message-State node selection must be callable')
         self.component, self.host = component, host
         self.policy, self.frame, self.priority = policy, frame, priority
         self.timer_notify = timer_notify
         self.receiver_policy = receiver_policy
         self.receiver_generation = receiver_generation
         self.receiver_filter = receiver_filter
+        self.permissive_nodes = permissive_nodes
         self.retired = False
         self.states = set()
         host.contexts.add(self)
@@ -90,6 +94,18 @@ class Context:
             state.message_context_retired()
         self.states.clear()
         self.host.contexts.discard(self)
+
+
+def persistent(state, *, starting=False):
+    """Keep the selected transport for the lifetime of the active state."""
+    component = state.instance.component
+    if component.strict or state.message_context is not None:
+        return True
+    if not starting:
+        return False
+    context = component.world.message_state_context(component.entity, component=component)
+    return (type(context) is Context and not context.retired and context.permissive_nodes is not None
+            and context.permissive_nodes(state) is True)
 
 
 def _unsupported(state, feature):

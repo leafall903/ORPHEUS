@@ -1,0 +1,486 @@
+Reinhardt shield prerequisite for Pharah -- incomplete static acceptance
+Target build104319. No physical barrier or original-client acceptance claimed.
+
+Native scalar evidence
+295F1CDE has priority1 registration2F85398, constructors D08AE0/D0B170,
+runtime table2660BF0 and +20 evaluator CC9A80. The evaluator resolves its actor,
+calls C1BBB0, writes a float result, and optionally subscribes to identifier2537.
+C1BBB0 first queries cached override254B. A found nonnull value is converted
+through F64C80 with default1. Missing/null values proceed through an inherited
+actor/controller lookup; when no valid override is found the literal at25E17C0
+is1. Explicit numeric/bool zero is a valid zero; it must not become the default.
+Arrays use their first member: empty ->default1, array containing null ->0.
+
+Twelve offline cases execute the original local-override and float-conversion
+instructions. Bool/int/float/asset/Vec3/empty-array/nested-array cases match the
+host numeric conversion, including explicit zero. The variable lookup provider
+and synthetic value destruction are explicit adapters. This does not execute
+the inherited/absent-parent lookup chain or the native2537 subscription service.
+Script/report: verification/hero-lanes/0008/asset-research/probe_local_health_scale.py
+and.json. Existing image SHA256:
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+
+Scoped host adaptation
+BodyWorld maps local254B input to the currently hosted body's entity variable,
+and uses the native1 default when that local input is absent/null. This mapping
+is a reconstruction of the local server actor, not proof of a complete native
+stat-cache binding. It is restricted to the owning human Reinhardt0095 graph
+in a live Match and refuses strict execution. Inherited/controller overrides,
+native stat-cache updates and2537 observer routing remain unhosted. Existing
+compatibility polling does not establish the native observer/global phase order.
+No global always-one evaluator or fabricated barrier-health table is installed.
+
+Actual resource evidence
+The authored initializer now yields base#587=1600, current#586=1600 and saved
+#1616=1600. Real secondary input reaches Pet state17. A controlled loss fixture
+writes current1000 while lowered:80 frames do not recharge, later frames do,
+and the resource caps at1600. This is a resource-loss fixture, not a shield hit.
+Four tests cover initialization/input, local typed overrides, recharge/cap and
+strict refusal. These prerequisite tests do not increase the74 Pharah-module
+case count and do not prove shield damage routing or inherited-stat scaling.
+
+Physical acceptance still fails
+An actual primary-input probe against held shield leaves the resource1600 and
+Pet state17 active, but output entity#38 remains None. The hero loses health
+500 ->390. Desired protected health500 is not achieved. Record:
+verification/hero-lanes/0008/asset-research/reinhardt-barrier-current-failure.json.
+Do not turn this known failure into a passing shield-protection regression.
+Pet creation/lifetime,0096 health bridge, mesh interception, shield damage/break,
+held/released cooldown/regen and other defenses still require executable proof.
+
+Pose research
+Read only the selected actual body model04F2.00C into external asset-research;
+size2139840, SHA256:
+58e62434007d7a6f56545eb132f4c524ff6394fb358b6d4f32bdab4e244638c8.
+Its MSTU contains197 model nodes. Hardpoint29 has identity local transform with
+parent8C, matching the Pet's hardpoint29/bone8C references. The model-space bind
+frame is translation(0.9424153,1.8088791,0.3510216), quaternion xyzw
+(0.4135099,0.8906341,0.05670949,0.1804568). This is an authored bind frame,
+not a raised-shield animation pose. No eye-height, rectangle or inferred active
+pose replaces it. Active attachment pose remains a separate missing service.
+
+Shared runtime dependency
+Parent2ca9178 is reviewed/reused ased10e40, preserving PhaseEntry and lane code.
+Its distinct-input joins and join_inputs/plug_source snapshot fields are needed
+for shared/opponent execution. Pharah's58-graph closure has no direct1113EBD5;
+that absence is not a reason to retain the permissive shared fallback.
+
+Post-dependency verification:175 tests PASS in126.734s, zero skips. This includes
+all74 Pharah-module cases,4 resource prerequisite cases and97 shared driver/
+combat/strict/snapshot/join cases. Durable external log:asset-research/
+post-join-regression.log. Separate post-import78/97 outputs lost at the tool
+boundary are not used as acceptance evidence; this logged rerun is.
+
+The full Pharah goal remains active. New lane code/tests/docs stay uncommitted
+until complete static acceptance; native-client behavior remains separately open.
+
+Actual Pet definition and script routing -- later inspection
+The immutable build104319011A definition was selected/read externally with the
+same pinned tool. XML SHA256:
+88804bdefab34b3142af08925a827d8ace0d84261bd91e3fafe5fcc8b075bd27.
+The existing body_record extractor resolves its actual script component to25B4,
+with no schema overrides, manager or weapons. It has a real HealthComponent;
+none of its unnamed scalar fields is interpreted as barrier HP.25B4 XML SHA256:
+2a2e56e72cddb84fa502485170586c17e63b9d22b16addd0e21626d90e125304.
+This entry graph is distinct from0096.0095 node6 is ActionPlayScript, reached
+from Pet17's onBegin plug: target instance#38, script0096, parameter0043 from
+current#586,0044 from maximum#587, instance policy0 and wire flag0. Thus a Pet
+factory must create011A with its real25B4 component, then the authored call must
+route0096 to that entity. Initializing only0096 would lose actual entry behavior.
+The present non-strict ActionPlayScript follows output without submitting a
+request; Match message routing currently accepts human body pairs only. Pet
+creation, play-request routing, Pet-to-owner messages and teardown need connected
+execution evidence before this bridge can pass. Existing strict request parsing
+is reusable but is not a target component/transport backend by itself.
+
+Captured client Pet type2CBEBF06/typeinfo2DDAAD8 has no direct registration in
+the captured native registry chain; it selects parent7C37840C's plain state.
+The pinned statescript codec record independently reports no Pet payload. This
+explains client passthrough; it does not prove the absent server factory's order
+or deletion policy. No native Pet constructor/destructor was inferred from the
+client's generic state.71A87E92 in0096's message parameters is a VecBase query
+(existing BotWorld uses it for position), not a health query. Its exact general
+host/native transform routing remains separate from the health service.
+External reproducible artifacts:inspect_pet_registry.py/pet-registry-chain.json,
+extract_pet_entity_contract.py/pet011A-entity-contract.json,
+pet095-play96-request.json and pet25B4-graph-contract.json. No raw/XML asset enters
+the source tree or the canonical runtime. This research adds no accepted combat
+case and does not change the175-test result recorded above.
+
+Pet health bootstrap frontier (no shield acceptance)
+A fresh XML/hash-checked011A record and25B4 graph now have an external
+candidate closure with0096. A declared component/request fixture runs
+25B4 and0096 without fault but installs no health_pools. Actual0096
+node3 evaluates maximum1600 and initial0 with the missing cached-scale
+service. Isolated expression reevaluation with explicitly supplied
+scale1 yields initial1600, still without installing health. This is
+a diagnostic, not a production Pet/health effect or actor factory.
+See external prepare_pet_candidate.json and probe_pet_play_bootstrap.json.
+Next work must connect the declared owned Pet context, actual health
+pool state/message routing/lifetime and physical collision together.
+
+The local server now hosts the owned Pet when the prepared graph closure
+includes 011A. Actual secondary input reaches 0095 node 51, assigns its
+entity output and executes the authored PlayScript call on the child.
+0096 node 3 installs the health pool through the local owned-Pet scale
+context. The initial and maximum values come from the graph. The input
+regression checks a 1600-point initial pool, passive export, release,
+re-raise with a fresh entity and owner-script retirement. The targeted
+suite passed all 77 cases. Physical mesh interception, damage messages,
+break and recharge behavior remain open.
+
+Projectile checkpoint
+The local server loads the prepared 104319 Reinhardt mesh descriptor through
+ORPHEUS_REINHARDT_COLLISION. The pose uses the authored anchors and capsule
+clearance from the Reinhardt lane reconstruction. Its nearest collision
+competes with body, map, and projectile defenses. An impact debits the Pet
+pool and mirrors the remaining resource to the owner graph. At zero the host
+delivers the authored 0053 break entry with a reconstructed impact pose.
+The impact-time mesh still occludes that projectile's splash.
+
+52 targeted regression tests and the final 9-test shield suite passed with
+zero skips. Executable inputs cover 120 primary shield damage, Barrage
+shield damage, Concussion exclusion without shield damage, friendly
+pass-through, break-impact shielding, lowering, and recharge after damage.
+Complete cooldown boundaries, side and edge cases, other barrier heroes,
+whole-server regression, and native presentation remain open.
+
+The break recovery trace showed that 0095's cooldown variable 61 reached
+zero while its dependent switch stayed closed. The local Ability timer
+now notifies watchers at the zero crossing. The 5-second duration still
+comes from the authored graph. Real primary input breaks the shield, a
+press during cooldown is rejected, and a fresh press after expiry raises
+a new shield. The final suite also checks front wall precedence, rear
+body contact, a ray outside the mesh edge, and owner death while raised.
+35 related regression cases and all 12 final shield cases passed.
+
+Winston deployment and Pharah projectile checkpoint
+The host recognizes completed 00FA Wait state 3 when its end timestamp
+matches the authored ability cooldown restart. The graph provides 700 HP,
+9 seconds of life, and a 13-second recast delay. D02.00C provides the 5 m
+sphere radius. The reconstructed world actor is stationary at the caster's
+feet plus 0.1 m. Its last activation remains stored after break or expiry
+so the same Wait completion cannot spawn a second barrier.
+
+Actual input checks cover hostile primary entry and exit crossings,
+Concussion with no shield debit, Barrage, break without spill, friendly
+passage, expiry, cooldown rejection, and a fresh deployment. The four
+final Winston cases and 37 related regression cases passed. Native
+transport and presentation remain separate from these static checks.
+
+Orisa deployment and Pharah projectile checkpoint
+0BD7 node 1 supplies speed, gravity, lifetime and the 14A1 deployment
+definition. A scoped server flight sweeps the map and applies the
+0.1-second deployment delay. 0BD8 starts on a separate component and
+supplies the 600-point pool and the active lifetime scope. Its mesh is
+the prepared 4062 descriptor. A fixed position and launch yaw reconstruct
+placement. Orisa and Winston share closest deployable contact selection
+and preserve impact-time blast occlusion on break.
+
+Three Orisa input tests in the 32-test regression cover deployment,
+primary, Concussion, Barrage, break, friendly passage, natural expiry
+and stationary shielding after the owner moves. A separate whole-server
+probe exports a live command-deployed shield twice and distinguishes a
+one-point health change. It supplies a fixed cosmetic skin result for
+the fixture. Native launch/placement and transport remain open.
+
+Zarya attached barrier checkpoint
+The 0244 personal Pet state and 025C projected Pet state gate two
+attached barrier actors. The 0256 graph and ruleset option 1D43 supply
+the default 200 HP pool. Model 10D7 supplies the 1.5 m radius. The local
+host centers the sphere on the protected capsule and selects projected
+targets by team, aim, range and map visibility. Strict TrackTargets
+still requires the native search service.
+
+Four real-input cases verify primary shield loss, 0146 energy credit,
+break without spill, off-axis splash, Barrage, Concussion exclusion,
+melee and natural expiry. Exact native search ordering, contact policy
+and client transport remain open.
+
+A whole-server snapshot probe activates a personal barrier through a
+normal command, confirms repeatable export, and distinguishes a one-point
+pool change. The fixture supplies a fixed cosmetic skin result.
+
+Sigma projectile barrier checkpoint
+1B55 supplies the owner phase and 700-point maximum. The 1A2A request
+enables the local actor, and its fields supply flight speed, wall
+clearance, recharge delay and recharge rate. The external C015 model
+passes its 104319 integrity sidecar and contributes 120 physics
+triangles through opt-in dynamic holder extraction.
+
+Five actual-input tests cover stopped mesh interception, 120 primary
+damage, Concussion exclusion, Barrage, friendly passage, break-impact
+occlusion, break cooldown and redeployment, delayed recall recharge,
+and removal on hero change. An active whole-server snapshot probe
+captures the mesh actor and detects a one-point health change. The
+fixture supplies a fixed cosmetic skin result. Moving mesh placement
+and 1A2A child execution use reconstructed server behavior. Native
+placement, child transport and the remaining static interactions stay
+open.
+
+Sigma Kinetic Grasp checkpoint
+The existing projectile gate forwards the intercepted nominal payload
+to 1D02 variable 6584 and the authored accumulation plug. On expiry,
+the local host consumes the authored self-targeted 1D03 request and
+stores its capped shield pool separately from base shields. Damage
+consumes the temporary pool first. The authored timer gives a
+three-second grace period followed by five points per second of decay.
+
+Five input tests cover primary, Concussion and Barrage, a 72-point
+grant from 120 absorbed damage, consumption ahead of base shields,
+and natural decay. An active whole-server export captures the pool
+and its decay clock. Nominal payload selection, shield pool hosting
+and the gate pose use reconstructed behavior.
+
+D.Va Defense Matrix checkpoint
+The server can select the prepared 0407 mech with its own body graphs,
+600-point pool and 0.7 m mover radius. The scoped controller binding
+allows 0276 to release its startup stack after the authored wait. 02CC
+reads its enable, capacity and recovery ruleset values and owns the
+100-point resource cycle. The combat host evaluates the four active
+state 3 boxes using the mech's current eye and aim.
+
+Four input tests exercise primary, Concussion and Barrage interception,
+rear exposure, depletion, friendly passage, nearer walls, release,
+resource recovery and a fresh press. Projectile eligibility is scoped
+to three Pharah Volley states. The manifest-verified 010F and 0052
+definitions have no 0145 exclusion tag. Primary state 6 in 0023 has a
+null projectile definition and uses its scoped finite-flight identity.
+Native profile filtering, pose and projectile transport remain open.
+The mech is selected directly for these tests. The Call Mech possession
+transition remains outside this checkpoint.
+
+A whole-server snapshot probe activates Matrix with normal commands,
+checks repeatable export, and distinguishes a one-point resource change.
+The fixture supplies a fixed cosmetic skin result.
+
+Ana Sleep Dart checkpoint
+Actual 0BDD state 6 fires a five-damage dart carrying effect 026F,
+which references 0BDE. The local hit handler applies a five-second
+sleep window after successful contact. Voluntary movement and ability
+input stop while existing physics and body clocks advance. Later
+effective damage clears sleep and body replacement retires its deadline.
+
+Five actual-input tests verify Pharah's Barrage interruption, grounded
+input rejection, airborne Hover Jets interruption, expiry and fresh
+Jump Jet, wake on damage, body replacement, wall and team rejection.
+The active deadline enters repeatable whole-server export. The local
+deadline uses 313 ticks at 16 ms. Native fall and wake transitions,
+presentation and the rest of Ana's combat interaction matrix stay open.
+
+Ana Biotic Grenade checkpoint
+An enemy hit by the 0B97 grenade blast receives 50 damage and its
+0267 effect starts a 250-tick healing block. The resource chain
+0267 -> 0C71 -> 0B99/0C72 supplies the zero healing scalar and four
+seconds. Biotic Field counts only ticks outside the stored block
+intervals. Repeated hits refresh a continuous block. The existing
+projectile, wall and projected-bubble gates apply before status.
+
+Friendly splash heals up to 100 health and installs a four-second
+1.5 healing multiplier. The enemy healing block takes precedence
+where the intervals overlap. Biotic Field counts boosted and ordinary
+ticks separately when a batch crosses the expiry.
+
+Six input tests and an active anti-heal export probe verify these
+paths. Native effect hosting and presentation remain open.
+
+Zenyatta Transcendence checkpoint
+The permissive server completes the zero-delay entry at 017B node 26
+so actual Q input reaches state 3. That authored phase gates local
+damage and status immunity. Zenyatta remains solid to projectiles and
+Concussive Blast can still displace him.
+
+Three input tests exercise primary, melee and Barrage immunity,
+no damage charge, Concussive Blast displacement, and damage after
+expiry. The server restores the caster once on entry and clears his
+anti-heal. The allied aura reconstructs a 10 m range and 300 health per
+second through the existing map and hostile barrier checks. Ana's
+healing modifiers apply to the allied aura.
+An active whole-server probe also confirms repeatable phase storage.
+Three further input tests cover self restoration, allied healing, map
+LOS, range, hostile Winston barrier and enemy grenade expiry.
+Native phase, aura targeting and presentation remain open.
+
+Baptiste Immortality Field checkpoint
+Actual 1761 state 12 launches the device. The local ballistic sweep
+lands it and uses 1762 metadata for a 0.35-second arm, five-second
+lifetime, 10 m zone and 2.75 m hover. The device uses the resource
+capsule with a reconstructed static pose and 150 health. It mounts
+1763 on live visible allies in range and rechecks membership at impact.
+The active 1763 descriptor clamps damage at 10 percent of maximum
+health after the usual shield and armour deductions.
+
+Five actual-input tests cover launch, pre-arm lethality, the 20-point
+floor on a 200-point body, ally and enemy eligibility, wall and range
+exclusion, expiry and device destruction. An active export probe
+captures the device and protection bindings. Two additional input
+tests verify 1763's conditional restoration from 5 to 20 health and
+the interaction with Ana's anti-heal. The floor still limits damage
+during anti-heal. The restoration receipt enters the stored state.
+Native rising motion, client transport and other projectile families
+remain open.
+
+Sombra Hack checkpoint
+The host supplies 0B1B's preselection, lock maintenance, ray and finish
+filter using live enemy capsules and current visibility. The authored
+channel issues the original 0B1F request. Its five-second duration
+maps to a 313-tick local deadline. Pharah's flying and skill inputs
+are suppressed, with normal weapons and melee still available.
+
+Six real-input tests cover expiry, Barrage interruption, replacement,
+retained weapon and melee, early release, wall/team rejection and
+projected barrier exclusion. Tagged effective rocket damage enters the
+authored channel's damage receiver and interruption cooldown. Native
+aim assist, health-pack Hack, EMP and generic silence remain open.
+
+Mei spray frost checkpoint
+The actual 05E6 spray projectile delivers effect 0169. The local
+host consumes 0B77's 0.2 initial progress and 0.0285 increments
+with 05E7's 1.3-second freeze. Progress is tracked per source, with
+the maximum slowing input by up to 70 percent. Full freeze locks
+aim and voluntary input while physical gravity continues.
+
+Four actual-input tests cover slow expiry, freeze and no deadline
+refresh, Barrage interruption, fresh Jump Jet at thaw, and wall
+and team rejection. The active frozen state exports repeatably.
+Native aggregation, custom frost rules and the complete
+cross-hero frost matrix remain open.
+
+Mei Blizzard checkpoint
+Actual 064A state 3 launches 0946 with the authored speed, gravity
+and lifetime. The scoped server host sweeps the ballistic path and
+anchors an area on static contact. Its 065E values are 0.2 seconds
+of delay, 4.25 seconds of activity, 10 m radius and 20 damage per
+second. The area uses the distinct 0B77 frost increments. Its
+retained samples use the latest pose available to the server.
+
+Eight input tests cover 85 damage and freeze, Barrage interruption,
+wall/range/team exclusion, charge, caster death before and after
+release, and airborne Genji redirection protecting allied Pharah.
+Defense Matrix and Kinetic Grasp consume the airborne projectile
+without creating an area or freezing Pharah. The Matrix fixture
+disables passive charge gain to check the spent ultimate directly.
+Full native projectile and area transport, dynamic Ice Wall, and
+custom frost rules stay open.
+
+Mei Ice Wall checkpoint
+-----------------------
+Mei graph 0622 supplies five columns with 1.55 m width, 0.5 m half-depth,
+4.4 m height, 5 s duration and 12 s cooldown. Graph 0636 supplies 400 health
+and the pillar entity uses definition 0932. The lane reuses the same-build
+Mei placement checks and oriented boxes for projectile contacts.
+
+Actual commands open preview, rotate, confirm, and cancel deployed walls.
+Primary rockets and Barrage damage enemy pillars. Concussion detonates at
+the wall without damaging it or pushing a target behind it. A rocket that
+breaks a pillar still tests that explosion against the pillar's geometry.
+A subsequent rocket can pass through the opening. Blizzard lands on the
+incoming side and retests area visibility after a wall is removed.
+
+Placement support and boxes are reconstructed on the static provider.
+Actual Pharah melee tests the wall against the same melee sphere used for
+bodies and applies 30 damage to a reachable hostile pillar. A broken pillar
+still occludes bodies for that swing. Friendly pillars occlude without
+taking damage. The player mover sweeps against expanded wall boxes, retains
+top support and lifts overlapping players at deployment. Actual inputs verify
+walking stops, removal restores walking or falling, and Jump Jet clears the
+live wall from above. Prepared NPCs use the same wall sweep and support
+when lifted or displaced. All five stand on a deployed wall and fall when
+it is cancelled. Four stop at a live wall after a Pharah Concussion, while
+Heavy Assault retains zero impulse response. Native contact parity remains open.
+
+Roadhog Chain Hook checkpoint
+-----------------------------
+Graph 01C8 supplies the launch and authored eight-second cooldown.
+The launch evaluates the 20 m range, flight speed and sweep radius and
+uses the graph's 30-damage ModifyHealth payload. Graph 01C9 supplies
+pull speed, separation, timeout and recovery. The lane reuses the
+same-build Roadhog reconstruction and its real graph launch boundary.
+
+The sweep checks hostile capsules, static geometry, Ice Wall and the
+existing barrier providers. A caught target's movement goes through
+the ordinary world-target mover with input suppressed until release.
+Actual tests exercise Hover Jets and Barrage interruption, Jump Jet
+lockout and reuse, range, team and wall exclusion, Winston interception,
+and hook termination when a previously launched Pharah rocket kills
+Roadhog. Capsule geometry, destination and timing are reconstructed.
+Other control arbitration and native hook presentation remain open.
+
+Five NPC return attacks and Ice Wall
+------------------------------------
+Manual crosshair selection and attack maintenance consult deployed Ice Wall
+pillars as well as the static map. Ordinary hitscan compares a live pillar
+against static geometry and the selected body, and can damage a hostile
+pillar without a body on the ray.
+
+The same-encounter test starts each of the five actual NPC attack graphs,
+deploys an actual Mei wall, verifies input release and zero damage, and then
+cancels the wall. First damage is Trooper20, Enforcer2, Sniper100, Assassin25
+and Heavy Assault5. Assassin capture releases through the manual stop input.
+After preparing each NPC at lethal health, an actual Pharah primary kills
+it and the retained corpse deals no further damage in the observation window.
+Autonomous targeting and additional NPC specials remain open.
+
+Zenyatta Discord
+----------------
+Graph 0176 nodes 41, 43 and 71 supply 40 m range, .75 s recovery and
+3 s LOS retention. The local command consumer selects a visible enemy
+and publishes its entity in the active graph's target slot. The 10-degree
+cone, 1.25 incoming multiplier and stacking policy are reconstructed
+using the same-build Zenyatta lane. Body damage uses the modifier at
+impact. Self damage and barrier health use their ordinary path.
+
+Actual Pharah primary rises from 120 to 150, actual melee from 30 to
+37.5, and Concussion retains displacement without damage. A Soldier
+body shot into a marked Pharah deals 25. Wall occlusion rejects initial
+selection and expires an existing effect. Zarya's barrier clears the
+effect and absorbs the unamplified rocket. Native ownership, selection
+and presentation remain open.
+
+Orisa Fortify
+--------------
+Graph 0CF4 state 4 supplies the active -0.4 damage filter. The associated
+stack writes entity flag 9161 for control immunity. Pharah damage reads
+the live filter at impact before armour. Primary direct and blast remove
+62 armour under Fortify and credit 62 charge. With actual Discord on the
+same target, they remove 80 armour and credit 80 charge.
+
+Concussion checks the live control stack at impact. A Fortify cast after
+launch still suppresses knockback. A fresh Concussion after expiry
+displaces Orisa normally. Critical immunity and unrelated control
+consumers remain open. This is a scoped local combat interpretation.
+
+The same control flag prevents Sleep Dart, Flashbang and Chain Hook
+from disabling or pulling Orisa. In the armoured fixture those real
+casts still deal 1.5, 10 and 13 damage respectively. A Pharah rocket
+then deals its 62 fortified damage in the same match. Anti-heal follows
+its separate hit-effect path.
+
+After an actual Pharah Concussion displaces a prepared Trooper, an
+allied Roadhog can hook the same body. The forced phase owns its existing
+mover until release, updates the exposed pose, and anchors the next
+ordinary command at the release tick. The test checks the mover identity
+and that the NPC retains the pulled position after control ends.
+
+Pharah melee and active controls
+--------------------------------
+Actual Genji graph 03A3 supplies the active Deflect state and its angle.
+The melee consumer checks that cone after capsule reach and wall visibility.
+Frontal melee is blocked without reflection, charge or hit notice. Rear
+melee and frontal melee after expiry deal 30. Actual Flashbang prevents
+Pharah melee while incapacitated, and a fresh press after recovery hits.
+
+Brigitte attached shield geometry
+--------------------------------
+Set ORPHEUS_BRIGITTE_SHIELD_MODEL to the external build 104319
+000000005DA0.00C file to use the verified mesh. The server checks the
+source fingerprint and requires the motion 1 mesh on bone 0xAC4.
+A runtime without this model uses the reconstructed shield rectangle.
+
+Pet 2284 uses receiver 002A. The model also contains a motion 4
+convex rigid-body holder. The MSKL record for the attached mesh has
+unit scale, identity rotation and zero translation in the bind pose.
+The server composes that geometry with the 0EE3 Pet offset and the
+current reconstructed owner basis. The original 1B2FE50 probe tests
+the inverse transform with supplied poses. Live animation, native
+scene routing and body hit geometry remain separate boundaries.

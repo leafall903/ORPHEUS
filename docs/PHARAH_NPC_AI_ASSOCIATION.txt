@@ -1,0 +1,514 @@
+Actual associated AI entity preparation -- full Pharah acceptance incomplete
+Build1.74.0.0.104319. Headless research, no client or native AI acceptance.
+
+Data omission found
+Enforcer body2279.003 explicitly names associated entity227A.003 through
+m_8B9A461F. The existing opted-in extractor read227A only for fire-control slots,
+discarding its identity and all its own initial scripts. Those scripts were not
+in the supplied NPC bundle. Native F726 member reads therefore had neither an
+associated live entity nor its scripted variables to resolve.
+
+227A has initial142A/0E5C/0C83/13E9/13EA in definition order with actual schema
+overrides, including2391=true,25D3=bone0AC5 and1C1E=12. Their reference closure
+contains147B as well. All six graphs were selected/read externally; no unresolved
+reference remains within this associated-controller closure. This is not a claim
+that every reference in the entire original NPC bundle has become complete.
+
+Updated extraction
+For opted-in additional entities (--ai-spawners with external --output), preserve
+ai_entity as the actual003 definition GUID, recursively include associated entity
+records, script components, root order/schema overrides and their graph references.
+Visited identities prevent association cycles/duplicate roots from looping. Keep
+missing graph reporting explicit. Null association/empty controls do not invent a
+default controller or button. Existing default hero extraction is unchanged.
+The new metadata does not allocate or run a live controller by itself. Neither
+normal runtime nor supplied NPC bundle was rewritten.
+
+Tests strengthen existing real parsing and add missing-root/override retention
+without weapon controls plus cyclic association cases. These are extractor
+prerequisites; they add no accepted Pharah/NPC skill case to the79-case inventory.
+21 extractor/NPC-catalog tests PASS0.374s. Final68 extraction/graph-analysis/
+driver/strict/array regressions PASS7.686s, zero skips. Ruff/diff checks pass.
+Durable external log:asset-research/ai-association-final-regression.log.
+Prior282 runtime tests remain a separate earlier checkpoint; no new full282 run
+is claimed for this tool/metadata change.
+
+External actual-data verification
+Read-only selected XML with pinned1.74.0.0+develop+7afe5f52-dirty reader:
+2279 SHA256aae22e0d14a7fb73190fd386c03aee2857a0ff24ee9e18e903627dccbd595919
+227A SHA2564f5ba2296fbc9af45342c8b56f43af58b35b690afe1752f9b257dab3f79f7daf
+prepare_enforcer_ai_bundle.py retains actual association and creates an external
+candidate from immutable NPC bundle SHA256:
+84c56555af1164320921e6f23905ef8c9c0f7ecf8d967e20efc42fbce34e808a.
+The external candidate SHA256:
+eb0344faef3e03bd2abcd2d46bcaa19d5adb2f1974fdea2e21204edb1d259735.
+Its report records all six selected-graph XML hashes. Raw/XML/candidate outputs
+remain outside source and publication. No full archive copy or input mutation.
+
+9134 writer and executed boundary
+13EA node3 and node31 write true to entity9134 through authored Stack states.
+That corrects the earlier bounded inventory: these writers were absent from its
+input bundle, not evidence of an engine-only or nonexistent writer. Candidate
+AI startup with an ordinary permissive World reaches9134=true. Strict startup
+stops at142A, instance1, world query C3619A38; no strict AI execution is accepted.
+The active permissive13EA writer is Stack state17/node31; other unsupported
+services/default branches remain explicit limits.
+
+Diagnostic relation bridge -- NOT accepted combat
+An external prototype instantiates the actual227A initial scripts, advances its
+component clock, and supplies an EXPLICIT body-to-associated-entity F726 relation
+adapter plus foreign-variable lookup. No B96/9134/damage value is forced. Real
+slot0 input and real projectile/combat code then reduce Pharah200->198 at fixture
+tick69 and198->196 at189 over300 frames at8m. Native timing/pellet/spread/difficulty
+fidelity is not established by these values. This demonstrates a connected data
+path under a declared relation adapter, not a production controller factory.
+probe_enforcer_association_bridge.py/.json/.log records all these boundaries.
+
+Full Enforcer/Assassin return attacks remain OPEN. The later local host below
+replaces the diagnostic test adapter, while native selection, message routing,
+transport and strict AI fidelity still require independent evidence.
+
+Local associated-script host -- permissive reconstruction only
+Match now reads the extracted ai_entity, validates the associated definition and
+initial script roots, and allocates a distinct identity from the monotonic NPC
+allocator. The actual ordered scripts/overrides run in a second VM component.
+BotScript owns both clocks and lifetimes; explicit removal, replacement and error
+retire both namespaces and remove Match backreferences. Retained corpses keep the
+association within the existing death-event clock window; native corpse AI phase
+semantics are not established. Missing declared definitions fail initialization.
+
+Only the live declared pair in a non-strict VM receives reconstructed F726 body
+to associated entity and 0AC current-possession back to body answers. Cross-pair,
+retired and strict lookups do not gain these answers. Associated member variables
+are polled as values; no foreign Var/State watcher references are stored. Explicit
+peer health queries read the real body's current health-pool records. This does
+not prove those native relationship/observation services or message routing.
+
+Production factory probe, without a test relation adapter or forced B96/9134/
+damage, reproduces200->198 at tick69 and198->196 at189 over300 frames. Clock,
+removal, unique replacement identities, no-late-hit input stop, independent passive
+VM storage, and associated hidden-state changes in the whole-server stored hash
+have executable tests in test_npc_associated_scripts. This is local reconstruction
+coverage, not full native NPC combat acceptance. Associated actors are not newly
+replicated to clients, and default runtime data has not been replaced.
+
+NPC geometry correction
+The original38-row mover input omitted all five NPCs, so previous five-body tests
+used generic mover dimensions. Read-only npc-navigation-runtime provides the
+actual additional five body rows (mover SHA e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c).
+Trooper height/radius1.7/.5, Enforcer1.9/.5, Sniper1.75/.5, Assassin1.5/.5,
+Heavy2.3/.7. Real dimensions exposed the horizontal1.55m aim ray passing above
+Assassin. Hit fixtures now aim at the actual target torso; a separate five-body
+selection case verifies a ray above each head misses and torso aim selects it.
+The external runtime's real-map collision cache is unprepared; tests use explicit
+static collision fixtures. Native hitboxes, anatomy and map acceptance stay open.
+
+Five-associated-entity external candidate
+Read-only reuse of existing104319 selected XML closes all five AI definitions:
+Trooper1D40->1D41, Enforcer2279->227A, Sniper1E7D->1E7E,
+Assassin1EBD->1EBE, Heavy1EBB->1EBC. prepare_five_npc_ai_bundle.py records source
+XML hashes and complete graph closure with no missing references. External bundle
+SHA7585d486b0ad9a28a5cb97b52d5d40ed2c05bb22ab22e4b38cc8c874e7b6fd1b.
+Actual production host/input probes with real mover rows damage Pharah for four
+types. Assassin has no damage at8m or1.8m over300frames; its full attack path is
+still unresolved. No constant override, synthetic hit or native AI acceptance is
+introduced. The probe is evidence discovery, separate from the executable tests.
+
+Final runtime regression:289 tests PASS215.675s, zero skips, with real NPC mover
+input and actual external Enforcer associated closure. This includes80 Pharah
+module cases,6 associated-host cases and203 existing shared/prerequisite cases.
+The six new cases independently PASS33.327s. Earlier real-mover run15 tests
+PASS82.138s preceded the extra above-head selection case; do not sum these runs.
+Final13 server snapshot/replay tests PASS512.265s, zero skips, with the original
+external mover runtime and frozen final source. The initial13 run correctly
+rejected a source manifest changed during execution; its failure is superseded
+by this stable-source run. An initial283 runtime run exposed a mocked-constructor
+empty-guard failure, fixed and targeted before the final289-case pass.
+
+Assassin follow-up at1.8m with actual associated scripts:1157 node2 (#173 >0)
+is false, #536 is absent, and ModifyHealth nodes15/25 were never allocated.
+13C3 ModifyHealth node112 was also never allocated. No resource/target is forced.
+Current combat additionally only hosts player0043 quick melee, so generic NPC
+authored ModifyHealth/target routing still needs evidence and implementation.
+probe_assassin_health_states.json preserves conditions and actual state counters.
+Follow-up corrects the causal interpretation: false1157 node2 enters its logical
+36 listener; positive #173 starts a countdown. The actual target writer is
+13C2/node7, fed by TrackTargets #375. See PHARAH_NPC_POSSESSOR_QUERY.txt for the
+authored route and520 independent original direct-component44 query cases.
+
+Native relation investigation
+D15520 selects component43 and passes component+18 to BD42D0; the latter decodes
+an entity id from source+D8/E0 (thus component+F0/F8). Branch-following disassembly
+recovers clean tails through opaque branches, but both-path exploration alone
+does not prove runtime selection semantics. Do not equate F726 with the existing
+DB742151 primary-possessor service without evidence, or use attack_target as owner.
+
+Trooper 102F selected plug diagnostic
+The real 1D40 body and 1D41 controller activate 102F states 0, 20 and 126
+without selecting them. In the untouched fixture the Trooper stays at
+(0, 1, 8) and Pharah keeps 200 HP across 120 frames. The existing manual
+command hits for 20 after 22 frames. See pharah-trooper-autonomy-baseline.json.
+
+The original STU_A37A910D evaluator CCB2B0 sends the typed owner and selector
+to namespace virtual +238. F66C80 wraps the returned ID as an Entity. The
+recovered +238 variants D16190 and 99B9D0 look up the supplied owner via
+virtual +70 and +168 and gate on component ID 0x46. BC7F40 and BC7FA0 read
+different selector table layouts. The selector table producer for a live
+Trooper and the native component 87 selection scheduler remain open.
+
+probe_trooper_selected_plugs.py injects a fixture-only slot result (Pharah's
+body) and invokes the real VM timer 2 separately for each candidate. All
+three follow an authored selected plug. State 0 reaches movement nodes.
+State 20 starts subscript 0DC7 through node 37 and reaches nodes 83
+(STU_9D8CEE83) and 87 (STU_5D3D3F51). Both nodes currently use the generic
+State handler. The 0DC7 child also reaches generic handlers at nodes 3, 6
+and 9. State 126 reaches stack node 241. Each case runs 32 neutral frames
+without attack input, health loss or VM fault. The JSON trace records
+reached states and empty query results. This probe leaves the production
+host and the static acceptance status untouched.
+
+Trooper 102F runtime factory and node 87 record
+The original 1B94286 suffix was exercised for eight classes against 1687
+reconstructed captured registry keys. It selects C823D0 for 102F node 87
+(5D3D3F51), C822E0 for ECAEE401, and 1B6EA00 for 22926252. It skips
+9D8CEE83 (node 83), 356628FC (0DC7 node 3), 988AAC99, AB9B30EF and F1635DF7
+under this registry. This scope covers the captured client factory and leaves
+other registration contexts open. See pharah-trooper-selected-factory.json.
+
+Node 87's original runtime vtable 265C740 uses C7DCE0, C7E030 and C7E2D0,
+the same component 0x58 registry lifecycle as B61E6681. The node-specific
+C7B6B0/C7B6E0 methods pack the record via C81BD0. Native helper execution
+with nine declared field inputs proves the record is an entity ID at +0
+and a float at +4. The authored 5 is the float. The entity comes from
+dynamic variable 11187, whose 102F node 55 stack value calls STU_00707E1E.
+Missing or incompatible values produce an empty entity. Four original
+BF3D90 guard cases show empty and reserved IDs stop before component lookup
+and a supplied ordinary entity ID reaches lookup. This test stops at that
+call. It does not resolve the downstream consumer effect or establish
+autonomous fire. See pharah-trooper-5d3d-payload.json.
+
+The BF3D90 consumer has an original three-axis squared-distance gate at
+BF49CD. It compares the resolved position delta against the square of
+the payload float at +1C. Seven original-instruction cases accept 5 and
+4.998, reject 5.002, and distinguish the XYZ gate from the fourth vector
+lane. The accepted path runs BC3020, returning block 1, bit 22 and the
+adjacent mask, which identifies component 0x56.
+
+The BF4C23 suffix combines the difference between two BC2760 vector
+results with the earlier position delta. Four original-instruction cases
+supply resolved vectors and the second argument object. The suffix
+leaves +80 untouched for a zero direction and otherwise writes the
+normalized direction multiplied by the object's +70 float to +80. The
+output identifies a local vector contribution. The consumer of that
+vector and the attack input producer remain open.
+See pharah-trooper-5d3d-distance.json.
+
+The same captured neighborhood has four sibling vector writes at BF3BB8,
+BF3D71, BF5102 and BF52DF. BF3D71 and BF52DF also read their context +70
+scalar. These sites add candidate callbacks sharing the +80 output
+layout. Nearby qword +80 reads in BF0480/BF0C50 address other data shapes.
+The shared application site remains unresolved.
+See pharah-trooper-vector-dispatch-candidates.txt.
+
+BC4E60 returns block 1, bit 24 for component 0x58. BC48D0 inserts
+16-byte records in its array at +18, with count at +20 and a sequence
+counter at +58. BC3A80 ranks by descending float priority, then by
+descending signed sequence. Positive sequence puts newer equal-priority
+records before older ones. Negative sequence puts newer records behind
+older ones. BC4DB0 finds records by pointer and removes one match.
+Fourteen original-instruction checks verify ordering, removal from
+different positions, missing pointers and an empty list. Array insertion
+and byte movement use declared fixture adapters.
+See pharah-component58-record-order.json.
+
+A mapped-image screen matched 122 unwind ranges using virtual +10 and
+candidate list/vector offsets. The highest-ranked C85E30 and D7B
+callers use static descriptor addresses as their second argument and
+test the result as a bool. They do not apply the BF3D90 output context.
+The screen does not resolve the dispatcher.
+See pharah-component58-vector-read-candidates.txt.
+
+BC4100 initializes the +18 record array, the separate +28 array,
+the shared sequence at +58, and the auxiliary pointer at +60. Its
+vtable 2656FF0 has BC4E80 at +20. Three executions of the captured
+BC4E80 use declared allocation and BFB190 initialization adapters.
+The original method requests 0x4C0 bytes, decodes the owner's service
+for BFB190, stores the auxiliary pointer at component +60, and writes
+the decoded owner to auxiliary +2E0. BFB190 installs vtable 2658FD0.
+This gives a concrete owner-to-auxiliary edge to trace; callback
+execution and the weapon-input producer remain open.
+See pharah-component58-aux-attachment.json.
+
+The component vtable 2656FF0 has BC4BD0 at virtual +70. Executing it
+against the original 104319 image decodes its descriptor at 2D1608C
+to Distance Constraint. The first call changes the 19 text bytes and
+the decode flag. A second call returns the same descriptor without
+writes. This anchors the BF3D90 radius/vector path to the registered
+constraint family. See pharah-component58-type-descriptor.json.
+
+A candidate screen for auxiliary +2E0 reads with related offsets
+returned 87 sites. The matching 17B8C75/17B8C87 sites read a string
+and do not resolve this auxiliary owner's component. The live
+constraint evaluator is still open. See
+pharah-component58-aux-owner-readers.txt.
+
+Trooper 1034-to-102F body reference
+CE7660 evaluates the owner, resolves it through +60/+168, checks component
+44 and observes the component at +18 before BD4A90 returns its +D0 field.
+F66C80 writes an Entity result. The explicit entity-query service now models
+this read separately from current possession. Missing entity or missing
+component writes typed zero. The existing world supplies component data and
+the observation callback. The production Trooper host still needs its native
+record source and dependency wiring.
+
+The authored 102F node 55 reads member 11187 on the entity returned by
+00707E1E and stacks it into controller instance variable 11187. Body graph
+1034 writes the entity member at node 18 from instance variable 14082.
+Its node 17 message receiver supplies 14082 for message 0861. The same
+body graph has a node 48 publisher targeting variable 14090. The real
+Trooper regression explicitly supplies the body member and selection inputs,
+then proves that the controller's normal Stack produces the node 87 entity
+only while component44+D0 identifies the Trooper body. The publisher
+activation and automatic target acquisition remain open.
+
+Regression run passed 138 tests in 208.546s with the external graph bundle.
+It covered entity queries, message receive and scope, associated NPC scripts,
+Pharah PvE and Assassin capture.
+
+Trooper 1034 message target projection
+Actual body startup activates 1034 nodes 16, 17, 47 and 48 by frame 32.
+At frame 64, TrackTargets output 14087 is empty and the message target
+array 14090 is empty. The tracker feeds filters at nodes 36, 38 and 45.
+Node 47 combines entity array 11186 and instance array 11192 in that
+order, uses entity value 11184 as its positive limit, and publishes
+instance array 14090. Node 48 consumes that array through STU_9B213168.
+
+The VM implements the ordered projection and reacts to source and limit
+changes. For the authored node 47, the original D0DA20 null-filter branch
+accepts each candidate before truncation. The native probe runs the
+placement, result construction and actual D0DA20 instructions with the
+input iterator and remaining external services adapted. It preserves the
+first two IDs of a four-item source containing a duplicate. See
+pharah-trooper-node47-native.json. The real Trooper regression seeds the
+two upstream lists, leaves node 47 and its limit live, and verifies
+ordering, truncation, duplicate retention and clearing. The test does not
+seed the downstream message array. Upstream discovery and persistent
+0861 delivery remain open in the production Match host.
+
+The projection, array assignment/insertion and body VM snapshot run passed
+63 tests. The separate associated NPC and Pharah PvE run passed 57 tests
+in 160.656s, including the projection case.
+
+Trooper persistent 0861 through the real Match graphs
+A selected message-State context can now use the persistent sender and
+receiver in a permissive body VM. The world must explicitly supply the
+shared manager, policies and per-node opt-in. The sender/receiver continue
+to use that transport for the lifetime of their acquired context.
+
+Two real Trooper bodies in the same Match exercise 1034 nodes 47, 48 and
+17. The test supplies the source candidate list, message policies and the
+receiver's component44 record and 102F selection event. Node 48 registers
+0861 on the other body. Node 17 selects the sending state and node 18
+publishes the sender's entity at body member 11187. The receiving controller
+then reads that entity at 102F node 87. Clearing the candidate list or
+destroying the sending instance removes the channel, clears both views of
+11187 and restores the receiver's idle branch. The fixture allows two
+frames for the independent body and controller clocks to observe the change.
+
+Normal Match still needs the recovered message roles and candidate producer.
+Disassembly continues that producer through CAAB40 -> C778A0, which
+populates a list of pointers. CAAB40 invokes CA7940 for each list row.
+The native candidate identities, filtering and autonomous selection
+remain open. The explicit message fixture does not exercise attack input.
+
+C778A0 calls C73900 then C738A0. Their category lookups use separate tables
+at +48 and +18 via BDC3A0 and BDC210. Ten original-instruction cases with
+declared table contents verify first-row hits, a collision followed to key 1,
+missing keys, empty buckets and absent tables. See
+pharah-trooper-category-registries.json. The live table writers remain open.
+
+The message-State, receiver, message scope, body VM snapshot, associated
+NPC and Pharah PvE regression passed 146 tests in 176.090s.
+Trooper category writers and authored tracker admission
+The target category publisher is C762F0. Entity flags +B4 bit 2 skip it.
+Component 0x18 selects C743E0 and takes precedence over component 4, which
+selects C74670. A failed geometry service exits before either registry path.
+The accepted path decodes transform component 1 and reads the uint64 mask
+at +270. The C76830 suffix tests native keys in order 10000, 1, 40, 40000,
+100000 and writes combined key 150041 once if any key matched. C768C0
+decodes manager slot 0x41 and requests a category root with create=true.
+It routes the two variants to BDC110/C76980 or BDC2A0/C76D60 and skips
+the updater on a null root.
+
+The pinned-image probe executes 16 registration gate cases, 64 ordered mask
+cases and four writer routing cases. Its geometry outcomes, physical
+entity/world records and root/update callbacks are explicit fixture inputs.
+The production component and native publisher prefixes were not changed.
+The independent Sigma lane identifies component 25's B8B020 updater and
+1B0A940 as a route to the low 48 bits of transform+270. The actual
+Trooper runtime mask and live root contents still require evidence.
+
+The mounted 1034 node 16 filter asks for category 1 and independently
+requires target tag 04BA through the all-tags field B486603E. The read-only
+body definition audit finds 04BA on local Trooper 1D40. The audited Pharah
+0032, Trooper controller 1D41 and other four Talon body definitions lack
+this local declaration. Local declarations do not establish effective
+dynamic tags. The two-Trooper 0861 test exercises this coordination path.
+Pharah's hostile target acquisition must be verified through a separate
+producer, beginning with controller 11E3 and the A37A910D slot read.
+
+External evidence: pharah-trooper-category-publication.json and
+pharah-trooper-tracker-authored-tag.json.
+
+Trooper controller 11E3 target message and linked slot
+The mounted bundle contains five direct message 0079 entries across 686
+graphs, all receivers. Trooper 11E3 node 3 binds parameter 59 to instance
+536, and nodes 5 and 4 conditionally publish it as entity member 1650.
+Node 10 also names instance 536 in its E834E718 configuration, whose
+captured client runtime factory lookup is a miss. The server-side node
+10 implementation and the source of the 0079 messages remain open.
+
+A37A910D now uses the explicit owner/selector lookup in the shared
+entity-query context. CCB2B0 fails without a namespace, registers watcher
+kind 0x20 when available, then evaluates owner and selector in order.
+The selector uses F65260 with default zero. The lookup returns a typed
+entity and a missing record gives typed zero. The production Match still
+needs the source and lifetime of the native component 0x46 records.
+
+The actual Trooper regression sends a diagnostic 0079 through the graph
+entry. The graph publishes 536 and 1650 while the A37A910D slot remains
+empty. Declaring a slot record makes the real 11E3 and 102F config reads
+return the target. Clearing the record leaves 1650 intact. Nine original
+instruction cases execute CCB2B0, F64C20, F65260, BC7FA0 and F66C80 with
+declared namespace and field adapters. They cover absent namespace, typed
+defaults, negative/NaN selector conversion, a missing row and a duplicate
+with zero in the first match. This separates the message publication
+from the lookup. Autonomous acquisition and attack remain open.
+
+External evidence: pharah-trooper-linked-slot.json and
+pharah-trooper-0079-bundle-census.json.
+
+The same bundle contains six E834E718 nodes. All use selector 0. Five
+name instance 536 and Assassin 13C2 names entity 1650. The second authored
+field varies from 4 to 19615. This cross-check narrows the unresolved native
+state to the same keyed target family. It does not prove the direction of
+the node's variable transfer. See pharah-e834e718-authored-census.json.
+An actual-Match diagnostic delivers the same explicit 0079 target packet
+to each of the five NPCs. All five latch 536 without a fault. Trooper,
+Enforcer, Sniper and Heavy Assault also publish 1650. Assassin 1172 leaves
+1650 empty, consistent with its separate 13C2 publication path. See
+pharah-five-npc-0079-diagnostic.json. The probe does not drive attack input.
+The final regression passed 149 tests in 153.386s. It covered entity queries,
+array insertion, message receive/scope, associated NPCs and Pharah PvE.
+The first run exposed a missing body-reference watcher in the new fixture.
+Supplying that service and its component44 field resolves the fixture fault.
+
+Component 0x46 definition and per-target scalar
+The five NPC body definitions point to 1D41, 227A, 1E7E, 1EBE and 1EBC.
+Each directly declares schema 993B1B10, mapped to index 70 (0x46) by
+F525E0. Each authored weapon-control row uses selector 0 and logical
+button 20. The read-only hashes and rows are in
+pharah-component46-authored-bindings.json.
+
+Captured registrations bind the primary factory to 5B4E80 and the
+secondary to 636A50. Primary wrapper virtual +8 runs BC6B00 via 5B4D00
+when its allocation flag permits, then installs vtable 260EB68.
+BC6B00 clears +258/+260 and the original direct table reader returns
+an empty slot 0. BC8800 requests definition kind 0x46 and conditionally
+copies definition +28 to component +170. It leaves the selector table
+unchanged in all four definition cases. The five original executions
+adapt allocation and definition/base attachment services. See
+pharah-component46-init.json.
+
+A separate original consumer at 8A7431 compares BC7FA0 slot 0 against
+the supplied entity record's +B0 and writes exact equality at output
++A8. Twelve original cases exercise both compact layouts, including
+missing, unrelated and duplicate-key records. The calling gameplay role
+and dynamic writer remain open. See pharah-component46-native-slot-identity.json.
+
+D379F515 now reads its explicit per-target component 0x46 scalar through
+the shared VM query path. CE7EA0 reads record +114, independently of the
+keyed entity table. A missing record preserves the initial value. The
+actual Trooper regression supplies 0079 and explicitly begins 11E3
+node 20. Its authored condition changes for 0.75 and 0.0, and a missing
+record preserves a distinct initial value. The fixture supplies the scalar.
+Production record allocation/update and autonomous attack remain open.
+
+The captured BC6A70 direct-call census found four sites in unwind ranges.
+Besides the two scalar readers, D14240 resolves component 0x46 for BC7530,
+which returns whether the matching record dword at +90 is 1.
+CF2A80 uses BC7760 on the same component to obtain an ID from a separate
+table and passes that ID and the keyed target record to D0A2B0.
+Seven captured-code executions of D0A2B0 found membership reads from the
+record array at +80, bounded by its signed count at +88, with zero writes.
+The record allocation and update path is the next writer-trace frontier.
+See pharah-component46-direct-xrefs.txt and
+pharah-component46-membership-probe.txt.
+
+Component 0x46 field 0x78 copy
+BC6C19 constructs the component's +180 subobject through 12E8D40. Its
+vtable's +28 resolves descriptor 30D5C10. The descriptor walker 1BEA5C0
+adds field offset 0x78 to each object and calls 30D5E00 handler slot +80
+at 1BE6C10. The original copy clears the destination at component +1F8,
+reserves capacity and appends each 8-byte selector/entity pair in order.
+The subobject's +50 virtual 1BD7020 clones the descriptor object through
+the same walker. Four captured-code cases run the constructor, descriptor
+copy, clone and BC7FA0 with synthetic inputs and adapted allocation and
+release calls. Both input layouts, a zero first duplicate, an empty
+source and replacement of a populated destination pass. The clone has
+independent storage and keeps its records after clearing the original.
+The battle-time producer of the input rows and autonomous Trooper attack
+remain open.
+See probe_trooper_component46_link_copy.py and
+pharah-trooper-component46-link-copy.json.
+
+Opt-in autonomous primary weapons
+The sandbox spawn API now accepts autonomous=True for the prepared Trooper,
+Enforcer, Sniper and Heavy Assault bodies. Their local selector chooses the
+nearest visible living enemy player within the existing sandbox engagement
+range. It delivers the typed 0079 packet to the actual associated graph
+(11E3, 13E9, 1138 or 1251). Both the received 536 and published 1650 must
+match the current body before the host holds the body's authored weapon
+button. Losing visibility or eligibility sends zero, clears the received
+536 and releases input. The authored 1650 writer latches its last nonzero
+publication, so the host also checks the live receiver value. The host
+uses local sight and input scheduling. For the Enforcer, a live target
+also opens 13EA node 62 and the body 13EF speed multiplier. Loss of sight
+closes the walk gate and releases forward input. Restored sight reopens it,
+and the shared mover advances toward the target on a clear path. Original
+target producers, native 102F/component 87 behavior, obstacle routing and
+remaining specials stay open.
+
+The Heavy Assault's local autonomous tactic tries logical 35 when the
+current visible enemy is Pharah channeling Barrage within 12 m and the
+1408 ability is off cooldown. That radius and trigger are sandbox policy.
+The 1408 graph owns the windup, contact, carry and cooldown. The host
+keeps the selected target during the charge and releases on loss of
+eligibility before it can select a different body. During cooldown
+it uses the actual 114F primary instead. Native special selection remains
+open.
+
+The Sniper requests 142C reposition for its selected visible enemy at close
+range. Both manual and autonomous requests use the graph's destination search
+with a static collision host. A blocked path can retry when the graph changes
+direction. The graph waits 250 ms and then 500 ms before MoveTo. The host
+withholds weapon input during the windup and move. A team change aborts
+movement before the next step. After arrival or abort, the graph runs 750 ms
+of landing recovery and a tested 10-second recast lockout. Weapon fire can
+resume during the lockout. Native destination scoring and controller
+allocation remain open.
+
+The autonomous Trooper chooses the actual 1422 melee search volume
+against its visible target. The host releases the rifle and pulses
+logical 31 when the authored ability is ready. While the target remains
+in range, another press waits for the one-second cooldown. Leaving the
+volume restores primary input. An empty 102E magazine in primary mode
+pulses reload logical 14. The weapon graph owns the firing pause, refill
+and next shot while the target remains visible. Native tactic selection
+remains open.
+
+The entity-query, message receive, target-search, associated NPC and
+Pharah PvE run passed 129 tests in 156.046s. Production-file Ruff passed.
+
+The complete static goal stays active. New lane changes remain uncommitted until
+all criteria pass; native-client acceptance is separate and still open.

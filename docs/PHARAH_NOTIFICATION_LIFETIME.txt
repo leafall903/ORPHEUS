@@ -1,0 +1,69 @@
+State notification lifetime and Pharah opponent refill -- partial static goal
+Target104319. No native client or complete combat acceptance claimed.
+
+Reviewed shared parent draft
+Parent source was read only. Reuse only Component.changed's ending-state guard,
+State.end's coalescing-marker cleanup, and Ability.stop's outgoing-scope ordering.
+Do not import the parent's unrelated manual target/ModifyHealth/TrackTargets,
+Roll throttle or target-effect bridges as evidence for native NPC search.
+
+Notification defect
+State.end cancels all events for that state, including CHANGED and CHECK. The
+old flags_changed/flags_check then remained true. A later activation could not
+queue its next coalesced notification. Cleanup writes could also schedule new
+CHANGED events for an ending state after the cancellation had already occurred.
+Clear both markers when cancel removes the events, and refuse new change
+notifications for ending states. No persistent VM fields or global phase added.
+
+The parent's two minimal BooleanSwitch regressions are reused and independently
+fail before the fix. A lane test additionally queues a real join CHECK, ends and
+reenters the state, then verifies that another distinct plug arrival can queue
+the next CHECK. All three fail before the marker fix and pass afterwards.
+
+Actual Pharah opponent witness
+A real McCree fires away from Pharah to create either a partial5 or empty0
+magazine, then rolls. Held primary aims at Pharah after that actual input.
+The first24 frames must deal no damage; a later first shot must change Pharah
+200->130 and leave the refilled magazine5. No ammo/HP variable is forced and no
+damage/shot callback is mocked. This does not accept Roll movement or its
+missing native velocity host on this lane.
+
+Before either fix: partial-magazine first hit leaves4 instead of5; empty-magazine
+case deals no hit at all. With notification markers alone, empty case recovers
+but partial still leaves4. This isolates the second fault from notification loss.
+
+Ability.stop reconstruction
+Queue exit of the running scope, its stop plug and outgoing variable writes
+before releasing its arbitration link. A resumed weapon then observes outgoing
+refill work before it can snapshot and overwrite ammo from the prior scope.
+This is explicitly a server reconstruction. Native inter-object ordering has
+not been proven; no claim of a new native arbitration phase or scheduler is made.
+With both fixes, all three minimal notification cases and the actual opponent
+case pass4 tests3.619s. The latter covers both real magazine states.
+
+External causal logs
+asset-research/notification-lifetime-before.log:3 failures.
+asset-research/notification-pharah-roll-before.log:both magazine subcases fail.
+asset-research/notification-markers-only.log:4 tests, partial-ammo case still fails.
+asset-research/notification-and-order-fixed.log:4 PASS3.619s.
+
+Before applying these shared fixes, a separate actual Pharah manual-reload scan
+performed three cycles each with no interruption, melee, Jet and concussion.
+It did not reproduce stale notification markers; melee/concussion can cancel a
+reload. This scan is not a native timing or full reload-interaction acceptance.
+Probe source/report:asset-research/probe_pharah_reload_reentry.py/.json.
+
+Final checks after both shared fixes
+389 runtime tests PASS268.161s and13 server snapshot tests PASS568.792s,
+zero skips with Python source frozen throughout the final checks. Runtime inputs
+explicitly select the actual43-row mover runtime, five-NPC pack and associated
+closure; snapshot checks use the canonical runtime. The runtime inventory is
+85 hero+7 associated+13 AI callback+22 target primitive+3 notification+259 shared.
+Shared regressions include abilities, join, work budgets and message scopes/
+parameters. Ruff and staged diff checks pass. External durable logs are
+mask-notification-final-runtime-regression.log and
+mask-notification-final-server-snapshot-regression.log.
+
+The hero-module inventory is now85. Full Pharah/five-NPC static acceptance,
+physical shields and complete native AI search remain open. Changes stay
+uncommitted pending the original full static gate. Native client is separate.

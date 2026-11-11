@@ -1,0 +1,104 @@
+Pharah authored FirstPerson offsets and low cover -- full static goal OPEN
+Target build1.74.0.0.104319. No animated camera/muzzle/bone equivalence accepted.
+
+Actual resources
+Pharah hero0008 resolves body0032, not the unrelated000E previously inspected
+for other research. The owning body FirstPerson component specifies:
+  body0400000000000032: m_E29993A5 standing1.35, m_816B830F crouched0.945.
+McCree enemy hero0042 resolves body02A3:
+  body04000000000002A3: standing1.425, crouched0.9975.
+Generic1.55/1.15 was incorrectly used for these bodies in the combat model.
+
+Both body assets were freshly exported with tools/export_stu_assets.ps1. It
+requires build104319, pinned tool version1.74.0.0+develop+7afe5f52-dirty and
+records DLL SHA4251446d8839477a79e67b68ef027f22dd01a259cfc877dc516a729228c5573e.
+The pinned tool was read from the existing0206 asset-inspector directory; no
+tool/source file there was written. Cache/CDN/network/fallback manifests are off.
+Selected output stays in lane0008/asset-research/first-person, outside Git.
+
+Fresh XML SHA256:
+  0032: a70db37501d0f6bba070fde2c778b4f591f62e893ab323cb05a6ffcc6c1ec4fc
+  02A3: 1216670b7629226e50bbdac21e893ae92a4361b978cd25460a142091bb39f816
+The selected FirstPerson components match the preexisting research XML
+semantically. Whole XML byte hashes differ; no byte identity is claimed.
+Reproducible report:asset-research/inspect_first_person.py/.json and
+first-person-export.json. The first tool attempt pointed at the newer2.25
+toolchain and failed before opening game storage; the pinned tool above was
+then selected by its exact prior DLL fingerprint. No raw asset enters source.
+
+Combat integration
+combat.eye_height supplies the two authored standing/crouched pairs to both
+Combat._eye and player Target.eye. The latter also enters the existing retained
+pose history. Soldier's known1.085 crouch offset is retained. Other bodies and
+five NPC eye/muzzle positions retain their previous policy; they are not inferred
+from these two resources. This remains the server's eye-origin reconstruction.
+No new animation/muzzle/bone service, broad critical default or McCree Fan policy
+is imported from the shared parent draft.
+
+Actual command/geometry evidence
+Four tests cover current player ray/target descriptors for both heroes/stances,
+Pharah primary and enemy McCree hitscan against blocked/clear low-cover triangles
+in both stances, and historical Pharah crouched eye after standing again.
+Cover tops lie between the old generic height and authored height, with separate
+clear tops below the authored origin. Real Match/input/weapon/collision/damage
+code runs; only the supplied static collision world is a fixture. No raycast,
+hit or damage callback is mocked and no ammo/health value is forced.
+
+Before the change, all four tests fail (six failing assertions/subcases): four
+blocked-cover cases wrongly deal damage, history retains1.15 instead of0.945,
+and current standing height is1.55 instead of1.35. With the shared height
+resolver, four tests PASS12.393s. Blocked cover preserves target health200;
+clear Pharah primary leaves80, clear McCree primary against Pharah leaves130.
+Native hitboxes, animated cameras/muzzles and precise eye interpolation phases
+remain unaccepted. Hero-module inventory is now89, not full static acceptance.
+
+External logs:first-person-eye-before.log and first-person-eye-fixed.log.
+Final393 runtime PASS240.309s and13 server snapshot PASS499.445s, zero skips
+with Python source frozen throughout both final checks. Runtime uses actual43-row
+mover data, explicit five-NPC pack and associated closure; snapshot tests use
+the canonical runtime. Inventory89 hero+7 associated+13 AI callback+22 target
+primitive+3 notification+259 shared/prerequisite. Ruff and staged diff checks pass.
+Durable external logs:first-person-final-runtime-regression.log and
+first-person-final-server-snapshot-regression.log. Full static goal stays active.
+
+Projectile origin during stance changes
+Native D9F821 through D9F863 selects the body field using pose mask 0x2 and
+adds the spring at pose +0x2C. The field registrations at 1222CFE and 1222D7F
+identify the standing and crouched fields above. Thirty isolated native
+comparisons match float32 arithmetic for five flag combinations and supplied
+spring and component 31 values.
+
+Pharah primary, Concussive Blast and Barrage add the current mover spring
+to the authored launch height before the projectile and interceptor paths.
+Primary and Concussive Blast cover both transition directions in actual
+commands. Barrage covers standing recovery. A primary fired while entering
+crouch clears a 1.04-unit wall above the settled 0.945-unit eye and deals
+120 damage. Seventeen focused cases pass in 29.425 seconds.
+
+The native calculation also reads component 31 +0xD30. Runtime factory and
+serialized registration share type token 2DF3048, linking the D4DFB7 writer to
+STU_64CFBC4E. Four original writer-tail cases store the float returned by the
+expression adapter. The mounted build bundle has one instance across 670
+graphs, Bastion 012F/167. It reads instance variable 1165. Pharah's mounted
+graphs have no such instance. Current and historical target eye descriptors
+continue to use the authored stance heights.
+
+Probe and results in asset-research/probe_pharah_launch_eye_height.py and
+asset-research/pharah-native-launch-eye-height.json.
+
+The writer probe and corpus record are asset-research/probe_pharah_launch_eye_offset_state.py
+and asset-research/pharah-native-launch-eye-offset-state.json.
+The NPC and shared projectile regression passed 122 cases in 275.911 seconds.
+
+Fifteen native cases verify that the final eye calculation multiplies by the
+first float at component 1 +0x120 in the plain representation and skips the
+multiply when the component is absent. Three cases verify that a separate
+transform accessor uses all four lanes at that offset and can compose with a
+parent scale. The current host exercises unit scale. Live scale production,
+the encrypted path and the animated launch basis remain open.
+
+Probe and results in asset-research/probe_pharah_launch_eye_scale.py and
+asset-research/pharah-native-launch-eye-scale.json.
+
+The full Pharah test-module run passed 229 cases in 998.246 seconds.
+Both the Pharah and NPC regressions finished with zero skips.

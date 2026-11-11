@@ -39,10 +39,10 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
     grid, the spring offsets as 1/32768 steps of their range (0x7FF789B745E0).
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
-adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
-states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
-other bodies.
+adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Persistent MovementMod
+world-velocity SET (09F9B1FE, mode0) acts after gravity and before the sweep. Other velocity modes,
+the throttle mods (17-19), general impulse actions, tick phase hooks, moving platforms and other bodies
+remain outside this subset.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
 
 Besides the pose it keeps what other clients animate the body from, as the client's own mover writes it
@@ -300,11 +300,12 @@ def quantise(value: float) -> float:
 class Mod:
     """A movement mod of the mover: index, op and value act on the ticks of command frames start..end - 1
     (end None: until the mod goes; 0x7FF789B42FFB). The mover keeps them sorted by priority, then start
-    (0x7FF789B3FAA0), and applies them in that order."""
+    (0x7FF789B3FAA0), and applies them in that order. A tuple value represents the separately consumed
+    native vector-list entry; scalar indexes and world-velocity modes do not share semantics."""
 
     index: int
     op: int
-    value: float
+    value: float | tuple[float, float, float]  # native scalar or world-velocity vector
     start: int
     end: int | None = None
     priority: float = 0.0
@@ -337,6 +338,7 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
     scalar of 1 (or the value it replaces: jump speed, terminal velocities, ground gravity, character
     collision); the mods act on it in their order; then the speeds, accelerations and decelerations are
     the body's times their scalars, most clamped to 0 or more first, as the client multiplies them."""
+    mods = [mod for mod in mods if not isinstance(mod.value, tuple)]
     if not mods:
         return data
     slots = dict.fromkeys(range(10), 1.0)
@@ -381,9 +383,24 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     """A value the transitions read through the mods of its index (0x7FF789B42FB0): the jump and crouch
     intents (1 with the button, 0 without) and the landing's speed limit."""
     for mod in mods:
-        if mod.index == index:
+        if mod.index == index and not isinstance(mod.value, tuple):
             value = apply_op(mod.op, value, mod.value)
     return value
+
+
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
+
+
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
 
 
 def _number(instance, cfg, default: float) -> float:
@@ -396,13 +413,35 @@ def _number(instance, cfg, default: float) -> float:
 def statescript_mods(component) -> dict:
     """The movement mods of a body's statescript (a script.runtime.Component) that are on now:
     {(instance, state, slot): (index, op, value, priority)}. The client gives the mover each mod of a
-    MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end)."""
+    MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end).
+    Values are scalar floats or an explicit world-velocity SET vector (mode0 only)."""
+    from ow174.game.script.expr import Vec3
+
     found = {}
     for instance in component.instances.values():
         for state in instance.states.values():
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
+                if isinstance(mod, dict) and mod.get("$") == "STU_09F9B1FE":
+                    # Native vector SET: D354C0 type2DEDB88 ->D3C809/C33FC0,
+                    # op2. Only mode0 (whole world velocity) is implemented.
+                    # Barrage supplies scalar0: F65E70 rejects that type, so
+                    # getter1B721B0 uses default zero vector3241710.
+                    if mod.get("m_CFEC5F76") != 0:
+                        continue
+                    value = instance.evaluate(mod.get("m_9B7A63EA"))
+                    if isinstance(value, Vec3):
+                        vector = (value.x, value.y, value.z)
+                    elif isinstance(value, (int, float)) and value == 0:
+                        vector = (0.0, 0.0, 0.0)
+                    else:
+                        continue  # other typed-getter branches are not hosted here
+                    if not all(math.isfinite(axis) for axis in vector):
+                        continue
+                    priority = _number(instance, mod.get("m_priority"), 0.0)
+                    found[(instance.id, state.index, slot)] = (0, SET, vector, priority)
+                    continue
                 kind = MOD_OPS.get(mod.get("$")) if isinstance(mod, dict) else None
                 if kind is None or mod.get("m_A9561CA0") is None:
                     continue
@@ -497,6 +536,7 @@ class Mover:
         self.spring_speed = 0.0
         self.fall = 0.0  # the speed gravity gave since the take-off (state +832, up only: see _fall_after)
         self.landed = False  # landed this tick (mover +0x14DD)
+        self.external_impulse = False
         self.crouch_end: int | None = None  # the command frame the body last stood up in (state +40)
         self.throttles = (0, 0)  # this command's (right, forward)
         self.input_throttles = (0, 0)  # those of the last command that had any
@@ -531,6 +571,43 @@ class Mover:
             self.world = world
             self.on_map = True
             self.body = None
+
+    def add_impulse(self, velocity, frame: int, *, next_pose: bool = False, carry: bool = False) -> tuple:
+        """Local velocity-delta interpretation of authored response modifier26.
+
+        A queued delta applies on the specified pose after persistent SET.
+        Native health-to-mover scheduling remains open.
+        """
+        active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        response = max(0.0, intent(active, 26, 1.0))
+        applied = tuple(f32(float(value)*response) for value in velocity)
+        if not any(applied):
+            return applied
+        if carry:
+            self.driven = False
+            self.external_impulse = True
+        if next_pose:
+            key = (-1, 0, frame)  # local one-frame ADD, distinct from statescript keys
+            previous = self.mods.get(key)
+            queued = applied if previous is None else tuple(
+                f32(a+b) for a, b in zip(previous.value, applied, strict=True)
+            )
+            self.mods[key] = Mod(0, ADD, queued, frame, frame + 1, key=key)
+            return applied
+        self._add_impulse_velocity(applied)
+        return applied
+
+    def _add_impulse_velocity(self, delta) -> None:
+        self.velocity = tuple(f32(a+b) for a, b in zip(self.velocity, delta, strict=True))
+        if self.velocity[1] > 0:
+            self.flags_word |= FELL
+            self.fall = 0.0
+
+    def retire_impulses(self) -> None:
+        self.external_impulse = False
+        for key in tuple(self.mods):
+            if key and key[0] == -1:
+                del self.mods[key]
 
     def track_mods(self, active: dict, frame: int) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
@@ -656,6 +733,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        ground_override: Ground | None = None, movement_limit=None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -673,6 +751,7 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
+        right, forward = modified_throttles(active, right, forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end
@@ -684,6 +763,8 @@ class Mover:
         self.landed = False
 
         ground, under = self._probe(dt)
+        if ground_override is not None and (ground is None or ground_override.y > ground.y):
+            ground, under = ground_override, False
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -710,11 +791,23 @@ class Mover:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                 self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
-            self._fall_after(self._move(dt, normal))
+            # Native C3B975 gravity ->C3BA8A velocity mods ->C3BAD8 move.
+            # These share tracked start/end/priority storage with scalar mods,
+            # but never change speed/intents. Other vector modes remain open.
+            for mod in active:
+                if isinstance(mod.value, tuple) and mod.index == 0 and mod.op == SET:
+                    self.velocity = mod.value
+            # External deltas join the sweep after continuous world velocity.
+            for mod in active:
+                if isinstance(mod.value, tuple) and mod.index == 0 and mod.op == ADD:
+                    self._add_impulse_velocity(mod.value)
+            self._fall_after(self._move(dt, normal, movement_limit))
         else:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne and self.velocity[1] <= 0.0:
+            self.external_impulse = False
         return outcome
 
     def _fall_after(self, vertical: float) -> None:
@@ -1071,7 +1164,7 @@ class Mover:
 
     # ---- 8. the move
 
-    def _move(self, dt: float, normal) -> float:
+    def _move(self, dt: float, normal, movement_limit=None) -> float:
         """Move the capsule and the feet (0x7FF789B4D9C0, 0x7FF789ACF640); the vertical speed before it is put
         on the grid."""
         vx, vy, vz = self.velocity
@@ -1087,6 +1180,18 @@ class Mover:
             f32(f32(rise + velocity[1]) * step) + 0.0,
             f32(f32(f32(0.0 * rise) + velocity[2]) * step) + 0.0,
         )
+        blocked = False
+        if movement_limit is not None:
+            dx, dy, dz = displacement
+            distance = math.hypot(dx, dz)
+            if distance > EPSILON:
+                direction = (dx / distance, 0.0, dz / distance)
+                clearance = self._capsule()[0] + STEP
+                contact = movement_limit(direction, distance + clearance)
+                if contact is not None:
+                    scale = min(1.0, max(0.0, contact - clearance) / distance)
+                    displacement = contacts.v3(dx * scale, dy, dz * scale)
+                    blocked = scale < 1.0
         final, planes, touching = body.move(displacement, step, ROUNDS)
         vx, vy, vz = contacts.clip_velocity(velocity, planes)
         if grounded:
@@ -1097,6 +1202,8 @@ class Mover:
                 vx, vy, vz = vx * scale, 0.0, vz * scale
         if self._place(body, final, touching):
             vy = 0.0
+        if blocked:
+            vx = vz = 0.0
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
 

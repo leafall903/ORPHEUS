@@ -1,0 +1,25 @@
+Pharah cooldown input age -- strengthened static evidence
+Target:1.74.0.0.104319. Full hero acceptance remains OPEN.
+
+The parent reported an Ability.can_start defect: consuming an early press then
+reinserting it with now keeps refreshing the150ms buffer and may cast after a
+long cooldown despite release. This lane already fixed that mechanism in its
+own a8614518: take_press(..., consume=False) preserves the original timestamp;
+consume occurs only after all start gates pass. The parent's retain=True API
+expresses the same policy. No duplicate production fix is applied here.
+
+test_pharah_input_buffer adds four real Match/input cases, each covering Jump
+Jet and Concussive Blast: an early short tap retains its original timestamp and
+expires, a short tap within the authored buffer casts when ready, an older held
+input can cast when ready, and a fresh press after expiry works after the old
+tap expires. No cooldown, stack, press timestamp or damage value is assigned.
+Actual cooldown reset and upward velocity/volley counters prove the second cast.
+
+Concussion starts its cooldown after authored windup. The fixture waits for
+that actual start; treating its initial remaining=0 as a ready cooldown was an
+incorrect initial fixture assumption, corrected before the passing run.
+Four new hero-module cases bring the inventory to84, separate from seven new
+target-search primitive cases. The relevant32-case run also includes existing
+movement, impulse and flight-boundary modules; it does not claim a new full
+84-case or server-snapshot rerun. The prior303/13 baseline remains historical
+evidence for unchanged live VM code. All new work remains uncommitted.

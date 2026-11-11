@@ -1,0 +1,86 @@
+Pharah / five-NPC impulse and Barrage, build104319
+
+This is resource-backed server reconstruction, with selected original response
+arithmetic comparisons. The full static goal and native-client acceptance remain
+open. No new completion commit or merge-ready state is established here.
+
+Previous behavior
+Combat._blast_impulse returned immediately for every Bot. The manual NPC had no
+body physics clock. Real Concussion inputs changed no NPC position. Merely
+setting Bot.velocity would still not move or collide its body.
+
+Current host
+Prepared manual NPCs with no patrol route can acquire an impulse_mover. It is the
+existing character Mover using the actual body row, match collision and correct
+team/FFA proxy category. It advances zero-input poses on Match ticks, with body
+movement mods, capsule contacts, friction, gravity, quantization and landing.
+Duplicate ticks do not advance. Movement records use its real velocity, air flags,
+air ticks and gravity. Team changes invalidate the cached capsule/category.
+Stun removes commanded action, preserving physical momentum. Death clears the
+mover and stops the retained corpse. Respawn constructs a fresh Bot.
+
+The actual43-row external mover runtime is required. Missing body rows do not
+silently acquire the Soldier fallback for this service. The input mover SHA is
+e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c.
+The host does not extend automatic navigation or the existing training patrol
+model. A manual actor retains the physical mover at rest until death/removal;
+native allocation/retirement and AI arbitration are unproven.
+
+Response, not universal displacement
+Actual Heavy body1254/node0, state0 has an active SET modifier26=0. It rejects
+Concussion motion and does not acquire a phantom physical mover. Trooper,
+Enforcer, Sniper and Assassin have no active26 modifier in the initialized
+fixture. Their local default response is1. Actual human Reinhardt00A4/node28,
+state4 supplies MULTIPLY26=0.7. A real Concussion-input test observes the actual
+applied delta at0.7 and subsequent displacement; it does not replace the effect.
+inspect_npc_response_modifiers.json records all six actual resource contexts.
+
+Mover.add_impulse applies sorted active modifier26 to the local velocity delta,
+rejects nonpositive response, and converts the applied vector/addition to f32.
+Both player blast handling and the new manual NPC handoff use this service.
+The first NPC handoff reconstructs already-active modifier timing by installing
+current body mods before the impact frame. This is not a proven native phase.
+Force/mass/ring interpretation, complete immunity/control services, active
+world-target movement and native velocity queue arbitration remain open.
+
+Original instruction boundary evidence
+The immutable captures independently retain modifier26's jump-table route to
+C3D0D7, stack44 accumulation and C3D63E store to mover+4DC. C3268A reads that
+field; C326D2 rejects nonpositive response, and C3270D/C3275B multiply the vector.
+The executable boundary fixture performs192 comparisons across both captures,
+eight scalar values, six vectors and two original branches, comparing the scaled
+XYZ bytes with production Mover.add_impulse's returned applied vector.
+It supplies synthetic registers/component/vector/stack storage, explicitly moves
+past unexecuted object lookup C32692..C326D2, and stops before C329C0 submission.
+It patches no instruction and supplies no helper return. It does not prove the
+complete modifier producer, registry lookup, queue, velocity addition or timing.
+See external validate_impulse_response_boundary.py/.json and retained function
+disassembly. Original client/server end-to-end parity is not claimed.
+
+Executable integration coverage
+Nine new Pharah module cases cover all five actual body contexts: four ordinary
+Concussion displacements/landing and Heavy zero response, unchanged health/no
+hitmark/no charge, friendly exclusion, far-side wall exclusion, wall contacts and
+corpse cleanup, passive stored physics, stunned momentum/team category updates,
+unprepared-body refusal, actual Reinhardt0.7 response and actual Barrage damage.
+Friendly and wall cases independently exercise both Concussion and Barrage.
+Barrage at8m for91 frames kills the four smaller enemies and leaves Heavy2440
+from4000; complete channel exit stops new emissions, while already fired rockets
+retain authored100m/45m/s flight until hit or range expiry. No health or target
+effect is injected into these attack cases. The death cleanup case invokes the
+common damage service directly and does not claim a particular finishing weapon.
+
+The suite includes98 Pharah-module cases and14 separate Assassin integration
+cases; low-level native comparisons do not count as additional hero cases.
+Whole-server snapshots include Bot.impulse_mover and its stored contact/mover
+state; changing hidden fall state changes the digest without running physics.
+
+Still open: physical shields/barriers, complete NPC special/navigation/resistance
+interactions, remaining Pharah/cross-hero matrix items, native contact/phase/
+animation/transport and original-client acceptance. The earlier interrupted
+pre-response414/13 checks are not final acceptance evidence.
+
+Final checks:416 runtime PASS461.577s;13 server snapshots PASS808.918s;57 targeted PASS59.632s, zero skips.
+Three additional external real-input cases verify TEAM0 pass-through,
+TEAM1 obstruction and FFA combined-proxy obstruction at a TEAM1-only
+two-sided wall. They do not increase the98 hero-module case count.

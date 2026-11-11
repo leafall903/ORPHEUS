@@ -186,6 +186,7 @@ present-with-None must remain distinct.
   BooleanSwitch            current pending
   Stack                    top under value var
   LogicalButton            down pressed_at early_counter
+  AIBehavior               ai_previous
   DisableLogicalButton     none
                            button_id
   Wait                     none
@@ -210,6 +211,7 @@ present-with-None must remain distinct.
                            var
   GamePadVibration         none
   TrackTargets             none
+  ModifyHealth             last_applied
   Effect                   none
   ClientOnlyPulser         pulses pulsed_at
   ActiveQuery              none

@@ -33,7 +33,20 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    brigitte_bash,
+    combat,
+    correction,
+    dva_matrix,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -322,17 +335,41 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        from ow174.game import heavy_charge, steel_trap
+        from ow174.game.mei_frost import sample
         from ow174.game.mover import pharah_thrust
+        from ow174.game.sombra_hack import active
 
-        stunned = self.match.combat.is_stunned(self, tick=tick)
-        if stunned:
+        fight = self.match.combat
+        stunned = fight.is_stunned(self, tick=tick) or fight.is_pinned(self)
+        forced = fight.hooks.forced_move(self.body)
+        frost = sample(fight, self.body, tick)
+        frozen = frost is not None and frost.until
+        incapacitated = forced is not None or stunned or fight.is_asleep(self, tick=tick) or frozen
+        if incapacitated:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
+        if frozen:
+            command = replace(command, yaw=frost.yaw, pitch=frost.pitch)
+        elif frost is not None and not incapacitated:
+            scale = 1 - min(.7, frost.progress(tick))
+            command = replace(command, forward=round(command.forward * scale),
+                              right=round(command.right * scale))
+        if stunned and not self.mover.external_impulse:
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
-        else:
+        if steel_trap.rooted(fight, self.body, tick) and forced is None:
+            from ow174.game.commands import JUMP
+
+            self.mover.velocity = (0.0, 0.0, 0.0)
+            motion = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
+            ground = fight.walls.ground(self.mover) if fight.walls.pieces else None
+            self.mover.step_pose(motion, seconds, tick, ground_override=ground)
+            self._advance_body_frame(command)
+            return
+        if not incapacitated and not active(fight, self.body, tick):
             pharah_thrust(self, seconds)
         script = self.body_script
         requests = []
-        if script is not None and not stunned:
+        if script is not None and not incapacitated:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -341,15 +378,27 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        before = tuple(self.mover.position)
+        ground = fight.walls.ground(self.mover) if fight.walls.pieces else None
+        if forced is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=forced, ground_override=ground)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
+                ground_override=ground,
             )
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            limit = brigitte_bash.movement_limit(fight, self)
+            if limit is None:
+                self.mover.step_pose(command, seconds, tick, ground_override=ground)
+            else:
+                self.mover.step_pose(command, seconds, tick, ground_override=ground, movement_limit=limit)
+        if fight.walls.move_mover(self.mover, before) and movement_end is not None:
+            movement_end = movement_end[0], False
+        heavy_charge.after_pose(fight, self)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -357,7 +406,7 @@ class Player:
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
-            self.match.body_command(self, command, movement_end=movement_end)
+            self.match.body_command(self, command, posed=posed, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
@@ -599,16 +648,40 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        if bot.body_script is not None and isinstance(bot.body_script, BotScript):
+            bot.body_script.retire()
+            bot.body_script = None
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            vitals = self.combat.vitals.get(bot.entity)
+            if vitals is None:
+                vitals = self.combat.vitals[bot.entity] = combat.Vitals(bot.entity, bot.health)
             bot.body_script = BotScript(
-                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
+                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, vitals.total,
                 firing_position=bot.position if firing else None,
+                health_pools=vitals.component(vitals.ids)[51],
+                match=self,
             )
+            record = graph.entity_body(bot.body)
+            if associated := record.get("ai_entity"):
+                definition = graph.guid(associated)
+                if definition is None or graph.entity_body(definition) is None:
+                    raise ValueError("associated NPC definition is missing or malformed")
+                entity = self.combat.next_bot
+                if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(
+                        b.entity == entity or (isinstance(b.body_script, BotScript)
+                        and b.body_script.associated_component is not None
+                        and b.body_script.associated_component.entity == entity) for b in self.bots):
+                    raise ValueError("associated NPC entity allocator exhausted or collided")
+                self.combat.next_bot += 1
+                bot.body_script.bind_associated(definition, entity)
         except Exception:
+            if isinstance(bot.body_script, BotScript):
+                bot.body_script.retire(failed=True)
+                bot.body_script = None
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
     def _bot_create_update(self, bot: bots.Bot) -> EntityUpdate:
@@ -655,7 +728,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.body_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -910,12 +983,31 @@ class Match:
         if ready and not self._advance_scene(now, tick):
             return
         if ready and self.bots:
+            from ow174.game import assassin, heavy_charge, npc_control, sniper_reposition
+
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
+                charge = heavy_charge.charge(bot)
+                if charge is not None and heavy_charge.travelling(charge):
+                    continue
+                if self.combat.hooks.controlled(bot.entity):
+                    npc_control.cancel_combat_movement(bot)
+                    sniper_reposition.cancel(bot)
+                    continue
+                if sniper_reposition.step(self.combat, bot, tick, RETAIL_QUANTA / 1e6):
+                    continue
+                category = MOVER
+                if not self.game_map.free_for_all and bot.team in (0, 1):
+                    category = (TEAM0, TEAM1)[bot.team]
+                if assassin.autonomous(bot):
+                    forward = assassin.approach(self.combat, bot, tick)
+                else:
+                    forward = npc_control.combat_forward(self.combat, bot)
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                         paused_until=self.combat.stuns.get(bot.entity, 0), category=category,
+                         forward=forward, walls=self.combat.walls)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1051,6 +1143,23 @@ class Match:
 
     # --- the body's statescript (ow174/game/script) ------------------------------------------------
 
+    def script_npc_peer(self, source_world):
+        """Resolve only the two live namespaces of a declared associated NPC pair."""
+        for bot in self.bots:
+            script = bot.body_script
+            if not isinstance(script, BotScript) or script.retired:
+                continue
+            body, associated = script.component, script.associated_component
+            if body.world is source_world:
+                return body, associated
+            if associated is not None and associated.world is source_world:
+                return associated, body
+        return None, None
+
+    def script_npc_is_body(self, component) -> bool:
+        return any(isinstance(bot.body_script, BotScript) and not bot.body_script.retired
+                   and bot.body_script.component is component for bot in self.bots)
+
     def script_body_position(self, entity: int, owner: int) -> expr.Vec3 | None:
         """The current match pose of a body, including the owner during its own create."""
         for player in self.players:
@@ -1107,14 +1216,20 @@ class Match:
         if BODY_SCRIPT_HEROES is not None and player.hero.guid not in BODY_SCRIPT_HEROES:
             return
         try:
+            vitals = self.combat.vitals.get(player.body)
+            if vitals is None:
+                vitals = self.combat.vitals[player.body] = combat.Vitals(
+                    player.body, *pools.body_pools(player.hero.guid, player.hero.body))
             script = BodyScript(
                 player.hero.guid,
                 player.body,
                 self._newest_frame(player),
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
-                health=HEALTH,
+                health=vitals.total,
                 match=self,
+                health_pools=vitals.component(vitals.ids)[51],
+                body_definition=player.hero.body,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
@@ -1137,17 +1252,24 @@ class Match:
         player.body_script_failed = failed
 
     def body_command(
-        self, player: Player, command: Command, *, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        self, player: Player, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
         script = player.body_script
+        from ow174.game import sombra_hack
+
+        if player.hero.guid == sombra_hack.PHARAH and sombra_hack.active(self.combat, player.body, self.tick):
+            command = replace(command, buttons=command.buttons & ~sombra_hack.PHARAH_SKILLS)
         before_hash = bodytrace.before(script)
         try:
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
+            sombra_hack.prepare(player, command)
+            if posed and player.hero.guid == brigitte_bash.HERO and not self.combat.is_incapacitated(player):
+                brigitte_bash.prepare(self.combat, player, command)
             script.command(command.frame, command.buttons, command.action, command.forward, command.right)
         except Exception as error:
             bodytrace.failed(script, error)
@@ -1245,6 +1367,14 @@ class Match:
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        if hero.guid == dva_matrix.HERO and hero.body == dva_matrix.MECH:
+            from ow174.game.mover import loaded_mover_table
+
+            record = dva_matrix.record()
+            mover_data(hero.body)
+            if (pools.record_pools(record) is None or hero.body not in loaded_mover_table()
+                    or any(graph.graph(item["graph"]) is None for item in record["graphs"])):
+                return False
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
@@ -1252,9 +1382,10 @@ class Match:
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
+        player.hero = hero
+        if old is not None:
             player.new_body(entity)
             self.combat.record_replacement(entity)
-        player.hero = hero
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:

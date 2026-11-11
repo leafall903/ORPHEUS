@@ -47,6 +47,79 @@ class PharahCombatTests(unittest.TestCase):
         self.assertTrue(all(h["+0x78"]["+0x8"] == 0 for h in hits))
         self.assertFalse(run.match.combat.rockets)
 
+    def test_primary_in_flight_uses_target_team_at_contact(self):
+        for becomes_ally in (False, True):
+            with self.subTest(becomes_ally=becomes_ally):
+                run = Run(KANEZAKA_DM, ("Pharah", "Front", "Rear"))
+                shooter, front, rear = run.players
+                match = run.match
+                self.assertTrue(match.switch_hero(shooter, heroes()[PHARAH]))
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                match.game_map = replace(match.game_map, free_for_all=False)
+                shooter.team, front.team, rear.team = 0, int(becomes_ally), 1
+                y = shooter.mover.position[1]
+                for player, z in ((shooter, 0), (front, 8), (rear, 14)):
+                    player.mover.position = [0, y, z]
+                    player.mover.body = None
+                for _ in range(30):
+                    run.step({})
+                shooter.body_script.ult_seconds = 0
+                shooter.body_script.set_ult_charge(0)
+                run.step({shooter: (0, 0, FIRE)})
+                rocket, = match.combat.rockets
+                self.assertLess(rocket.position[2], front.mover.position[2])
+                front.team = 0 if becomes_ally else 1
+                for _ in range(40):
+                    run.step({})
+                    if rocket not in match.combat.rockets:
+                        break
+                self.assertNotIn(rocket, match.combat.rockets)
+                hit, untouched = (rear, front) if becomes_ally else (front, rear)
+                self.assertEqual(self.health(run, hit).total, 80)
+                self.assertEqual(self.health(run, untouched).total, 200)
+                self.assertEqual(shooter.body_script.component.entity_var(342).value(), 120)
+                self.assertEqual([event["+0x78"]["+0x4"] for event in shooter.client.messages(combat.HIT)], [40, 80])
+
+    def test_primary_body_contact_splashes_a_second_body_unless_world_occludes(self):
+        for cover in (False, True):
+            with self.subTest(cover=cover):
+                run = Run(KANEZAKA_DM, ("Pharah", "Contact", "Splash"))
+                shooter, contact, splash = run.players
+                run.match.switch_hero(shooter, heroes()[PHARAH])
+                run.match.bots.clear()
+                run.match._pending_bot_scripts.clear()
+                y = shooter.mover.position[1]
+                for player, z in ((shooter, 0.0), (contact, 8.0), (splash, 9.5)):
+                    player.mover.position = [0.0, y, z]
+                    player.mover.body = None
+                for _ in range(30):
+                    run.step({})
+                z = 8.75
+                triangles = [
+                    (-3, y-3, z, 3, y-3, z, 3, y+4, z),
+                    (-3, y-3, z, 3, y+4, z, -3, y+4, z),
+                ] if cover else []
+                with patch.object(run.match.combat, "_collision", return_value=World(triangles)):
+                    self.fire_once(run, shooter)
+
+                self.assertEqual(self.health(run, contact).total, 80)
+                hits = shooter.client.messages(combat.HIT)
+                amounts = [hit["+0x78"]["+0x4"] for hit in hits]
+                self.assertEqual(amounts[:2], [40, 80])
+                self.assertTrue(all(hit["+0x78"]["+0x0"]["+0x0"] == contact.body for hit in hits[:2]))
+                if cover:
+                    self.assertEqual(self.health(run, splash).total, 200)
+                    self.assertEqual(len(amounts), 2)
+                else:
+                    damage = 200 - self.health(run, splash).total
+                    self.assertGreater(damage, 80 * 0.308)
+                    self.assertLess(damage, 80)
+                    self.assertEqual(len(amounts), 3)
+                    self.assertAlmostEqual(damage, 52.32, places=4)
+                    self.assertEqual(amounts[2], round(damage))
+                    self.assertEqual(hits[2]["+0x78"]["+0x0"]["+0x0"], splash.body)
+
     def test_second_primary_kills_and_dead_body_cannot_fire(self):
         run, shooter, victim = self.encounter()
         self.fire_once(run, shooter)

@@ -1,0 +1,74 @@
+Controller component query prerequisite -- full Pharah static goal incomplete
+Target build1.74.0.0.104319. No original-client acceptance.
+
+Corrected native interpretation
+B96D3A98 constructors D09110/D0B380 bind table2660C60, evaluator CC9BF0.
+It resolves an input entity, checks component43 through BD4680, registers
+observation when applicable, and uses DA6910/DA5FA0 to select an entity. Its
+clean tail CC9F77..95 calls182C470 with4B and5C.182C470 reads entity+88 bitsets:
+index/64 chooses a word, index%64 a bit. These are COMPONENT presence tests,
+not arbitrary dynamic gameplay flags.4B=75 and5C=92. The successful predicate
+is component75 present and component92 absent. The identity/meaning of92 beyond
+this structural exclusion is not inferred. Component75 is the character
+controller represented by the existing Match possession/create records.
+
+261 original-byte suffix cases PASS: explicit absence, empty/75/92/both masks,
+and256 seeded full component masks. Execute CC9F61 through return, original
+182C470 and F66AF0. A DA6910 adapter supplies the declared selected entity or
+absence and checks its source/selector0 arguments. Synthetic mask/stack are
+explicit inputs. Integer42 destination is overwritten for both false and true;
+all results have Boolean variant type1 and evaluator success1. No instruction
+patch or live-client access. Script/report outside source:
+asset-research/validate_controller_predicate.py/.json/.log; source image SHA256:
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2.
+This executes the predicate suffix, not the full evaluator's entity lookup,
+component43 resolution, DA5FA0/DA6910 selection, cache or observer routing.
+
+Host API and current reconstruction
+World.controller_components(instance, entity) returns an explicit frozenset of
+the ALREADY SELECTED controller's component ids, None for known absence, or
+NotImplemented for an unbound relation. Invalid records refuse; unknown is not
+converted to absence. Native query verifies source lifetime after the callback.
+Default strict worlds keep refusing unknown relations. Explicit strict providers
+may expose known component sets/absence without forcing a Boolean result.
+
+BodyWorld provides only the current non-strict human Match owner's relation.
+That server actually creates the human controller's44/75 through _possession;
+its returned component set drives the predicate. It does not bind foreign bodies,
+NPCs, strict native actor contexts or retired hero bodies. This is an explicit
+local Match reconstruction, not proof that native43/DA6910 selection is fully
+implemented. Existing body/controller identities, has_body/gone and Match state
+remain causal inputs; no new cached Boolean/hidden timer/snapshot field or global
+trusted-native allowance is added. Hero replacement retires the old mapping.
+
+Seven prerequisite cases cover the component truth table, malformed/unknown
+census, strict explicit resolved entities including false, unbound strict refusal,
+callback source destruction, actual human owner/foreign scope/strict refusal and
+actual hero-switch retirement. They do not increase the79 Pharah-module cases.
+Final282 tests PASS183.470s, zero skips:79 Pharah-module cases,4 shield resource
+prerequisites,7 health prerequisites,7 controller-query prerequisites and185 shared
+combat/health/NPC/driver/strict/passive-storage cases. Durable external log:
+asset-research/controller-final-regression.log. Ruff/diff/staged checks pass.
+
+NPC gate investigation and limits
+Enforcer13EB node1 decompiles as:
+  !F7262B36().id(7681) ? (F7262B36().id(9134) || B96D3A98()) : B96D3A98()
+The opcode15 operations are entity variable member reads, not entity comparisons.
+F726's CDBDE0 evaluator calls D15520: component43 lookup, then BD42D0 on the
+selected component+18. The exact relation and native observations are not yet
+hosted. The provided NPC bundle has candidate7681 writers in0255(instance scope)
+and114F(entity scope), and no9134 m_out_Var writer found by the bounded inventory.
+That is not proof that no engine/other-graph writer exists. Selected identifier
+1E01 export was absent/unreadable; no synthetic definition/name was generated.
+
+The000E controller definition was read externally with the pinned asset reader:
+XML SHA256453219f9049cd377a140675495c0e30da1549eee22761689c59bc4c4e9b4f6e7.
+Its STU component map alone does not establish dynamic75/92 presence; the actual
+local _possession/create records are the current reconstruction's source.
+
+NPC BotWorld continues to leave this relation unbound. Enforcer/Assassin attacks,
+NPC AI/control/variable services and the full bidirectional matrix remain open.
+The existing actual probes do not become accepted attacks merely because this
+separate human query is implemented. Pet/barrier execution, remaining control,
+projectile/charge fidelity and the rest of the static/client criteria stay open.
+New lane code/tests/docs remain uncommitted until full static acceptance.

@@ -1,4 +1,4 @@
-"""104319 CE4A60/CEDBD0 entity queries with explicit native lookup services.
+"""104319 CE4A60/CEDBD0/CE7660/CCB2B0 entity queries with explicit native lookup services.
 
 The owner supplies the active namespace/environment and both lookup registries.
 Scene bindings and the reverse primary-possessor catalog do not imply these inputs.
@@ -6,19 +6,26 @@ Scene bindings and the reverse primary-possessor catalog do not imply these inpu
 
 from dataclasses import dataclass
 
-from ow174.game.script import expr, play
+from ow174.game.script import array_actions, expr, play
 
 EXISTS = 'STU_E72F6348'
 POSSESSED = 'STU_0AC15F78'
+BODY_REFERENCE = 'STU_00707E1E'
+LINKED = 'STU_A37A910D'
+TARGET_RECORD_SCALAR = 'STU_D379F515'
 
 
 @dataclass
 class Possession:
     current: int
+    body_reference: object = NotImplemented  # Independent component44+D0 field.
 
     def __post_init__(self):
         if type(self.current) is not int or not 0 <= self.current <= 0xFFFFFFFF:
             raise ValueError('current possession must be a native uint32 identity')
+        if self.body_reference is not NotImplemented and (
+                type(self.body_reference) is not int or not 0 <= self.body_reference <= 0xFFFFFFFF):
+            raise ValueError('component44 body reference must be a native uint32 identity')
 
 
 @dataclass(frozen=True)
@@ -44,6 +51,8 @@ class Context:
     watch_environment: object = NotImplemented  # None declares a missing dependency hub.
     watch_possession: object = NotImplemented
     retired: bool = False
+    watch_body_reference: object = NotImplemented
+    lookup_linked: object = NotImplemented  # (owner, selector) -> entity or None.
 
     def __post_init__(self):
         if (type(self.owner) is not int or not 0 <= self.owner <= 0xFFFFFFFF
@@ -60,7 +69,9 @@ class Context:
 def evaluate(evaluation, cfg):
     """Return NotImplemented only when this world has not installed the service."""
     cls = cfg.get('$')
-    if cls not in (EXISTS, POSSESSED):
+    if cls == TARGET_RECORD_SCALAR:
+        return _target_record_scalar(evaluation, cfg)
+    if cls not in (EXISTS, POSSESSED, BODY_REFERENCE, LINKED):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher
     component = instance.component
@@ -94,6 +105,26 @@ def evaluate(evaluation, cfg):
             call(context.watch_environment, 'entity query environment subscription', watcher, kind)
 
     check()
+    if cls == LINKED:
+        if context.lookup_linked is NotImplemented:
+            return NotImplemented
+        if not context.namespace_present:
+            return expr.EVALUATION_FAILED
+        watch_environment(0x20)
+        owner = play.evaluate_scalar(instance, cfg.get('m_152B6961'),
+                                     initial=expr.Entity(0), watcher=watcher)
+        check()
+        selector = play.evaluate_scalar(instance, cfg.get('m_A60150E2'),
+                                        initial=0, watcher=watcher)
+        check()
+        linked = call(context.lookup_linked, 'linked entity lookup',
+                      expr.to_entity(owner) & 0xFFFFFFFF,
+                      array_actions.collection_index(selector, default=0) & 0xFFFFFFFF)
+        if linked is None:
+            return expr.Entity(0)
+        if type(linked) is not int or not 0 <= linked <= 0xFFFFFFFF:
+            unsupported('linked entity lookup result')
+        return expr.Entity(linked)
     if cls == EXISTS:
         if not context.namespace_present:
             return expr.EVALUATION_FAILED
@@ -101,12 +132,16 @@ def evaluate(evaluation, cfg):
             watch_environment(46)
             return False
         watch_environment(0)
+    elif cls == BODY_REFERENCE:
+        if not context.namespace_present:
+            unsupported('entity query body reference namespace')
     elif not context.possession_context_present:
         return expr.EVALUATION_FAILED
 
     # Native +20 selection uses the first config of 06610EBC, then F64C20
     # unwraps only the first member of nested arrays. Failure/non-entity => 0.
-    value = play.evaluate_scalar(instance, cfg.get('m_entity'), initial=expr.Entity(0), watcher=watcher)
+    field = 'm_00903303' if cls == BODY_REFERENCE else 'm_entity'
+    value = play.evaluate_scalar(instance, cfg.get(field), initial=expr.Entity(0), watcher=watcher)
     check()
     identifier = expr.to_entity(value) & 0xFFFFFFFF
     if cls == EXISTS and not expr.valid_entity(identifier):
@@ -118,9 +153,18 @@ def evaluate(evaluation, cfg):
         return target is not None
     if target is None:
         watch_environment(0 if context.environment_present else 46)
-        return expr.EVALUATION_FAILED
+        return expr.Entity(0) if cls == BODY_REFERENCE else expr.EVALUATION_FAILED
     if target.possession is None:
         return expr.Entity(0)
+    if cls == BODY_REFERENCE:
+        if type(target.possession) is not Possession:
+            unsupported('entity query body reference component')
+        if watcher is not None:
+            call(context.watch_body_reference, 'entity query body reference subscription', watcher, target)
+        value = target.possession.body_reference
+        if type(value) is not int or not 0 <= value <= 0xFFFFFFFF:
+            unsupported('entity query body reference field')
+        return expr.Entity(value)
     if type(target.possession) is not Possession:
         unsupported('entity query current possession')
     if watcher is not None:
@@ -128,3 +172,33 @@ def evaluate(evaluation, cfg):
     if type(target.possession.current) is not int or not 0 <= target.possession.current <= 0xFFFFFFFF:
         unsupported('entity query current possession')
     return expr.Entity(target.possession.current)
+
+
+def _target_record_scalar(evaluation, cfg):
+    """CE7EA0 reads +114 in the component46 record keyed by target entity."""
+    instance, watcher = evaluation.instance, evaluation.watcher
+    component = instance.component
+    world = component.world
+
+    def check_owner():
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown or component.world is not world
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, 'target record query owner retired', TARGET_RECORD_SCALAR)
+
+    def entity(field):
+        value = play.evaluate_scalar(instance, cfg.get(field), initial=expr.Entity(0), watcher=watcher)
+        check_owner()
+        return expr.to_entity(value) & 0xFFFFFFFF
+
+    target = entity('m_target')
+    owner = entity('m_7826B991')
+    value = world.target_record_scalar(owner, target)
+    check_owner()
+    if value is NotImplemented:
+        return NotImplemented
+    if value is None:
+        return expr.EVALUATION_FAILED
+    if type(value) not in (float, int):
+        component.unsupported(instance, 'target record scalar', TARGET_RECORD_SCALAR)
+    return expr.f32(value)

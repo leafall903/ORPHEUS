@@ -17,11 +17,11 @@ def _alive(instance, node):
         _unsupported(instance, node, 'array action owner retired')
 
 
-def _index(value):
-    """F65260 with default-1, including native cvttss2si's indefinite result."""
+def collection_index(value, default=-1):
+    """F65260 conversion, including native cvttss2si's indefinite result."""
     while isinstance(value, tuple):
         if not value:
-            return -1
+            return default
         value = value[0]
     if value is None:
         return 0
@@ -34,7 +34,7 @@ def _index(value):
         value = expr.f32(value-0.5 if value < 0 else value+0.5)
         return (math.trunc(value) if math.isfinite(value) and -2147483648 <= value < 2147483648
                 else -2147483648)
-    return -1
+    return default
 
 
 def _key(value):
@@ -98,7 +98,7 @@ def insert(instance, node, caller):
     value = (play.evaluate_scalar(instance, index_cfg, initial=_FAILED, watcher=caller)
              if index_cfg is not None else _FAILED)
     _alive(instance, node)
-    index = -1 if value is _FAILED else _index(value)
+    index = -1 if value is _FAILED else collection_index(value)
     if index > 200:
         _unsupported(instance, node, 'array insertion native limit diagnostic')
     key_cfg = node.field('m_key')

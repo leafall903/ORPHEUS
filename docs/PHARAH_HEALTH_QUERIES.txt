@@ -1,0 +1,92 @@
+Component51 query prerequisite for Pharah combat -- full goal incomplete
+Build1.74.0.0.104319. Headless Match/input evidence; no client acceptance.
+
+Native source and independent execution
+Enforcer13EB node18 evaluates9B7648C3>0. Its priority1 registration2F88FC8,
+constructors D073A0/D0A9B0 and table2663B28 select evaluator CEB6C0. That calls
+D177C0, whose BCC870 descriptor chooses component51 (mask1<<51/shift51/slot0).
+Its clean tail calls the component's virtual40. Health constructor5BB3EA binds
+table260F630; virtual40/48/58 select5BBC80/5BC080/5BC9B0 respectively.
+
+Read-only Bastion-lane0015 health_queries.py and native validation identified
+the pool layout and three getters. Reused that research, then independently ran
+all three original entry-to-return functions on both existing captured images.
+Each image:256 explicit pool arrays x3 =768 bit-for-bit float32 comparisons PASS.
+Image hashes:
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2
+e7ce15c45774dc9f3865dc059a5f789790f0e4e19a0024218a341af689b79e8d
+Only synthetic component storage/stack and genuine caller return addresses are
+provided. No helper hook, instruction patch or live process access. Script/report
+outside source:asset-research/validate_health_pool_getters.py/.json/.log.
+This does not execute engine entity lookup, cache/subscription routing or audit
+nonfinite/NaN payload policy. Obfuscated gaps in linear disassembly alone are not
+treated as evidence that the original getters cannot execute.
+
+Pool semantics and actual binding
+48 records at component+D8, stride20. Nonzero id at+0 permits participation.
+Current is float+8; maximum is float+4. All-current9B7648C3 sums every identified
+record. Normal-current32E6E4D8 and normal-maximum7D7D2470 additionally require
+byte17 nonzero and byte18 zero. Every addition rounds float32 in array order.
+No total-health-minus-damage shortcut, hero-name pool filter or invented pool
+flag is used. Empty slots/zero identifiers do not contribute.
+
+World.health_pools explicitly binds the owning component's actual wire-layout
+records. Missing bindings and foreign queries retain unsupported behavior in a
+strict world. Aggregate-only set_health removes the pool binding; it cannot
+fabricate pool distribution/flags. Match supplies actual Vitals records on player
+and bot initialization, every damage/heal sync, and NPC death. NPC spawn builds
+its catalog pools before script initialization. No new actor/cache registry or
+global trusted-native allowance was installed. Native observer order is not
+claimed by compatibility polling. Temporary/dynamic pools remain unhosted.
+
+Integration bugs found and fixed
+- Match used fixed200 for a new player's script despite different actual body
+  pools. Actual Reinhardt script/current/HUD now starts500, matching its300health
+  plus200armor; real Pharah primary leaves390 while normal maximum remains500.
+- Reinitializing the same injured body preserves390/500 rather than changing
+  maximum to390. The constructor derives normal maximum from explicit records.
+- NPC lethal hits deliberately bypass ordinary health sync so the death script
+  owns #253/message order. New all-five assertions exposed stale pre-death pools.
+  Pass the actual terminal records into BotScript.die after freezing the initial
+  baseline and before death-frame evaluation; retain its #253/death-message order.
+  Native current query now returns0 on each retained dead NPC.
+
+Stored state and tests
+health_pools is explicit state in runtime.World, BodyWorld and BotWorld. Passive
+body/server exporters include it; tests show value/flag changes affect stored
+hashes without executing a getter. The old exact field-set assertion was updated
+to include the new causal field, not weakened to ignore unknown fields.
+Seven separate query prerequisite cases cover pool kinds/flags/id, float32 order,
+malformed layouts, explicit own/foreign binding, aggregate-only absence, passive
+causality and actual Reinhardt initialization/damage/injured-script recreation.
+Existing five-NPC primary/death cases now assert initial/current/terminal native
+query values and #253 inputs, including catalog shield pools. Hero-module case
+inventory remains79; these seven prerequisites are not extra Pharah skill cases.
+Final source:275 tests PASS176.262s, zero skips, including79 Pharah-module cases,
+4 shield resource prerequisites,7 health prerequisites and185 shared combat/
+health/NPC/driver/strict/passive storage cases. A prior185-case run exposed the
+expected stored-world field-set update; it was corrected to require health_pools.
+The subsequent185 cases passed28.538s;90 hero/prerequisite cases passed111.595s
+before the terminal-pool/HUD-max follow-up, and90 affected death/query/storage
+cases passed52.264s before the final HUD-max change. Final275 supersedes those
+earlier behavioral checkpoints.13 server-storage tests PASS412.817s against the
+new serializer/field schema before the last terminal-pool/HUD-max adaptations;
+no repeat of those13 on the final source is claimed. New stored field/schema did
+not change after that run. Durable external logs:health-final-regression.log,
+health-server-snapshot.log andhealth-death-regression.log.
+
+Final actual held-shield probe still FAILS: body500->390, resource1600, Pet17
+active/output#38=None; native body-current query reports390. External executable
+probe/report:asset-research/probe_barrier_after_health_queries.py/.json/.log.
+
+Remaining NPC frontier
+Actual Enforcer13EB node18 now evaluates true from its real health records, but
+node1 F7262B36/B96D3A98 contexts are unresolved. Actual300-frame primary probes
+still cause no Pharah damage for Enforcer8m and Assassin8m/1.8m. Neither is accepted.
+B96D3A98 evaluator CC9BF0 checks component43 (BD4680), a DA6910-selected object
+and182C470 component75/92 presence (4B/5C), not dynamic gameplay flags. The later
+PHARAH_CONTROLLER_QUERY.txt checkpoint proves this suffix and supplies an explicit
+local human relation; NPC selection/context/lifetime still are not forced true.
+AI/navigation/specials/resistance, all cross-hero defenses, Pet creation/routing/
+health/pose/interception, projectile/charge fidelity and full static goal remain
+open. Own new code/tests/docs stay uncommitted until full static acceptance.

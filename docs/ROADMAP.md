@@ -9,10 +9,75 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 | M2 · Rifle and prediction | Hold and release fire, empty the magazine and reload repeatedly. Client ammo and effects agree with the server, including with lost and repeated input. | Selected shot, ammo, reload and loss scenarios have automated evidence. Original-client prediction and recovery still need verification. |
 | M3 · Single-player combat | Repeatedly hit, miss, kill and reset a training target. Its visible health, identity and combat feedback agree with the server. | Headless Practice Range scenarios cover damage, health, death and respawn. Encrypted replay verifies per-viewer nameplate ordering. Original-client HUD, names, kill feed and sound remain pending. |
 | M4 · Movement and two-client combat | Two clients agree on movement, line of sight, combat and respawn. Loss, delay and reordering recover without extra damage. | Collision-backed movement and selected two-peer protocol checks exist. Two-original-client agreement is pending. |
-| M5 · Match rules and heroes | Complete a full match in one mode on one map and return to the lobby. Verify the declared abilities for each supported hero. | Shared hero mechanisms and partial match flow exist. A fixed world-target movement control covers two authored ability graphs. 61 Pharah test-module cases cover weapons, reconstructed flight/impulses/charge, selected phase/reflect/absorb interactions and passive storage, resource/death behavior, melee ally/range/recovery/death edges, friendly healing, five actual NPC base pools/team/LOS gates and Trooper/Sniper/Heavy primary return-fire; her full static goal and combat matrix remain [open](PHARAH_COMBAT.txt). Native selection, timing and client acceptance remain open. |
+| M5 · Match rules and heroes | Complete a full match in one mode on one map and return to the lobby. Verify the declared abilities for each supported hero. | Shared hero mechanisms and partial match flow exist. A fixed world-target movement control covers two authored ability graphs. Orisa Fortify now covers Pharah primary reduction and impact-time Concussion control immunity. Zenyatta Discord covers bidirectional Pharah damage, ultimate credit, visibility expiry, and Zarya barrier cleanse. Assassin can acquire, approach on a clear path, and capture Pharah in the opt-in sandbox. Pathfinding and other NPC autonomous acquisition remain open. Sniper has an explicit sandbox reposition with real return fire and Pharah Concussion on the shared mover. All five NPCs now have same-encounter manual return-fire, dynamic Ice Wall occlusion, and lethal Pharah counterattack evidence. Heavy Assault manual charge now covers wall and body impacts, graze, carry, team filtering, release, and lethal Pharah rocket interruption. Autonomous acquisition and additional specials remain open. Roadhog Chain Hook covers actual casts against Pharah, flight and Barrage interruption, barrier interception and release on caster death. Mei Ice Wall now covers actual deployment and Pharah projectile occlusion, including break-through on a later shot. Wall movement now covers walking, lifting, standing and Jump Jet clearance for Pharah. Prepared NPCs use the live wall for lift, support and Concussion contacts. The full static matrix remains open. 98 Pharah test-module cases cover weapons and reconstructed rocket ring/range/self-damage boundaries, flight/impulses/charge, selected phase/reflect/absorb interactions and passive storage, resource/death behavior, Barrage world-velocity SET/Flashbang interruption and recovery, melee ally/range/recovery/death edges, friendly healing, five actual NPC base pools/team/LOS gates and Trooper/Sniper/Heavy primary return-fire; opted-in NPC extraction retains actual associated AI entity/script closure with a local permissive associated-script host and seven separate associated-host tests and13 native AI callback prerequisites; native-backed routing/radial/authored-condition primitives/mask gates have22 separate tests, while component87 scheduling/complete TrackTargets filtering, enumeration and output remain open; native actor selection/transport/strict AI remain open; a native-backed component75/92 query has scoped human ownership and seven separate prerequisites while NPC controller relations remain open; native-backed component51 owner queries and seven separate prerequisites correct actual player/NPC health initialization/terminal values; four separate Reinhardt resource prerequisites restore local1600 initialization/recharge while actual physical shield interception still fails; authored Pharah/McCree FirstPerson offsets and four stance/low-cover/history cases, plus three separate notification-lifetime regressions and actual enemy post-Roll refill/primary against Pharah cover shared canceled-event and explicit server exit-order fixes; actual Assassin0A73/13C2 target writers and typed1157 member routing now support scoped manual capture, authored25/delayed100-per-second health, Pharah command/hover/Barrage interruption and lifecycle cleanup through explicit server reconstruction, with14 separate integration cases and passive clock/control storage; automatic AI, complete specials/navigation/resistance and physical barriers remain open; nine additional NPC impulse/Barrage cases cover four normal-body displacements, Heavy zero response, Reinhardt0.7 response, all-five damage/team/LOS gates and stored contact physics through explicit reconstruction; Reinhardt secondary now hosts the actual shield Pet and initializes its health pool, with scoped Pharah primary, Concussion and Barrage interception plus shield break, cooldown recovery, recharge, collision boundaries and death cleanup. Winston's authored deployment now supplies an executable sphere for Pharah projectile, blast, break and recast cases. Orisa's actual deployment now supplies fixed mesh collision and an authored shield lifetime for Pharah projectile tests. Zarya's personal and projected Pet scopes now host 200-point attached spheres with verified Pharah damage routing and energy credit. Sigma's 1B55 barrier uses the C015 dynamic mesh with verified Pharah interception, break, recall and recharge. Kinetic Grasp now credits intercepted Pharah payloads and grants a temporary shield through the authored expiry request. A selected D.Va mech now uses its authored Matrix resources and blocks the three Pharah volleys in executable cases. Ana's Sleep Dart now interrupts Pharah's Barrage and Hover Jets and gates input through wake or expiry. Ana's grenade blocks Soldier's Biotic Field healing on Pharah for four seconds, including batched expiry boundaries. Friendly grenade restores health and amplifies field healing until its separate expiry. Actual Transcendence input now gates Pharah damage while preserving Concussive Blast displacement. Its allied aura restores visible nearby allies and respects hostile barriers and Ana healing modifiers. Baptiste's deployed Immortality Field now clamps Pharah lethality through the active 1763 health floor. Its entry restoration respects Ana's anti-heal while the floor still limits damage. Sombra's authored Hack now suppresses Pharah skills while preserving weapon and melee input. Mei's actual spray now accumulates slow and freeze and interrupts Pharah's Barrage. Blizzard adds a timed area, scoped frost and tested Genji redirection. Barrage now evaluates the authored 8-degree launch cone and sweeps both motion rows in the server. All three Pharah volleys now include the current stance spring in launch height. Genji Deflect restarts Barrage curve phase and restores its flight bound. The reflected Barrage starts at Genji's authored eye with the current stance spring and reapplies the authored cone when the original weapon state resolves. Reflected Barrage consumes the rest of the current tick, including collision during that remainder and catch-up over subsequent ticks. Barrage accumulates its authored range along the curve, clips the final chord before contact selection, and resets range on Deflect. Genji Deflect, Sigma Kinetic Grasp and D.Va Defense Matrix use aim and the current stance eye for their active boxes. Pharah primary applies its authored 0.2 m extent to these defense boxes. Primary now uses the authored extent for a separate body query with verified grazing hits on all five prepared NPCs and wall contact ordering. Native hit shapes, owner seed updates, additional eye modifiers and animated launch transforms remain open. Pharah's full static goal and combat matrix remain [open](PHARAH_COMBAT.txt). Native selection, timing and client acceptance remain open. |
 | M6 · Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
 
 ## Project-wide checklist
+
+- [ ] Finish Pharah's static combat matrix. ModifyHealth knockback ring
+  selection and separate horizontal and vertical multipliers now have
+  original-instruction and actual-input evidence. Concussive Blast
+  applies the vertical minimum separately, and the primary rocket
+  applies its self-knockback multiplier after Deflect. The self-impulse
+  uses the native distance and direction math with an upright mover anchor.
+  Actual Concussive Blast verifies midflight Wraith Form and Fade
+  transitions, absorption after Genji Deflect by Matrix or Grasp, and
+  the Flashbang boundary between a canceled cast and a launched volley.
+  The static sight check uses two source points. Actual primary commands
+  cover splash behind a direct-hit body and its cutoff at world cover.
+  Full profile evaluation,
+  animated target geometry, blast damage sampling, and original-client
+  acceptance remain open.
+  Actual Hover Jets inputs cover zero fuel, the 10-fuel restart gate, the
+  additional 0.2 s jump hold, release and fresh input, and switching
+  bindings during recovery. Lúcio Soundwave displaces Pharah while held
+  Hover Jets keep consuming fuel.
+  Actual Jump Jet inputs cover falling activation, the cooldown buffer,
+  and the different effects of Flashbang and Sleep Dart on an ascent.
+  Actual primary rockets verify live target teams and Winston barrier
+  deployment and expiry. Manual and automatic reload finish on schedule
+  under Flashbang stun.
+  Actual Ana Nano Boost input now heals Pharah and modifies incoming
+  rifle damage and outgoing primary, melee and Barrage body damage.
+  Verified expiry during rocket flight, recipient replacement and
+  Flashbang cancellation. Actual Winston barrier and Genji Deflect
+  inputs verify shield damage, reflection attribution and incoming
+  reduction in the local runtime. Boosted rockets damage Ice Wall and
+  Immortality Field devices. Enemy Biotic Grenade blocks the instant heal
+  while the damage modifiers still apply. Boosted primary deals 180 to each
+  authored NPC body and reduces the actual return attack from each of the
+  five bodies. Assassin capture still blocks primary fire until release.
+  Native combat filters remain open.
+  All five opted-in NPCs now navigate around the same sampled Rialto
+  obstacle, damage Pharah and take her primary rocket in separate
+  encounters. Enforcer retains the authored walk gate, and Assassin
+  captures Pharah before she returns fire. Longer routes and deployed-wall
+  routing remain open.
+  Actual primary damage against Heavy Assault now covers the full
+  Barrage charge, fresh activation, volley and charge recovery cycle.
+  Actual quick melee covers Flashbang during recovery, phased and
+  exposed targets in the same swing, projectile absorbers, and the
+  Immortality Field health floor and expiry.
+  Actual Lúcio Soundwave displaces Pharah during Barrage while the
+  volley continues. Actual inputs verify held, deployed and attached
+  hostile barriers and friendly Winston passage. Full native target
+  filtering remains open.
+  Actual Brigitte Whip Shot displaces Pharah during Barrage and respects
+  cover, team, range, cooldown, death and impact-time barriers.
+  Its native head shape and hit-to-retract routing remain open.
+  Actual Brigitte Shield Bash interrupts Barrage and gates Jump Jet.
+  Barrier Shield intercepts all three Pharah volleys with tested break,
+  recharge and shield-edge splash. The configured build 104319 attached
+  mesh has a verified primary edge. Animated placement, native collision
+  routing and 224E routing remain open.
+  Actual Sigma Accretion now covers Pharah's direct-hit damage and
+  Barrage interruption, Jump Jet recovery, splash and cover, and team
+  exclusion. Full native control queues and collision geometry remain open.
+  Actual quick melee crosses held and deployed barrier surfaces.
+  Zarya's projected pool absorbs a direct melee hit on its target.
+  Quick melee evaluates the authored search radius and bounds aim pitch.
+  Center and target selection still use the local pose and capsule adapter.
+  See [Pharah combat](PHARAH_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and

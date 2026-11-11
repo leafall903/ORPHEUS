@@ -1,0 +1,68 @@
+Assassin target acquisition and primary-possessor query -- OPEN
+Target: original PC1.74.0.0.104319. All addresses below are module RVAs.
+
+Authored input and target path
+Assassin body1EBD associates with AI1EBE. Its AI closure is0C83/0E5C/1158/
+1172/13C2/142A/147B in the external five-NPC candidate. Script1157 is not its
+slot0/key20 chain:1157 node3 listens to logical36. When #173>0, node2 enters
+the ChaseVar countdown to0; when false it enters that logical-button listener.
+Thus the observed zero #173 is not evidence of an exhausted resource blocking
+the attack. No resource constant should be supplied to bypass this branch.
+
+1157 node51 writes #536 from DB742151(owner).id(1650). The authored AI target
+writer is13C2/node7: #1650e = #14365e ? #14365e : random member of #375.
+Node14 clears #1650e.13C2/node4 TrackTargets supplies #375, centred on
+0AC15F78(owner), radius9999, filter mask0x40000/flags0x138 plus an authored
+condition. The exact filter flags, selection order and native search are not
+established by those numbers. The runtime TrackTargets currently returns an
+empty target payload, and the preceding91EF24A9 AI-state semantics are not
+strictly implemented. Acquisition/behaviour/target routing must be hosted;
+changing the sandbox key or assigning attack_target to #1650 is not evidence.
+Later PHARAH_AI_BEHAVIOR_CALLBACKS.txt adds the verified timer/cleanup core and
+an explicit component87 interface. Its scheduler and target search remain open;
+strict TrackTargets now refuses the empty compatibility result.
+
+The actual300-frame1.8m fixture has no target536 and never allocates1157
+ModifyHealth nodes15/25 or13C3 node112. Even after acquisition is restored,
+generic authored NPC ModifyHealth routing/timing remains open: current combat
+quick-melee hosting is scoped to player0043. Damage must not be injected to
+manufacture an Assassin return-path pass.
+
+Native primary-possessor evidence
+Existing ENTITY_POSSESSION_QUERIES.txt already distinguishes the primary-
+possessor reverse registry from the forward current-possession relation.
+Independent execution now verifies its direct component44 branch:
+CD1A05 -> DA7F10 -> BD59A0/B7C60 ->18262E0 -> F66C80, plus the normal return.
+BD59A0 selects44. Packed slot ranks vary with lower component bits and bucket
+offsets. The component owner pointer at+8 decodes to an entity record;18262E0
+returns record+B0, and F66C80 copies its32-bit ID as Entity variant type10,
+overwriting a prior integer42. Success AL is1 for all supplied IDs, including
+zero andFFFFFFFF. The actual call return addresses remain intact.
+
+Two existing offline captures each pass260 supplied IDs/masks,520 cases total.
+The standalone18262E0/F66C80 probe independently passes the same520 IDs; it is
+not an additional520 distinct acceptance cases. Capture SHA256 values:
+b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2
+e7ce15c45774dc9f3865dc059a5f789790f0e4e19a0024218a341af689b79e8d
+
+Explicit adapters and boundaries
+Synthetic entity/component/record/stack memory is supplied. Native packed-slot
+encoding is prepared from keys observed in the original lookup prefix. The
+original B7C60 executes with synthetic GS/TEB/PEB data: TEB+60 points to PEB,
+PEB+30 supplies a synthetic environment seed. These are not captured process
+records. No instruction patch or helper hook changes execution. A fake return
+address triggers the native integrity trap; using the actual CD1A1A call return
+provides the correct caller frame without disabling that check.
+
+The owner-expression/entity-lookup prefix, missing44 reverse-registry fallback,
+component43 observation, actor allocation and live process are not executed.
+F726's component43 path is different; these results cannot by themselves map
+an NPC body to its associated AI, establish a new possession record, or justify
+a global DB742151 fallback. No runtime query mapping is added by this checkpoint.
+
+Reproduction artifacts remain external in lane0008/asset-research:
+validate_primary_possessor_selection.py/.json/.log
+validate_primary_possessor_record.py/.json
+assassin_target1650_inventory.json
+probe_assassin_health_states.py/.json/.log
+The full static goal, native NPC combat and client acceptance remain open.

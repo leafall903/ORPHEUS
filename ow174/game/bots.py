@@ -46,7 +46,9 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.collision import MOVER
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, loaded_mover_table, mover_data, statescript_mods
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -116,13 +118,17 @@ DEAD = 0x2000  # the movement state's dead flag (combat.py): the 3P animation's 
 
 
 class Bot:
+    combat_detour = None
+
     def __init__(self, entity: int, spawner: dict, hero: dict, hints: dict) -> None:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
-        self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.attack_input = False  # last queued attack input, including edges not consumed by the VM yet
+        self.melee_input = False
+        self.charge_input = False
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
@@ -156,10 +162,94 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.impulse_mover: Mover | None = None  # scoped manual-body physics; not automatic navigation
 
-    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
-        """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
+    def apply_impulse(self, velocity, tick, collision, *, category=MOVER) -> bool:
+        """Reconstructed manual-NPC impulse using its actual prepared body data.
+
+        Authored modifier26 controls the local response. Native force conversion,
+        resistance services and AI/contact policy are unproven. Unprepared bodies,
+        ordinary training routes and missing collision have no such host.
+        """
+        if (self.dead or self.spawner.get('manual_spawn') is not True or self.route
+                or collision is None or self.body not in (loaded_mover_table() or {})):
+            return False
+        mover = self.impulse_mover
+        if mover is None:
+            mover = Mover(self.position, s16(round(self.yaw)), collision,
+                          mover_data(self.body), category=category)
+            mover.velocity = self.velocity
+        mover.use(world=collision)
+        if mover.category != category:
+            mover.category, mover.body = category, None
+        component = getattr(self.body_script, 'component', None)
+        active = statescript_mods(component) if component is not None else {}
+        # The first manual physics handoff reconstructs current modifier timing;
+        # it must not discard Heavy1254's already active zero response.
+        mover.track_mods(active, tick-1)
+        from ow174.game import sniper_reposition
+
+        reposition = sniper_reposition.move_state(self)
+        if not any(mover.add_impulse(velocity, tick, carry=reposition is not None and reposition.active)):
+            return False
+        if self.impulse_mover is None:
+            self.impulse_mover, self.last_tick = mover, tick
+        self.velocity = mover.velocity
+        self.moved_tick = tick
+        return True
+
+    def ensure_manual_mover(self, tick, collision, category):
+        if (self.impulse_mover is None and not self.dead and not self.route
+                and self.spawner.get('manual_spawn') is True and collision is not None
+                and self.body in (loaded_mover_table() or {})):
+            self.impulse_mover = Mover(self.position, s16(round(self.yaw)), collision,
+                                       mover_data(self.body), category=category)
+            self.impulse_mover.velocity = self.velocity
+            self.last_tick = tick
+        return self.impulse_mover
+
+    def _step_manual_body(self, tick, seconds, collision, category, forward, walls) -> None:
+        mover = self.impulse_mover
+        if collision is None:
+            return  # collision readiness is normally guaranteed by Match
+        ticks = 1 if self.last_tick is None else tick-self.last_tick
+        if ticks <= 0:
+            return
+        self.last_tick = tick
+        mover.use(world=collision)
+        if mover.category != category:
+            mover.category, mover.body = category, None
+        self.held = (0, forward)
+        if forward:
+            self.last_held = self.held
+            self.input_tick = tick
+        before = (self.position, self.velocity)
+        for at in range(tick-min(ticks, CATCH_UP)+1, tick+1):
+            component = getattr(self.body_script, 'component', None)
+            active = statescript_mods(component) if component is not None else {}
+            mover.track_mods(active, at-1)
+            command = Command(at, yaw=s16(round(self.yaw)), pitch=s16(round(self.pitch)), forward=forward)
+            if walls is None or not walls.pieces:
+                mover.step(command, seconds, at)
+            else:
+                before_pose = tuple(mover.position)
+                mover.step(command, seconds, at, simulate_pose=lambda command, dt, tick: mover.step_pose(
+                    command, dt, tick, ground_override=walls.ground(mover),
+                ))
+                walls.move_mover(mover, before_pose)
+        self.position, self.velocity = tuple(mover.position), mover.velocity
+        if (self.position, self.velocity) != before:
+            self.moved_tick = tick
+
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0,
+             category: int = MOVER, forward: int = 0, walls=None) -> None:
+        """Advance manual body physics or the map's authored training route."""
         if self.dead:
+            return
+        if forward:
+            self.ensure_manual_mover(tick - 1, collision, category)
+        if self.impulse_mover is not None:
+            self._step_manual_body(tick, seconds, collision, category, forward, walls)
             return
         if not self.route:
             if tick < paused_until:
@@ -296,8 +386,11 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.impulse_mover = None
         self.attack_target = None
         self.attack_input = False
+        self.melee_input = False
+        self.charge_input = False
         self.keys = False
         self.held = (0, 0)
         self._stand()
@@ -337,11 +430,12 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else (self.impulse_mover.flags if self.impulse_mover is not None else 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
-            gravity=GRAVITY_SCALE,
+            gravity=self.impulse_mover.gravity_scale if self.impulse_mover is not None else GRAVITY_SCALE,
+            air_ticks=self.impulse_mover.air_ticks if self.impulse_mover is not None else 0,
         )
 
 

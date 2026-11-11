@@ -12,7 +12,7 @@ Additional entity definitions can be added to a separate bundle with repeated --
 Use --mode-xml <0C5 directory> with --output outside the repository to also export the mode entity's
 initial variables and include its mode, controller and body script roots.
 Use --ai-spawners <ai_spawners_174.json> with an external --output to include the graphs placed on maps
-and the AI weapon buttons on additional entity definitions.
+and the AI weapon buttons/associated entity definitions and their script roots.
 
 Per graph it keeps what a runtime needs and drops the editor layout (positions, comments, display names,
 colours). The file format is described in ow174/game/script/graph.py, which reads it.
@@ -55,6 +55,7 @@ ROOT_GRAPHS = {
     0x0EC2: "PvP mode",
     0x0C8E: "PvP mode body",
     0x0258: "Biotic Field (the initial graph of 03DC.003, which 0257's canister leaves where it lands)",
+    0x0B9F: "Nano Boost target status (referenced indirectly from 0269.053)",
 }
 LAYOUT = {"m_pos", "m_displayName", "m_comment", "m_F008EA57"}  # STUGraphItem's editor fields
 NODE_KEYS = {
@@ -465,14 +466,20 @@ def body_record(
                 weapons.append(graph_ref(xml, xml.resolve(weapon), "m_script"))
     record = {"hero": hero, "name": name, "graphs": graphs, "manager": manager, "weapons": weapons,
               "script_component": component}
-    if include_ai_weapons and (buttons := _ai_weapon_buttons(path, xml)):
-        record["ai_weapon_buttons"] = buttons
+    if include_ai_weapons and (associated := _ai_entity_path(path, xml)) is not None:
+        record["ai_entity"] = f"0x{0x0400000000000000 | guid_index(associated.stem):016X}"
+        try:
+            buttons = _ai_weapon_slots(StuXml(associated, enums))
+        except (ValueError, KeyError, ET.ParseError) as exc:
+            raise ValueError(f"{associated.name}: {exc}") from exc
+        if buttons:
+            record["ai_weapon_buttons"] = buttons
     used = {entry["graph"] for entry in graphs} | {manager, *weapons} | component_refs
     return record, {graph for graph in used if graph is not None}
 
 
-def _ai_weapon_buttons(path: Path, xml: StuXml) -> dict[str, int]:
-    """The logical button for each slot in the body's associated AI definition."""
+def _ai_entity_path(path: Path, xml: StuXml) -> Path | None:
+    """The authored associated entity; neither an invented controller nor a body alias."""
     association = "m_8B9A461F"
     try:
         ref = xml.field(xml.root, association)
@@ -484,12 +491,8 @@ def _ai_weapon_buttons(path: Path, xml: StuXml) -> dict[str, int]:
     ):
         raise ValueError(f"{path.name}: {association} must reference a .003 entity definition")
     if ref is None:
-        return {}
-    path = path.with_name(f"{guid_index(guid):012X}.003.xml")
-    try:
-        return _ai_weapon_slots(StuXml(path, xml.enums))
-    except (ValueError, KeyError, ET.ParseError) as exc:
-        raise ValueError(f"{path.name}: {exc}") from exc
+        return None
+    return path.with_name(f"{guid_index(guid):012X}.003.xml")
 
 
 def _ai_weapon_slots(xml: StuXml) -> dict[str, int]:
@@ -747,12 +750,19 @@ def collect(
         for graph in sorted(used):
             queue.append((graph, entry["name"]))
     entities = {}
-    for index in sorted(set(entity_indexes)):
+    pending_entities = sorted(set(entity_indexes))
+    while pending_entities:
+        index = pending_entities.pop(0)
+        identifier = f"0x{0x0400000000000000 | index:016X}"
+        if identifier in entities:
+            continue
         path = xml_dir / "003" / f"{index:012X}.003.xml"
         name = f"entity {index:04X}"
         record, used = body_record(path, enums, None, name, include_ai_weapons=ai_spawners is not None)
-        entities[f"0x{0x0400000000000000 | index:016X}"] = record
+        entities[identifier] = record
         queue.extend((graph, name) for graph in sorted(used))
+        if associated := record.get("ai_entity"):
+            pending_entities.append(int(associated, 16) & 0xFFFFFFFFFFFF)
     queue += list(ROOT_GRAPHS.items())
     queue.extend((index, "map AI spawners") for index in sorted(ai_roots))
     queue.extend((index, "game mode scripts") for index in sorted(mode_roots))

@@ -190,6 +190,14 @@ class GeometryTests(unittest.TestCase):
 
 
 class DamageTests(unittest.TestCase):
+    def test_knockback_rings_interpolate_each_axis_and_exclude_the_outer_edge(self):
+        hit = HitDef(impulse_rings=((0.5, 0.75, 0.25), (2.5, 0.25, 0.875)))
+        self.assertEqual(hit.impulse_scales(0.25), (0.75, 0.25))
+        self.assertEqual(hit.impulse_scales(0.5), (0.75, 0.25))
+        self.assertEqual(hit.impulse_scales(1.5), (0.5, 0.5625))
+        self.assertEqual(hit.impulse_scales(2.5), (0.0, 0.0))
+        self.assertEqual(HitDef().impulse_scales(2.5), (1.0, 1.0))
+
     def test_falloff_and_explosion_rings(self):
         rifle = HitDef(20.0, None, 30.0, 50.0, 0.3, 2.0)
         self.assertEqual(rifle.scale(10), 1.0)
