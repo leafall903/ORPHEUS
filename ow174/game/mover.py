@@ -374,7 +374,7 @@ def statescript_flight(component) -> float | None:
         return None
     values = []
     for instance in component.instances.values():
-        if instance.graph.index != 0x10DA:
+        if instance.graph.index != 0x10DA and component.world.hero != 0x02E000000000007A:
             continue
         for state in instance.states.values():
             if state.active and state.node.cls == "STU_C1BA7545":
@@ -667,6 +667,15 @@ class Mover:
         vx, vy, vz = self.velocity
         self.velocity = (vx + dx, max(vy, lift), vz + dz)
         if lift > 0:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+
+    def apply_impulse(self, impulse: tuple[float, float, float]) -> None:
+        """Delivered additive world-space velocity change for an owned body."""
+        vx, vy, vz = self.velocity
+        dx, dy, dz = impulse
+        self.velocity = (f32(vx + dx), f32(vy + dy), f32(vz + dz))
+        if dy > 0 and not self.flags_word & IN_AIR:
             self.flags_word |= FELL
             self.air_ticks = 0
 

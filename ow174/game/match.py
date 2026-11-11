@@ -342,6 +342,19 @@ class Player:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
             if self.has_body:
+                if self.controlled_mech is not None:
+                    from ow174.game import body_entities, npc
+
+                    try:
+                        if body_entities.drive_mech(self, command, seconds):
+                            continue
+                    except Exception:
+                        log.exception("[game] %s: %s's controlled mech failed", self.match.label(), self.name)
+                        mech = self.controlled_mech
+                        body_entities.release_control(self)
+                        if mech is not None:
+                            npc.remove_body(self.match, mech)
+                        continue
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 script = self.body_script
@@ -675,6 +688,7 @@ class Match:
         self.assembled = False
         self.players: list[Player] = []
         self._body_messages: list[tuple] = []
+        self.body_components = {}
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
@@ -1477,14 +1491,42 @@ class Match:
         shown = (player for player in self.players if player.body == entity and self._shown(player))
         return next(shown, None)
 
+    def _message_actor(self, entity: int):
+        player = self._message_player(entity)
+        if player is not None:
+            return player
+        # Only explicitly match-bound, owned bodies participate. Ordinary NPC
+        # scripts keep their existing unsupported message-delivery boundary.
+        return next((bot for bot in self.bots if bot.entity == entity and bot.owner
+                     and bot.body_script is not None
+                     and bot.body_script.component.world.match is self), None)
+
+    def register_body_component(self, component):
+        previous = self.body_components.get(component.entity)
+        if previous is not None and previous is not component:
+            raise ValueError("body already has a registered statescript component")
+        if component.world.match is not self:
+            raise ValueError("body component belongs to another match")
+        self.body_components[component.entity] = component
+
+    def unregister_body_component(self, component):
+        if self.body_components.get(component.entity) is component:
+            self.body_components.pop(component.entity)
+
+    def _message_script_live(self, script) -> bool:
+        actor = self._message_actor(script.component.entity)
+        return (actor is not None and actor.body_script is script
+                and not getattr(script, "retired", False) and script.component.fault is None)
+
     def queue_body_message(self, target: int, message: int, params: dict, sender: int,
                            *, valkyrie_frame: int | None = None) -> bool:
         """Capture the source and recipient scripts before either entity ID can be reused."""
-        source, recipient = self._message_player(sender), self._message_player(target)
+        source, recipient = self._message_actor(sender), self._message_actor(target)
         if source is None or recipient is None:
             return False
         source_script, script = source.body_script, recipient.body_script
-        if source_script is None or source_script.retired or script is None or script.retired:
+        if (source_script is None or script is None
+                or not self._message_script_live(source_script) or not self._message_script_live(script)):
             return False
         if len(self._body_messages) >= MAX_BODY_MESSAGES:
             expr.warn_once("body-message-limit", "match body message queue reached %d", MAX_BODY_MESSAGES)
@@ -1502,22 +1544,35 @@ class Match:
         for row in pending:
             source, player, script, message, params = row[:5]
             valkyrie_frame = row[5] if len(row) == 6 else None
-            if source.retired or source.component.fault is not None:
+            if not self._message_script_live(source):
                 continue
-            if player.body_script is not script or script.retired or not self._shown(player):
+            if player.body_script is not script or not self._message_script_live(script):
                 continue
             try:
                 component = script.component
+                from ow174.game import body_entities
+
+                if (message == body_entities.RETURN_TO_PILOT and isinstance(player, Player)
+                        and not body_entities.accepts_initial_return(self, player, source)):
+                    continue
                 # An earlier message can start or stop a later message's entry state.
                 from ow174.game.script import charge, regeneration
 
                 if message == charge.BOOSTED and script.hero == regeneration.MERCY:
                     charge.deliver_boost(script, params, source.entity, self.combat.tick, valkyrie_frame)
-                elif runtime.send_message(component, message, params, source.entity):
+                elif runtime.send_message(component, message, params, source.component.entity):
                     component.run_now()
+                if (message == body_entities.RETURN_TO_PILOT and isinstance(player, Player)
+                        and player.controlled_mech is not None and player.controlled_mech.body_script is source):
+                    body_entities.complete_return(player)
             except Exception:
                 log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
-                self.stop_body_script(player, failed=True)
+                if isinstance(player, Player):
+                    self.stop_body_script(player, failed=True)
+                else:
+                    from ow174.game import npc
+
+                    npc.remove_body(self, player)
 
     def start_body_script(
         self, player: Player, create: EntityUpdate, *, start_frame: int | None = None, ult_fraction: float = 0.0,
@@ -1558,6 +1613,9 @@ class Match:
 
             ultimate.start_practice_timer(script, GAME_MODE_ENTITY)
         except Exception as error:
+            from ow174.game import body_entities
+
+            body_entities.retire_source(self, player.entity, player.body)
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
@@ -1570,10 +1628,18 @@ class Match:
         self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
+        if player.hero.guid == 0x02E000000000007A:
+            from ow174.game import body_entities
+
+            body_entities.begin_initial_control(player)
         bodytrace.started(player, script)
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
+        if player.controlled_mech is not None:
+            from ow174.game import body_entities
+
+            body_entities.release_control(player)
         script = player.body_script
         if script is not None:
             bodytrace.stopped(player, script)

@@ -66,6 +66,12 @@ class FakeClient:
     def queue_bot_live(self, entity: int, snapshot) -> None:
         pass  # the combat model leaves NPC body decoding to the link tests
 
+    def queue_bot_death(self, entity: int, snapshot) -> None:
+        pass
+
+    def queue_bot_death_update(self, entity: int, snapshot) -> None:
+        pass
+
     def queue_combat_notice(self, entity: int | None, msg_id: int, value: dict) -> None:
         self.queue_reliable(msg_id, value)
 

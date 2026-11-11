@@ -22,6 +22,7 @@ from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
 from ow174.game.orisa_supercharger import DeviceWorld
 from ow174.game.script import (
     body_owner,
+    entity_link,
     data_flow,
     health_queries,
     entity_queries,
@@ -34,6 +35,7 @@ from ow174.game.script import (
     play,
     runtime,
     scopes,
+    spatial_queries,
 )
 from ow174.game.script.bot import AssassinControllerWorld, BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
@@ -161,6 +163,8 @@ _VALUE_LAYOUTS = {
     health_queries.StateCounter: ("value",),
     WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
     WheelSprayEvent: ("serial", "instance", "start", "node", "time", "choice", "values", "placement"),
+    entity_link.Context: ("owner", "instance_present", "environment_present", "lookup", "watch_environment", "watch_link", "retired"),
+    spatial_queries.Context: ("owner", "instance_present", "namespace_present", "query", "retired"),
     body_owner.Context: ("owner", "instance_present", "environment_present", "lookup",
                          "watch_environment", "watch_owner", "retired"),
     entity_queries.Context: ("owner", "namespace_present", "environment_present",
@@ -515,11 +519,12 @@ class _Export:
             fields = {"hero", "mode"}
             optional = ()
             if kind is BodyWorld:
-                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock")
+                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))
             if kind is BotWorld:
+                optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",
                                "controller_inputs", "heavy_counter_stuns"))
@@ -548,9 +553,9 @@ class _Export:
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
-                and type(obj.__self__) is BodyWorld
+                and type(obj.__self__) in (BodyWorld, BotWorld)
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
-                                     BodyWorld._poll_entity_query)):
+                                     BodyWorld._poll_entity_query, BodyWorld._query_spatial, BotWorld._lookup_entity_link)):
             return {"class": "builtins.method", "identity": self.identity(obj),
                     "owner": ["component", "world"], "function": _name(obj.__func__)}
         if kind is random.Random:
@@ -580,7 +585,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context):
+            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context, spatial_queries.Context, entity_link.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}

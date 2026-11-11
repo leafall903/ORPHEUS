@@ -12,6 +12,8 @@ from ow174.game.mover import Mover, mover_data
 from ow174.game.script import graph
 
 FIELD_ENTITY = 0x04000000000003E2
+INPUT_LOCK = "graviton"
+BOOSTERS_BUTTON = 0x08
 DAMAGE_PER_SECOND = 5.0  # 0261/node2
 PULL_SPEED = 3.0  # host interpretation of 0261/node15
 LOADOUT = 0x0B9000000000005B
@@ -119,7 +121,7 @@ class Gravitons:
         if entity not in self.pulled:
             return
         self.pulled.remove(entity)
-        mover = self.npc_movers.pop(entity, None) if npc else owner.mover
+        mover = (owner.control_mover or self.npc_movers.pop(entity, None)) if npc else owner.mover
         if mover is not None:
             mover.velocity = (0.0, 0.0, 0.0)
             mover.driven = False
@@ -130,11 +132,12 @@ class Gravitons:
         owner = target.owner
         npc = isinstance(owner, bots.Bot)
         if npc:
-            mover = self.npc_movers.get(owner.entity)
+            mover = owner.control_mover or self.npc_movers.get(owner.entity)
             if mover is None:
                 mover = Mover(owner.position, int(owner.yaw), self.fight._collision(), mover_data(owner.body))
                 self.npc_movers[owner.entity] = mover
-            mover.position[:] = owner.position
+            if owner.control_mover is None:
+                mover.position[:] = owner.position
         else:
             mover = owner.mover
         x, y, z = position

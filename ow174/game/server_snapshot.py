@@ -73,7 +73,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import body_owner, driver, entity_queries, expr, play, runtime
+from ow174.game.script import body_owner, driver, entity_link, entity_queries, expr, play, runtime, spatial_queries
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
@@ -118,7 +118,7 @@ FIELDS = {
                    "_mode_fragments _display_notices _pending_possessions _confirmed_possessions _npc_idle"),
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update historical_death"),
     Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends assembled players "
-                  "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
+                  "_body_messages body_components started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
@@ -129,7 +129,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
+        "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -224,6 +224,8 @@ FIELDS = {
         "hero mode mover body_entity match button_edges button_holders movement_bits candidates "
         "recovery_pending recovery_started"
     ),
+    entity_link.Context: _names("owner instance_present environment_present lookup watch_environment watch_link retired"),
+    spatial_queries.Context: _names("owner instance_present namespace_present query retired"),
     body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
                                "watch_owner retired"),
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
@@ -241,14 +243,16 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation impulse_mover"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation impulse_mover "
+        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb"
     ),
     npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
     npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
-    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock"),
+    BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context"),
+    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context"),
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
@@ -257,6 +261,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    combat.InputLock,
     zenyatta.Owner, zenyatta.Orb,
     pulse_bomb.CommandPoseAnchor,
     support_effects.Attachment, combat.Soundwave, sombra_control.Lock, sound_barrier.Shield, sound_barrier.Landing, sound_barrier.Wave, sound_barrier.Grant, lucio.Lease,

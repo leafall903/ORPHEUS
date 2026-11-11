@@ -128,6 +128,13 @@ class Bot:
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.owner = 0
+        self.pet_owner = None
+        self.source_body = 0
+        self.control_mover: Mover | None = None
+        self.control_buttons = 0
+        self.clock_offset = 0
+        self.detached_bomb = False
         self.navigation = None  # explicit manual pursuit state, allocated on first movement
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
@@ -168,7 +175,7 @@ class Bot:
         paused_until: int = 0, movement_mods: dict | None = None, pillars=(),
     ) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if self.dead:
+        if self.dead or self.control_mover is not None:
             return
         if not self.route and self.impulse_mover is None:
             if tick < paused_until:
@@ -202,6 +209,10 @@ class Bot:
         if len(impulse) != 3 or not all(math.isfinite(value) for value in impulse):
             raise ValueError("invalid external impulse")
         if self.dead:
+            return
+        if self.control_mover is not None:
+            self.control_mover.apply_impulse(impulse)
+            self.velocity = self.control_mover.velocity
             return
         if self.impulse_mover is None:
             if self.navigation is not None:

@@ -2630,6 +2630,15 @@ class Wait(State):
             self.start = self.now
             self.arm()
 
+    def reschedule(self, at: int) -> None:
+        """Anchor a newly armed fixed wait to a later host event."""
+        self.start = at
+        self.instance.queue = [
+            event for event in self.instance.queue
+            if not (event.state is self and event.kind == TIMER and event.param == 1)
+        ]
+        self.timer_at(at - self.now + self.ms, 1)
+
     def timer(self, param: int) -> None:
         if param == 1:
             self.request_finish()
@@ -2828,9 +2837,56 @@ class ChaseVar(State):
             self.on_end(False)
             self.on_enter()
 
-    def destination(self):
-        value = self.evaluate(_field(self, "m_destination"))
+    def destination(self, *, watch=True):
+        value = self.evaluate(_field(self, "m_destination"), watch=watch)
         return value if isinstance(value, Vec3) else to_float(value)
+
+    def step_size(self, dt: int, *, watch=True) -> float:
+        field = _field(self, "m_9B0385B4")
+        rate = to_float(self.evaluate(field, watch=watch)) if field else 1.0
+        return f32(f32(f32(rate * MS) * dt) + EPSILON) if rate > 0 else 0.0
+
+    def reaches_at(self, at: int) -> bool:
+        """Check the current chase at a later time without advancing the graph."""
+        dt = at - self.last
+        if self.reached or dt <= 0:
+            return self.reached
+        if self.remaining is not None:
+            return self.remaining <= dt
+        step = self.step_size(dt, watch=False)
+        return step > 0 and self._step(self.cur, self.destination(watch=False), step)[1]
+
+    def advance_to(self, at: int) -> None:
+        dt = at - self.last
+        if dt <= 0:
+            return
+        self.last = at
+        if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):
+            return
+        dest = self.destination()
+        # This persistent chase must restart if the selected defender moves.
+        if self.reached and dest == self.cur:
+            return
+        before = self.var.value() if self.var else None
+        if self.remaining is not None:
+            if self.remaining <= dt:
+                self.cur = dest
+                self.reached = True
+            else:
+                share = f32(dt / self.remaining)
+                self.cur = self._lerp(self.cur, dest, share)
+                self.remaining -= dt
+        else:
+            rate = to_float(self.evaluate(_field(self, "m_9B0385B4"))) if _field(self, "m_9B0385B4") else 1.0
+            if rate > 0:
+                step = f32(f32(f32(rate * MS) * dt) + EPSILON)
+                self.cur, self.reached = self._step(self.cur, dest, step)
+        if self.var is not None:
+            self.instance.changed(self.var, before)
+        if self.reached:
+            self.timer_at(0, 3, transient=True)
+            if not _field(self, "m_CB671004"):
+                self.request_finish()
 
     def tick(self) -> None:
         dt = self.now - self.last
@@ -3113,6 +3169,12 @@ class MoveTo(State):
 
     def on_end(self, finished: bool) -> None:
         self.movement = None
+        if finished and self.instance.graph.index == 0x26A and self.node.pos == 200:
+            match = self.instance.component.world.match
+            if match is not None:
+                from ow174.game import body_entities
+
+                body_entities.begin_control(match, self.instance)
 
 
 @state_class("STUStatescriptStateAnim")
@@ -3229,8 +3291,8 @@ class Ability(State):
         scalar = _field(self, "m_F7CAF887")
         return f32(rate * to_float(self.evaluate(scalar, watch=False))) if scalar is not None else rate
 
-    def restart(self) -> None:
-        """The cooldown from the variable's value now (a write to it restarts it)."""
+    def restart(self, *, at: int | None = None) -> None:
+        """Restart cooldown from the current or explicitly retained host time."""
         target = lvalue(_field(self, "m_out_CooldownVar"))
         if target is None:
             return
@@ -3239,13 +3301,13 @@ class Ability(State):
             var.links = [item for item in var.links if item.state is not self]
         self.cur = max(0.0, to_float(var.base))
         self.cooldown_rate = self.rate()
-        self.last = self.now
+        self.last = self.now if at is None else at
         self.cooldown_observed = self.cur
         self.var = self.link(target)
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
         if self.cur > 0 and self.cooldown_rate > 0:
-            self.timer_at(max(1, round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate))), 2)
+            self.timer_at(max(1, self.last - self.now + round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate))), 2)
 
     def remaining(self) -> float:
         return max(0.0, f32(f32(f32(f32(self.now - self.last) * -MS) * self.cooldown_rate) + self.cur))
@@ -5579,12 +5641,17 @@ def message_params(instance: Instance, node) -> dict:
 def send(instance: Instance, node, caller) -> None:
     """Send a game message to each target, through the world for other entities."""
     message = play._asset(play.evaluate_scalar(instance, node.fields.get("m_gameMessage")))
+    if not message and isinstance(node.fields.get("m_gameMessage"), dict):
+        message = expr.guid_of(node.fields["m_gameMessage"].get("m_gameMessage"))
     if not message:
         return
     params = message_params(instance, node)
     component: Component = instance.component
     targets = node.fields.get("m_targets", node.fields.get("m_target"))
-    target = instance.evaluate(targets) if targets is not None else expr.Entity(component.entity)
+    if isinstance(targets, dict) and targets.get("$") == "STU_06610EBC":
+        target = play.evaluate_value(instance, targets)
+    else:
+        target = instance.evaluate(targets) if targets is not None else expr.Entity(component.entity)
     if isinstance(target, tuple):
         entities = (
             item.id for item in target if isinstance(item, expr.Entity) and expr.valid_entity(item.id)
@@ -5723,6 +5790,23 @@ def create_entity(instance: Instance, node, caller) -> bool:
 
 @handler("STU_B6E3C77D")
 def create_world_entity(instance: Instance,node,caller) -> bool | NotImplementedType:
+    component = instance.component
+    world = component.world
+    create_body = getattr(world, "create_body", None)
+    if create_body is not None:
+        result = create_body(instance, node)
+        if result is not NotImplemented:
+            component.ensure_valid()
+            if (component.world is not world or instance.stopped or instance.teardown
+                    or component.instances.get(instance.id) is not instance):
+                component.unsupported(instance, "body creation owner retired", node.cls, node)
+            if type(result) is not Entity or not 0 <= result.id <= 0xFFFFFFFF:
+                component.unsupported(instance, "body creation identity", node.cls, node)
+            target = lvalue(node.field("m_B3019338"))
+            if target is not None:
+                instance.write(target, result)
+            instance.follow(node, "m_outPlug", None)
+            return True
     if not instance.component.strict:
         result = spawn_deployable(instance, node, caller)
         if result is not NotImplemented:

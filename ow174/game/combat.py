@@ -99,12 +99,12 @@ NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6,
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
 from ow174.game.collision import MOVER, RayWorld, World
-from ow174.game.commands import Command
+from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
 from ow174.game.content import JUNKENSTEIN_SHOCKING_SURPRISE, heroes
 from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, STEP, Mover, clamp_linked_target_command, mover_data, quantise
 from ow174.game.props import ModelPose
-from ow174.game.script import expr, graph, message_receive, nodes, regeneration, runtime
+from ow174.game.script import entity_link, entity_queries, expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
 from ow174.game.script.driver import OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
@@ -917,6 +917,7 @@ class Frost:
 
     sources: dict[int, tuple[float, int]] = field(default_factory=dict)
     frozen_until: int = 0
+    frozen_aim: tuple[int, int] | None = None
 
     def progress(self, tick: int) -> float:
         if tick < self.frozen_until:
@@ -1437,8 +1438,171 @@ class PendingAttack:
     payload: RangedContact | MeleeContact | Rocket
 
 
+class DvaImpulseContext(runtime.InstanceContext):
+    """Resolve the impulse's pet selector for a directly controlled mech."""
+
+    def __init__(self, instance):
+        super().__init__(instance, None)
+
+    def native(self, cfg: dict):
+        result = super().native(cfg)
+        if cfg.get("$") == entity_queries.POSSESSED and not expr.valid_entity(expr.to_entity(result)):
+            linked = cfg.get("m_entity") or {}
+            owner = linked.get("m_D63CBEC2") or {}
+            if linked.get("$") == entity_link.CLASS and owner.get("$") == "STU_B5A0CAF0":
+                # A directly selected 0407 is already the controller's body
+                # for the ruleset lookup. Keep this substitution local.
+                return expr.Entity(self.instance.component.entity)
+        return result
+
+@dataclass
+class InputLock:
+    effect: int | str
+    start: int
+    end: int | None
+    aim: tuple[int, int] | None = None
+
+
 class Combat:
     """The match's health, hits, deaths and respawns."""
+
+    def expose_body(self, body: int, tick: int) -> None:
+        """Start a targetable interval, separate from the rolling pose history."""
+        self.history.pop(body, None)
+        self.input_locks.pop(body, None)
+        self.replacement_ticks[body] = tick
+
+    def movement_mods(self, actor, active: dict, *, tick: int | None = None) -> dict:
+        frost = self.frost_hits.get(_source_entity(actor))
+        at = (self.tick if tick is None else tick)
+        progress = frost.progress(at) if frost is not None else 0.0
+        if progress > 0:
+            active[(-1, 0, 0)] = (0, 1, max(.3, 1.0 - progress), 99.0)
+        return active
+
+    def record_input_lock(self, entity, effect, end, aim=None) -> None:
+        history = self.input_locks.setdefault(entity, [])
+        for lock in reversed(history):
+            if lock.effect == effect and (lock.end is None or self.tick < lock.end):
+                lock.end = end
+                return
+        history.append(InputLock(effect, self.tick, end, aim))
+
+    def close_input_lock(self, entity, effect) -> None:
+        for lock in reversed(self.input_locks.get(entity, ())):
+            if lock.effect == effect and (lock.end is None or self.tick < lock.end):
+                lock.end = self.tick
+                break
+
+    def suppress_input(self, actor, command: Command, *, tick: int, active: bool) -> tuple[Command, bool]:
+        """Return admitted input and whether combat reports are fully suppressed."""
+        from ow174.game.script.driver import MAX_GAP
+
+        entity = _source_entity(actor)
+        movement_locked = entity in self.zarya_gravitons.pulled
+        aim = None
+        if active:
+            frost = self.frost_hits.get(entity)
+            if frost is not None and tick < frost.frozen_until:
+                aim = frost.frozen_aim
+        elif command.frame >= tick - MAX_GAP:
+            # Command frames share the packet frame epoch. This gates input
+            # only; pose effects still use the live world tick.
+            locked = []
+            if command.frame < tick:
+                for lock in self.input_locks.get(entity, ()):
+                    if lock.start <= command.frame and (lock.end is None or command.frame < lock.end):
+                        if lock.effect == graviton.INPUT_LOCK:
+                            movement_locked = True
+                        else:
+                            locked.append(lock)
+            if not locked:
+                if movement_locked:
+                    buttons = JUMP | (graviton.BOOSTERS_BUTTON if isinstance(actor, bots.Bot) else 0)
+                    if command.buttons & buttons or command.forward or command.right:
+                        command = replace(command, buttons=command.buttons & ~buttons, forward=0, right=0)
+                return command, False
+            aim = next((lock.aim for lock in reversed(locked) if lock.aim is not None), None)
+        # Frames older than the retained history also advance without input.
+        if aim is not None:
+            yaw, pitch = aim
+            return replace(command, yaw=yaw, pitch=pitch, click_yaw=None, click_pitch=None,
+                           buttons=0, action=0, forward=0, right=0), True
+        return replace(command, buttons=0, action=0, forward=0, right=0), True
+
+    def controlled_mech_command(self, bot, command, snapshot, stunned, quanta) -> None:
+        script = bot.body_script
+        shots, script.component.shots[:] = list(script.component.shots), []
+        if not stunned:
+            for state, number, time, activation in shots:
+                try:
+                    self._shoot(bot, command, state, number, time, activation=activation,
+                                snapshot=snapshot or script.latest_live, command_quanta=quanta)
+                except Exception:
+                    log.exception("[game] %s: %s's controlled shot failed", self.match.label(), bot.name)
+            self._melee(bot, command, script, quanta)
+            if bot.entity not in self.zarya_gravitons.pulled:
+                self._booster_contact(bot, command, script)
+        if snapshot is not None:
+            for viewer in self.match.players:
+                if viewer.spawned and viewer.client is not None:
+                    viewer.client.queue_bot_live(bot.entity, snapshot)
+
+    def _booster_contact(self, player, command, script) -> None:
+        """Consume 047E's live tracking and damage states using current capsules and static LOS."""
+        mover = player.control_mover if isinstance(player, bots.Bot) else player.mover
+        entity = script.component.entity
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x047E:
+                continue
+            track, modify = instance.states.get(6), instance.states.get(7)
+            if track is None or modify is None or not (track.active and modify.active):
+                continue
+            offset = track.evaluate(track.node.field("m_05BE62DD"), watch=False)
+            radius = _number(track.evaluate(track.node.field("m_radius"), watch=False), 0.0)
+            amount = _number(modify.evaluate(modify.node.field("m_modifyHealth.m_amount"), watch=False), 0.0)
+            loadout = modify.evaluate(modify.node.field("m_modifyHealth.m_loadout"), watch=False)
+            loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
+            if not isinstance(offset, expr.Vec3) or radius <= 0 or amount <= 0:
+                continue
+            # The graph provides a scaled local offset. Resolve its orientation
+            # from the current mover look until the engine transform is available.
+            yaw, pitch = mover.yaw, mover.pitch
+            centre = _along(mover.position, aim(yaw - 16384, 0), offset.x)
+            centre = _along(centre, aim(yaw, pitch - 16384), offset.y)
+            centre = _along(centre, aim(yaw, pitch), offset.z)
+            activation = instance.id, modify.counter
+            contacts = self.booster_contacts.get(entity)
+            if contacts is None or contacts[:2] != activation:
+                contacts = self.booster_contacts[entity] = (*activation, set())
+            hit = contacts[2]
+            for target in self._enemies(player):
+                if target.entity in hit:
+                    continue
+                a, b = target.segment()
+                if (segment_distance(centre, a, b) > radius + target.radius
+                        or not capsule_visible(self._collision(), self._eye(player), a, b, target.radius)):
+                    continue
+                hit.add(target.entity)
+                dealt = self._damage(
+                    player, target, amount, False, loadout, command.frame,
+                    hit_tags=health_tags(modify, modify.node.field("m_modifyHealth")),
+                )
+                vitals = self.vitals.get(target.entity)
+                if dealt and vitals is not None and not vitals.dead:
+                    self._booster_impulse(mover, target, modify)
+            return
+        self.booster_contacts.pop(entity, None)
+
+    def _booster_impulse(self, mover, target: Target, modify) -> None:
+        context = DvaImpulseContext(modify.instance)
+        horizontal = _number(expr.evaluate(modify.node.field("m_modifyHealth.m_E33EFEE1"), context), 0.0)
+        vertical = _number(expr.evaluate(modify.node.field("m_modifyHealth.m_583C208B"), context), 0.0)
+        if horizontal or vertical:
+            from ow174.game import assassin
+
+            self.clear_pins(target.entity)
+        self._radial_impulse(target, mover.position, horizontal, vertical)
 
     def __init__(self, match) -> None:
         self.match = match
@@ -1447,6 +1611,8 @@ class Combat:
         self.wheel_actor_admits: Callable[[int, int, int, int, int], bool] | None = self._wheel_base_actor_admits
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
+        self.input_locks = {}
+        self.booster_contacts = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
         self.pending_attacks: list[PendingAttack] = []
@@ -1634,11 +1800,16 @@ class Combat:
 
     def retire_player_body(self, player) -> None:
         """Discard body-local combat state when the player's current body retires."""
+        from ow174.game import body_entities
+
+        body_entities.retire_source(self.match, player.entity, player.body)
         player.clear_valkyrie_pose()
         self.pending_attacks[:] = [attack for attack in self.pending_attacks if attack.shooter is not player]
         self.projectiles.retire_fields(player)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != player.body]
         self.recalls.retire(player.body)
+        self.input_locks.pop(player.body, None)
+        self.booster_contacts.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2817,14 +2988,15 @@ class Combat:
         if vertical > 0:
             mover.flags_word |= FELL
 
-    def _melee(self, player, command, script) -> None:
+    def _melee(self, player, command, script, command_quanta=None) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
         m_radius 1.0 at (0, 0, 1.5) from the eye (DATA; unverified: along the aim), #476 = 30 damage (DATA),
         once per activation of st4. The server cannot run TrackTargets itself (the VM finds nothing)."""
         from ow174.game import assassin, mccree
 
         for instance in script.component.instances.values():
-            if player.hero.guid == barrier.REINHARDT and instance.graph.index == 0x48:
+            hero = getattr(player.hero, "guid", player.hero)
+            if hero == barrier.REINHARDT and instance.graph.index == 0x48:
                 self._hammer(player, command, script, instance)
                 continue
             spec = MELEE.get(instance.graph.index)
@@ -2848,14 +3020,15 @@ class Combat:
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
             from ow174.game.script import charge
 
-            charge_context = charge.damage_context(script, state, modify)
+            charge_context = charge.damage_context(script, state, modify) if isinstance(script, BodyScript) else None
             origin, direction = self._eye(player), aim(*command.aim())
-            ring = knockback.quick_melee_ring(state) if player.hero.guid == lucio.HERO else None
+            ring = knockback.quick_melee_ring(state) if hero == lucio.HERO else None
             centre = _along(origin, direction, reach)
-            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            quanta = player.quanta if command_quanta is None else command_quanta
+            view_tick = command.frame - command.view_delay(quanta) * 1e6 / quanta
             self._submit_attack(player, command.frame, MeleeContact(
                 HitDef(amount, loadout), origin, centre, radius, view_tick, charge_context,
-                health_tags(state, modify), state, ring, player.hero.guid == mccree.HERO, direction,
+                health_tags(state, modify), state, ring, hero == mccree.HERO, direction,
             ))
 
     def _resolve_melee(self, shooter, frame, contact, amount, boost):
@@ -3305,6 +3478,8 @@ class Combat:
         for player in self.match.players:
             if not (player.has_body and player.spawned and player.client is not None):
                 continue
+            if player.controlled_mech is not None:
+                continue
             data = mover_data(player.hero.body)
             crouched = player.mover.crouched
             height = data.crouch_height if crouched else data.stand_height
@@ -3319,10 +3494,15 @@ class Combat:
                        player, head_offset=head_offset)
             )  # fmt: skip
         for bot in self.match.bots:
+            if bot.detached_bomb:
+                continue
             data = mover_data(bot.body)
+            controlled = bot.control_mover
+            crouched = controlled is not None and controlled.crouched
             found.append(
                 Target(
-                    bot.entity, bot.team, tuple(bot.position), data.stand_height, data.stand_radius, EYE, bot
+                    bot.entity, bot.team, tuple(bot.position), data.crouch_height if crouched else data.stand_height,
+                    data.stand_radius, EYE if controlled is None else eye_height(bot.body, crouched), bot
                 )
             )
         for actor in self.deployables.values():
@@ -3929,6 +4109,8 @@ class Combat:
 
         host = getattr(self.match, 'scene_host', None)
         for bot in self.match.bots:
+            if bot.control_mover is not None:
+                continue
             if host is not None and (bot.entity in host.weapons or host.combatant_component(bot) is not None):
                 continue
             script = bot.body_script
@@ -3976,7 +4158,8 @@ class Combat:
     def _eye(self, player) -> tuple:
         if isinstance(player, bots.Bot):
             x, y, z = player.position
-            return x, y + EYE, z
+            height = EYE if player.control_mover is None else eye_height(player.body, player.control_mover.crouched)
+            return x, y + height, z
         x, y, z = player.mover.position
         crouched = player.mover.crouched
         height = eye_height(player.hero.body, crouched)
@@ -4111,7 +4294,7 @@ class Combat:
 
     def _shoot(
         self, shooter, command, state, number: int, time: int,
-        *, activation: tuple[int, int], snapshot: Snapshot | None = None, launch_tick: int | None = None,
+        *, activation: tuple[int, int], snapshot: Snapshot | None = None, launch_tick: int | None = None, command_quanta=None,
     ) -> None:
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
@@ -4391,7 +4574,8 @@ class Combat:
         # The input supplies this simulation frame's aim and view time. Notices use the volley clock.
         view_tick = self.tick if launch_tick is None else launch_tick
         if command is not None:
-            view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
+            quanta = shooter.quanta if command_quanta is None else command_quanta
+            view_tick = command.frame - command.view_delay(quanta) * 1e6 / quanta
             if not npc and shooter.hero.guid == 0x02E000000000006E:
                 direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
@@ -6751,6 +6935,8 @@ class Combat:
         source_scaled: bool = False, damage_charge=None, boost_credit=None,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
+        if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
+            return False
         vitals = self.vitals_of(target)
         if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
                 or immunity.wraith_active(target.owner, target.entity) or moira.fading(target.owner)
@@ -6817,6 +7003,15 @@ class Combat:
                 vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
             )
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
+        if isinstance(shooter, bots.Bot) and (credit := self._credit_player(shooter)) is not None:
+            if target.owner is not shooter:
+                flags = (CRITICAL if critical else 0) | (KILLING if vitals.dead else 0)
+                self._tell_hit(credit, target, dealt, flags, frame)
+                credit.stats.add(stats.HERO_DAMAGE, dealt)
+            if award_ult:
+                from ow174.game import dva
+
+                dva.charge_damage(credit, shooter, dealt - extra)
         if boost_credit is not None and extra > EPSILON:
             from ow174.game.script import charge
 
@@ -6951,6 +7146,12 @@ class Combat:
                 runtime.send_instance_message(instance, message, {parameter: expr.Entity(entity)}, body)
                 script.component.run_now()
 
+    def _credit_player(self, actor):
+        if not isinstance(actor, bots.Bot):
+            return actor
+        player = self.match._message_player(actor.source_body) if actor.owner else None
+        return player if player is not None and player.entity == actor.owner else None
+
     def _tell_hit(self, shooter, target: Target, dealt: float, flags: int, frame: int) -> None:
         """Send the shooter's hit marker and target health bar using the hit's source frame."""
         value = {
@@ -7040,6 +7241,9 @@ class Combat:
             killer.stats.add(stats.ELIMINATIONS)
             if not deadeye or not self._defer_deadeye_notice(killer, bot):
                 self._kill_notice(killer, bot, source=source)
+        elif (credit := self._credit_player(killer)) is not None:
+            credit.stats.add(stats.ELIMINATIONS)
+            self._kill_notice(credit, bot, source=source)
         log.info("[game] %s: %s killed %s", self.match.label(), killer.name, bot.name)
         if component is not None:
             component.owner_dead = True
@@ -7061,6 +7265,10 @@ class Combat:
             if isinstance(script, BotScript):
                 tick = max(tick, script.frame)
             event = script.die(tick, params, source)
+            if bot.owner:
+                from ow174.game import body_entities
+
+                body_entities.queue_demech_return(self.match, bot)
         except Exception:
             bot.body_script = None
             log.exception("[game] %s: %s's body script failed on %X", self.match.label(), bot.name, DIED)
@@ -7088,6 +7296,9 @@ class Combat:
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
         """Dispatch notices, authored death, and the respawn."""
+        from ow174.game import body_entities
+
+        body_entities.retire_source(self.match, victim.entity, victim.body, keep_bombs=True)
         self.sombra_controls.retire(victim.body)
         self.sound_barriers.retire(victim.body)
         victim.clear_valkyrie_pose()
@@ -7118,6 +7329,9 @@ class Combat:
         victim.stats.add(stats.DEATHS)
         player_killer = not isinstance(killer, (bots.Bot, SceneHazard))
         source = _source_entity(killer) if source is None else source
+        if isinstance(killer, bots.Bot) and (credit := self._credit_player(killer)) is not None:
+            credit.stats.add(stats.ELIMINATIONS)
+            self._kill_notice(credit, victim, source=source)
         if killer is not victim and player_killer:
             killer.stats.add(stats.ELIMINATIONS)
             self._kill_notice(killer, victim, source=source)

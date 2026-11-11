@@ -375,3 +375,104 @@ def matrix_distance(player, origin, direction, reach, anchor, forward):
             if hit is not None and (best is None or hit < best):
                 best = hit
     return best
+
+
+from ow174.game.mover import REPEAT
+from ow174.game.script import nodes
+
+def matrix_active(script):
+    return next(_active_states(script, 0x02CC, 3), None) is not None
+
+
+def matrix_abilities(script):
+    for volume in _active_states(script, 0x02CC, 3):
+        ability = volume.instance.states.get(0)
+        if isinstance(ability, nodes.Ability) and ability.remaining() == 0:
+            yield ability, volume
+
+
+def _matrix_release_at(instance):
+    component = instance.component
+    ability = instance.states.get(0)
+    tap = instance.states.get(26)
+    release = None
+    if isinstance(ability, nodes.Ability) and ability.held(29):
+        # Gap recovery releases held input at the start of the first neutral frame.
+        release = component.now + REPEAT * component.frame_ms + 1
+    if isinstance(tap, nodes.Wait) and tap.active:
+        release = max(release or tap.start, tap.start + tap.ms)
+    return release
+
+
+def matrix_close_before(instance, at):
+    """Find a projected natural close before a forced-control event."""
+    release = _matrix_release_at(instance)
+    if release is not None and release > at:
+        release = None
+    drain = instance.states.get(45)
+    end = at if release is None else release
+    if not isinstance(drain, nodes.ChaseVar) or not drain.active or not drain.reaches_at(end):
+        return release
+    # The authored chase is monotonic. Find the first millisecond at zero.
+    start = instance.component.now
+    while start < end:
+        middle = (start + end) // 2
+        if drain.reaches_at(middle):
+            end = middle
+        else:
+            start = middle + 1
+    return start
+
+
+def settle_matrix_drain(ability, close, *, natural):
+    drain = ability.instance.states.get(45)
+    if isinstance(drain, nodes.ChaseVar) and drain.active:
+        sample = close
+        if natural and not drain.reaches_at(close):
+            # A release event exits the chase before its next poll.
+            frame_ms = ability.instance.component.frame_ms
+            frame_start = close - close % frame_ms
+            sample = frame_start - 1 if frame_start == close else frame_start
+        drain.advance_to(sample)
+
+
+def anchor_matrix_close(ability, close, *, recharge):
+    if ability.remaining() > 0:
+        ability.restart(at=close)
+    if recharge:
+        wait = ability.instance.states.get(21)
+        if isinstance(wait, nodes.Wait) and wait.active and wait.start == ability.now:
+            wait.reschedule(close)
+
+
+def recover_matrix_close(script, before):
+    """Settle a projected close in the omitted prefix of a long command gap."""
+    for ability, _ in tuple(matrix_abilities(script)):
+        instance = ability.instance
+        close = matrix_close_before(instance, before)
+        if close is None:
+            continue
+        settle_matrix_drain(ability, close, natural=True)
+        ability.presses.clear()
+        instance.run_node(instance.graph.node(97), None)
+        instance.component.run_now()
+        anchor_matrix_close(ability, close, recharge=True)
+
+
+def recover_matrix_recharge(script, before):
+    """Start authored recharge at its deadline if the next VM frame skips it."""
+    component = script.component
+    for instance in tuple(component.instances.values()):
+        if instance.graph.index != 0x02CC:
+            continue
+        wait = instance.states.get(21)
+        if not isinstance(wait, nodes.Wait) or not wait.active:
+            continue
+        deadline = wait.start + wait.ms
+        if component.now < deadline < before:
+            previous = component.now
+            try:
+                component.now = deadline
+                instance.update()
+            finally:
+                component.now = previous

@@ -364,6 +364,12 @@ class InstanceContext(Context):
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         cls = cfg.get("$")
+        from ow174.game.script import spatial_queries
+
+        if cls in spatial_queries.INTERFACES:
+            result = spatial_queries.evaluate(self, cfg)
+            if result is not NotImplemented:
+                return result
         if cls == "STU_A6B80C63":
             from ow174.game.script import play
 
@@ -389,7 +395,7 @@ class InstanceContext(Context):
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import (
-            body_owner, controller_heroes, controller_queries, entity_filter, entity_queries, entity_team, health_queries,
+            body_owner, controller_heroes, controller_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries,
         )
 
         component = self.instance.component
@@ -405,6 +411,8 @@ class InstanceContext(Context):
             from ow174.game import orisa_charge
 
             result = orisa_charge.native(component.world, cfg, self.instance)
+        if result is NotImplemented:
+            result = entity_link.evaluate(self, cfg)
         if result is NotImplemented:
             result = body_owner.evaluate(self, cfg)
         if result is NotImplemented:
@@ -1010,6 +1018,12 @@ class World:
         return False
 
     def create_entity(self, instance, node):
+        return NotImplemented
+
+    def spatial_query_context(self, entity):
+        return NotImplemented
+
+    def entity_link_context(self, entity):
         return NotImplemented
 
     def confirm_portal(self, state):

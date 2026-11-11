@@ -239,6 +239,16 @@ _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulativ
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
 
 
+def charge_ultimate(component, seconds, running):
+    if seconds <= 0 or running:
+        return
+    cost = expr.to_float(component.entity_var(ULT_COST).value())
+    charge = expr.to_float(component.entity_var(ULT_CHARGE).value())
+    if cost > 0 and charge < cost:
+        step = f32(cost * component.frame_ms / (1000.0 * seconds))
+        component.set(ULT_CHARGE, min(cost, f32(charge + step)))
+
+
 def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int, bool]]:
     """The logical-button edges of one command (0x7FF789C66AA0): one per changed bit, pressed = the bit is
     now set; an action byte presses and releases its button."""
@@ -295,6 +305,10 @@ class BodyWorld(runtime.World):
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.zenyatta_charge_ammo = None
         self.match: Match | None = None
+        if hero == 0x02E000000000007A:
+            from ow174.game.script import spatial_queries
+
+            self._spatial_query_context = spatial_queries.Context(body, True, True, query=self._query_spatial)
         self._body_owner_context = body_owner.Context(
             body, True, True, lookup=self._lookup_body_owner,
             watch_environment=self._poll_entity_query, watch_owner=self._poll_entity_query,
@@ -306,6 +320,25 @@ class BodyWorld(runtime.World):
                 body, True, True, True, lookup=self._lookup_entity_query,
                 watch_environment=self._poll_entity_query, watch_possession=self._poll_entity_query,
             )
+
+    def _query_spatial(self, cls, entity):
+        from ow174.game.mover import mover_data
+        from ow174.game.script.spatial_pose import match_vector
+
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone or not player.has_body or player.body != entity:
+                continue
+            mover = player.mover
+            return match_vector(cls, mover.position, mover.yaw, mover.pitch,
+                                mover._pogo(), mover.spring)
+        for bot in match.bots:
+            if bot.entity == entity:
+                return match_vector(cls, bot.position, round(bot.yaw), round(bot.pitch),
+                                    mover_data(bot.body).stand_pogo)
+        return None
 
     def _poll_entity_query(self, *_):
         """Native dependency consumers are re-evaluated by the frame poll."""
@@ -335,6 +368,9 @@ class BodyWorld(runtime.World):
         for player in self.match.players:
             if not player.gone and player.has_body and player.body == entity:
                 return body_owner.Target(entity, player.entity)
+        for bot in self.match.bots:
+            if bot.entity == entity and bot.owner:
+                return body_owner.Target(entity, bot.owner)
         if self._lookup_entity_query(entity) is not None:
             return body_owner.Target(entity, None)
         return None
@@ -444,6 +480,11 @@ class BodyWorld(runtime.World):
             return NotImplemented
         return self._body_owner_context
 
+    def spatial_query_context(self, entity):
+        if self.match is not None and entity == self.body:
+            return getattr(self, "_spatial_query_context", NotImplemented)
+        return NotImplemented
+
     def entity_query_context(self, entity):
         if self.match is None or entity != self.body or self._entity_query_context is None:
             return NotImplemented
@@ -452,6 +493,9 @@ class BodyWorld(runtime.World):
     def _body_component(self, entity):
         if self.match is None:
             return None
+        registered = self.match.body_components.get(entity)
+        if registered is not None:
+            return registered
         for player in self.match.players:
             if not player.gone and player.has_body and player.body == entity:
                 script = player.body_script
@@ -615,6 +659,13 @@ class BodyWorld(runtime.World):
             if barrier_actor is not None:
                 barrier_actor.retire_child()
 
+    def create_body(self, instance, node):
+        from ow174.game import body_entities
+
+        if self.match is None or instance.component.entity != self.body:
+            return NotImplemented
+        return body_entities.create_mech(self.match, instance, node)
+
     def create_world_entity(self, instance, node):
         if self.match is not None:
             fight = self.match.combat
@@ -752,6 +803,18 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
+
+        if self.hero == 0x02E000000000007A and self.match is not None:
+            from ow174.game import body_entities
+
+            primary = body_entities.primary_query(self, cfg, instance)
+            if primary is not NotImplemented:
+                return primary
+            if cfg.get("$") == "STU_71A87E92" and instance is not None and instance.graph.index == 0x026A:
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                point = self.match.script_body_position(entity, self.body)
+                if point is not None:
+                    return point
 
         if instance is not None and instance.graph.index == ultimate.CHARGE_GRAPH and ultimate.practice_timer(self):
             result = ultimate.tagged_damage_query(self, cfg, instance)
@@ -1193,6 +1256,13 @@ class BodyWorld(runtime.World):
 
     def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
         from ow174.game.script import play, play_queue
+
+        if self.match is not None:
+            from ow174.game import body_entities
+
+            result = body_entities.play_cleanup(self.match, instance, node)
+            if result is not NotImplemented:
+                return
 
         index = WHEEL_PLAY_GRAPHS.get((instance.graph.index, node.pos))
         if not self.communication_wheel or index is None:
@@ -1758,7 +1828,14 @@ class BodyScript(ReplicatedBody):
         self.support_healing = []
         initial_pools = (pools.body_pools(hero) if body_definition is None
                          else pools.active_pools(hero, body_definition))
-        self._spawn(start_frame, sum(initial_pools) if health is None else health)
+        if match is not None:
+            match.register_body_component(self.component)
+        try:
+            self._spawn(start_frame, sum(initial_pools) if health is None else health)
+        except Exception:
+            if match is not None:
+                match.unregister_body_component(self.component)
+            raise
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -2254,6 +2331,8 @@ class BodyScript(ReplicatedBody):
             for state in list(instance.states.values()):
                 if isinstance(state, nodes.TargetEffects):
                     state.clear_children()
+        if self.world.match is not None:
+            self.world.match.unregister_body_component(self.component)
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

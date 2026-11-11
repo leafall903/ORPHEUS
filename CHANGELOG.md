@@ -4,6 +4,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered owned D.Va bodies and command routing
+
+- Preserve the source body factory, linked-identity and spatial helpers, placement
+  module and complete original owned-body check file. Create0407 with its authored
+  pools/graphs and direct owner before initialization; keep control routing separate
+  from the retained pilot's native identity. Use existing external0407 supplements
+  in place without adding game data to Git.
+- Route commands to the existing mech VM/mover, preserve recovered input and Matrix
+  timing entry points, and return to the live pilot on lethal demech. Credit the
+  controlling player for owned-body hits, damage, charge and eliminations. Reuse
+  the authoritative mover for external impulses and Graviton pull/release.
+- Register live body components and retain typed body/link/spatial contexts in
+  passive snapshots. Route collected recipient groups, validate both queued script
+  identities and the return sender, and withdraw failed child initialization.
+  Share NPC cleanup without removing unrelated bodies; stale retired targets
+  cannot recreate authoritative health. Keep the combined persistent2B72 chase.
+- Focused creation/fire, lethal return, recovered input, message/rollback,
+  retirement and storage checks passed after the recorded integration fixes.
+  The final mixed message/NPC/Echo/storage run passed all56 checks; all13 existing
+  runtime checks and both retained-input checks passed. A direct force probe
+  confirmed one mover for owned-body impulse and Graviton pull/release.
+- Call Mech placement execution, Self-Destruct blast/fuse hosting and remaining
+  cross-hero/body services still require source reconciliation. Preserve this
+  implementation now without claiming whole-line or original-client acceptance.
+
 ### Preserve delivered D.Va weapon consumers and launch arithmetic
 
 - Mount the original D.Va weapon policy, Fusion ring sampler and104319 aim

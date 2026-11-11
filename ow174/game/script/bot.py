@@ -8,8 +8,8 @@ from ow174.game.bots import FIRING
 from ow174.game.collision import NOT_GROUND
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.mover import mover_data
-from ow174.game.script import expr, graph, play, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs, create_initial_graphs
+from ow174.game.script import body_owner, entity_link, entity_queries, expr, graph, play, runtime
+from ow174.game.script.driver import BodyWorld, OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs, create_initial_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -256,6 +256,57 @@ class AssassinControllerWorld(runtime.World):
 class BotWorld(runtime.World):
     """Resolve the supported authored predicates and input bindings for an NPC body."""
 
+    _lookup_body_owner = BodyWorld._lookup_body_owner
+    _lookup_entity_query = BodyWorld._lookup_entity_query
+    _poll_entity_query = BodyWorld._poll_entity_query
+    _body_component = BodyWorld._body_component
+    _query_spatial = BodyWorld._query_spatial
+    spatial_query_context = BodyWorld.spatial_query_context
+
+    def body_owner_context(self, entity):
+        if getattr(self, "body", None) == entity and self.match is not None:
+            return self._body_owner_context
+        return NotImplemented
+
+    def entity_query_context(self, entity):
+        if getattr(self, "body", None) == entity and self.match is not None:
+            return self._entity_query_context
+        return NotImplemented
+
+    def entity_link_context(self, entity):
+        if self.match is None or entity != getattr(self, "body", None):
+            return NotImplemented
+        return self._entity_link_context
+
+    def _lookup_entity_link(self, entity):
+        if self.match is None:
+            return None
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                # Only a declared decoded component field is a known input.
+                # Do not infer another body's pet relation from direct ownership.
+                if bot.pet_owner is None:
+                    return NotImplemented
+                return entity_link.Target(entity, bot.pet_owner)
+        if any(not p.gone and (p.entity == entity or (p.has_body and p.body == entity))
+               for p in self.match.players):
+            return NotImplemented
+        return None
+
+    def destroy_entity(self, instance, node):
+        site = instance.graph.index, node.pos
+        if self.match is None or site not in ((0x303B, 5), (0x303B, 6), (0x0B2F, 13)):
+            return NotImplemented
+        entity = expr.to_entity(instance.evaluate(node.field("m_entity")))
+        bot = next((b for b in self.match.bots if b.entity == entity and b.owner
+                    and b.entity == instance.component.entity), None)
+        if bot is None or (site == (0x0B2F, 13) and not bot.detached_bomb):
+            return NotImplemented
+        from ow174.game import npc
+
+        npc.remove_body(self.match, bot)
+        return True
+
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
         *, controller_components: tuple[int, ...] | None = None, manual_nameplate: bool = False, match=None,
@@ -282,6 +333,10 @@ class BotWorld(runtime.World):
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         controller = self.controller
+        if (self.hero == 0x02E000000000007A and self.match is not None
+                and sender == getattr(self, "body", None)
+                and self.match.queue_body_message(target, message, params, sender)):
+            return
         if (self.hero == ASSASSIN_HERO and controller is not None
                 and target == controller.entity and sender == self.component.entity
                 and message in (0x024000000000083A, 0x0240000000000AA3)):
@@ -492,6 +547,33 @@ class BotWorld(runtime.World):
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, npc_context, orisa_halt
 
+        if self.hero == 0x02E000000000007A and self.match is not None:
+            from ow174.game import body_entities
+
+            primary = body_entities.primary_query(self, cfg, instance)
+            if primary is not NotImplemented:
+                return primary
+            if cfg.get("$") == "STU_71A87E92":
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                point = self.match.script_body_position(entity, self.body)
+                if point is not None:
+                    return point
+            if cfg.get("$") == "STU_FDBB0B67" and instance.evaluate(cfg.get("m_entity")) == expr.Entity(self.body):
+                from ow174.game.script.driver import BODY_SCALE_OVERRIDE
+                from ow174.game.world import UNIT_ENTITY_SCALE
+
+                slot = instance.component.entity_var(BODY_SCALE_OVERRIDE, create=False)
+                scale = slot.value() if slot is not None else None
+                if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
+                    return UNIT_ENTITY_SCALE
+            if cfg.get("$") == "STU_310D6529":
+                from ow174.game.script.driver import THROTTLE_UNIT
+
+                bot = self.match._message_actor(self.body)
+                if bot is not None and bot.control_mover is not None:
+                    right, forward = bot.control_mover.throttles
+                    return expr.Vec3(expr.f32(right * THROTTLE_UNIT), expr.f32(forward * THROTTLE_UNIT), 0.0)
+
         result = assassin.native(self, cfg, instance)
         if result is NotImplemented:
             result = npc_context.native(self, cfg, instance)
@@ -672,10 +754,27 @@ class BotScript(ReplicatedBody):
         self.frame = frame
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
-        position = expr.Vec3(*firing_position) if firing is not None else None
+        position = expr.Vec3(*firing_position) if firing_position is not None else None
         world = BotWorld(hero, mode, buttons, position, controller_components=controller_components,
                          manual_nameplate=manual_nameplate)
         world.match = match
+        if hero == 0x02E000000000007A:
+            from ow174.game.script import spatial_queries
+
+            world.body = entity
+            world._entity_link_context = entity_link.Context(
+                entity, True, True, lookup=world._lookup_entity_link,
+                watch_environment=world._poll_entity_query, watch_link=world._poll_entity_query,
+            )
+            world._spatial_query_context = spatial_queries.Context(entity, True, True, query=world._query_spatial)
+            world._body_owner_context = body_owner.Context(
+                entity, True, True, lookup=world._lookup_body_owner,
+                watch_environment=world._poll_entity_query, watch_owner=world._poll_entity_query,
+            )
+            world._entity_query_context = entity_queries.Context(
+                entity, True, True, True, lookup=world._lookup_entity_query,
+                watch_environment=world._poll_entity_query, watch_possession=world._poll_entity_query,
+            )
         self.controller: runtime.Component | None = None
         if record.get("controller") is not None:
             asset = graph.guid(record["controller"])
@@ -699,30 +798,42 @@ class BotScript(ReplicatedBody):
         world.component = component
         component.frame = frame
         component.now = frame * component.frame_ms
-        self.set_health(health, health)
-        for instance in create_body_graphs(component, record):
-            instance.init()
-            if manual_rialto_spawn and hero == heavy_assault.HERO:
-                heavy_assault.skip_sandbox_intro(instance)
-        component.run_frame(frame)
-        self.server_only = self.initial_exclusions()
-        self.flashbang_weapon_stack: runtime.Instance | None = None
-        self.behavior = component.create(firing) if firing is not None else None
-        if self.behavior is not None:
-            # Scope the reconstructed spawn reset to this instance. Other 0013 receivers have their own rules.
-            runtime.send_instance_message(self.behavior, RESET, {}, entity)
-            component.run_now()
-        snapshot = observers.snapshot(self)
-        if manual_nameplate and nameplate_name:
-            child = practice_nameplate(snapshot)
-            if child is not None:
-                instance = component.instances[child]
-                instance.find_var(expr.INSTANCE, NAMEPLATE_NAME).base = nameplate_name
-                snapshot = observers.snapshot(self)
-        self.latest_live = snapshot
-        self._initial_frame: BitWriter | None = observers.full_frame(self, snapshot)
-        self.death_frame: int | None = None
-        self._produced = snapshot
+        registered = match is not None and hero == 0x02E000000000007A
+        if registered:
+            match.register_body_component(component)
+        try:
+            self.set_health(health, health)
+            for instance in create_body_graphs(component, record):
+                instance.init()
+                if manual_rialto_spawn and hero == heavy_assault.HERO:
+                    heavy_assault.skip_sandbox_intro(instance)
+            component.run_frame(frame)
+            self.server_only = self.initial_exclusions()
+            self.flashbang_weapon_stack: runtime.Instance | None = None
+            self.behavior = component.create(firing) if firing is not None else None
+            if self.behavior is not None:
+                # Scope the reconstructed spawn reset to this instance. Other 0013 receivers have their own rules.
+                runtime.send_instance_message(self.behavior, RESET, {}, entity)
+                component.run_now()
+            snapshot = observers.snapshot(self)
+            if manual_nameplate and nameplate_name:
+                child = practice_nameplate(snapshot)
+                if child is not None:
+                    instance = component.instances[child]
+                    instance.find_var(expr.INSTANCE, NAMEPLATE_NAME).base = nameplate_name
+                    snapshot = observers.snapshot(self)
+            self.latest_live = snapshot
+            self._initial_frame: BitWriter | None = observers.full_frame(self, snapshot)
+            self.death_frame: int | None = None
+            self._produced = snapshot
+        except Exception:
+            if registered:
+                match.unregister_body_component(component)
+                for instance in list(component.instances.values()):
+                    component.destroy(instance)
+                world.match = None
+            raise
+
 
     def _initial_payload(self) -> BitWriter:
         if self._initial_frame is None:
@@ -766,12 +877,12 @@ class BotScript(ReplicatedBody):
         return (self.controller is not None and not self.controller.owner_dead
                 and isinstance(self.controller.world, AssassinControllerWorld))
 
-    def advance_live(self, frame: int, position: tuple | None = None, *, edges=()) -> Snapshot | None:
+    def advance_live(self, frame: int, position: tuple | None = None, *, edges=(), publish=True) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame
-        if self.behavior is not None and position is not None:
+        if (self.behavior is not None or self.component.world.hero == 0x02E000000000007A) and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         if self.controller is not None and not self.controller.owner_dead:
             if self.has_controller_buttons:
@@ -804,6 +915,8 @@ class BotScript(ReplicatedBody):
             world.match.combat.apply_heavy_counter_stuns(world.heavy_counter_stuns)
         assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
+        if not publish:
+            return None
         snapshot = self._changed_snapshot()
         if snapshot is not None:
             self.latest_live = snapshot
