@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Tracer head region and viewed stance
+
+- Mount the delivered standing bind-head offset/radius and its aim rotation.
+  Resolve the head region before range/cover arbitration, retain crouched eye
+  fallback and apply the delivered0016 primary implicit critical multiplier.
+- Store Tracer's head-region state with viewed poses and teleports. Read both
+  existing four-field history and delivered region samples while retaining the
+  combined critical-admission and deployable capsule fields.
+- All29 original Tracer pistol and existing Ana/Recall checks passed, including
+  crouch, delayed standing views, side/body/head rays and lethal bullet credit.
+  All three shared geometry/inert-export checks passed. Tracer Recall/Pulse
+  reconciliation and original-client acceptance remain open.
+
+
 ### Mount delivered Tracer Blink and pistol spread
 
 - Route the delivered0024 action through the current authoritative capsule and

@@ -143,6 +143,9 @@ EYE_CROUCHED = {
     0x0400000000002AB1: 1.75, 0x04000000000003BF: 1.12,
 }
 EYE_CROUCHED_DEFAULT = 1.15
+TRACER_BODY = 0x0400000000000001
+TRACER_HEAD = (-5.5390897614415735e-05, 1.5670119524002075, -0.006037640385329723)
+TRACER_HEAD_RADIUS = 0.1599999964237213
 HEAD_BELOW = 0.2  # m under the eye where the head starts (unverified)
 ECHO_TRI_SHOT_LOADOUT = 0x0B90000000000270
 BEAM_ARMOR_FACTOR = 0.7  # OW1 retail patch, 2020-08-31.
@@ -962,7 +965,8 @@ def hit_def(state, cfg) -> HitDef | None:
     )
     graph_index, node_index = state.instance.graph.index, state.index
     icicle = graph_index == 0x05E6 and node_index == 16
-    critical_default = 2.0 if icicle else mccree.critical_default(state)
+    tracer_pistol = graph_index == 0x0016 and node_index == 8
+    critical_default = 2.0 if icicle or tracer_pistol else mccree.critical_default(state)
     if isinstance(loadout, expr.Asset) and loadout.guid == ECHO_TRI_SHOT_LOADOUT:
         # 19E5 leaves the field null. Use a scoped reconstructed headshot default.
         critical_default = 2.0
@@ -1074,6 +1078,7 @@ class Target:
     owner: object  # a match.Player or a bots.Bot
     critical_allowed: bool = True
     capsule: tuple | None = None
+    head_offset: tuple | None = None
 
     def segment(self, feet=None):
         """The capsule's segment (from the feet to the top, a radius in from both ends)."""
@@ -2949,7 +2954,7 @@ class Combat:
             first = retained
         for target in self._targets():
             history = self.history.setdefault(target.entity, deque(maxlen=HISTORY))
-            history.append((tick, target.feet, target.height, target.eye))
+            history.append(self._target_sample(tick, target))
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
@@ -3199,9 +3204,14 @@ class Combat:
             crouched = player.mover.crouched
             height = data.crouch_height if crouched else data.stand_height
             eye = eye_height(player.hero.body, crouched)
+            head_offset = None
+            if player.hero.body == TRACER_BODY and not crouched:
+                hx, hy, hz = TRACER_HEAD
+                sin_yaw, _, cos_yaw = aim(player.mover.yaw, 0)
+                head_offset = (hx * cos_yaw + hz * sin_yaw, hy, hz * cos_yaw - hx * sin_yaw)
             found.append(
                 Target(player.body, player.team, tuple(player.mover.position), height, data.stand_radius, eye,
-                       player)
+                       player, head_offset=head_offset)
             )  # fmt: skip
         for bot in self.match.bots:
             data = mover_data(bot.body)
@@ -3388,6 +3398,14 @@ class Combat:
                 targets.append(target)
         return targets
 
+    @staticmethod
+    def _target_sample(tick, target, *, feet=None):
+        sample = (tick, target.feet if feet is None else feet, target.height, target.eye)
+        if (getattr(getattr(target.owner, "hero", None), "body", None) == TRACER_BODY
+                or target.head_offset is not None):
+            return (*sample, target.head_offset)
+        return sample
+
     def seen(self, target: Target, view_tick: float) -> Target | None:
         """Interpolate retained poses or use the nearest sample for a body that already existed."""
         replaced_at = self.replacement_ticks.get(target.entity)
@@ -3406,13 +3424,16 @@ class Combat:
         if before is None:
             before = after
         if after is None or after is before:
-            _, feet, height, eye = before
+            sample = before
+            feet = sample[1]
         else:
             share = (view_tick - before[0]) / (after[0] - before[0])
             feet = tuple(a + (b - a) * share for a, b in zip(before[1], after[1], strict=True))
-            height, eye = (before[2], before[3]) if share < 0.5 else (after[2], after[3])
+            sample = before if share < 0.5 else after
+        _, _, height, eye, *region = sample
+        head_offset = region[0] if region else None
         return Target(target.entity, target.team, feet, height, target.radius, eye, target.owner,
-                      target.critical_allowed, target.capsule)
+                      target.critical_allowed, target.capsule, head_offset)
 
     def script_targets(self, source: int, state):
         """Reconstructed Mercy staff selection, restricted to its actual query states.
@@ -3610,14 +3631,14 @@ class Combat:
         # The scheduler records the endpoint pose before replaying retained
         # ticks. Replace that sample if the teleport happened during replay.
         endpoint = history.pop()[0] if history and history[-1][0] > self.tick else None
-        history.append((self.tick, target.feet, target.height, target.eye))
+        history.append(self._target_sample(self.tick, target))
         mover.position[:] = [quantise(value) for value in destination]
         if mover.body is not None:
             x, y, z = mover.position
             mover.body.teleport((x, y + mover._lift(), z))
-        history.append((self.tick, tuple(mover.position), target.height, target.eye))
+        history.append(self._target_sample(self.tick, target, feet=tuple(mover.position)))
         if endpoint is not None:
-            history.append((endpoint, tuple(mover.position), target.height, target.eye))
+            history.append(self._target_sample(endpoint, target, feet=tuple(mover.position)))
 
 
     def body_health(self, entity):
@@ -4320,6 +4341,11 @@ class Combat:
                 continue
             a, b = shown.segment()
             t = ray_capsule(origin, direction, a, b, shown.radius)
+            if shown.head_offset is not None:
+                centre = _along(shown.feet, shown.head_offset, 1.0)
+                head = ray_capsule(origin, direction, centre, centre, TRACER_HEAD_RADIUS)
+                if head is not None and head <= reach:
+                    t = head
             if t is not None and t <= reach and (best is None or t < best[0]):
                 best = (t, target, shown)
         limit = min(reach, best[0] if best else reach)
@@ -4464,8 +4490,13 @@ class Combat:
             self._apply_hit(shooter, target, direct, direct.amount * factor, False, shot_frame, world_tick=world_tick)
             return
         hit_y = origin[1] + direction[1] * t
-        critical = (shown.critical_allowed and hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
-                    and self._fortify_reduction(target) is None)
+        if shown.head_offset is not None:
+            centre = _along(shown.feet, shown.head_offset, 1.0)
+            head = ray_capsule(origin, direction, centre, centre, TRACER_HEAD_RADIUS)
+            critical = head is not None and head <= reach
+        else:
+            critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
+        critical = (shown.critical_allowed and critical and self._fortify_reduction(target) is None)
         amount = factor * direct.amount * direct.scale(travelled + t) * (direct.critical if critical else 1.0)
         landed = self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
