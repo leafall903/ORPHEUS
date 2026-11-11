@@ -703,6 +703,7 @@ class Mover:
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
         movement_limit: Callable[[tuple[float, float, float], float], float | None] | None = None,
         fall_limit: float | None = None,
+        speed_scale: float = 1.0,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -713,6 +714,8 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        if speed_scale != 1.0:
+            active.append(Mod(SPEED, MULTIPLY, speed_scale, frame))
         self.values = data = modded(self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)

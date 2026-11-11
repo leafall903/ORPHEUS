@@ -28,15 +28,20 @@ DATA_FILES = (
     "schemas_174.json", "statescript_codecs_174.json",
 )
 DEPENDENCIES = ("cryptography", "protobuf", "websockets")
+OPTIONAL_DATA_FILES = ("barrier_geometry_174.json",)
 _RUNTIME_FIELDS = {
     "implementation", "version", "implementation_version", "cache_tag",
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.assassin", "ow174.game.assassin_victim", "ow174.game.npc_context",
+    "ow174.game.barriers",
+    "ow174.game.barrier_geometry",
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
-    "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
+    "ow174.game.contacts", "ow174.game.correction", "ow174.game.genji", "ow174.game.heroselect",
+    "ow174.game.interception", "ow174.game.npc_control", "ow174.game.npc_console",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
-    "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
+    "ow174.game.notices", "ow174.game.npc", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
     "ow174.game.projectile_tags", "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
     "ow174.game.server", "ow174.game.sigma_barrier", "ow174.game.statescript",
@@ -252,6 +257,8 @@ def capture_manifest(
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
     files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    files.extend(_file(data_dir, name, f"data/{name}") for name in OPTIONAL_DATA_FILES
+                 if (data_dir / name).exists())
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

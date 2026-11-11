@@ -107,7 +107,7 @@ class WorldBubbles:
                 continue
             if actor.component is not None:
                 continue
-            actor_world = BodyWorld(WINSTON,world.mode,actor.entity)
+            actor_world = BodyWorld(WINSTON, world.mode, actor.entity, 0x04000000000001C3)
             actor_world.match = self.fight.match
             component = runtime.Component(actor.entity,world=actor_world)
             component.frame, component.now = actor.origin_frame,actor.origin_ms

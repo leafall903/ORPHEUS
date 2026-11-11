@@ -120,6 +120,12 @@ class BotWorld(runtime.World):
 
 
 
+    def compatibility_play_script(self, instance, node):
+        from ow174.game import assassin_victim
+
+        assassin_victim.play_script(self, instance, node)
+
+
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 

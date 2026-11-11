@@ -429,9 +429,9 @@ class BodyTests(unittest.TestCase):
         """Dump J of the second live crash (2026-10-02 00:52:18): CmFD 4094, a 977-bit frame, the client's
         reader at bit 857 with bits 832-895 = 0x2098989898989898, crashed in the variable store
         (0x7FF789E761E4 <- 0x7FF78AAB78DF <- one_var 0x7FF78991D484). With these commands (the
-        best fit: fire, release at 4093, running) the encoder as it was live (Effect 0254 st21 without its 2
-        bits) makes exactly that frame, and the client's table reads it to an id-less variable of instance 12
-        whose store crashes, its reader at bit 857. Now the frame reads whole."""
+        best fit: fire, release at 4093, running), the old encoder and old stack notification policy make
+        exactly that frame. The client's table reads it to an id-less variable of instance 12 whose store
+        crashes, its reader at bit 857. The current frame reads whole."""
 
         def frame_at_4094():
             body = BodyScript(SOLDIER, 0xA0000101, 3880)
@@ -454,7 +454,17 @@ class BodyTests(unittest.TestCase):
                         apply_instance_list(client, update)
                     body.stream.arrived(update.chunk_last)
 
-        with without_payloads("STU_691BFA55"):
+        changed = runtime.Component.changed
+
+        def captured_stack_notifications(component, var, before, *, stack_source=None, structural=False):
+            # The later priority-watch fix changes an instance14 timer, even
+            # when the effective value of a stack variable stays equal.
+            return changed(component, var, before, stack_source=stack_source, structural=False)
+
+        with (
+            without_payloads("STU_691BFA55"),
+            mock.patch.object(runtime.Component, "changed", captured_stack_notifications),
+        ):
             update, client = frame_at_4094()
         bits, size = chunk_payload(update)
         self.assertEqual((size, bits >> 832 & (1 << 64) - 1), (977, 0x2098989898989898))

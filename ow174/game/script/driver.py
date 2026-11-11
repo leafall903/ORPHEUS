@@ -230,6 +230,8 @@ WHEEL_CALLOUT_MS = 2000
 # passive charging; a positive override retains the legacy test/GM curve.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
+GENJI = 0x02E0000000000029
+GENJI_IN_AIR, GENJI_ON_GROUND = 417, 545
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -417,7 +419,10 @@ class BodyWorld(runtime.World):
 
             sigma_barrier.play_barrier_request(fight, self.body, instance, node)
         if instance.graph.index == 0x1D02 and node.pos == 34:
-            fight.grant_grasp_shield(instance, node)
+            from ow174.game import interception
+
+            if not interception.play_shield_script(self, instance, node):
+                fight.grant_grasp_shield(instance, node)
         if instance.graph.index == 0x1BBB and node.pos == 18:
             caster = next((player for player in self.match.players
                            if player.has_body and not player.gone and player.body == self.body), None)
@@ -439,9 +444,6 @@ class BodyWorld(runtime.World):
         if self.match is not None:
             self.match.combat.sigma_barriers.pop(entity, None)
 
-    def modify_health(self, state, elapsed_ms):
-        return immunity.transcendence_heal(self, state, elapsed_ms)
-
     def create_world_entity(self, instance, node):
         if self.match is not None:
             return self.match.combat.barriers.world.create(self, instance, node)
@@ -451,6 +453,52 @@ class BodyWorld(runtime.World):
         if self.match is not None:
             return self.match.combat.barriers.world.host(self, instance, node)
         return NotImplemented
+
+    def compatibility_play_script(self, instance, node):
+        from ow174.game import barriers
+
+        barriers.play_script(self, instance, node)
+
+    def create_pet(self, state):
+        from ow174.game import barriers
+
+        if state.instance.component.strict:
+            return super().create_pet(state)
+        return barriers.create(self, state)
+
+    def track_targets(self, state):
+        from ow174.game import barriers
+
+        barriers.track_projected_target(self, state)
+        return barriers.track_transcendence(self, state)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import barriers
+
+        value = immunity.transcendence_heal(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+        value = barriers.cryo_heal(self, state, elapsed_ms)
+        return barriers.transcendence_heal(self, state, elapsed_ms) if value is NotImplemented else value
+
+    def end_health(self, state):
+        self.modify_health(state, max(0, state.now - state.last_applied))
+
+    def compatibility_message_receiver(self, state):
+        from ow174.game import assassin_victim
+
+        return assassin_victim.receiver(self, state)
+
+    def compatibility_stop_script(self, instance, node):
+        from ow174.game import assassin_victim
+
+        return assassin_victim.stop_script(self, instance, node)
+
+    def retire_pet(self, entity):
+        if self.match is not None:
+            from ow174.game import barriers
+
+            barriers.retire(self.match.combat, entity)
 
     def native(self, cfg: dict, instance):
         from ow174.game import mccree
@@ -503,6 +551,44 @@ class BodyWorld(runtime.World):
             entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
             if entity == self.body:
                 return self.position(entity)  # scoped authoritative creation position
+        if cls == "STU_9B7648C3" and instance is not None:
+            from ow174.game import assassin_victim
+
+            value = assassin_victim.health(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if (cls == "STU_295F1CDE" and self.hero == 0x02E0000000000007 and instance is not None
+                and instance.graph.index in (0x95, 0x96)):
+            return 1.0  # reconstructed normal-mode health scale; native/mode mapping remains open
+        if cls == "STU_783B4CF0" and instance is not None:
+            from ow174.game import barriers, interception
+
+            value = interception.shield_amount(self, instance, cfg)
+            if value is NotImplemented:
+                value = barriers.health_query(self, instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if (self.hero == GENJI and self.match is not None and instance is not None
+                and cls in {"STU_21A13145", "STU_2200A66D"}
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            # Reconstructed Genji cast inputs. The native engine query's full
+            # transform/attachment rules remain unverified; only own live body.
+            owner = next((p for p in self.match.players
+                          if p.body == self.body and p.body_script is not None), None)
+            if owner is not None:
+                from ow174.game.combat import Combat, aim
+
+                return Vec3(*(Combat._eye(self.match.combat, owner) if cls == "STU_21A13145"
+                              else aim(owner.mover.yaw, owner.mover.pitch)))
+        if (self.hero == GENJI and self.match is not None and instance is not None
+                and instance.graph.index == 0x0B8B and cls == "STU_F7262B36"
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"
+                and instance.component.entity == self.body):
+            # Explicit normal-player server profile. Native association details
+            # are OPEN; scope this related-entity gate to owned Genji0B8B only.
+            owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
+            return Entity(owner.entity if owner is not None and owner.spawned and owner.has_body
+                          and not instance.component.owner_dead and not self.match.ended else 0)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -597,7 +683,51 @@ class BodyWorld(runtime.World):
                         # The match does not attach a pet owner to these player bodies.
                         # Node 120 short-circuits before its component43 comparison.
                         return Entity(0)
+        if (self.hero == 0x02E00000000001A2 and self.match is not None
+                and instance is not None and instance.graph.index == 0x0F76 and cls in {"STU_E72F6348", "STU_AC829876"}):
+            selected = cfg.get("m_entity") or {}
+            fight = self.match.combat
+            if cls == "STU_E72F6348" and expr.lvalue(selected) == (expr.INSTANCE, 375):
+                entity = expr.to_entity(instance.evaluate(selected))
+                return bool(entity and any(target.entity == entity for target in fight._targets()))
+            if cls == "STU_AC829876":
+                signature = {k: v for k, v in (cfg.get("m_filter") or {}).items() if v not in (None, 0)}
+                source = (selected.get("m_expression") or {}).get("m_dynamicVars") or []
+                # State 99 wraps its tracked entity in an expression before applying the body filter.
+                if (signature == {"$": "STUConfigVarFilter", "m_84065FD1": 1}
+                        and len(source) == 1 and expr.lvalue(source[0]) == (expr.INSTANCE, 375)):
+                    entity = expr.to_entity(instance.evaluate(selected))
+                    owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
+                    return bool(entity and owner is not None
+                                and any(target.entity == entity for target in fight._enemies(owner)))
+        if (self.hero == 0x02E0000000000016 and self.match is not None
+                and instance is not None and instance.graph.index == 0x157C and cls in {"STU_E72F6348", "STU_AC829876"}):
+            # Reconstruct node 48's live-body branch. Barrier/tag membership
+            # and the alternate target source remain outside this binding.
+            selected = cfg.get("m_entity") or {}
+            if selected.get("$") == "STUConfigVarDynamic" and selected.get("m_identifier") in (38, 536):
+                entity = expr.to_entity(instance.evaluate(selected))
+                if cls == "STU_E72F6348":
+                    return bool(entity and any(target.entity == entity for target in self.match.combat._targets()))
+                target_filter = cfg.get("m_filter") or {}
+                if (selected["m_identifier"] == 536 and target_filter.get("m_84065FD1") == 64
+                        and target_filter.get("m_4EA686DB") == 128):
+                    owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
+                    return bool(entity and owner is not None
+                                and any(target.entity == entity for target in self.match.combat._enemies(owner)))
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            cfg_filter = cfg.get("m_filter") or {}
+            signature = {k: v for k, v in cfg_filter.items() if v not in (None, 0)}
+            if (self.hero == 0x02E0000000000029 and self.match is not None
+                    and instance.graph.index == 0x01DB
+                    and signature == {"$": "STUConfigVarFilter", "m_84065FD1": 1}):
+                # Scoped reconstruction of the elimination target's hero/body
+                # predicate. Do not generalize unknown filters or tag masks.
+                target = instance.evaluate(cfg.get("m_entity"))
+                if isinstance(target, Entity) and target.id != self.body:
+                    return any(p.has_body and p.body == target.id for p in self.match.players) or any(
+                        b.entity == target.id for b in self.match.bots
+                    )
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -639,6 +769,7 @@ class BodyWorld(runtime.World):
                 super().play_script(instance, node)
             else:
                 self.play_compatible_script(instance, node)
+                self.compatibility_play_script(instance, node)
             return
         resource = play.resolve_resource(instance, node)
         if resource is None or resource.guid != ((graph.GRAPH_TYPE << 48) | index):
@@ -840,7 +971,31 @@ class BodyWorld(runtime.World):
 
         return mccree.effects(self, state)
 
+    def raycast(self, request):
+        """Reconstruct Genji's static dash cast using current collision geometry.
+
+        Only the authored 0029 filter and own-body ignore list are supported.
+        Dynamic barriers and the native filter resource semantics remain open.
+        """
+        cfg = request.filter_config or {}
+        resource = cfg.get("m_C1903771") or {}
+        if (self.hero != 0x02E0000000000029 or self.match is None
+                or self.match.collision_world is None
+                or resource.get("m_C1903771") != "0x0690000000000029"
+                or request.ignored_entities != (self.body,)):
+            return None
+        hit = self.match.collision_world.cast_ray(
+            tuple(request.origin), tuple(request.direction), request.length,
+        )
+        if hit is None:
+            return runtime.RaycastResult(False, None, None, None)
+        return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
+
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        from ow174.game import barriers
+
+        if barriers.relay_bubble_energy(self, target, message, params, sender):
+            return
         match = self.match
         if (match is not None and sender == self.body
                 and match.queue_body_message(target, message, params, sender)):
@@ -1074,7 +1229,9 @@ class BodyScript(ReplicatedBody):
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
-        self.ult_seconds = ULT_SECONDS if ult_seconds is None and hero != 0x02E0000000000195 else ult_seconds
+        if ult_seconds is None and hero != 0x02E0000000000195:
+            ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
+        self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
         self.ult_gain_bonus = 0.0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
@@ -1097,6 +1254,12 @@ class BodyScript(ReplicatedBody):
         component.now = frame * self.frame_ms
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
+        if self.hero == GENJI and self.world.match is not None:
+            # Normal server profile, not a claim about original server-only
+            #01C7 initialization/mode flags. Authored mode/ultimate gates still run.
+            component.set(2426, self.ult_seconds <= 0 and health > 0)
+            component.set(842, False)
+            component.set(11942, False)
         for instance in create_body_graphs(component, self.record):
             instance.init()
         component.run_frame(frame)
@@ -1117,13 +1280,15 @@ class BodyScript(ReplicatedBody):
             self.component.set(OWNER_MAX_HEALTH, float(most))
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
+        if self.hero == GENJI and health <= 0:
+            self.component.set(2426, False)  # retire this body's authored passive wait on death
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
 
     # --- running -----------------------------------------------------------------------------------
 
     def command(
         self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
-        *, grounded: bool | None = None,
+        *, grounded: bool | None = None, airborne: bool | None = None,
     ) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
@@ -1143,6 +1308,13 @@ class BodyScript(ReplicatedBody):
             raise CommandEpochError(self.frame, frame)
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
             self._run(missing, [])
+        if self.hero == GENJI and airborne is not None:
+            # 01C7 state 4 publishes the IN_AIR mask and its inverse (D3D7EA/D3D9D6/D3D9EF).
+            # Its initial packed state is zero, so an initially false output has no write.
+            for var, value in ((GENJI_IN_AIR, airborne), (GENJI_ON_GROUND, not airborne)):
+                previous = self.component.entity_var(var).base
+                if (value or previous is not None) and previous is not value:
+                    self.component.set(var, value)
         self.world.throttles = (forward, right)
         if self.world.communication_wheel:
             # 01C7:7 reads the mover's flags and the command axes separately.
@@ -1198,6 +1370,42 @@ class BodyScript(ReplicatedBody):
         self.set_ult_charge(after)
         return after
 
+    def ult_fraction(self) -> float:
+        """Capture the current unspent fraction before this body is retired."""
+        if self.retired or self.component.fault is not None:
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if not math.isfinite(cost) or cost <= 0 or not math.isfinite(charge):
+            return 0.0
+        return f32(max(0.0, min(1.0, charge / cost)))
+
+    def restore_genji_ult(self, fraction: float, controller: int) -> None:
+        """Send the authored 14F2/0951 fraction to the new Genji body."""
+        if self.hero != GENJI or not 0 < fraction <= 1:
+            return
+        charge = next((i for i in self.component.instances.values() if i.graph.index == 0x0B8B), None)
+        if charge is not None:
+            runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
+            self.component.run_now()
+
+    def gain_ult_charge(self, points: float) -> float:
+        """Reconstructed one-point-per-effective-damage credit, capped at cost.
+
+        The active ultimate generates no charge. Passive debug fill remains a
+        separate configured policy; this does not establish native charge rates.
+        """
+        if (self.retired or self.component.fault is not None or not math.isfinite(points) or points <= 0
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost <= 0 or before >= cost:
+            return 0.0
+        after = min(cost, f32(before + points))
+        self.set_ult_charge(after)
+        return after - before
+
     def _charge_ult(self) -> None:
         if self.hero == 0x02E0000000000195:
             from ow174.game.brigitte import BrigitteCombat
@@ -1208,6 +1416,8 @@ class BodyScript(ReplicatedBody):
             if self.ult_seconds is None:
                 ultimate.passive_points(self)
                 return
+        if self.hero == GENJI and expr.truthy(self.component.entity_var(2426).value()):
+            return  # The authored profile owns passive charge; never add debug fill on top.
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())

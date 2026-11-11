@@ -1869,6 +1869,13 @@ class ConditionalTimer(State):
     """
 
     def on_enter(self) -> None:
+        if not self.instance.component.strict:
+            entry = self.instance.graph.index, self.node.pos
+            timing = self.node.field("m_ED97A97C.m_value")
+            if ((entry in ((0x20, 2), (0x0F7C, 2), (0x017B, 26)) and timing == 0)
+                    or (entry == (0x05FE, 64) and _field(self, "m_ED97A97C") is None)):
+                self.request_finish()
+                return
         subgraph = _field(self, "m_E5790891") or {}
         unsupported = (any(_field(self, key) is not None
                            for key in ("m_C7A42E2A", "m_F8CE386A", "m_C46403A5"))
@@ -1886,6 +1893,9 @@ class ConditionalTimer(State):
         condition = _field(self, "m_7C8AD485")
         if param == 1 and condition is not None and truthy(self.evaluate(condition, watch=False)):
             self.request_finish()
+
+
+PhaseEntry = ConditionalTimer
 
 
 @state_class("STUStatescriptStateWait")
@@ -2283,7 +2293,10 @@ class WeaponVolley(State):
     def shots_planned(self) -> int:
         if self.per_shot <= 0:
             return self.max_shots
-        return min(self.ammo0 // self.per_shot, self.max_shots)
+        # Authored start gates may allow any positive ammo with a multi-ammo
+        # shot (Genji fan). Admit the last partial-cost shot; output clamps to0.
+        # This edge policy is reconstructed pending native server comparison.
+        return min((self.ammo0 + self.per_shot - 1) // self.per_shot, self.max_shots)
 
     def arm(self) -> None:
         delay = self.offset - (self.now - self.start)
@@ -2425,7 +2438,9 @@ class Anim(State):
                 return
         delay = seconds_to_ms(duration) - (self.now - self.start)
         self.timer_at(delay, 1)
-        if not truthy(self.evaluate(_field(self, "m_154DBA91"), watch=False)):
+        suppress_finish = any(truthy(self.evaluate(_field(self, key), watch=False))
+                              for key in ("m_154DBA91", "m_2DEAE6A9"))
+        if not suppress_finish:
             self.request_finish(max(0, delay))
 
     def timer(self, param: int) -> None:
@@ -2557,6 +2572,11 @@ class Ability(State):
         self.activate()
 
     def timer(self, param: int) -> None:
+        if param == 2 and self.var is not None:
+            # Reconstructed boundary notification: the linked getter now reads
+            # zero, so dependent authored gates must be evaluated again. Native
+            # intermediate-value notifications and callback order remain open.
+            self.instance.changed(self.var, self.cur)
         if param in (1, 2):
             if param == 2:
                 # Cooldown output reaches zero without a variable write.
@@ -2626,6 +2646,8 @@ class Ability(State):
         if pressed:
             self.take_press(start)  # consume only after start gates pass; retain the original timestamp
         if start:
+            if pressed:
+                self.take_press(start)
             self.flags |= self.HELD
         return True
 
@@ -3056,6 +3078,8 @@ class GameMessageEntry(State):
         if self.instance.component.strict:
             message_receiver.begin(self)
             return
+        if self.instance.component.world.compatibility_message_receiver(self) is not NotImplemented:
+            return
         self.received = False
         self.instance.follow(self.node, "m_33DA5163", self)
 
@@ -3079,7 +3103,7 @@ class GameMessageEntry(State):
         self.instance.exit_subgraph(self.node, "m_452862E6")
 
     def payload(self) -> dict:
-        if self.instance.component.strict:
+        if self.instance.component.strict or self.message_flags is not None:
             return {"sender": self.message_sender, "stacked": self.message_stacked}
         return {"sender": None, "stacked": False}
 
@@ -3094,6 +3118,8 @@ class GameMessageEntry(State):
     def tick(self):
         if self.instance.component.strict:
             message_receiver.tick(self)
+        elif self.instance.component.world.compatibility_message_receiver(self) is not NotImplemented:
+            return
         else:
             super().tick()
 
@@ -3237,27 +3263,51 @@ class CombatDamageFilter(State):
         self.instance.component.world.unbind_combat_damage_filter(self)
 @state_class("STUStatescriptStatePet")
 class CompatiblePet(State):
-    """A permissive Pet with an explicit world factory."""
+    """Factory-backed entity output with the lifetime of its source state."""
 
     def on_created(self) -> None:
         self.pet_entity = None
+        self.pet_var = None
+        self.linked_pet = False
 
     def on_begin(self) -> None:
-        if self.instance.component.strict:
-            self.instance.component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
-        entity = self.instance.component.world.create_compatible_pet(self)
-        if entity is NotImplemented:
-            return
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
+        entity = component.world.create_compatible_pet(self)
+        self.linked_pet = entity is NotImplemented
+        if self.linked_pet:
+            entity = component.world.create_pet(self)
+            if not entity:
+                return
         if type(entity) is not int or not expr.valid_entity(entity):
             raise ValueError("compatible Pet factory returned an invalid entity")
         self.pet_entity = entity
-        self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(entity))
+        target = lvalue(_field(self, "m_B3019338"))
+        if target is not None:
+            if self.linked_pet:
+                self.pet_var = self.link(target)
+            else:
+                self.instance.write(target, Entity(entity))
+
+    def output(self, slot):
+        return Entity(self.pet_entity or 0)
 
     def on_end(self, finished: bool) -> None:
-        if self.pet_entity is not None:
+        if self.pet_entity is None:
+            return
+        if self.linked_pet:
+            if self.pet_var is not None:
+                self.unlink(self.pet_var)
+                self.pet_var = None
+            self.instance.component.world.retire_pet(self.pet_entity)
+        else:
             self.instance.component.world.retire_compatible_pet(self, self.pet_entity)
-            self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(0))
-            self.pet_entity = None
+            self.instance.write(lvalue(_field(self, "m_B3019338")), Entity(0))
+        self.pet_entity = None
+
+
+Pet = CompatiblePet
 
 
 @state_class("STUStatescriptStateTrackTargets")
@@ -3282,7 +3332,8 @@ class TrackTargets(State):
             self.ticks()
             return
         self.refresh()
-        if self.managed:
+        component = self.instance.component
+        if self.managed or (not component.strict and component.world.track_targets(self)):
             self.ticks()
 
     def refresh(self) -> None:
@@ -3303,6 +3354,9 @@ class TrackTargets(State):
         targets = self.instance.component.world.linked_tracked_targets(self)
         if targets is NotImplemented:
             self.refresh()
+            component = self.instance.component
+            if not self.managed and not component.strict:
+                component.world.track_targets(self)
             return
         targets = self.linked_entities(targets)
         if targets != self.targets:
@@ -4261,6 +4315,11 @@ def request_instance_stop(instance: Instance, node, caller) -> bool:
     """1B6C8F0 queues operation 7 for the default self-stop form."""
     handled = instance.component.world.finish_wheel_emote(instance, node)
     if handled is not NotImplemented:
+        return handled
+    handled = instance.component.world.compatibility_stop_script(instance, node)
+    if handled is not NotImplemented:
+        if not instance.stopped:
+            instance.follow(node, "m_outPlug", caller)
         return handled
     if node.field('m_67B81D25') is not None or node.field('m_EB35D2F1') is not None:
         return NotImplemented
