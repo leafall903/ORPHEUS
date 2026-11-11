@@ -14,7 +14,7 @@ from ow174.game import combat, projectile_tags, ultimate
 from ow174.game.collision import World, flat_world
 from ow174.game.commands import Command
 from ow174.game.content import PRACTICE_RANGE, PRACTICE_RANGE_VARIANT_MODE, game_map, heroes
-from ow174.game.native_replay import snapshot_hash
+from ow174.game.body_vm_snapshot import export_body_vm, snapshot_digest
 from ow174.game.script import (
     entity_queries,
     expr,
@@ -575,9 +575,9 @@ class SoldierUltimateChargeTests(unittest.TestCase):
         self.assertEqual(wait.start, first + 1000)
         event, = [event for event in instance.queue if event.state is wait]
         self.assertEqual(event.time, first + 2000)
-        before = snapshot_hash(script)
+        before = snapshot_digest(export_body_vm(script))
         event.time += 1
-        self.assertNotEqual(snapshot_hash(script), before)
+        self.assertNotEqual(snapshot_digest(export_body_vm(script)), before)
         event.time -= 1
         for _ in range(62):
             self.input(run, soldier)
@@ -1149,12 +1149,13 @@ class SoldierUltimateChargeTests(unittest.TestCase):
                 run.step({})
                 yaw, pitch = aim(fight._eye(ana), (0, .8, -3))
                 run.step({ana: (yaw, pitch, 8)})
+                sleep_end = None
                 for _ in range(45):
-                    sleep = fight.sleeps.get(soldier.body)
-                    if sleep is not None:
+                    if fight.is_asleep(soldier):
+                        sleep_end = self.vitals(run, soldier).sleep_until
                         break
                     run.step({ana: (yaw, pitch, 0)})
-                self.assertIsNotNone(sleep)
+                self.assertIsNotNone(sleep_end)
                 self.assertEqual(self.vitals(run, soldier).total, 195)
                 self.assertTrue(wait.active)
                 self.assertEqual(self.charge(soldier), 0)
@@ -1172,13 +1173,13 @@ class SoldierUltimateChargeTests(unittest.TestCase):
                     while run.frame < checkpoint:
                         run.frame = checkpoint if jump else run.frame + 1
                         run.match.update(run.frame * combat.TICK, run.frame)
-                    self.assertTrue(fight.is_controlled(soldier))
+                    self.assertTrue(fight.is_stunned(soldier))
                     self.assertEqual(self.charge(soldier), 0 if checkpoint < first_award else 5)
 
-                while run.frame < sleep.end:
-                    run.frame = sleep.end if jump else run.frame + 1
+                while run.frame < sleep_end:
+                    run.frame = sleep_end if jump else run.frame + 1
                     run.match.update(run.frame * combat.TICK, run.frame)
-                self.assertFalse(fight.is_controlled(soldier))
+                self.assertFalse(fight.is_stunned(soldier))
                 before = self.charge(soldier)
                 self.assertEqual(before, 25)
                 run.step({soldier: (*aim_at_ana, 1)})

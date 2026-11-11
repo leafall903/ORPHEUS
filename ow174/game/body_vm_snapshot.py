@@ -65,7 +65,7 @@ _STATE = frozenset((
 ))
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
-    "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
+    "create_arrived", "retired", "first_owner_frame", "world_frame_anchor", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
     "ult_gain_bonus", "ultimates", "reports", "report_count", "support_healing",
 ))
 _SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")

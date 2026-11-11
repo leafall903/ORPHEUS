@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Preserve Soldier charge eligibility across phase boundaries
+
+- Replay admitted Soldier flight and Field healing against the body's actual
+  Visor/windup clock before the retained combat window. Do not expire the body
+  phase first and then award earlier impacts/heals in the later eligibility
+  state. NPC firing catch-up and other heroes' existing consumers remain intact.
+- Register the delivered world/frame anchor in the standalone body VM codec as
+  well as the existing server codec. Keep the delivered causal-deadline check
+  using that inert codec, and map its Sleep fixture to the combined tick-based
+  vitals/control interfaces without weakening its charging or input assertions.
+- The three original continuous/skipped Visor-boundary checks, both snapshot/
+  Sleep fixture checks and all 79 shared combat/projectile/copied-Soldier checks
+  passed. Skirmish selection/tag-provider reconciliation is still outstanding;
+  no client acceptance or complete line/whole-server merge is claimed.
+
+
+
 ### Restore delivered Soldier mode and debug-charge inputs
 
 - Preserve the authored 005A Practice Range variant instead of replacing its

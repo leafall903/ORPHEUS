@@ -2878,6 +2878,8 @@ class Combat:
         other players' body frames only on the ticks that send (`frames`)."""
         if self.match.collision_world is None:
             return
+        from ow174.game import defenses
+
         self.echo_duplicates.update(now)
         self.barriers.world.update(tick)
         for player in self.match.players:
@@ -2890,6 +2892,9 @@ class Combat:
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.lucio_auras.healing or self.soundwaves
             or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
+            or any(player.body_script is not None and player.body_script.world_frame_anchor is not None
+                   and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
+                   for player in self.match.players)
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
@@ -2901,21 +2906,23 @@ class Combat:
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
-        self.now, self.tick = now - (tick - first) * TICK, first
-        for player in self.match.players:
-            self._advance_idle_protection(player)
-        canisters = [rocket for rocket in self.rockets
-                     if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY]
         for at in range(field_first, first):
-            if not canisters:
+            canisters = [rocket for rocket in self.rockets
+                         if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY]
+            phase = any(player.body_script is not None and player.body_script.world_frame_anchor is not None
+                        and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
+                        for player in self.match.players)
+            if not canisters and not phase:
                 break
             self.now, self.tick = now - (tick - at) * TICK, at
-            for rocket in canisters:
-                if rocket in self.rockets:
+            for player in self.match.players:
+                self._advance_idle_protection(player)
+            for rocket in list(self.rockets):
+                soldier = getattr(getattr(rocket.shooter, "hero", None), "guid", None) == defenses.SOLDIER
+                if rocket in canisters or (soldier and rocket.last_tick is not None):
                     self._fly(rocket)
             self.projectiles.heal_fields(at, at)
             field_first = at + 1
-            canisters = [rocket for rocket in canisters if rocket in self.rockets]
         for at in range(first, tick + 1):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
