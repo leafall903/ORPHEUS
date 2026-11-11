@@ -8,9 +8,19 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 import hashlib
 import json
 import random
+import types
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import (
+    body_owner,
+    entity_queries,
+    expr,
+    graph,
+    message_receive,
+    message_scope,
+    nodes,
+    runtime,
+)
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -28,9 +38,10 @@ _COMPONENT = frozenset((
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -39,7 +50,8 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "reports", "report_count", "winston_charge_ms", "winston_charge_tick", "winston_primal_clock",
+    "world_frame_anchor",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -65,7 +77,7 @@ _STATE_LAYOUTS = {
     nodes.BooleanSwitch: (("current", "pending"), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
-    nodes.AIBehavior: ((), ()),
+    nodes.AIBehavior: (("selected",), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
@@ -77,6 +89,8 @@ _STATE_LAYOUTS = {
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
+    nodes.ModifyHealth: ((), ()),
+    nodes.PlayHeavyChargeVictim: ((), ("played",)),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
@@ -89,10 +103,15 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets",), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    entity_queries.Context: ("owner", "namespace_present", "environment_present",
+                             "possession_context_present", "lookup", "watch_environment",
+                             "watch_possession", "retired"),
+    body_owner.Context: ("owner", "instance_present", "environment_present", "lookup", "watch_environment",
+                         "watch_owner", "retired"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -184,11 +203,14 @@ class _Export:
             raise BodyVMSnapshotError("unknown instance class")
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
-        _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("queue", "ticking", "deferred", "params", "join_inputs"), list, "instance")
         _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        target = fields["ruleset_target_entity"]
+        if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
+            raise BodyVMSnapshotError('invalid instance ruleset target entity')
         frame = fields['initialized_frame']
         if type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance initialization frame')
@@ -388,12 +410,21 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match"))
+                fields.update(("body", "throttles", "aim", "match",
+                               "_body_owner_context", "_entity_query_context"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "body", "body_definition", "match",
+                               "manual_target", "_body_owner_context"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
+        if (kind is types.MethodType and obj.__self__ is self.component.world
+                and type(obj.__self__) in (BodyWorld, BotWorld)
+                and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
+                                     BodyWorld._poll_body_owner, BotWorld._lookup_body_owner,
+                                     BotWorld._poll_body_owner)):
+            return {"class": "builtins.method", "identity": self.identity(obj),
+                    "owner": ["component", "world"], "function": _name(obj.__func__)}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -421,7 +452,7 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event):
+            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}

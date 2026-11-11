@@ -1,0 +1,56 @@
+Direct body-owner query — build104319
+====================================
+
+STU_F7262B36 queries component43 directly. It is not DB742151's primary
+possessor lookup, and it is not0AC15F78's current possessed-body query.
+This previously unimplemented query blocked the authored D.Va pistol fire gate.
+
+Native evidence
+---------------
+The existing offline104319 memory image registers F7262B36 at registry entry491:
+runtime constructorD07460, inplace constructorD0A9F0, table26625D8, scalarCDBDE0.
+The scalar obtains instance interface+30, selects the first configuration from
+m_801B298F, converts it throughF64C20 and callsD15520. Missing/failed/non-entity
+selectors query entity0. Nested arrays unwrap only their first member.
+
+D15520 uses the interface+58 namespace lookup and the supplied full uint32 ID.
+Missing entities fail without replacing output. A known entity without component43
+succeeds with Entity0. A present component subscribes to component+18 and reads
+the owner throughBD42D0, whose encrypted storage is atD8/E0. Missing entities
+subscribe through environment hub channel0, or fallback channel46 if no current
+environment exists. Missing instance interface fails before selector evaluation.
+
+An external Unicorn probe runs the original scalar/helper and variant conversion
+instructions across1056 combinations: instance availability, environment, watcher,
+hub, absent/present entity/component, null/non-null owner, literal types, wrapped
+uint32 entity IDs and nested arrays. Every value, success flag and subscription
+matches the production implementation. Explicit adapters supply instance/VM/entity
+lookup, component-table pointer decryption, encrypted owner storage and variant
+disposal. This is not proof of the allocator or complete engine ownership system.
+
+Production behavior
+-------------------
+body_owner.Context requires an explicitly supplied lookup and watcher services.
+The base World retains unknown-service behavior. Missing targets, absent components
+and present null owners stay distinct. Callbacks recheck context/instance lifetime;
+retired, replaced or malformed services poison strict execution.
+
+The player's BodyWorld reads fresh Match identities: a live player body maps to
+its player entity; player controller entities have no component43; known NPC bodies
+have null player ownership. Unknown or retired body identities do not gain an
+invented owner. The existing native-poll mechanism refreshes these live queries
+every frame, so the Match adapter needs no additional dependency event hub.
+
+Seven query tests cover guards/conversion/lifetime; six authored pilot tests
+drive normal Match commands and prove projectile travel and14 damage against a
+player and a training-NPC stand-in, misses/static cover/ally exclusion, a20-round
+magazine, rejection during reload, reload completion, projectile range expiry,
+incoming enemy-player command damage and death suppression.
+The runtime's authored pistol ammo/reload graphs are exercised, not substituted.
+
+Limits
+------
+The static tests do not create or possess D.Va's mech. Pilot critical-hit behavior,
+all five actual PvE NPCs and full death/respawn/transform interaction remain open.
+Component43 wire replication and original-client prediction have not been accepted;
+this query is deliberately not added to the driver's trusted native-switch set.

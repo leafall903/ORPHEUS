@@ -1,0 +1,71 @@
+Ruleset value/reference fallback — build104319
+============================================
+
+Scope: restore3832D36C scalar semantics and D.Va Matrix resource activation.
+Matrix interception and complete foreign ruleset/engine services remain open.
+
+Native evidence
+---------------
+Registry entry160(hex) maps3832D36C to constructorD080F0/table2661520 and scalar
+CCFAC0. The scalar clears Instance+230 before evaluating m_value into its caller's
+destination. A successful non-null result returns immediately and retains its
+original type/value. It is not converted to an integer ruleset identifier.
+
+On null/failure, native code resolves the last member entity or its VM owner and
+examines the config metadata. A direct dynamic reference requires entity scope.
+An expression uses its first dynamic reference; instance scope is allowed there
+only when a valid member target was selected. The identifier is16 bits. A missing
+config/metadata/object/property falls through to F672D0's int destination: an
+already-int destination is preserved if the selector wrote nothing; a successful
+null selector instead becomes int0. Other old types become int0 on failure.
+
+The member path1B80CFF..D97 checks entity validity, resolves a namespace/script VM
+through+170/+178, obtains its variable and then writes the selected entity to
+Instance+230. Missing variables can still select a resolved VM; an unresolved VM
+does not replace that cache. Instance initialization1B9091C clears the same field.
+
+An external Unicorn probe executes the original scalar against1296 combinations
+of dynamic/expression/unknown/missing selector metadata, scope, typed values,
+target IDs, object/property availability and first-reference presence. Values,
+types, cache contents, metadata gates and non-null fast paths agree. Explicit
+adapters supply selector evaluation, STU type interfaces, VM/entity/owner lookup,
+property serviceD9C540, type GUID registry and expression-list storage. Failed
+expression evaluation is not represented by a false child-literal adapter; that
+unsupported comparison is excluded. Complete compiled-expression execution,
+engine lookup ordering/dependencies and property-service lifetimes are not proved
+by these fixtures. Native helper evidence must not be reported as full combat.
+
+Production boundary
+-------------------
+Expression member resolution records ruleset_target_entity only for the current
+component or a world-declared script VM. SceneWorld checks its explicit binding;
+BodyWorld checks actual live player/NPC scripts. The uint32 cache is passive VM
+storage and survives export without a getter. Known current-body ruleset defaults
+use the existing authored mode/hero tables. Foreign property defaults require an
+explicit entity_ruleset service; the base world retains NotImplemented. This
+change does not invent cross-hero property overrides or a complete engine registry.
+
+BodyWorld also mounts the existing native-backed entity-query backend with live
+player/controller/body/NPC/mode identities. Controller possession is current body;
+a body itself has no component44. Replacements remove old body lookup and detached
+BodyWorlds do not gain a namespace. This is a declared Match catalog, not full map
+entity/engine-filter restoration.
+
+Executed D.Va evidence
+---------------------
+With the real0407 supplement, Matrix's own unchanged graph now sees enabled=true,
+capacity100, recharge scalar1 and the authored resource rates. Three additional
+normal Match-command tests prove:
+
+-A60-frame held use drains100 to approximately52, starts the actual deflect State,
+ and release ends that State and starts the approximately1s cooldown.
+-Cooldown repress adds no use; idle time regenerates and caps at100; later use
+ can begin again. Depletion ends the State. A repress below10 resource is rejected,
+ while sufficient regeneration permits use.
+-An explicit disabled ruleset value cannot be bypassed by input; restoring the
+ ruleset permits activation. Non-null false and true remain typed overrides.
+
+The graph supplies drain50/s and regeneration16/s. These tests execute its real
+Ability/ChaseVar/Wait/Stack branches, not a parallel resource state machine. They
+do not prove that any bullet, rocket, beam or melee attack is blocked: the combat
+layer still lacks the Matrix interception/filter consumer. Matrix remains OPEN.

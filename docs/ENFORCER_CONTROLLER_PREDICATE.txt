@@ -1,0 +1,35 @@
+Enforcer controller predicate B96D3A98 -- build104319, partial native evidence
+===========================================================================
+
+The original constructorD09110 installs evaluator vtable2660C60. Its scalar
++20 entryCC9BF0 evaluates the entity config, looks up that entity and registers
+a component43 dependency before querying DA6910(entity,0). The predicate tail
+CC9F61 returns false without a controller. With a controller, original182C470
+tests its entity component-presence mask at+88: component75 must be present
+and component92 must be absent. The world wire schema identifies75 as
+MECCharacterController. This is not a check for health or a held primary button.
+
+Independent offline execution
+-----------------------------
+Lane probe_enforcer_predicate_native.py executes the original CC9F61 tail,
+both conditional branches and the original182C470 bitset reader in Unicorn.
+DA6910 controller lookup and F66AF0 result collection are explicit adapters.
+Eight cases pass, including no controller, neither component,75 alone,92 alone,
+75+92,75 with unrelated components, and unrelated low/high mask bits. The
+external JSON records the client-memory image hash, native calls and outcomes.
+The query is never replaced by a forced true result.
+
+Not established by this probe
+------------------------------
+The encrypted namespace/component43 path, full selector evaluation, native
+boolean output storage, subscription lifetimes, controller allocation and the
+meaning/presence of component92 on the actual AI controller remain unaccepted.
+This predicate-tail probe alone is not incoming-weapon acceptance. Later work
+hosts the associated227A controller and its real13EA variable9134: that authored
+branch now permits primary fire without using a forced B96D3A98 result. See
+NPC_ASSOCIATED_CONTROLLERS.txt for executable weapon evidence and reconstructed
+namespace/clock limits. Complete native controller/AI services remain open.
+Assassin target/pin attacks are a different resource path. No original client
+or observer presentation was tested.
+
+Research scripts, disassembly and JSON stay outside Git in the owning lane.

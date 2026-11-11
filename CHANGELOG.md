@@ -4,7 +4,602 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+- Record the Winston integration checkpoint for build 104319. The frozen server regression passed 1,105 tests and nine collision geometry rechecks with the standard Talon catalog, including the mounted Sniper controller. Automatic Talon reaction notification and priority selection, the remaining static matrix entries, and original-client combat acceptance remain open.
+
+### 2026-11-10
+
+- Load the authored Talon reaction graphs on their own bodies and run the shared 0E20 listener after its 125 ms startup wait, including during idle play. A controlled Heavy Assault message exercises the 0E54 receiver independently of the 35AE selector.
+
+- Start Trooper's authored 1231 and nested 13AC graphs from the 0E62 startup binding. The reconstructed local host retires its owned graph on abort and routes controlled Trooper, Enforcer and Heavy Assault playback through collision movement during the authored wait. The 116 focused cases pass. Original selector production and client acceptance remain open.
+
+- Publish and retire selector-1 vector replacement records from the Talon reaction graphs in the strict component-31 VM. Controlled playback verifies their horizontal result and timed retirement.
+
+- Apply Winston quick melee's authored horizontal impulse to living targets that take damage. Direction and movement use the reconstructed radial impulse path.
+
+- Verify consumed Jump Pack and Barrier Projector casts through stored-state raw command replay.
+
+- Verify Zarya's projected barrier blocks Sleep Dart damage and sleep, including the hit that breaks the barrier.
+
+- Require the authored Jump Pack cast branch before launching or replacing a flight, independent of cooldown writes.
+
+- Require the authored barrier deployment finish branch before creating a sphere, including after a cooldown write.
+
+- Verify Barrier Projector deployment across Primal activation and reject new barrier input during the transformation.
+
+- Verify one Jump Pack landing hit and one damage-charge award when a fresh command recovers a short missing input window.
+
+- Stop Heavy Assault's charge against a solid allied Ice Wall and route the bound victim through the authored wall crush without damaging the allied pillar.
+
+- Verify an allied Sleep Dart stops a Heavy Assault pin before wall crush, with a matching blocked-dart control.
+
+- Add opt-in reconstructed Enforcer firing through the authored 13EB trigger, ammunition, volley and projectile paths.
+
+- Let deployed Mei Ice Wall pillars occlude Enforcer's reconstructed 13EA sight query and exercise the authored release wait.
+
+- Let an opted-in Enforcer select a live hostile body and exercise its authored 13EA movement gates against Winston.
+
+- Verify that reconstructed Blizzard flight crosses Winston's sphere and its area damages and chills him after arming inside.
+
+- Verify Primal Rage expires during Blizzard freeze without Winston input and leaves the freeze active.
+
+- Verify an actual lethal Tesla hit prevents Blizzard release during its windup, while a released projectile survives Mei's death.
+
+- Verify Tesla reload completion during Sleep Dart control and fresh fire after wake.
+
+- Verify idle automatic reload from an empty Tesla magazine and rejection of replayed fire.
+
+- Advance an accepted Tesla reload during input silence through its authored timers.
+
+- Verify manual Tesla reload gates and the authored Primal ammo reset.
+
+- Clear Primal's temporary health and queued punches in Winston's lethal-hit frame.
+
+- Cancel an active Jump Pack flight in the lethal-hit frame without waiting for owner input.
+
+- Verify that Ice Wall pillar damage grants neither Winston charge nor hero damage credit.
+
+- Evaluate the authored charge tag predicates against the actual damage target.
+
+- Verify Tesla credit against the authored Practice Range and D.Va tagged bodies.
+
+- Apply the original half-credit branch while the Talon target-tag state is active.
+
+- Apply the authored 0.75 damage-charge multiplier for Roadhog's tagged body.
+
+- Apply both authored target-marker exclusions to Winston damage charge.
+
+- Verify EMP ordering across the release frame of an accepted Barrier Projector cast.
+
+- Verify allied EMP rescue from Talon pins and Assassin reacquisition after expiry.
+
+- Verify EMP victim graphs, shield-only drain and idle expiry on all five Talon bodies.
+
+- Model the Talon reaction graphs' output-forwarding action in strict VM mode.
+
+- Verify that lethal allied Peacekeeper fire releases Assassin and Heavy Assault
+  pins and restores fresh Jump Pack input.
+
+- Verify Assassin and Heavy Assault pins against Winston's deployed sphere.
+
+- Verify that a wall-blocked quick melee still spends its cooldown and grants
+  no damage credit.
+
+- Verify Tesla, Jump Pack and Primal occlusion with static collision geometry.
+
+- Verify actual rifle and Helix contact order against Winston's barrier and
+  static collision, including friendly fire through the sphere.
+
+- Verify idle barrier release against an in-flight Helix Rocket and cancellation
+  when a lethal rifle hit arrives during the deployment wait.
+
+- Complete accepted Barrier Projector deployments across idle world updates,
+  preserving their original lifetime and one-time release.
+
+- Verify that Sleep Dart blocks new barrier inputs while an accepted Barrier
+  Projector deployment completes on its authored timer.
+
+- Verify Nano mitigation at impact for the Talon Sniper's alternate projectile.
+
+- Preserve the command clock across Winston respawn so fresh input works on
+  the replacement body while future and replayed commands stay rejected.
+
+### 2026-11-09
+
+- Verify incoming primary damage inside Winston's barrier before and after Nano expiry.
+
+- Verify consecutive Tesla hits on the same enemy barrier across Nano expiry.
+
+- Verify quick melee damage and charge when a buffered press releases across
+  Nano expiry.
+
+- Verify that a Primal punch winding up during Nano uses normal damage
+  when the boost expires before impact.
+
+- Verify Jump Pack damage and charge across Nano expiry in midflight.
+
+- Verify Nano-boosted Tesla damage and charge against all five Talon bodies.
+
+- Verify Nano mitigation before armour for all five Talon first hits.
+
+- Verify projected barrier breaking hits and later Enforcer pellet damage.
+
+- Verify projected Zarya barrier absorption and energy for five Talon
+  weapon variants, with Winston vulnerable again after expiry.
+
+- Verify reflected Helix damage credit and the barrier-breaking splash boundary.
+
+- Verify that reflected Biotic Grenade can damage and anti-heal Winston,
+  and that his barrier blocks its returning blast.
+
+- Verify reflected Sleep Dart allegiance, damage credit, sleep duration
+  and interception by Winston's Barrier Projector.
+
+- Resolve Genji Deflect for tagged hitscan and swept projectiles, with
+  reflected damage credited to Genji. Verify five Talon weapon variants.
+
+- Verify allied Defense Matrix interception of Talon hitscan and
+  physical projectile volleys before they reach Winston.
+
+- Verify that brief Assassin pins clear buffered Jump Pack and Barrier
+  Projector without altering their active cooldowns.
+
+- Verify that a brief Assassin pin clears buffered quick melee without
+  resetting its cooldown, even when an ally rescues Winston before expiry.
+
+- Verify that Heavy's charge pin clears a pending Primal punch and that
+  Flashbang rescue allows a fresh attack without replaying the old swing.
+
+- Cancel pending Primal damage on hard control so an Assassin rescue
+  cannot release a stale punch. Fresh attacks still work after rescue.
+
+- Verify that Mei spray freeze interrupts a pending Primal punch and
+  that a fresh punch works after thaw within the same activation.
+
+- Verify Sleep Dart interruption of a pending Primal punch and recovery
+  after waking within the same Primal activation.
+
+- Verify that Mei spray freezing an airborne Winston blocks new Jump Pack
+  casts while the existing flight resolves one landing hit and impulse.
+
+- Verify that Sleep Dart and Hack block new Jump Pack casts while an
+  existing flight still resolves one landing hit and impulse.
+
+- Verify Jump Pack landing against personal and projected Zarya barriers,
+  including the breaking hit, absorbed energy and Winston charge.
+
+- Verify damage and charge across Primal expiry, including an unfinished
+  swing and the first subsequent Tesla hit with held or fresh fire. Check
+  ammo and reject duplicate or stale commands across that handoff.
+
+- Verify that both ultimate-charge target predicates observe Echo's
+  authored marker only on the selected body and during its stack lifetime.
+
+- Verify Tesla charge at projected barrier break and across Nano expiry.
+
+- Verify Tesla credit in stock Deathmatch and Practice Range mode records
+  and check for duplicate credit on all five retained Talon corpses.
+
+- Verify incoming Winston team checks with five player attack paths and
+  all five actual Talon bodies, including damage credit and control.
+
+- Feed opposing live charges and Fortify into Heavy's authored clash
+  tracker using reconstructed range, cone and occlusion checks.
+
+- Resolve Heavy clash's authored self and first-recipient stun requests
+  through the combat host.
+
+- Check deployed Ice Wall occlusion for Heavy charge contact and Trooper
+  and Heavy melee against Winston.
+
+- End an active Assassin pin on Ice Wall confirmation when the lift
+  breaks contact, including its movement restrictions and repeated damage.
+
+- Stop Sniper MoveTo and NPC knockback at live Ice Wall pillars. Preserve
+  the Sniper recast gate and the damage from the punch that starts knockback.
+
+- Sweep ordinary Talon route movement against live Ice Wall pillars and
+  check pillar occlusion when resolving Assassin strike contact.
+
+- Intercept authored Talon shots, Helix impact splash and Blizzard flight
+  or area exposure at deployed Ice Wall pillars.
+
+- Sweep player movement against Ice Wall pillars and resolve Jump Pack
+  landing on a live wall top through the existing landing path.
+
+- Apply Winston quick melee, Primal punch and Jump Pack attack volumes
+  to Ice Wall pillars and occlude body damage and impulses across the wall.
+
+- Host actual Mei Ice Wall placement for Tesla occlusion, pillar damage
+  and Heavy charge contact, including the separate bound Winston crush.
+
+- Require the authored 961 candidate flag for Heavy's close impact. Ordinary
+  Winston, Primal and fortified Orisa no longer enter its damage or stun.
+
+- Apply Orisa's Fortify damage modifier and force/control resistance in
+  Winston combat and verify the targetless Heavy recovery request.
+
+- Run Enforcer's authored 13EA speed gate from an explicit hostile target,
+  including distance hysteresis, visibility exit and target cleanup.
+
+- Resolve Mei's authored Blizzard launch against Winston with reconstructed
+  ballistic landing, delayed area damage and timed freeze.
+- Use Winston's sphere as an area occluder and route airborne Blizzard
+  through Genji's authored Deflect window.
+
+- Restore Mei's authored Cryo-Freeze scope for Winston combat, including
+  damage and impulse exclusion, idle healing and expiry, and cancel recovery.
+
+- Apply Enforcer's controller-owned 13EF speed modifier to route movement.
+
+- Advance active Trooper and Enforcer reload states through missing NPC input.
+
+- Verify Trooper magazine depletion and logical reload, Enforcer automatic
+  reload, and the unbound
+  volley-ammo behavior of both Sniper variants and Heavy Assault's primary.
+
+- Run the Sniper's authored 142C MoveTo on the NPC clock with reconstructed
+  destination admission, capsule collision and control or impulse cancellation.
+
+- Verify both Talon Sniper weapon variants through authored slot inputs,
+  including alternate projectile range, release and Winston barrier contact.
+
+- Apply the authored Trooper and Heavy Assault melee and Heavy charge graze
+  impulse magnitudes on living hits through the shared collision mover.
+
+- Consume the authored Heavy Assault wall and close-body impact damage states.
+  Pair the close impact's original control request with accepted health damage.
+
+- Route Heavy Assault frontal charge contact to the original 1407 victim
+  graph and bind its live attachment to the server's movement and input.
+
+- Resolve Heavy Assault charge side contact through the authored target and
+  health states, with reconstructed geometry and one contact per victim.
+
+- Admit Heavy Assault's authored charge input and advance its timed movement
+  phases with reconstructed NPC motion and static wall detection.
+
+- Route the authored Trooper and Heavy Assault melee through real NPC inputs
+  and health states. Use resource offsets, radii and damage with reconstructed
+  capsule/LOS admission and advance pending melee during idle windows.
+
+- Verify Winston's authored quick melee cooldown and early press window, replay
+  rejection, and Tesla recovery after a melee interrupt.
+
+- Route Sombra's authored EMP release through both victim scripts. The
+  reconstructed radial hit drains character shields and collapses hostile
+  Winston spheres in range and line of sight.
+- Use the same authored Zarya barrier activations for damage and Hack
+  admission. In the reconstructed ordering, EMP exhausts a covering barrier
+  before it can affect its wearer. Zarya's barrier timers advance during
+  missing input.
+
+- Route Sombra's authored Hack channel into a body-owned application. While
+  hacked, Winston's skill buttons and ability starts are blocked. Tesla and
+  an existing Primal form remain usable. Barriers obstruct target acquisition.
+
+- Resolve the authored Mei spray as a piercing projectile with one contact per
+  body. Successful spray damage contributes source-scoped frost, reduces player
+  speed and interrupts actions at freeze. The freeze deadline and held aim are
+  body-local. Shield interception precedes frost.
+
+- Apply Nano Boost on the authored Ana release against a selected living ally.
+  Its 250 heal uses ordinary healing rules. The reconstructed damage modifiers
+  reach Winston's beam, punch and barrier paths. Projectiles keep the outgoing
+  multiplier from release and body mitigation is evaluated at impact.
+
+- Resolve Ana Biotic Grenade damage, allied healing, amplification and anti-heal
+  through the existing projectile and barrier paths. Retained Biotic Field
+  ticks use the healing modifier active on each tick. Primal's tagged refill
+  bypasses anti-heal under the reconstructed interpretation of C72 node 17.
+
+- Apply the authored Ana Sleep Dart effect on successful damage. The
+  reconstructed five-second gate suppresses actions, ends an Assassin pin when
+  the source sleeps and wakes on subsequent body damage. Winston's Barrier
+  Projector absorbs the projectile before sleep can apply.
+
+- Require successful initial body damage for Assassin victim control under the
+  reconstructed host policy. An actual projected Zarya cast absorbs the entry.
+  The victim can be pinned by a fresh attack after shield expiry and recovery.
+
+#### Assassin graph-owned physical following and rescue (static goal open)
+
+- Consume original28's default type8 zero-local-offset constraint and30's
+  negative-target-forward expression through declared possessed-body transform
+  services. Follow real movement poses and preserve existing Jump flight and
+  cooldown. Store/replicate NPC pitch and include it in causal server snapshots.
+- Positive incoming melee, external source force and source control release
+  original1157 input and1177 immediately under an explicit rescue policy.
+  Retire old victim bindings before death, replacement or leave.
+- Ten new methods cover physical/facing lifetimes, actual ally melee/Flashbang/
+  Primal rescue, enemy Primal victim force and full-server NPC pitch causality.
+  Together31 related methods and805 frozen full regressions pass without
+  skips or expected failures. Native mode/filter/message/transform/phase
+  comparison, other controls/defenses and complete combat acceptance remain open.
+  See docs/WINSTON_ASSASSIN_CORE.txt for the native-adapter boundaries.
+
+#### Assassin victim movement records (static goal open)
+
+- Project the six original1177 movement records to the bound possessed body,
+  with controller identity separate from body modifier keys. Synchronize both
+  acquisition and release when the player supplies no input; preserve body
+  Primal speed records and next-command-frame modifier boundaries.
+- Three new methods cover the numeric/intent records, release and causal
+  physics snapshot storage;32 related checks and795 frozen full regressions
+  pass without skips or expected failures; separate server causal1 passes. Routing is
+  a declared host policy. Character-collision22 changes stored MoverData;
+  dynamic actor collision, physical attachment/facing and full static combat
+  acceptance remain open. See docs/WINSTON_ASSASSIN_CORE.txt.
+
+#### Winston actual eye fields and Assassin contact identity (static goal open)
+
+- Use original1C0 FirstPerson1.5/1.05 standing/crouched eye offsets in source
+  and target queries; review/reuse02A3 McCree1.425/.9975. Add actual low-cover
+  Tesla and source/target/crouch checks; other unspecified bodies keep defaults.
+- Require current body capsule contact and axis LOS before Assassin initial
+  health and1177. Bind controller/body identity and end the original held attack
+  on separation, new cover or body replacement. Positive fixtures actually
+  touch; far/vertical/wall and replacement cases no longer receive remote pins.
+- Label contact admission as reconstructed. Physical attachment/facing/approach,
+  full interrupts/defenses and original-client acceptance remain open. See
+  docs/WINSTON_ASSASSIN_CORE.txt and docs/WINSTON_EYE_HEIGHT.txt.
+- This earlier frozen source passed792 regressions with no skips or expected failures;
+  binding/health-clock/controller causal storage, Ruff and diff checks pass.
+  Complete static goal and merge readiness remain open; no partial commit.
+
+#### State notification teardown and ability cleanup order (static goal open)
+
+- Clear canceled CHANGED/CHECK coalescing markers and stop variable cleanup
+  writes from re-queuing an ending state's notifications. Reproduce/reuse the
+  shared two-case repair and add a third cleanup-Join CHECK regression/guard.
+- Queue outgoing ability scope/resource cleanup before releasing arbitration.
+  This is an explicit server ordering policy; native cross-object equivalence
+  remains unproved. Existing snapshot fields suffice; no global phase is added.
+  See docs/STATE_NOTIFICATION_LIFETIME.txt.
+
+#### Winston actual Assassin target/controller core (static goal open)
+
+- Mount exact13C2 filter stages over declared Match services and route actual
+  1157 PlayScript1177 into a distinct player-controller VM. The original victim
+  graph owns14695; foreign reads preserve controller/body namespace separation.
+- Consume original node25's initial25 on entry before its same-frame transition;
+  refuse a victim script after a lethal hit. Integrate node15's declared100/sec
+  after its original1s warmup with a causal integer-ms clock and continuous
+  armour policy. Preserve victim control and lifecycle cleanup.
+- Advance older associated-Assassin windows independently of practice firing;
+  replay sparse world intervals chronologically so warmup/recovery are timely.
+  Native health mode/flags, physical contact/attachment and full AI/status/
+  defense semantics remain unmet acceptance.
+- Resolve actual7C3/640 alias561/category82 to508A's1.4666667-second clip header
+  and matching game-data duration. Run original Anim31 cleanup under a scoped
+  host clock; native transition/rate/finish and client behavior remain open. See
+  docs/WINSTON_ASSASSIN_CORE.txt for precise boundaries.
+- Verify existing original-timestamp early-press handling against new actual
+  Jump/bubble held, near-ready, expired-short-press and fresh-reuse cases.
+  Review/reuse parent's17/18/19 throttle modifiers at the next pose while
+  preserving stored raw command bytes and existing snapshot fields.
+
+#### Winston defense expiry and future-input admission (static goal open)
+
+- Advance older no-input windows for Reaper/Genji/DVa through their original
+  timers/resources/cooldowns, retaining the current input window and last pose/aim.
+  Chunk large gaps so chained exit timers and cooldowns cannot begin seconds late.
+- Bound future input for those defense bodies and Winston before queue mutation.
+  Prevent future-frame damage/resource/cooldown bursts while preserving legitimate
+  current windows, atomic validation and wire-epoch boundary reporting.
+- Replay established finite projectile flights before defense endpoint expiry;
+  real Helix/Matrix order agrees for paced and sparse world updates. Add19
+  clock/input/combat/quantum/causal cases and full-server anchor coverage.
+- Reconcile all5 private NPC mover profiles with parent's43-record runtime:
+  all34 fields per body agree. Keep all runtime/hardlink inputs read only and
+  collision verification limited to explicit static fixtures.
+
+
+#### Winston authored charge and Primal world expiry (static goal open)
+
+- Replace Winston's60-second fill with original0B8B5/sec and damage multiplier
+  arithmetic. Preserve scalar blocks/cap, actual health-loss admission and
+  explicit native mode/filter eligibility limits.
+- Charge bound bodies on world ticks; original Wait3 cannot be accelerated by
+  input bursts. Advance only0109/node25's original lifetime ChaseVar on server
+  time, executing its original cleanup while the owner command frontier stays
+  fixed. Clip passive credit across skipped Primal time.
+- Add20 actual rate/clock/admission/cast/expiry/snapshot cases and extend causal
+  full-server coverage. Other NPC specials/statuses/native gates remain open.
+
+
+#### Winston actual Assassin controller/input boundary (static goal open)
+
+- Host associated1EBE roots and deliver explicit original14365/logical36 input.
+  Actual13C2 writes1650 then clears it at its unresolved full native filter;
+  targeted damage remains the sole unmet incoming expected failure.
+- Preserve selected AIBehavior state and clean its subgraph when selection ends;
+  export selection and manual target as causal snapshot state.
+- Add six actual Assassin boundary cases and seven reviewed candidate-condition
+  scope/conversion cases. No full filter, pin/control or damage is forced.
+
+
+#### Winston actual Enforcer controller and physical shotgun acceptance (static goal open)
+
+- Host optional associated controller227A separately from body2279. Original13EA
+  Stack9134 opens the original weapon gate through direct ownership/foreign
+  reads; no ready predicate is forced. Reserve distinct identities, validate
+  definitions before allocation and retire controller state on death/removal.
+- Share ring geometry between DVa050A and Enforcer13EB. Consume all25 authored
+  physical projectiles with individual damage/collision/defense handling; apply
+  original projectile falloff to body and bubble contacts. Keep trajectory and
+  controller namespace/clock policies explicitly reconstructed.
+- Twelve actual controller/weapon tests cover four damage indices, range/falloff,
+  team/miss/wall, bubble/floor ordering, release/reuse, two magazines/reloads,
+  missing/retired controller, allocation and full-server causal snapshots.
+  Four actual NPC primaries now damage Winston, hit its bubble and recover from
+  control. Assassin targeted attacks remain unmet.
+- Add a repeatable external-input preparation tool. Current supplement has12
+  graphs/two entities including the mech input; raw data stays outside Git.
+  Controller initial roots only are hosted; reference147B/full native AI remains
+  open. Initialize default NPC external movement flags for complete storage.
+- Review/reuse parent2ca9178 native distinct-input joins and causal fields; include
+  its ten tests. Fixed-source672 regressions:671 pass,one unmet expected failure,
+  zero errors/skips,unchanged Python hashes. Ruff/diff pass. Full goal active;
+  no complete static/client acceptance or root merge/publication claimed.
+
+#### Winston control and actual NPC Jump cases (static goal open)
+
+- Reuse parent64bf71c resource-backed0.8/1.7s Flashbang control: release held
+  input, clear buffers, suppress player actions/motion, pause NPC routes without
+  catchup and clean up on death/body removal. Preserve causal stun deadlines.
+- Apply hit effects only after damage admission. Bubble/Zarya absorption cannot
+  leak control. Offset static wall-impact splash queries toward the approach
+  side so contact triangles continue to occlude damage and status.
+- Eleven Winston command tests pass: Tesla/resources/movement, ultimate refusal
+  without buffered spend, original Primal duration and retained armour loss,
+  bubble/Zarya protection, death/replacement, Jump cooldown and no delayed hits.
+- Actual five-NPC launch1/landing50/capsule falloff, impulses, range/team/wall
+  rejection and lethal melee/Primal/Jump corpse retention pass. Absent secondary
+  and rear launch contacts are explicit controls; geometry stays reconstructed.
+- Actual Flashbang plus Primal motion composes on all five bodies. Trooper,
+  Sniper and Heavy primary positive controls reject new damage while stunned
+  and recover. Explicit input/transport adapters do not prove production AI,
+  full NPC resources or specials. Already-fired projectiles may finish.
+- Fixed-source650 regressions:648 pass,two unmet expected failures,zero errors/
+  skips,unchanged Python hashes. A separate causal-stun-snapshot test and Ruff/
+  diff checks pass. Full static and original-client acceptance remain open.
+- Execute the original B96D3A98 predicate tail/bitset reader for eight controller
+  masks. Components75 present/92 absent are required, with declared lookup/output
+  adapters. Full NPC controller allocation remains unaccepted; Enforcer/Assassin
+  incoming tests are not forced to pass. See ENFORCER_CONTROLLER_PREDICATE.txt.
+
+#### Winston interoperability with actual Defense Matrix (static goal open)
+
+- Reuse reviewed D.Va lane body ownership, explicit0407 graph/pool/mover inputs,
+  native-backed typed ruleset fallback and reconstructed Matrix interception.
+  The pilot is not used as a substitute for an active mech. Keep external graph,
+  mover and projectile-tag supplements read only and outside Git.
+- Preserve independent Fusion Cannon rays and actual Matrix resource states.
+  Compare Matrix, static/body contact and Winston bubble distances before
+  resolving shots. Absorbed rockets retire without direct/splash damage or
+  explosion release. Unknown tags pass; box attachment/filter polarity remain
+  explicitly reconstructed.
+- Seven real-command Winston Matrix tests pass: hostile rifle positive control,
+  Tesla armour/charge, quick melee, Primal damage/impulse, Jump launch/landing,
+  and nearest bubble/Matrix interception. Landing casts during physical descent
+  to avoid exhausting Matrix before landing; no state/damage is injected.
+- Explicitly store new Winston/Zarya services, NPC movement data/flags, command
+  aim and query contexts in server snapshots; preserve the ruleset target cache
+  in VM snapshots. Twenty combined Matrix/server-snapshot tests pass.
+- Fixed-source regression:620 run,618 pass, two explicit unmet expected failures,
+  no errors/skips, unchanged Python hashes. Ruff/diff pass. Full NPC specials,
+  other controls/invulnerability, passive charge and complete static acceptance
+  remain open; no client practical acceptance or root merge is claimed.
+
+#### Winston cross-hero defenses and actual NPC rejection cases (static goal open)
+
+- Exercise actual Genji Deflect and Reaper Wraith casts against Tesla, quick
+  melee, Primal and Jump damage. Frontal melee parry and Wraith prevent both
+  admitted damage and associated impulses; Tesla passes Deflect. These scoped
+  host policies remain reconstructed and do not establish native filters.
+- Reuse reviewed Zarya projected target routing and personal/projected barrier
+  services from lane0068 b17930b. Actual casts absorb damage, grant authored
+  energy, block a breaking event in full and suppress associated impulses.
+  Projected barrier interception precedes Genji melee parry. Verify real shield
+  regeneration delay and absorbed damage's lack of Winston damage charge.
+- Preserve command aim in body VM snapshots because projected target selection
+  consumes it. Check that changing aim changes the stored execution digest.
+- Add actual five-class NPC miss/range/team/static-wall cases for Tesla, quick
+  melee and Primal, plus one30-damage melee hit per real body. Disable the legacy
+  passive charge only in those fixtures to isolate damage charge.
+- Reuse parent6debff3 typed array selection and parent7cd1ed7 nearest-capsule
+  static melee visibility. Enforcer controller and Assassin attack acceptance
+  remain open; neither query is forced true to produce a passing result.
+- Fixed-source regression:436 run,434 passed, two explicit unmet expected
+  failures, no skips/errors and unchanged Python source hashes. Ruff/diff pass.
+
 ### 2026-11-08
+
+#### Winston Primal punches, NPC impulse motion and weapon intake (static goal open)
+
+- Reconstruct only 00FE's .25s Primal windup states, then consume the original
+  alternating40-damage health activations. Preserve .65s swing cycles, ammo,
+  charge, range/team/LOS filtering, release and death cancellation. Local capsule
+  interpretation, one-hit sampling and25/7 impulse meanings remain inferred.
+- Route player and NPC impulses through the collision-backed Mover; publish
+  actual NPC pose/velocity/air flags, stop at static geometry, cancel on death
+  and clear motion immediately on explicit manual-NPC removal.
+- Accept optional authored MoverData in NPC catalogs and use it consistently for
+  target capsules, route values, gravity and impulse motion. Independently extract
+  all five NPC mover records from their own XML outside Git; do not override or
+  copy the normal runtime. Capsule heights now differ1.5..2.3 as authored.
+- Reuse reviewed Soldier161a060 shared weapon allocation, full NPC initial health
+  and slot-input hunks. Sniper's actual100-damage projectile now reaches Winston
+  and is intercepted by the bubble. Enforcer/Assassin remain expected failures;
+  their measurements run outside the expected-failure wrapper so unrelated
+  runtime/transport exceptions cannot be concealed as expected failures.
+- Verify Primal Jump reset/2s cooldown/expiry-to6s and a fresh effect on air recast.
+  Actual speed rises5.5->7.15039 and returns5.5. All five actual NPC bodies take
+  Primal40, move, land and retire their external motion; persistent corpses remain.
+- Pass a309-test frozen-source run with two explicit unmet expected failures,
+  zero skips and unchanged Python manifests, including14 Primal tests and a
+  correction preventing melee shield contact through static walls. Ruff passes.
+  No complete-static, native-client,
+  root-main merge or publication claim. Full goal remains active.
+
+#### Winston barrier collision and lifetime (static acceptance open)
+
+- Read the original D02.00C model's dynamic sphere: radius5 in MSTU shape
+  4614D0E5/ED61D926. Graph00FA supplies health700, duration9 and cooldown13.
+  A combat-side barrier actor now follows the authored 50ms deployment state,
+  expires independently of owner input and retires with the old body.
+- Route enemy hitscan, projectiles, splash, Tesla and Jump Pack impact paths
+  through sphere crossings. Friendly shots pass. Hitscan can damage an empty
+  shield; the breaking attack cannot spill onto the protected body. Tesla
+  damages a given shield only once per slice, including multiple targets.
+  Helix applies its actual 40 direct plus 80 explosion damage to the shield.
+- Reconstructed team/crossing/no-spill, placement, splash occlusion and owner
+  lifecycle policies require native comparison. Native dynamic entity, graph,
+  visual effects, HP feedback and complete attack/status rules remain open.
+- Validation: 17 barrier tests, 28 earlier Winston tests, 28 combat and 37
+  projectile regressions pass. Optional actual-NPC suite: six pass, three
+  expected failures. Trooper/Heavy primary shots now also exercise shield
+  interception. Ruff and diff checks pass. Full goal remains active.
+
+#### Winston Jump Pack physics and real NPC static probes (acceptance open)
+
+- Bridge accepted 010A cooldown activations to reconstructed launch velocity,
+  real collision movement, landing damage and movement-subtree termination.
+  Resource values are speed30, angle bounds25/90, launch damage1 and landing
+  maximum50. Elevation interpretation, linear capsule-distance falloff and
+  knockback remain reconstructed; NPC external impulses are still unsupported.
+- Preserve the original buffered-press timestamp in the shared Ability state.
+  A rejected old click now expires instead of refreshing every frame and
+  automatically casting after the whole cooldown. Test actual cooldown rejection,
+  short early buffering, ready recast, repeated packets and death cancellation.
+- Reuse parent's reviewed NPC lifecycle/catalog module from a15d554 and the
+  Bot-owned projectile cleanup fix from c2d3ae1, with read-only external inputs.
+  Test Tesla against all five actual bodies and retained injured-NPC deaths.
+  Explicit primary input damages Winston through Trooper/Heavy Assault weapons;
+  Enforcer, Sniper and Assassin remain three explicit expected failures.
+- Validation: 28 Winston behavior tests, 12 shared ability and 28 combat
+  regressions pass. NPC suite: five pass, three expected failures. Ruff passes.
+  None of this completes the full static matrix or original-client acceptance.
+
+#### Winston Primal Rage health and damage charge (static acceptance open)
+
+- Apply original 0109's temporary 500-health pool to actual server pools,
+  restore the temporary maximum on activation, and remove/clamp it on expiry
+  or death. Preserve armour and never resurrect a dead owner.
+- Add capped actual-damage ultimate charge for Winston. Recognize his
+  LogicalButton/HealthPool ultimate lifetime, stopping passive charge while
+  Primal runs or the owner is dead. Legacy automatic rate, score modifiers,
+  pool-removal semantics and one-point-per-damage conversion remain unaccepted
+  reconstruction details.
+- Pass 20 executable Winston tests, 28 combat regressions, 7 statescript
+  regressions and Ruff. Tests include actual ammo exhaustion/reload, melee,
+  charge gate/cap, Primal start/expiry/death and suppression of charge.
+- Full static goal remains active: Jump Pack, barrier, Primal attacks/reset,
+  complete cooldown/effect loops, cross-hero interactions and five PVE classes
+  still require implementation and complete behavioral evidence. Original-client
+  practical acceptance is separately open. This is not merge-ready acceptance.
 
 #### Partial Winston Tesla Cannon damage restoration
 

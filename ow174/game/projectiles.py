@@ -346,6 +346,14 @@ class Projectiles:
             else:
                 viewer.client.queue_entities([create])
 
+    def absorbed(self, shot: Shot) -> None:
+        """Retire an intercepted projectile without impact release or spawned field."""
+        if isinstance(shot.player, bots.Bot):
+            for delivery in shot.observers:
+                delivery.finish(self.match.tick, False)
+            return
+        self._end(shot, self.match.tick, explode=False)
+
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
         if isinstance(shot.player, bots.Bot):
@@ -454,7 +462,7 @@ class Projectiles:
             viewer = next((player for player in self.match.players if player.slot == slot), None)
             if viewer is not None and viewer.client is not None:
                 viewer.client.queue_entities([EntityUpdate(entity, OP_DESTROY)])
-        client = shot.player.client
+        client = getattr(shot.player, "client", None)
         if client is None or not shot.created:
             return
         updates = []
@@ -481,10 +489,10 @@ class Projectiles:
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
         # The opening tick has no heal, and the field ends before the expiry tick.
         # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+        ticks = range(max(first_tick, start + 1), min(tick + 1, expires))
+        if ticks:
+            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * len(ticks)
+            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount, ticks=ticks)
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return

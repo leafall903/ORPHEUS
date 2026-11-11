@@ -43,6 +43,7 @@ STATE_MODELS = (
     ("STUStatescriptStateChaseVar", nodes.ChaseVar),
     ("STUStatescriptStateWeaponVolley", nodes.WeaponVolley),
     ("STUStatescriptStateAnim", nodes.Anim),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
     ("STUStatescriptStateAbility", nodes.Ability),
     ("STU_9C9A422A", nodes.Defer),
     ("STU_2F4E2E3F", nodes.Watch),
@@ -69,9 +70,10 @@ COMPONENT_FIELDS = {
 INSTANCE_FIELDS = {
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
-    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
+    "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -162,7 +164,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 36)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -507,12 +509,15 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(set(body), set(vars(script)) - TRANSPORT_FIELDS)
         self.assertIn("ultimates", body)
         self.assertIn("retired", body)
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
+        self.assertEqual(set(dict(body["world"]["fields"])), {
+            "hero", "mode", "body", "throttles", "aim", "_body_owner_context", "_entity_query_context"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):
             ignored_transport = export_body_vm(script)
         self.assertEqual(snapshot_digest(baseline), snapshot_digest(ignored_transport))
+        script.world.aim = (1234, -5678)
+        self.assertNotEqual(snapshot_digest(baseline), snapshot_digest(export_body_vm(script)))
         script.unknown_execution_state = 1
         with self.assertRaises(BodyVMSnapshotError):
             export_body_vm(script)

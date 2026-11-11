@@ -1,0 +1,132 @@
+Associated NPC controller hosting -- build104319, reconstructed server service
+============================================================================
+
+Current Assassin core is documented in WINSTON_ASSASSIN_CORE.txt. The earlier
+boundary section below records the historical unresolved-filter checkpoint;
+its expected-failure count is superseded by the newer core. Full numeric pin,
+physical attachment/AI and original-client acceptance remain OPEN.
+
+Resource evidence and resulting behavior
+----------------------------------------
+Enforcer body2279 references associated definition227A through m_8B9A461F.
+That definition contains AI components and initial graphs142A/E5C/C83/13E9/13EA.
+Original13EA node31 is a Stack writing controller entity variable9134=True.
+The original13EB weapon gate reads the body's F7262B36 owner, then that owner's
+7681/9134 variables before its B96D3A98 fallback. Hosting the actual controller
+and foreign variable read opens the gate without forcing a controller predicate
+or copying the ready flag into the body. Missing/retired controllers stay closed.
+
+Optional catalog controller_definition declares a full003 GUID. Spawn reserves
+distinct body/controller identities before use. Missing prepared definitions fail
+before allocation. BotScript hosts a separate nonreplicated controller Component,
+initializes its original graph order/schema, and advances it before the body on
+each live advance. BotWorld maps direct ownership and polls actual peer-component
+values through the existing native-query poll. Death/remove retire controller
+instances; retained corpses remain. General native subscription/AI/world services
+are not restored by this value-polling bridge.
+
+Body and controller VMs remain separate. Server snapshots store both and their
+namespace link; body-VM snapshots exclude the enclosing Match as they do for
+player bodies. Controller backing storage and retired instances affect the full
+server digest even when an effective Stack value is unchanged. Default NPC
+external movement flags are initialized explicitly, including before any impulse.
+
+Enforcer target selection
+-------------------------
+The 2279/227A pair supports an opt-in auto_target flag when spawned. For 13EA
+slot zero, the host ranks live hostile bodies by distance and breaks ties by
+body entity ID. An explicit target takes precedence. The controller still runs
+its authored range tests and exit wait against a reconstructed eye ray that
+checks static geometry and deployed Ice Wall pillars. Tests exercise
+acquisition, delayed release, pillar cancellation, team changes and
+the resulting 0.4 route speed keeping Enforcer outside Winston's Tesla range.
+The full-server snapshot includes the opt-in flags. Other spawns keep the manual
+input behavior. Native selector ranking remains open.
+
+With auto_target=True and auto_fire=True, the server holds weapon slot zero
+while the authored 13EF engagement modifier is active and its selected hostile
+body is visible. It aims each 13EB volley from the existing NPC shot origin
+toward the target's eye. Losing visibility or the hostile target releases the
+slot. An actual Flashbang releases it through stun and fire resumes after expiry.
+This trigger and aim policy is reconstructed.
+The authored body still owns button admission, ammunition and volleys. The
+normal projectile path handles Winston's body and Barrier Projector.
+
+13EA sends 0790 to its selected target and 07A5 to its possessed body. The
+extracted 13EB graph receives weapon logical button 20. The current trace
+has no proven link between these messages and that button. Node 14 opens
+the group containing 760F68AF, 988AAC99 and ABA73F86. Their input-delivery
+roles and native automatic input delivery remain open. The prepared graph set leaves its
+147B reference unexpanded.
+
+Weapon consumer
+---------------
+The shared ring resolver supports only authored DVa050A and Enforcer13EB tuples.
+Enforcer supplies25 projectiles in rings(0,1),(.5,8),(1,16),spread4 and speed80.
+Each physical projectile performs collision/defense/damage separately. Degrees,
+zero angular phase and tangent projection remain reconstructed trajectory policy.
+Direct projectile damage now applies its authored distance falloff to bodies and
+bubbles; other definitions without falloff keep their existing full amount.
+
+At4m all25 pellets hit the original Winston capsule. Difficulty-array indices0..3
+supply2/4/6/8 each, losing25/50/75/100 from armour after per-pellet mitigation.
+At50m only the centre pellet hits Winston, at20% damage and half-armour loss0.2.
+At120m the authored100m range ends first. A bubble at10m loses50; at25m it loses10
+after falloff. At50m six downward rays hit the flat ground first; the remaining19
+lose7.6 bubble HP. These are actual command/weapon/flight/pool cases, not fabricated
+volley/damage calls. Float32 falloff is compared with suitable numeric tolerance.
+
+Twelve controller/weapon cases cover original roots/gate, four damage indices,
+missing/retired controller, miss/team/wall, bubble/floor/falloff, paired identities,
+atomic invalid-input rejection, actual Tesla death/removal, release/reuse, two
+magazines/reload cadence, range and full-server causal storage. The ordinary NPC
+suite also covers incoming Enforcer damage, bubble interception and stun recovery.
+
+Reproduction and limits
+-----------------------
+Use the existing original XML/OWLib inputs and an external enriched mover catalog:
+
+  python -B -m tools.prepare_npc_controllers <xml> <owlib> <catalog> --name Enforcer
+    --merge-supplement <external mech-supplement.json.gz>
+    --output-catalog <external catalog.json> --output-supplement <external combat.json.gz>
+
+Set ORPHEUS_GRAPH_SUPPLEMENT to that additive combat supplement before imports,
+alongside the existing runtime/NPC/mover/tag inputs. The tool preserves existing
+supplement records and rejects conflicts. It records body/controller source XML
+hashes in the output catalog. The current merged input has15 graphs/three entities, including Assassin1EBE.
+It extracts controller initial roots only and reports unexpanded reference147B;
+complete behavior selection, acquisition and native AI invocation remain open.
+Game data, generated catalogs, captures and research probes stay outside Git.
+
+The controller identity/factory/clock/ownership bridge and ring flight policy are
+explicit host reconstructions. Native controller replication, encrypted engine
+lookup, full B96D3A98/subscriptions, complete AI/difficulty health/specials and
+original-client visuals remain unaccepted. Assassin target/pin attacks remain
+an unmet incoming case. These passing primary cases do not complete Winston's
+full static combat goal, and no shared-main merge or client acceptance is claimed.
+
+Assassin target/input boundary (2026-11-09)
+------------------------------------------
+The original1EBD association supplies1EBE roots, including13C2. Its actual
+AIBehavior criterion reads body13401. An explicit host target input selects
+only this behavior and supplies original override14365; original node7 writes
+1650 itself. Original node10's unresolved full AC829876 filter clears it again.
+Logical36 is delivered to the declared1157 button; no synthetic gun or forced
+selected target/state supplies damage. Six actual boundary cases pass alongside
+seven authored-condition helper cases. The incoming targeted-damage expected
+failure remains unmet acceptance, including while Winston is in Primal Rage.
+
+Selection stores its previous decision so cancellation tears down the selected
+subgraph even after the world decision changes. This decision and the declared
+manual target are causal snapshot fields. The body/controller pose and paired
+possessor queries are scoped host reconstructions, not native registry proof.
+
+filter_condition.py preserves the independently reviewed candidate0008 scope,
+scalar success/default and boolean conversion stages. The actual13C2 condition
+reads candidate14695; a synthetic condition fixture distinguishes false/true,
+and a real Primal cast leaves this isolated condition accepting the bound body.
+This proves neither full target identity/routing nor category/status/tag/native
+registry admission. Those missing stages continue to reject the complete filter.
+Retirement clears selection input and destroys controller instances; fresh input
+cannot resurrect them. Full acquisition, pin, attach, damage, cancellation and
+native control semantics remain OPEN.

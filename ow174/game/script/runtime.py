@@ -256,11 +256,22 @@ class InstanceContext(Context):
         if slot is not NotImplemented:
             return self._read(slot)
         value = component.world.entity_var(entity, var)
+        if (self.watcher is not None and component.world.poll_foreign_members(entity)
+                and not self.watcher.polled):
+            self.watcher.polled = True
+            self.watcher.ticks()
         if value is NotImplemented:
             if component.strict:
                 component.unsupported(self.instance, "entity variable service", f"{entity:08X}:{var}")
             return None
         return value
+
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
 
     def position(self, entity: int):
         component = self.instance.component
@@ -277,6 +288,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -297,10 +326,16 @@ class InstanceContext(Context):
 
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
-        self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        if cfg.get("$") == "STU_4BD39CFD":
+            from ow174.game.script import play
 
-        result = entity_queries.evaluate(self, cfg)
+            return play.array_item(self.instance, cfg, watcher=self.watcher)
+        self.poll_native(cfg)
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
+
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -382,11 +417,42 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def poll_foreign_members(self, entity):
+        return False
+
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def track_targets(self, state: "State"):
+        """Optional host target search; NotImplemented preserves an undeclared service."""
+        return NotImplemented
+
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
+
+    def animation_duration(self, state):
+        """Optional host-declared clip duration; missing native metadata stays external."""
+        return NotImplemented
+
+    def modify_health_enter(self, state):
+        """Optional scoped health-entry consumer; unspecified graphs remain external."""
+        return NotImplemented
+
+    def chase_clock(self, state):
+        """Optional host clock for an explicitly supported authored ChaseVar."""
+        return NotImplemented
+
+    def external_wait(self, state):
+        """Whether an explicit host clock owns this authored Wait's timer."""
+        return False
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -429,6 +495,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Explicit instance/lookup and direct component43 ownership services."""
         return NotImplemented
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
@@ -484,15 +554,22 @@ class World:
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
 
-    def play_script(self, instance: "Instance", node: Node) -> None:
+    def play_script(self, instance: "Instance", node: Node) -> "Instance | None":
         """Select a native PlayScript resource, then ask the world to route it."""
         from ow174.game.script.play import resolve_resource
 
         resource = resolve_resource(instance, node)
         if resource is not None:
-            self.play_resolved_script(instance, node, resource)
+            return self.play_resolved_script(instance, node, resource)
+        return None
 
-    def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
+    def handles_play_script(self, instance: "Instance", node: Node) -> bool:
+        return False
+
+    def ability_allowed(self, state) -> bool:
+        return True
+
+    def play_resolved_script(self, instance: "Instance", node: Node, resource) -> "Instance | None":
         """Construct the native request before asking the backend to submit it.
 
         Empty target iterators follow output without asking for unavailable
@@ -504,13 +581,14 @@ class World:
             instance, node, resource, context_provider=lambda: self.play_script_context(instance, node),
         )
         if request is not None:
-            self.submit_script_request(instance, node, request)
+            return self.submit_script_request(instance, node, request)
+        return None
 
     def play_script_context(self, instance: "Instance", node: Node):
         """Supply native caller, owner and inherited instigator without guessing."""
         instance.component.unsupported(instance, "native PlayScript request context", node.cls, node)
 
-    def submit_script_request(self, instance: "Instance", node: Node, request) -> None:
+    def submit_script_request(self, instance: "Instance", node: Node, request) -> "Instance | None":
         """Resolve actual target components/resources, clock and transport policy.
 
         Request construction alone cannot create instances or accept wire flags.
@@ -666,7 +744,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -782,6 +860,7 @@ class Component:
         instance.stopped = True
         instance.initialization_pending = False
         instance.queue.clear()
+        instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
 
@@ -934,9 +1013,12 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
+        self.join_inputs: list[tuple[int, int, str]] = []  # target, producer, output plug path
+        self.plug_source: tuple[int, str] | None = None  # current native input traversal
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -1285,8 +1367,51 @@ class Instance:
                 if state is not None:
                     taken = state.plug_enter(input_path) or taken
                 continue
-            taken = self.run_node(target, None if target.is_action else caller) or taken
+            previous = self.plug_source
+            self.plug_source = (node.pos, path)
+            try:
+                taken = self.run_node(target, None if target.is_action else caller) or taken
+            finally:
+                self.plug_source = previous
         return taken
+
+    def join(self, node: Node, caller: "State | None") -> bool:
+        """104319 1B6EED0/1B73BC0: join distinct input edges before following output."""
+        if self.plug_source is None:
+            self.component.unsupported(self, "join input origin", node.cls, node)
+        arrival = (node.pos, *self.plug_source)
+        if arrival in self.join_inputs:
+            return False
+        previous = sum(row[0] == node.pos for row in self.join_inputs)
+        self.join_inputs.append(arrival)
+        indexes = node.field("m_122DF0CA") or ()
+        if previous == 0:
+            for index in indexes:
+                self.component.consume_work("join completion check")
+                state = self.states.get(index)
+                if (state is not None and state.active and not state.ending
+                        and state is not caller and not state.flags_check):
+                    state.flags_check = True
+                    self.post(Event(self.component.now, 0, CHECK, state=state))
+            return False
+        if previous != expr.to_int(node.field("m_B24D1794")) - 1:
+            return False
+        # 1B700F0 removes this target's registrations by swapping with the tail.
+        index = 0
+        while index < len(self.join_inputs):
+            if self.join_inputs[index][0] == node.pos:
+                self.join_inputs[index] = self.join_inputs[-1]
+                self.join_inputs.pop()
+            else:
+                index += 1
+        if not self.follow(node, "m_outPlug", caller):
+            return False
+        for index in indexes:
+            self.component.consume_work("join state abort")
+            state = self.states.get(index)
+            if state is not None and state.active:
+                state.request(ABORT)
+        return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
         """The states a subgraph plug lists (m_FF3DAF1E)."""
@@ -1436,6 +1561,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Coalescing markers describe queued events that cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1593,6 +1720,13 @@ for _name in ENTRY_CLASSES:
     HANDLERS[_name] = run_entry
 
 
+@handler("STU_6E5C5F66")
+def forward_action(instance: Instance, node: Node, caller: State | None) -> bool:
+    """104319 1B6EBA0 dispatches this action's output and returns success."""
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 def message_entries(instance: Instance, message: int) -> list[Node]:
     """The EntryGameMessage nodes and active GameMessageEntry states of an instance for a message."""
     found = []
@@ -1617,12 +1751,13 @@ def send_message(component: Component, message: int, params: dict, sender: int) 
                for instance in list(component.instances.values()))
 
 
-def send_instance_message(instance: Instance, message: int, params: dict, sender: int) -> int:
-    """Queue a message at the component clock for only this graph instance."""
+def send_instance_message(instance: Instance, message: int, params: dict, sender: int, *, at: int | float | None = None) -> int:
+    """Queue a message for this instance at its clock or an explicit timestamp."""
     entries = message_entries(instance, message)
+    time = instance.component.now if at is None else at
     for node in entries:
         delivery = (message, dict(params), sender)
-        instance.post(Event(instance.component.now, 0, MESSAGE, node=node, message=delivery))
+        instance.post(Event(time, 0, MESSAGE, node=node, message=delivery))
     return len(entries)
 
 

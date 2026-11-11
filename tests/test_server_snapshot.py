@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import blizzard, mei_wall, winston
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
@@ -63,6 +64,37 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertEqual(actual, instances)
         self.assertFalse(first["restorable"])
 
+    def test_blizzard_flight_and_target_deadlines_are_causal(self):
+        session, _, players = self.scene()
+        player = players[0]
+        manager = player.match.combat.blizzard
+        position = (0.0, 1.0, 2.0)
+        manager.flights.append(blizzard.Flight(player, player.body, position, (0.0, 0.0, 20.0),
+                                               9.8, 60.0, None, player.match.tick))
+        area = blizzard.Area(0xC0001000, player, player.body, position, 16000, 20250, 16200)
+        manager.areas[area.entity] = area
+        initial = snapshot_digest(self.capture(session))
+        area.frost_due[player.body] = 16400
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        area.frost_due.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_ice_wall_health_and_preview_are_causal(self):
+        session, _, players = self.scene()
+        player = players[0]
+        manager = player.match.combat.walls
+        piece = mei_wall.Pillar(0xC0001000, player.body, player.team,
+                                (0., 1., 2.), (1., 0., 0.), 400., 1300, True)
+        manager.pieces[piece.entity] = piece
+        manager.inputs[player.body] = mei_wall.Input()
+        initial = snapshot_digest(self.capture(session))
+        piece.health = 225
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        piece.health = 400.
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        manager.inputs[player.body].preview = True
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
     def test_hidden_vm_counter_transport_and_physics_changes_change_digest(self):
         session, _, players = self.scene()
         player, client = players[0], players[0].client
@@ -71,6 +103,45 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         client.expected_in -= 1
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        contacts = player.match.combat.heavy_charge_contacts
+        contacts[0x40000101] = {player.body}
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        contacts.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        samples = player.match.combat.cryo_samples
+        samples[player.body] = ((1, 1, 16016), 40.0)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        samples.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns[player.body] = player.match.tick + 50
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        player.match.combat.stuns.pop(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        controller = player.controller_component
+        old_frame = controller.frame
+        controller.frame += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        controller.frame = old_frame
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        clock = player.match.combat.assassins.health_clock
+        clock[(0xA0000300, 1, 2, player.body)] = 17016
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        clock.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        bindings = player.match.combat.assassins.bindings
+        bindings[0xA0000300] = (player.entity, player.body)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        bindings.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        for name in ('winston_charge_ms', 'winston_charge_tick', 'winston_primal_clock',
+                     'world_frame_anchor'):
+            original = getattr(player.body_script, name)
+            setattr(player.body_script, name, (1, 2) if name == 'world_frame_anchor'
+                    else (1, 2, 3, 4) if name == 'winston_primal_clock'
+                    else 1 if original is None else original + 1)
+            self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+            setattr(player.body_script, name, original)
+            self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))
         self.assertNotEqual(changed, initial)
@@ -197,6 +268,51 @@ class StoredJournalTests(unittest.TestCase):
         session.server._next_conn += 1
         with self.assertRaisesRegex(ServerJournalError, "unrecorded stored"):
             session.finish()
+
+    def test_winston_consumed_casts_match_after_raw_command_replay(self):
+        session, sent = self.make()
+        (handoff,) = session.create_match(MAP, [(1, "Winston", winston.HERO, 0, False)])
+        peer = Peer(session, handoff, sent, ("127.0.0.1", 47150))
+        peer.send(flags=SYN)
+        peer.send()
+        peer.message(21601, {})
+        acknowledge_ownership(session, (peer,))
+        session.tick(100.8)
+        player = session.server.matches[0].players[0]
+        peer.message(21616, pick(player.entity, winston.HERO), now=100.8)
+        first = player.body_script.frame + 1
+        fight = player.match.combat
+        body = player.body
+
+        session.tick(100.816)
+        peer.commands(first, 1, 8 | 16, now=100.816)
+        flight = fight.winston_jump.flights[body]
+        jump_token = fight.winston_jump.seen[body]
+        self.assertEqual(jump_token, (flight[0].id, flight[0].states[26].start))
+        self.assertNotIn(body, fight.barriers.actors)
+        session.tick(100.864, missed=2)
+        peer.commands(first + 1, 3, 0, now=100.864)
+        bubble = fight.barriers.actors[body]
+        barrier_token = fight.barriers.seen[body]
+        self.assertEqual(bubble.health, 700)
+
+        peer.commands(first, 1, 8 | 16, now=100.864)
+        self.assertIs(fight.winston_jump.flights[body], flight)
+        self.assertIs(fight.barriers.actors[body], bubble)
+        self.assertEqual(fight.winston_jump.seen[body], jump_token)
+        self.assertEqual(fight.barriers.seen[body], barrier_token)
+
+        replay = _ReplaySession(session.finish(), session.registry.resolve)
+        self.assertTrue(replay.run()["stored_state_verified"])
+        copied = replay.server.matches[0].players[0]
+        copied_fight = copied.match.combat
+        copied_flight = copied_fight.winston_jump.flights[copied.body]
+        copied_bubble = copied_fight.barriers.actors[copied.body]
+        self.assertEqual(copied_fight.winston_jump.seen[copied.body], jump_token)
+        self.assertEqual(copied_fight.barriers.seen[copied.body], barrier_token)
+        self.assertEqual((copied_flight[0].id, copied_flight[1]), (flight[0].id, flight[1]))
+        self.assertEqual((copied_bubble.centre, copied_bubble.health, copied_bubble.expires),
+                         (bubble.centre, bubble.health, bubble.expires))
 
     def test_two_player_stored_graphs_match_through_damage_death_respawn_and_hero_change(self):
         session, sent = self.make()

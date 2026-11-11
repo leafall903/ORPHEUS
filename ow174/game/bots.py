@@ -46,7 +46,7 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.mover import mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -116,7 +116,7 @@ DEAD = 0x2000  # the movement state's dead flag (combat.py): the 3P animation's 
 
 
 class Bot:
-    def __init__(self, entity: int, spawner: dict, hero: dict, hints: dict) -> None:
+    def __init__(self, entity: int, spawner: dict, hero: dict, hints: dict, *, movement_data=None) -> None:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
@@ -128,7 +128,7 @@ class Bot:
         self.body = int(hero["body"], 16)
         self.team = spawner["team"]
         self.health = hero["health"]
-        values = mover_data(self.body)
+        values = self.movement_data = movement_data or mover_data(self.body)
         self.speed = values.run_forward
         self.accel = values.accel_ground * values.run_forward  # m/s^2 up to full speed
         self.brake = values.decel_ground_base * values.run_forward  # m/s^2 down to a stop
@@ -136,6 +136,7 @@ class Bot:
         self.direction = (0.0, 1.0)  # the way it walks now (x, z)
         self.position = tuple(spawner["position"])
         self.yaw = float(yaw_of(spawner["rotation"]))
+        self.pitch = 0.0
         self.velocity = (0.0, 0.0, 0.0)
         variables = spawner.get("vars", {})
         roots = {int(g, 16) for g in spawner["graphs"]}
@@ -153,19 +154,36 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+        self.controller_definition: int | None = None
+        self.controller_entity: int | None = None
+        self.external_flags = 0
 
-    def step(self, tick: int, seconds: float, collision=None) -> None:
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0, walls=None) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if not self.route or self.dead:
+        if self.dead:
+            return
+        if not self.route:
+            if tick < paused_until:
+                self._pause(tick)
+                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            self._tick(at, seconds, collision)
+            if at < paused_until:
+                self._pause(at)
+            else:
+                self._tick(at, seconds, collision, walls)
 
-    def _tick(self, tick: int, dt: float, collision) -> None:
+    def _pause(self, tick: int) -> None:
+        self.pace = 0.0
+        self.velocity = (0.0, 0.0, 0.0)
+        self.held = (0, 0)
+        self.moved_tick = tick
+
+    def _tick(self, tick: int, dt: float, collision, walls=None) -> None:
         before = (self.position, round(self.yaw))
         self.held = (0, 0)
         if not self.keys:
@@ -177,17 +195,19 @@ class Bot:
                 self.keys = True
                 self.turning = 0.0
         if self.keys:
-            self._walk(tick, dt, collision)
+            self._walk(tick, dt, collision, walls)
         else:
             if self.target is not None:
-                self._slide(dt, collision)
+                self._slide(dt, collision, tick=tick, walls=walls)
             if self.turning > EPSILON:
                 self.turning -= dt
                 self._turn(dt)
         if (self.position, round(self.yaw)) != before:
             self.moved_tick = tick
 
-    def _walk(self, tick: int, dt: float, collision) -> None:
+    def _walk(self, tick: int, dt: float, collision, walls=None) -> None:
+        from ow174.game import npc_specials
+
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -198,7 +218,8 @@ class Bot:
             return
         self.direction = ((tx - x) / distance, (tz - z) / distance)
         self._turn(dt)
-        self.pace = min(self.speed, self.pace + self.accel * dt)
+        maximum = self.speed * npc_specials.enforcer_walk_scale(self)
+        self.pace = min(maximum, self.pace + self.accel * dt)
         self.held = self.last_held = throttles(self.yaw, self.direction)
         self.input_tick = tick
         stride, slide = self.pace * dt, self._slide_length(dt)
@@ -208,16 +229,17 @@ class Bot:
             self.keys = False
             self.wait = WALK_GAP
             self.turning = TURN_AFTER
-        self._advance(stride, distance, dt, collision)
+        self._advance(stride, distance, dt, collision, tick=tick, walls=walls)
 
-    def _slide(self, dt: float, collision) -> None:
+    def _slide(self, dt: float, collision, *, tick=None, walls=None) -> None:
         """No keys: its friction stops it, never past its point."""
         self.pace = max(0.0, self.pace - self.brake * dt)
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
         moving = self.pace > 0.0 and distance > EPSILON
-        if moving and self._advance(self.pace * dt, distance, dt, collision) < distance - EPSILON:
+        if (moving and self._advance(self.pace * dt, distance, dt, collision, tick=tick, walls=walls)
+                < distance - EPSILON):
             return
         self._stand()
 
@@ -238,7 +260,8 @@ class Bot:
     def _turn(self, dt: float) -> None:
         self.yaw = turned(self.yaw, heading(*self.direction), TURN_RATE * dt)
 
-    def _advance(self, stride: float, distance: float, dt: float, collision) -> float:
+    def _advance(self, stride: float, distance: float, dt: float, collision, *,
+                 tick=None, walls=None) -> float:
         """Move `stride` along the floor the way it walks, not past its point (`distance` away); the
         ground distance gone."""
         x, y, z = self.position
@@ -256,6 +279,16 @@ class Bot:
         else:
             nx, nz = x + dx * stride, z + dz * stride
         ny = probe_y if reuse_probe else self._floor(nx, y, nz, collision)
+        if walls is not None and walls.pieces:
+            data = self.movement_data
+            point, normals = walls.constrain(self.position, (nx, ny, nz), data.stand_radius,
+                                             data.stand_height, tick=tick)
+            if normals:
+                nx, ny, nz = point
+                stride = math.hypot(nx - x, nz - z)
+                self.pace = 0.
+                self.keys = True
+                self.wait = 0.
         self.position = (nx, ny, nz)
         self.velocity = ((nx - x) / dt, (ny - y) / dt, (nz - z) / dt)
         return stride
@@ -316,19 +349,19 @@ class Bot:
         return Movement(
             self.position,
             s16(round(self.yaw)),
-            0,
+            s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else getattr(self, 'external_flags', 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
-            gravity=GRAVITY_SCALE,
+            gravity=self.movement_data.gravity_scale,
         )
 
 
 def respawned(bot: Bot, entity: int, records_from: int) -> Bot:
     """The bot made again at its spawner under a new entity id, its records from `records_from` on."""
-    fresh = Bot(entity, bot.spawner, bot.hero_data, bot.hints)
+    fresh = Bot(entity, bot.spawner, bot.hero_data, bot.hints, movement_data=bot.movement_data)
     fresh.records_from = records_from
     return fresh
 

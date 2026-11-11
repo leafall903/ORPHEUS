@@ -56,13 +56,27 @@ Priority/value configs use scalar +20, preserve native defaults on failure and
 register the state's variable dependencies. Clamp evaluates priority, upper,
 then lower, matching the native call order. Per-frame mode ticks; persistent
 mode updates on dependency changes. Real strict execution requires the declared
-backend; typed-value/filter rows remain unsupported. Legacy body prediction
+backend. Legacy body prediction
 retains its existing passive policy for this class.
 
 State storage includes its per_frame flag. SceneWorld and the component service
 remain outside the body-VM world whitelist. A strict component fault asks its
 world to discard external effects; SceneWorld clears that entity's numeric
 records. This is reconstruction failure containment, not an invented native hook.
+
+Selector-1 vector replacement
+-----------------------------
+STU_09F9B1FE uses a separate 64-byte record array at component31 +7D0.
+D354C0 accepts the row and D3C7B2 evaluates its vector and priority before
+C33FC0 calls C2ED10. Operation 2 replaces the horizontal components.
+C31B75 keeps the input vertical component and adds the supplied offset after
+composing live selector-1 records. C35720 retires a record by kind and key.
+The VM stores these records separately from numeric properties and uses the
+same source-frame window. Controlled playback covers 1506, 14EB and 13AC.
+Those fixtures supply the selector output, playback inputs and entity axes.
+The scoped Talon NPC host also projects the authored horizontal expression
+through the collision mover during controlled playback. Other typed rows,
+native event delivery and initialized reaction ordering remain open.
 
 Evidence and limits
 - Isolated original x64 emulation agrees on 3,030 arithmetic cases and 4,900
@@ -76,7 +90,7 @@ Evidence and limits
 - Actual 0F45 node48 -> 0EC6 now constructs/queues states0 and2 and next stops at
   BD02E168/node33. Both queued states have not begun at that frontier. The helper
   still has not demonstrated those callbacks within its entry-driven execution.
-- Full 100B startup remains at D38D0035/node106. Typed/filter rows, prediction
+- Full 100B startup remains at D38D0035/node106. Other typed/filter rows, prediction
   modes, rollback restoration, property base/default data, native clocks, record
   collection, gameplay consumers/physics, network integration and the mission
   host remain open. Cinematics and enemy AI remain unaccepted. No deployment or

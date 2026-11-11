@@ -1,0 +1,29 @@
+State notification teardown/reentry -- scoped shared runtime repair
+==================================================================
+
+An ended state may be reused by an actual ability graph. CHANGED/CHECK flags
+coalesce pending notifications; after Instance.cancel removes those events,
+keeping either flag set suppresses a later activation's variable/completion
+notifications. Clear both markers immediately after cancellation.
+
+Cleanup can write variables while the exiting state is still active/ending.
+Do not enqueue CHANGED for that state. The reviewed shared two-case fixture
+reproduced both failures on this private runtime before repair.
+
+This private review also reproduced the equivalent CHECK path: a cleanup join
+can reference an active-but-ending parent. Native1113EBD5's first-arrival host
+consumer previously queued CHECK after the cancellation/reset, poisoning the
+marker again. Exclude ending states from that notification path as well.
+The new third test fails without this extra guard and passes with it. Normal
+distinct-input join behavior remains covered by the ten existing tests.
+
+Ability.stop now queues the outgoing scope's cleanup, on-stop plug and resource
+writes before releasing its arbitration link. This is an explicit server
+ordering policy: an unblocked weapon should sample resources after outgoing
+refill/cleanup. Native cross-object ordering is not fully established. No new
+global arbitration phase or persistent VM field is introduced; snapshots keep
+their existing notification flags and queues.
+
+These repairs are shared runtime prerequisites, not complete Winston static
+combat or original-client acceptance. Resource cast/release/cooldown/reuse,
+Primal exit and broader statescript/body/snapshot regressions are required.

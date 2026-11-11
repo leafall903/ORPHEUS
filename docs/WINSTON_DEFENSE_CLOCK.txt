@@ -1,0 +1,84 @@
+Defense expiry, input horizon and projectile order -- build104319
+===============================================================
+
+Problem and original resources
+------------------------------
+A real Wraith cast retained immunity after10 world seconds without commands,
+although0020/node6 Wait supplies3seconds. The original exit also has0.4seconds
+recovery before the8second cooldown. Removing immunity alone would leave those
+original exit/resource/reuse paths unverified. Genji03A3 and DVa02CC likewise
+need bounded defense/resource lifetimes while input is absent.
+
+Reconstructed server policy
+---------------------------
+BodyScript stores world_frame_anchor=(worldTick,acceptedCommandFrame). A posed
+accepted command reanchors this mapping; synthesized missing windows do not.
+For Reaper/Genji/DVa only, older missing windows run the existing zero-input
+body path. This releases held buttons, advances original timers and cooldowns,
+updates modifiers and discards unposed attack reports. Last pose and aim remain
+unchanged. The current input window is retained for a real arriving packet;
+expiry can therefore include one command-window grace. This is declared server
+policy, not native transport, late-input rollback or original-client fidelity.
+
+World gaps are divided by existing MAX_GAP so every intermediate timer chain
+is visited. Otherwise a later exit Wait can start at the end of a large gap,
+incorrectly delaying cooldown and reuse by seconds. Wraith ends through its
+original Wait/exit/Ability paths. Matrix respects its original minimum hold,
+resource/cooldown/recharge rules; Deflect also uses its original graph lifetime.
+
+Winston has the same input mapping/admission guard but keeps his separate
+Primal/charge world clocks. His owner VM frontier is not filled during silence.
+All other heroes retain their existing input policy. Scope selection is explicit
+in protections.IDLE_CLOCK_HEROES and INPUT_CLOCK_HEROES.
+
+Future commands and epoch boundaries
+-----------------------------------
+Player admission derives the current command horizon from elapsed server time
+and the actual command quantum. Future frames are dropped before CommandQueue
+state changes, so a future packet cannot poison a later current packet or walk
+the anchor forward one command at a time. Full uint32 validation remains atomic;
+wire lease/rollover boundaries still request a new link. Older world-filled
+frames cannot reintroduce input or move the body.
+
+The old Winston input path accepted20 future frames at one world tick and dealt
+19.2 damage. The current real Player.take_commands path rejects all of them:
+no damage, ammunition spend, charge, Jump/bubble or charged-Q activation. A real
+current window still fires once. 8/16/32ms command quanta each deliver60DPS with
+no extra future slice. This is admission policy, not an invented native limit.
+
+Existing projectile order
+-------------------------
+A pre-existing flight must meet a defense at its actual retained flight time,
+not after that defense expires at a distant update endpoint. Combat replays the
+finite remaining flight of rockets with an established last_tick, using the
+existing latest-pose reconstruction. New player flights with no established
+world tick still join only at the endpoint. Actual Soldier Helix is absorbed
+before idle Matrix expiry in both paced and sparse updates; no damage/hit marker
+or delayed explosion appears. General native historical pose/attachment services
+remain outside this reconstruction.
+
+Verification
+------------
+Nineteen tests in test_game_winston_defense_clock.py cover original expiry, exit
+recovery/cooldown/reuse, current/stale/future packets, reload/no phantom attack,
+Deflect/melee admission, Matrix minimum/resource/reuse/real Helix order, body
+replacement,8ms idle timing, input quantum DPS, epoch limits and atomic queues.
+The anchor is causal in body-VM/full-server snapshots. Existing Winston Primal
+frontier/charge clock checks remain required.
+
+Historical unmet probes remain wraith-idle-clock-frontier.json and
+winston-future-input-frontier.json. Corrected actual-cast/input rows and source
+hashes are in wraith-idle-clock-current.json and winston-future-input-current.json.
+Complete Winston static acceptance and all original-client acceptance remain OPEN.
+
+NPC mover reconciliation
+------------------------
+Parent npc-navigation-runtime adds the5 actual NPC bodies to the38 player mover
+records. Our explicit Definition.mover -> Bot.movement_data path already uses
+the same34 numeric fields per NPC:all170 fields match the parent extraction.
+This is not generic mover_data fallback. Heights/radii/forward speeds are:
+Trooper1.7/.5/5.75;Enforcer1.9/.5/5;Sniper1.75/.5/4.5;Assassin1.5/.5/14;
+Heavy2.3/.7/2.2. npc-mover-navigation-reconciliation.json records exact comparison,
+XML provenance and input hashes. A separate runtime43 revalidation uses static
+collision fixtures only. No real map cache, navigation deployment or client
+combat claim follows from that input. Runtime metadata/hardlinks stay read only.

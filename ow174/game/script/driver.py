@@ -24,11 +24,11 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import hacks, pools, protections, winston
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import body_owner, entity_queries, expr, graph, nodes, runtime
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -96,8 +96,9 @@ TRUSTED_NATIVES = {
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# it starts), its cost #338e comes from the Entries. The legacy automatic charge fills in ULT_SECONDS
+# (0: never). Winston instead consumes0B8B's damage and one-second passive arithmetic;
+# native mode/filter eligibility remains open. His0109 health-pool subtree suppresses charge during Primal.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -125,7 +126,108 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
+        self.aim = (0, 0)  # exact command aim supplied by the owning Match
         self.match: Match | None = None
+        self._body_owner_context = body_owner.Context(
+            body, True, True, lookup=self._lookup_body_owner,
+            watch_environment=self._poll_body_owner, watch_owner=self._poll_body_owner,
+        )
+        self._entity_query_context = entity_queries.Context(
+            body, True, True, True, lookup=self._lookup_entity_query,
+            watch_environment=self._poll_body_owner, watch_possession=self._poll_body_owner,
+        )
+
+    def _poll_body_owner(self, *_):
+        """Native dependency consumers refresh through the existing frame poll."""
+
+    def chase_clock(self, state):
+        # Only Winston0109's original lifetime ChaseVar uses this reconstructed
+        # server clock. Other ChaseVars retain the accepted command-VM clock.
+        if (self.match is not None and self.hero == winston.HERO
+                and state.instance.graph.index == winston.PRIMAL_GRAPH and state.node.pos == 25
+                and state.instance.component.entity == self.body):
+            return self.match.tick * 16
+        return NotImplemented
+
+    def external_wait(self, state):
+        return (self.match is not None and self.hero == winston.HERO
+                and state.instance.graph.index == winston.CHARGE_GRAPH and state.node.pos == 3
+                and state.instance.component.entity == self.body)
+
+
+    def _lookup_body_owner(self, entity):
+        # Live match identities, not a guessed owner synthesized for unknown IDs.
+        if self.match is None:
+            return None
+        for player in self.match.players:
+            if player.gone:
+                continue
+            if player.has_body and player.body == entity:
+                return body_owner.Target(entity, player.entity)
+            if player.entity == entity:
+                return body_owner.Target(entity, None)
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return body_owner.Target(entity, 0)
+        return None
+
+
+    def body_owner_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        # Native queries already poll through Evaluation.poll_native. Match-backed
+        # ownership is read afresh each frame; callbacks need no separate hub.
+        return self._body_owner_context
+
+
+    def _lookup_entity_query(self, entity):
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone:
+                continue
+            if player.entity == entity:
+                current = player.body if player.has_body else 0
+                return entity_queries.Target(entity, entity_queries.Possession(current))
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, None)
+        if entity == runtime.GAME_MODE_ENTITY or any(bot.entity == entity for bot in match.bots):
+            return entity_queries.Target(entity, None)
+        return None
+
+
+    def entity_query_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self._entity_query_context
+
+
+    def script_component_present(self, entity):
+        if self.match is None:
+            return NotImplemented
+        for player in self.match.players:
+            if not player.gone and player.entity == entity:
+                return True
+            if not player.gone and player.has_body and player.body == entity:
+                script = player.body_script
+                return script is not None and not script.retired
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return bot.body_script is not None
+        return False
+
+    def entity_var(self, entity, var):
+        if self.match is not None:
+            component = self.match.script_actor_component(entity)
+            if component is not None:
+                slot = component.entity_var(var, create=False)
+                return None if slot is None else slot.value()
+        return super().entity_var(entity, var)
+
+    def poll_foreign_members(self, entity):
+        return self.match is not None and self.match.script_actor_component(entity) is not None
+
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -136,6 +238,16 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        if cls == 'STU_9B7648C3' and self.match is not None and instance.graph.index == 0x1177:
+            from ow174.game.script import play
+
+            target = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity'), initial=Entity(0)))
+            player = next((p for p in self.match.players if p.entity == target and not p.gone
+                           and p.has_body and p.body_script is not None), None)
+            if player is not None:
+                body = next((t for t in self.match.combat._targets() if t.owner is player), None)
+                if body is not None:
+                    return f32(self.match.combat.vitals_of(body).total)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -157,6 +269,15 @@ class BodyWorld(runtime.World):
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            if (self.match is not None and self.hero == hacks.SOMBRA and instance.graph.index == hacks.HACK
+                    and cfg is instance.graph.node(204).field("m_condition")):
+                service = self.match.combat.hacks
+                caster = service.caster(self.body)
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                if caster is None or not any(t.entity == entity for t in service.combat._enemies(caster)):
+                    return False
+                with instance.component.parameter_scope({8: Entity(entity)}):
+                    return expr.truthy(instance.evaluate(cfg["m_filter"].get("m_condition")))
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -167,6 +288,59 @@ class BodyWorld(runtime.World):
                 and match.queue_body_message(target, message, params, sender)):
             return
         super().send_message(target, message, params, sender)
+
+    def track_targets(self, state):
+        if self.match is None:
+            return NotImplemented
+        if (self.hero == hacks.SOMBRA and state.instance.graph.index == hacks.HACK
+                and state.node.pos in (50, 52, 68)):
+            service = self.match.combat.hacks
+            return service.track(service.caster(self.body), state)
+        if (self.hero == hacks.SOMBRA and state.instance.graph.index == hacks.EMP
+                and state.node.pos == 40):
+            service = self.match.combat.hacks
+            return service.emp_targets(service.caster(self.body), state)
+        if (self.hero == 0x02E000000000013B and state.instance.graph.index == 0x0B9E
+                and state.index in (3, 6)):
+            return self.match.combat.nano_targets(self.body, state)
+        return self.match.combat.zarya_barriers.track_targets(state, self.aim)
+
+    def ability_allowed(self, state) -> bool:
+        return self.match is None or self.match.combat.hacks.allows(state)
+
+    def handles_play_script(self, instance, node) -> bool:
+        if self.match is None:
+            return False
+        if hacks.plays(instance, node, hacks.EMP_HIT, 6, hacks.APPLICATION):
+            return True
+        return self.hero == hacks.SOMBRA and (
+            hacks.plays(instance, node, hacks.HACK, 141, hacks.APPLICATION)
+            or hacks.plays(instance, node, hacks.EMP, 8, hacks.EMP_HIT)
+        )
+
+    def play_script(self, instance, node):
+        if (self.match is not None and self.hero == hacks.SOMBRA
+                and hacks.plays(instance, node, hacks.EMP, 8, hacks.EMP_HIT)):
+            self.match.combat.hacks.emp_barriers(instance)
+        super().play_script(instance, node)
+
+    def modify_health_enter(self, state):
+        if self.match is not None and state.instance.graph.index == hacks.EMP_HIT and state.node.pos == 9:
+            return self.match.combat.hacks.emp_health(state)
+        return super().modify_health_enter(state)
+
+    def play_script_context(self, instance, node):
+        if not self.handles_play_script(instance, node):
+            return super().play_script_context(instance, node)
+        from ow174.game.script.play import InvocationContext
+
+        caller = instance.source_entity() if instance.graph.index == hacks.EMP_HIT else self.body
+        return InvocationContext(caller, self.body, caller)
+
+    def submit_script_request(self, instance, node, request):
+        if not self.handles_play_script(instance, node):
+            return super().submit_script_request(instance, node, request)
+        self.match.combat.hacks.submit(instance, request)
 
 
 @dataclass
@@ -257,10 +431,16 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        if body_definition is None:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        else:
+            record = graph.bodies().get(body_definition) or graph.entity_body(body_definition)
+            if record is not None and record.get("hero") not in (None, f"0x{hero:016X}"):
+                raise ValueError("selected body belongs to another hero")
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -277,10 +457,17 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.ult_seconds = ult_seconds
+        self.winston_charge_ms = 0
+        self.winston_charge_tick = match.tick if hero == winston.HERO and match is not None else None
+        self.winston_primal_clock = None
+        self.world_frame_anchor = ((match.tick, start_frame)
+                                   if match is not None and hero in protections.INPUT_CLOCK_HEROES else None)
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        initial_pools = (pools.body_pools(hero) if body_definition is None
+                         else pools.active_pools(hero, body_definition))
+        self._spawn(start_frame, sum(initial_pools) if health is None else health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -300,12 +487,7 @@ class BodyScript(ReplicatedBody):
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
         created = create_initial_graphs(component, self.record)
-        manager = graph.graph(self.record["manager"]) if self.record.get("manager") is not None else None
-        if manager is not None:
-            created.append(component.create(manager, init=False))
-        for slot, item in enumerate(weapons):
-            if item is not None and graph.graph(item) is not None:
-                created.append(component.create(graph.graph(item), values={(INSTANCE, 28): slot}, init=False))
+        created.extend(create_weapon_graphs(component, self.record))
         for instance in created:
             instance.init()
         component.run_frame(frame)
@@ -353,6 +535,10 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        if self.world.match is not None:
+            service = self.world.match.combat.hacks
+            edges = [(button, pressed) for button, pressed in edges
+                     if not pressed or service.button_allowed(self.entity, self.hero, button)]
         self.component.run_frame(frame, edges)
         self._report_shots()
         self._charge_ult()
@@ -362,6 +548,11 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
+        if self.hero == winston.HERO:
+            # A bound body charges on the world clock. Commands may reset an
+            # ineligible interval, but cannot add cadence or replay old credit.
+            winston.charge_passive(self, self.component.frame_ms if self.world.match is None else 0)
+            return
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -640,6 +831,19 @@ def create_initial_graphs(component: runtime.Component, record: dict) -> list[ru
             var = expr.guid_of(entry.get("m_0D09D2D9")) & 0xFFFF
             values[(INSTANCE, var)] = expr.evaluate(entry.get("m_value"), expr.Context())
         created.append(component.create(definition, number, values=values, init=False))
+    return created
+
+
+def create_weapon_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+    """Allocate the declared manager and weapon slots for player and NPC bodies alike."""
+    created = []
+    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if manager is not None:
+        created.append(component.create(manager, init=False))
+    for slot, item in enumerate(record.get("weapons") or []):
+        definition = graph.graph(item) if item is not None else None
+        if definition is not None:
+            created.append(component.create(definition, values={(INSTANCE, 28): slot}, init=False))
     return created
 
 

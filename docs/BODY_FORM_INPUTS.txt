@@ -1,0 +1,72 @@
+Explicit alternate body inputs — target104319
+============================================
+
+Status: infrastructure and selected0407 command tests, not completed D.Va
+creation/possession or transformation acceptance.
+
+The default D.Va hero record points to pilot040A. Its separate0407 mech definition
+needs different initial graphs, weapon050A,300 health plus300 armour, and a0.7m
+standing capsule radius. Selecting a different body must not initialize the pilot
+script or borrow Soldier's fallback capsule.
+
+External additive inputs
+------------------------
+ORPHEUS_GRAPH_SUPPLEMENT optionally names a gzip JSON file with version1 and only
+graphs/entities sections. Its graphs use the ordinary extractor's record format;
+entities uses full003 GUID keys and ordinary additional-entity definitions. The
+loader preserves base modes, hero definitions and metadata. Conflicting graph or
+entity records, duplicate graph indices and mode overrides are rejected.
+
+ORPHEUS_MOVERS_SUPPLEMENT optionally names a JSON mapping of full body GUIDs to
+the existing extract_game_movers.mover_of results. It can add missing body movers;
+it cannot replace an accepted base record with different values. Both files are
+read only. Keep them outside the source repository and the immutable runtime pack.
+Set environment variables before importing the server modules.
+
+The local D.Va lane generated a minimal7-graph/1-entity supplement from the existing
+build104319 XML export and canonical base. Its mover supplement comes from0407's
+existing003 XML via mover_of. No client/archive/full runtime copies are needed.
+These are research inputs, not assets approved for Git publication.
+
+BodyScript accepts explicit body_definition=GUID. Canonical hero entry remains
+the default when that argument is omitted. Explicit forms resolve their own record
+and0033 pools; missing or mismatched definitions fail instead of becoming a pilot.
+Match validates alternate records/pools/movers before retiring the current body,
+builds the new mover after selecting the new body, and initializes health and
+statescript from that form. This does not implement a skill-triggered transition.
+
+Executed evidence
+-----------------
+Nine form/loader tests cover matching pools/scripts/HUD, mover selection, missing
+form rejection without replacing the old body, hero mismatch, additive immutable
+loading and conflict rejection. The native input files support six additional
+normal Match-command tests with an explicitly selected real0407 body:
+
+-62 held-primary frames produce77 independent hits and154 damage at close range.
+-A single close-range volley loses11 armour, rather than aggregating22 damage.
+-Missed aim, static cover and an allied target take no primary damage.
+-One Micro Missile activation produces18 direct plus18 splash events,126 damage.
+-Repressing during its authored cooldown cannot add damage; expiration permits
+ another126-damage burst.
+-Primary and Micro Missiles can execute together; damage equals the two separate
+ command traces under the same fixture conditions.
+
+These tests require the explicit supplements; without them they report an explicit
+skip and cannot count as acceptance. Collision geometry and poses are controlled
+fixtures. Degree/phase reconstruction of Fusion Cannon rays remains unchanged.
+
+Storage observations now retain the direct body-owner Context, its availability
+and retirement flags, and only the two known BodyWorld service methods without
+calling them. Server and VM storage observations include this state rather than
+hiding it. No restorer or Python checkpoint is claimed by the storage format.
+
+Remaining blockers
+------------------
+An ordinary pilot Q reaches placement State43DB06B1/node38 before entity creation;
+its cast, filtered placement outputs and lifecycle remain unimplemented. Initial
+spawn policy, B6E3C77D creation, native body/controller binding, demech/ejection and
+Call Mech transitions remain open. The selected0407 probe shows Boosters' ability
+running without displacement, no Matrix activation/interception, and a charged
+Self-Destruct ability without a world explosion. These are failures to repair,
+not accepted ability implementations. Full statuses, all five NPC bidirectional
+combat, cross-hero interactions and original-client acceptance remain open.

@@ -40,14 +40,18 @@ instance scope (0x7FF78991C270).
 
 import gzip
 import json
+import os
 import re
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from pathlib import Path
 
 from ow174.game.script.expr import Asset
 from ow174.paths import DATA_DIR
 
 GRAPHS_PATH = DATA_DIR / "game_graphs_174.json.gz"
+_supplement_path = os.environ.get("ORPHEUS_GRAPH_SUPPLEMENT")
+GRAPH_SUPPLEMENT_PATH = Path(_supplement_path).resolve() if _supplement_path else None
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -284,7 +288,41 @@ def _collect_graphs(value, found: set) -> None:
 
 @cache
 def _data() -> dict:
-    return json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    data = json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    if GRAPH_SUPPLEMENT_PATH is not None:
+        extra = json.loads(gzip.decompress(GRAPH_SUPPLEMENT_PATH.read_bytes()))
+        data = add_supplement(data, extra)
+    return data
+
+
+def add_supplement(data: dict, extra: dict) -> dict:
+    """Add explicitly prepared entity/graph inputs without overriding base data.
+
+    Supplements live outside the read-only runtime pack. Conflicting definitions
+    are errors rather than silent changes to already accepted mode/hero inputs.
+    """
+    if (not isinstance(extra, dict) or type(extra.get("version")) is not int or extra["version"] != 1
+            or set(extra) - {"version", "graphs", "entities"}):
+        raise ValueError("graph supplement requires version1 and only graphs/entities")
+    graphs = {record["index"]: record for record in data["graphs"]}
+    supplied = set()
+    for record in extra.get("graphs", []):
+        index = record["index"]
+        if type(index) is not int or not 0 <= index <= 0xFFFF or index in supplied:
+            raise ValueError("invalid or duplicate supplemental graph index")
+        supplied.add(index)
+        if index in graphs and graphs[index] != record:
+            raise ValueError(f"supplement conflicts with graph {index:04X}")
+        graphs[index] = record
+    entities = dict(data.get("entities") or {})
+    for key, record in extra.get("entities", {}).items():
+        identifier = guid(key)
+        if identifier is None or identifier >> 48 != 0x0400 or not isinstance(record, dict):
+            raise ValueError("supplement requires full003 entity definitions")
+        if key in entities and entities[key] != record:
+            raise ValueError(f"supplement conflicts with entity {key}")
+        entities[key] = record
+    return {**data, "graphs": list(graphs.values()), "entities": entities}
 
 
 @cache

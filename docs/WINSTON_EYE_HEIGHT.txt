@@ -1,0 +1,22 @@
+Winston and enemy McCree FirstPerson eye geometry -- build104319
+==============================================================
+
+Original1C0.003 FirstPerson m_E29993A5=1.5 and m_816B830F=1.05 provide
+Winston's standing/crouched offsets. Original02A3.003 gives McCree1.425/.9975.
+The former shared1.55/1.15 defaults were incorrect for these bodies.
+
+Combat.eye_height now supplies both player attack origins and Target.eye.
+Other unrecorded bodies retain existing defaults, including Soldier's recorded
+crouched offset1.085. NPC origins are not inferred from absent FirstPerson data.
+
+Three new methods verify both bodies' source/target agreement under actual
+crouch commands, unchanged unspecified-body fallback, and actual Winston Tesla
+casts with cover2.5cm above/below his standing and crouched eye. Standing target
+fixtures use elevated feet so the target capsule axis includes the firing height;
+crouched fixtures retain ground feet. Thus the cover cases distinguish the old
+incorrect heights through health effects, rather than merely comparing constants.
+
+The two original XML inputs and SHA256 values are recorded outside Git in the
+lane's eye-height-resource-evidence.json. Raw game assets remain external/read
+only. Camera/muzzle animation and native skeletal critical-hit regions are not
+proved by these static offsets. Existing HEAD_BELOW remains reconstructed.

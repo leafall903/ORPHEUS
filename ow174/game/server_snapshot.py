@@ -17,18 +17,25 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    blizzard,
     bots,
     combat,
     correction,
+    hacks,
     heroselect,
+    impulses,
+    mei_wall,
     notices,
+    npc_specials,
     observers,
     projectiles,
     replay_values,
     statescript,
     stats,
     voicelines,
+    winston,
     world,
+    zarya,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -38,7 +45,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -86,16 +93,33 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
+                   "body_script body_script_failed seen shown script controller_component mode_script "
+                   "next_countdown "
                    "select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "projectiles observers voice tesla_frames primal_bonus cryo_samples "
+        "winston_jump barriers impulses assassins blizzard walls "
+        "primal_punches zarya_barriers zarya_shields stuns sleeps hacks "
+        "heavy_charge_contacts heavy_charge_pins heavy_charge_impact_requests sniper_repositions"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    blizzard.Blizzard: _names("combat flights areas"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    winston.Barriers: _names("combat actors seen"),
+    winston.JumpPack: _names("combat seen flights"),
+    winston.PrimalPunches: _names("combat seen frames"),
+    npc_specials.Assassins: _names("combat health_clock bindings admissions"),
+    hacks.Hacks: _names("combat effects"),
+    impulses.Impulses: _names("combat npcs"),
+    zarya.Barriers: _names("combat active projected"),
+    zarya.ShieldRecovery: _names("combat bodies"),
+    combat.Vitals: _names(
+        "entity most now ids changed died_at death_tick killer healing_blocks healing_boosts nano_until "
+        "frost_sources freeze_until freeze_aim"
+    ),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,13 +135,19 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count "
+        "winston_charge_ms winston_charge_tick winston_primal_clock world_frame_anchor"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles aim match _body_owner_context _entity_query_context"),
+    body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
+                               "watch_owner retired"),
+    entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
+                                   "lookup watch_environment watch_possession retired"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior controller"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position body body_definition match manual_target "
+                     "_body_owner_context"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -130,13 +160,17 @@ FIELDS = {
                            "air_ticks gravity frame crouch_frame spring spring_speed fall"),
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
-        "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse"
+        "brake pace direction position yaw pitch velocity firing route index wait target start keys turning "
+        "held last_held input_tick moved_tick last_tick retain_corpse movement_data external_flags "
+        "controller_definition controller_entity"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
+    blizzard.Flight, blizzard.Area,
+    mei_wall.Pillar, mei_wall.Input,
+    winston.Bubble, zarya.Barrier, zarya.Recovery,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,

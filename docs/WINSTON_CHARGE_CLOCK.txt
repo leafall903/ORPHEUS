@@ -1,0 +1,125 @@
+Winston0B8B charge and0109 lifetime clock -- build104319
+======================================================
+
+Resource arithmetic
+-------------------
+Shared0B8B node3 supplies the one-second interval. Node4 writes342 as
+min(cost338, charge342 +5 *global9532 *passive12918), with missing scalar
+multipliers defaulting1. Node23 applies actualDamage336 *9532 *damage13022.
+The damage adapter supplies336 in a temporary expression context; it does not
+rewrite message storage. The same context supplies the struck body as393
+for original nodes5 and17. Either target marker (6442 or1363) suppresses charge
+while damage still applies. The test begins the original0636/node16 or
+0096/node11 Stack on a controlled body and hits it alongside an unmarked
+enemy with one actual Tesla slice. These fixtures isolate the original
+predicates from the whole source graphs and native damage message.
+Combat supplies actual admitted enemy-body loss after
+armour/overkill, and excludes self/friendly/barrier/absorbed/rejected contacts.
+The previous60-second Winston fill placeholder is removed. Positive ult_seconds
+enables authored passive awards; its magnitude no longer changes Winston's rate.
+Other heroes retain their existing policy.
+
+Eligibility boundary
+--------------------
+A live, unretired sandbox body is the explicit eligibility reconstruction when
+2426 is missing; an explicit false2426 rejects. Original56/61 scalar predicates
+control9530 and10482/10480. Active842, actual Primal health scope and death reject.
+11942 and explicit mode11002 block passive separately;12321 blocks damage.
+Original mode/controller eligibility,012 target/tag/difficulty filters, healing
+events and complete native scoring remain OPEN. Missing mode services are not
+claimed restored by evaluating the original arithmetic.
+
+The 104319 catalog ties Echo body 02593 to 19EB. Its nodes 136 and 155
+request 1544, whose entry 54 starts Stack 66. That stack writes entity
+28985=true. In 0B8B the 0012 entry reaches node 53 and the 0148 entry
+reaches node 54. Both predicates contain four OR branches, including
+02ED, 0121 and a fallback filter reading 28985 on target 393. This resource
+chain identifies the writer and references. It leaves the native filter
+masks, resolved tags and 0148 message semantics open.
+
+An executable fixture begins and ends original Stack 66 on a controlled
+target body. Both 0B8B fallback member predicates read true only while
+393 points at the marked body and the stack is active. The fixture calls
+the stack lifecycle directly and leaves Echo's Duplicate activation,
+full outer filter and actual damage-credit admission open.
+
+The current graph bundle also references 02ED in Ana's 0B9E/node 81.
+That node shares the mask-1 and direct tag checks with 0B8B but tests
+target 536 and has a different third branch (mask 64, tag 003A and a
+predicate on target variable 6442). 0121 also appears in Echo's 19EB
+and 1544. These cross-references identify other authored consumers.
+They supply no evidence that a specific live target carries either tag.
+See the owning lane's winston-charge-tag-use-frontier.log and
+winston-charge-tag-context-frontier.log.
+
+Damage entry nodes30 and36 exclude message tags 01FD and 025A. The
+authored ModifyHealth states for Tesla, quick melee, Jump Pack and Primal
+punch in the current bundle carry neither tag. This is a resource comparison.
+Runtime synthesis of the native damage message and tags remains open.
+
+Original node97 checks target tag 011E before node98 scales the credited
+amount by 0.75. The original Roadhog body definition 028F.003 declares
+011E.06C in its TargetTag component, and the 0040.075 hero resource links
+that body. The scoped body adapter uses node98 for this verified definition.
+An actual Tesla tick removes 0.96 health from both Roadhog and the untagged
+control, with 0.72 and 0.96 charge respectively.
+
+The higher-priority 03C3 branch uses original node60 to halve credit. The
+five authored Talon bodies each run 0E62 state 7, which declares 03C3 on the
+current body. The host projects this active state for charge. A Trooper
+loses 0.96 health and yields 0.48 charge, then yields 0.96 when its 0E62
+instance is retired. A controlled overlap on Roadhog confirms that 03C3
+takes priority over 011E. The charge adapter now evaluates original
+node59 and node97 tag predicates in order against the temporary damage
+target. It uses the verified memberships for that target and evaluates
+the selected arithmetic node before writing charge. Generic native
+tag registration and other memberships remain open.
+
+For the outer branches, 1403.003 and 143E.003 declare 02ED on the
+Practice Range hostile and friendly bots. 0407.003 and 040A.003 declare
+0121 on D.Va's mech and pilot. Actual Tesla input credits 0.96 against
+the hostile bot and skips the friendly bot. The mech and pilot award
+their respective post-mitigation losses of 0.768 and 0.96. These
+comparisons verify the current combat results for the declared bodies.
+The native mask and full outer predicate are still separate gates.
+
+Clock and original state paths
+------------------------------
+Bound bodies accrue passive time only on Match/Combat ticks. Standalone bodies
+retain a command-clock bridge. Duplicate/old commands cannot create credit, and
+command bursts at one world tick cannot advance passive time. Capped or rejected
+time is discarded; zero rate discards elapsed pulses but preserves the subsecond
+phase. A positive2426 can activate original Wait3. BodyWorld.external_wait owns
+only this Winston0B8B timer, preventing an extra command-clock timer. Each world
+pulse finishes the actual Wait, so original node4 writes charge and restarts it.
+When unresolved mode services keep that original subtree closed, the documented
+sandbox bridge evaluates node4's expression directly. No condition is forced.
+
+The original0109/node25 ChaseVar reduces local215 at its authored rate. For a
+bound Winston only, BodyWorld.chase_clock supplies server time. Combat ticks that
+ChaseVar and drains its actual finish/onEnd actions without advancing the owner
+command frontier. Original actions remove health500,842/speed and the Jump
+cooldown override. This fixes indefinite Primal health during input silence.
+Other ChaseVars and Waits keep the normal VM clock. Native clock equivalence,
+full visual/attachment timing and arbitrary cross-clock interactions stay OPEN.
+
+An activation/deadline cache clips passive credit to the time after Primal in a
+skipped world span. Both input silence and a single12-second update expire the
+real original scope at10seconds, remove temporary health and credit only the
+following2seconds. Later owner catch-up cannot repeat the lifetime or credit.
+The explicit remainder, tick anchor and activation/deadline cache are exported
+by body-VM and full-server snapshots without running the VM.
+
+Verification and limits
+-----------------------
+Twenty actual consumer/clock cases cover5/sec, multipliers/cap, armour/overkill,
+Tesla/melee/Jump, real bubble and miss/wall/team/secondary rejection, independent
+blocks/mode recovery, original positive-eligibility Wait counters, death/body
+replacement, actual Q suppression/expiry, no-owner/sparse/duplicate/burst clocks,
+zero-rate phase and causal snapshots. All inputs and original graph resources
+remain external/read-only. Client combat acceptance is separately OPEN.
+
+Historical primal-world-expiry-frontier.json captures the pre-fix1000HP/0charge
+at12seconds. primal-world-clock-current.log captures corrected500HP/10charge
+with the owner VM still at frame1001. The executable regression cases are in
+test_game_winston_charge.py. Complete Winston static acceptance remains OPEN.

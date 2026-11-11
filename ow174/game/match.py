@@ -31,6 +31,7 @@ import logging
 import math
 from collections import deque
 from copy import deepcopy
+from dataclasses import replace
 
 from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
 from ow174.game.collision import (
@@ -42,14 +43,15 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import FRAME_HALF, Command, CommandQueue, frame_distance
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
-from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
+from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data, mover_data, statescript_mods
+from ow174.game.npc_specials import reaction_movement
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import MAX_GAP, BodyScript, BodyWorld, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -219,6 +221,13 @@ class Player:
         self.seen: dict[int, bool] = {}
         self.shown: dict[int, ShownController] = {}  # other players' controller entities on this client
         self.script = Stream(self.entity)  # the player entity's statescript: the controller
+        #000E.003 declares an initially empty STUStatescriptComponent. Keep its
+        # gameplay namespace distinct from both the UI stream and possessed body.
+        controller_world = BodyWorld(hero.guid, match.game_map.mode_guid, self.entity)
+        controller_world.match = match
+        self.controller_component = runtime.Component(self.entity, world=controller_world)
+        self.controller_component.frame = match.tick
+        self.controller_component.now = match.tick * self.controller_component.frame_ms
         self.mode_script = Stream(GAME_MODE_ENTITY)  # the game mode entity's variables: the countdown
         self.next_countdown = 0.0
         self.select_open = True
@@ -285,9 +294,17 @@ class Player:
             return None
         seconds = self.quanta / 1e6
         script = self.body_script
+        horizon = None
+        if script is not None and script.world_frame_anchor is not None:
+            at, frame = script.world_frame_anchor
+            elapsed = max(0, self.match.tick - at) * (RETAIL_QUANTA // 1000)
+            horizon = min(MAX_LEASE_FRAME, frame + elapsed // script.frame_ms)
         fresh, boundary = self.commands.before_limit(
-            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
+            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None, horizon=horizon,
         )
+        if script is not None and script.world_frame_anchor is not None:
+            # An older world-filled window has already committed zero input.
+            fresh = [item for item in fresh if 0 < frame_distance(item.frame, script.frame) < FRAME_HALF]
         if fresh:
             self.mover.use(mover_data(self.hero.body), collision)
         if movelog.ENABLED:
@@ -310,20 +327,40 @@ class Player:
             movelog.snapshots(self)
         return boundary
 
-    def _advance_body_gap(self, first_pose: int) -> None:
+    def _advance_body_gap(self, first_pose: int, *, world_idle: bool = False) -> None:
         """Release old input and advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
+        yaw, pitch = script.world.aim if world_idle else (0, 0)
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing), posed=False)
+        self._advance_body_frame(Command(first_missing, yaw=yaw, pitch=pitch),
+                                 posed=False, defer_effects=world_idle)
+        if world_idle:
+            # BodyScript bounds a single command catch-up. World-owned gaps
+            # must still visit intermediate timer chains in chronological chunks
+            # or a three-second scope's exit/cooldown can begin many seconds late.
+            for frame in range(first_missing + MAX_GAP, first_pose - 1, MAX_GAP):
+                self._advance_body_frame(Command(frame, yaw=yaw, pitch=pitch),
+                                         posed=False, defer_effects=True)
         if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1), posed=False)
+            self._advance_body_frame(Command(first_pose - 1, yaw=yaw, pitch=pitch),
+                                     posed=False, defer_effects=world_idle)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        from ow174.game import heavy_charge
+
+        attachment = self.match.combat.assassins.before_pose(self)
+        stunned = self.match.combat.actions_blocked(self, tick=tick)
+        if stunned:
+            command = replace(command, forward=0, right=0, buttons=0, action=0)
+            frozen_aim = self.match.combat.frozen_aim(self, tick=tick)
+            if frozen_aim is not None:
+                command = replace(command, yaw=frozen_aim[0], pitch=frozen_aim[1])
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
-        if script is not None:
+        if script is not None and not stunned:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -332,27 +369,47 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
+        walls = self.match.combat.walls
+        before = tuple(self.mover.position)
+        support = walls.ground(self.mover) if walls.pieces else None
         if len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
+                ground_override=support,
             )
+            if walls.pieces and walls.move_mover(self.mover, before):
+                outcome = False
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            self.mover.step_pose(command, seconds, tick, ground_override=support)
+            if walls.pieces:
+                walls.move_mover(self.mover, before)
+        self.match.combat.assassins.after_pose(self, attachment)
+        heavy_charge.after_pose(self.match.combat, self)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        defer_effects: bool = False,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
             self.match.body_command(self, command, movement_end=movement_end)
-            self.match.combat.command(self, command if posed else None)
+            self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
         # Modifier changes take effect on the next movement frame.
+        self._track_movement_mods(command.frame)
+
+    def _track_movement_mods(self, frame: int) -> None:
+        """Combine body records and the bound Assassin victim's controller records."""
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        active = statescript_mods(script.component) if script else {}
+        active.update(self.match.combat.assassins.movement_mods(self))
+        slow = self.match.combat.frost_slow(self)
+        if slow < 1.0:
+            active[(-1, 0, 0)] = (0, 1, slow, 99.0)
+        self.mover.track_mods(active, frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -595,12 +652,34 @@ class Match:
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            vitals = self.combat.vitals.get(bot.entity)
             bot.body_script = BotScript(
-                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
+                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid,
+                bot.health if vitals is None else vitals.total,
                 firing_position=bot.position if firing else None,
+                match=self, controller_definition=bot.controller_definition,
+                controller_entity=bot.controller_entity,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
+
+    def script_actor_component(self, entity: int):
+        """Live player/NPC body and explicitly hosted NPC controller script VMs."""
+        for player in self.players:
+            if not player.gone and player.entity == entity:
+                return player.controller_component
+            if (not player.gone and player.has_body and player.body == entity
+                    and player.body_script is not None):
+                return player.body_script.component
+        for bot in self.bots:
+            script = bot.body_script
+            if script is None:
+                continue
+            if entity == bot.entity:
+                return script.component
+            if script.controller is not None and script.controller.entity == entity:
+                return script.controller
+        return None
 
     def _bot_create_update(self, bot: bots.Bot) -> EntityUpdate:
         # A later viewer cannot depend on the globally cleared health dirty bits.
@@ -646,7 +725,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.active_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -905,7 +984,12 @@ class Match:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world)
+                if reaction_movement(bot) is None:
+                    bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                             paused_until=self.combat.movement_pause_until(bot), walls=self.combat.walls)
+                else:
+                    bot.last_tick = tick
+                    bot.held = (0, 0)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1093,6 +1177,7 @@ class Match:
     def start_body_script(self, player: Player, create: EntityUpdate) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
+        old_script = player.body_script
         self.stop_body_script(player)
         if BODY_SCRIPT_HEROES is not None and player.hero.guid not in BODY_SCRIPT_HEROES:
             return
@@ -1103,13 +1188,18 @@ class Match:
                 self._newest_frame(player),
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
-                health=HEALTH,
                 match=self,
+                body_definition=player.hero.body,
             )
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
+        if (old_script is not None and old_script.world_frame_anchor is not None
+                and script.world_frame_anchor is not None
+                and script.frame == old_script.frame and script.frame_ms == old_script.frame_ms):
+            # Keep the clock when the replacement starts at the same command cursor.
+            script.world_frame_anchor = old_script.world_frame_anchor
         script.created(create)
         player.body_script = script
         bodytrace.started(player, script)
@@ -1134,6 +1224,7 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            script.world.aim = command.aim()
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
@@ -1235,6 +1326,18 @@ class Match:
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        record = graph.bodies().get(hero.body) or graph.entity_body(hero.body)
+        if record is not None and record.get("hero") not in (None, f"0x{hero.guid:016X}"):
+            return False
+        canonical = next((body for body, row in graph.bodies().items()
+                          if int(row["hero"], 16) == hero.guid), None)
+        if canonical is not None and canonical != hero.body:
+            if record is None or defined_mover_data(hero.body) is None:
+                return False
+            try:
+                pools.active_pools(hero.guid, hero.body)
+            except ValueError:
+                return False
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
@@ -1242,8 +1345,14 @@ class Match:
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
+            player.hero = hero  # new_mover must use the selected body's capsule, not the retired body's.
             player.new_body(entity)
             self.combat.record_replacement(entity)
+        for instance in list(player.controller_component.instances.values()):
+            player.controller_component.destroy(instance)
+        player.controller_component.world.hero = hero.guid
+        player.controller_component.frame = self.tick
+        player.controller_component.now = self.tick * player.controller_component.frame_ms
         player.hero = hero
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
@@ -1271,6 +1380,9 @@ class Match:
             return
         self.notices.left(player)
         player.gone = True
+        player.controller_component.owner_dead = True
+        for instance in list(player.controller_component.instances.values()):
+            player.controller_component.destroy(instance)
         player.client = None
         player.spawned = False
         self.stop_body_script(player)

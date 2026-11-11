@@ -248,10 +248,10 @@ class AuxiliaryEffect(ScopedSubgraph):
 
 @state_class("STU_316CFEF2")
 class NumericPropertyModifiers(State):
-    """D39590/D399C0/D3C1E0: numeric rows on an explicit component-31 backend.
+    """D39590/D399C0/D3C1E0: property rows on an explicit component-31 backend.
 
     The backend clock is native component +528/vt48's frame, not an assumed
-    alias of Component.frame. Typed-value and filter rows remain strict errors.
+    alias of Component.frame. Supports numeric rows and selector-1 vector replacement.
     Legacy body prediction keeps its previous passive behavior.
     """
 
@@ -275,6 +275,9 @@ class NumericPropertyModifiers(State):
         for row in rows:
             if row is None:
                 continue
+            if (isinstance(row, dict) and row.get("$") == "STU_09F9B1FE"
+                    and type(row.get("m_CFEC5F76")) is int and row["m_CFEC5F76"] == 1):
+                continue
             if (not isinstance(row, dict) or row.get("$") not in _NUMERIC_ROWS
                     or type(row.get("m_A9561CA0", 0)) is not int
                     or not 0 <= row.get("m_A9561CA0", 0) <= 0xFFFFFFFF):
@@ -288,6 +291,12 @@ class NumericPropertyModifiers(State):
         failed = object()
         value = play.evaluate_scalar(self.instance, cfg, initial=failed, watcher=self)
         return default if value is failed else f32(expr.to_float(value, default))
+
+    def vector(self, cfg):
+        value = play.evaluate_scalar(self.instance, cfg, initial=None, watcher=self)
+        while isinstance(value, tuple) and value:
+            value = value[0]
+        return value if isinstance(value, expr.Vec3) else expr.Vec3(0.0, 0.0, 0.0)
 
     def on_begin(self):
         if not self.instance.component.strict:
@@ -311,11 +320,20 @@ class NumericPropertyModifiers(State):
             self.instance.component.consume_work("numeric property modifier")
             if row is None:
                 continue
+            key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
+            if row["$"] == "STU_09F9B1FE":
+                value = self.vector(row.get("m_9B7A63EA"))
+                priority = self.number(row.get("m_priority"), 0.0)
+                backend.upsert_vector(modifiers.VectorRecord(
+                    1, key, (frame + 1) & 0xFFFFFFFF, 1, 2, value, priority,
+                ))
+                if self.per_frame:
+                    backend.retire_vector(1, key, (frame + 2) & 0xFFFFFFFF)
+                continue
             operation, default = _NUMERIC_ROWS[row["$"]]
             priority = self.number(row.get("m_priority"), 0.0)
             upper = self.number(row.get("m_8213EB22"), f32(3.4028234663852886e38)) if operation == 5 else 0.0
             value = self.number(row.get("m_8AD739CE" if operation == 5 else "m_9B7A63EA"), default)
-            key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
             backend.upsert(modifiers.Record(1, key, (frame + 1) & 0xFFFFFFFF,
                 row.get("m_A9561CA0", 0), operation, value, priority, upper))
             if self.per_frame:
@@ -341,7 +359,8 @@ class NumericPropertyModifiers(State):
         for index, row in enumerate(rows):
             if row is not None:
                 key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
-                backend.retire(1, key, (frame + 1) & 0xFFFFFFFF)
+                retire = backend.retire_vector if row["$"] == "STU_09F9B1FE" else backend.retire
+                retire(1, key, (frame + 1) & 0xFFFFFFFF)
 
 
 @state_class("STU_9028E035")
@@ -759,13 +778,27 @@ class LogicalButton(State):
 class AIBehavior(State):
     """A behavior candidate. The world decides when its selected subgraph runs."""
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.selected = False
+
     def on_enter(self) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        self.refresh_selection()
+
+    def refresh_selection(self):
+        selected = bool(self.instance.component.world.selects_ai_behavior(self.instance))
+        if not self.active or selected == self.selected:
+            return
+        self.selected = selected
+        if selected:
             self.instance.follow(self.node, "m_6F92F4BD", self)
+        else:
+            self.instance.exit_subgraph(self.node, "m_6F92F4BD")
 
     def on_end(self, finished: bool) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        if self.selected:
             self.instance.exit_subgraph(self.node, "m_6F92F4BD")
+        self.selected = False
 
 
 @state_class("STU_D7F9E1C3")
@@ -833,6 +866,8 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        if self.ms > 0 and self.instance.component.world.external_wait(self):
+            return
         if self.dynamic():
             self.ticks()
             self.tick()
@@ -921,6 +956,10 @@ class ChaseVar(State):
         self.var: Var | None = None
         self.interrupted = False
 
+    def clock(self):
+        value = self.instance.component.world.chase_clock(self)
+        return self.now if value is NotImplemented else value
+
     def on_enter(self) -> None:
         target = lvalue(_field(self, "m_out_Var"))
         initial = _field(self, "m_EB0FC261")
@@ -933,7 +972,7 @@ class ChaseVar(State):
         self.interrupted = False
         duration = _field(self, "m_5BEFF040")
         self.remaining = int(to_float(self.evaluate(duration, watch=False)) * 1000) if duration else None
-        self.last = self.now
+        self.last = self.clock()
         if target is not None:
             var = self.instance.find_var(*target)
             before = var.value()
@@ -952,9 +991,10 @@ class ChaseVar(State):
         return value if isinstance(value, Vec3) else to_float(value)
 
     def tick(self) -> None:
-        dt = self.now - self.last
+        now = self.clock()
+        dt = now - self.last
         if dt <= 0 or self.reached:
-            self.last = self.now
+            self.last = now
             return
         before = self.var.value() if self.var else None
         dest = self.destination()
@@ -971,7 +1011,7 @@ class ChaseVar(State):
             if rate > 0:
                 step = f32(f32(f32(rate * MS) * dt) + EPSILON)
                 self.cur, self.reached = self._step(self.cur, dest, step)
-        self.last = self.now
+        self.last = now
         if self.var is not None:
             self.instance.changed(self.var, before)
         if self.reached:
@@ -1180,6 +1220,14 @@ class MoveTo(State):
         self.movement = None
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """A host may consume an authored entry before its transition tears it down."""
+
+    def on_enter(self):
+        self.instance.component.world.modify_health_enter(self)
+
+
 @state_class("STUStatescriptStateAnim")
 class Anim(State):
     """An animation (OnBegin 0x7FF78981DD90): with m_playOverDuration (m_86701C3E) set, a timer at start + d
@@ -1191,9 +1239,13 @@ class Anim(State):
     def on_enter(self) -> None:
         duration = _field(self, "m_86701C3E")
         if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
-            return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
+            declared = self.instance.component.world.animation_duration(self)
+            if declared is NotImplemented:
+                expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
+                return
+            ms = seconds_to_ms(declared)
+        else:
+            ms = seconds_to_ms(self.evaluate(duration, watch=False))
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
         if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
@@ -1303,15 +1355,15 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int) -> tuple[int, int, int] | None:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
                 self.presses.remove(item)
-                return True
-        return False
+                return item
+        return None
 
     # starting and stopping
 
@@ -1358,7 +1410,12 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        if not self.instance.component.world.ability_allowed(self):
+            self.presses.clear()
+            if start and self.held(start):
+                self.flags |= self.HELD
+            return False
+        pressed = None
         if start:
             pressed = self.take_press(start)
             if not pressed:
@@ -1377,7 +1434,10 @@ class Ability(State):
         )
         if not ready:
             if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
+                # A refused cast may wait only inside its original early-press
+                # window. Retimestamping it every tick made an old click survive
+                # an entire cooldown and cast after the button had been released.
+                self.presses.insert(0, pressed)
             return False
         if start:
             self.flags |= self.HELD
@@ -1430,18 +1490,22 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue scope cleanup before releasing its arbitration link.
+
+        This server ordering lets outgoing resource cleanup run before an
+        unblocked weapon samples it. Native inter-object ordering is unproved.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1813,12 +1877,38 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """A target search supplied by an explicit host service, empty when undeclared.
+
+    Host selection/age policy is reconstructed. This is not a native filter engine.
+    """
 
     family = "targets"
 
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.targets = ()
+
+    def on_begin(self) -> None:
+        self.targets = ()
+        if self.refresh():
+            self.ticks()
+
+    def refresh(self) -> bool:
+        found = self.instance.component.world.track_targets(self)
+        if found is NotImplemented:
+            return False
+        if type(found) is not tuple or any(type(entity) is not int for entity in found):
+            raise TypeError("target host must return a tuple of entity IDs")
+        self.targets = tuple((entity, 0) for entity in found)
+        self.instance.write(lvalue(_field(self, "m_8A2905A0")), tuple(Entity(entity) for entity in found))
+        return True
+
+    def tick(self) -> None:
+        self.refresh()
+        self.try_complete()
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": self.targets}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1966,6 +2056,13 @@ def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedTyp
     return True
 
 
+@handler("STU_DE66D3F5")
+def talon_hit_action(instance: Instance, node, _caller):
+    from ow174.game import talon_hit
+
+    return talon_hit.hit_action(instance, node)
+
+
 @handler("STUStatescriptActionSetVar")
 def set_var(instance: Instance, node, caller) -> bool:
     """SetVar (0x7FF78AA7D300): the value (failure: int 0), then a keyed insert, an element write or a
@@ -2077,6 +2174,11 @@ def branch(instance: Instance, node, caller, result: bool) -> bool:
     return not node.links("m_truePlug") and not node.links("m_falsePlug")
 
 
+@handler("STU_1113EBD5")
+def join_inputs(instance: Instance, node, caller) -> bool:
+    return instance.join(node, caller)
+
+
 @handler("STU_3387AB5D")
 def condition_bool(instance: Instance, node, caller) -> bool:
     """Condition_Bool: m_condition, evaluated with the calling state as the watcher."""
@@ -2185,10 +2287,33 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
-    if instance.component.strict:
+    if instance.component.strict or instance.component.world.handles_play_script(instance, node):
         instance.component.world.play_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
+
+
+@state_class("STU_CB4905E9")
+class PlayHeavyChargeVictim(State):
+    """Stateful PlayScript for the supported Talon bindings."""
+
+    played: Instance | None = None
+
+    def on_enter(self):
+        instance = self.instance
+        world = instance.component.world
+        binding = (instance.graph.index, self.node.pos)
+        if (binding in ((0x1408, 158), (0x0E62, 118), (0x0E62, 120), (0x0E62, 122))
+                and world.handles_play_script(instance, self.node)):
+            self.played = world.play_script(instance, self.node)
+        elif instance.component.strict:
+            instance.component.unsupported(instance, "victim script state", self.node.cls, self.node)
+
+    def on_end(self, finished: bool) -> None:
+        played, self.played = self.played, None
+        component = self.instance.component
+        if played is not None and component.instances.get(played.id) is played:
+            component.destroy(played)
 
 
 def no_op(instance: Instance, node, caller) -> bool:

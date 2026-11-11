@@ -1,0 +1,183 @@
+Winston / actual Assassin target-controller core -- build104319 -- OPEN
+====================================================================
+
+This is a private, partial static restoration. Full Winston combat acceptance,
+complete Assassin specials/AI and all original-client acceptance remain OPEN.
+
+Authored resource path
+----------------------
+Assassin body1EBD has associated controller1EBE. Its actual13C2 behavior reads
+possessed-body13401 and tracks candidate player controllers. Original node7
+writes1650; actual1157 LogicalButton36 latches that controller into local536.
+The1157 action starts actual1177 on a distinct player-controller VM. Original
+1177 owns14695 and reads its source from the invocation context. Controller
+variables never alias the possessed body's variables or the UI script stream.
+Player factory000E.003 declares a statescript component with no initial graphs.
+
+The reviewed filter_bits/filter_condition/filter_callbacks/filter_game stages
+preserve mask, component97, candidate0008 condition, callback-result and
+extension order. Exact13C2 node4/node10 configs have an empty callback rule
+path returning enum2. Nonempty or unsupported services are not silently
+accepted. The host adapter currently supports living, ordinary Winston player
+controllers only; body14695 effects, intangibility and stun reject admission.
+The normal Match category/team/namespace/relationship services, polling,
+enumeration and target age are explicit reconstructions. Captured component
+presence is supporting evidence, not complete native namespace equivalence.
+
+The original target flag can reject a fresh candidate while1157 retains its
+latched target. A later13401 criterion change may stop tracking and retain the
+previous1650 output. Tests therefore assert the flag and latched attack scope
+directly rather than demanding a new zero write after every repeated attack.
+
+Scoped server consumers
+------------------------
+Original node25 initial amount13230=25 is now consumed on state entry before
+its transition43->45 starts victim1177. Its transition aborts the state within
+the same frame, so end-frame polling previously missed it. Repeated/same-frame
+source input cannot replay the entry. A lethal initial hit prevents a later
+victim-script request. Winston's ordinary armour reduces this first25 to20.
+
+After original Wait24=1s, node15 amount11984=100 with mode1 and m_7B2B3F5C=1 is
+interpreted as damage/second. An integer-millisecond health clock integrates
+from the original state's start; repeated consumers at the same world endpoint
+do nothing. Continuous armour handling uses the same reconstructed0.8 scalar
+as Tesla. This replaces the earlier unaccepted100-point pulse-on-entry policy.
+Native interpretation of health mode/flags/tags/difficulty, playback/health
+coupling and all defense rules still need comparison; this is not full pin.
+
+Observed declared-policy arithmetic: first hit500->480;150 actual source-input
+frames give369.28 (20 initial plus1.384s of80 effective damage/sec). A repeated
+80-frame attack in Primal gives1000->958.88.120 world ticks after the first hit,
+with no further NPC input, give406.4 under both paced and sparse world updates.
+The current runtime Winston body1C0 supplies350 health plus150 armour; these
+pool values, rather than a remembered balance-patch profile, drive arithmetic.
+An actual held-source timeline reaches lethal damage at input step384/frame1384;
+victim14695, control and integration entries clear in that lethal update.
+
+Associated Assassin roots now run older no-input windows even when the NPC is
+not a practice firing bot. Preserve the current window for explicit ability
+input. Chronological world replay prevents chained warmup/recovery timers from
+starting at the end of a long gap. The most recent poses are retained; native
+historical movement/contact/attachment and full automatic AI remain unresolved.
+
+Victim control requires a live original1157 attack and original1177 source
+scope. It suppresses new movement/actions, releases held inputs and clears
+buffered abilities/shot reports. Original source release, retirement, death,
+removal or stun ends the victim scope. Player replacement/leave retires its
+controller graph; causal storage records this VM and the health integration map.
+The host lifecycle bridge is reconstructed, including invocation identity and
+foreign-member polling; it is not generic native message or controller routing.
+
+Contact and body identity (declared host policy)
+-----------------------------------------------
+Selection no longer establishes a damaging contact. Before node25 damage and
+the original1177 request, require overlap of the actual current source/target
+capsules and an unobstructed static ray between their nearest vertical axes.
+Capsule heights/radii come from the two body mover records. No extra acquisition
+distance is guessed. Horizontal gap, vertical separation and a wall can retain
+a selected target while rejecting health/control. Axis LOS deliberately reaches
+the opposing axis, so overlapping capsules cannot see through an intervening
+thin wall merely because the near capsule surface lies before it.
+
+A successful original victim-script request records controller/body identity.
+Continuation requires the same body, contact and LOS. Separation, new cover or
+body replacement releases the victim scope/integration entry and delivers the
+original logical-button release to1157; its original recovery graph then runs.
+Bindings are causal server storage, with explicit digest mutation coverage.
+Tests now place positive attack fixtures at real capsule contact rather than4m.
+
+Graph-owned physical attachment and facing (declared host policy)
+----------------------------------------------------------------
+The 1177 request consumes an initial-hit admission keyed by source instance,
+source frame and current victim identity. Under the reconstructed host policy,
+an absorbed entry cannot bind the victim, including a shield-breaking hit.
+An actual projected Zarya cast absorbs 25 entry damage and prevents the pin.
+A fresh attack after shield expiry and recovery deals 20 through armour and binds.
+
+Actual node28/STU72DDE005 must remain active and target the bound controller.
+Its original optional config fields are null. Captured type slot55 returns8;
+the typed builderD30200/default tail outputs a zero local offset, integer0,
+zero vectors, scalar50=-1 and flags58..5C=0 under explicit null-getter adapters.
+The type8 object allocator creates60 bytes/vtable265A910. Twenty-four captured
+slot8/default-handler comparisons carry target/local coordinates, clear output
+and component velocity, clear the not-ground bit, and emit parent/local service
+calls. Engine association/transform, intent and stance services are adapters.
+The constant at output10 is (0,1,0,0); it is not an identity quaternion.
+
+The host now resolves the controller's current possessed-body feet as the
+zero-offset parent. It places the actual source there after successful contact
+admission and follows each real parent movement pose, including existing Jump
+flight and external victim vertical motion. Native parent/bone transforms and
+phase scheduling are not emulated. World silence retains the last poses.
+Out-of-band separation still fails contact; it cannot acquire a remote pin.
+
+Original node30/STUFC16FF45 supplies negative target-forward. A narrowly scoped
+2200A66D provider reads that controller's current possessed-body aim. Evaluate
+the authored expression to update actual NPC yaw/pitch; pitch is now stored and
+replicated in the normal movement record, and registered in full-server causal
+snapshots. Other NPCs default to pitch0. Do not alias controller/body variables.
+Ending node28 also ends its facing child and releases the victim binding.
+
+Declared rescue policy: positive incoming melee, nonzero external source force
+or source control releases original logical36 and victim1177 immediately. The
+original Anim31 recovery then owns its authored overrides and target cleanup.
+Actual ally Winston quick melee, ally Primal punch with source knockback and
+ally McCree Flashbang exercise this path without injected health/events. An
+enemy Primal punch on the victim carries the attached source; it does not
+rescue the source's ally. Victim death/replacement/leave cancels the old binding
+before identity changes. These policies do not establish native damage-event,
+message0011/0055, immunity/tag or complete interruption semantics.
+
+Physical following/facing has executable host evidence. Native attachment,
+approach/navigation, automatic AI and the full interrupt/defense matrix remain
+open; contact gating or these scoped transform policies alone do not complete
+the full Assassin or Winston acceptance group.
+
+The reviewed shared mover17/18/19 helper now consumes tracked forward/backward/
+lateral modifiers at the next pose. It preserves raw input bytes and existing
+snapshot fields. Original1157 recovery and1177 contain those property records.
+The actual bound1177 controller's six numeric records now reach its possessed
+body: forward/backward/lateral throttles17/18/19, jump/crouch intents20/21 and
+character-collision value22. Preserve original operations and priorities. Keys
+include the controller entity ahead of instance/state/slot, distinct from body
+records. Do not alias controller variables into the body or copy unrelated
+controller graphs. Source acquisition/release also synchronizes the records
+without requiring player input, using the latest body command frame plus1 for
+the existing modifier start/end policy. This cross-component/frame routing is
+explicitly reconstructed, not a native phase/possession-service comparison.
+
+Executable checks cover all six original records, both signs of throttles,
+next-pose activation, no-input release followed by immediate movement, retained
+Primal body speed and causal stored values/namespace. Existing Mod/physics
+snapshot fields already capture this projection; no new persistent field is
+added. Character-collision22 changes MoverData only: dynamic inter-character
+collision is still unresolved. NPC route acceleration, general controller
+projection and native attachment/facing remain separate open services.
+
+After release, original Anim31/alias561/category82 owns a13401=0 stack entry
+and clears536 via its own end plug. The graph supplies no clip duration. The
+actual1EBD model points to7C3.021: alias561/category82 selects blend tree640.020
+and clip508A.006. Its manifest-verified header+0x10 contains1.4666666984558105s,
+matching7C3's parallel animation game-data duration1.4666667. The parallel
+category/animation reference indexing is inferred from resource structure;
+all four related clip headers agree with their game-data durations. Use this
+exact-body/graph/node/alias/category duration for the host timer and original
+cleanup. This replaces the earlier adjacent-Wait37=2s compatibility policy.
+Native playback rate/transition/finish behavior still needs comparison. Other
+durationless Anim states retain their previous unresolved behavior.
+
+Remaining required work
+-----------------------
+- Compare the declared initial/continuous health mode, armour, flags/tags and
+  clock with native behavior; full incoming numeric acceptance remains OPEN.
+- Complete approach/automatic AI13C3, native transform/phase comparison and
+  remaining forced-motion/status/defense behavior beyond the scoped physical
+  following/facing and real melee/Flashbang/Primal rescue evidence.
+- Complete defense/status, source/target replacement, sparse world timing,
+  repeated attack and input boundary acceptance beyond the tested core.
+- Verify native filter/status projection, health routing, animation duration,
+  replication and original-client behavior separately.
+
+External catalogs, original XML, graph supplements, mover inputs and captured
+memory remain read only. No runtime deployment, shared-main merge or final
+patch publication is authorized by this partial static evidence.

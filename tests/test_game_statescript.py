@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ow174.game import heroselect
 from ow174.game.bits import BitWriter
 from ow174.game.content import SOLDIER
-from ow174.game.script import decode, graph, runtime
+from ow174.game.script import decode, expr, graph, modifiers, nodes, runtime, scene
 from ow174.game.statescript import Graph, Instance, chunk, owner_ack, owner_full_frame
 from ow174.game.world import EntityUpdate, _write_entity
 
@@ -19,6 +19,67 @@ def bitstring(bits: BitWriter) -> str:
 
 
 class StatescriptTests(unittest.TestCase):
+    def test_talon_reaction_playback_publishes_and_retires_authored_vector(self):
+        class PlaybackWorld(scene.SceneWorld):
+            def native(self, cfg, instance):
+                if cfg["$"] == "STU_66F3B89E":
+                    return expr.Vec3(0, 0, -1)
+                if cfg["$"] == "STU_021D01CD":
+                    return expr.Vec3(1, 0, 0)
+                return super().native(cfg, instance)
+
+        for graph_id, trigger, wait in ((0x1506, 12, 1), (0x14EB, 12, 1), (0x13AC, 25, 2)):
+            with self.subTest(graph_id=graph_id):
+                world = PlaybackWorld()
+                world.bind(123)
+                backend = modifiers.NumericModifiers()
+                world.set_property_modifiers(123, backend)
+                component = runtime.Component(123, world=world, strict=True)
+                resource = graph.graph(graph_id)
+                instance = component.create(resource, init=False)
+                instance.write((expr.INSTANCE, 681), expr.Vec3(2, 0, 3))
+                instance.write((expr.INSTANCE, 13235), 0.25)
+                instance.follow(resource.node(trigger), "m_806B068F", None)
+                instance.drain()
+
+                self.assertTrue(instance.node_state(resource.node(wait)).active)
+                self.assertIs(component.entity_var(888).value(), True)
+                self.assertEqual(len(backend.vector_records), 1)
+                record = backend.vector_records[0]
+                self.assertEqual((record.selector, record.operation, record.priority), (1, 2, 1))
+                self.assertEqual(record.value, expr.Vec3(3, -1, -2))
+                self.assertEqual({row.field for row in backend.records}, set(range(17, 22)))
+                base, offset = expr.Vec3(10, 5, 20), expr.Vec3(1, 2, 3)
+                self.assertEqual(backend.resolve_horizontal(base, offset, frame=0), (False, base))
+                self.assertEqual(backend.resolve_horizontal(base, offset, frame=1),
+                                 (True, expr.Vec3(4, 7, 1)))
+                component.now = 249
+                instance.drain()
+                self.assertTrue(instance.node_state(resource.node(wait)).active)
+                backend.source_frame = 1
+                component.now = 250
+                instance.drain()
+                self.assertFalse(instance.node_state(resource.node(wait)).active)
+                self.assertIsNone(component.entity_var(888).value())
+                self.assertEqual(backend.vector_records[0].end, 2)
+                self.assertEqual(backend.resolve_horizontal(base, offset, frame=2), (False, base))
+
+    def test_talon_reaction_forward_action_routes_authored_links_in_strict_mode(self):
+        for graph_id, position, expected in (
+            (0x1506, 9, [(7, runtime.ABORT), (1, runtime.BEGIN), (11, runtime.BEGIN)]),
+            (0x14EB, 9, [(7, runtime.ABORT), (1, runtime.BEGIN), (11, runtime.BEGIN)]),
+            (0x010A, 57, []),
+        ):
+            with self.subTest(graph_id=graph_id):
+                component = runtime.Component(123, strict=True)
+                instance = component.create(graph.graph(graph_id), init=False)
+                self.assertTrue(instance.run_node(instance.graph.node(position), None))
+                self.assertCountEqual(
+                    [(event.state.node.pos, event.op) for event in instance.queue], expected,
+                )
+                if expected:
+                    self.assertIsInstance(instance.node_state(instance.graph.node(1)), nodes.Wait)
+
     def test_a_live_game_mode_frame(self):
         # 13C0 on the game mode entity, as it was sent live: owner frame, CmFD 10000000, 20 state bits.
         frame = owner_full_frame(10000000, [Instance(1, Graph(0x13C0, 20, 3))], {})

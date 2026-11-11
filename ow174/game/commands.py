@@ -179,17 +179,25 @@ class CommandQueue:
         return fresh
 
     def before_limit(
-        self, commands: list[Command], limit: int, *, anchor: int | None = None
+        self, commands: list[Command], limit: int, *, anchor: int | None = None,
+        horizon: int | None = None,
     ) -> tuple[list[Command], int | None]:
-        """Admit the fresh prefix that fits the current body epoch, and report its first boundary."""
-        return self._consume(commands, limit, anchor)
+        """Admit fresh frames within the epoch/horizon; report the first wire boundary.
+
+        A supplied server horizon drops future frames before they can advance
+        queue state. The whole packet is still validated before any mutation.
+        """
+        return self._consume(commands, limit, anchor, horizon)
 
     def _consume(
-        self, commands: list[Command], limit: int | None = None, anchor: int | None = None
+        self, commands: list[Command], limit: int | None = None, anchor: int | None = None,
+        horizon: int | None = None,
     ) -> tuple[list[Command], int | None]:
         # Validate the whole window first so malformed input cannot partly advance the queue.
         if any(type(item.frame) is not int or not 0 <= item.frame <= FRAME_MASK for item in commands):
             raise InputError("command frame must be uint32")
+        if horizon is not None and (type(horizon) is not int or not 0 <= horizon <= FRAME_MASK):
+            raise InputError('command horizon must be uint32')
         fresh = []
         previous = self.last_frame if self.last_frame is not None else anchor
         for command in commands:
@@ -202,6 +210,8 @@ class CommandQueue:
                 return fresh, command.frame
             if wrapped:
                 self.wraps += 1
+            if horizon is not None and 0 < frame_distance(command.frame, horizon) < FRAME_HALF:
+                continue  # no future-input queue poisoning or synthetic elapsed cooldown
             fresh.append(command)
             previous = self.last_frame = command.frame
         return fresh, None
