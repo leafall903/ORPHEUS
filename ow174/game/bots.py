@@ -48,7 +48,7 @@ from functools import cache
 
 from ow174.game.collision import MOVER, TEAM0, TEAM1
 from ow174.game.commands import Command
-from ow174.game.mover import GRAVITY_SCALE, IN_AIR, Mover, encode_spring, mover_data
+from ow174.game.mover import GRAVITY_SCALE, IN_AIR, Mod, Mover, encode_spring, modded, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -161,7 +161,10 @@ class Bot:
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
 
-    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
+    def step(
+        self, tick: int, seconds: float, collision=None, *,
+        paused_until: int = 0, movement_mods: dict | None = None,
+    ) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
@@ -174,13 +177,20 @@ class Bot:
         if ticks <= 0:
             return
         self.last_tick = tick
+        pace_limits = (self.speed, self.accel, self.brake)
+        if movement_mods:
+            mods = [Mod(index, op, value, tick, priority=priority, key=key)
+                    for key, (index, op, value, priority) in movement_mods.items()]
+            values = modded(mover_data(self.body), sorted(mods, key=Mod.order))
+            speed = values.run_forward
+            pace_limits = (speed, values.accel_ground * speed, values.decel_ground_base * speed)
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
             if self.impulse_mover is not None:
                 self._impulse_step(at, seconds, collision)
             elif at < paused_until:
                 self._pause(at)
             elif self.route:
-                self._tick(at, seconds, collision)
+                self._tick(at, seconds, collision, pace_limits)
 
     def impulse(self, velocity: tuple, tick: int, collision=None, *, free_for_all=False) -> None:
         """Temporarily give external motion to the shared capsule solver.
@@ -229,7 +239,7 @@ class Bot:
         self.held = (0, 0)
         self.moved_tick = tick
 
-    def _tick(self, tick: int, dt: float, collision) -> None:
+    def _tick(self, tick: int, dt: float, collision, pace_limits: tuple) -> None:
         before = (self.position, round(self.yaw))
         self.held = (0, 0)
         if not self.keys:
@@ -241,17 +251,17 @@ class Bot:
                 self.keys = True
                 self.turning = 0.0
         if self.keys:
-            self._walk(tick, dt, collision)
+            self._walk(tick, dt, collision, pace_limits)
         else:
             if self.target is not None:
-                self._slide(dt, collision)
+                self._slide(dt, collision, pace_limits[2])
             if self.turning > EPSILON:
                 self.turning -= dt
                 self._turn(dt)
         if (self.position, round(self.yaw)) != before:
             self.moved_tick = tick
 
-    def _walk(self, tick: int, dt: float, collision) -> None:
+    def _walk(self, tick: int, dt: float, collision, pace_limits: tuple) -> None:
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -262,10 +272,11 @@ class Bot:
             return
         self.direction = ((tx - x) / distance, (tz - z) / distance)
         self._turn(dt)
-        self.pace = min(self.speed, self.pace + self.accel * dt)
+        speed, accel, brake = pace_limits
+        self.pace = min(speed, self.pace + accel * dt)
         self.held = self.last_held = throttles(self.yaw, self.direction)
         self.input_tick = tick
-        stride, slide = self.pace * dt, self._slide_length(dt)
+        stride, slide = self.pace * dt, self._slide_length(dt, brake)
         if distance - stride <= slide:
             # its last tick with keys: from here its friction slides it onto the point
             stride = max(0.0, distance - slide)
@@ -274,9 +285,9 @@ class Bot:
             self.turning = TURN_AFTER
         self._advance(stride, distance, dt, collision)
 
-    def _slide(self, dt: float, collision) -> None:
+    def _slide(self, dt: float, collision, brake: float) -> None:
         """No keys: its friction stops it, never past its point."""
-        self.pace = max(0.0, self.pace - self.brake * dt)
+        self.pace = max(0.0, self.pace - brake * dt)
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -290,9 +301,11 @@ class Bot:
         self.velocity = (0.0, 0.0, 0.0)
         self.target = None
 
-    def _slide_length(self, dt: float) -> float:
+    def _slide_length(self, dt: float, brake: float) -> float:
         """How far its friction slides it from its speed now, tick by tick."""
-        slow = self.brake * dt
+        slow = brake * dt
+        if slow <= 0:
+            return 0.0
         length, pace = 0.0, self.pace - slow
         while pace > 0.0:
             length += pace * dt

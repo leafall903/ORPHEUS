@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Orisa server integration
+
+- Integrate Orisa's Fusion Driver, Fortify, Halt, Protective Barrier, and
+  Supercharger with the Python combat and StateScript runtime. Preserve
+  expanded ray geometry alongside the dynamic sphere catalog.
+- Pass 62 focused combat, collision, and StateScript checks, including two
+  Barrier tests with the extracted mesh. Broader regression and original-client
+  verification remain open.
+
 ### Python scenario integration
 
 - Integrate the existing Junkenstein Vengeful Ghost, Mystery Swap, and late

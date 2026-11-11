@@ -23,6 +23,7 @@ from ow174.game import (
     brigitte,
     combat,
     correction,
+    dynamic_spheres,
     echo_duplicate,
     genji,
     heroselect,
@@ -30,8 +31,12 @@ from ow174.game import (
     notices,
     npc_navigation,
     observers,
+    orisa,
     orisa_barrier,
+    orisa_halt,
+    orisa_supercharger,
     projectiles,
+    props,
     reinhardt_barrier,
     replay_values,
     sigma_barrier,
@@ -49,7 +54,8 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
+from ow174.game.script import body_owner, driver, entity_queries, expr, play, runtime
+from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -93,7 +99,7 @@ FIELDS = {
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update historical_death"),
     Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends assembled players "
                   "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
-                  "collision_provider collision_state collision_world _collision_failed "
+                  "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
@@ -108,12 +114,12 @@ FIELDS = {
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers "
-        "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims"
+        "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa"
     ),
     combat.WaveHealthPool: _names("capacity current"),
     orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
     orisa_barrier.BarrierWorld: _names("hero mode match entity location"),
-    orisa_barrier.Geometry: _names("world"),
+    orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
@@ -132,6 +138,16 @@ FIELDS = {
         "mesh geometry_digest vitals retired recipient recipient_body recipient_component"),
     assassin_victim.Lease: _names(
         "source source_instance sender_state activation target source_component target_component instance"),
+
+    dynamic_spheres.DynamicSpheres: _names("_bodies"),
+    orisa_halt.PullQuery: _names("hero mode explosion_sink origin caster context instance track radius"),
+    orisa.Orisa: _names("fight charge_metadata halt_graph halt_query_graph orbs pulls results "
+                        "barriers superchargers"),
+    orisa_supercharger.Superchargers: _names("fight active buffs graphs geometry"),
+    orisa_supercharger.DeviceWorld: _names("hero mode fight entity location"),
+    script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
+                               "states entries remote_nodes sync_vars _owner _remote _presence"),
+    script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -201,6 +217,8 @@ DATACLASSES = (
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
     statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map, expr.PairArray,
+    dynamic_spheres.SphereBody, props.PlacedDynamicSphere, play.InvocationContext,
+    orisa.Orb, orisa.Pull, orisa_supercharger.Device, script_graph.SyncVar,
 )
 
 

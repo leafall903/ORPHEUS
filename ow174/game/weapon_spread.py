@@ -174,3 +174,70 @@ def direction(forward, cone: float, base: int, shot: int, pellet: int = 0,
     forward = tuple(f32(value) for value in forward)
     right = _right(forward)
     return tuple(f32(value) for value in _rotate(forward, _rotate(right, forward, angle), radius))
+
+
+def _uniform(index, low, high):
+    low, high = f32(low), f32(high)
+    value = f32(uniform_table()[index & 16383])
+    return f32(f32(f32(value * f32(high - low)) * 2.0 ** -32) + low)
+
+
+def ring_direction(forward, spread, jitter, phase, rings, base, shot, pellet):
+    """D80310 concentric launch at unit aspect; angles supplied in degrees except phase radians."""
+    tau, radians = f32(math.tau), f32(math.pi / 180)
+    angle, radius = 0.0, 0.0
+    remaining = pellet
+    for index, (scale, count) in enumerate(rings):
+        if remaining < count or index == len(rings) - 1:
+            angle = f32(f32(remaining / count) * tau) if count else 0.0
+            radius = f32(f32(max(0.0, f32(f32(spread) - f32(jitter))) * radians) * f32(scale))
+            break
+        remaining -= count
+    phase = f32(phase)
+    if phase < 0:
+        phase = _uniform(((base & 0xffff) + (shot & 0xffff) * 7) & 0xffff, 0, tau)
+    angle = f32(angle + phase)
+    jitter = f32(f32(jitter) * radians)
+    seed = seed_index(base, shot, pellet)
+    first, second = _uniform(seed, -jitter, jitter), _uniform(seed + 1, -jitter, jitter)
+    forward = tuple(f32(v) for v in forward)
+    right = _cross(forward, (0, 1, 0))
+    squared = f32(sum(f32(v * v) for v in right))
+    right = (tuple(v / math.sqrt(squared) for v in right)
+             if squared >= 1.1754943508222875e-36 else (1, 0, 0))
+    axis = _rotate(right, forward, angle)
+    result = _rotate(forward, axis, f32(radius + first))
+    if jitter > 1.1920928955078125e-5:  # D80637, captured25FB054
+        second_axis = _cross(forward, axis)
+        squared = f32(sum(f32(v * v) for v in second_axis))
+        second_axis = (tuple(v / math.sqrt(squared) for v in second_axis)
+                       if squared >= 1.1754943508222875e-36 else (1, 0, 0))
+        result = _rotate(result, second_axis, second)
+    return tuple(f32(v) for v in result)
+
+
+def ring_volley(state, forward, base, shot):
+    """Consume an authored613BDDB0 volley; caller supplies declared server identity mappings."""
+    launch = state.node.field("m_5EC1EB38") or {}
+    if launch.get("$") != "STU_613BDDB0":
+        raise ValueError("unsupported Enforcer launch pattern")
+
+    def number(config, default):
+        if config is None:
+            return default
+        value = state.evaluate(config, watch=False)
+        if type(value) not in (int, float):
+            raise ValueError("unavailable Enforcer launch scalar")
+        return value
+
+    rings = tuple((number(ring.get("m_6425FFB9"), 0), int(number(ring.get("m_B19BD35D"), 0)))
+                  for ring in launch.get("m_0D30E40C") or ())
+    count = int(number(state.node.field("m_numProjectilesPerShot"), 1))
+    if not rings or any(n <= 0 for _, n in rings) or sum(n for _, n in rings) != count:
+        raise ValueError("Enforcer ring counts do not match authored projectile count")
+    spread = number(launch.get("m_spread"), 0)
+    jitter = number(launch.get("m_92308789"), 0)
+    phase = (-1 if launch.get("m_391F15AF") is None else
+             f32(number(launch["m_391F15AF"], 0) * f32(math.pi / 180)))
+    return tuple(ring_direction(forward, spread, jitter, phase, rings, base, shot, pellet)
+                 for pellet in range(count))

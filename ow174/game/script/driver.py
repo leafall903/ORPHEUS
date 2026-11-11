@@ -321,6 +321,9 @@ class BodyWorld(runtime.World):
                 return entity_queries.Target(entity, None)
         if entity == runtime.GAME_MODE_ENTITY or any(bot.entity == entity for bot in match.bots):
             return entity_queries.Target(entity, None)
+        ability = getattr(match.combat, "orisa", None)
+        if ability is not None and (entity in ability.orbs or entity in ability.superchargers.active):
+            return entity_queries.Target(entity, None)
         return None
 
     def _lookup_body_owner(self, entity):
@@ -373,6 +376,11 @@ class BodyWorld(runtime.World):
         return self._body_component(entity) is not None
 
     def entity_var(self, entity, var):
+        from ow174.game import orisa_charge
+
+        value = orisa_charge.foreign_var(self, entity, var)
+        if value is not None:
+            return value
         if self.match is None or entity == runtime.GAME_MODE_ENTITY:
             return super().entity_var(entity, var)
         # Foreign reads are sampled by the body frame poll. The other VM
@@ -521,6 +529,15 @@ class BodyWorld(runtime.World):
                 return any(target.entity == entity for target in self.match.combat._enemies(caster))
             if caster is not None and cfg == instance.graph.node(19).field("m_value"):
                 return Vec3(*caster.mover.position)
+        from ow174.game import orisa_charge, orisa_halt
+
+        halt = orisa_halt.native(self, cfg, instance)
+        if halt is not NotImplemented:
+            return halt
+
+        charge = orisa_charge.native(self, cfg, instance)
+        if charge is not NotImplemented:
+            return charge
         cls = cfg.get("$")
         if cls == "STU_DB742151" and self.match is not None:
             match = self.match
@@ -589,6 +606,22 @@ class BodyWorld(runtime.World):
             owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
             return Entity(owner.entity if owner is not None and owner.spawned and owner.has_body
                           and not instance.component.owner_dead and not self.match.ended else 0)
+        if self.match is not None and cls in ("STU_E72F6348", "STU_2B2E2F6D"):
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity") or cfg.get("m_81A364DE")))
+            orb = self.match.combat.orisa.orbs.get(entity)
+            device = self.match.combat.orisa.superchargers.active.get(entity)
+            if device is not None:
+                if cls == "STU_E72F6348":
+                    return True
+                if cfg.get("m_7BDB02D1") == 0:
+                    return Entity(device.source_body)
+            if orb is not None:
+                if cls == "STU_E72F6348":
+                    return True  # actual currently registered server ability entity
+                if cfg.get("m_7BDB02D1") == 0:
+                    # Reconstruct only the declared pet-owner relation used by
+                    # Halt's own-body gate, never arbitrary entity ownership.
+                    return Entity(orb.rocket.source_body)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -596,6 +629,18 @@ class BodyWorld(runtime.World):
             return Vec3(f32(right * THROTTLE_UNIT), f32(forward * THROTTLE_UNIT), 0.0)
         if cls == "STU_37F20D24":  # GetGameMode: the match's mode (what component 114 announces)
             return Asset(self.mode)
+        if cls == "STU_9B7648C3":
+            # Native CEB6C0 -> D177C0 resolves component51 (BCC870) and its
+            # numeric getter at vtable+40. Reconstructed aggregate-health
+            # consumer, using the same authoritative input as the body HUD.
+            # Unknown/foreign entities retain the ordinary unsupported path.
+            target = cfg.get("m_entity")
+            if (instance.component.entity == self.body and isinstance(target, dict)
+                    and instance.evaluate(target) == Entity(self.body)):
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if type(value) in (int, float):
+                    return f32(value)
         if cls == "STU_FDBB0B67":  # entity size used by the authored movement and effect graphs
             target = cfg.get("m_entity")
             component = instance.component
@@ -997,6 +1042,9 @@ class BodyWorld(runtime.World):
         if barriers.relay_bubble_energy(self, target, message, params, sender):
             return
         match = self.match
+        if (match is not None and sender == self.body
+                and match.combat.orisa.receive(target, message, sender)):
+            return
         if (match is not None and sender == self.body
                 and match.queue_body_message(target, message, params, sender)):
             return
@@ -1418,7 +1466,13 @@ class BodyScript(ReplicatedBody):
                 return
         if self.hero == GENJI and expr.truthy(self.component.entity_var(2426).value()):
             return  # The authored profile owns passive charge; never add debug fill on top.
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+        from ow174.game import orisa_charge
+
+        if orisa_charge.activate(self):
+            return
+        blocked = self.component.entity_var(842, create=False)
+        if (self.ult_seconds <= 0 or (blocked is not None and expr.truthy(blocked.value()))
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

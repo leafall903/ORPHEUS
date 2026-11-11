@@ -13,7 +13,7 @@ from _thread import LockType
 from array import array
 from collections import OrderedDict
 
-from ow174.game import collision, contacts
+from ow174.game import collision, contacts, props
 from ow174.paths import ROOT
 
 SCHEMA = "ow174.collision-world.v1"
@@ -24,7 +24,10 @@ MODEL_FILES = (
 TRIANGLE_SCENE_FIELDS = frozenset({
     "name", "data", "masks", "surfaces", "grid", "columns", "large", "lock", "lowest", "large_tuples",
 })
-WORLD_FIELDS = TRIANGLE_SCENE_FIELDS | {"engine", "ray_geometry"}
+INITIAL_SPHERE_FIELDS = frozenset({
+    "placement", "definition", "shape", "centre", "radius", "category", "initial_inverse_mass",
+})
+WORLD_FIELDS = TRIANGLE_SCENE_FIELDS | {"engine", "ray_geometry", "initial_dynamic_spheres"}
 RAY_FIELDS = TRIANGLE_SCENE_FIELDS | {"round_props"}
 ROUND_PROP_FIELDS = frozenset({"a", "b", "radius", "mask"})
 MESH_FIELDS = frozenset({
@@ -311,6 +314,13 @@ def _record(world):
             _fields(shape, collision._RoundProp, ROUND_PROP_FIELDS) for shape in rays.round_props
         )
         record["ray_geometry"] = geometry
+    initial_spheres = record.pop("initial_dynamic_spheres")
+    if type(initial_spheres) is not tuple:
+        _fail("initial dynamic spheres must be an ordered tuple")
+    if initial_spheres:
+        record["initial_dynamic_spheres"] = tuple(
+            _fields(sphere, props.PlacedDynamicSphere, INITIAL_SPHERE_FIELDS) for sphere in initial_spheres
+        )
     record["layout"] = {
         "world_cell": collision.CELL, "world_large": collision.LARGE,
         "mesh_cell": contacts.MeshShape.CELL, "mesh_large": contacts.MeshShape.LARGE,
@@ -320,7 +330,7 @@ def _record(world):
 
 
 def world_fingerprint(world) -> dict:
-    """Hash the complete supported static asset and validate, without changing, its lazy caches."""
+    """Hash the collision asset and initial sphere catalog and validate, without changing, its lazy caches."""
     try:
         geometry = _digest(_record(world))
         sources = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in MODEL_FILES}

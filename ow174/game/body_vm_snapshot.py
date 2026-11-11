@@ -13,6 +13,8 @@ import types
 
 from ow174.game import replay_values
 from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
+from ow174.game.orisa_supercharger import DeviceWorld
 from ow174.game.script import (
     body_owner,
     entity_queries,
@@ -21,6 +23,7 @@ from ow174.game.script import (
     message_receive,
     message_scope,
     nodes,
+    play,
     runtime,
 )
 from ow174.game.script.bot import BotWorld
@@ -63,6 +66,7 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     nodes.TargetEffects: (("children",), ()),
     runtime.State: ((), ()),
+    HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -91,7 +95,7 @@ _STATE_LAYOUTS = {
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported", "last_values"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
@@ -134,6 +138,7 @@ _VALUE_LAYOUTS = {
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
+    play.InvocationContext: ("caller", "owner", "instigator"),
 }
 
 
@@ -421,7 +426,7 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld, DeviceWorld, PullQuery):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -434,9 +439,13 @@ class _Export:
                                "manual_target", "manual_nameplate"))
             if kind is BarrierWorld:
                 fields.update(("match", "entity", "location"))
+            if kind is DeviceWorld:
+                fields.update(("fight", "entity", "location"))
+            if kind is PullQuery:
+                fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) is BodyWorld
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,

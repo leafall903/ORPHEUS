@@ -42,9 +42,11 @@ from ow174.game import (
     heroselect,
     movelog,
     notices,
+    orisa_charge,
     pools,
     stats,
     world,
+    wraith,
 )
 from ow174.game.collision import (
     MOVER,
@@ -67,6 +69,7 @@ from ow174.game.content import (
     heroes,
     spawn_point,
 )
+from ow174.game.dynamic_spheres import DynamicSpheres
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.genji import GENJI, Mobility
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
@@ -372,6 +375,11 @@ class Player:
 
         mccree.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
+        forced = self.match.combat.orisa.movement(self)
+        if forced is not None:
+            self.mover.step_pose(command, seconds, tick, move_to=forced)
+            self._advance_body_frame(command)
+            return
         requests = []
         if script is not None and not stunned and not self.mover.external_impulse:
             requests = [
@@ -444,6 +452,7 @@ class Player:
                 self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
                 return
             self.match.body_command(self, command, movement_end=movement_end, posed=posed)
+            wraith.advance(self)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
@@ -533,6 +542,7 @@ class Match:
         self._pending_bot_scripts = deque(bot for bot in self.bots if graph.entity_body(bot.body) is not None)
         self.bots_shown: dict[int, int] = {}  # player slot -> the tick the bots' creates went to its queue
         self.notices = notices.Notices(self)  # joined / left / hero switch lines in the clients' chat
+        self.dynamic_spheres = DynamicSpheres()
         self.combat = combat.Combat(self)  # hits, health, deaths, respawns (combat.py)
         self.collision_provider = (
             default_collision_provider() if collision_provider is None else collision_provider
@@ -555,6 +565,7 @@ class Match:
             )
             if self.collision_state.status == "ready":
                 self.collision_world = self.collision_state.world
+                self.dynamic_spheres.register_initial(self.collision_world.initial_dynamic_spheres)
                 for player in self.players:
                     player.mover.use(world=self.collision_world)
         return self.collision_world is not None
@@ -723,11 +734,11 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
-        from ow174.game import npc_context
-
         if graph.entity_body(bot.body) is None:
             return
         try:
+            from ow174.game import npc_context
+
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
             components = npc_context.manual_components(bot)
@@ -784,12 +795,12 @@ class Match:
         """Whether other players' clients get this player's body."""
         return player.spawned and player.has_body and player.client is not None
 
-    def own_body_updates(self, viewer: Player, *, start_frame: int | None = None, ult_fraction: float = 0.0) -> list[EntityUpdate]:
+    def own_body_updates(self, viewer: Player, *, start_frame: int | None = None, ult_fraction: float = 0.0, charge_ratio=None) -> list[EntityUpdate]:
         """The viewer's own body: its movement state rides in the create (at frame 0xFFFFFFFE) and in a
         movement record at the packet frame."""
         state = deepcopy(viewer.pose())
         create = EntityUpdate(viewer.body, OP_CREATE, movement=state)
-        self.start_body_script(viewer, create, start_frame=start_frame, ult_fraction=ult_fraction)
+        self.start_body_script(viewer, create, start_frame=start_frame, ult_fraction=ult_fraction, charge_ratio=charge_ratio)
         # The new script must exist before its projectile lease is captured. The create's
         # stream remains the native driver's arrival gate; only the payload is frozen here.
         create.build = self._body_builder(viewer, state, own=True)
@@ -1080,12 +1091,15 @@ class Match:
             if budgets:
                 self._npc_planning_turn += 1  # server ticks can skip under load
             for bot in self.bots:
+                if self.combat.orisa.controls(bot.entity, tick):
+                    continue
                 if bot.spawner.get('manual_spawn') is True:
                     npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
                                         plan_budget=budgets.get(bot.entity, 0))
                     continue
+                mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                         paused_until=self.combat.stuns.get(bot.entity, 0), movement_mods=mods)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1235,6 +1249,9 @@ class Match:
         actor = self.combat.barriers.world.actors.get(entity)
         if actor is not None:
             return expr.Vec3(*actor.point)
+        position = self.combat.orisa.position(entity)
+        if position is not None:
+            return expr.Vec3(*position)
         return None
 
     def resolve_body_spray(self, entity: int, length: float) -> dict | None:
@@ -1291,7 +1308,8 @@ class Match:
                 self.stop_body_script(player, failed=True)
 
     def start_body_script(
-        self, player: Player, create: EntityUpdate, *, start_frame: int | None = None, ult_fraction: float = 0.0
+        self, player: Player, create: EntityUpdate, *, start_frame: int | None = None, ult_fraction: float = 0.0,
+        charge_ratio=None,
     ) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
@@ -1329,6 +1347,8 @@ class Match:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
+        orisa_charge.restore(script, charge_ratio, player.entity)
+        self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
         bodytrace.started(player, script)
@@ -1519,6 +1539,7 @@ class Match:
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         ult_fraction = 0.0
+        charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
             if entity is None:
@@ -1541,7 +1562,8 @@ class Match:
         player.has_body = True
         if player.client is not None and player.spawned:
             components = self._possession(player)
-            player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame, ult_fraction=ult_fraction))
+            player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame, ult_fraction=ult_fraction,
+                                                                   charge_ratio=charge_ratio))
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,
