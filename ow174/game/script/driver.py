@@ -1700,7 +1700,7 @@ class BodyScript(ReplicatedBody):
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
-        if ult_seconds is None and hero not in (0x02E0000000000195, baptiste.HERO):
+        if ult_seconds is None and hero not in (0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
@@ -1784,6 +1784,7 @@ class BodyScript(ReplicatedBody):
         if self.hero == GENJI and health <= 0:
             self.component.set(2426, False)  # retire this body's authored passive wait on death
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        ultimate.sync_practice_timer(self)
 
     # --- running -----------------------------------------------------------------------------------
 
@@ -1829,6 +1830,7 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        ultimate.sync_practice_timer(self)
         from ow174.game import lucio
 
         if self.hero == lucio.HERO:
@@ -1928,6 +1930,15 @@ class BodyScript(ReplicatedBody):
         return after - before
 
     def _charge_ult(self) -> None:
+        if self.hero == 0x02E000000000006E:
+            if (self.retired or self.component.owner_dead
+                    or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                if not ultimate.practice_timer(self.world):
+                    ultimate.passive_points(self)
+                return
         if self.hero == regeneration.MERCY and self.world.match is not None:
             return  # The delivered 0B8B graph owns Mercy passive charge.
         if self.hero == 0x02E0000000000079 and self.world.match is not None:

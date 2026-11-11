@@ -5,6 +5,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Integrate delivered Soldier Field healing and charge startup
+
+- Read 0258's healing radius, amount, fade and lifetime from its actual player
+  parameters. Restore body-retirement cleanup, static-cover admission and
+  interleaved per-field healing before later impacts during replayed intervals.
+  Preserve full Field healing across long gaps independently of the combat cap,
+  with existing interval-aware incoming-healing modifiers and source identity.
+- Mount the delivered healing-credit message and 13C0-to-01C7 Practice Range
+  startup. Use Soldier's authored passive clock by default while retaining an
+  explicit debug timer. Other heroes keep their existing charge clocks.
+- Five existing Field/target-list checks pass, including continuous versus
+  skipped-frame survival, overlapping caster credit and source-tagged healing.
+  Of 82 core/projectile/copied-Soldier checks, 81 passed; update the old truncated-
+  healing expectation to compare the full contiguous result, then that check
+  passed too. This strengthens the existing gap witness without adding a suite.
+- Canister launch/gravity/rebound/range and other remaining Soldier delivery
+  mechanics still require reconciliation. No client/full Soldier acceptance or
+  completion of the line merge is claimed; the implemented portions are submitted.
+
+
+
 ### Mount delivered Soldier Tactical Visor targeting
 
 - Mount delivery c5607bc4's active 0259 search, capsule aim samples, resource

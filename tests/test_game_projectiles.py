@@ -1135,7 +1135,7 @@ class BioticFieldTests(unittest.TestCase):
                 else:
                     self.assertEqual(owner_fields, {})
 
-    def test_gap_across_field_opening_keeps_only_retained_healing(self):
+    def test_gap_across_field_opening_preserves_full_healing_interval(self):
         def launch():
             run = Run(KANEZAKA_DM)
             player, = run.players
@@ -1173,8 +1173,7 @@ class BioticFieldTests(unittest.TestCase):
                 endpoint = start + elapsed
                 skipped.match.update(endpoint * combat.TICK, endpoint)
                 self.assertEqual(field.field_tick, start)
-                retained = min(elapsed, combat.COMBAT_CATCH_UP)
-                self.assertAlmostEqual(vitals.total, 1.0 + health[elapsed] - health[elapsed - retained])
+                self.assertAlmostEqual(vitals.total, health[elapsed])
 
     def test_active_field_heals_elapsed_ticks_once_and_stops_at_expiry(self):
         run = Run(KANEZAKA_DM)

@@ -1522,6 +1522,9 @@ class Match:
             if mount_intro is not None:
                 mount_intro(script)
             script.restore_genji_ult(ult_fraction, player.entity)
+            from ow174.game import ultimate
+
+            ultimate.start_practice_timer(script, GAME_MODE_ENTITY)
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())

@@ -1453,6 +1453,7 @@ class Combat:
         """Discard body-local combat state when the player's current body retires."""
         player.clear_valkyrie_pose()
         self.pending_attacks[:] = [attack for attack in self.pending_attacks if attack.shooter is not player]
+        self.projectiles.retire_fields(player)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != player.body]
         self.recalls.retire(player.body)
         self.breathers.retire(player.body)
@@ -2807,6 +2808,7 @@ class Combat:
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.lucio_auras.healing or self.soundwaves
+            or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
@@ -2817,7 +2819,11 @@ class Combat:
             history.append((tick, target.feet, target.height, target.eye))
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
+        field_first = self.tick + 1
         for at in range(first, tick + 1):
+            if field_first < at:
+                self.projectiles.heal_fields(field_first, at - 1)
+                field_first = at
             self.now, self.tick = now - (tick - at) * TICK, at
             self.sombra_controls.update()
             self.recalls.update()
@@ -2882,7 +2888,7 @@ class Combat:
             if at != tick and self.baptiste.fields:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
-        self.projectiles.update(tick, first_tick=retained)
+        self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
         health_packs.advance(self, tick)
@@ -3504,7 +3510,11 @@ class Combat:
         if vitals.dead:
             return 0.0
         amount *= self.healing.factor(target, tags=tags, seconds=seconds, end_tick=end_tick)
-        amount *= vitals.healing_factor(self.now)
+        if seconds > 0.0:
+            end = (self.tick if end_tick is None else end_tick) * TICK
+            amount *= vitals.healing_time(end - seconds, end) / seconds
+        else:
+            amount *= vitals.healing_factor(self.now)
         eligible = vitals.ult_healing_deficit
         given = vitals.heal(amount)
         if given > 0.0:
@@ -3512,6 +3522,18 @@ class Combat:
                 shooter.stats.add(stats.HEALING, given)
                 if target.owner is shooter or (not self.match.game_map.free_for_all and target.team == shooter.team):
                     self._charge_ana(shooter, given, source_entity=source_entity)
+                    if (shooter.hero.guid == 0x02E000000000006E
+                            and (source_entity is None or source_entity == shooter.body)):
+                        script = shooter.body_script
+                        if (script is not None and not script.retired and not script.component.owner_dead
+                                and not any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
+                            from ow174.game import ultimate
+                            from ow174.game.content import PRACTICE_RANGE_MODE
+
+                            if script.world.mode == PRACTICE_RANGE_MODE:
+                                ultimate.field_healing_points(script, min(given, eligible), target.entity)
+                            else:
+                                script.set_ult_charge(ultimate.combat_value(script, min(given, eligible), "healing"))
                 self._charge_echo_health_event(shooter, given, source_body=source_entity)
                 moira.gain_combat_charge(shooter, given, body=source_entity, healing_target=target, healing_tags=tags)
             self.baptiste.healing_charge(shooter, target, min(given, eligible), source_body=source_entity)
@@ -5416,7 +5438,7 @@ class Combat:
             else:
                 self.projectiles.intercepted(rocket.shot, self.tick)
 
-    def heal_area(self, healer, centre, radius: float, amount: float, *, source_body=None) -> None:
+    def heal_area(self, healer, centre, radius: float, amount: float, *, source_body=None, ticks=None) -> None:
         """Heal the healer and his teammates (everyone's own team in a free-for-all is his alone) whose body
         is within `radius` of `centre` (unverified: to the body's capsule)."""
         for target in self._targets():
@@ -5428,7 +5450,11 @@ class Combat:
             a, b = target.segment()
             if segment_distance(centre, a, b) - target.radius > radius:
                 continue
-            self._heal(healer, target, amount, source_body=source_body)
+            if not capsule_visible(self._collision(), centre, a, b, target.radius):
+                continue
+            seconds = 0.0 if ticks is None else (ticks[1] - ticks[0] + 1) * TICK
+            self._heal_target(healer, target, amount, source_entity=source_body,
+                              seconds=seconds, end_tick=None if ticks is None else ticks[1])
 
     def _heal(self, healer, target: Target, amount: float, *, source_body=None) -> float:
         return self._heal_target(healer, target, amount, source_entity=source_body)
