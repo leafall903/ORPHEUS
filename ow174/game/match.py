@@ -31,8 +31,23 @@ import logging
 import math
 from collections import deque
 from copy import deepcopy
+from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    earthshatter,
+    heroselect,
+    ice_wall,
+    movelog,
+    notices,
+    pools,
+    reinhardt_charge,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -321,9 +336,15 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        fight = self.match.combat
+        start = tuple(self.mover.position)
+        stunned = fight.is_stunned(self, tick=tick)
+        if stunned:
+            command = replace(command, forward=0, right=0, buttons=0, action=0)
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
-        if script is not None:
+        if script is not None and not stunned:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -332,7 +353,15 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        # Heavy uses its own paired sweep and authored pillar-contact stage.
+        captured = script is not None and any(
+            instance.graph.index == 0x1407 for instance in script.component.instances.values()
+        )
+        world = self.match.collision_world if captured else ice_wall.movement_world(fight, tick)
+        self.mover.use(world=world)
+        if reinhardt_charge.pinned(fight, self.body):
+            self.mover.history.append(self.mover.snapshot(command.frame))
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
@@ -341,6 +370,7 @@ class Player:
                 movement_end = state, outcome
         else:
             self.mover.step_pose(command, seconds, tick)
+        reinhardt_charge.advance(fight, self, command, start, seconds)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -348,7 +378,7 @@ class Player:
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
-            self.match.body_command(self, command, movement_end=movement_end)
+            self.match.body_command(self, command, posed=posed, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
@@ -582,6 +612,7 @@ class Match:
         )
         updates.append(EntityUpdate(GAME_MODE_ENTITY, OP_CREATE, self._game_mode_create))
         updates.extend(self._bot_create_update(bot) for bot in self.bots)
+        updates.extend(self.combat.deployable_create(actor) for actor in self.combat.deployables.values())
         if self.bots:
             self.bots_shown[viewer.slot] = self.tick
         for other in self.players:
@@ -590,14 +621,25 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
-        if graph.entity_body(bot.body) is None:
+        record = graph.entity_body(bot.body)
+        if record is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            controller_entity = None
+            if record.get("controller") is not None:
+                controller_entity = self.combat.next_bot
+                if (not bots.BOT_ENTITY <= controller_entity < 0xD0000000
+                        or controller_entity == bot.entity
+                        or any(other.entity == controller_entity for other in self.bots)
+                        or controller_entity in self.combat.deployables):
+                    raise ValueError('NPC controller allocator exhausted or collided')
+                self.combat.next_bot += 1
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_entity=controller_entity, match=self,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
@@ -904,8 +946,10 @@ class Match:
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
+            pillars = ice_wall.pillar_actors(self.combat)
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world)
+                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                         paused_until=self.combat.stuns.get(bot.entity, 0), pillars=pillars)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1127,13 +1171,16 @@ class Match:
         player.body_script_failed = failed
 
     def body_command(
-        self, player: Player, command: Command, *, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        self, player: Player, command: Command, *, posed: bool = True,
+        movement_end: tuple[nodes.MoveTo, bool] | None = None,
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            if posed and self.collision_world is not None:
+                earthshatter.prepare(self.combat, player)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now

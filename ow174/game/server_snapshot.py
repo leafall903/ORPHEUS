@@ -17,13 +17,21 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    absorption,
+    actors,
+    baptiste,
+    barrier,
     bots,
     combat,
     correction,
+    deflection,
+    earthshatter,
+    healing,
     heroselect,
     notices,
     observers,
     projectiles,
+    reinhardt_charge,
     replay_values,
     statescript,
     stats,
@@ -39,7 +47,7 @@ from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import driver, expr, runtime
-from ow174.game.script.bot import BotScript, BotWorld
+from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
 
@@ -93,9 +101,16 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "projectiles observers voice baptiste deployables stuns healing projectile_tags absorption barrier "
+        "shatters charges"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    baptiste.BaptisteEffects: _names(
+        "combat seen regeneration protection_seen fields field_bindings matrices"
+    ),
+    healing.HealingEffects: _names("combat spec anti amp"),
+    absorption.Grasp: _names("combat converted last_tick"),
+    barrier.BarrierField: _names("combat health children model_sha256"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer ult_healing_deficit extra"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -111,13 +126,21 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count passive_charge_ms"
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
+        "flashbang_weapon_stack"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names(
+        "hero mode weapon_buttons owner_position controller component controller_inputs "
+        "heavy_counter_stuns match"
+    ),
+    AssassinControllerWorld: _names(
+        "hero mode mover body_entity match button_edges button_holders movement_bits candidates "
+        "recovery_pending recovery_started"
+    ),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -131,13 +154,18 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse"
+        "last_held input_tick moved_tick last_tick retain_corpse pitch"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    earthshatter.Wave, reinhardt_charge.Charge,
+    actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
+    healing.Spec, healing.Modifier,
+    deflection.ProjectileTags,
+    combat.TemporaryShield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

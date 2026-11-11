@@ -14,6 +14,96 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Baptiste's complete player/five-NPC combat and original-client
+  presentation. The selected Reinhardt Barrier Field host intercepts Baptiste
+  primary, both direct-only Sniper slots and Soldier Helix with the verified
+  model. Helix shield damage and same-impact splash cover are reconstructed.
+  Native attachment, regeneration, authoritative explosive damage and LOS,
+  general projectile/area routing and shield presentation remain open.
+  Selected Sigma1D02/1D03 absorption, authored0.6/400 shield
+  conversion/decay, verified player eyes and notification cleanup add partial
+  evidence. Native pool/filter/clock/replication, complete cross-hero and NPC
+  incoming behavior remain open. The old generic-eye Assassin horizontal miss
+  is superseded by the verified1.35-eye horizontal70 hit. The private lane
+  includes shared normalized Volley spread state and an isolated authored
+  Enforcer controller startup diagnostic and optional data-driven controller
+  namespace/lifetime host. The selected 25-projectile Enforcer launch covers
+  damage, range, cover, teams, Field and Matrix. Heavy Assault's selected
+  140E melee and Trooper's selected 1422 melee execute damage, range, cover,
+  teams and Field with explicit input. The selected 1408 side hit also
+  applies its 50 damage under reconstructed selection. The 300-point 1408
+  primary damage node runs after a reconstructed capsule sweep hits a
+  solid wall. Explicit input selects a visible hostile player, mounts 1407,
+  carries the victim and starts the authored 15-second cooldown after
+  timeout or impact. The impact phase ends after the two-second operand.
+  The selected 1254 animation branch clears its high-priority stack after
+  the impact reaction. Immortality Field leaves 20 HP. Native animation
+  variant selection, attachment, steering and collision filters remain
+  open. The 50-point side stage has reconstructed player knockback.
+  Seeded 961 contact reaches 175 damage and seeded 3692 reaches phase two
+  without damage in the fixture. The start and timeout release stages
+  apply their reconstructed player impulses without damage. The carried
+  victim is excluded from the moving body tracker. A distinct hostile
+  player with opposing 596 or seeded 9161 can end carry in the impact
+  phase. Actual Reinhardt Charge supplies 596 and both contact bodies
+  receive the two-second 224E override through the reconstructed stun
+  host. Actual Orisa Fortify supplies 9161 before expiry and selects the
+  branch without the two control actions. The moving close trackers
+  apply the 175-point stage and two-second control to seeded 961 targets.
+  Mei Cryo-Freeze supplies 3692 through a reconstructed startup gate and
+  triggers the carried impact while active. Graph 0636 writes 961 on
+  Mei Ice Wall pillars. Ordinary placement, cancellation and expiry run
+  with reconstructed ground sampling and pillar capsules. The Heavy
+  can hit a placed pillar during carry, and Baptiste primary damages
+  a hostile pillar. The selected capsule model also blocks shots through
+  either team's wall. It occludes grenade healing, quick melee, Field
+  eligibility and initial Burst selection. Reconstructed pillar capsules
+  also support player movement, Exo Boots landings and blocking on
+  explicit routes for five NPC bodies. Native navigation, pillar geometry
+  and 224E execution remain open. Timeout release
+  now evaluates the position and facing expressions with a reconstructed
+  capsule size and sweeps against cover. Native pose and size semantics
+  remain open. Baptiste's primary now uses the 1932 cone before hitscan,
+  with reconstructed seed identity and a verified nonzero-bound input case.
+  The grenade applies 1932's vertical launch offset. Grenade and Field
+  canister read the verified 9573 motion scale. Input checks cover direct
+  versus splash-only healing and wall deployment with zero and signed
+  acceleration. The ballistic sweep advances from the updated velocity,
+  as in the verified native motion step. Grenade and Field canister
+  preserve independent path distance and time limits and retire their
+  predicted copies at expiry. Original terminal report delivery, clock
+  subdivision, native collision and launch options, plus
+  NPC seed, controller, AI and transport
+  correspondence remain open. It
+  restores the weapon health-operation polarity
+  with offline damage/healing, grenade splash, Burst/Boots and reconstructed
+  Field deployment evidence, plus Matrix placement/charge/crossing/lifetime tests
+  with skipped-tick crossing-time checks, shared native input-join support and
+  effective-damage and eligible ally-healing charge through0B8B's authored
+  expressions/modifiers/cap, including earned2310-to-Matrix-spend input chains;
+  its default passive now uses authenticated0B8B values with an explicit stored
+  input-frame clock, while native qualification/phase remain open;
+  known2426/842 charge vetoes and explicit five-NPC mover data are required;
+  an optional Ana0267 profile exercises ordinary player-source antiheal and
+  received-healing amplification against player/five-NPC grenade/Burst intake,
+  including eligible charge and Field top-up. Native status ownership, source
+  predicates, stacking and presentation remain open;
+  reviewed shared Ability press-age retention has actual Burst/Field/melee
+  expiry, held and legal-buffer checks, without a claimed Baptiste reproduction
+  of the parent's reported McCree defect;
+  selected Genji E now returns primary24/healing70 with explicit003 admission,
+  five-NPC returned-shot fixtures and Matrix48/140 retention, while Field0145
+  bypasses that host. Native pose/filter/response/callbacks/charge and complete
+  barrier/absorb/control relationships remain open;
+  complete abilities, native deployable geometry and amplification,
+  cross-hero states and client acceptance remain open.
+  The reconstructed Field canister uses the authored 0.15-meter static
+  auxiliary sweep. Practice Range cases cover hits and misses at range and
+  lifetime boundaries. The sampled sidewall now rebounds through the
+  remainder of the step. Native deployment, special materials and moving
+  target response remain open.
+  Details are in the [Baptiste combat lane](BAPTISTE_COMBAT.txt).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. The opt-in corpse

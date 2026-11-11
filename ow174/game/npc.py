@@ -62,7 +62,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
     entity = match.combat.next_bot
-    if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(b.entity == entity for b in match.bots):
+    if (not bots.BOT_ENTITY <= entity < 0xD0000000 or entity in match.combat.deployables
+            or any(b.entity == entity for b in match.bots)):
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
@@ -79,6 +80,9 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    if bot.body_script is not None:
+        total = definition.health + definition.armour + definition.shields
+        bot.body_script.set_health(total, total)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -96,6 +100,7 @@ def remove_spawned(match) -> tuple[int, ...]:
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None
         if script is not None:
+            script.retire_controller()
             component = script.component
             component.owner_dead = True
             component.held.clear()
@@ -108,7 +113,7 @@ def remove_spawned(match) -> tuple[int, ...]:
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen):
+                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
             table.pop(bot.entity, None)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)

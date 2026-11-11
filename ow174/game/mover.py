@@ -106,7 +106,11 @@ def throttle_byte(value: int) -> tuple[float, int]:
     0x7FF789B4DA30): the state keeps trunc(t * 127) in float32, which for 16 values is one less in size
     (9 -> 8, 13 -> 12, ... 104 -> 103)."""
     throttle = f32(max(-127, min(127, value)) * THROTTLE_UNIT)
-    return throttle, max(-127, min(127, int(f32(throttle * 127.0))))
+    return throttle, pack_throttle(throttle)
+
+
+def pack_throttle(value: float) -> int:
+    return max(-127, min(127, int(f32(value * 127.0))))
 
 
 @cache
@@ -168,6 +172,7 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+FORWARD_POSITIVE, FORWARD_NEGATIVE, STRAFE_INTENT = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
@@ -640,6 +645,14 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
+        if active:
+            # C33960 resolves the forward magnitude by sign and strafe independently.
+            positive = intent(active, FORWARD_POSITIVE, max(forward, 0.0))
+            negative = intent(active, FORWARD_NEGATIVE, max(-forward, 0.0))
+            forward = max(-1.0, min(1.0, f32(positive - negative)))
+            strafe = intent(active, STRAFE_INTENT, abs(right))
+            right = max(-1.0, min(1.0, -strafe if right < 0 else strafe))
+            forward_byte, right_byte = pack_throttle(forward), pack_throttle(right)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end

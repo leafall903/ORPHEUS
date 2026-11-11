@@ -38,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP_INSTANCE, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -364,6 +364,25 @@ class World:
     entities, config vars the server cannot compute, and game messages to other entities. The base
     answers like an empty world."""
 
+    def movement_flag_projection(self, instance, node):
+        """Explicitly supported (known-bit mask, value), or unknown engine input."""
+        return None
+
+    def placement_confirmation(self, state):
+        """Explicit world placement adapter, or an unknown engine service."""
+        return NotImplemented
+
+    def spawn_deployable(self, instance, node):
+        """Explicit authored spawn adapter, or an unknown engine service."""
+        return NotImplemented
+
+    def completes_empty_marker(self, state: "State") -> bool:
+        """Allow a host to complete an explicitly reconstructed empty marker."""
+        return False
+
+    def pet_lifecycle(self, state, entering):
+        """Optional selected Pet host. Other worlds leave the lifecycle unbound."""
+
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
@@ -388,6 +407,11 @@ class World:
 
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
+
+    def controller_button(self, state: "State", pressed: bool) -> None:
+        """Host transport for a supported controller logical-button state."""
+        if state.instance.component.strict:
+            state.instance.component.unsupported(state.instance, "state", state.node.cls, state.node)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
@@ -418,6 +442,10 @@ class World:
     def voice_context(self, entity: int):
         """Explicit shared voice host/manager and separate +80 poll owner."""
         return NotImplemented
+
+    def animation_seconds(self, state: "State") -> float | None:
+        """Return a resolved authored animation duration when available."""
+        return None
 
     def animation_aliases(self, entity: int):
         """Known component55 alias list, known absence, or unknown."""
@@ -487,6 +515,35 @@ class World:
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def after_set_var(self, instance: "Instance", node: Node) -> None:
+        """Optional world reaction before queued variable-change notifications."""
+
+    def placement_probe(self, state: "State") -> bool:
+        return False
+
+    def track_targets(self, state: "State") -> None:
+        """Allow an explicitly supported world query to supply the authored target slot."""
+
+    def stop_tracking_targets(self, state: "State") -> None:
+        """Optional cleanup of a host-owned target query."""
+
+    def linked_script_changed(self, state: "State", *, entered: bool = False) -> None:
+        """Optional host lifecycle for a script bound to the source state."""
+
+    def apply_script_pose(self, instance: "Instance", node: Node) -> bool:
+        """Return whether the host handled this action's target pose."""
+        return False
+
+    def apply_modify_health(self, state: "State") -> None:
+        """Optional host combat consumer."""
+
+    def assassin_capture_sender(self, instance: "Instance") -> int | None:
+        return None
+
+    def play_script_host(self, instance: "Instance", node: Node) -> bool:
+        """Optional explicitly scoped body adapter; false leaves legacy bodies unchanged."""
+        return False
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -565,6 +622,7 @@ class Component:
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
+        self.maximum_health = None  # explicit authoritative body-health input, when supplied
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
         self._follow_depth = 0
@@ -670,7 +728,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -786,6 +844,7 @@ class Component:
         instance.stopped = True
         instance.initialization_pending = False
         instance.queue.clear()
+        instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
 
@@ -941,6 +1000,8 @@ class Instance:
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
+        self.join_inputs: list[tuple[int, int, str]] = []  # target, producer, output plug path
+        self.plug_source: tuple[int, str] | None = None  # current native input traversal
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -1024,6 +1085,11 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # These guards describe queued notifications. Keeping a guard after its
+        # event was removed prevents a later activation from observing changes
+        # (Baptiste's secondary-ammo/cooldown gate then never opens again).
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1226,6 +1292,8 @@ class Instance:
         elif event.kind == ASSIGN:
             scope, identifier, value = event.assignment
             self.write((scope, identifier), value)
+        elif event.kind == STOP_INSTANCE:
+            self.component.destroy(self)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1289,8 +1357,50 @@ class Instance:
                 if state is not None:
                     taken = state.plug_enter(input_path) or taken
                 continue
-            taken = self.run_node(target, None if target.is_action else caller) or taken
+            previous = self.plug_source
+            self.plug_source = (node.pos, path)
+            try:
+                taken = self.run_node(target, None if target.is_action else caller) or taken
+            finally:
+                self.plug_source = previous
         return taken
+
+    def join(self, node: Node, caller: "State | None") -> bool:
+        """104319 1B6EED0/1B73BC0: join distinct input edges before following output."""
+        if self.plug_source is None:
+            self.component.unsupported(self, "join input origin", node.cls, node)
+        arrival = (node.pos, *self.plug_source)
+        if arrival in self.join_inputs:
+            return False
+        previous = sum(row[0] == node.pos for row in self.join_inputs)
+        self.join_inputs.append(arrival)
+        indexes = node.field("m_122DF0CA") or ()
+        if previous == 0:
+            for index in indexes:
+                self.component.consume_work("join completion check")
+                state = self.states.get(index)
+                if state is not None and state.active and state is not caller and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(self.component.now, 0, CHECK, state=state))
+            return False
+        if previous != expr.to_int(node.field("m_B24D1794")) - 1:
+            return False
+        # 1B700F0 removes this target's registrations by swapping with the tail.
+        index = 0
+        while index < len(self.join_inputs):
+            if self.join_inputs[index][0] == node.pos:
+                self.join_inputs[index] = self.join_inputs[-1]
+                self.join_inputs.pop()
+            else:
+                index += 1
+        if not self.follow(node, "m_outPlug", caller):
+            return False
+        for index in indexes:
+            self.component.consume_work("join state abort")
+            state = self.states.get(index)
+            if state is not None and state.active:
+                state.request(ABORT)
+        return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
         """The states a subgraph plug lists (m_FF3DAF1E)."""
@@ -1400,6 +1510,8 @@ class State:
 
     def plug_enter(self, input_path: str) -> bool:
         """A link enters the state (base 0x7FF78AA83D80): the abort plug asks for an abort, others a begin."""
+        if input_path == "m_C721B06C" and self.active and self.instance.component.world.placement_probe(self):
+            return True
         if input_path == ABORT_PLUG:
             self.request(ABORT)
         else:
@@ -1425,6 +1537,8 @@ class State:
         self.start = self.now - backdate
         self.ticked_at = self.now
         self.on_begin()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.pet_lifecycle(self, True)
         self.on_enter()
         if not self.active:
             return
@@ -1442,6 +1556,8 @@ class State:
         self.instance.cancel(self)
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.pet_lifecycle(self, False)
         self.on_cleanup()
         self.unwatch()
         self.polled = False
@@ -1521,6 +1637,9 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        if (self.node.cls == "STU_54FEB21C"
+                and self.instance.component.world.completes_empty_marker(self)):
+            self.request_finish()
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""

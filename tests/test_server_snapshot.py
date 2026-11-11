@@ -2,6 +2,7 @@
 
 import copy
 import dataclasses
+import json
 import sys
 import tempfile
 import types
@@ -15,8 +16,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import earthshatter, reinhardt_charge
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
+from ow174.game.combat import HitDef
 from ow174.game.content import SOLDIER
 from ow174.game.link import SYN
 from ow174.game.match import Match
@@ -29,6 +32,96 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_active_wave_and_charge_change_stored_combat_digest(self):
+        session, _, (player, target) = self.scene(two=True)
+        fight = player.match.combat
+        state = next(
+            state for instance in player.body_script.component.instances.values()
+            for state in instance.states.values()
+        )
+        wave = earthshatter.Wave(
+            shooter=player, state=state, origin=(0., 1., 0.), centre=(0., 1., 2.),
+            yaw=0., speed=30., reach=20., cone=60., height=1., radius=1., stun_seconds=2.5,
+            normal=HitDef(50), close=HitDef(120), started=fight.tick, fronts=[(0., 1., 0.)],
+        )
+        charge = reinhardt_charge.Charge(player=target, state=state, deadline=fight.tick + 50)
+        before = snapshot_digest(self.capture(session))
+        fight.shatters[player.body] = wave
+        fight.charges[target.body] = charge
+        active = snapshot_digest(self.capture(session))
+        self.assertNotEqual(active, before)
+        wave.hit.add((target.body, fight.replacement_ticks.get(target.body)))
+        hit = snapshot_digest(self.capture(session))
+        self.assertNotEqual(hit, active)
+        charge.pinned = player.body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), hit)
+
+    def test_baptiste_deployable_effect_and_health_inputs_change_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        before = snapshot_digest(self.capture(session))
+        actor = fight.create_deployable(
+            player, 0x0400000000002B50, "Amplification Matrix", (0.0, 1.0, 4.0),
+            health=0, radius=0, height=0, seconds=10,
+        )
+        fight.baptiste.matrices[actor.entity] = actor
+        created = snapshot_digest(self.capture(session))
+        self.assertNotEqual(created, before)
+        actor.rotation = (0.0, 1.0, 0.0, 0.0)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), created)
+        changed = snapshot_digest(self.capture(session))
+        player.body_script.component.maximum_health += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        changed = snapshot_digest(self.capture(session))
+        fight.stuns[player.body] = fight.tick + 50
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        changed = snapshot_digest(self.capture(session))
+        fight.vitals[player.body].ult_healing_deficit += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        from ow174.game.combat import HitDef, Rocket
+
+        rocket = Rocket(player, player.team, (0.0, 1.0, 0.0), (0.0, 0.0, 1.0), 60, 60, None, None)
+        fight.rockets.append(rocket)
+        changed = snapshot_digest(self.capture(session))
+        rocket.source_entity ^= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        changed = snapshot_digest(self.capture(session))
+        rocket.definition = 0x04000000000029AD
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        changed = snapshot_digest(self.capture(session))
+        rocket.deflections = 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        changed = snapshot_digest(self.capture(session))
+        rocket.range_left = 490.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        from ow174.game.deflection import ProjectileTags
+
+        changed = snapshot_digest(self.capture(session))
+        fight.projectile_tags = ProjectileTags(json.dumps({
+            "version": 1, "build": "1.74.0.0.104319", "entities": {"0x04000000000029AD": []},
+        }).encode())
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        changed = snapshot_digest(self.capture(session))
+        player.body_script.passive_charge_ms += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        from ow174.game.healing import Modifier
+
+        fight.healing.anti[player.body] = Modifier(player.body, fight.tick, fight.tick + 250)
+        changed = snapshot_digest(self.capture(session))
+        fight.healing.anti[player.body].end += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        for mutate in (
+            lambda: setattr(fight.absorption, 'last_tick', fight.tick + 100),
+            lambda: fight.absorption.converted.update({player.body: (12, 3)}),
+            lambda: fight.vitals[player.body].add_temporary((12, 6, 1), 0x5847, 43.2),
+            lambda: setattr(rocket, 'direct', HitDef(24)),
+            lambda: setattr(rocket.direct, 'health_operation', None),
+        ):
+            changed = snapshot_digest(self.capture(session))
+            mutate()
+            self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()
@@ -166,6 +259,123 @@ class StoredJournalTests(unittest.TestCase):
         )
         return session, sent
 
+    def test_stored_actual_baptiste_primary_replays_active_sigma_absorption(self):
+        from ow174.game import absorption, deflection
+
+        if not deflection.catalog().admitted(0x0400000000002CFA):
+            raise RuntimeError('requires explicit003 interception metadata')
+        bap, sigma = 0x02E0000000000221, absorption.SIGMA
+        session, sent = self.make()
+        handoffs = session.create_match(MAP, [(1, 'Bap', bap, 0, False), (2, 'Sigma', sigma, 1, False)])
+        peers = [Peer(session, handoff, sent, ('127.0.0.1', 47400 + index))
+                 for index, handoff in enumerate(handoffs)]
+        for peer in peers:
+            peer.send(flags=SYN)
+            peer.send()
+            peer.message(21601, {})
+        acknowledge_ownership(session, peers)
+        session.tick(100.8)
+        players = session.server.matches[0].players
+        for peer, player, hero in zip(peers, players, (bap, sigma), strict=True):
+            peer.message(21616, pick(player.entity, hero), now=100.8)
+        peers[1].commands(players[1].body_script.frame + 1, 5, 8, yaw=-32768)
+        session.tick(100.816)
+        peers[0].commands(players[0].body_script.frame + 1, 1, 1, now=100.816)
+        session.tick(100.832)
+        fight = players[0].match.combat
+        root = next(i for i in players[1].body_script.component.instances.values() if i.graph.index == 0x1D02)
+        self.assertTrue(root.state(1).active)
+        self.assertEqual(root.vars[21312].value(), 24)
+        self.assertEqual(fight.vitals[players[1].body].total, 400)
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        self.assertTrue(replay.run()['stored_state_verified'])
+        copied = next(i for i in replay.server.matches[0].players[1].body_script.component.instances.values()
+                      if i.graph.index == 0x1D02)
+        self.assertTrue(copied.state(1).active)
+        self.assertEqual(copied.vars[21312].value(), 24)
+        self.assertEqual(replay.server.matches[0].combat.absorption.last_tick, fight.absorption.last_tick)
+
+    def test_stored_actual_baptiste_grenade_replays_deflected_flight_authority(self):
+        from ow174.game import deflection
+
+        if not deflection.catalog().admitted(0x04000000000029AD):
+            raise RuntimeError("requires explicit003 deflection metadata")
+        bap, genji = 0x02E0000000000221, deflection.GENJI
+        session, sent = self.make()
+        handoffs = session.create_match(MAP, [(1, "Bap", bap, 0, False), (2, "Genji", genji, 1, False)])
+        peers = [Peer(session, handoff, sent, ("127.0.0.1", 47300 + index))
+                 for index, handoff in enumerate(handoffs)]
+        for peer in peers:
+            peer.send(flags=SYN)
+            peer.send()
+            peer.message(21601, {})
+        acknowledge_ownership(session, peers)
+        session.tick(100.8)
+        players = session.server.matches[0].players
+        for peer, player, hero in zip(peers, players, (bap, genji), strict=True):
+            peer.message(21616, pick(player.entity, hero), now=100.8)
+        peers[1].commands(players[1].body_script.frame + 1, 5, 16, yaw=-32768)
+        peers[0].commands(players[0].body_script.frame + 1, 1, 2)
+        for now, missed in ((100.816, 0), (100.880, 3)):
+            session.tick(now, missed=missed)
+            for peer in peers:
+                peer.drain()
+                peer.send(now=now)
+        fight = players[0].match.combat
+        rocket, = fight.rockets
+        self.assertEqual(rocket.deflections, 1)
+        self.assertIs(rocket.shooter, players[1])
+        self.assertEqual((rocket.team, rocket.source_entity, rocket.definition),
+                         (1, players[1].body, 0x04000000000029AD))
+        self.assertIsNone(rocket.shot)
+        self.assertGreater(rocket.left, 59.0)
+        self.assertGreater(rocket.range_left, 0.0)
+        self.assertLess(rocket.range_left, 500.0)
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        self.assertTrue(replay.run()["stored_state_verified"])
+        copied, = replay.server.matches[0].combat.rockets
+        self.assertEqual((copied.deflections, copied.team, copied.source_entity, copied.definition,
+                          copied.position, copied.direction, copied.left, copied.flown, copied.range_left),
+                         (rocket.deflections, rocket.team, rocket.source_entity, rocket.definition,
+                          rocket.position, rocket.direction, rocket.left, rocket.flown, rocket.range_left))
+
+    def test_stored_actual_ana_grenade_replays_active_received_healing_state(self):
+        ana, bap = 0x02E000000000013B, 0x02E0000000000221
+        session, sent = self.make()
+        handoffs = session.create_match(MAP, [(1, "Ana", ana, 0, False), (2, "Bap", bap, 1, False)])
+        peers = [Peer(session, handoff, sent, ("127.0.0.1", 47200 + index))
+                 for index, handoff in enumerate(handoffs)]
+        for peer in peers:
+            peer.send(flags=SYN)
+            peer.send()
+            peer.message(21601, {})
+        acknowledge_ownership(session, peers)
+        session.tick(100.8)
+        players = session.server.matches[0].players
+        for peer, player, hero in zip(peers, players, (ana, bap), strict=True):
+            peer.message(21616, pick(player.entity, hero), now=100.8)
+        peers[0].commands(players[0].body_script.frame + 1, 15, 0x10)
+        # Input roots emit the grenade; scheduler roots advance its world flight.
+        for now, missed in ((100.816, 0), (101.024, 12)):
+            session.tick(now, missed=missed)
+            for peer in peers:
+                peer.drain()
+                peer.send(now=now)
+        fight = players[0].match.combat
+        self.assertIsNotNone(fight.healing.spec)
+        self.assertIn(players[1].body, fight.healing.anti)
+        self.assertEqual(fight.vitals[players[1].body].total, 140)
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        result = replay.run()
+        self.assertTrue(result["stored_state_verified"])
+        copied = replay.server.matches[0].combat
+        self.assertEqual(copied.healing.spec, fight.healing.spec)
+        self.assertEqual(copied.healing.anti, fight.healing.anti)
+        self.assertEqual(copied.healing.amp, fight.healing.amp)
+
     def test_stored_profile_replays_creation_raw_spawn_and_vm_state(self):
         with mock.patch("socket.socket", side_effect=AssertionError("no sockets")):
             session, sent = self.make()
@@ -197,6 +407,60 @@ class StoredJournalTests(unittest.TestCase):
         session.server._next_conn += 1
         with self.assertRaisesRegex(ServerJournalError, "unrecorded stored"):
             session.finish()
+
+    def test_stored_real_projectile_preserves_emission_body_identity(self):
+        session, sent = self.make()
+        (handoff,) = session.create_match(MAP, [(1, "Projectile", SOLDIER, 0, False)])
+        peer = Peer(session, handoff, sent, ("127.0.0.1", 47002))
+        peer.send(flags=SYN)
+        peer.send()
+        peer.message(21601, {})
+        acknowledge_ownership(session, (peer,))
+        session.tick(100.8)
+        player = session.server.matches[0].players[0]
+        peer.message(21616, pick(player.entity, SOLDIER), now=100.8)
+        peer.commands(player.body_script.frame + 1, 1, 2)
+        rocket, = player.match.combat.rockets
+        self.assertEqual(rocket.source_entity, player.body)
+        self.assertEqual(rocket.shot.body, player.body)
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        result = replay.run()
+        self.assertTrue(result["stored_state_verified"])
+        copied = replay.server.matches[0].combat.rockets
+        self.assertEqual(len(copied), 1)
+        self.assertEqual(copied[0].source_entity, rocket.source_entity)
+        self.assertEqual(copied[0].shot.body, rocket.shot.body)
+
+    def test_stored_baptiste_passive_charge_keeps_fractional_host_phase(self):
+        hero = 0x02E0000000000221
+        session, sent = self.make()
+        (handoff,) = session.create_match(MAP, [(1, "Baptiste", hero, 0, False)])
+        peer = Peer(session, handoff, sent, ("127.0.0.1", 47003))
+        peer.send(flags=SYN)
+        peer.send()
+        peer.message(21601, {})
+        acknowledge_ownership(session, (peer,))
+        session.tick(100.8)
+        player = session.server.matches[0].players[0]
+        peer.message(21616, pick(player.entity, hero), now=100.8)
+        script = player.body_script
+        self.assertIsNone(script.ult_seconds)
+        self.assertEqual(script.passive_charge_ms, 0)
+        peer.commands(script.frame + 1, 62, 0)
+        self.assertEqual(script.component.vars[342].value(), 0)
+        self.assertEqual(script.passive_charge_ms, 992)
+        peer.commands(script.frame + 1, 1, 0)
+        self.assertEqual(script.component.vars[342].value(), 5)
+        self.assertEqual(script.passive_charge_ms, 8)
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        result = replay.run()
+        self.assertTrue(result["stored_state_verified"])
+        copied = replay.server.matches[0].players[0].body_script
+        self.assertIsNone(copied.ult_seconds)
+        self.assertEqual(copied.passive_charge_ms, 8)
+        self.assertEqual(copied.component.vars[342].value(), 5)
 
     def test_two_player_stored_graphs_match_through_damage_death_respawn_and_hero_change(self):
         session, sent = self.make()

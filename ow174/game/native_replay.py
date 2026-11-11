@@ -121,7 +121,8 @@ def _snapshot(script: BodyScript, encode) -> dict:
         # Cross-body routing belongs to the full match replay, outside this command trace.
         "world": encode({key: value for key, value in vars(script.world).items() if key != "match"}),
         "server_only": sorted(script.server_only),
-        "ult_seconds": encode(script.ult_seconds), "instances": instances,
+        "ult_seconds": encode(script.ult_seconds), "passive_charge_ms": script.passive_charge_ms,
+        "instances": instances,
         "component": {
             "frame": component.frame, "now": component.now, "held": list(component.held),
             "button": component.button, "owner_dead": component.owner_dead,

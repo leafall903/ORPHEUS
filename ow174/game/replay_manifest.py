@@ -33,6 +33,7 @@ _RUNTIME_FIELDS = {
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.baptiste", "ow174.game.healing", "ow174.game.deflection", "ow174.game.absorption",
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
@@ -45,6 +46,11 @@ _CONFIG_MODULES = (
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
+    "ow174.game.combat": {"EYE_STANDING", "EYE_CROUCHED"},
+    "ow174.game.baptiste": {"HERO", "TICK"},
+    "ow174.game.healing": {"GRENADE", "TICK"},
+    "ow174.game.deflection": {"GENJI", "TICK", "MAX_DEFLECTIONS", "EXCLUDED_TAG", "CATALOG_SHA256"},
+    "ow174.game.absorption": {"SIGMA", "SHIELD_TAG", "TICK"},
     "ow174.game.match": {"HEALTH", "BODY_SCRIPT_HEROES", "SEND_EVERY", "RETAIL_QUANTA", "TOURNAMENT_QUANTA"},
     "ow174.game.correction": {"CORRECTIONS", "HEROES"},
     "ow174.game.script.runtime": {
@@ -212,7 +218,12 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
             numeric = value is None or type(value) in (bool, int, float)
             limit = field.startswith("MAX_") or field.endswith("_MAX") or "BUDGET" in field
             if numeric or limit or field in required:
+                if name == "ow174.game.combat" and field in ("EYE_STANDING", "EYE_CROUCHED"):
+                    value = tuple(sorted(value.items()))
                 values[f"{name}.{field}"] = value
+    from ow174.game.barrier import model_identity
+
+    values["ow174.game.barrier.model_sha256"] = model_identity()
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)

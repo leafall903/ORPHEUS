@@ -46,6 +46,7 @@ import json
 import math
 from functools import cache
 
+from ow174.game.ice_wall import route_stride
 from ow174.game.mover import GRAVITY_SCALE, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
@@ -136,6 +137,7 @@ class Bot:
         self.direction = (0.0, 1.0)  # the way it walks now (x, z)
         self.position = tuple(spawner["position"])
         self.yaw = float(yaw_of(spawner["rotation"]))
+        self.pitch = 0.0  # encoded command-angle units; explicit NPC controllers may aim vertically
         self.velocity = (0.0, 0.0, 0.0)
         variables = spawner.get("vars", {})
         roots = {int(g, 16) for g in spawner["graphs"]}
@@ -154,18 +156,34 @@ class Bot:
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
 
-    def step(self, tick: int, seconds: float, collision=None) -> None:
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0, pillars=()) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if not self.route or self.dead:
+        if self.dead:
+            return
+        if not self.route:
+            if tick < paused_until:
+                self._pause(tick)
+                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            self._tick(at, seconds, collision)
+            if at < paused_until:
+                self._pause(at)
+            else:
+                active = tuple(pillar for pillar in pillars
+                               if pillar.created_tick <= at < pillar.expires_tick)
+                self._tick(at, seconds, collision, active)
 
-    def _tick(self, tick: int, dt: float, collision) -> None:
+    def _pause(self, tick: int) -> None:
+        self.pace = 0.0
+        self.velocity = (0.0, 0.0, 0.0)
+        self.held = (0, 0)
+        self.moved_tick = tick
+
+    def _tick(self, tick: int, dt: float, collision, pillars=()) -> None:
         before = (self.position, round(self.yaw))
         self.held = (0, 0)
         if not self.keys:
@@ -177,17 +195,17 @@ class Bot:
                 self.keys = True
                 self.turning = 0.0
         if self.keys:
-            self._walk(tick, dt, collision)
+            self._walk(tick, dt, collision, pillars)
         else:
             if self.target is not None:
-                self._slide(dt, collision)
+                self._slide(dt, collision, pillars)
             if self.turning > EPSILON:
                 self.turning -= dt
                 self._turn(dt)
         if (self.position, round(self.yaw)) != before:
             self.moved_tick = tick
 
-    def _walk(self, tick: int, dt: float, collision) -> None:
+    def _walk(self, tick: int, dt: float, collision, pillars=()) -> None:
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
@@ -208,16 +226,16 @@ class Bot:
             self.keys = False
             self.wait = WALK_GAP
             self.turning = TURN_AFTER
-        self._advance(stride, distance, dt, collision)
+        self._advance(stride, distance, dt, collision, pillars)
 
-    def _slide(self, dt: float, collision) -> None:
+    def _slide(self, dt: float, collision, pillars=()) -> None:
         """No keys: its friction stops it, never past its point."""
         self.pace = max(0.0, self.pace - self.brake * dt)
         x, _, z = self.position
         tx, _, tz = self.target
         distance = math.hypot(tx - x, tz - z)
         moving = self.pace > 0.0 and distance > EPSILON
-        if moving and self._advance(self.pace * dt, distance, dt, collision) < distance - EPSILON:
+        if moving and self._advance(self.pace * dt, distance, dt, collision, pillars) < distance - EPSILON:
             return
         self._stand()
 
@@ -238,7 +256,7 @@ class Bot:
     def _turn(self, dt: float) -> None:
         self.yaw = turned(self.yaw, heading(*self.direction), TURN_RATE * dt)
 
-    def _advance(self, stride: float, distance: float, dt: float, collision) -> float:
+    def _advance(self, stride: float, distance: float, dt: float, collision, pillars=()) -> float:
         """Move `stride` along the floor the way it walks, not past its point (`distance` away); the
         ground distance gone."""
         x, y, z = self.position
@@ -248,6 +266,13 @@ class Bot:
         rise = probe_y - y
         if 0.0 < abs(rise) <= MAX_SLOPE * probe:
             stride *= probe / math.hypot(probe, rise)
+        if pillars:
+            intended = min(stride, distance)
+            clipped = route_stride(self, intended, pillars)
+            if clipped < intended:
+                stride = clipped
+                self.pace = clipped / dt
+                self.keys = True
         # Snapping to the authored target can use different coordinates from the probe.
         reuse_probe = stride == probe and stride < distance
         if stride >= distance:
@@ -316,7 +341,7 @@ class Bot:
         return Movement(
             self.position,
             s16(round(self.yaw)),
-            0,
+            s16(round(self.pitch)),
             self.velocity,
             DEAD if self.dead else 0,
             throttles=self.held,

@@ -14,7 +14,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import absorption, baptiste, barrier, combat, correction, deflection, healing, match
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
 from ow174.paths import DATA_DIR, ROOT
@@ -212,10 +212,23 @@ class ReplayManifestTests(unittest.TestCase):
         for name in ("EVENTS_PER_TIME", "MAX_SCRIPT_WORK", "MAX_INSTANCE_UPDATES", "MAX_COMPONENT_UPDATES"):
             self.assertEqual(config[f"ow174.game.script.runtime.{name}"], getattr(runtime, name))
         self.assertEqual(config["ow174.game.script.driver.MAX_SHOTS"], driver.MAX_SHOTS)
+        self.assertEqual(config["ow174.game.baptiste.TICK"], baptiste.TICK)
+        self.assertEqual(config["ow174.game.healing.TICK"], healing.TICK)
+        self.assertEqual(config["ow174.game.absorption.TICK"], absorption.TICK)
+        self.assertEqual(config["ow174.game.combat.EYE_STANDING"], tuple(sorted(combat.EYE_STANDING.items())))
+        self.assertEqual(config["ow174.game.deflection.CATALOG_SHA256"], deflection.CATALOG_SHA256)
+        self.assertEqual(config["ow174.game.barrier.model_sha256"], barrier.model_identity())
         with (
             mock.patch.object(match, "HEALTH", 222.0),
             mock.patch.object(correction, "HEROES", {123, 456}),
             mock.patch.object(runtime, "MAX_SCRIPT_WORK", runtime.MAX_SCRIPT_WORK + 1),
+            mock.patch.object(baptiste, "TICK", 0.008),
+            mock.patch.object(healing, "TICK", 0.02),
+            mock.patch.object(absorption, "TICK", 0.01),
+            mock.patch.object(combat, "EYE_STANDING", {123: 1.35}),
+            mock.patch.object(deflection, "MAX_DEFLECTIONS", 3),
+            mock.patch.object(deflection, "CATALOG_SHA256", "0" * 64),
+            mock.patch.object(barrier, "model_identity", return_value="1" * 64),
         ):
             changed = manifest.runtime_configuration(quanta_us=7000, run_options={"mode": "controlled"})
         differences = manifest.compare_manifests(
@@ -224,6 +237,12 @@ class ReplayManifestTests(unittest.TestCase):
         self.assertEqual({row["path"] for row in differences}, {
             "configuration/ow174.game.match.HEALTH", "configuration/ow174.game.correction.HEROES",
             "configuration/ow174.game.script.runtime.MAX_SCRIPT_WORK", "configuration/run.quanta_us",
+            "configuration/ow174.game.baptiste.TICK", "configuration/ow174.game.healing.TICK",
+            "configuration/ow174.game.absorption.TICK",
+            "configuration/ow174.game.combat.EYE_STANDING",
+            "configuration/ow174.game.deflection.MAX_DEFLECTIONS",
+            "configuration/ow174.game.deflection.CATALOG_SHA256",
+            "configuration/ow174.game.barrier.model_sha256",
         })
         self.assertEqual(config["ow174.game.correction.HEROES"], correction.HEROES)
         for quanta, options in ((True, {}), (0, {}), (16000, None)):

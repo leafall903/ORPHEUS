@@ -11,7 +11,7 @@ import random
 
 from ow174.game import replay_values
 from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
-from ow174.game.script.bot import BotWorld
+from ow174.game.script.bot import AssassinControllerWorld, BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
@@ -23,14 +23,14 @@ _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes",
+    "state_registries", "parameter_scopes", "maximum_health",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -39,7 +39,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "reports", "report_count", "passive_charge_ms",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -50,6 +50,7 @@ _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.ModifyHealth: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -67,25 +68,29 @@ _STATE_LAYOUTS = {
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
+    nodes.ControllerButton: ((), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.MovementFlagProjection: (("value", "vars"), ()),
+    nodes.PlacementPreview: ((), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
+    nodes.LinkedPlayScript: ((), ()),
     nodes.GameMessageEntry: (("message_context", "message_sender", "message_stacked", "message_key",
                              "message_flags", "message_selected", "message_generation", "message_count",
                              "message_sources", "message_cache", "message_refresh", "message_updating",
                              "message_getting", "message_epoch", "message_last_epoch", "message_bindings",
-                             "message_observed"), ("received",)),
+                             "message_observed"), ("received", "host_capture_started")),
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
@@ -184,7 +189,7 @@ class _Export:
             raise BodyVMSnapshotError("unknown instance class")
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
-        _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("queue", "ticking", "deferred", "params", "join_inputs"), list, "instance")
         _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
@@ -383,17 +388,21 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+                fields.update(("weapon_buttons", "owner_position", "controller", "component",
+                               "controller_inputs", "heavy_counter_stuns", "match"))
+            if kind is AssassinControllerWorld:
+                fields.update(("mover", "body_entity", "match", "button_edges", "button_holders",
+                               "movement_bits", "candidates", "recovery_pending", "recovery_started"))
+            # Match and static mover data belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "controller", "mover"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

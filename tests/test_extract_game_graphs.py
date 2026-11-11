@@ -298,6 +298,8 @@ class AIWeaponButtonTests(unittest.TestCase):
             opted_in = extractor.collect(self.root, self.enums, (0x1403,), ai_spawners=spawners)
         self.assertNotIn("ai_weapon_buttons", baseline["entities"][body])
         self.assertEqual(opted_in["entities"][body]["ai_weapon_buttons"], {"0": 20, "2": 29})
+        self.assertEqual(opted_in["entities"][body]["controller"], "0x0400000000001404")
+        self.assertEqual(opted_in["entities"]["0x0400000000001404"]["graphs"], [])
         self.assertEqual(opted_in["bodies"], baseline["bodies"])
         self.assertNotIn("ai_weapon_buttons", opted_in["bodies"][body])
 
