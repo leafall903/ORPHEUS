@@ -104,7 +104,7 @@ from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, STEP, Mover, clam
 from ow174.game.props import ModelPose
 from ow174.game.script import expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import OWNER_HEALTH, Snapshot
+from ow174.game.script.driver import OWNER_HEALTH, ULT_CHARGE, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -697,6 +697,19 @@ class Vitals:
                     total = expr.f32(total + expr.f32(bonus.capacity if maximum else bonus.current))
         return total
 
+    def capped_damage(self, amount: float, minimum_health: float = 0.0, *, armour_scalar=None, beam=False) -> float:
+        """Preview the existing pool consumer without mutating live health or cohorts."""
+        from copy import copy
+
+        preview = copy(self)
+        preview.now = dict(self.now)
+        preview.changed = set()
+        preview.extra = {key: copy(pool) for key, pool in self.extra.items()}
+        preview.bonus_armour = [copy(pool) for pool in self.bonus_armour]
+        preview.temporary_shield = copy(self.temporary_shield)
+        preview.wave_health = copy(self.wave_health)
+        return preview.damage(amount, minimum_health, armour_scalar=armour_scalar, beam=beam)
+
     def damage(self, amount: float, minimum_health: float = 0.0, *, armour_scalar: float | None = None, beam: bool = False) -> float:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
@@ -834,6 +847,7 @@ class HitDef:
     healing: bool = False
     line_of_sight: bool = False
     health_operation: int | None = 1
+    boost_credit: tuple | None = None  # Exact launch caster and outgoing multiplier.
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -1075,6 +1089,7 @@ class Rocket:
     fuse_left: float | None = None
     attached_entity: int | None = None
     attached_offset: tuple = (0.0, 0.0, 0.0)
+    boost_credit: tuple | None = None
     damage_charge: tuple | None = None  # Captured Mercy launch body and authored health tags.
     source_body: int | None = None  # Health-event charge belongs to the emitting body.
     target_limit: int = 1
@@ -2591,6 +2606,8 @@ class Combat:
             from ow174.game.script import charge
 
             charge_context = charge.damage_context(script, state, modify)
+            boosted = self._support_hit(player, HitDef(amount, loadout))
+            amount = boosted.amount
             origin, direction = self._eye(player), aim(*command.aim())
             ring = knockback.quick_melee_ring(state) if player.hero.guid == lucio.HERO else None
             centre = _along(origin, direction, reach)
@@ -2610,7 +2627,7 @@ class Combat:
                         continue
                     landed = self._damage(player, target, amount, False, loadout, command.frame,
                                           hit_reaction=player.hero.guid == mccree.HERO,
-                                          damage_charge=charge_context)
+                                          damage_charge=charge_context, boost_credit=boosted.boost_credit)
                     if landed and ring is not None and not self.orisa._immune(target.owner):
                         impulse = knockback.quick_melee_impulse(ring, origin, shown, direction)
                         self.knockbacks.apply(target, impulse, impact_frame=command.frame)
@@ -3596,14 +3613,19 @@ class Combat:
         if definition is None or definition.healing or self.match.game_map.free_for_all:
             return definition
         source = _source_entity(shooter)
-        bonus = max((
-            support.boost_amount(player.body_script, source)
+        candidates = (
+            (player.body_script, support.boost_amount(player.body_script, source))
             for player in self.match.players
             if player is not shooter and player.has_body and not player.gone
             and player.team == shooter.team and player.body_script is not None
             and not self.is_dead(player)
-        ), default=0.0)
-        return replace(definition, amount=definition.amount * (1.0 + bonus)) if bonus else definition
+        )
+        winner = max(candidates, key=lambda item: item[1], default=None)
+        if winner is None or winner[1] <= 0:
+            return definition
+        caster, bonus = winner
+        scale = 1.0 + bonus
+        return replace(definition, amount=definition.amount * scale, boost_credit=(caster, scale))
 
     def _shoot(
         self, shooter, command, state, number: int, time: int,
@@ -3817,6 +3839,8 @@ class Combat:
                         split_on_expiry=split, sticky_delay=1.0 if sticky else None,
                         source_body=_source_entity(shooter) if server_ability or not npc else None,
                         damage_charge=charge_context,
+                        boost_credit=(direct.boost_credit if direct is not None else
+                                      blast.boost_credit if blast is not None else None),
                         target_limit=target_limit,
                         spawn=spawn, source_graph=source_graph, source_state=state if server_ability else None,
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
@@ -4062,7 +4086,7 @@ class Combat:
         amount = factor * direct.amount * direct.scale(travelled + t) * (direct.critical if critical else 1.0)
         landed = self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
-            world_tick=world_tick, hit_tags=direct.tags,
+            world_tick=world_tick, hit_tags=direct.tags, boost_credit=direct.boost_credit,
             award_ult=state.instance.graph.index != 0x01EE,
             deadeye=state.instance.graph.index == 0x01EE and state.node.pos == 14,
             hit_reaction=state.instance.graph.index == 0x01D2 and state.node.pos in (31, 37),
@@ -4460,6 +4484,15 @@ class Combat:
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
+            old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
+            for name in ("direct", "blast"):
+                definition = getattr(rocket, name)
+                if definition is not None:
+                    definition = replace(definition, amount=definition.amount / old_scale, boost_credit=None)
+                    setattr(rocket, name, self._support_hit(rocket.shooter, definition))
+            rocket.damage_charge = None
+            rocket.boost_credit = (rocket.direct.boost_credit if rocket.direct is not None else
+                                   rocket.blast.boost_credit if rocket.blast is not None else None)
             rocket.direction = defense[2] if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch)
             rocket.position = _along(point, rocket.direction, 1e-4)
             if rocket.velocity is not None:
@@ -4530,7 +4563,7 @@ class Combat:
                     rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
                     world_tick=self.tick, hit_tags=direct.tags,
                     broken_particle_barriers=broken_particle_barriers, source_body=rocket.source_body,
-                    damage_charge=rocket.damage_charge,
+                    damage_charge=rocket.damage_charge, boost_credit=rocket.boost_credit,
                 )
                 if landed:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
@@ -4979,7 +5012,7 @@ class Combat:
                 if self._damage(
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
-                    source_body=rocket.source_body,
+                    source_body=rocket.source_body, boost_credit=rocket.boost_credit,
                 ):
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
                     if rocket.accretion_source is not None and (
@@ -5877,7 +5910,7 @@ class Combat:
         award_ult: bool = True, deadeye: bool = False, hit_reaction: bool = False,
         hit_tags: tuple[int, ...] = (), armour_scalar: float | None = None,
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
-        source_scaled: bool = False, damage_charge=None,
+        source_scaled: bool = False, damage_charge=None, boost_credit=None,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         vitals = self.vitals_of(target)
@@ -5922,7 +5955,11 @@ class Combat:
             amount *= 0.5
         adaptive = vitals.extra.get(("adaptive", moira.ADAPTIVE_SHIELD_TAG))
         shield_before = adaptive.now if adaptive is not None else 0.0
-        dealt = vitals.damage(self._incoming_damage(target, amount), self._minimum_health(target, vitals),
+        minimum = self._minimum_health(target, vitals)
+        base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1]), minimum,
+                                    armour_scalar=armour_scalar, beam=beam)
+                if boost_credit is not None else 0.0)
+        dealt = vitals.damage(self._incoming_damage(target, amount), minimum,
                               armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
@@ -5937,6 +5974,15 @@ class Combat:
                 sum(vitals.most.values()) - vitals.base_total,
                 vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
             )
+        extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
+        if boost_credit is not None and extra > EPSILON:
+            from ow174.game.script import charge
+
+            caster, scale = boost_credit
+            impact = frame if world_tick is None else world_tick
+            historical = self.support_effects.historical_boosts(caster.entity, impact, pending=True) is not None
+            charge.boosted(caster, target.entity, dealt, extra, scale - 1.0,
+                           valkyrie_frame=impact if historical else None)
         adaptive_loss = shield_before - (adaptive.now if adaptive is not None else 0.0)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
@@ -5979,7 +6025,8 @@ class Combat:
             if award_ult and enemy and current_source and hero == regeneration.MERCY:
                 from ow174.game.script import charge
 
-                charge.damaged(script, target.entity, dealt, damage_charge, frame=frame)
+                charge.damaged(script, target.entity, dealt, damage_charge, frame=frame,
+                               extra=max(0.0, dealt - base) if boost_credit is not None else 0.0)
 
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
@@ -6252,9 +6299,21 @@ class Combat:
         player = who
         if player.gone or not player.has_body or not self.is_dead(player):
             return
+        old_script = player.body_script
+        points, pending = None, ()
+        if old_script is not None and player.hero.guid == regeneration.MERCY:
+            points = old_script.component.entity_var(ULT_CHARGE).value()
+            pending = getattr(old_script.world, "pending_ult_credits", ())
         if not self.match.switch_hero(player, player.hero):
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
+        if points is not None and player.body_script is not None:
+            from ow174.game.script import charge
+
+            script = player.body_script
+            script.set_ult_charge(points)
+            charge.set_pending_credits(script.world, tuple(credit for credit in pending
+                                                          if credit[0] > script.component.now))
         self.voice.spawned(player, self.now)
         log.info("[game] %s: %s respawned", self.match.label(), player.name)
 

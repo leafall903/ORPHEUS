@@ -85,6 +85,10 @@ class EffectWorld(runtime.World):
             return vitals.total if cls == "STU_32E6E4D8" else sum(vitals.most.values())
         return super().native(cfg, instance)
 
+    def linked_tracked_targets(self, state):
+        targets = self.track_targets(state)
+        return targets if targets is NotImplemented else tuple(expr.Entity(entity) for entity in targets)
+
     def track_targets(self, state):
         valid = ((state.instance.graph.index == 0x0079 and state.index == 19)
                  or (state.instance.graph.index == 0x006C and state.index == 12))

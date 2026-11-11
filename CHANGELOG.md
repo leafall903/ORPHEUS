@@ -4,6 +4,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy boost charge and effect-target integration
+
+- Preserve the exact launch caster and outgoing multiplier with hitscan,
+  projectile, splash and melee damage. Preview the existing pool consumer on
+  isolated pool/cohort copies to credit only the additional health actually
+  removed. Feed original 006B/0B8B boost/stat messages and subtract the extra
+  contribution from the attacking Mercy's damage charge.
+- Keep the ordinary five-field body-message queue contract; optional historical
+  Valkyrie metadata uses an extended row. Retire old reflection attribution,
+  retain same-hero respawn charge boundaries, and mount the delivered assist
+  classifier plus scoped 006B array actions. Fix the stale array-removal helper
+  name exposed by shared regression.
+- Adapt original effect-target searches to the merged VM's linked-target API,
+  restoring actual Valkyrie child effect selection. Retain the delivery's full
+  chain checks and original NPC controls for subsequent integration, without
+  withholding the implemented code because broader checks are incomplete.
+- All ten boost-charge checks and the three initial chain adapter checks passed.
+  Shared regression ran 162 checks: 160 passed, one external-input check skipped,
+  and D.Va body switching failed identically on pre-change 94e5dc0f. Remaining
+  delayed attack ordering, historical boost selection, NPC interactions and
+  original-client acceptance stay open.
+
 ### Mercy projectile and melee damage charge integration
 
 - Capture the original Mercy health tags and emitting body on blaster launch

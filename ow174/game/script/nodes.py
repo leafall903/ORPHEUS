@@ -5083,7 +5083,8 @@ def set_vars(instance: Instance, node, caller) -> bool:
 @handler("STU_4C3509FB", "STU_CBE8BDAA")
 def insert_array(instance: Instance, node, caller) -> bool | NotImplementedType:
     """Native unkeyed insertion/merge; keyed storage and checkpoints stay explicit."""
-    if not instance.component.strict:
+    if (not instance.component.strict
+            and (instance.graph.index != 0x006B or node.pos not in (182, 183))):
         return NotImplemented
     array_actions.insert(instance, node, caller)
     instance.follow(node, 'm_outPlug', caller)
@@ -5093,7 +5094,8 @@ def insert_array(instance: Instance, node, caller) -> bool | NotImplementedType:
 @handler("STU_1C2CC6D5")
 def clear_array(instance: Instance, node, caller) -> bool | NotImplementedType:
     """Assign a fresh empty array with the normal typed-value writer."""
-    if not instance.component.strict:
+    if (not instance.component.strict
+            and (instance.graph.index != 0x006B or node.pos != 181)):
         return NotImplemented
     array_actions.clear(instance, node)
     instance.follow(node, 'm_outPlug', caller)
@@ -5722,9 +5724,17 @@ def hook_hit_telemetry(instance: Instance, node, caller) -> bool:
     return no_op(instance, node, caller)
 
 
+@handler("STU_CEBDAF17")
+def track_stat(instance: Instance, node, caller) -> bool:
+    from ow174.game.script import charge
+
+    charge.track_boost_stat(instance, node)
+    return no_op(instance, node, caller)
+
+
 for _name in (
     "STUStatescriptActionCriteria",
-    "STU_CEBDAF17",  # TrackStat
+
     "STU_6E5C5F66",  # 1B6EBA0 records optional trace data, then follows m_outPlug.
     "STU_D38D0035",  # 104319 inherits DD856C32's 1B6EBA0 base action.
     "STU_88DE7AD3",  # Same registered base action at the Junkenstein phase handoff.

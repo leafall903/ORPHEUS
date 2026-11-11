@@ -400,6 +400,7 @@ CONSTANTS = {
     "STUConfigVarInt": lambda cfg: _number(cfg, i32),
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
+    "STU_073FFE4A": lambda cfg: i32(cfg.get("m_86DFF239") or 0),  # Original assist classifier.
     "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
     "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),  # Health-pool kind, native 1B860F0.
     "STU_4A101787": lambda cfg: False,  # 104319 CEF730 writes typed false without reading config.

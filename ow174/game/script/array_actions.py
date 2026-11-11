@@ -199,7 +199,7 @@ def remove(instance, node, caller):
     value = (play.evaluate_scalar(instance, index_cfg, initial=_FAILED, watcher=caller)
              if index_cfg is not None else _FAILED)
     _alive(instance, node)
-    index = -1 if value is _FAILED else _index(value)
+    index = -1 if value is _FAILED else collection_index(value)
     if index >= 0:
         if index < len(items):
             del items[index]
