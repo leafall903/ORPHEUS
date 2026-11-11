@@ -248,6 +248,18 @@ class Auras:
         self.healing: dict[tuple[int, int], list[tuple[int, tuple]]] = {}
         self.last_tick: int | None = None
 
+    def has_moving_npc_recipients(self) -> bool:
+        match = self.combat.match
+        if match.game_map.free_for_all:
+            return False
+        teams = {bot.team for bot in match.bots
+                 if not bot.dead and bot.body_script is not None and (bot.route or bot.impulse_mover is not None)}
+        return bool(teams and graph.graph(CROSSFADE) is not None and any(
+            player.team in teams and player.hero.guid == HERO and match._shown(player)
+            and player.body_script is not None and not self.combat.is_dead(player)
+            for player in match.players
+        ))
+
     def retire(self, body):
         for key in list(self.leases):
             if body in key:

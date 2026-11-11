@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Lucio moving-recipient world clock
+
+- Mount the delivered moving-NPC aura predicate through the combined graph
+  lookup. Interleave retained NPC poses and combat/aura updates so the next
+  route pose consumes the previous frame's actual speed state.
+- Reuse the existing NPC/navigation/obstacle step body and combat catch-up
+  bound. Keep endpoint client frames and ordinary scheduling outside this
+  delivered moving-recipient case.
+- Replayed a real Assassin leaving Crossfade across a 60-frame jump: continuous
+  and skipped runs now produce identical position, velocity and controller
+  modifier (previously the skipped run retained speed 17.5 instead of14).
+- All three original five-body NPC-speed checks, 25 NPC-control checks and11
+  host tick/lifecycle checks passed. Full Lucio reconciliation and original-
+  client acceptance remain open; existing implementations are still submitted.
+
+
 ### Merge Soldier original-language delivery
 
 - Merge the original Soldier delivery c5607bc4 after mounting its Visor,

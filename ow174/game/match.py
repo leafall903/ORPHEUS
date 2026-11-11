@@ -1233,6 +1233,41 @@ class Match:
 
     # --- lifetime ------------------------------------------------------------------------------
 
+    def _advance_bots(self, tick: int) -> None:
+        if not self.bots:
+            return
+        from ow174.game import npc_navigation
+
+        if self._pending_bot_scripts:
+            # Keep graph setup within the loading window and off the world-create burst.
+            self._prepare_bot_script(self._pending_bot_scripts.popleft())
+        manual = [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
+        budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
+        if budgets:
+            self._npc_planning_turn += 1  # server ticks can skip under load
+        pillars = ice_wall.pillar_actors(self.combat)
+        for bot in self.bots:
+            if self.combat.orisa.controls(bot.entity, tick):
+                continue
+            npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
+            if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
+                continue
+            if (bot.spawner.get('manual_spawn') is True and getattr(bot, "pursuit", None) is None
+                    and not bot.route and not self.combat.knockbacks.affecting(bot.entity)
+                    and not self.combat.knockbacks.has_pending(bot.entity)):
+                npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
+                                    plan_budget=budgets.get(bot.entity, 0))
+                continue
+            script = bot.body_script
+            mods = statescript_mods(script.component) if script is not None and not bot.dead else {}
+            pull_mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
+            if pull_mods:
+                mods.update(pull_mods)
+            self.combat.knockbacks.step_npc(
+                bot, tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars,
+            )
+
     def update(self, now: float, tick: int, *, frames: bool | None = None) -> None:
         """Run the spawn steps of players who loaded, keep their statescript acked, walk the training
         bots, and show new players and bodies to the others."""
@@ -1247,40 +1282,17 @@ class Match:
             return
         if ready and not self._advance_scene(now, tick):
             return
-        if ready and self.bots:
-            from ow174.game import npc_navigation
-
-            if self._pending_bot_scripts:
-                # Keep graph setup within the loading window and off the world-create burst.
-                self._prepare_bot_script(self._pending_bot_scripts.popleft())
-            manual = [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
-            budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
-            if budgets:
-                self._npc_planning_turn += 1  # server ticks can skip under load
-            pillars = ice_wall.pillar_actors(self.combat)
-            for bot in self.bots:
-                if self.combat.orisa.controls(bot.entity, tick):
-                    continue
-                npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
-                if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
-                    continue
-                if (bot.spawner.get('manual_spawn') is True and getattr(bot, "pursuit", None) is None
-                        and not bot.route and not self.combat.knockbacks.affecting(bot.entity)
-                        and not self.combat.knockbacks.has_pending(bot.entity)):
-                    npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
-                                        plan_budget=budgets.get(bot.entity, 0))
-                    continue
-                script = bot.body_script
-                mods = statescript_mods(script.component) if script is not None and not bot.dead else {}
-                pull_mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
-                if pull_mods:
-                    mods.update(pull_mods)
-                self.combat.knockbacks.step_npc(
-                    bot, tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                    paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars,
-                )
         if ready:
-            self.combat.update(now, tick, frames=frames)
+            first = tick
+            if (self.combat.tick and tick > self.combat.tick + 1
+                    and self.combat.lucio_auras.has_moving_npc_recipients()):
+                first = max(self.combat.tick + 1, tick - combat.COMBAT_CATCH_UP + 1)
+            for at in range(first, tick + 1):
+                self.tick = at
+                self._advance_bots(at)
+                self.combat.update(now - (tick - at) * combat.TICK, at,
+                                   frames=frames and at == tick)
+            self.tick = tick
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)
         for player in self.players:
