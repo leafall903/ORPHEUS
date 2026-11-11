@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered D.Va placement, entry and blast execution
+
+- Mount the source placement state's explicit request/result routing and passive
+  snapshot layout. Retain the delivered scoped Call Mech handoff timers and
+  duration-based entry movement through the existing swept mover.
+- Execute authored Self-Destruct and landing target/distance arrays, health
+  changes and impulse rings. Evaluate shield damage with the authored distance
+  expression and sample visibility before shields break. Advance detached owned
+  body VMs in their retained command-clock domain and reject retired results.
+- The final16-check run passed15 checks: Call Mech replacement/control/fire/return,
+  entry wall obstruction and all13 existing runtime checks. The remaining check
+  passed detachment, blast and retirement but failed to create the next mech.
+- Preserve this implementation despite incomplete acceptance. Blocked placement
+  still enters the subsequent scope, and skipped-frame detonation still exposes
+  duplicate hit/charge behavior. These original checks remain unchanged and
+  failing; whole-line and original-client acceptance are not claimed. No game
+  data, new features, acceptance matrix or Rust runtime cutover is included.
+
 ### Mount delivered owned D.Va bodies and command routing
 
 - Preserve the source body factory, linked-identity and spatial helpers, placement

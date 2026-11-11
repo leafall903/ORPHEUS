@@ -78,6 +78,7 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.BodyPlacement: ((), ()),
     nodes.FilterArray: ((), ()),
     nodes.StaticTagTarget: ((), ()),
     nodes.RecentInputState: (("recent",), ("history",)),

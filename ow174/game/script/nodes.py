@@ -15,7 +15,7 @@ from types import NotImplementedType
 from typing import ClassVar
 
 from ow174.game.content import JUNKENSTEIN_MODES
-from ow174.game.mover import CROUCHED, IN_AIR, JUMPED, NOT_GROUND_UNDER, Snapshot
+from ow174.game.mover import CROUCHED, IN_AIR, JUMPED, NOT_GROUND_UNDER, STEP, Snapshot
 from ow174.game.script import (
     animation_alias,
     array_actions,
@@ -188,6 +188,40 @@ _COMMON_CONTROLLER_BASE_STATES = (
     "STU_6A6BBB8D", "STU_918B3FA9", "STU_14611C1B", "STU_200B27C5",
     "STU_D52B9026", "STU_4531992F", "STU_55F72184", "STU_632B74B9",
 )
+
+
+@state_class("STU_43DB06B1")
+class BodyPlacement(State):
+    """Explicit host placement; authoritative routing is reconstructed, not native preview."""
+
+    def plug_enter(self, input_path):
+        if input_path != "m_6647ED22":
+            return super().plug_enter(input_path)
+        if not self.active or self.ending or self.instance.component.owner_dead:
+            return True
+        from ow174.game.script import placement
+
+        component = self.instance.component
+        world = component.world
+        result = world.body_placement(self)
+        component.ensure_valid()
+        if (component.world is not world or self.instance.stopped or self.instance.teardown
+                or component.instances.get(self.instance.id) is not self.instance
+                or self.instance.states.get(self.index) is not self or not self.active):
+            component.unsupported(self.instance, "placement owner retired", self.node.cls, self.node)
+        if result is NotImplemented:
+            if component.strict:
+                component.unsupported(self.instance, "body placement engine", self.node.cls, self.node)
+            return True
+        if type(result) is not placement.Result or (result.point is not None
+                and not placement._vector(result.point)):
+            component.unsupported(self.instance, "body placement result", self.node.cls, self.node)
+        if result.point is not None:
+            target = lvalue(self.node.field("m_2D3A077F"))
+            if target is not None:
+                self.instance.write(target, result.point)
+        self.instance.follow(self.node, "m_F6955E81" if result.point is not None else "m_425337C6", self)
+        return True
 
 
 @state_class(
@@ -2544,6 +2578,10 @@ class ConditionalTimer(State):
     """
 
     def on_enter(self) -> None:
+        if self.instance.graph.index == 0x26A and self.node.pos in (64, 65, 84):
+            # Preserve the delivered headless Call Mech handoff variant.
+            self.timer_at(0, 1)
+            return
         if not self.instance.component.strict:
             from ow174.game import torbjorn_turret, tracer_recall
 
@@ -2578,6 +2616,9 @@ class ConditionalTimer(State):
         tracer_recall.end_phase(self, finished)
 
     def timer(self, param: int) -> None:
+        if param == 1 and self.instance.graph.index == 0x26A and self.node.pos in (64, 65, 84):
+            self.request_finish()
+            return
         condition = _field(self, "m_7C8AD485")
         if param == 1 and condition is not None and truthy(self.evaluate(condition, watch=False)):
             self.request_finish()
@@ -3149,14 +3190,43 @@ class MoveTo(State):
 
     def on_begin(self) -> None:
         speed_config = _field(self, "m_speed")
-        unsupported = ("m_destinationEntity", "m_destinationBone", "m_5BEFF040")
-        if _field(self, "m_B060F688") != 0 or speed_config is None or any(
+        unsupported = ("m_destinationEntity", "m_destinationBone")
+        if _field(self, "m_B060F688") != 0 or any(
             _field(self, field) is not None for field in unsupported
         ):
             return
+        duration_config = _field(self, "m_5BEFF040")
+        timed_entry = (
+            self.instance.graph.index == 0x26A and self.node.pos in (85, 200)
+            and speed_config is None and duration_config is not None
+            and self.instance.component.world.match is not None
+        )
+        if not timed_entry and (speed_config is None or duration_config is not None):
+            return
         destination = self.evaluate(_field(self, "m_865F3D01"), watch=False)
-        speed = self.evaluate(speed_config, watch=False)
-        if not isinstance(destination, Vec3) or type(speed) not in (int, float):
+        if not isinstance(destination, Vec3):
+            return
+        if timed_entry:
+            duration = self.evaluate(duration_config, watch=False)
+            limit = self.evaluate(_field(self, "m_717EAFE7"), watch=False)
+            if type(duration) not in (int, float) or not 0 < duration < math.inf:
+                return
+            if type(limit) not in (int, float) or not 0 < limit <= MAX_MOVEMENT_AXIS:
+                return
+            component = self.instance.component
+            origin = component.world.position(component.entity)
+            if not isinstance(origin, Vec3):
+                return
+            # Static entry reconstruction: fixed start, constant speed and
+            # the authored cap. Keep arrival/obstruction in the swept mover.
+            distance = math.dist(origin, destination)
+            if distance <= STEP:
+                self.request_finish()
+                return
+            speed = min(limit, max(distance / duration, STEP * 1000 / component.frame_ms))
+        else:
+            speed = self.evaluate(speed_config, watch=False)
+        if type(speed) not in (int, float):
             return
         # The world movement record must be able to carry the pose and velocity.
         if 0 < speed <= MAX_MOVEMENT_AXIS and all(

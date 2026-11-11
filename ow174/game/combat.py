@@ -1438,6 +1438,19 @@ class PendingAttack:
     payload: RangedContact | MeleeContact | Rocket
 
 
+class SelfDestructDistance(runtime.InstanceContext):
+    """Evaluate the authored blast curve for a surface outside the body array."""
+
+    def __init__(self, instance, distance):
+        super().__init__(instance, None)
+        self.distance = expr.f32(distance)
+
+    def var(self, scope, var):
+        if (scope, var) == (expr.INSTANCE, 680):
+            return self.distance
+        return super().var(scope, var)
+
+
 class DvaImpulseContext(runtime.InstanceContext):
     """Resolve the impulse's pet selector for a directly controlled mech."""
 
@@ -4114,12 +4127,13 @@ class Combat:
             if host is not None and (bot.entity in host.weapons or host.combatant_component(bot) is not None):
                 continue
             script = bot.body_script
+            vm_tick = tick + bot.clock_offset if bot.owner else tick
             controlled = npc_control.manual(bot)
             autonomous = npc_control.autonomous(bot)
             authored = isinstance(script, BotScript) and script.has_controller_buttons
             if ((not bot.firing and not controlled and not authored and not autonomous
                  and not bot.spawner.get("acquire_targets")) or bot.dead
-                    or not isinstance(script, BotScript) or script.frame > tick):
+                    or not isinstance(script, BotScript) or script.frame > vm_tick):
                 continue
             try:
                 if bot.spawner.get("acquire_targets"):
@@ -4131,7 +4145,9 @@ class Combat:
                     allowed = npc_control.acquire(self, bot)
                 else:
                     allowed = npc_control.update_input(self, bot) if controlled and not authored else not self.is_stunned(bot)
-                snapshot = script.advance_live(tick, bot.position)
+                snapshot = script.advance_live(vm_tick, bot.position)
+                if bot not in self.match.bots or bot.body_script is not script:
+                    continue
                 from ow174.game import assassin
 
                 assassin.refresh_control(script.component.world, script.component)
@@ -7145,6 +7161,133 @@ class Combat:
                 )
                 runtime.send_instance_message(instance, message, {parameter: expr.Entity(entity)}, body)
                 script.component.run_now()
+
+    def _dva_blast_shields(self, source, origin, radius):
+        """Sample finite shield surfaces before applying the authored blast curve."""
+        selected = []
+        collision = self._collision()
+        for actor in self.barriers.enemies(source):
+            if isinstance(actor, reinhardt_barrier.RaisedBarrier):
+                def visible(point):
+                    return capsule_visible(collision, origin, point, point, .001)
+                distance = min(actor.surface_distances(origin, radius, visible), default=None)
+                manager = self.barriers.reinhardt
+            else:
+                centre = actor.centre()
+                size = actor.radius if isinstance(actor, world_bubbles.FixedBubble) else barriers.RADIUS
+                length = math.dist(origin, centre)
+                distance = max(0.0, length - size)
+                surface = _along(centre, _sub(origin, centre), size / length) if length > size else origin
+                if not capsule_visible(collision, origin, surface, surface, .001):
+                    distance = None
+                manager = self.barriers.world if isinstance(actor, world_bubbles.FixedBubble) else self.barriers
+            if distance is not None and distance <= radius:
+                selected.append(((manager, actor), distance))
+        return selected
+
+    def _dva_shield_damage(self, shield, amount, source):
+        manager, actor = shield
+        if manager is self.barriers:
+            manager.damage(actor, amount, source)
+        else:
+            manager.damage(actor, amount)
+
+    def _blast_visible(self, origin, target: Target, *, shooter=None, team=None) -> bool:
+        """Static cover to the nearest capsule axis point (reconstructed).
+
+        This uses mover collision categories and optionally live Reinhardt
+        geometry. Retail damage masks and partial-cover sampling remain open.
+        """
+        a, b = target.segment()
+        ab, ap = _sub(b, a), _sub(origin, a)
+        length = _dot(ab, ab)
+        share = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
+        destination = _along(a, ab, share)
+        delta = _sub(destination, origin)
+        distance = math.sqrt(_dot(delta, delta))
+        reach = max(0.0, distance - target.radius)
+        if reach <= EPSILON:
+            return True
+        direction = tuple(value / distance for value in delta)
+        wall = ray_world(self._collision(), origin, direction, reach)
+        if wall is not None and wall < reach:
+            return False
+        return shooter is None or self._barrier_contact(shooter, origin, direction, reach, bubbles=True) is None
+
+    def dva_ultimate_targets(self, state) -> None:
+        """Fill the authored target arrays at detonation or mech landing."""
+        instance = state.instance
+        source = self.match._message_actor(instance.component.entity)
+        centre = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+        radius = _number(state.evaluate(state.node.field("m_radius"), watch=False), 0.0)
+        targets, distances, shields = [], [], ()
+        if source is not None and isinstance(centre, expr.Vec3) and radius > 0:
+            origin = tuple(centre)
+            blast = instance.graph.index == 0x0B2F
+            if blast:
+                position = source.position if isinstance(source, bots.Bot) else source.mover.position
+                origin = tuple(a + b for a, b in zip(position, origin, strict=True))
+                shields = self._dva_blast_shields(source, origin, radius)
+            controller = source.owner if isinstance(source, bots.Bot) else source.entity
+            for target in self._enemies(source):
+                if isinstance(target.owner, bots.Bot) and target.owner.owner == controller:
+                    continue
+                a, b = target.segment()
+                distance = max(0.0, segment_distance(origin, a, b) - target.radius)
+                if distance <= radius and self._blast_visible(
+                    origin, target, shooter=source if blast else None,
+                ):
+                    targets.append(expr.Entity(target.entity))
+                    distances.append(expr.f32(distance))
+        instance.write(expr.dynamic(state.node.field("m_8A2905A0")), tuple(targets))
+        instance.write(expr.dynamic(state.node.field("m_CEE20F6F")), tuple(distances))
+
+        # Snapshot body and shield visibility before any barrier breaks.
+        if shields:
+            value = instance.graph.node(24).field("m_value")
+            for shield, distance in shields:
+                amount = expr.evaluate(value, SelfDestructDistance(instance, distance))
+                self._dva_shield_damage(shield, _number(amount, 0.0), source)
+
+    def dva_ultimate_damage(self, state) -> None:
+        source = self.match._message_actor(state.instance.component.entity)
+        if source is None:
+            return
+        selected = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
+        entities = selected if isinstance(selected, tuple) else (selected,)
+        ids = {entity.id for entity in entities if isinstance(entity, expr.Entity)}
+        amount = _number(state.evaluate(state.node.field("m_modifyHealth.m_amount"), watch=False), 0.0)
+        loadout = state.evaluate(state.node.field("m_modifyHealth.m_loadout"), watch=False)
+        loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
+        centre = state.evaluate(state.node.field("m_modifyHealth.m_C0139FA6"), watch=False)
+        context = DvaImpulseContext(state.instance)
+        horizontal = _number(expr.evaluate(state.node.field("m_modifyHealth.m_E33EFEE1"), context), 0.0)
+        vertical = _number(expr.evaluate(state.node.field("m_modifyHealth.m_583C208B"), context), 0.0)
+        rings = state.node.field("m_modifyHealth.m_knockbackRings") or ()
+        for target in self._enemies(source):
+            if target.entity in ids:
+                dealt = self._damage(
+                    source, target, amount, False, loadout, state.instance.component.frame,
+                    hit_tags=health_tags(state, state.node.field("m_modifyHealth")),
+                )
+                vitals = self.vitals.get(target.entity)
+                if dealt and isinstance(centre, expr.Vec3) and vitals is not None and not vitals.dead:
+                    yaw = round(source.yaw) if isinstance(source, bots.Bot) else source.mover.yaw
+                    self._ultimate_impulse(state, tuple(centre), yaw, target, rings, horizontal, vertical)
+
+    def _ultimate_impulse(self, state, origin, yaw, target, rings, horizontal, vertical) -> None:
+        a, b = target.segment()
+        distance = segment_distance(origin, a, b) - target.radius
+        for ring in rings:
+            radius = _number(state.evaluate(ring.get("m_radius"), watch=False), 0.0)
+            if distance > radius:
+                continue
+            # Reconstructed ring mapping: the first field scales planar
+            # velocity and the third scales lift. Damage is authored separately.
+            planar = _number(state.evaluate(ring.get("m_9102DA3F"), watch=False), 0.0)
+            lift = _number(state.evaluate(ring.get("m_10399AE7"), watch=False), 0.0)
+            self._radial_impulse(target, origin, horizontal * planar, vertical * lift)
+            return
 
     def _credit_player(self, actor):
         if not isinstance(actor, bots.Bot):

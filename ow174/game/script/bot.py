@@ -421,6 +421,9 @@ class BotWorld(runtime.World):
         return targets
 
     def track_targets(self, state: runtime.State) -> bool:
+        if self.match is not None and self.hero == 0x02E000000000007A and (state.instance.graph.index, state.node.pos) == (0x0B2F, 8):
+            self.match.combat.dva_ultimate_targets(state)
+            return True
         targets = self.linked_tracked_targets(state)
         if targets is NotImplemented:
             return False
@@ -687,6 +690,12 @@ class BotWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import assassin, heavy_assault
+
+        if self.match is not None and self.hero == 0x02E000000000007A and (state.instance.graph.index, state.node.pos) == (0x0B2F, 22):
+            if not elapsed_ms:
+                self.match.combat.dva_ultimate_damage(state)
+                state.request_finish()
+            return True
 
         controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
         if (controls is not None and not state.instance.component.strict

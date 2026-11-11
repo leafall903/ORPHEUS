@@ -1020,6 +1020,9 @@ class World:
     def create_entity(self, instance, node):
         return NotImplemented
 
+    def body_placement(self, state):
+        return NotImplemented
+
     def spatial_query_context(self, entity):
         return NotImplemented
 

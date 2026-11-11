@@ -708,6 +708,9 @@ class BodyWorld(runtime.World):
         return barriers.create(self, state)
 
     def track_targets(self, state):
+        if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 8), (0x026A, 35)):
+            self.match.combat.dva_ultimate_targets(state)
+            return True
         if (self.hero == 0x02E000000000006E and self.match is not None
                 and state.instance.graph.index == 0x0259
                 and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
@@ -724,6 +727,12 @@ class BodyWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
+
+        if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 22), (0x026A, 36)):
+            if not elapsed_ms:
+                self.match.combat.dva_ultimate_damage(state)
+                state.request_finish()
+            return True
 
         controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
         if (controls is not None and not state.instance.component.strict
@@ -1541,6 +1550,13 @@ class BodyWorld(runtime.World):
     def pet_lifecycle(self, state, entering):
         if self.match is not None and self.hero == 0x02E0000000000007:
             self.match.combat.barrier.pet(state, entering)
+
+    def body_placement(self, state):
+        from ow174.game.script import placement
+
+        if self.match is None or state.instance.component.entity != self.body:
+            return NotImplemented
+        return placement.place(self.match, state)
 
     def placement_probe(self, state):
         return self.match is not None and ice_wall.probe(self.match.combat, state)
