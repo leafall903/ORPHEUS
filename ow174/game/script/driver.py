@@ -459,6 +459,13 @@ class BodyWorld(runtime.World):
             return NotImplemented
         return self._body_component(entity) is not None
 
+    def entity_var_slot(self, entity, var, *, create=False):
+        """Resolve the live foreign slot from the delivered Brigitte body host."""
+        if self.match is None or entity == runtime.GAME_MODE_ENTITY:
+            return NotImplemented
+        component = self._body_component(entity)
+        return component.entity_var(var, create=create) if component is not None else None
+
     def entity_var(self, entity, var):
         from ow174.game import orisa_charge
 

@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Delivered foreign variable slots and Wraith phase binding
+
+- Mount Brigitte's delivered BodyWorld foreign-slot resolver on the existing
+  live body-component lookup. Preserve the explicit unknown service for the
+  mode/unbound world and the caller's slot-creation policy.
+- Restore the missing Ana Wraith bridge constant PHASE=0 from its delivery
+  source (0020/node1, scoped by the authored wait). This removes the startup
+  NameError without replacing the existing Wraith entry/timing consumers.
+- All 63 focused entity-query, inert snapshot, core combat and Wraith-cancel
+  checks passed. The 15 protected-phase subtest mismatches reproduce in the
+  baseline tree when supplied the same restored phase constant, isolating
+  them from the foreign-slot addition. The broader Brigitte delivery suite
+  also exposes initialization, defensive-state and NPC integration gaps;
+  retain the implementation and tests while those remain open. No original
+  client acceptance is claimed.
+
 ### Shared original-language delivery history merge
 
 - Merge the existing shared Python/C++ runtime submission e1128509 into the

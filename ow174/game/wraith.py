@@ -2,6 +2,7 @@
 
 HERO = 0x02E0000000000002
 GRAPH = 0x0020
+PHASE = 0  # Delivered Ana bridge: node1, scoped by the authored three-second Wait.
 
 
 def _instance(actor):
