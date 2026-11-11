@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain the original D.Va placement checks
+
+- Preserve the delivered eight-check placement file unchanged alongside the
+  existing owned-body checks. Its current run passed seven checks, including
+  authored success/failure routing, body overlap/ignore policy and passive
+  export; one optional five-NPC fixture skipped for unavailable inputs.
+- Python scenario delivery95cd0b5d is already reconciled by389d9b07 in this
+  branch; its original delivery ref alone is not an ancestry-based completion
+  measure. No whole-line acceptance or additional feature is claimed here.
+
 ### Preserve delivered D.Va placement, entry and blast execution
 
 - Mount the source placement state's explicit request/result routing and passive
