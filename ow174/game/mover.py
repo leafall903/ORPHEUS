@@ -133,7 +133,11 @@ def throttle_byte(value: int) -> tuple[float, int]:
     0x7FF789B4DA30): the state keeps trunc(t * 127) in float32, which for 16 values is one less in size
     (9 -> 8, 13 -> 12, ... 104 -> 103)."""
     throttle = f32(max(-127, min(127, value)) * THROTTLE_UNIT)
-    return throttle, max(-127, min(127, int(f32(throttle * 127.0))))
+    return throttle, pack_throttle(throttle)
+
+
+def pack_throttle(value: float) -> int:
+    return max(-127, min(127, int(f32(value * 127.0))))
 
 
 @cache

@@ -5,6 +5,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Baptiste delivery interface reconciliation
+
+- Restore the delivered TrackTargets cleanup callback to its existing optional
+  world service, retaining linked-query validation and baked target outputs.
+  Restore pack_throttle and route the equivalent existing byte conversion
+  through it. Keep raw replicated command bytes and movement modifiers separate.
+- In the existing eight-module Baptiste/throttle selection, 116 of 118 checks
+  passed. Both Flashbang interaction failures reproduce before these changes.
+  The shared selection passed 61 of 63 checks; both combat-filter fixture gaps
+  also reproduce in the baseline. Three additional Heavy-contact checks retain
+  the same four subtest failures and one fixture error as the baseline.
+- Preserve all delivered implementations despite these unfinished interaction
+  checks. No client acceptance or all-hero acceptance is claimed.
+
+
+
 ### Orisa delivery history integration
 
 - Merge delivery 5b38741c after the interface reconciliation. Every delivered

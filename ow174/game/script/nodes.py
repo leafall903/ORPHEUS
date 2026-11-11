@@ -4254,6 +4254,9 @@ class TrackTargets(State):
         # Its authored ability exit resets those entity variables.
         self.targets = ()
 
+    def on_cleanup(self) -> None:
+        self.instance.component.world.stop_tracking_targets(self)
+
     def payload(self) -> dict:
         return {"targets": tuple((entity, 0) for entity in self.targets)}  # age policy unverified
 
