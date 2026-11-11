@@ -1,0 +1,47 @@
+Shared Ability press retention in the Ana/barrier lane: partial104319 acceptance
+
+Parent discovery and private reproduction
+Parent main reported that Ability.can_start consumed an unready buffered press
+then reinserted it with the current time. This refreshed a released press every
+tick, so it could auto-start seconds later when cooldown completed. The isolated
+lane had the same implementation. A real personal Zarya barrier reproduced both
+the changing timestamp and an unwanted second Pet activation after release.
+ana-barrier-buffer-bug-reproduced-final.txt records2 ordinary failed subcases;
+projected subcases passed. Earlier fixture errors assumed both bubbles had the
+same configured window; raw resource inspection corrected that assumption.
+
+Reviewed shared fix
+Ability.take_press can retain the matching entry. can_start first checks a
+retained entry and consumes it only after all cooldown/condition/stack gates
+pass. Failed starts preserve the original timestamp rather than appending now.
+The two method ASTs match the parent's reviewed uncommitted fix. No roll motion,
+velocity backend or other parent changes are copied, and parent files are read
+only. External ability-buffer-parent-provenance.json records both source hashes.
+
+Resource-specific checks
+Personal0244 explicitly supplies0.15s in m_246438AD. Projected025C, Ana Sleep
+Dart0BDD and Grenade0B97 do not configure that field; the current VM interprets
+missing as a zero window. Tests preserve this distinction: a near-expiry short
+press buffers for the personal bubble, but expires for the unconfigured cases;
+held input and a fresh ready press still work. The exact original-client default
+for an absent field and full native input/cooldown timing remain unproved.
+
+Four added player-world barrier methods cover original timestamp, expired early
+release/fresh press, near-expiry window behavior and held input for both bubbles.
+Four added actual Ana graph methods cover the corresponding sleep/grenade cases.
+A held-input assertion originally inspected cooldown at volley release, before
+the authored end path started it; it now retains the activation assertion and
+waits for that end path before checking the new cooldown. No predicate is forced.
+
+ana-buffer-shared-expanded-final.txt:64 methods PASS in42.108s, including shared
+Ability, both runtime suites and budget checks. The first energy broad run was
+explicitly interrupted through its own live handle when the parent notice
+arrived; ana-barrier-energy-regressions.txt has no completed acceptance result.
+The replacement full regression includes test_game_ana_barrier_buffer and the
+four added Ana gate methods. Full hero static/client acceptance remains OPEN;
+no final commit, merge or publication is authorized by these partial checks.
+
+The replacement energy/buffer broad run completes429 methods PASS in1279.942s,
+including complete stored replay/server snapshots. A later separate throttle
+consumer port follows that baseline; see ANA_THROTTLE_MODIFIERS.txt rather than
+claiming the429 run covers a later source state.

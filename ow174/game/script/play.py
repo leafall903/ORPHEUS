@@ -57,6 +57,18 @@ def evaluate_value(instance, cfg, *, initial=0, watcher=None):
         return instance.evaluate(cfg, watcher, initial=initial)
 
 
+def array_item(instance, cfg, *, watcher=None):
+    """104319 1B79A60: scalar index, collecting +28 container, array-only lookup.
+
+    Failed/missing index evaluation selects zero. Missing/non-array containers
+    and out-of-range indices successfully write null, rather than preserving the
+    caller's destination. Unlike expression MEMBER_BY_INDEX, scalars never match.
+    """
+    index = expr.to_int(evaluate_scalar(instance, cfg.get("m_index"), initial=0, watcher=watcher))
+    values = evaluate_value(instance, cfg.get("m_814F8EC3"), initial=None, watcher=watcher)
+    return values[index] if isinstance(values, tuple) and 0 <= index < len(values) else None
+
+
 def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 
@@ -146,7 +158,7 @@ def _key(instance, node, key) -> int:
     return key
 
 
-def _inline(instance, node, cfg):
+def _inline(instance, node, cfg, watcher):
     definition = cfg.get("m_6525E98B") or {}
     guid = expr.guid_of(definition.get("m_graph"))
     if not guid:
@@ -158,7 +170,7 @@ def _inline(instance, node, cfg):
         if not isinstance(row, dict):
             instance.component.unsupported(instance, "played graph override row", node.cls, node)
         config = row.get("m_value")
-        value = evaluate_value(instance, config) if config is not None else 0
+        value = evaluate_value(instance, config, watcher=watcher) if config is not None else 0
         key = _key(instance, node, expr.guid_of(row.get("m_0D09D2D9")))
         buckets = _insert(buckets, key, value, work)
     return expr.Map(tuple(row for row in buckets if row is not None))
@@ -184,32 +196,32 @@ def _mapped(instance, node, rows):
     return Resource(guid, tuple(entries)) if guid else None
 
 
-def _evaluate(instance, node, cfg, *, collecting=True, depth=0):
+def _evaluate(instance, node, cfg, *, collecting=True, depth=0, watcher=None):
     instance.component.consume_work("played graph resource evaluation")
     if depth >= MAX_CONFIG_DEPTH:
         instance.component.budget_exceeded("played graph resource config depth exhausted")
     if isinstance(cfg, dict) and cfg.get("$") == "STU_9DB46B98":
         # D058D0 writes nothing and returns false for an empty inline graph.
-        return _inline(instance, node, cfg)
+        return _inline(instance, node, cfg, watcher)
     if (isinstance(cfg, dict) and cfg.get("$") == "STU_105E1BCC"
             and cfg.get("m_resourceKey") is not None):
         instance.component.unsupported(instance, "played graph keyed resource", cfg["$"], node)
     if collecting:
-        return evaluate_value(instance, cfg)
+        return evaluate_value(instance, cfg, watcher=watcher)
     if isinstance(cfg, dict) and cfg.get("$") == "STU_06610EBC":
         # 1B77980's +20 delegates only to the first config, including its
         # failure. It does not collect/skip forward to a later config.
         configs = cfg.get("m_configVars") or ()
         if not configs or configs[0] is None:
             return 0
-        return _evaluate(instance, node, configs[0], collecting=False, depth=depth + 1)
-    return instance.evaluate(cfg, initial=0)
+        return _evaluate(instance, node, configs[0], collecting=False, depth=depth + 1, watcher=watcher)
+    return instance.evaluate(cfg, watcher, initial=0)
 
 
-def _select(instance, node, cfg):
+def _select(instance, node, cfg, watcher):
     if cfg is None:
         return None
-    value = _evaluate(instance, node, cfg)
+    value = _evaluate(instance, node, cfg, watcher=watcher)
     if isinstance(value, expr.Map):
         selected = _mapped(instance, node, value.items)
         if selected is not None:
@@ -217,21 +229,21 @@ def _select(instance, node, cfg):
             # resource branch below performs the native .01B type check.
             return selected
     # D05510 evaluates again through 8F6A90 when no usable map graph was found.
-    guid = _asset(_evaluate(instance, node, cfg, collecting=False))
+    guid = _asset(_evaluate(instance, node, cfg, collecting=False, watcher=watcher))
     return Resource(guid) if guid and guid >> 48 == GRAPH_TYPE else None
 
 
-def resolve_resource(instance, node) -> Resource | None:
+def resolve_resource(instance, node, *, watcher=None) -> Resource | None:
     """Try graph-with-overrides first, then m_script; no entity or loader effects.
 
-    Values are evaluated in the caller without a state watcher. Unknown configs
+    Values are evaluated in the caller. Unknown configs
     still fail through the world's strict evaluator. Native instance context,
     target iteration, resource readiness and transport flags belong to the
     world's play_resolved_script service.
     """
     with instance.component.operation():
-        return (_select(instance, node, node.field("m_69F4B52C"))
-                or _select(instance, node, node.field("m_script")))
+        return (_select(instance, node, node.field("m_69F4B52C"), watcher)
+                or _select(instance, node, node.field("m_script"), watcher))
 
 
 def _scalar(instance, cfg, *, initial, depth=0, watcher=None):

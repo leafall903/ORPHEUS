@@ -545,8 +545,10 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
 
     def test_rapid_arrows_use_only_their_own_delivered_volley_activation(self):
         releases = (1022, 1058)
+        # Keep weak arrows airborne throughout the delivery comparison window.
+        # A level arrow now lands under its authored gravity before frame1064.
         commands = [
-            Command(frame, buttons=FIRE if 1017 <= frame < 1022 or 1053 <= frame < 1058 else 0)
+            Command(frame, pitch=-6000, buttons=FIRE if 1017 <= frame < 1022 or 1053 <= frame < 1058 else 0)
             for frame in range(1017, 1064)
         ]
         player, reports, _ = self.play(0x02E0000000000005, commands)  # Hanzo

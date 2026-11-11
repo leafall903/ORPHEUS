@@ -6,10 +6,30 @@ Scene bindings and the reverse primary-possessor catalog do not imply these inpu
 
 from dataclasses import dataclass
 
-from ow174.game.script import expr, play
+from ow174.game.script import expr, graph, play
 
 EXISTS = 'STU_E72F6348'
 POSSESSED = 'STU_0AC15F78'
+DEFINITION = 'STU_1A3FA5B0'
+INDEXED_TARGET = 'STU_A37A910D'
+TARGET_RECORD_SCALAR = 'STU_D379F515'
+COMPONENT76_KEY = 'STU_25ECB55F'
+
+
+@dataclass(frozen=True)
+class Component76Keys:
+    primary: frozenset[int] = frozenset()
+    fallback: frozenset[int] = frozenset()
+    suppressed: frozenset[int] = frozenset()
+
+    def __post_init__(self):
+        for entries in (self.primary, self.fallback, self.suppressed):
+            if type(entries) is not frozenset or any(
+                    type(key) is not int or not 0 <= key <= 0xFFFFFFFF for key in entries):
+                raise ValueError("component76 keys must be uint32 sets")
+
+    def contains(self, key: int) -> bool:
+        return key not in self.suppressed if key in self.primary else key in self.fallback
 
 
 @dataclass
@@ -60,6 +80,43 @@ class Context:
 def evaluate(evaluation, cfg):
     """Return NotImplemented only when this world has not installed the service."""
     cls = cfg.get('$')
+    if cls in (INDEXED_TARGET, TARGET_RECORD_SCALAR):
+        return _target_query(evaluation, cfg, cls)
+    if cls == COMPONENT76_KEY:
+        instance, watcher = evaluation.instance, evaluation.watcher
+        component = instance.component
+        resource = cfg.get("m_88B0050A")
+        key = 0 if resource is None else graph.guid(resource)
+        if key is None:
+            component.unsupported(instance, "component76 resource key", cls)
+        value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0), watcher=watcher)
+        record = component.world.component76_keys(expr.to_entity(value))
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, "component76 query owner retired", cls)
+        if record is NotImplemented:
+            return NotImplemented
+        if record is None:
+            return False
+        if type(record) is not Component76Keys:
+            component.unsupported(instance, "component76 keys", cls)
+        return record.contains(key & 0xFFFFFFFF)
+    if cls == DEFINITION:
+        instance, watcher = evaluation.instance, evaluation.watcher
+        component = instance.component
+        value, success = play.evaluate_scalar_result(instance, cfg.get("m_entity"), watcher=watcher)
+        identifier = expr.to_entity(value) if success else expr.INVALID_ENTITY
+        definition = component.world.entity_definition_resource(identifier)
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, "entity definition lookup owner retired", cls)
+        if definition is NotImplemented:
+            return NotImplemented
+        if type(definition) is not int or not 0 <= definition <= 0xFFFFFFFFFFFFFFFF:
+            component.unsupported(instance, "entity definition resource", cls)
+        return expr.Asset(definition)
     if cls not in (EXISTS, POSSESSED):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher
@@ -128,3 +185,50 @@ def evaluate(evaluation, cfg):
     if type(target.possession.current) is not int or not 0 <= target.possession.current <= 0xFFFFFFFF:
         unsupported('entity query current possession')
     return expr.Entity(target.possession.current)
+
+
+def _target_query(evaluation, cfg, cls):
+    instance, watcher = evaluation.instance, evaluation.watcher
+    component = instance.component
+    world = component.world
+
+    def check_owner():
+        component.ensure_valid()
+        if (instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, "target query owner retired", cls)
+
+    def entity_input(field):
+        value = play.evaluate_scalar(instance, cfg.get(field), initial=expr.Entity(0), watcher=watcher)
+        return expr.to_entity(value)
+
+    if cls == INDEXED_TARGET:
+        lookup = world.indexed_target_lookup(component.entity)
+        check_owner()
+        if lookup is NotImplemented:
+            return NotImplemented
+        if lookup is None:
+            return expr.EVALUATION_FAILED
+        if not callable(lookup):
+            component.unsupported(instance, "indexed target lookup service", cls)
+        owner = entity_input("m_152B6961")
+        index = expr.to_int(play.evaluate_scalar(instance, cfg.get("m_A60150E2"), watcher=watcher))
+        check_owner()
+        target = lookup(owner, index)
+        check_owner()
+        if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
+            component.unsupported(instance, "indexed target identity", cls)
+        return expr.Entity(target)
+
+    target = entity_input("m_target")
+    owner = entity_input("m_7826B991")
+    check_owner()
+    value = world.target_record_scalar(owner, target)
+    check_owner()
+    if value is NotImplemented:
+        return NotImplemented
+    if value is None:
+        return expr.EVALUATION_FAILED
+    if type(value) not in (float, int):
+        component.unsupported(instance, "target record scalar", cls)
+    return expr.f32(value)

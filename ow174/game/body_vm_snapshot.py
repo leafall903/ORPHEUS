@@ -10,9 +10,19 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.assassin_controller import TargetWorld as AssassinTargetWorld
+from ow174.game.ball_mines import MineWorld
+from ow174.game.baptiste_field import FieldWorld
+from ow174.game.enforcer_controller import TargetWorld
+from ow174.game.health_packs import PackWorld
+from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.script import expr, graph, message_manager, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
+from ow174.game.sombra_control import DeviceWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
+from ow174.game.symmetra_barrier import BarrierWorld as PhotonWorld
+from ow174.game.winston_barrier import DomeWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -30,7 +40,7 @@ _INSTANCE = frozenset((
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -49,7 +59,12 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    nodes.PortalPlacement: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.B61State: ((), ()),
+    nodes.B61ExtendedState: ((), ()),
+    nodes.WraithPrelude: ((), ()),
+    nodes.RecallRewind: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -63,9 +78,15 @@ _STATE_LAYOUTS = {
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
+    nodes.ActiveInputRelay: ((), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
+    nodes.AssassinMovementState: (("movement_outputs", "movement_frame"), ()),
+    nodes.AssassinPursuitCallbacks: (("pursuit_hosted", "pursuit_refresh"), ()),
+    nodes.AssassinFacingState: ((), ()),
+    nodes.AssassinNavigationState: ((), ()),
+    nodes.AssassinButtonRequest: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
@@ -77,10 +98,14 @@ _STATE_LAYOUTS = {
     ),
     nodes.MoveTo: (("movement",), ()),
     nodes.Anim: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
+    nodes.ManagedLocalScript: (("child", "resource_guid", "definition"), ()),
+    nodes.Component86SelectionState: ((), ("registry",)),
+    nodes.Component86NumericPairState: ((), ("registry",)),
     nodes.GameMessageEntry: (("message_context", "message_sender", "message_stacked", "message_key",
                              "message_flags", "message_selected", "message_generation", "message_count",
                              "message_sources", "message_cache", "message_refresh", "message_updating",
@@ -89,7 +114,11 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackRay: (("ray_hit",), ()),
+    nodes.TrackTargets: (("targets", "target_var"), ()),
+    nodes.FilterArray: ((), ()),
+    nodes.CreateEntity: ((), ()),
+    nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
@@ -101,6 +130,7 @@ _VALUE_LAYOUTS = {
     message_receive.Packet: ("message", "caller", "instigator", "params"),
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
+    message_manager.Key: ("entity", "flags", "message"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
 }
 
@@ -138,7 +168,7 @@ def _digest(value) -> str:
 
 
 class _Export:
-    def __init__(self, component):
+    def __init__(self, component, external_reference=None):
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
@@ -148,6 +178,7 @@ class _Export:
         _containers(fields, ("parameter_scopes",), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
+        self.external_reference = external_reference
         self.instances = {}
         self.states = {}
         self.variables = {}
@@ -184,7 +215,7 @@ class _Export:
             raise BodyVMSnapshotError("unknown instance class")
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
-        _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("queue", "ticking", "deferred", "params", "join_inputs"), list, "instance")
         _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
@@ -221,7 +252,7 @@ class _Export:
         if (type(fields["node"]) is not graph.Node or not 0 <= index < len(owner.graph.states)
                 or owner.graph.states[index] is not fields["node"]):
             raise BodyVMSnapshotError("state node does not match its graph slot")
-        if kind is not runtime.STATE_CLASSES.get(fields["node"].cls, runtime.State):
+        if kind is not runtime.state_type(fields["node"].cls, strict=owner.component.strict):
             raise BodyVMSnapshotError("state class does not match its registered node model")
         key = (owner.id, index)
         if key not in self.states:
@@ -373,6 +404,10 @@ class _Export:
             return obj
         if obj is self.component:
             return {"ref": ["component"]}
+        if self.external_reference is not None:
+            reference = self.external_reference(obj)
+            if reference is not None:
+                return {"external_ref": reference}
         if kind is runtime.Instance:
             return {"ref": self._instance(obj)}
         if kind in _STATE_LAYOUTS:
@@ -383,17 +418,41 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld, DomeWorld, PhotonWorld,
+                    ExperimentalBarrierWorld, FieldWorld, PackWorld, DeviceWorld, TargetWorld,
+                    AssassinTargetWorld, MineWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
+            optional = ()
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+                fields.update(("weapon_buttons", "owner_position", "match",
+                               "controller_components", "manual_target"))
+                optional = ("sniper_target", "sniper_retry_at")
+            if kind is BarrierWorld:
+                fields.update(("fight", "entity", "location"))
+            if kind in (PhotonWorld, ExperimentalBarrierWorld):
+                fields.add("actor")
+            if kind is DomeWorld:
+                fields.update(("manager", "actor"))
+            if kind in (DeviceWorld, FieldWorld):
+                fields.update(("body", "fight", "tags"))
+            if kind is FieldWorld:
+                fields.update(("origin", "retired"))
+            if kind is TargetWorld:
+                fields.update(("fight", "body", "selected"))
+            if kind is AssassinTargetWorld:
+                fields.update(("fight", "body", "candidates", "attack_target", "windup_target"))
+            if kind is PackWorld:
+                fields.update(("match", "entity"))
+            if kind is MineWorld:
+                fields.update(("manager", "mine"))
+            # Enclosing server references are recorded by the server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, optional,
+                                          exclude={"match", "fight", "manager", "actor", "mine"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -579,12 +638,12 @@ class _Export:
         return result
 
 
-def _document(component, extra_roots, script=None):
+def _document(component, extra_roots, script=None, external_reference=None):
     if type(extra_roots) not in (tuple, list):
         raise BodyVMSnapshotError("extra_roots must be a tuple or list")
     try:
         source = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
-        exporter = _Export(component)
+        exporter = _Export(component, external_reference)
         raw = exporter.capture(extra_roots, script)
         document = {
             "schema": SCHEMA if script is not None else COMPONENT_SCHEMA,
@@ -601,14 +660,15 @@ def export_component_vm(component, *, extra_roots=()) -> dict:
     return _document(component, extra_roots)[0]
 
 
-def export_component_vm_with_identities(component, *, extra_roots=()) -> tuple:
+def export_component_vm_with_identities(component, *, extra_roots=(), external_reference=None) -> tuple:
     """Return one capture plus ephemeral (storage id, original object, scope tag) bindings.
 
     Scope tags are vm, model or vm+model. The sidecar is not serializable replay
     data; an outer adapter can detect unsupported sharing across artifact scopes.
-    No identity callback or gameplay function is invoked.
+    The optional outer encoder supplies references to registered enclosing storage.
+    No gameplay function is invoked.
     """
-    return _document(component, extra_roots)
+    return _document(component, extra_roots, external_reference=external_reference)
 
 
 def export_body_vm(script) -> dict:

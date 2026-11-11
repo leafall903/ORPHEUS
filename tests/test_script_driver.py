@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ow174.game import statescript
 from ow174.game.bits import BitReader, BitWriter
-from ow174.game.script import decode, runtime
+from ow174.game.script import decode, expr, runtime
 from ow174.game.script import driver as driver_module
 from ow174.game.script import graph as graphs
 from ow174.game.script.driver import POLLED_SWITCHES, SETTLE_FRAMES, TRUSTED_NATIVES, BodyScript
@@ -389,7 +389,19 @@ class BodyTests(unittest.TestCase):
         took the 32 bits after st120 as its frame, so instance 14's (02C5) variable mask picked an
         m_syncVars entry without an id, whose own-instance binding read the bag of a null variable
         (0x7FF78991D6DB, 'reading 0x90' at payload bit 2842 in both crash dumps)."""
-        with mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}):
+        evaluate = expr.evaluate
+
+        def evaluate_at_capture(config, context, *, initial=None):
+            # The server at capture time sent this query through the native fallback.
+            if isinstance(config, dict) and config.get("$") == "STU_58AA0A3B":
+                result = context.native(config)
+                return initial if result is expr.EVALUATION_FAILED else result
+            return evaluate(config, context, initial=initial)
+
+        with (
+            mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}),
+            mock.patch.object(expr, "evaluate", evaluate_at_capture),
+        ):
             body, client = spawned(9198)
             body.command(9199, 0)
             with without_payloads("STU_D74D4F47"):

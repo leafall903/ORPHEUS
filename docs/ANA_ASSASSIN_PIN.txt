@@ -1,0 +1,34 @@
+Manual Assassin contact against Ana on build 104319
+
+The authored body 0400000000001EBD advertises slot0 button20, which enters
+13B8 without a damage outlet. The manual policy selects button36 for graph
+1157 and supplies its owner DB742151 query with a data-only map keyed by1650.
+The graph assigns the returned body to variable536. Node25 reads amount
+13230 and node15 reads amount11984 with mode1. Scope23 encloses the pin
+sequence, including the delay before continuous damage.
+
+The server binds a living enemy player body at up to 3m with static capsule
+visibility. This is an explicit manual contact policy. The health service
+interprets the default mode as one entry application and mode1 as damage per
+second over elapsed VM time. The actual graph applies25 at entry and16 over
+ten16ms frames of the continuous phase. Existing combat damage handles Nano
+scalars and protection. The manual target, damage clock and pin registry are
+part of causal snapshots.
+
+Pin control uses the existing ability interruption and command constraints.
+It releases on lost contact, source sleep or stun, authored scope exit,
+death, body replacement, removal, or script failure. The release edge runs
+in the body VM. An independent Flashbang deadline survives pin release.
+A preexisting projected barrier absorbs the entry hit and prevents the pin.
+Projecting onto a pinned player releases control under the declared cleanse
+policy. An allied Ana sleep dart also releases control on the next weapon
+update. Actual Nano cast is interrupted before its heal and boost release.
+
+The final authored43-mover NPC group passed all50 methods, including the
+five incoming weapons and seven focused Assassin cases. The shared control
+and snapshot group passed87 methods before the final manual corpse cleanup.
+Source death uses authoritative damage directly. Victim death comes from a
+continuous pin tick against a deliberately low health pool. The fixture uses
+static geometry and transport adapters. Native controller and acquisition,
+the pin health clock, cooldown/recovery, teammate escape/counterplay,
+animation, and original-client acceptance remain open.

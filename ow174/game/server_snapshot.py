@@ -20,13 +20,18 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    enforcer_controller,
+    assassin_controller,
     heroselect,
+    health_packs,
     notices,
+    npc_navigation,
     observers,
     projectiles,
     replay_values,
     statescript,
     stats,
+    trooper_coordination,
     voicelines,
     world,
 )
@@ -38,7 +43,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import driver, expr, message_manager, message_state, play, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -92,10 +97,44 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "match vitals history replacement_ticks rockets timed_hits respawns next_bot now tick melee_seen "
+        "projectiles observers voice stuns body_barriers barrier_casts beam_frames "
+        "pins sigma sigma_barriers reinhardt brigitte_shields orisa_barriers winston_bubbles "
+        "symmetra_barriers cryo_samples ice_wall external_impulses baptiste_fields steel_traps ball_mines torbjorn_turrets "
+        "symmetra_sentries symmetra_portals hooks breathers recalls sound_barriers sombra_controls"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.sombra_control.Controls: _names("fight locks held device_receivers"),
+    combat.sombra_control.DeviceWorld: _names("hero mode fight body tags"),
+    combat.tracer_recall.Recalls: _names("fight history phases"),
+    combat.sound_barrier.SoundBarriers: _names("fight landings waves shielded"),
+    combat.mei_wall.Walls: _names("combat pieces inputs"),
+    combat.winston_barrier.Barriers: _names("fight actors pending"),
+    combat.winston_barrier.DomeWorld: _names("hero mode manager actor"),
+    combat.symmetra_barrier.Barriers: _names("fight geometry actors"),
+    combat.symmetra_barrier.Geometry: _names("world triangles source"),
+    combat.symmetra_barrier.BarrierWorld: _names("hero mode actor"),
+    combat.sigma_barrier.Barriers: _names("fight geometry actors"),
+    combat.sigma_barrier.Geometry: _names("world triangles"),
+    combat.sigma_barrier.BarrierWorld: _names("hero mode actor"),
+    combat.brigitte_shield.Shields: _names("combat geometry by_body"),
+    combat.hook.Hooks: _names("fight flights seen"),
+    combat.breather.Breathers: _names("fight channels"),
+    combat.baptiste_field.Fields: _names("fight flights devices"),
+    combat.steel_trap.Traps: _names("fight devices"),
+    combat.ball_mines.Mines: _names("fight devices volleys"),
+    combat.ball_mines.MineWorld: _names("hero mode manager mine"),
+    combat.torbjorn_turret.Turrets: _names("fight devices"),
+    combat.symmetra_sentry.Sentries: _names("fight devices"),
+    combat.symmetra_portal.Portals: _names("fight pairs held transits cooldowns"),
+    combat.baptiste_field.FieldWorld: _names("hero mode fight body tags origin retired"),
+    combat.orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
+    combat.orisa_barrier.Geometry: _names("world triangles source"),
+    combat.orisa_barrier.BarrierWorld: _names("hero mode fight entity location"),
+    combat.reinhardt.Barriers: _names("combat triangles bounds owners"),
+    combat.sigma.Sigma: _names("combat conversions last_tick"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer "
+                         "healing_boost_until healing_block_until sleep_until sleep_wake_floor nano_until "
+                         "bonus_shields bonus_shields_max sound_shield adaptive_shield"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -117,7 +156,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position match controller_components manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -126,18 +165,62 @@ FIELDS = {
     ),
     BitWriter: _names("value count"),
     world.RecordWriter: _names("value count origin"),
+    enforcer_controller.TargetWorld: _names("hero mode fight body selected"),
+    assassin_controller.TargetWorld: _names("hero mode fight body candidates attack_target windup_target"),
+    trooper_coordination.Coordination: _names("match messages components faults"),
+    trooper_coordination.CoordinationWorld: _names(
+        "hero mode weapon_buttons owner_position match controller_components manual_target host body possessor context"
+    ),
+    message_state.Host: _names("contexts current manager"),
+    message_state.Context: _names(
+        "component host policy frame priority timer_notify receiver_policy receiver_generation receiver_filter retired states"
+    ),
+    message_manager.Manager: _names(
+        "notify consume_work validate channels frame next_sequence retired _busy _discard_revision"
+    ),
+    health_packs.HealthPack: _names("entity definition position tags component"),
+    health_packs.PackWorld: _names("hero mode match entity"),
     world.Movement: _names("position yaw pitch velocity flags throttles input_frame input_throttles "
                            "air_ticks gravity frame crouch_frame spring spring_speed fall"),
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
-        "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse"
+        "brake pace direction position yaw pitch velocity firing route index wait target start keys turning "
+        "held last_held input_tick moved_tick last_tick retain_corpse"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    combat.Vitals: _names("doomfist_decay"),
+    BotWorld: _names("sniper_target sniper_retry_at"),
+    combat.Combat: _names("health_packs health_pack_digest trooper_coordination"),
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    bots.Bot: _names("pursuit charge_mover wall_mover enforcer_controller trooper_controller sniper_controller heavy_controller assassin_controller"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.TimedHit,
+    combat.BodyBarrier, combat.reinhardt.Barrier, combat.orisa_barrier.Barrier,
+    combat.symmetra_barrier.Shield, combat.winston_barrier.Bubble, combat.sigma_barrier.Shield,
+    combat.brigitte_shield.Shield,
+    combat.hook.Flight,
+    combat.breather.Channel,
+    combat.baptiste_field.Device, combat.baptiste_field.Flight,
+    combat.steel_trap.Trap,
+    combat.ball_mines.Mine,
+    combat.torbjorn_turret.Device,
+    combat.symmetra_sentry.Sentry,
+    combat.symmetra_portal.Pair, combat.symmetra_portal.Endpoint,
+    combat.cryo.Healing,
+    combat.tracer_recall.Sample,
+    combat.tracer_recall.Phase,
+    combat.sound_barrier.Shield,
+    combat.sound_barrier.Landing,
+    combat.sound_barrier.Wave,
+    combat.adaptive_shield.Pool,
+    combat.sombra_control.Lock,
+    combat.mei_wall.Pillar, combat.mei_wall.Input,
+    npc_navigation.Search, npc_navigation.Pursuit,
+    play.Request, play.Resource, play.InvocationContext,
+    message_manager.Key, message_manager.Sender, message_manager._Channel,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -165,6 +248,7 @@ class _Graph:
         self.weak_nodes = []
         self.vm_nodes = []
         self.vm_extra = {}
+        self.message_sets = {}
         self.physics_owners = {}
         self.values = 0
 
@@ -286,6 +370,8 @@ class _Graph:
             data = [[self.value(key), self.value(value)] for key, value in obj.items()]
         elif kind is deque:
             data = {"maxlen": obj.maxlen, "items": [self.value(value) for value in obj]}
+        elif kind is set and id(obj) in self.message_sets:
+            data = [self.value(value) for value in sorted(obj, key=self.message_sets[id(obj)])]
         elif kind in (set, frozenset):
             # Registered game sets here are membership sets of immutable plain keys.
             # Causal VM watcher/state sets are handled by the component adapter.
@@ -333,6 +419,14 @@ class _Graph:
         elif kind is random.Random:
             data = {"fields": self._fields(obj, frozenset(("gauss_next",))),
                     "rng_state": replay_values.encode(random.Random.getstate(obj))}
+        elif kind is message_state.Host:
+            if obj.current or obj.manager._busy:
+                _fail("cannot export a message host during a callback")
+            self.message_sets[id(obj.contexts)] = lambda context: context.component.entity
+            data = self._fields(obj, FIELDS[kind])
+        elif kind is message_state.Context:
+            self.message_sets[id(obj.states)] = lambda state: (state.instance.id, state.index)
+            data = self._fields(obj, FIELDS[kind])
         elif kind in FIELDS:
             data = self._fields(obj, FIELDS[kind], OPTIONAL_FIELDS.get(kind, frozenset()))
         elif kind in DATACLASSES:
@@ -342,6 +436,29 @@ class _Graph:
             _fail(f"unregistered stored domain type: {label}")
         self.nodes[number] = {"id": number, "type": label, "state": data}
 
+    def _coordination_reference(self, component, value, var_owners):
+        if value is component.world or value is component.world.context:
+            return self.value(value)
+        if isinstance(value, runtime.State):
+            owner = value.instance.component
+            if owner is component:
+                return None
+            if (type(owner.world) is trooper_coordination.CoordinationWorld
+                    and owner.world.host is component.world.host and owner.world.context.retired
+                    and value.instance.stopped and not value.active
+                    and value.instance.states.get(value.index) is value):
+                return ["retired_coordination_state", owner.entity, value.instance.id, value.index]
+            if (component.world.host.components.get(owner.entity) is not owner
+                    or owner.instances.get(value.instance.id) is not value.instance
+                    or value.instance.states.get(value.index) is not value):
+                _fail("foreign state is outside the active coordination host")
+            return ["vm_state", self.value(owner), value.instance.id, value.index]
+        if type(value) is runtime.Var:
+            owner = var_owners.get(id(value))
+            if owner is not None and owner is not component:
+                return ["vm_var", self.value(owner), *value.key]
+        return None
+
     def finish(self):
         index = 0
         while index < len(self.objects):
@@ -350,10 +467,19 @@ class _Graph:
         from ow174.game.body_vm_snapshot import export_component_vm_with_identities
 
         owners = {}
+        var_owners = {}
+        for number in self.vm_nodes:
+            component = self.objects[number]
+            if type(component.world) is trooper_coordination.CoordinationWorld:
+                var_owners.update((id(var), component) for var in component.vars.values())
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
-            document, identities = export_component_vm_with_identities(component, extra_roots=extras)
+            external_reference = None
+            if type(component.world) is trooper_coordination.CoordinationWorld:
+                external_reference = lambda value: self._coordination_reference(component, value, var_owners)
+            document, identities = export_component_vm_with_identities(
+                component, extra_roots=extras, external_reference=external_reference)
             bridges = []
             for storage_id, obj, scope in identities:
                 core = self.memo.get(id(obj))

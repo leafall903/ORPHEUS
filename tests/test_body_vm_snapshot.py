@@ -54,6 +54,7 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STUStatescriptStateTrackRay", nodes.TrackRay),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
@@ -71,7 +72,7 @@ INSTANCE_FIELDS = {
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -162,13 +163,30 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 36)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
                 exported = record(data, ["state", 1, index])
                 self.assertEqual(exported["class"], f"{expected_type.__module__}.{expected_type.__name__}")
                 self.assertEqual(set(dict(exported["fields"])), set(vars(instance.states[index])))
+
+    def test_strict_assassin_pursuit_and_facing_storage_exports(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(minimal_graph(("STU_ECAEE401", "STU_AB9B30EF")), init=False)
+        for index, expected in enumerate((nodes.AssassinPursuitCallbacks, nodes.AssassinFacingState)):
+            self.assertIs(type(instance.state(index)), expected)
+        data = raw(export_component_vm(component))
+        self.assertEqual(set(fields(data, ["state", 1, 0])),
+                         STATE_FIELDS | {"pursuit_hosted", "pursuit_refresh"})
+        self.assertEqual(set(fields(data, ["state", 1, 1])), STATE_FIELDS)
+
+    def test_assassin_navigation_outside_authored_graph_keeps_factory_fallback(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(minimal_graph(("STU_988AAC99",)), init=False)
+        with mock.patch.object(runtime.World, "native_state_factory_miss", return_value=True) as miss:
+            self.assertIsNone(instance.state(0))
+        miss.assert_called_once_with("STU_988AAC99")
 
     def test_optional_lifecycle_storage_distinguishes_missing_from_present_none(self):
         models = (

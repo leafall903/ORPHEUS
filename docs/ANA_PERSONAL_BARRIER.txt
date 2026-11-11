@@ -1,0 +1,97 @@
+Ana versus Zarya personal barrier: partial104319 server reconstruction
+
+Actual activation evidence
+Zarya0068's0244 Ability0 begins Pet2 with entity definition13F4. Its entry sets
+instance variable567 to2, initializes remaining215 from it and ChaseVar1 counts
+it down. Actual Shift commands enter Pet2; the unmodified VM ends that phase
+around12516ms steps later. This is a real graph activation, not a deduction from
+Ability.RUNNING. BodyBarrier consumes the activation counter and remaining
+215, from both command processing and world updates. A command can begin the
+phase after that world's update, so handling only update would miss its first
+same-frame contacts. The input step can already consume up to one16ms tick.
+
+Pet13F4 and projected Pet03DA both declare ray receiver002A. Personal effect
+00A2.053 references025D; the00A1/00A2 external closure has2 graphs,0 missing.
+The native actor/receiver collision and effect-host machinery is not implemented.
+The D.Va public hero entry currently loads the pilot body/026A mech-creation
+graph; a pilot activation cannot establish native Defense Matrix. Its mech
+creation and matrix interception stay open rather than being aliased to this.
+
+Implemented gameplay policy
+The model protects the existing Zarya body capsule. A cast supplies a200-point
+pool and the authored remaining duration. Rifle contacts consume their whole
+firing-time scaled amount immediately, without queuing a health dose. Dart
+damage consumes5 without sleep. Grenade contacts consume50 without antiheal;
+melee consumes30. A breaking contact is consumed completely without overflow;
+a depleted/expired activation cannot refill itself while the Pet stays active.
+Subsequent valid casts have new counters and create fresh pools. Replacement
+retires the old body's pool. Friendly rifle/grenade healing passes through.
+
+Offensive Nano scales barrier damage; Nano's incoming body-health reduction is
+applied after barrier interception. Absorbed contacts give no HERO_DAMAGE or Ana
+effective-health ultimate credit. Barrier-specific score/feedback remain open.
+Later energy work bridges effective pool loss into actual0242 arithmetic/timers;
+see ANA_BARRIER_ENERGY.txt for its explicit native Pet/classification limits.
+A new personal bubble clears the modeled
+Ana damage dose, antiheal and modeled negative control deadlines. Positive
+healing amplification/Nano are retained. Exact native cleansing classification,
+other debuffs and interaction order remain open.
+
+Capacity200, no overflow and negative-effect clearing are explicit gameplay
+reconstructions. They are not claimed as recovered from native Pet health or
+damage-handler execution. Later0256 resource inspection found an authored200
+literal and200 config fallback; native modifiers are still unproved. See
+ANA_PROJECTED_BARRIER.txt for that resource evidence and12 native conditional
+query cases. The earlier official2021-11 experimental notes list both
+barriers' health changing from200 to250; that supplies a historical OW1 baseline,
+not proof of the104319 native Pet capacity. The model uses200 while native
+capacity/geometry/energy and full native projected-barrier behavior remain unaccepted.
+Historical source: https://overwatch.blizzard.com/en-us/news/patch-notes/experimental/2021/11/
+Later OW2/live/classic patch values are not imported into104319.
+
+Executed checks
+Twelve actual-command behavior methods cover both rifle modes, dart, grenade,
+melee, friendly healing, breaking hit/no refill, expiry/native recast rejection,
+cleansing already-active Ana effects, Nano scaling boundary, body replacement,
+Flashbang impact rejection, sleeping-owner activation rejection, and real server
+snapshot sensitivity to absorbed damage. Final focused run passes in51.490s.
+An earlier Flashbang assertion ran after0.8s expiry and concealed a real bug.
+Moving it to each impact-window frame produced a genuine failure: damage was
+absorbed while blast stun still applied. Shared harmful-blast interception now
+precedes both damage and effect/status application; the corrected check passes.
+
+BodyBarrier is causal server state and is included in server domain hashes.
+No original-client acceptance, native barrier entity, visual/audio lease or
+observer presentation is established. Later reconstructed projected-body and
+ally/NPC acquisition work is recorded in ANA_PROJECTED_BARRIER.txt. Full native
+bubble geometry/cross-body occlusion and energy conversion remain OPEN.
+
+Prior personal-barrier baseline:398 tests PASS in888.433s, including complete stored
+replay/server snapshots and the12 personal-barrier methods. Ruff/diff PASS.
+Full hero static acceptance remains incomplete; no final commit or merge.
+
+NPC collision input correction
+The normal38-row mover table has no five-Talon rows. Prior NPC results used
+generic fallback envelopes and are historical functional evidence only.
+The explicit NPC suite now rejects those missing inputs before running. Its
+accepted fixture uses the parent's external43-row npc-navigation-runtime:
+Trooper1.7/.5/5.75, Enforcer1.9/.5/5, Sniper1.75/.5/4.5,
+Assassin1.5/.5/14, Heavy Assault2.3/.7/2.2 (height/radius/forward speed).
+Shared metadata hardlinks are read only. Real-map collision cache is not prepared;
+tests use explicit static triangle fixtures. Eye/muzzle/full native geometry,
+navigation/AI and two incoming attacks remain open. Tests additionally check
+grazing hits/misses and99m/101m rifle contact ranges using these authored inputs.
+The corrected14-method NPC run finishes in59.855s:13 passing methods and the
+same two ordinary Enforcer/Assassin incoming failures. Forty added grazing/range
+subcases pass. Runtime/input hashes and all original38 mover rows are verified
+unchanged; only read-only reuse of the parent's independent43-row data is used.
+
+C361 research boundary
+Original client graph preparation1B936E0 resolves raw C361 vtable26D5BD8 to the
+cached base evaluator26292E0 in an explicit base-registration fixture. Twenty
+original123CC10/93CA10 cases preserve prior destinations and return no-output
+failure; the prepared guard prevents a second lookup. Reflection/cache/allocation
+adapters and the complete captured registration absence are recorded externally.
+This proves a client fallback path only. It does not establish service-side
+C361 resource semantics or five-NPC controller startup; no production fallback
+or guessed null/asset result was added for C361.

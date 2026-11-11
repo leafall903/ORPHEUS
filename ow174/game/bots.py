@@ -136,6 +136,7 @@ class Bot:
         self.direction = (0.0, 1.0)  # the way it walks now (x, z)
         self.position = tuple(spawner["position"])
         self.yaw = float(yaw_of(spawner["rotation"]))
+        self.pitch = 0.0  # explicit manual aim; native autonomous targeting remains separate
         self.velocity = (0.0, 0.0, 0.0)
         variables = spawner.get("vars", {})
         roots = {int(g, 16) for g in spawner["graphs"]}
@@ -154,16 +155,30 @@ class Bot:
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
 
-    def step(self, tick: int, seconds: float, collision=None) -> None:
+    def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
-        if not self.route or self.dead:
+        if self.dead:
+            return
+        if not self.route:
+            if tick < paused_until:
+                self._pause(tick)
+                self.last_tick = tick
             return
         ticks = 1 if self.last_tick is None else tick - self.last_tick
         if ticks <= 0:
             return
         self.last_tick = tick
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
-            self._tick(at, seconds, collision)
+            if at < paused_until:
+                self._pause(at)
+            else:
+                self._tick(at, seconds, collision)
+
+    def _pause(self, tick: int) -> None:
+        self.pace = 0.0
+        self.velocity = (0.0, 0.0, 0.0)
+        self.held = (0, 0)
+        self.moved_tick = tick
 
     def _tick(self, tick: int, dt: float, collision) -> None:
         before = (self.position, round(self.yaw))
@@ -278,6 +293,8 @@ class Bot:
 
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
+        if hasattr(self, "wall_mover"):
+            del self.wall_mover
         self.dead = True
         self.keys = False
         self.held = (0, 0)
@@ -316,7 +333,7 @@ class Bot:
         return Movement(
             self.position,
             s16(round(self.yaw)),
-            0,
+            s16(round(self.pitch)),
             self.velocity,
             DEAD if self.dead else 0,
             throttles=self.held,

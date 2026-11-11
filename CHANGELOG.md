@@ -4,7 +4,496 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Ana server integration handoff
+
+- Package the current Ana combat implementation, cross-hero interactions,
+  NPC combat and movement, shared script and snapshot support, extraction
+  tools, and their tests. The earlier allied rifle healing commit is in
+  this branch's history.
+- Three focused NPC regression tests passed, covering live Trooper
+  coordination and Mei Ice Wall lifting moving and stationary NPCs.
+  All 154 changed Python files parsed and the staged diff passed
+  the whitespace check.
+- Full static acceptance remains open, including native damage and charge
+  timing, complete defense interactions, device firing integration, and
+  autonomous NPC special behavior. Original-client acceptance is open.
+
+### 2026-11-10
+
+#### Explicit NPC state-factory misses
+
+- Let strict scene hosts declare native factory misses. Those unknown state
+  slots stay empty and sibling links continue. The pinned 104319 factory
+  probe supplies the scoped misses used by the 142A startup diagnostic.
+
+#### NPC 142A registry states
+
+- Model B61E6681 and 600E3C59 on an explicitly supplied scene registry.
+  Both use the same begin, update, and cleanup path. Native payload packing
+  and priority order have separate evidence.
+
+#### NPC controller difficulty query
+
+- Extract authored AI difficulty keys and their profile assets. An explicitly
+  bound scene entity can supply its selected key to the 142A controller graph.
+  Strict diagnostics reach the next node on both comparison branches.
+
+#### Mei Cryo-Freeze against Ana
+
+- Read the 05FE protection stack through the authored exit wait. Self-healing
+  stops when its state ends. Catch-up healing uses the grenade status at each
+  pulse, including boosts that start or expire within the input gap.
+
+#### Ana movement on Mei Ice Wall
+
+- Add live Ice Wall side collision and pillar-top support to the player mover.
+  Pillars raise overlapping players when the map capsule sweep has clearance.
+  Tests cover side blocking, recall, lift, jump and landing, walking off, and
+  omitting a column under insufficient headroom.
+
+#### Ana sleep wake recovery
+
+- Enforce a 1.5-second minimum lock and a 0.5-second damage wake period on the
+  combat clock. Repeated damage keeps the first wake deadline. Actual rifle,
+  grenade, Flashbang, Projected Barrier and five NPC routes exercise the
+  reconstructed timing and control transitions.
+
+#### Roadhog Take a Breather against Ana
+
+- Use the active 0240 damage stack and self-heal state for Ana's rifle,
+  grenade, and dart contacts. Once healing starts, the combat clock meters
+  the authored dose through the shared healing pipeline. Projected Barrier
+  can also release Ana from an active Chain Hook pull.
+
+#### Roadhog Chain Hook against Ana
+
+- Use the 01C8 launch and 01C9 pull values for reconstructed hook contact,
+  pull, and recovery. Focused Ana tests cover Nano interruption, sleep
+  cancellation after launch, cover, Projected Barrier, and body retirement.
+
+### 2026-11-09
+
+#### Sniper controller input relay
+
+- Implement the 7B9E8909 custom input gate backed by original 1B97E10.
+  Both authored 09F3 payload paths run for 120 frames in a controlled scene.
+  The 34-method focused regression passes. Autonomous acquisition remains open.
+
+#### Photon Barrier against Ana
+
+- Host the 156B confirmation and Pet lifecycle and the 156C receiver. Reuse
+  the verified mesh for reconstructed collision, team filtering, and blast
+  occlusion. Both rifles, dart, grenade, melee and friendly support pass
+  focused execution checks. Original-client acceptance remains open.
+
+#### Winston Barrier Projector against Ana
+
+- Host the authored 00FA deployment, 01C3 actor and 00FC health and lifetime
+  graphs. Use the D02 sphere for reconstructed shell contact, team filtering,
+  and grenade occlusion. Actual rifle, dart, grenade, melee and friendly Nano
+  paths pass focused checks. The 542-method source-stable regression and
+  controlled active and damaged dome replays pass. Original-client acceptance
+  remains open.
+
+#### Orisa Fortify against Ana
+
+- Consume actual0CF4 filter state and flag9161 for live damage reduction
+  and control immunity. Verify both rifle modes, grenade, dart, melee,
+  allied healing and expiry during a rifle dose. The32 focused and shared
+  methods pass. See docs/ANA_FORTIFY.txt.
+
+#### Orisa Protective Barrier against Ana
+
+- Host actual0BD7 world impact and the authored0BD8 health and lifetime
+  scope using the verified4062 ray mesh. Preserve source identity on
+  deployed barriers and retain the nonblocking expiry tail.
+- Resolve Ana rifle, dart and grenade against the deployable. Preserve
+  breaking-blast occlusion and friendly support. The47 shared methods and
+  one stored snapshot method pass. See docs/ANA_ORISA_BARRIER.txt.
+
+#### Reinhardt Barrier Field against Ana
+
+- Host actual0095 input and health with the verified104319 ray mesh.
+  Resolve Ana rifle, dart and grenade damage against the raised barrier.
+  A breaking grenade keeps the shield in its explosion line-of-sight test.
+- Check rear interruption, melee and friendly support, regeneration and
+  snapshot state. The39 defense,10 Matrix,50 NPC and1 snapshot methods pass.
+  See docs/ANA_REINHARDT.txt.
+
+#### Sigma Kinetic Grasp against Ana
+
+- Resolve authored1D02 boxes and interception outputs in the same sweep as
+  Matrix and body contacts. Convert absorbed Ana rifle, dart and grenade
+  payloads into the authored temporary shield phase. See docs/ANA_SIGMA.txt.
+
+#### D.Va Matrix against Ana
+
+- Select the prepared0407 form through Match with actual pools and mover data.
+  Actual secondary input drives the authored02CC resource and protection state.
+- Intercept known Ana rifle, dart and grenade definitions ahead of eligible
+  contacts. Absorbed finite flights retire without splash or explosion release.
+  Melee and allied healing remain eligible. Ten Matrix and109 shared checks
+  pass. See docs/ANA_MATRIX.txt.
+
+#### Reaper Wraith against Ana
+
+- Reach the actual0020 protection scope through a scoped zero-delay prelude
+  reconstruction. The authored graph drives duration, early exit and cooldown.
+- Verify hostile rifle, dart, grenade and melee rejection, entry cleansing,
+  and allied healing and Nano. Seven Wraith and87 shared checks pass.
+  Native scalar quantization passed12 offline cases. Native completion
+  dispatch and presentation remain open. See docs/ANA_WRAITH.txt.
+
+#### Manual Assassin contact against Ana
+
+- Execute the authored1157 pin via scoped manual target binding. The graph
+  deals25 on entry and100/s in the continuous phase under the reconstructed
+  VM health clock. Track the bound body, clock and pin in causal snapshots.
+- Verify all five NPC incoming attacks in the50-method NPC group. Check pin
+  damage, player control, actual allied Sleep Dart, projected barrier,
+  contact loss, actual Nano interruption, death and retirement. Native
+  controller, recovery and client work remain open.
+  See docs/ANA_ASSASSIN_PIN.txt.
+
+#### Enforcer ring generation and individual flight damage (in progress)
+
+- Restore actual13EB/node24 count25/rings1+8+16 as independent80m/s projectiles;
+  one report/round gives50 point-blank damage. Scope the native-derived aspect1
+  kernel to Enforcer. Seed handles, body-eye/hardpoint and client parity stay open.
+- 162 production/native transforms,100 prefixes and24 scalar baking cases pass
+  with declared adapters; all32768 generated table values match capture. Runtime
+  uses generated tables, with no client asset/binary dependency.
+- Apply configured ballistic falloff using stored chord-path distance; wire
+  manual NPC pitch through aim/movement and causal storage. Linear falloff and
+  complete native physics/Deflect reset remain unproved. The normal-runtime
+  regression passed all525 methods in1492.067s, including stored replay, with
+  stable source hashes and no skips. The authored NPC group ran43 methods in
+  147.266s;42 passed and Assassin incoming was the sole failed subcase.
+  See ANA_ENFORCER_RING.txt. Full Ana acceptance remains open.
+
+#### Manual Enforcer incoming contact and shotgun frontier (in progress)
+
+- Reproduce the13EB controller-gate stop and privately port the parent's manual
+  75/92 predicate policy only for Enforcer. Keep native related-ID/controller
+  allocation and Match-backed health service separate; no C361 or foreign-ID stub.
+- Enforcer incoming contact now passes. Actual friend/wall/off-axis and sleep/
+  rifle-wake scenarios pass.109 shared/query/bot/VM/server snapshot methods pass
+  in372.192s after correcting an initially omitted VM layout field; the earlier
+  interrupted export-error run is not acceptance. Final NPC22 in122.506s has21
+  passing methods and only Assassin incoming failing. Ruff/diff pass.
+- Preserve the larger amount gap: actual node24 configures25 projectiles in
+  1/8/16 rings with spread4; current one-ray combat deals2. One hundred original
+  ring-prefix cases pass, but native baking/random/transform and full emission
+  remain open. See ANA_ENFORCER_CONTEXT.txt.514 is the pre-context full baseline;
+  current full stored replay and complete Ana goal remain open. No commit/merge.
+
+#### Zarya primary contacts and shared notification lifetime (in progress)
+
+- Restore TrackRay simple Entity/bool outputs with24 original C83A70/C88700
+  cases under explicit adapters. Host only0241's two rays through a declared
+  capsule/static-world query and consume actual ModifyHealth10/target536 at
+  posed command frames. Native geometry, aggregates and damage cadence stay open.
+- Twenty-one focused methods and32 beam/storage checks pass. Actual encrypted
+  beam stored replay passes in167.853s; five authored NPC beam scenarios pass.
+  Current NPC20 methods retain the original Enforcer/Assassin incoming failures.
+- Reproduce/port the parent's canceled notification flags, ending-state watcher
+  exclusion and cleanup-before-arbitration fix; matching method bodies are
+  recorded. Three minimal and two actual McCree ammo/refill methods pass.
+  Native inter-object order remains unproved; no Roll motion backend copied.
+- See ANA_ZARYA_BEAM.txt. Historical429/207 baselines predate this change.
+  Full Ana goal remains open; no final commit/merge/publication.
+- Later audit confirms Ana's existing1.25/.875 offsets and corrects Zarya,
+  Genji and McCree FirstPerson heights from original003 XML in both combat
+  origins and target descriptors. Forty eye/beam/Deflect/control/ballistic
+  methods pass in45.412s. Stop the first510-method broad run before this fix;
+  its incomplete log is not acceptance. Animated camera/muzzle geometry stays open.
+- Replacement current-source regression passes514 methods in1253.633s with full
+  stored replay, no skips and stable Python source hashes. Current43-row NPC20
+  in92.243s retains only the two incoming failures;19 methods and five new beam
+  scenarios pass. All changed Python files pass Ruff; diff check passes.
+  External18-area static matrix preserves missing behavior and native limits.
+  Full goal active; all expanded work uncommitted, client acceptance open and
+  no GitHub sync/merge/publication performed.
+
+#### Shared throttle modifier consumption on Ana bodies (in progress)
+
+- Review the parent-reported missing17/18/19 acceleration consumption. Port only
+  the helper/constants/call, preserving raw command bytes and snapshot schema.
+  Direct Ana/Zarya graph closures contain the relevant shared023A/01CB/00CB rows.
+- A declared original023A scope blocks0/8 actual command directions before the
+  fix and8/8 after. Five focused methods pass in7.799s, including fractional
+  lateral sign, next-frame begin/end, raw bytes and body replacement.120 original
+  native prefix cases match the private helper with scalar lookup explicitly
+  adapted. Natural scope activation/full native mover equivalence stay open.
+- The429-method energy/buffer full replay baseline passes in1279.942s before
+  this port. Final post-port movement/control/barrier/VM/server-snapshot group
+  passes207 methods in440.149s, no skips, excluding stored journal replay.
+  Current NPC19 in92.909s retains only2 original incoming failed subcases;
+  all65 new projected/energy NPC scenarios pass. Ruff/diff pass.
+  See ANA_THROTTLE_MODIFIERS.txt. Full replay after this port is still open.
+  No full hero completion, final commit, merge or publication.
+
+#### Shared ability press retention in Ana/barrier gates (in progress)
+
+- Reproduce the parent-reported timestamp refresh with actual personal-barrier
+  input, including auto-cast after a released early press. Review and port only
+  Ability.take_press/can_start retention, with matching method ASTs and read-only
+  parent provenance. Consume a press only after start gates pass.
+- Sixty-four focused methods pass in42.108s. Add8 methods across Ana sleep/
+  grenade and both bubbles for expiry/fresh press, timestamp, held input and
+  configured versus missing-window behavior. Personal0244 has0.15s; the other
+  three have no configured window. Native missing-field default remains open.
+- Stop the lane's first energy broad run on receipt of the defect notice. Its
+  incomplete log is not acceptance; rerun the full gate after the reviewed fix.
+  See ANA_ABILITY_BUFFER.txt. Expanded code stays uncommitted/not merge-ready.
+
+#### Ana barrier contacts and Zarya energy return fire (in progress)
+
+- Forward effective reconstructed personal/projected pool loss into the actual
+  0242/0146 graph receiver. Let authored expressions/timers own energy87,
+  cap100, gain.2, delay1s and decay1.8/s; keep immutable caster/instigator identity.
+- Thirty-five focused methods pass in137.808s, including10 energy methods,
+  real server snapshot sensitivity, both pools, breaking loss, Nano, delay reset,
+  death/replacement, actual secondary return fire and firing-time amount retention.
+  Ten authored-NPC rifle impact scenarios pass in7.992s.
+- Keep effective-loss/event-sender/dead-owner policy explicitly reconstructed.
+  Native Pet health/tag exclusions/namespace/feedback and primary beam contacts
+  remain open. See ANA_BARRIER_ENERGY.txt. Full regression pending on this code;
+  prior411 pass belongs to pre-energy baseline. No final commit/merge/publication.
+
+#### Ana projected-barrier target and body lifetime (in progress)
+
+- Bind actual Zarya025C E tracking to a living ally and consume Pet10/effect18's
+  processed target536, remaining215 and activation counter. Share causal
+  BodyBarrier state with the personal bubble and retain immutable source/target
+  identities. Death/replacement/removal cannot refill or rebind an old cast;
+  manual NPC removal now clears the protection pool.
+- Twenty-five focused player methods pass in99.021s, including13 projected and
+  12 personal methods with real server snapshot checks. Add explicit five-NPC
+  contacts, cleansing and retirement scenarios using authored mover inputs.
+- Keep capacity/geometry, selection/ranking/scale fallback/nonstacking, cleanse
+  and released-caster lifecycle policies explicitly reconstructed. Native energy,
+  native Pet/effect machinery and full static/client acceptance remain open.
+  See ANA_PROJECTED_BARRIER.txt. No final commit, merge or publication.
+- Final code passes411 regressions in734.274s including complete stored replay/
+  snapshots; Ruff/diff pass. Authored-mover NPC18 methods in79.220s retain only
+  the two original incoming subcase failures;55 new projected scenarios pass.
+  Find0256's authored200 literal/config fallback and execute12 original
+  D3EB8D87 conditional-query cases with explicit adapters. Native capacity
+  modifiers/Pet health/energy remain unaccepted; no production helper added.
+
+#### Ana personal-barrier contacts and authored NPC geometry (in progress)
+
+- Consume actual Zarya0244/Pet2 activations and authored remaining duration for
+  reconstructed personal-body protection. Twelve focused behavior methods pass,
+  including both rifle modes, dart/grenade/melee, healing, break/expiry/cooldown,
+  cleansing, Nano, replacement, actual control gates and causal server snapshots.
+- Intercept harmful blasts before attached statuses as well as damage. An
+  impact-window test exposed and fixed absorbed Flashbang still applying stun;
+  the earlier final-frame assertion had allowed that stun to expire unseen.
+- Require all five authored mover rows for explicit real-NPC acceptance. Parent
+  prepared43-row navigation data is consumed read only; normal38-row data is
+  rejected instead of silently using generic NPC envelopes. Add grazing and
+  99m/101m checks. Original-client/native geometry, two attacks and AI stay open.
+- Execute20 original client C361 factory/failure cases without assigning that
+  fallback to server semantics. Record capacity200, cleansing and body protection
+  as reconstruction, with projected bubbles/geometry/energy still open. See
+  ANA_PERSONAL_BARRIER.txt. Expanded work remains uncommitted.
+- Prior personal-barrier baseline passes398 regressions in888.433s, including complete stored replay/
+  snapshots; Ruff/diff pass. Authored-mover NPC14 methods in59.855s:13 pass,
+  incoming Enforcer/Assassin2 ordinary failed subcases remain. Forty new grazing/
+  range scenarios pass. Full hero/static and all client acceptance stay open.
+
+#### Native relationship queries and retired entity lookup (in progress)
+
+- Implement F7262B36 related Entity and B96D3A98 selected-controller membership
+  queries from60 original-function offline cases. Preserve dangling IDs,43/44
+  precedence, typed failure versus invalid output, and75/92 tests. Engine key,
+  lookup/output adapters and native allocator limits are recorded separately.
+- Bind existing picked player/controller relationships to the Match model,
+  preserving death/replacement and temporary network detachment semantics.
+  Real leave now removes health/controller lookup even while Player history
+  remains. Neither native query is trusted for owner prediction.
+- Keep NPC controller records explicitly unknown; do not import the shared
+  parent's uncommitted manual-controller/Assassin policy. The actual Enforcer
+  and Assassin attack failures remain open. See CONTROLLER_RELATION_QUERIES.txt.
+- Final code passes386 regressions in779.717s; Ruff/diff pass. NPC12 methods
+  retain only the2 known incoming failed subcases. Prepare5 actual associated
+  AI definitions/18 missing graphs externally; all five strict startup probes
+  stop at142A/C3619A38. No native allocator or autonomous AI acceptance implied.
+
+#### Match-backed current and maximum health queries (in progress)
+
+- Resolve STU_9B7648C3 / STU_60146072 through an explicit world service for
+  player and NPC body identities. Native helpers select component51 and its
+  +40/+50 numeric getters; Match pool totals are the reconstructed binding.
+- Preserve native invalid/absent-component zero versus missing-entity failure,
+  scalar Entity conversion, f32 results and existing dependency polling. Do not
+  mark these queries trusted for owner prediction or resolve controller predicates.
+- Query existing pools without allocation or collision eligibility requirements.
+  Tests cover real damage/healing, shield totals, death, replacement, detached
+  network client, server snapshot stability and all five real NPCs from both hosts.
+- Enforcer's real13EB/state12 health gate now succeeds; component43 controller
+  predicates remain unresolved. Enforcer/Assassin incoming acceptance still fails.
+- Final code passes370 regressions in602.689s, including full stored replay and
+  snapshots. NPC11 methods:10 pass; the incoming method has2 failed subcases.
+  Ruff/diff checks pass. Full hero and original-client acceptance remain open.
+
+#### Ana authored projectile gravity and shared input joins (in progress)
+
+- Reject the earlier visual-field gravity hypothesis: nativeD6A940/D6A9D0
+  convert fieldsD0/D4/D8 from degrees to radians and build a rotation matrix.
+  Grenade visual A0D912A2=-30 is angle data. No gravity value is taken from it.
+- Read actual Volley motionE1A5B579; Ana0B97 initializes its scalar#7389 to9.8.
+  NativeD88E9E stores this scalar in the runtime motion. OriginalD71A70 subtracts
+  f32(gravity*dt) from vertical velocity before the position step. Twelve offline
+  original-function cases match exact state bytes. Native evidence stays outside Git.
+- Apply unconditional authored gravity before each world-tick chord sweep and
+  retain fixed-step catch-up. Four actual-command checks cover grenade/rifle/dart
+  flight,20m lofted damage/healing versus straight misses, floor/low-wall collision
+  and skipped-frame equality. The control test uses a lofted20m grenade input.
+- Reuse reviewed parent2ca9178 distinct-input join lifecycle, storage fields,
+  ten tests and evidence documentation. Native engine contact subdivision,
+  conditional gravity, modifiers, muzzle/range/bounce and presentation stay open.
+- Final fixed-source359-test regression passes in486.277s. The first run exposed
+  a delivery fixture assuming a level weak Hanzo arrow stayed airborne; a trace
+  proves it fired, landed and retired normally. Aim that fixture upward while
+  preserving every Volley/lease identity assertion; both delivery checks pass.
+- Current ten-method NPC suite retains ordinary Enforcer/Assassin incoming
+  failures. Full static hero goal remains active; no final commit/merge/client
+  acceptance is claimed.
+
 ### 2026-11-08
+
+#### Ana enemy-control interruption and recovery (in progress)
+
+- Port the reviewed parent64bf71c Flashbang foundation: authored hit-effect IDs,
+  body-local exclusive stun deadlines, actual input release and Ability.stop,
+  buffer cleanup, player movement/attack gates, NPC route pauses, death/removal
+  cleanup and explicit server snapshot storage. Existing sleep and stun deadlines
+  share the route pause boundary. Parent npc_control is not mounted in this lane.
+- Sleep now also interrupts running player Ability channels through the same
+  explicit release/stop path; an actual rear dart ends Genji's Deflect state.
+- Ten Ana control tests pass through actual enemy Flashbang:25 damage,0.8/1.7s
+  branch, repeated-hit refresh, scoped-input release, suppressed movement/attacks
+  and future-command bypass, expiry recovery, Nano pre-release interruption,
+  preservation of an already released grenade, sleep-to-stun transition,
+  wall/allied rejection, lethal hit and replacement-body cleanup.
+- 345 fixed-source regressions pass in548.345s, including route tests and full
+  server stored replay/snapshot checks.39 earlier sleep/Nano/Deflect checks also
+  passed. NPC10-method suite still has two ordinary incoming Enforcer/Assassin
+  failures. Native control immunity/cleanse/stacking/unstoppable and complete
+  NPC special/control/recovery behavior remain open. No client acceptance.
+
+#### Ana directional Deflect interactions (in progress)
+
+- Use the actual active Genji03A3/state10 DeflectProjectiles state and interpret
+  its authored90 scalar as a facing half-angle. Reconstruct interception using
+  existing body capsules. Return scoped rays and hip rifle/sleep/grenade flight
+  along Genji's current aim with Genji source ownership; block front melee.
+- Eleven executed checks pass: both rifle modes/amount/credit, sleep5+status,
+  grenade50+antiheal, back/expired rejection, allied healing and grenade support,
+  existing rifle dose persistence, ground splash, wall obstruction and reflected
+  dart killer identity across Genji body replacement. Grenade/direct healing now
+  passes immutable projectile source identity into the existing charge gate.
+- 301 fixed-source regressions pass in545.230s, including full stored server
+  replay/snapshot checks. Ten NPC methods still contain the two ordinary incoming
+  Enforcer/Assassin failures. Ruff/diff checks pass. Full hero goal stays active.
+- Native three-box geometry/scale/filter/angle meaning, response origin/range and
+  boost policy remain unaccepted. Reflected rays currently retain remaining range;
+  flight resumes next world tick. The old projectile lease ends without creating
+  a new Genji observer projectile. Client presentation and full reflection fidelity
+  remain open. No complete defense milestone or final commit is claimed.
+
+#### Ana shared combat dependencies and defense investigation (in progress)
+
+- Reuse reviewed parent7cd1ed7 nearest-capsule static melee visibility policy.
+  Actual Ana melee cannot damage an enemy player or any of the five NPC bodies
+  through the test wall; existing unobstructed hits and friendly immunity pass.
+  This is reconstructed geometry, not native hitbox equivalence.
+- Reuse parentd1286b7 shared body/weapon allocator instead of the lane's duplicate
+  NPC setup, preserving authored manager and sparse slots. Reuse parent6debff3
+  native array selection implementation, five tests and evidence documentation.
+  The first dependency-incomplete run failed; its corrected rerun supersedes it.
+- 290 fixed-source regressions pass in601.610s. Separate combined27-method
+  Ana/NPC/array checks have26 passing methods; one incoming-NPC method retains
+  ordinary Enforcer/Assassin failures. Complete hero acceptance remains open.
+- Actual Reaper Shift execution remains stuck at0020/state1 before its authored
+  protection phase. Offline constructor/vtable/timer research is saved outside
+  source. Do not infer invulnerability from its active ability flag or assign
+  guessed meanings to anonymous native helper states. No defense acceptance.
+
+#### Ana full-health NPC kills and melee matrix (in progress)
+
+- Execute actual held rifle commands from full health through death for all five
+  NPC bodies, including Heavy Assault's declared4000 total and automatic reloads.
+  Check effective damage totals, original Ana killer identity, kill/death notices,
+  drained pending doses, persistent corpses and no healing revival.
+- Execute near enemy hits,4m misses and allied immunity for all five NPCs using
+  actual quick-melee input.25 added scenarios pass across two test methods.
+- Expanded NPC suite runs9 tests:8 methods pass; incoming Enforcer/Assassin still
+  fail as ordinary subcases. These checks do not accept autonomous/special AI,
+  difficulty scaling, defensive interactions or original-client presentation.
+
+#### Ana rifle duration and effective-health charge (in progress)
+
+- Apply the native-resource70 rifle dose over0.6s to the hit body. Linear world-clock
+  dosing on a1/1024-health grid is explicit reconstruction; native sub-tick cadence
+  and hit feedback are unaccepted. Preserve original source identity across caster
+  retirement, drop doses on target retirement/death and store pending dose state.
+- Bypass armor for rifle DoT and capture projectile boost at firing, supported by
+  the official2019-03-19 patch. Actual Brigitte and in-flight Nano tests pass.
+  Use actual Ana first-person standing1.25/crouched0.875 offsets in combat geometry.
+- Credit effective Ana damage/healing against authored ultimate cost, cap gains,
+  reject active/dead/invalid credit and preserve unspent charge on Ana respawn.
+  The1-health-to1-charge conversion is explicit reconstruction, not decoded native
+  generator data; the existing passive-fill approximation remains open.
+- Eleven rifle and seven charge tests pass, including a real server-domain snapshot
+  with a pending dose. Fixed-source broad regressions pass282 tests; the added
+  pending-dose snapshot check also passes. Full static goal remains active.
+
+#### Ana sleep and Nano gameplay reconstruction (in progress)
+
+- Add authoritative sleep deadlines, constrained player commands and suspended NPC
+  routes without pausing body/cooldown clocks or already released projectiles.
+  Later effective damage wakes; healing/zero damage do not. Replacement bodies
+  receive fresh state. Native wake-recovery/presentation remains unaccepted.
+- Supply explicit allied Nano target searches to the authored0B9E TrackTargets States;
+  preserve its charge gate, target bindings and0.13s released volley. Each actual
+  released volley applies native-resource heal250, damage+50%, incoming damage-50%
+  for8 seconds. A later valid charged cast can refresh; uncharged input cannot heal.
+  No effect is inferred merely from Q. Register target/deadline storage explicitly.
+- Seven sleep checks,14 Nano checks and two additional actual five-body sleep/Nano
+  matrix methods pass.176 regressions passed before Nano;260 expanded fixed-source
+  regressions now pass. Exact native targeting/age/effect semantics, rifle timing,
+  combat/passive ultimate generation, defenses and Enforcer/Assassin attacks remain
+  open. Full goal stays active; no final commit/merge/client acceptance is claimed.
+
+#### Ana grenade support effects and authored resource gates (in progress)
+
+- Reconstruct native-resource grenade healing100, healing scalar1.5 and antiheal0
+  for4 seconds; retain enemy damage50, full-health ally collision and blast LOS.
+  Register both effect deadlines in stored domain state. Wall impacts remain on
+  the incoming surface side for source-side healing without damage through walls.
+- Eleven Ana combat checks and six authored ability gate checks cover actual
+  healing/status/expiry/LOS,12-ammo depletion/reloads,12s sleep/10s grenade cooldown
+  rejection/expiry, dead-owner gates and sleep windup cancellation on death.
+  Fixed-source123-test regression passes. One earlier replay rejected concurrent
+  source-file drift; the fixed-source rerun supersedes that invalid result.
+- Add an external-only053 combat-effect reference research tool; four effects
+  resolve to eight graphs without missing references. Generated assets stay outside Git.
+- Complete static hero acceptance remains open: sleep control, nano, rifle timing,
+  defenses/cleanse/immunity, five enemy NPCs and original-client acceptance remain
+  unaccepted. No publication or merge is claimed.
+- Copy the reviewed shared NPC lifecycle/catalog helper from parent commits
+  c2d3ae1/a15d554 into this isolated clone to consume the read-only five-body input.
+  This is a shared dependency, not independent NPC AI acceptance.
+- Allocate declared NPC manager/weapon slots before entries; actual Sniper attacks
+  can now damage Ana. Five-body rifle/grenade/healing/corpse matrix checks pass;
+  two incoming Enforcer/Assassin cases deliberately remain red. Full static goal
+  remains active; this uncommitted work is not a merge-ready complete hero.
 
 #### Partial Ana rifle ally healing
 

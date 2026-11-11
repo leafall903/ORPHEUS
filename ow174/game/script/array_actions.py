@@ -17,7 +17,7 @@ def _alive(instance, node):
         _unsupported(instance, node, 'array action owner retired')
 
 
-def _index(value):
+def collection_index(value):
     """F65260 with default-1, including native cvttss2si's indefinite result."""
     while isinstance(value, tuple):
         if not value:
@@ -98,7 +98,7 @@ def insert(instance, node, caller):
     value = (play.evaluate_scalar(instance, index_cfg, initial=_FAILED, watcher=caller)
              if index_cfg is not None else _FAILED)
     _alive(instance, node)
-    index = -1 if value is _FAILED else _index(value)
+    index = -1 if value is _FAILED else collection_index(value)
     if index > 200:
         _unsupported(instance, node, 'array insertion native limit diagnostic')
     key_cfg = node.field('m_key')

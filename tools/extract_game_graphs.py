@@ -445,6 +445,7 @@ def entity_script_component(xml: StuXml) -> tuple[dict | None, set[int]]:
 
 def body_record(
     path: Path, enums: EnumTables, hero: str | None, name: str, *, include_ai_weapons: bool = False,
+    include_ai_profiles: bool = False,
 ) -> tuple[dict, set[int]]:
     """A body definition (003): its statescript component's initial graphs in order, with their schema
     overrides, its full script component definition, and its weapon scripts."""
@@ -467,6 +468,20 @@ def body_record(
               "script_component": component}
     if include_ai_weapons and (buttons := _ai_weapon_buttons(path, xml)):
         record["ai_weapon_buttons"] = buttons
+    if include_ai_profiles:
+        profiles = {}
+        for row in xml.root.iter("STUAIDifficultyProfile"):
+            key_ref = xml.field(row, "m_13E9E420")
+            profile_ref = xml.field(row, "m_AFEEA472")
+            key = xml.value(key_ref) if key_ref is not None else None
+            profile = xml.value(profile_ref) if profile_ref is not None else None
+            if (not isinstance(key, str) or not key.startswith("0x0D80")
+                    or not isinstance(profile, str) or not profile.startswith("0x0B50")
+                    or key in profiles):
+                raise ValueError(f"{path.name}: invalid or duplicate AI difficulty profile")
+            profiles[key] = profile
+        if profiles:
+            record["ai_difficulty_profiles"] = profiles
     used = {entry["graph"] for entry in graphs} | {manager, *weapons} | component_refs
     return record, {graph for graph in used if graph is not None}
 
@@ -750,7 +765,8 @@ def collect(
     for index in sorted(set(entity_indexes)):
         path = xml_dir / "003" / f"{index:012X}.003.xml"
         name = f"entity {index:04X}"
-        record, used = body_record(path, enums, None, name, include_ai_weapons=ai_spawners is not None)
+        record, used = body_record(path, enums, None, name, include_ai_weapons=ai_spawners is not None,
+                                   include_ai_profiles=True)
         entities[f"0x{0x0400000000000000 | index:016X}"] = record
         queue.extend((graph, name) for graph in sorted(used))
     queue += list(ROOT_GRAPHS.items())

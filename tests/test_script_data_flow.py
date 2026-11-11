@@ -3,7 +3,7 @@
 import unittest
 from unittest import mock
 
-from ow174.game.script import data_flow, expr, nodes, runtime, scene
+from ow174.game.script import data_flow, expr, nodes, runtime, scene, scopes
 from tests.test_script_runtime_budget import graph, node
 
 OWNER = 0x800005DC
@@ -40,6 +40,45 @@ def setup_state(*, strict=True, **fields):
 
 
 class DataFlowTests(unittest.TestCase):
+    def test_snapshot_captures_once_and_releases_on_instance_destruction(self):
+        world = ValueWorld()
+        world.bind(OWNER)
+        scope_host = scopes.Registry()
+        snapshots = data_flow.SnapshotRegistry()
+        world.set_subgraph_scopes(OWNER, scope_host)
+        world.set_data_flow_context(OWNER, data_flow.Context(OWNER, True, True, snapshots=snapshots))
+        component = runtime.Component(OWNER, world=world, strict=True)
+        definition = graph([node(
+            0, "STU_AC29FFB9", state=0, m_5A6D4FBD=literal(expr.Asset(17)),
+            m_answer={"$": "STUConfigVarDynamic", "m_identifier": 99},
+        )])
+        instance = component.create(definition, init=False)
+        state = instance.state(0)
+        instance.write((0, 99), True)
+        state.begin()
+        self.assertEqual(snapshots.entries, [])
+        scope_host.enter(state)
+        self.assertEqual(snapshots.entries, [data_flow.Snapshot(17, 1.0)])
+        instance.write((0, 99), False)
+        self.assertEqual(snapshots.entries, [data_flow.Snapshot(17, 1.0)])
+        scope_host.exit(state)
+        self.assertEqual(snapshots.entries, [])
+        scope_host.enter(state)
+        self.assertEqual(snapshots.entries, [data_flow.Snapshot(17, 0.0)])
+        component.destroy(instance)
+        self.assertEqual(snapshots.entries, [])
+
+    def test_snapshot_registry_reuses_first_hole_and_trims_tail(self):
+        registry = data_flow.SnapshotRegistry()
+        first, second, next_record = (data_flow.Snapshot(17, value) for value in (1.0, 2.0, 3.0))
+        self.assertEqual((registry.insert(first), registry.insert(second)), (0, 1))
+        registry.remove(0, first)
+        self.assertEqual(registry.entries, [None, second])
+        self.assertEqual(registry.insert(next_record), 0)
+        registry.remove(0, next_record)
+        registry.remove(1, second)
+        self.assertEqual(registry.entries, [])
+
     def test_unknown_context_faults_instead_of_accepting_a_passive_mapping(self):
         world, component, _, state, _, _ = setup_state()
         world.data_flow_contexts.clear()

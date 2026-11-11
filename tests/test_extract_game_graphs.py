@@ -100,6 +100,31 @@ class LinkEvidenceTests(unittest.TestCase):
 
 
 class EntityRootTests(unittest.TestCase):
+    def test_optional_ai_profile_extraction_keeps_identifier_and_profile_asset_distinct(self):
+        row = """
+          <STUAIDifficultyProfile>
+            <tank:ref dragon:name="m_13E9E420" GUID="00000000195F.01C" />
+            <tank:ref dragon:name="m_AFEEA472" GUID="000000000068.0AE" />
+          </STUAIDifficultyProfile>
+        """
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / "entity.xml"
+
+            def write(rows):
+                path.write_text(f'<STUEntityDefinition xmlns:dragon="https://yretenai.com/dragonml/v1" '
+                                f'xmlns:tank="urn:test:tank">{rows}</STUEntityDefinition>', encoding="utf-8")
+
+            write(row)
+            base, _ = extractor.body_record(path, EnumTables(root), None, "AI")
+            selected, _ = extractor.body_record(path, EnumTables(root), None, "AI", include_ai_profiles=True)
+            self.assertNotIn("ai_difficulty_profiles", base)
+            self.assertEqual(selected["ai_difficulty_profiles"], {"0x0D8000000000195F": "0x0B50000000000068"})
+            for invalid in (row + row, row.replace(".0AE", ".01C"), row.replace("m_AFEEA472", "missing")):
+                write(invalid)
+                with self.assertRaisesRegex(ValueError, "invalid or duplicate AI difficulty"):
+                    extractor.body_record(path, EnumTables(root), None, "AI", include_ai_profiles=True)
+
     def test_plug_walk_ignores_reference_cycles_and_keeps_alias_paths(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -168,6 +168,7 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
@@ -384,6 +385,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
         if mod.index == index:
             value = apply_op(mod.op, value, mod.value)
     return value
+
+
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A85: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
 
 
 def _number(instance, cfg, default: float) -> float:
@@ -622,7 +635,7 @@ class Mover:
 
     def step_pose(
         self, command: Command, seconds: float, tick: int,
-        *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        *, move_to: tuple[tuple[float, float, float], float] | None = None, walls=None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -640,6 +653,7 @@ class Mover:
             self.flags_word |= TURN_HELD
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
+        right, forward = modified_throttles(active, right, forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         stood_up = self.crouch_end
@@ -650,7 +664,7 @@ class Mover:
         was_crouched = self.crouched
         self.landed = False
 
-        ground, under = self._probe(dt)
+        ground, under = self._probe(dt, walls)
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -677,10 +691,10 @@ class Mover:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                 self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
-            self._fall_after(self._move(dt, normal))
+            self._fall_after(self._move(dt, normal, walls))
         else:
             target, speed = move_to
-            outcome = self._move_to(dt, target, speed)
+            outcome = self._move_to(dt, target, speed, walls)
         self.history.append(self.snapshot(frame))
         return outcome
 
@@ -702,7 +716,7 @@ class Mover:
 
     # ---- 3. the ground probe
 
-    def _probe(self, dt: float):
+    def _probe(self, dt: float, walls=None):
         """(ground, under): the ground the feet stand on or land on (None if none), and whether the probe
         met a surface that is not ground (flag 0x80000)."""
         data = self.values
@@ -720,7 +734,12 @@ class Mover:
         under = bool(hit is not None and hit.surface & NOT_GROUND)
         if data.gravity_scale <= 0.0:
             return None, under
-        if hit is not None and hit.normal[1] > self.slope_cos and not hit.surface & NOT_GROUND:
+        walkable = hit is not None and hit.normal[1] > self.slope_cos and not under
+        if walls is not None:
+            support = walls.ground(x, z, y + STEP, bottom - STEP, radius)
+            if support is not None and (not walkable or support.y >= hit.y):
+                return support, False
+        if walkable:
             return hit, under
         if data.ground_circle_rays <= 0:
             return None, under
@@ -1038,7 +1057,7 @@ class Mover:
 
     # ---- 8. the move
 
-    def _move(self, dt: float, normal) -> float:
+    def _move(self, dt: float, normal, walls=None) -> float:
         """Move the capsule and the feet (0x7FF789B4D9C0, 0x7FF789ACF640); the vertical speed before it is put
         on the grid."""
         vx, vy, vz = self.velocity
@@ -1055,6 +1074,11 @@ class Mover:
             f32(f32(f32(0.0 * rise) + velocity[2]) * step) + 0.0,
         )
         final, planes, touching = body.move(displacement, step, ROUNDS)
+        if walls is not None:
+            final, wall_normals = self._wall_contacts(final, walls)
+            if wall_normals:
+                touching = True
+                planes = [*planes, *((contacts.v3(*n), 0.0) for n in wall_normals)]
         vx, vy, vz = contacts.clip_velocity(velocity, planes)
         if grounded:
             squared = vx * vx + vy * vy + vz * vz
@@ -1067,7 +1091,27 @@ class Mover:
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
 
-    def _move_to(self, dt: float, target, speed: float) -> bool | None:
+    def displace(self, velocity, dt, *, constrain=None):
+        """Sweep external velocity without replacing the actor's input velocity."""
+        body = self._engine_body()
+        vector = contacts.v3(*velocity)
+        final, planes, touching = body.move(contacts.v3(*(v * f32(dt) for v in vector)), f32(dt), ROUNDS)
+        before = self.position[1]
+        if constrain is not None:
+            lift = self._lift()
+            feet = (final[0], final[1] - lift, final[2])
+            radius, _ = self._capsule()
+            height = self.data.crouch_height if self.crouched else self.data.stand_height
+            feet, normals = constrain(self.position, feet, radius, height)
+            final = (feet[0], feet[1] + lift, feet[2])
+            planes = [*planes, *((contacts.v3(*normal), 0.0) for normal in normals)]
+        self._place(body, final, touching)
+        if self.position[1] - before > STEP and not self.airborne:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        return tuple(contacts.clip_velocity(vector, planes))
+
+    def _move_to(self, dt: float, target, speed: float, walls=None) -> bool | None:
         """Sweep a speed-limited displacement toward a resolved world-space feet position."""
         start = tuple(self.position)
         dx, dy, dz = (end - axis for end, axis in zip(target, start, strict=True))
@@ -1093,6 +1137,9 @@ class Mover:
                     and not ground.surface & NOT_GROUND
                 ):
                     final = (final[0], f32(ground.y + lift), final[2])
+            if walls is not None:
+                final, wall_normals = self._wall_contacts(final, walls)
+                touching = touching or bool(wall_normals)
             self._place(body, final, touching)
         remaining = math.dist(self.position, target)
         self.fall = 0.0
@@ -1107,6 +1154,40 @@ class Mover:
             quantise((axis - old) / dt) for axis, old in zip(self.position, start, strict=True)
         )
         return None
+
+    def _wall_contacts(self, final, walls):
+        lift = self._lift()
+        feet = (final[0], final[1] - lift, final[2])
+        radius, _ = self._capsule()
+        height = self.data.crouch_height if self.crouched else self.data.stand_height
+        feet, normals = walls.constrain_displacement(self.position, feet, radius, height)
+        if not normals:
+            return final, normals
+        if any(normal[1] > 0.7 for normal in normals):
+            self.flags_word &= ~IN_AIR
+            self.fall, self.air_ticks, self.landed = 0.0, 0, True
+        return (feet[0], feet[1] + lift, feet[2]), normals
+
+    def wall_raise_clear(self, height: float) -> bool:
+        """Check a pillar lift against the map without mutating the player's capsule."""
+        radius, segment = self._capsule()
+        body = contacts.CharacterBody(radius, f32(segment + radius), world=self.world.engine,
+                                      category=self.category)
+        x, y, z = self.position
+        lift = self._lift()
+        body.teleport((x, f32(y + lift), z))
+        rise = height - self.position[1]
+        final, _, _ = body.move(contacts.v3(0.0, rise, 0.0), 1.0, ROUNDS)
+        return final[1] - lift >= height - STEP and body.fits(radius, f32(segment + radius))
+
+    def raise_to_wall(self, height: float) -> None:
+        x, _, z = self.position
+        self._place(self._engine_body(), (x, height + self._lift(), z), True)
+        self.flags_word &= ~IN_AIR
+        self.fall, self.air_ticks, self.landed = 0.0, 0, True
+        self.velocity = (self.velocity[0], max(0.0, self.velocity[1]), self.velocity[2])
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
 
     def _place(self, body: contacts.CharacterBody, final, touching: bool) -> bool:
         self.flags_word = self.flags_word & ~TOUCHING | (TOUCHING if touching else 0)

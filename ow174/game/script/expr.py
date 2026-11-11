@@ -136,9 +136,7 @@ def valid_entity(entity_id: int) -> bool:
     return entity_id != INVALID_ENTITY and (entity_id & 0x1FFFFFFF) != 0x1FFFFFFF
 
 
-def truthy(value) -> bool:
-    if value is None:
-        return False
+def truthy(value, *, default: bool = False) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
@@ -154,10 +152,10 @@ def truthy(value) -> bool:
     if isinstance(value, Entity):
         return valid_entity(value.id)
     if isinstance(value, tuple):
-        return truthy(value[0]) if value else False
+        return truthy(value[0], default=default) if value else default
     if isinstance(value, Map):
         return bool(value.items)
-    return False
+    return default
 
 
 def to_float(value, default: float = 0.0) -> float:
@@ -305,6 +303,9 @@ class Context:
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
 
+    def ruleset_expression(self, config):
+        return NotImplemented
+
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
         return True
 
@@ -372,6 +373,8 @@ CONSTANTS = {
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
     "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
+    "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),  # Health-pool kind, native 1B860F0.
+    "STU_4A101787": lambda cfg: False,  # 104319 CEF730 writes typed false without reading config.
 }
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
@@ -383,6 +386,7 @@ RESOURCES = {
     "STUConfigVarGameMode": "m_gamemode",
     "STUConfigVarVoiceStimulus": "m_voiceStimulus",
     "STUConfigVarAnimation": "m_animation",
+    "STUConfigVarAnimCategory": "m_category",
     "STUConfigVarAnimAlias": "m_animAlias",
     "STUConfigVarModelLook": "m_modelLook",
     "STUConfigVarDataFlow": "m_5A6D4FBD",
@@ -399,7 +403,7 @@ RESOURCES = {
 KEYED_RESOURCES = {
     "STUConfigVarVoiceStimulus", "STUConfigVarAnimation", "STUConfigVarHero",
     "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias", "STUConfigVarModelLook",
-    "STUConfigVarDataFlow",
+    "STUConfigVarDataFlow", "STUConfigVarAnimCategory",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 
@@ -429,6 +433,19 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return CONSTANTS[cls](cfg)
     if cls in EXPRESSIONS:
         return run(cfg, ctx)
+    if cls == "STU_6DF07EE5":
+        definition = cfg.get("m_36F7B64C")
+        if (isinstance(definition, dict) and not definition.get("m_17BB822A")
+                and not definition.get("m_CB2634D7")):
+            # CD05B0/D05A80 with no override rows returns a single asset in an array.
+            value = evaluate(definition.get("m_C974E369"), ctx)
+            while isinstance(value, tuple) and value:
+                value = value[0]
+            return (value,) if isinstance(value, Asset) and value.guid else initial
+    if cls == "STU_58AA0A3B":
+        # 1B778E0 starts the child destination with the unset tag (0xFF).
+        # Typed zero and false values replace that tag just like other values.
+        return evaluate(cfg.get("m_value"), ctx) is not None
     if cls == "STU_45EDF12D" and cfg.get("m_key") is None:
         container = evaluate(cfg.get("m_814F8EC3"), ctx)
         value = evaluate(cfg.get("m_value"), ctx)
@@ -444,6 +461,9 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
+        result = ctx.ruleset_expression(key)
+        if result is not NotImplemented:
+            return result
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
@@ -511,6 +531,20 @@ def lvalue(cfg) -> tuple[int, int] | None:
         if len(code) >= 2 and code[0] in (8, 9) and (len(code) == 2 or code[2] == 0):
             return dynamic(dynamics[code[1]])
     return None
+
+
+def indexed_lvalue(cfg) -> tuple[tuple[int, int], float] | None:
+    """1B81210's direct variable followed by a literal numeric subscript."""
+    if not isinstance(cfg, dict) or cfg.get("$") not in EXPRESSIONS:
+        return None
+    code, dynamics, floats = _parts(cfg)
+    if len(code) != 6 or code[0] != 8 or code[2] != 6 or code[4:] != [17, 0]:
+        return None
+    variable, subscript = code[1], code[3]
+    if not 0 <= variable < len(dynamics) or not 0 <= subscript < len(floats):
+        return None
+    target = dynamic(dynamics[variable])
+    return (target, f32(float(floats[subscript]))) if target is not None else None
 
 
 # --- the bytecode --------------------------------------------------------------------------------

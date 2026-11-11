@@ -43,6 +43,48 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_orientation_queries_use_the_addressed_entity_and_its_own_binding(self):
+        world = scene.SceneWorld()
+        for entity in (123, 124):
+            world.bind(entity)
+        world.set_entity_directions(123, aim=(0, 0, 1))
+        world.set_entity_directions(124, aim=(1, 0, 0), forward=(0, 0, -1))
+        instance = caller(world)
+        aim = {"$": "STU_2200A66D", "m_entity": expr.Entity(124)}
+        forward = {**aim, "$": "STU_021D01CD"}
+        self.assertEqual(instance.evaluate(aim), expr.Vec3(1, 0, 0))
+        self.assertEqual(instance.evaluate(forward), expr.Vec3(0, 0, -1))
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_021D01CD"):
+            caller(world).evaluate({**forward, "m_entity": expr.Entity(123)})
+        world.unbind(124)
+        self.assertEqual(instance.evaluate(aim, initial=99), 99)
+        world.bind(124)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_2200A66D"):
+            caller(world).evaluate(aim)
+
+    def test_target_tag_query_replaces_destination_and_retires_unbound_members(self):
+        tag = 0x0D6000000000081F
+        world = scene.SceneWorld()
+        for entity in (123, 124, 125):
+            world.bind(entity)
+        world.set_target_tag_entities(tag, (125, 124, 125))
+        destination = {'$': 'STUConfigVarDynamic', 'm_identifier': 7, 'm_60DB8F99': expr.INSTANCE}
+        action = node(0, 'STU_42578342', m_4AEEE6A1=destination,
+                      m_B486603E={'$': 'STU_357DABBB', 'm_7D7C86A1': f'0x{tag:016X}'})
+        definition = graph([action])
+        component = runtime.Component(123, world=world, strict=True)
+        instance = component.create(definition, init=False)
+        instance.initialized = True
+        target = expr.INSTANCE, 7
+        instance.write(target, 99)
+        instance.run_node(definition.node(0), None)
+        self.assertEqual(instance.find_var(*target).value(), (expr.Entity(125), expr.Entity(124)))
+        world.unbind(125)
+        world.bind(125)
+        world.unbind(124)
+        instance.run_node(definition.node(0), None)
+        self.assertEqual(instance.find_var(*target).value(), ())
+
     def test_client_id_namespace_is_independent_of_local_and_flat_indexes(self):
         data = manifest(placement(0, client_id=55))
         world = scene.SceneWorld.from_map(data, entity_start=419)

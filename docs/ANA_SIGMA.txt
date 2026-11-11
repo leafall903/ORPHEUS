@@ -1,0 +1,44 @@
+Ana against Sigma Kinetic Grasp on build 104319
+
+Actual Sigma Shift starts 1D02. Node7 owns the projectile boxes and
+per-interception output6584. The authored graph sums into21312 and
+converts the result using node34's 0.6 factor and cap11218. Wait71 is the
+conversion boundary used by the server. ModifyHealth70 supplies the
+temporary shield decay amount after the authored wait.
+
+The server checks front incidence and evaluates the authored boxes in
+the current aim frame. It orders interception against walls, live
+bodies and Matrix. It uses the verified Ana projectile definitions and
+the existing reconstructed eligibility policy. The absorbed amount is
+direct falloff plus splash payload, or the scoped rifle's traced damage.
+Consumed attacks do not apply health damage, sleep, antiheal or splash.
+Extra shields absorb damage first and use a separate unhealable pool.
+Their balance and conversion counters are causal server snapshot state.
+
+Tests use actual hip and scoped rifle, Sleep Dart and Biotic Grenade
+inputs. Payloads70,70,5,50 yield temporary shields42,42,3,30. Rear Sleep
+Dart interrupts grasp and grants no shield. The temporary pool takes
+subsequent damage, decays and retires with body replacement.
+The three focused methods and23 shared Matrix, Wraith and health query
+methods passed. Full current-source replay remains pending.
+
+Box hosting, intercepted amount, scoped rifle eligibility, pool wire
+slot and decay-rate interpretation are server reconstructions. Native
+filtering, end dispatch, shield replication and original-client effects
+remain open. The read-only0020 Sigma and box implementation provided
+the reference for the isolated port.
+
+Experimental Barrier
+
+The owner's 1B55 creates body definition 2D25 and plays 1A2A. The child
+provides its 700-point pool, 16.5 m/s travel, 0.9 m stop clearance and
+storage repair. The external C015 mesh is verified by SHA-256. The host
+reconstructs mesh pose, body and wall ordering, pool damage and storage
+readiness notification. The 0002 implementation supplied the reference.
+
+Actual Ana rifle, Sleep Dart and Biotic Grenade contacts consume the barrier
+pool without body status or damage credit. The breaking grenade preserves
+occlusion for its own explosion. Friendly healing and Nano pass through, and
+melee reaches the body through the parked barrier. Recall, early rejection,
+repair, redeployment, owner replacement and causal snapshot export are covered.
+Network deployment and original-client behavior remain open.

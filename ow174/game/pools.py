@@ -35,6 +35,10 @@ def _numbers(entries) -> dict[int, float]:
 def hero_pools(hero: int) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
     record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    return record_pools(record, hero)
+
+
+def record_pools(record, hero):
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
@@ -48,3 +52,16 @@ def hero_pools(hero: int) -> tuple[float, float, float] | None:
 def body_pools(hero: int) -> tuple[float, float, float]:
     """hero_pools, or FALLBACK (logged) for a hero without data."""
     return hero_pools(hero) or FALLBACK
+
+
+
+def active_pools(hero: int, definition: int | None) -> tuple[float, float, float]:
+    """Use the prepared mech definition's pools for the explicit alternate form."""
+    from ow174.game import matrix
+
+    if hero == matrix.HERO and definition == matrix.MECH:
+        values = record_pools(graph.entity_body(definition), hero)
+        if values is None:
+            raise ValueError("selected mech requires prepared health pools")
+        return values
+    return body_pools(hero)

@@ -20,11 +20,12 @@ chunks sent after it carried (the client may have applied them), so it needs no 
 """
 
 import logging
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import accretion, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -134,8 +135,233 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def component76_keys(self, entity):
+        if self.match is None:
+            return NotImplemented
+        from ow174.game import health_packs
+
+        return health_packs.tag_keys(self.match.combat.health_packs.get(entity))
+
+    def tracked_ray(self, state):
+        if (self.match is not None and self.hero == 0x02E000000000012E
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0B1B, 59)):
+            controls = self.match.combat.sombra_controls
+            player = controls.player(self.body)
+            if player is not None:
+                return controls.ray(player, state)
+        if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x0241
+                and state.index in (43, 81)):
+            return (NotImplemented if self.match is None
+                    else self.match.combat.zarya_beam_ray(self.body, state))
+        return NotImplemented
+
+    def tracked_targets(self, state):
+        from ow174.game import doomfist_passive, sound_barrier, torbjorn_turret
+
+        if (self.match is not None and self.hero == doomfist_passive.HERO
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (doomfist_passive.UPPERCUT, 16)):
+            return doomfist_passive.targets(self, state)
+
+        if self.match is not None and self.hero == 0x02E000000000012E and not state.instance.component.strict:
+            controls = self.match.combat.sombra_controls
+            player = controls.player(self.body)
+            if player is not None:
+                result = controls.targets(player, state)
+                if result is not NotImplemented:
+                    return result
+
+        if (self.match is not None and self.hero == sound_barrier.HERO
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (sound_barrier.GRAPH, 16)):
+            return self.match.combat.sound_barriers.tracked_targets(state)
+        if (self.match is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x017B, 5)):
+            from ow174.game import transcendence
+
+            fight = self.match.combat
+            owner = next((p for p in self.match.players
+                          if p.body == self.body and p.spawned and not p.gone), None)
+            if owner is None:
+                return ()
+            return tuple(Entity(target.entity) for target in transcendence.recipients(fight, owner, state))
+        if (self.match is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0EE3, 17)):
+            return self.match.combat.brigitte_shields.bash_targets(state)
+        if (self.match is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (torbjorn_turret.HAMMER, 33)):
+            return self.match.combat.torbjorn_turrets.repair_targets(state)
+        if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x025C
+                and state.index in (4, 7)):
+            return () if self.match is None else self.match.combat.projected_barrier_targets(self.body, state)
+        if (self.hero != 0x02E000000000013B or state.instance.graph.index != 0x0B9E
+                or state.index not in (3, 6)):
+            return NotImplemented
+        if self.match is None:
+            return ()
+        return self.match.combat.nano_targets(self.body, state)
+
+    def body_health(self, entity):
+        return NotImplemented if self.match is None else self.match.combat.body_health(entity)
+
+    def entity_var(self, entity, var):
+        if self.match is not None and var in (253, 639, 1884):
+            value = self.match.combat.torbjorn_turrets.entity_var(self.body, entity, var)
+            if value is not NotImplemented:
+                return value
+        return super().entity_var(entity, var)
+
+    def filtered_body_health(self, entity, kind, tag):
+        from ow174.game import doomfist_passive
+
+        if (self.match is not None and self.hero == doomfist_passive.HERO
+                and (entity, kind, tag) == (self.body, 2, doomfist_passive.POOL_TAG)):
+            if doomfist_passive.player(self) is None:
+                return None
+            vitals = self.match.combat.vitals.get(entity)
+            return vitals.bonus_shields if vitals is not None else 0.0
+        return super().filtered_body_health(entity, kind, tag)
+
+    def controller_record(self, entity):
+        return NotImplemented if self.match is None else self.match.controller_record(entity)
+
+    def create_entity(self, instance, node):
+        if self.match is not None:
+            result = self.match.combat.brigitte_shields.create(instance, node)
+            if result is not NotImplemented:
+                return result
+            result = self.match.combat.sigma_barriers.create(instance, node)
+            if result is not NotImplemented:
+                return result
+            result = self.match.combat.symmetra_barriers.create(instance, node)
+            if result is not NotImplemented:
+                return result
+            result = self.match.combat.symmetra_portals.create(instance, node)
+            if result is not NotImplemented:
+                return result
+            return self.match.combat.winston_bubbles.create(instance, node)
+        return NotImplemented
+
+    def confirm_portal(self, state):
+        if self.match is not None and (state.instance.graph.index, state.node.pos) == (0x1571, 69):
+            self.match.combat.symmetra_portals.confirm(state)
+            return True
+        return NotImplemented
+
+    def relocate_through_portal(self, instance, node):
+        return (NotImplemented if self.match is None
+                else self.match.combat.symmetra_portals.relocate(instance, node))
+
+    def confirm_photon_barrier(self, state):
+        return self.match is not None and self.match.combat.symmetra_barriers.confirm(state)
+
+    def destroy_entity(self, instance, node):
+        if self.match is not None and (instance.graph.index, node.pos) == (0x0EE3, 8):
+            self.match.combat.brigitte_shields.retire(self.body)
+            return True
+        if self.match is not None and (instance.graph.index, node.pos) == (0x1B55, 6):
+            self.match.combat.sigma_barriers.retire(self.body)
+            return True
+        if self.match is not None and (instance.graph.index, node.pos) == (0x156B, 17):
+            self.match.combat.symmetra_barriers.retire(self.body)
+            return True
+        return NotImplemented
+
+    def play_script_selected(self, instance, node):
+        from ow174.game import doomfist_passive
+
+        if self.match is not None:
+            if (self.hero == doomfist_passive.HERO and not instance.component.strict
+                    and (instance.graph.index, node.pos) == (doomfist_passive.PASSIVE, 4)):
+                return doomfist_passive.grant(self, instance, node)
+            result = self.match.combat.sombra_controls.play(instance, node)
+            if result is not NotImplemented:
+                return result
+            if not instance.component.strict and (instance.graph.index, node.pos) == (accretion.GRAPH, 18):
+                return accretion.control(self.match.combat, instance, node)
+            if not instance.component.strict and (instance.graph.index, node.pos) == (0x0EE3, 13):
+                return self.match.combat.brigitte_shields.bash_stun(instance, node)
+            result = self.match.combat.sigma_barriers.play(instance, node)
+            if result is not NotImplemented:
+                return result
+            result = self.match.combat.symmetra_barriers.play(instance, node)
+            if result is not NotImplemented:
+                return result
+            return self.match.combat.winston_bubbles.play(instance, node)
+        return NotImplemented
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import doomfist_passive
+
+        instance = state.instance
+        if self.match is not None and self.hero == doomfist_passive.HERO and not instance.component.strict:
+            if (instance.graph.index, state.node.pos) == (doomfist_passive.UPPERCUT, 17):
+                if elapsed_ms == 0:
+                    doomfist_passive.hit(self, state)
+                state.request_finish()
+                return True
+        if (self.match is not None and not instance.component.strict
+                and (instance.graph.index, state.node.pos) == (0x0B32, 9)):
+            if elapsed_ms == 0:
+                self.match.combat.sombra_controls.drain(state)
+                state.request_finish()
+            return True
+        if (self.match is not None and not instance.component.strict
+                and (instance.graph.index, state.node.pos) == (0x0EE3, 15)):
+            if elapsed_ms == 0:
+                self.match.combat.brigitte_shields.bash_hit(state)
+                state.request_finish()
+            return True
+        return NotImplemented
+
+    def skill_locked(self, state):
+        return (self.match is not None and not state.instance.component.strict
+                and self.match.combat.sombra_controls.blocked(state))
+
     def native(self, cfg: dict, instance):
+        from ow174.game import doomfist_passive, torbjorn_turret
+
+        if (self.match is not None and self.hero == doomfist_passive.HERO and instance is not None
+                and not instance.component.strict and instance.graph.index == doomfist_passive.PASSIVE
+                and cfg is instance.graph.node(33).field("m_condition")):
+            return doomfist_passive.qualified(self, instance, cfg)
+        rock_query = accretion.native(self, cfg, instance)
+        if rock_query is not NotImplemented:
+            return rock_query
         cls = cfg.get("$")
+        if (self.match is not None and instance is not None and not instance.component.strict
+                and instance.graph.index == torbjorn_turret.HAMMER
+                and cls in ("STU_F1C45C59", "STU_005D99E6")):
+            target = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            device = self.match.combat.torbjorn_turrets.owned_device(self.body, target)
+            if device is not None:
+                return device.health if cls == "STU_F1C45C59" else torbjorn_turret.CAPACITY
+        if (self.match is not None and self.hero == 0x02E000000000012E and instance is not None
+                and not instance.component.strict and instance.graph.index == 0x0B1B):
+            controls = self.match.combat.sombra_controls
+            player = controls.player(self.body)
+            if cls == "STU_AC829876" and cfg is instance.graph.node(204).field("m_condition"):
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                return player is not None and any(target.entity == entity for target in controls.hackable(player))
+            if cls == "STU_53F4CA65" and cfg is instance.graph.node(164).field("m_condition")["m_configVars"][0]:
+                from ow174.game import health_packs
+
+                entity = expr.to_entity(instance.find_var(graph.INSTANCE, 8909).value())
+                pack = self.match.combat.health_packs.get(entity)
+                if pack is not None:
+                    return player is not None and health_packs.available_to(self.match.combat, pack, player)
+        if self.match is not None and instance is not None and cls == "STU_E72F6348":
+            fight = self.match.combat
+            barrier = {0x1B55: fight.sigma_barriers, 0x0EE3: fight.brigitte_shields}.get(instance.graph.index)
+            entity = cfg.get("m_entity") or {}
+            if instance.graph.index == 0x16C5 and expr.dynamic(entity) == (expr.ENTITY, 679):
+                target = expr.to_entity(instance.evaluate(entity))
+                return fight.torbjorn_turrets.owned_device(self.body, target) is not None
+            if (barrier is not None and barrier.geometry is not None and entity.get("$") == "STU_F7262B36"
+                    and (entity.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"):
+                return any(player.body == self.body and player.has_body and not player.gone
+                           for player in self.match.players)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -164,7 +390,8 @@ class BodyWorld(runtime.World):
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
         if (match is not None and sender == self.body
-                and match.queue_body_message(target, message, params, sender)):
+                and (match.combat.torbjorn_turrets.receive(target, message, sender)
+                     or match.queue_body_message(target, message, params, sender))):
             return
         super().send_message(target, message, params, sender)
 
@@ -257,10 +484,15 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
         record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        from ow174.game import matrix
+
+        if hero == matrix.HERO and body_definition == matrix.MECH:
+            record = graph.entity_body(body_definition)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -280,7 +512,7 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        self._spawn(start_frame, sum(pools.active_pools(hero, body_definition)) if health is None else health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -294,19 +526,9 @@ class BodyScript(ReplicatedBody):
         component = self.component
         component.frame = frame
         component.now = frame * self.frame_ms
-        weapons = self.record.get("weapons") or []
-        component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
-        component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
-        created = create_initial_graphs(component, self.record)
-        manager = graph.graph(self.record["manager"]) if self.record.get("manager") is not None else None
-        if manager is not None:
-            created.append(component.create(manager, init=False))
-        for slot, item in enumerate(weapons):
-            if item is not None and graph.graph(item) is not None:
-                created.append(component.create(graph.graph(item), values={(INSTANCE, 28): slot}, init=False))
-        for instance in created:
+        for instance in create_body_graphs(component, self.record):
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -360,6 +582,25 @@ class BodyScript(ReplicatedBody):
     def set_ult_charge(self, points: float) -> None:
         """Set the ultimate's charge (#342e; the cost is #338e): a GM command, or damage and healing later."""
         self.component.set(ULT_CHARGE, f32(points))
+
+    def gain_ult_charge(self, points: float) -> float:
+        """Credit effective combat units against the authored cost, without overfill.
+
+        The owning combat policy chooses units. Native generator scalars remain
+        separate from the existing passive-fill reconstruction.
+        """
+        if (type(points) not in (int, float) or not math.isfinite(points) or points <= 0
+                or self.component.owner_dead
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if (not math.isfinite(cost) or not math.isfinite(charge) or charge < 0
+                or cost <= charge or cost <= 0):
+            return 0.0
+        after = min(cost, f32(charge + min(points, cost - charge)))
+        self.set_ult_charge(after)
+        return after - charge
 
     def _charge_ult(self) -> None:
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
@@ -626,6 +867,22 @@ class BodyScript(ReplicatedBody):
             # Before the first actual send, the queued initial can still coalesce.
             # After send, retain its original chunk and report through transport retries.
             stream.initial_owner.resend = True
+
+
+def create_body_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+    """Allocate a body's initial graphs, weapon manager and authored weapon slots."""
+    weapons = record.get("weapons") or []
+    component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+    component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
+    created = create_initial_graphs(component, record)
+    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if manager is not None:
+        created.append(component.create(manager, init=False))
+    for slot, item in enumerate(weapons):
+        weapon = graph.graph(item) if item is not None else None
+        if weapon is not None:
+            created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
+    return created
 
 
 def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:

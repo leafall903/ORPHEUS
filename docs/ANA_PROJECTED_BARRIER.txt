@@ -1,0 +1,81 @@
+Ana versus Zarya projected barrier: partial104319 reconstruction
+
+Actual graph path
+Zarya0068 uses025C TrackTargets4/7, Ability9, Pet10 and combat effect18.
+The production BodyWorld target service now supplies a living allied nonself
+body. Actual E input enters Pet10/effect18 without injected targets or forced
+predicates. The effect reads processed target variable536, not tracker output
+375. Pet03DA, remaining215 and initial567=2 are authored inputs. The consumed
+activation counter prevents a depleted, expired or retired-target cast from
+refilling itself. Actual remaining215 determines the protection deadline.
+
+Selection policy and limits
+Range30 and angle10 times owner9595 are resource inputs. The model uses1 when
+9595 is absent. It implements literal candidate6600/11264 false predicates,
+same-team/nonself/living selection, a body-centre cone and static triangle LOS.
+Alignment, distance and entity ID provide deterministic reconstructed ranking.
+An already-protected target is excluded under an explicit nonstacking model.
+Native masks, exact target age/ranking, zoom/camera, receiver geometry and
+multi-Zarya/no-limits stacking are not proved by this service.
+
+Protection and lifecycle
+BodyBarrier retains recipient identity, immutable caster body, graph/instance/
+Pet counter, deadline and remaining200-point pool. It shares personal-barrier
+contact/cleansing policy: immediate whole-contact absorption, no breaking-hit
+overflow, no health dose/antiheal/sleep from absorbed Ana contacts, friendly
+healing through the shield and no absorbed-health Ana ultimate credit.
+Activation clears modeled negative control, antiheal and damaging Ana doses.
+Capacity200, body-capsule coverage, cleansing, nonstacking and released-barrier
+survival after caster death/replacement/interruption remain reconstructions.
+The recipient's death/replacement/removal retires its pool. Consumed casts
+cannot rebind that pool onto a replacement body. Manual NPC removal now clears
+the pool as well. Caster replacement never transfers source identity.
+
+Executed evidence
+ana-projected-personal-barrier-final.txt:25 methods PASS in99.021s, comprising
+13 projected and12 personal methods. Projected checks include both rifle modes,
+dart/grenade/melee, friendly healing, range/LOS/team/death/FFA/variable rejection,
+miss followed by a valid press, expiry/native cooldown/fresh cast, depletion,
+recipient death/replacement, caster death/replacement/sleep, cleansing and a
+real server snapshot sensitive to recipient/caster barrier state.
+An early fixture reset the caster pose on hero switch and reset Ana aim during
+dart windup; the corrected fixture preserves pose/view. A follow-up shot was
+also pressed before Sleep Dart's native action lock ended; it now waits for
+release. These corrections did not override graph state or cooldown predicates.
+
+Five-NPC cases use the required external43-row authored mover input and explicit
+static collision fixtures. Autonomous NPC AI is not inferred from these tests.
+The baseline NPC incoming Enforcer/Assassin failures remain ordinary failures.
+Final NPC18 methods in79.220s:17 methods pass, with only those two incoming
+subcases failing. Four new methods cover55 passing scenarios:25 contacts with
+both rifle modes,10 friendly heals,10 cleanses and10 deaths/manual removals.
+Full native barrier capacity/geometry/energy/effect host and client presentation
+remain OPEN. Full Ana static acceptance is incomplete; no final commit/merge.
+
+Prior projected code regression:411 methods PASS in734.274s, including complete stored
+replay/server snapshots. Ruff and git diff --check PASS. After this run, only
+documentation/results are updated; runtime and test source remain unchanged.
+
+Subsequent resource/native evidence
+Both0244 and025C explicitly call0256 on Pet variable512. Its HealthPool0 amount
+uses a conditional expression with literal200 and a4049CF77 configuration query
+whose fallback is200. This provides direct target-build baseline evidence beyond
+the earlier historical patch-note inference. Full native modifiers are not proved.
+The conditional query D3EB8D87 has12 original CDB700 scalar cases PASS with
+explicit engine lookup/key/input/output adapters. It checks source component92
+and does not follow43. DB742151 and4049CF77 remain unproved; the latter is absent
+from the captured client registration table. No new production query is added.
+See external zarya-pet-health-resource-evidence.json,
+zarya-pet-health-native-frontier.json and component92-native-validation.json.
+Native capacity modifiers, Pet health/damage paths and energy remain OPEN.
+
+Later energy bridge: see ANA_BARRIER_ENERGY.txt. Effective reconstructed pool
+loss now drives actual0242 accumulation/cap/delay/decay and existing0241 secondary
+damage expressions, including Ana-to-barrier-to-Zarya-to-Ana return fire. Native
+Pet event classification/namespace and primary beam contacts remain OPEN.
+
+External production probe: zarya-projected-production.json, no declared target
+injection. Historical zarya-projected-targets-frontier.* describes the earlier
+unsupported state only; the JSON summary was recovered from retained text after
+its filename was accidentally reused. The production probe now uses a separate
+filename. The declared-target diagnostic remains research, not acceptance.

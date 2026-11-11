@@ -1,0 +1,99 @@
+Zarya primary versus Ana: bounded native outputs and reconstructed combat
+
+Native output evidence
+Original build104319 C83A70 writes STU404DE6D3 target+10 Entity and+18 bool
+only when their prior values differ. State+1F4 caches the hit byte; gate+1F8
+or an incompatible output interface suppresses these assignments. C88700
+removes vector links but does not clear the plain Entity/bool outputs.
+Twenty-four original-function offline cases pass with explicit reflection,
+getter/conversion/setter/config lookup adapters. See external lane artifacts
+trackray-output-native-validation.json and probe_trackray_outputs_native.py.
+This does not prove geometry, aggregate outputs or damage cadence.
+
+Authored0241 state43/81 simple Entity outputs are2815/16627. Stack82/node176
+selects a truthy16627, otherwise2815, into target536. This path works without
+inventing opaque aggregate23531/23532/23530 values. Range1648 evaluates15;
+state43 scalar m_57DAE1B5 is.15, state81 has no configured value. ModifyHealth10
+evaluates75 + energy*.010000001*(170-75). Actual0242 energy remains authoritative.
+
+Declared production reconstruction
+TrackRay has an explicit world provider. Only Zarya0241/43 and81 are hosted:
+current body eye/aim, living enemy capsules, nearest static wall,15m resource
+length and capsule expansion by the configured scalar. Native masks, transforms,
+sweep geometry, scalar meaning, radius correction, opaque/vector outputs and
+presentation remain open. Unsupported non-strict worlds retain legacy no-output;
+strict worlds reject missing services/complex outputs rather than claim a miss.
+
+Combat consumes active ModifyHealth10 and actual selected536 once per accepted
+posed command frame, using the authored rate times component.frame_ms/1000.
+This is a service policy, not native continuous-health cadence proof. World-only
+or no-packet damage policy remains open. Shared damage handles reconstructed
+barriers, Nano scaling, health/death and charge; full native defense/armor/filter
+behavior remains open. Snapshot storage includes ray_hit and consumed beam_frames;
+retiring a caster removes its consumed-frame key.
+
+Executed evidence
+Historical zarya-primary-executed-frontier.json preserves the pre-service failure:
+80 actual primary frames consumed ammo but left target536 empty and Ana200.
+New zarya-primary-reconstructed-execution.json uses actual commands, without
+target/predicate overrides: target536 resolves Ana, health200->104, ammo100->
+74.41812896728516, rate75, frame_ms16, both TrackRay states active, no fault.
+The current focused group passes21 methods in20.508s, including11 beam methods,
+five TrackRay methods and five shared lifecycle/arbitration methods. It covers
+miss/team/15m range/static LOS, target departure/reentry, release/duplicates,
+actual ammo exhaustion/reload/restart, primary-secondary switching, energy,
+Nano, sleep/stun/death/replacement and old-body retirement.
+Thirty-two beam/VM-storage/snapshot methods pass in51.936s. An actual encrypted
+two-player Zarya-to-Ana10-frame stored-state replay passes in167.853s, preserving
+target536, health188 and consumed frame state. Five authored NPC capsule scenarios
+pass with the43-row runtime. The full20-method NPC suite retains two original
+incoming Enforcer/Assassin failures; no autonomous AI acceptance is implied.
+
+Shared lifecycle repair
+Canceled CHANGED/CHECK work clears its pending flags; ending states ignore watched
+writes. Ability.stop queues scope/resource cleanup before releasing arbitration,
+so held weapons sample the Roll refill. Three minimal notification methods and
+two actual McCree partial/empty/fan ammo methods pass. The pre-fix failures and
+matching parent method bodies are preserved externally in
+notification-parent-provenance.json. Parent is read-only; no Roll motion backend
+is imported. Exact native inter-object cleanup order remains unproved.
+
+The429 full replay baseline predates throttle/beam/lifecycle changes. The207
+post-throttle targeted run also predates beam/lifecycle. These are historical
+baselines, not full current-code acceptance. Full Ana static/player/NPC/client
+requirements remain open; all expanded work remains uncommitted/not merge-ready.
+
+Later FirstPerson audit and validation boundary
+Original003 XML confirms Ana1424 offsets1.25/.875 (already used), Zarya03BF
+1.6/1.12, Genji0225 1.2/.84, McCree02A3 1.425/.9975 and Soldier03CF1.55/1.085.
+The Zarya/Genji/McCree body-specific values now replace generic fallbacks in
+both Combat._eye and player Target.eye. See external ana-eye-resource-validation.json
+for exact XML paths/hashes. Unlisted bodies and NPC descriptors retain prior
+policies; animated camera/muzzle/native bone equivalence remains open. No McCree
+primary critical policy or Roll motion code is imported by this eye change.
+Forty eye/beam/Deflect/control/ballistic methods pass in45.412s. Ten stance-offset
+cases, eight Ana rifle mode/stance/cover cases and eight Zarya/McCree cover cases
+exercise actual input. Zarya standing1.6 and crouching1.12 are distinguished
+from the earlier1.55/1.15 origin by low cover on both sides of the authored eye.
+The first510-method broad run was deliberately stopped before this fix, and
+ana-beam-full-regressions-interrupted-before-eye.txt is not acceptance. The
+prior21/32/one-replay results above predate this eye correction. A replacement
+full current-code run includes test_game_ana_eye and all stored replay methods.
+
+Terminal current-code verification
+The replacement regression passes514 methods in1253.633s, no skips, including
+all stored replay, current beam/eye/lifecycle/throttle and prior Ana/shared
+modules. The external manifest pins all Python source hashes; SOURCE_STABLE
+is true. Current43-row NPC suite runs20 methods in92.243s:19 methods pass,
+with only the retained Enforcer/Assassin incoming failed subcases. Five new
+beam plus65 projected/energy NPC scenarios pass. Ruff on every modified/new
+Python file and git diff --check pass. Full coverage remains incomplete; these
+regressions do not close missing Wraith/absorb/immunity/NPC special behavior.
+
+External ANA_STATIC_MATRIX.json inventories18 scope areas. Resource-backed
+server reconstruction is allowed with explicit limits; an unproved native
+detail alone does not invalidate a passing declared static scope. Missing
+static behavior, failing NPC cases and incomplete required interaction coverage
+still prevent completion.20 additional original54FEB21C timer cases are research
+only: absent/failed/false F0 does not finish; OnEnter/output/request dispatch and
+Wraith immunity remain open. No production Wraith handler or partial commit.

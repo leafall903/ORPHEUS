@@ -53,6 +53,18 @@ class Vars(Context):
 
 
 class ValueTests(unittest.TestCase):
+    def test_value_availability_distinguishes_unset_from_typed_zero(self):
+        cfg = {"$": "STU_58AA0A3B"}
+        self.assertIs(expr.evaluate(cfg, Vars()), False)
+        cfg["m_value"] = {"$": "STU_7BD2CA19", "m_resourceKey": None}
+        self.assertIs(expr.evaluate(cfg, Vars()), False)
+        cfg["m_value"] = dynamic(12)
+        for value, available in [(None, False), (False, True), (0, True), (Entity(0), True)]:
+            with self.subTest(value=value):
+                ctx = Vars(instance={12: value})
+                self.assertIs(expr.evaluate(cfg, ctx), available)
+                self.assertEqual(ctx.reads, [(0, 12)])
+
     def test_truthiness(self):
         for value, expected in [
             (None, False), (False, False), (True, True), (0, False), (3, True), (0.0, False), (0.5, True),
