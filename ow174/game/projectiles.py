@@ -237,6 +237,7 @@ class Shot:
     observers: list = field(default_factory=list)  # per-viewer launches of this projectile
     field_due: int | None = None
     field_tick: int | None = None
+    field_airborne: bool = False
     faded: bool = False
     arrivals: list = field(default_factory=list)  # the field entities whose create arrived
 
@@ -556,9 +557,21 @@ class Projectiles:
 
     # --- the Biotic Field -----------------------------------------------------------------------------
 
+    def finish_field_flight(self, shot: Shot, tick: int, ground_point=None) -> None:
+        """Resolve host placement before the field can heal or send a create."""
+        if not shot.field_airborne:
+            return
+        shot.field_airborne = False
+        shot.field_due = max(tick, shot.field_due if shot.field_due is not None else tick + FIELD_DELAY)
+        if ground_point is not None:
+            shot.where = tuple(expr.f32(axis) for axis in ground_point)
+
     def _field(self, shot: Shot, tick: int, first_tick: int) -> None:
         if shot.field_due is None:
             shot.field_due = tick + FIELD_DELAY
+        if shot.field_airborne:
+            self._confirm(shot, tick)
+            return
         profile = _field_profile(graphs_data.graph(FIELD_GRAPH))
         start = shot.field_due
         expires = start + profile.ticks
@@ -590,7 +603,7 @@ class Projectiles:
         for shot in self.shots:
             player = shot.player
             start = shot.field_due
-            if (shot.spawn == FIELD_ENTITY and start is not None and start < last_tick
+            if (shot.spawn == FIELD_ENTITY and not shot.field_airborne and start is not None and start < last_tick
                     and player.client is not None and player.has_body and player.body == shot.body
                     and player.body_script is not None):
                 fields.append((shot, start))

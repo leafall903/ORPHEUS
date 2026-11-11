@@ -1110,8 +1110,50 @@ class Rocket:
     penetrated: set | None = None
     range_left: float | None = None
     field_bounces: int = 0
+    launch_tick: int | None = None
+    range_limit: float | None = None
+    rebound_limit: int | None = None
+    rebound_scale: float = 0.0
     hit_entities: set[int] = field(default_factory=set)
 
+
+    @property
+    def distance(self):
+        return self.travelled
+
+    @distance.setter
+    def distance(self, value):
+        self.travelled = value
+
+    @property
+    def rebounds(self):
+        return self.field_bounces
+
+    @rebounds.setter
+    def rebounds(self, value):
+        self.field_bounces = value
+
+    def set_velocity(self, vx, vy, vz):
+        self.velocity = (vx, vy, vz)
+        self.speed = math.hypot(vx, vy, vz)
+        if self.speed:
+            self.direction = (vx / self.speed, vy / self.speed, vz / self.speed)
+
+    def travel(self, distance, *, seconds=None):
+        if seconds is None:
+            seconds = distance / self.speed
+        self.travelled += distance
+        self.flown += seconds
+        self.left -= seconds
+        return seconds
+
+    def stamp_launch(self, tick):
+        self.launch_tick = tick
+        if self.shot is not None and self.shot.spawn == projectiles.FIELD_ENTITY:
+            self.shot.field_due = tick + 1 + projectiles.FIELD_DELAY
+
+    def flight_cursor(self):
+        return self.launch_tick if self.last_tick is None else self.last_tick
 
     def __post_init__(self):
         if self.source_entity is None:
@@ -2820,6 +2862,18 @@ class Combat:
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
+        canisters = [rocket for rocket in self.rockets
+                     if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY]
+        for at in range(field_first, first):
+            if not canisters:
+                break
+            self.now, self.tick = now - (tick - at) * TICK, at
+            for rocket in canisters:
+                if rocket in self.rockets:
+                    self._fly(rocket)
+            self.projectiles.heal_fields(at, at)
+            field_first = at + 1
+            canisters = [rocket for rocket in canisters if rocket in self.rockets]
         for at in range(first, tick + 1):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
@@ -3892,10 +3946,30 @@ class Combat:
         entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
         asset = state.evaluate(entity_def, watch=False) if entity_def is not None else None
         definition = asset.guid if isinstance(asset, expr.Asset) else None
+        field_canister = (not npc and state.instance.graph.index == 0x0257 and state.index == 1
+                          and definition == 0x040000000000072D)
+        rebound_limit, rebound_scale = None, 0.0
+        if field_canister:
+            response = node.field("m_E365DB20") or {}
+            if state.evaluate(response.get("m_D9EFD182"), watch=False):
+                rebound_limit = int(_number(state.evaluate(response.get("m_360294F0"), watch=False)))
+                rebound_scale = _number(state.evaluate(response.get("m_0D20DAFD"), watch=False))
+            offset = state.evaluate(node.field("m_5EC1EB38.m_1C78B91C"), watch=False)
+            launch = state.evaluate(node.field("m_5EC1EB38.m_E2FD6F04"), watch=False)
+            if isinstance(offset, expr.Vec3) and isinstance(launch, expr.Vec3):
+                length = math.hypot(launch.x, launch.y, launch.z)
+                if length:
+                    x, y, z = shooter.mover.position
+                    forward_x, _, forward_z = aim(round(shooter.mover.yaw), 0)
+                    origin = (x + offset.x * forward_z + offset.z * forward_x, y + offset.y,
+                              z - offset.x * forward_x + offset.z * forward_z)
+                    direction = (launch.x / length, launch.y / length, launch.z / length)
         speed = field("m_projectileSpeed")
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
             gravity = flashbang_gravity
+            if field_canister:
+                gravity = projectiles.unconditional_gravity(state)
             if flashbang_gravity is not None:
                 direction = mccree.flashbang_direction(state, direction)
             if npc and shooter.hero == 0x02E0000000000177 and state.instance.graph.index == 0x0CA1 and node.pos == 14:
@@ -3923,7 +3997,7 @@ class Combat:
                                healing=True, line_of_sight=True,
                                tags=direct.tags if direct else (), health_operation=0)
             range_left = reach if field_spec is not None or grenade is not None else None
-            if reach and range_left is None:
+            if reach and range_left is None and not field_canister:
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
                            and state.instance.graph.index == 0x00E2 and node.pos == 3
@@ -4043,7 +4117,14 @@ class Combat:
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
+                        range_limit=reach if field_canister else None,
+                        rebound_limit=rebound_limit if field_canister else None,
+                        rebound_scale=rebound_scale,
                     )
+                    if field_canister and rocket.shot is not None:
+                        rocket.shot.field_airborne = True
+                        if self.tick:
+                            rocket.stamp_launch(self.tick)
                     self._submit_attack(shooter, shot_frame, rocket)
             return
         if direct is None or direct.amount <= 0.0:
@@ -4472,6 +4553,15 @@ class Combat:
 
     def _fly(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
+        if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY:
+            cursor = rocket.flight_cursor()
+            first = self.tick if cursor is None else cursor + 1
+            for at in range(first, self.tick + 1):
+                if rocket not in self.rockets:
+                    break
+                rocket.last_tick = at
+                self._fly_field_canister(rocket, min(TICK, rocket.left))
+            return
         if not self.orisa.flying(rocket):
             return
         # Player input can arrive immediately before the scheduler accounts for a gap.
@@ -4521,6 +4611,77 @@ class Combat:
                 self._fly_step(rocket, min(TICK, rocket.left))
             return
         self._fly_step(rocket, min(elapsed * TICK, rocket.left))
+
+    def _fly_field_canister(self, rocket, remaining):
+        """Delivered 0257 gravity/rebound clock, using the combined collision services."""
+        for _ in range(max(deflection.MAX_DEFLECTIONS, (rocket.rebound_limit or 0) + 1)):
+            duration = min(remaining, rocket.left)
+            vx, vy, vz = (axis * rocket.speed for axis in rocket.direction)
+            rocket.set_velocity(vx, vy - rocket.gravity * remaining, vz)
+            if rocket.speed <= EPSILON:
+                rocket.travel(0.0, seconds=duration)
+                if rocket.left <= 0:
+                    self._landed(rocket)
+                return
+            range_exhausted = False
+            if rocket.range_limit is not None:
+                range_time = max(0.0, rocket.range_limit - rocket.distance) / rocket.speed
+                range_exhausted = range_time <= duration
+                duration = min(duration, range_time)
+            if duration <= 0:
+                self._landed(rocket)
+                return
+            step = rocket.speed * duration
+            best = None
+            for target in self._shot_targets(rocket.shooter, rocket.direct):
+                a, b = target.segment()
+                distance = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
+                if distance is not None and distance <= step and (best is None or distance < best[0]):
+                    best = distance, target
+            surface = self._collision().cast_ray(rocket.position, rocket.direction, step)
+            if surface is not None and (best is None or surface.distance < best[0]):
+                best = surface.distance, None
+            limit = step if best is None else best[0]
+            barrier = self._barrier_contact(rocket.shooter, rocket.position, rocket.direction, limit)
+            absorbed = self._deflector(rocket.shooter, rocket.definition, rocket.position, rocket.direction, limit)
+            if (barrier is not None and (best is None or barrier[0] < best[0])
+                    and (absorbed is None or not absorbed[3] or barrier[0] < absorbed[0])):
+                rocket.travel(barrier[0])
+                self._landed(rocket)
+                return
+            if absorbed is not None and absorbed[3] and (best is None or absorbed[0] < best[0]):
+                rocket.travel(absorbed[0])
+                self._landed(rocket, release=False)
+                return
+            if best is None:
+                rocket.position = _along(rocket.position, rocket.direction, step)
+                rocket.travel(step, seconds=duration)
+                if range_exhausted or rocket.left <= EPSILON:
+                    self._landed(rocket)
+                return
+            distance, struck = best
+            consumed = rocket.travel(distance)
+            ground_point = None
+            if struck is None and surface is not None and rocket.rebound_limit is not None:
+                rocket.position = _along(rocket.position, rocket.direction, max(0.0, distance - 0.005))
+                if surface.normal[1] <= 0:
+                    rocket.rebounds += 1
+                    if rocket.rebounds <= rocket.rebound_limit:
+                        incoming = (vx, vy - rocket.gravity * consumed, vz)
+                        normal_speed = _dot(incoming, surface.normal)
+                        if normal_speed < 0:
+                            incoming = _along(incoming, surface.normal, -(1 + rocket.rebound_scale) * normal_speed)
+                            rocket.position = _along(rocket.position, surface.normal, 0.001)
+                        rocket.set_velocity(*incoming)
+                        remaining -= consumed
+                        if remaining <= 0:
+                            return
+                        continue
+                else:
+                    ground_point = surface.point
+            self._landed(rocket, ground_point=ground_point)
+            return
+        self._landed(rocket)
 
     def _split_volley(self, state, direction, seed, number):
         from ow174.game import weapon_spread
@@ -5422,7 +5583,7 @@ class Combat:
                 vitals.healing_block = vitals.healing_block[0], self.now
                 break
 
-    def _landed(self, rocket: Rocket, *, release: bool = True) -> None:
+    def _landed(self, rocket: Rocket, *, release: bool = True, ground_point=None) -> None:
         """Finish authority and release or retire the predicted copy."""
         if rocket in self.rockets:
             self.rockets.remove(rocket)
@@ -5432,7 +5593,10 @@ class Combat:
             if release and rocket.spawn == graviton.FIELD_ENTITY:
                 self.zarya_gravitons.landed(rocket, rocket.position, TICK)
         if rocket.shot is not None:
-            if release:
+            if release and rocket.shot.spawn == projectiles.FIELD_ENTITY:
+                at = self.tick if rocket.last_tick is None else rocket.last_tick
+                self.projectiles.finish_field_flight(rocket.shot, at, ground_point)
+            elif release:
                 self.projectiles.flown(rocket.shot, rocket.flown)
             else:
                 self.projectiles.intercepted(rocket.shot, self.tick)

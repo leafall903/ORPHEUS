@@ -741,6 +741,13 @@ class BodyWorld(runtime.World):
     def native(self, cfg: dict, instance):
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
 
+        if (cfg.get("$") == "STU_021D01CD" and instance is not None and instance.graph.index == 0x0257
+                and self.match is not None and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                angle = player.mover.yaw * math.tau / 65536
+                return Vec3(f32(math.sin(angle)), 0.0, f32(math.cos(angle)))
+
         if self.hero == regeneration.MERCY and self.match is not None and instance is not None:
             cls = cfg.get("$")
             if instance.graph.index == 0x01C7:

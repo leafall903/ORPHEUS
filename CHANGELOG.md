@@ -5,6 +5,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Integrate delivered Soldier Field canister physics
+
+- Mount 0257's body-yaw direction input, local launch offset, gravity, ten-second
+  lifetime, 150-metre travel bound and nine allowed rebounds. Preserve contact
+  velocity interpolation and consume the remaining frame after a rebound;
+  the tenth wall contact retires the canister. Reuse combined body/barrier and
+  absorption traces without replacing other projectile consumers.
+- Track launch/flight cursors and defer Field creation/healing until landing.
+  Place ground deployments at the actual contact point. Replay old canister
+  ticks before the bounded combat window so long gaps retain Field healing;
+  this does not extend NPC firing catch-up.
+- All five existing launch/gravity/rebound/range/landing checks passed, as did
+  three long-gap/healing checks and two causal projectile snapshot checks.
+  The broader 79-check selection exposed ten idle-clock subtest failures still
+  requiring delivery reconciliation; its separate long-gap failure is now fixed.
+  No client/full Soldier acceptance is claimed and these gaps do not withhold code.
+
+
+
 ### Retain delivered Practice Range healing classification
 
 - Use the delivered Practice Range classifier for Soldier's healing-credit
