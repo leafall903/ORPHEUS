@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered FirstPerson inputs and Soldier verification sources
+
+- Mount the original external FirstPerson offset reader and extractor. Use its
+  standing/crouched values for combat rays, retaining existing unknown-body
+  fallbacks. Include its catalog and the delivered charge/defense constants in
+  replay runtime identity.
+- Preserve the remaining 20 original Soldier verification modules in the combined
+  source tree. Their broader cross-hero/PvE acceptance is still being reconciled;
+  incomplete acceptance does not prevent this source submission.
+- All 19 focused catalog/extractor/replay checks passed using the lane's external
+  FirstPerson input. The full existing Soldier suite is running separately.
+  No original-client acceptance or complete Soldier merge is claimed.
+
+
 ### Integrate delivered Skirmish selection and tag services
 
 - Preserve the delivered recent-list selection, declared ordered tag candidates,

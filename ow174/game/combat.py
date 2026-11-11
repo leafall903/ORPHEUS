@@ -85,6 +85,7 @@ from ow174.game import (
     stats,
     tracer_recall,
     voicelines,
+    view_offsets,
     weapon_spread,
     winston_barrier,
     world,
@@ -202,6 +203,9 @@ HELIX_BARRIER_PROJECTILES = frozenset((0x040000000000072C, 0x0400000000001C86)) 
 
 
 def eye_height(body: int, crouched: bool = False) -> float:
+    known = view_offsets.get(body)
+    if known is not None:
+        return known[1 if crouched else 0]
     return EYE_CROUCHED.get(body, EYE_CROUCHED_DEFAULT) if crouched else EYE_STANDING.get(body, EYE)
 
 

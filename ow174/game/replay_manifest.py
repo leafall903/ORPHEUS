@@ -34,6 +34,7 @@ _RUNTIME_FIELDS = {
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.view_offsets", "ow174.game.defenses", "ow174.game.ultimate",
     "ow174.game.assassin", "ow174.game.assassin_victim", "ow174.game.npc_context",
     "ow174.game.barriers",
     "ow174.game.barrier_geometry",
@@ -51,6 +52,7 @@ _CONFIG_MODULES = (
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
+    "ow174.game.view_offsets": {"CATALOG_SHA256"},
     "ow174.game.projectile_tags": {"CATALOG_SHA256"},
     "ow174.game.sigma_barrier": {"MODEL_SHA256"},
     "ow174.game.combat": {"EYE_STANDING", "EYE_CROUCHED"},
