@@ -7,7 +7,7 @@ execute here. This is not the general native interception or pool service.
 
 import math
 
-from ow174.game.script import expr, graph
+from ow174.game.script import expr
 
 SIGMA = 0x02E000000000023B
 SHIELD_TAG = 0x5847
@@ -69,93 +69,17 @@ class Grasp:
                             if pool.identifier == SHIELD_TAG)) if vitals is not None else 0.0
 
     def play(self, instance, node):
-        if (instance.graph.index != 0x1D02 or node.pos != 34
-                or instance.evaluate(node.field('m_script')) != expr.Asset(0x0580000000001D03)
-                or instance.evaluate(node.field('m_targets')) != expr.Entity(instance.component.entity)):
-            return False
-        target = next((t for t in self.combat._targets() if t.entity == instance.component.entity), None)
-        if target is None or self.combat.vitals_of(target).dead:
-            return True
-        absorption = instance.states.get(1)
-        key = (instance.id, absorption.counter if absorption else 0)
-        if self.converted.get(target.entity) == key:
-            return True
-        self.converted[target.entity] = key
-        definition = graph.graph(0x1D03)
-        if definition is None:
-            raise ValueError('selected Sigma shield profile requires1D03')
-        params = tuple((expr.guid_of(row['m_B5051BCE']), instance.evaluate(row['m_value']))
-                       for row in node.field('m_params') or ())
-        instance.component.play_loaded_graph(definition, source=target.entity, instigator=target.entity,
-                                             params=params, policy=1)
-        return True
+        from ow174.game.interception import play_shield_script
+
+        return bool(play_shield_script(instance.component.world, instance, node))
 
     def update(self):
+        from ow174.game.interception import update_pools
+
         fight = self.combat
-        previous = fight.tick if self.last_tick is None else self.last_tick
         self.last_tick = fight.tick
-        present = set()
-        for target in fight._targets():
-            owner = target.owner
-            if getattr(getattr(owner, 'hero', None), 'guid', None) != SIGMA:
-                continue
-            script = getattr(owner, 'body_script', None)
-            if script is None or script.retired:
-                continue
-            present.add(target.entity)
-            vitals = fight.vitals_of(target)
-            component = script.component
-            active, retire = {}, []
-            for instance in list(component.instances.values()):
-                if instance.graph.index != 0x1D03:
-                    continue
-                states = [s for s in instance.states.values() if s.active
-                          and s.node.cls == 'STUStatescriptStateHealthPool']
-                if vitals.dead or not states:
-                    retire.append(instance)
-                    continue
-                for state in states:
-                    if (state.node.field('m_7E8B666C') == 2
-                            and expr.guid_of((state.node.field('m_7BE02F89') or {}).get('m_identifier'))
-                            & 0xffff == SHIELD_TAG):
-                        active[(instance.id, state.index, state.counter)] = state
-            changed = False
-            for key, pool in list(vitals.extra.items()):
-                if pool.identifier == SHIELD_TAG and key not in active and not pool.removed:
-                    vitals.remove_temporary(key)
-                    changed = True
-            for key, state in active.items():
-                if key not in vitals.extra:
-                    value = expr.to_float(state.evaluate(state.node.field('m_amount'), watch=False))
-                    vitals.add_temporary(key, SHIELD_TAG, value)
-                    changed = value > 0 or changed
-                pool = vitals.extra.get(key)
-                if pool is None or pool.removed:
-                    retire.append(state.instance)
-            root = next((i for i in component.instances.values() if i.graph.index == 0x1D02), None)
-            decay = (next((s for s in root.states.values() if s.node.pos == 70 and s.active), None)
-                     if root else None)
-            if decay is not None:
-                seconds = max(0, fight.tick - max(previous, decay.start / script.frame_ms)) * TICK
-                rate_cfg = (decay.node.field('m_modifyHealth') or {}).get('m_amount')
-                rate = expr.to_float(decay.evaluate(rate_cfg, watch=False))
-                left = max(0, rate * seconds)
-                for key, pool in vitals.extra.items():
-                    if pool.identifier != SHIELD_TAG or pool.removed:
-                        continue
-                    lost = min(left, pool.now)
-                    pool.now -= lost
-                    left -= lost
-                    changed = lost > 0 or changed
-                    if lost > 0:
-                        vitals.changed.add(2)  # HealthPool kind2, including partial decay updates
-                    if pool.now <= 1e-9:
-                        vitals.remove_temporary(key)
-                        if key in active:
-                            retire.append(active[key].instance)
-            for instance in set(retire):
-                component.destroy(instance)
-            if changed:
-                fight._sync_body_health(owner, vitals)
-        for entity in self.converted.keys() - present:
+        update_pools(fight, fight.tick)
+        live = {target.entity for target in fight._targets()
+                if getattr(getattr(target.owner, "hero", None), "guid", None) == SIGMA}
+        for entity in self.converted.keys() - live:
             del self.converted[entity]

@@ -426,11 +426,6 @@ class BodyWorld(runtime.World):
             from ow174.game import sigma_barrier
 
             sigma_barrier.play_barrier_request(fight, self.body, instance, node)
-        if instance.graph.index == 0x1D02 and node.pos == 34:
-            from ow174.game import interception
-
-            if not interception.play_shield_script(self, instance, node):
-                fight.grant_grasp_shield(instance, node)
         if instance.graph.index == 0x1BBB and node.pos == 18:
             caster = next((player for player in self.match.players
                            if player.has_body and not player.gone and player.body == self.body), None)
@@ -465,6 +460,13 @@ class BodyWorld(runtime.World):
     def compatibility_play_script(self, instance, node):
         from ow174.game import barriers
 
+        if self.hero == 0x02E000000000023B and self.match is not None:
+            if instance.graph.index == 0x1D02 and node.pos == 34:
+                from ow174.game import interception
+
+                if not interception.play_shield_script(self, instance, node):
+                    self.match.combat.grant_grasp_shield(instance, node)
+                return
         barriers.play_script(self, instance, node)
 
     def create_pet(self, state):

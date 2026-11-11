@@ -126,7 +126,7 @@ class ServerSnapshotTests(unittest.TestCase):
         for mutate in (
             lambda: setattr(fight.absorption, 'last_tick', fight.tick + 100),
             lambda: fight.absorption.converted.update({player.body: (12, 3)}),
-            lambda: fight.vitals[player.body].add_temporary((12, 6, 1), 0x5847, 43.2),
+            lambda: fight.vitals[player.body].add_temporary((12, 6, 1), 0x5847, combat.SHIELDS_POOL, 43.2, fight.tick),
             lambda: setattr(rocket, 'direct', HitDef(24)),
             lambda: setattr(rocket.direct, 'health_operation', None),
         ):

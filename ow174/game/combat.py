@@ -771,10 +771,10 @@ class Vitals:
             parts[SHIELDS_POOL * POOLS + 1] = world.pool(
                 0xFFFFFFFF, SHIELDS_POOL, shield.maximum, shield.amount,
             )
-            for pool in self.extra.values():
-                if pool.kind == kind:
-                    parts[kind * POOLS + pool.slot] = world.pool(
-                        pool.pool_id, kind, pool.most, pool.now)
+        for pool in self.extra.values():
+            if pool.kind in kinds:
+                parts[pool.kind * POOLS + pool.slot] = world.pool(
+                    pool.pool_id, pool.kind, pool.most, pool.now)
         return {51: parts}
 
 

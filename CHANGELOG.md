@@ -12,6 +12,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Pass 170 combat, scene, and StateScript checks, then pass five targeted
   rechecks of tagged Deflect and grenade amplification using the delivery's
   external data. Full PvE and original-client verification remain open.
+- Use the shared temporary pool lifecycle for Sigma's absorption. Verify
+  nine shield tests, including repeated grants and wire slot reuse.
 
 ### Orisa server integration
 
