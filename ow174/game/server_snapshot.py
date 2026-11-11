@@ -17,6 +17,8 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    assassin_victim,
+    barriers,
     bots,
     combat,
     correction,
@@ -94,9 +96,17 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen genji_strikes "
-        "genji_blades genji_assists projectiles observers voice stuns"
+        "genji_blades genji_assists projectiles observers voice stuns frost_hits barriers next_barrier pins "
+        "assassin_victims"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    combat.Vitals: _names("entity most now ids extra next_pool changed died_at death_tick killer "
+                          "sleep_until sleep_wake_floor"),
+    combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
+    barriers.Barrier: _names(
+        "entity parent parent_body source instance state activation component "
+        "mesh geometry_digest vitals retired recipient recipient_body recipient_component"),
+    assassin_victim.Lease: _names(
+        "source source_instance sender_state activation target source_component target_component instance"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -118,7 +128,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -138,7 +148,7 @@ FIELDS = {
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData, genji.Mobility,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Frost, combat.Target, combat.Rocket,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -148,7 +158,7 @@ DATACLASSES = (
 
 
 class _Graph:
-    def __init__(self, boundaries, assets):
+    def __init__(self, boundaries, assets, definition_digests):
         self.boundaries = {}
         for name, obj in boundaries.items():
             if obj is None:
@@ -158,6 +168,7 @@ class _Graph:
                 _fail("one external object has conflicting boundary names")
             self.boundaries[id(obj)] = (obj, name)
         self.assets = assets
+        self.definition_digests = definition_digests
         self.asset_descriptors = {}
         self.asset_worlds = {}
         self.objects = []
@@ -351,10 +362,14 @@ class _Graph:
         from ow174.game.body_vm_snapshot import export_component_vm_with_identities
 
         owners = {}
+        graph_definitions = {}
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
-            document, identities = export_component_vm_with_identities(component, extra_roots=extras)
+            document, identities = export_component_vm_with_identities(
+                component, extra_roots=extras, _graph_definitions=graph_definitions,
+                _definition_digests=self.definition_digests,
+            )
             bridges = []
             for storage_id, obj, scope in identities:
                 core = self.memo.get(id(obj))
@@ -389,7 +404,7 @@ class _Graph:
         return self.nodes
 
 
-def export_server_state(server, *, archives=(), collision_provider=None, assets=None):
+def export_server_state(server, *, archives=(), collision_provider=None, assets=None, _definition_digests=None):
     """Export all registered stored fields; unknown fields/types fail instead of being skipped.
 
     Only stopped controlled servers are accepted. Every match must use the same
@@ -418,7 +433,7 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
         "clock_ready_callback": server.on_clock_ready,
         "collision_factory": server.collision_provider_factory, "collision_provider": collision_provider,
     }
-    graph = _Graph(boundaries, WorldRegistry() if assets is None else assets)
+    graph = _Graph(boundaries, WorldRegistry() if assets is None else assets, _definition_digests)
     with server.lock:
         roots = {"server": graph.value(server), "archived_matches": graph.value(archives),
                  "canonical_movers": graph.value(loaded_mover_table())}

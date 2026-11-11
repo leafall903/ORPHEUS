@@ -2,11 +2,14 @@
 
 import unittest
 
+from test_game_combat import aim
 from test_game_mover import FLOOR, wall
-from test_genji_combat import GenjiFixture
+from test_genji_combat import GENJI, GenjiFixture
 
+from ow174.game import combat
 from ow174.game.collision import World
 from ow174.game.commands import Command
+from ow174.game.content import heroes
 from ow174.game.script import runtime
 
 
@@ -25,6 +28,63 @@ class GenjiStrikeTests(GenjiFixture):
         self.assertEqual(self.health(run, run.players[1]), 150)
         self.assertFalse(self.instance(player).state(1).active)
         self.assertGreater(self.instance(player).state(0).var.value(), 7)
+
+    def test_strike_hits_through_frontal_deflect_and_resets_on_kill(self):
+        for lethal in (False, True):
+            with self.subTest(lethal=lethal):
+                run, attacker = self.spawn(4)
+                defender = run.players[1]
+                run.match.switch_hero(defender, heroes()[GENJI])
+                defender.mover.position[:] = [0, 1, 4]
+                if lethal:
+                    yaw, pitch = aim(run.match.combat._eye(attacker), (0, 1.65, 4))
+                    for frame in range(120):
+                        run.step({attacker: (yaw, pitch, 1 if frame in (0, 60) else 0)})
+                before = self.health(run, defender)
+                self.assertEqual(before, 26 if lethal else 200)
+                hits_before = len(attacker.client.messages(combat.HIT))
+                deflect = next(i for i in defender.body_script.component.instances.values()
+                               if i.graph.index == 0x03A3).state(10)
+                run.step({defender: (-32768, 0, 16)})
+                self.assertTrue(deflect.active)
+                for frame in range(40):
+                    run.step({attacker: (0, 0, 8 if frame == 0 else 0),
+                              defender: (-32768, 0, 0)})
+                self.assertEqual(attacker.mover.position, [0, 1, 15])
+                self.assertEqual(self.health(run, attacker), 200)
+                self.assertEqual(self.health(run, defender), 0 if lethal else 150)
+                hits = attacker.client.messages(combat.HIT)[hits_before:]
+                self.assertEqual([hit["+0x78"]["+0x4"] for hit in hits], [min(50, before)])
+                self.assertFalse(defender.client.messages(combat.HIT))
+                cooldown = self.instance(attacker).state(0).var.value()
+                if lethal:
+                    self.assertEqual(cooldown, 0)
+                    self.strike(run, attacker)
+                    self.assertEqual(attacker.mover.position, [0, 1, 30])
+                else:
+                    self.assertTrue(deflect.active)
+                    self.assertGreater(cooldown, 7)
+
+    def test_strike_hits_through_kinetic_grasp_without_granting_shields(self):
+        run, player = self.spawn(4)
+        sigma = run.players[1]
+        run.match.switch_hero(sigma, heroes()[0x02E000000000023B])
+        sigma.mover.position[:] = [0, 1, 4]
+        grasp = next(i for i in sigma.body_script.component.instances.values() if i.graph.index == 0x1D02)
+        run.step({sigma: (-32768, 0, 8)})
+        self.strike(run, player)
+        self.assertTrue(grasp.state(1).active)
+        self.assertEqual(grasp.vars[21312].value(), 0)
+        self.assertEqual(player.mover.position, [0, 1, 15])
+        self.assertGreater(self.instance(player).state(0).var.value(), 7)
+        self.assertEqual(self.health(run, sigma), 350)
+        hits = player.client.messages(combat.HIT)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in hits], [50])
+        for _ in range(110):
+            run.step({})
+        self.assertFalse(grasp.state(1).active)
+        self.assertEqual(self.health(run, sigma), 350)
+        self.assertFalse(any(i.graph.index == 0x1D03 for i in sigma.body_script.component.instances.values()))
 
     def test_idle_modify_health_states_do_not_damage(self):
         run, player = self.spawn(0.8)

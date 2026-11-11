@@ -9,17 +9,24 @@ Shuriken (weapon graph 0304):
   amount29. A normal press deals87 to a stationary unarmored player body.
 - State11 names three projectiles, distribution1145C42E and spread9. The old
   authority emitted one projectile for that shot; the fan now emits three.
-- Spread is reconstructed as adjacent angles -9/0/+9 degrees in the aim plane.
-  The count, speed, damage and spread value are data-backed. Units, exact
-  distribution, muzzle offsets and native server geometry are unverified.
+- The fan uses the authored 90-degree rotation and emits right, centre, then
+  left for a level forward aim, matching the captured direction method.
+  The native caller converts the authored 9-degree full angle to radians.
+  The outer pellets are 4.5 degrees from the centre. Native muzzle offsets
+  and collision geometry remain open.
 - Both authored volleys resolve sync3 in the existing evaluator. This patch
   adds authoritative flight/damage; it does not establish observer visuals.
 - The ordinary hit region now uses the evaluated direct-projectile critical
   multiplier. Genji's absent override is explicitly reconstructed as2x (29/58),
-  while Helix's explicit1 remains noncritical. Native class defaults and head
-  geometry remain unverified. Body-damage fixtures now aim below the head region.
+  while Helix's explicit1 remains noncritical. In the native +0x90 record
+  compiler, a null expression at authored +0x98 produces -1. Request
+  construction copies the value to +0x2C. Which record ordinary shuriken
+  uses, the damage consumer and native head geometry remain open.
+  Body-damage fixtures aim below the head region.
 - Effective authored reach is100m (speed60, lifetime5, range caps flight first).
   Tests cover unchanged body damage at99m and no hit beyond102m.
+  At an exact range or lifetime endpoint, the final step sweeps through
+  the endpoint. The next tick retires the projectile before querying again.
 - Reload has two authored waits:0.9s to write ammo, then0.6s before firing resumes.
   Tests verify both locks, empty automatic reload and shared30-round inventory.
 - The last positive-ammo multi-cost shot is now admitted using rounded-up shot
@@ -37,15 +44,18 @@ training-bot actor and inability to fire after an actual combat death.
 The training bot is not one of the five requested mission enemy archetypes.
 
 Required action matrix (enemy player / five mission NPCs / client):
-Primary         partial headless damage / OPEN / OPEN
-Secondary       partial headless damage / OPEN / OPEN
-Quick melee     inherited generic path  / OPEN / OPEN
-Swift Strike    partial movement/damage / OPEN / OPEN
-Deflect         partial reflection      / partial two NPCs / OPEN
-Dragonblade     partial sword damage    / OPEN / OPEN
-Double jump     partial reconstruction  / n/a  / OPEN
-Wall climb      partial reconstruction  / n/a  / OPEN
-Receive attacks inherited damage path   / OPEN / OPEN
+Primary         partial headless damage / partial capsule fixtures / OPEN
+Secondary       partial headless damage / partial capsule fixtures / OPEN
+Quick melee     partial headless damage / partial capsule fixtures / OPEN
+Swift Strike    partial movement/damage / partial capsule fixtures / OPEN
+Deflect         partial reflection      / partial manual attacks   / OPEN
+Dragonblade     partial sword damage    / partial capsule fixtures / OPEN
+Double jump     partial reconstruction  / n/a                      / OPEN
+Wall climb      partial reconstruction  / n/a                      / OPEN
+Receive attacks partial manual hosts    / five manual archetypes   / OPEN
+Every partial entry retains native hitbox, filters, control and other stated
+acceptance gaps. Manual NPC behavior does not establish autonomous AI/specials.
+
 
 Swift Strike graph01DB's ModifyHealth3/15 are active while idle. TrackTargets
 31/33 supplies their target lists; the current VM TrackTargets returns empty.
@@ -75,19 +85,39 @@ Current evaluated ultimate cost is1932. Effective enemy health/armor/shield
 damage credits one charge point per actual loss, including reflected hits;
 overkill/self-damage/misses generate no excess credit. Active ultimates generate
 none and charge caps at evaluated cost. These are reconstructed server rules.
-The existing ULT_SECONDS60 diagnostic passive-fill policy remains explicit and
-does NOT establish a native passive rate. Native/mode-specific charge rates
-remain open. Owned projectiles can credit after death before body retirement;
+Genji now defaults to actual0B8B passive timing in owned normal matches:
+Wait3 repeats every1s and SetVar4 adds5 times the two authored default-one
+multipliers, capped at cost.2426/842/11942 initial values and the scoped related
+entity service form an explicit normal server reconstruction; original01C7
+server-only/mode initialization and cross-body charge carry remain OPEN.
+ULT_SECONDS60 remains diagnostic for other heroes/explicit overrides. Genji's
+default debug fill is0; an authored profile never adds diagnostic fill on top. Owned projectiles can credit after death before body retirement;
 body replacement/leave now retires unleased authority too, preventing replacement
 hero credit. This ownership-retirement edge policy is reconstructed.
-Deflect graph03A3 now admits frontal body-capsule hits while State10 is active.
+Deflect graph03A3 admits frontal shots through its authored boxes while State10 is active.
+The server uses the FirstPerson height over the mover pose and the current aim.
+Flying shots use the authored direct-hit extent for Deflect and Grasp boxes
+and for the server's body capsules. Capsule entry time tracks the projectile
+centre, and critical classification uses the projected target surface height.
+Captured capsule code confirms the radius and contact rules for synthetic
+outside starts. Positive-radius flight queries the existing static-world
+convex sweep in addition to the centreline ray and uses the earlier result
+when selecting the first contact. Native flight-specific static masks,
+contact position, initial-overlap policy and player/NPC shape binding remain
+open. Radius-aware defense uses the same sweep on the raised shield mesh and
+the existing Zarya/Cryo capsule model. Native shield shapes, pose and filters
+remain open.
 Volley hit tag003BF is reconstructed as eligible for reflected bullet/physical
 projectile attacks. Reflected hitscan re-traces the defender's aim (eight-bounce
 bound, conserved range); physical shots transfer owner/team and retain remaining
 lifetime. Original prediction is retired, but reflected visual replication is
-not restored. Native authored-box, filter and tag semantics remain unverified.
+not restored. Native pose modifiers, filter and tag semantics remain open.
 Quick melee and Blade are blocked without return damage. Strike, splash and
-noneligible projectiles are not blanket-blocked. Actual beam heroes remain open.
+noneligible projectiles are not blanket-blocked. Zarya and Symmetra primary beams
+damage through Deflect and Grasp in the reconstructed host. Symmetra's graph
+raises sustained enemy-body damage from 60 to 120 to 180 per second and lowers
+the stored tier after release. Native selection, charge eligibility for barriers,
+and other beam attacks remain open.
 Fourteen command-path checks cover reflection/attribution, critical and killing
 hits, rear vulnerability, projectile transfer/team change, melee block, duration,
 cancel/cooldown/reuse, death and negative damage eligibility/splash behavior.
@@ -102,14 +132,36 @@ lifecycle and included in causal snapshots. An airborne fresh jump edge grants
 one extra impulse using the current authored mover jump_speed; holding the key
 and repeated input cannot grant another. Landing/new body refresh resources.
 Jump-intent modifiers can reject the impulse without queuing a later press.
-Wall climb reads opaque0157/State5 fields7.5,0.75,0.25 as upward speed, maximum
-seconds and probe margin respectively. Those field-role mappings are inference.
+The server wall-climb approximation reads graph 0157 state 5 fields 7.5, 0.75
+and 0.25 as upward speed, maximum seconds and forward probe margin.
 It requires jump held, forward input, airborne state and a nearby frontal
 vertical static surface. Collision/ceiling remain the normal capsule mover's.
 Release, loss of wall, expiry and MoveTo interrupt climbing; it cannot restart
 until landing. The reconstructed climb-end policy stops upward velocity and
 refreshes one air jump. Missing command frames age its duration rather than
-extending it. Native custom-State transitions/animation/prediction are OPEN.
+extending it. The native type-2 movement command adds 0.75 to forward reach
+in an upper ledge probe, uses 0.25 as the upper vertical offset and derives
+duration by dividing polyline length by 7.5. Isolated replays cover the ledge
+probe endpoints and rejection branches with injected collisions, and playback
+on a supplied path. Separately, graph 0157 state 3 submits native movement
+type 3. Its profile has a 4.5 target for conditional vertical velocity
+adjustment and a 1.0 s timer threshold in modes 4 and 5. Native replay verifies
+the transition to mode 6 at exhaustion after any earlier timer adjustment.
+The type-3 contact probe uses the effective pose radius plus the larger of
+two reach offsets, both 0.8 in state 3. Fresh acquisition uses two rays.
+The active primary sweep can use a sphere with 95% of the effective radius.
+Ten native replay cases check cast geometry and rejection branches with
+supplied origins and collision results.
+The authored graph releases both movement subgraphs when logical jump is
+released on the normal path. A separate entity-variable branch bypasses
+the button and uses an instance latch to gate type 3. The server VM now
+models the shared action that relays to these subgraphs, and tests exercise
+the authored gates. The player command path supplies entity variables 417
+and 545 from the actual mover's airborne mask and its inverse. Native
+movement publishes 474 when the type-2 result tag is 1, and 1204 while the
+type-3 mover is in modes 2 through 5. Those outputs still require the
+respective movement backends. Full wall acquisition, path generation,
+server parity, the 7642 bypass producer, animation and prediction are OPEN.
 Fourteen mobility checks and the causal passive-state digest check pass.
 
 Fourteen weapon checks exercise 29/58 body/head damage, ammo consumption,
@@ -128,8 +180,12 @@ respectively over the selected60-frame window. NPC scripts are permissive and
 transport/collision/poses are fixtures. Reviewed parent updates through7cd1ed7
 now supply manual npc_control inputs, actual weapon managers/sparse slots and
 array selection. Sniper damages Genji and ceases after explicit stop control.
-These manual controls do not prove autonomous AI. Enforcer/Assassin incoming
-attacks remain unresolved.
+Trooper, Enforcer, Sniper and Heavy release held input when a wall, range limit
+or team change invalidates their manual target. Once the condition clears, each
+reacquires the same Genji and damages him without a new manual start command.
+The range gate is the sandbox's 100 m manual engagement policy. Separate
+fixtures exercise the Enforcer pellet volley and the Assassin contact and pin.
+Native autonomous AI remains open.
 Their initial pools are direct base-schema pools, not complete difficulty totals.
 Manual NPCs must opt into retain_corpse; no automatic cleanup or respawn.
 An additional fixture kills each of the five wounded real NPC bodies with
@@ -154,8 +210,36 @@ win. Strike/Blade bypass this projectile-only consumer; rear/expired/allied/dead
 volumes do not intercept. Reflection transfers ownership before later absorption.
 Actual Soldier rifle and Helix cover hitscan and direct-plus-splash suppression.
 Eligibility remains the reconstructed003BF tag contract, and the local box
-anchor/basis is inferred. Temporary shield-pool graph1D03, its60-percent gain,
-cap/decay, other absorbing heroes and actual beam exceptions remain OPEN.
+anchor/basis is inferred. The actual1D03 grant is now routed and hosted as
+described below; its native getter/scale/decay details, other absorbing heroes
+and actual beam exceptions remain OPEN.
+
+Pending uncommitted host work routes only live Sigma1D02/node34's self-target
+request through the existing native resource/request/ready-queue implementation.
+The actual1D03 entry and amount expression produce52.2 from87 absorbed damage.
+Its named5847 pool query now sees existing temporary shields, so repeated request
+boundary tests cap the group at the authored400. Those repeated requests are
+primitive routing/cap tests, not legal repeated physical cooldown activations.
+Each source HealthPool state leases a separate slot in Vitals.extra; temporary
+shields take damage before base shields and cannot be healed. Sigma's actual
+base is300 health/100 shields. Another87-damage burst after the grant exhausts
+52.2 bonus and34.8 base shield, grants87 charge, and leaves300 health/65.2 shields.
+Full health snapshots include extra-only kinds, stable pool IDs and zero-valued
+tombstones; retired slots can be reused with new IDs. Source death/replacement,
+zero grants and depleted/declined lease graphs clean up without future-body credit.
+
+Active1D02 ModifyHealth28 supplies5*ruleset9527 after the authored wait. This
+consumer interprets it as a per-second named-group decay, clipped to its actual
+start time and deduplicated by world tick. It does not apply once per lease.
+Cadence, pool priority, capacity refusal, scale and explicit completed-graph
+retirement remain reconstructed host policies. Native HealthPool getter outputs
+2311/5275 and the stop-script action are not executed as native services; this
+does not establish full native pool semantics or presentation. Nine shield host
+methods pass, including actual input grants/damage/lifecycle and explicitly
+identified request-boundary cap/slot tests. A targeted causal snapshot method
+distinguishes pool amount and decay-clock changes. The latest user instruction
+defers further commits until complete hero static acceptance; this work remains
+in the isolated working tree.
 
 Shared parent64bf71c supplies resource-backed Flashbang control reconstruction.
 Two actual-input Genji tests prove temporary command suppression and subsequent
@@ -196,7 +280,261 @@ The inherited5-point armour rule remains reconstructed. Barrier abilities,
 native hitbox equivalence, shield regeneration and client pool presentation
 remain OPEN.
 
+Pending barrier work now hosts the actual Reinhardt0095/Pet17 boundary. Its011A
+definition has initial graph25B4; node6 then plays0096 on that independent entity.
+Actual RMB commands produce the original43/44 current/max parameters, a1600
+health pool and owner38 entity binding. Four factory methods cover independent
+identity/component/parameters, release/reopen, replacement/stale request and
+death cleanup. A live server snapshot method distinguishes child health/source
+generation.289 combined regressions pass. This verifies the entity/script
+boundary only at that earlier checkpoint. Strict worlds lacking a
+factory still refuse this state. Normal-mode unit scale1 and private proxy IDs
+checked against occupied entity IDs are reconstructed, not native allocation acceptance.
+
+Private read-only build extraction follows011A's modelA3C and receiver002A. The
+model's actual MSTU collision mesh has98 vertices/192 triangles, with bounds
+x[-3.38995,3.38995], y[-2.06993,2.18163], z[-0.63312,0.02187]. The owner model4F2
+contains hardpoint0029/bone008C's bind transform, but that is not the raised
+barrier animation pose. Inputs, hashes and exact indexed geometry are stored in
+the lane's private barrier-resources/barrier_geometry_174.json, reproduced by
+inspect_barrier_geometry.py. Shared archive inputs, tools, original checkout and
+normal runtime remain unchanged. Geometry is not in Git. Raised pose/attachment, receiver
+filter admission and entity wire replication remain OPEN. The subsequent
+functional reconstruction below uses this mesh with an explicit server anchor.
+
+The optional external data/barrier_geometry_174.json now supplies those192
+triangles, with identity/finite/index/mask checks. It is not a Git asset. Missing
+input leaves collision absent; invalid present input fails. Manifest identity
+includes presence/bytes; a live Barrier stores triangles and their input digest
+in causal export. No bounding rectangle is substituted for the curved corners.
+The reconstructed raised anchor is owner feet+FirstPerson1.8/1.26 height+one
+metre along aim, with yaw/pitch rotation and unit scale. This does not reproduce
+the native raised bone008C/IK/animation transform or native history rollback.
+Hitscan and flying projectiles compare actual mesh distance with bodies, map
+collision and Sigma Grasp. Owner/allied shields are excluded outside FFA.
+Shield health loss is separate from hero damage/ultimate/assist/kill credit.
+0095's586 meter receives remaining health; reopen uses the authored43 current
+parameter. Lowered Wait2s/Chase200 restores the saved meter. A reconstructed
+zero-health bridge sends actual0053 to its owning0095 entry; actual cooldown61
+rejects immediate raise and reaches zero after5s. An Ability zero-boundary
+notification now wakes its dependent gate. Native death payload, message order,
+intermediate linked-value notifications and wire creation remain OPEN.
+Input tests cover primary/fan87 shield damage, Soldier hitscan20, map priority,
+rear body ordering, range/team/silhouette/pose, preserved meter and break/reuse.
+Quick melee, Strike and Blade continue through the mesh under declared server
+admission. Blast impacts currently debit direct+blast against the shield and
+terminate; native splash redistribution and weapon/beam receiver exceptions
+still require functional work and acceptance. This checkpoint is partial.
+The complete0044 animation-set XML pairs51 aliases/items:01B6 maps to06C8.020
+and01B7 to006B.020. Targeted tree extraction recovers06C8 references to94D.006
+and1C6F.006, but clip selection/IK/playback is not accepted. These hashed private
+inputs are in animation-target-manifest.json. Surplus021 bulk enumeration was
+intentionally stopped only after0044 parsed completely; unrelated partial files
+are not accepted inputs. The factory-source snapshot boundary passes all16 tests
+in634.841s with matching Python fingerprint; executable freeze is released.
+
 Original client: not exercised by this change. Existing client PID12292 and
 OWNeacClient parent33924 were observed with no lease at initial inspection;
 ownership was unknown, so the lane did not acquire/control/close that client.
 Fresh native acceptance needs an available shared client and an atomic lease.
+
+Pending Assassin1157 host reuses a private hash-pinned snapshot of lane0020's
+uncommitted assassin.py/npc_context.py and controller tests. Explicit manual
+controllers declare4B; logical slot0 maps to36 for Assassin. A data-only possessor
+Map exposes target member1650; no controller entity is sent or aliased into a
+body namespace. Native allocation and the manual3m contact policy are unproven.
+Enforcer now reads actual aggregate health instead of treating held input as
+health; its declared-controller predicate requires4B present and5C absent.
+The unavailable Zen-specific immunity host is not copied; native immunity and
+selective pin/Deflect counterplay remain OPEN for this source tree.
+
+The actual1157 graph enters contact ModifyHealth25 for25 damage, waits its
+authored delay, then ModifyHealth15 supplies100/second under an explicitly
+reconstructed mode1 clock. Last-applied time is stored causally. Same-world-tick
+updates deduplicate and short skipped-frame updates match contiguous damage.
+Pin source/victim IDs are stored separately from Flashbang deadlines; current
+input and movement suppression uses the shared reconstructed control gate while
+preserving look. Stop, out-of-contact, wall/team loss, source death/removal and
+victim death/replacement release. Actual allied Soldier fire kills a wounded
+source and retains its corpse; actual allied Flashbang releases the victim
+without erasing the source's separate stun deadline. Fixtures use authored NPC
+mover inputs and explicitly suppress observer transport. Pin attachment, source
+and victim animation, interruption counterplay and native health-service cadence
+are not established by these tests.
+
+Genji-specific checks preserve Q0317's persistent draw/active timer, block sword
+damage while pinned, recover held primary after release and keep natural Q expiry
+unchanged. Active Deflect is interrupted by the reconstructed pin host; its
+damage is not reflected. This is a host policy, not native counterplay acceptance.
+A short pin revealed that01DB's MoveTo starts through the Ability's on-start
+plug, outside its subgraph. Stopping the Ability alone left movement live and
+resumed to15m after immediate release. The shared reconstructed interruption now
+ends that active MoveTo with its authored abort exits and retires the sweep
+ledger. The actual short-pin/release test now retains the stopped position and
+cooldown. Full native movement/control semantics remain OPEN.
+
+Historical checkpoint154a9f7d recorded418 methods (408 pass,9 cache skips,
+1 expected failure) and17 snapshot passes. Its early-release E failure is
+superseded by the pending scoped victim host; those totals are not current-tree
+verification.
+
+Actual1157/node45 now uses the ready PlayScript queue to create1177 on Genji.
+A lease retains both VM component identities, sender activation and target
+instance; stale requests after same-body reprepare cannot acquire authority.
+Receiver17 selects receive/idle phases from active1157 sender18, provides the
+source payload and actual owner253 health, then follows authored stop15/18.
+One current invocation per manual source is explicit reconstructed policy;
+native message roles, filters, priority and overlapping invocation remain OPEN.
+
+Correction to the earlier raw-clip discussion: actual1177 already authors
+Anim2 duration0.55s and Anim4 duration1s; Anim3 has loop37EE887D=true. The native
+CC19A0 request tail preserves explicit duration above0.00011920929, using alias
+metadata only below that threshold. Raw64/65 clips1s and66 clips1.2666668s do
+not supply these1177 state deadlines. The earlier animation_duration fallback
+was never reached; it and its World/BodyWorld hooks have been removed. Ordinary
+Anim state execution remains unchanged. A direct input test checks queue deadlines,
+intro->idle, release control until1s and exact instance/lease cleanup afterwards.
+
+Private probe_genji_animation_timing.py executes captured104319 instructions:
+BB8970 metadata projection (8 cases), CC19A0 fallback tail (108 cases) and
+CC1E70 timer arithmetic/request order (72 cases), plus state elapsed clock (9 cases) and native finish-suppression flag (8 cases). Native duration projection
+uses compiled game-data D8514AD9 at offset16. All205 cases assert expectations;
+security-cookie/memset, selected alias/cache, current clock, finish request and event allocation/insertion services
+are declared adapters. Generic alias/category selection, full request building,
+attachment/rendering and the native instance clock provider/finish/event services remain OPEN.
+Native state343 follows2DEAE6A9, independently from clientAnimRemovesSelf.
+The shared Anim implementation now uses2DEAE6A9 for state-finish suppression
+and37EE887D for loop. Three native-backed regressions fail before correction
+and pass afterwards;73 own Genji methods pass in an isolated process candidate.
+Full request building, dynamic parameter changes and playback still need acceptance.
+
+Dragonblade checks measure0317 activity timer215 separately from the Ability
+wrapper. Early/late pins preserve the activity deadline. Late holster stack loss
+follows node17 -> Wait18 abort -> StopAbility19 and can end the wrapper earlier
+without shortening sword activity. No wrapper-preservation callback is added.
+
+Reviewed movement throttle17/18/19 application splits forward/back and unsigned
+lateral magnitude, restores sign and clamps after mod operations. Raw command
+bytes stay stored. Actual1177 mod rows test all four directions, next-pose start,
+end restoration and complete release. Shift/E buffer checks cover expired early
+taps, near-ready released taps, held input and fresh presses. Existing
+consume=False retains original press timestamps.24 focused methods pass72.058s.
+
+
+Pending incoming Enforcer work reuses the reviewed shared mechanisms from
+lane0020 commit0f53a4193f880e3af770b2fda510a99ff50ec44b: manual13EB readiness,
+explicit table-index default0/validation0..3, and613BDDB0 radial volleys. Actual
+three rings(0,1),(.5,8),(1,16) emit25 projectiles per shot. In the historical1.55m-eye fixture,
+14 hits cause28/56/84/112 damage for the four authored damage entries, with one
+ammo consumed. Stop, wall/range/team rejection and two authored reloads execute.
+Frontal Deflect preserves200 health and returns28 damage/charge; rear exposure
+takes28 and credits no returned damage. Exact charge checks disable diagnostic
+passive fill and reset its bootstrap credit. Tests explicitly suppress NPC
+observer transport, as in earlier external-NPC fixtures; radial presentation,
+native readiness, angular phase/units, muzzle and autonomous AI remain OPEN.
+This partial improvement does not close Assassin incoming or NPC-special gaps.
+
+NPC geometry correction: the ordinary38-entry mover file has no Talon entries.
+Earlier NPC evidence used generic fallback capsules and does not accept native
+NPC geometry. Parent's independent npc-navigation-runtime supplies43 entries,
+including the five source-XML movers, without changing the ordinary runtime.
+Its mover-preparation.json records source hashes. Use that runtime as the
+read-only ORPHEUS_RUNTIME_DIR together with explicit ORPHEUS_NPC_DATA_DIR. Other
+metadata uses immutable hardlinks; real-map collision cache is not prepared.
+Authored height/radius/run-forward values are Trooper1.7/.5/5.75,
+Enforcer1.9/.5/5, Sniper1.75/.5/4.5, Assassin1.5/.5/14, Heavy2.3/.7/2.2.
+The fixture now asserts actual table entries and Combat's height/radius. A.65m
+off-axis shot hits Heavy while missing Trooper; the old2.55m aim misses above
+Assassin. Torso aim inside each actual body restores all-five kill/reset checks;
+fan distance1.5m avoids Heavy's point-blank head hit and asserts noncritical
+damage. All-five melee hit/wall/range and primary/Strike/Blade wall/range cases
+also pass. All18 NPC methods pass in36.204s. Enforcer incoming/Deflect/reload
+results remain unchanged. These are mover-capsule/static-fixture checks; native
+damage hitboxes, eye/muzzle transforms, navigation/specials and deployment remain
+OPEN. At that historical mover-only checkpoint, production Python was unchanged
+from the16-test server snapshot boundary; subsequent Assassin work supersedes it.
+The authored-mover combined run executes310 methods in218.056s:301 pass and
+nine real-map movement/prop checks skip for absent collision caches. All18 NPC
+methods execute. The earlier305-pass normal-runtime run and16 server snapshots
+in589.828s remain separately scoped evidence; skipped cache checks do not become
+acceptance of this independent runtime's real-map deployment.
+
+Private animation research decodes94D(35 bones,.9s) and1C6F(192 bones,.2s).
+The tree identifies94D as an AnimationPose2d additive layer driven by B6/14,
+not an ordinary time clip that can be sampled arbitrarily. Neither input has a
+readable013 stream in this archive or a body-script mapping in the observed
+raised fixture. A null XML export is not a valid input definition or proof of
+native absence. Raised pose, native blend drivers and IK therefore remain OPEN.
+
+Historical scoped-victim/throttle checkpoint166d5e4fbc751c60: all357 Python
+files byte-pinned and rechecked after validation.548 combined methods run in
+292.192s:539 pass,9 missing-real-map-cache skips,0 expected failures.104
+additional message-interface methods pass7.237s. All17 server snapshot/replay
+methods pass815.062s. Ruff and diff checks pass. No live lane jobs or source
+freeze remain. Native gaps above stay OPEN; source is uncommitted and complete
+hero static acceptance remains FALSE. No original client was started.
+
+Shared notification intake: ending a State cancels queued CHANGED/CHECK events
+and now clears their coalescing markers. Component.changed ignores ending
+states while preserving this lane's structural dependency refresh. Two pinned
+parent regressions fail on the old source, pass after the minimal change;73
+own Genji checks pass in the process-only candidate. Ability.stop now queues
+scope exit/on-stop/resource cleanup before arbitration unlink. This latter
+cross-object ordering is explicit server reconstruction, not proven native order.
+The combined permanent five direct regressions pass; final frozen source718fbe29
+is being checked separately from the completed30ead3a9 checkpoint (549 methods:
+540 pass/9 skips;17 snapshots pass711.223s). No partial commit is authorized.
+
+Final shared lifecycle checkpoint718fbe29396c28ed:359 Python files are byte-pinned
+and rechecked.554 methods run287.471s:545 pass,9 missing-cache skips,0 expected
+failures.17 full server snapshots pass659.906s. All24 runtime data input hashes
+recheck unchanged. Ruff/diff checks pass, source freeze is released and no lane
+jobs remain. Full hero static acceptance is FALSE and all new work uncommitted.
+A separate captured insertion/drain-prefix probe verifies FIFO equal-time order
+in4 cases. General finish/timer callback ordering remains OPEN. Actual spawned
+Genji's18 body graph instances plus1177 contain34 Anim states; all their
+animation-finished plugs are empty. This bounds the observed callback concern
+for these graphs; it does not establish generic playback/cancellation semantics.
+
+Pending eye/passive checkpoint54bec69b (uncommitted): exact source FirstPerson
+fields put Genji's fixed standing/crouched view at1.2/.84m and McCree's at
+1.425/.9975m. Shared eye_height supplies player targets and shot/cast origins.
+Six actual-input tests cover consistent stand/crouch values and low cover in
+both directions. Native animated camera/muzzle and skeletal damage hitboxes
+remain OPEN. The reconstructed critical region still uses its existing proxy.
+
+Independent closest-distance calculations over the actual25 emitted Enforcer
+rays confirm19 Genji capsule intersections at1.2m eye, versus14 in the old1.55m
+fixture. Per-hit damage is2/4/6/8, so current totals are38/76/114/152; frontal
+Deflect returns38/19 hits. Eight durable volleys remove304 health. These are
+verified capsule-fixture results; native spread units/phase/hitboxes are unproved.
+A level returned Genji projectile hits the Soldier ally's body for87 rather than
+174; the test asserts noncritical flags. The fan head fixture is1.5m so all three
+rays enter the reconstructed head region from the lower camera. Horizontal dash
+interruption cases preserve the full position assertion without incidental
+upward motion toward the taller McCree eye. Initial560 regression recorded13
+subcase failures; all six affected methods now pass15.439s after scoped fixes.
+
+Actual normal-owned Genji now runs0B8B with debug fill0. Its resource loop,
+normal death/owner lifecycle gates, mode disable/resume, modifiers, cap,
+active-Dragonblade pause/end, damage-plus-passive isolation and explicit debug
+override are covered by13 focused methods PASS10.009s. From0 to1932 takes387
+actual1s VM Wait events; this full-fill test advances the VM event clock, not
+wall-clock time. Isolated combat fixtures explicitly disable2426 ambient charge;
+dedicated normal tests use the real default without native-service mocks.
+The normal profile seeds2426=true,842=false,11942=false for a live body; original
+server-only initialization, related-entity association, full mode policy and
+unspent ultimate persistence across death/hero swap are still OPEN. Standalone
+missing context remains unbound. No claim of native healing-charge policy.
+
+The full27-row GENJI_STATIC_ACCEPTANCE_MATRIX.json stays OPEN/PARTIAL and
+separate client acceptance is OPEN. Current source is frozen for combined
+regression and complete server snapshot validation. No partial commit.
+
+Final eye/passive checkpoint54bec69bc0a6a843:607 combined methods finish in
+287.999s (598 pass,9 missing-map-cache skips,0 expected failures). All17 complete
+server snapshots pass787.104s.361 Python files,26 runtime/NPC input hashes and
+the two original eye XML hashes recheck unchanged. Source freeze is released;
+no live lane jobs. Parent's subsequent normalized spread_ramp change is reviewed
+but not applied to this frozen checkpoint; it requires causal field/model and
+fresh validation. Full27-row static acceptance remains FALSE; no partial commit.

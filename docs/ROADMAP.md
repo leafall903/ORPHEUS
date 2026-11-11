@@ -30,9 +30,34 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   priority-dependency notification fix;
   actual Reinhardt/Zarya base pools now have Genji attack, cross-pool charge
   and death checks; barrier skills and shield regeneration remain open;
-  its temporary shield pool and native geometry remain open. Sniper now has
-  manual incoming/stop evidence. Passive/mode charge policy, full five-NPC attacks/specials and cross-hero
+  pending Sigma work executes the actual self-grant script and hosts temporary
+  shields with explicit reconstructed decay/lifecycle policies; native pool
+  getters/scale and full defense acceptance remain open;
+  pending Reinhardt work now executes the actual Pet/independent0096 health
+  boundary with lifetime/causal checks. Optional externalA3C mesh now intercepts
+  hitscan/projectiles through a declared yaw/pitch/eye-height server anchor;
+  saved-meter carry, authored lower-delay/regen and break/cooldown/reuse execute.
+  Native raised pose, receiver/beam/splash exceptions, intermediate variable
+  notifications, lag history and entity wire creation remain open;
+  native pool semantics and geometry remain open. Sniper now has
+  manual incoming/stop evidence. Pending Enforcer work adds25-pellet incoming
+  volleys, front/rear Deflect, ammo/reload and manual input-rejection checks;
+  readiness/spread/observer details remain reconstructed.
+  NPC fixtures now require five authored mover entries from the separate43-row
+  runtime and cover corrected torso aim, width/height boundaries and all-five
+  attack range/static-wall checks; native damage hitboxes remain open. Normal Genji
+  now uses actual0B8B passive5 per1s with explicit reconstructed profile bindings;
+  original mode policy and unspent charge carry remain open. FirstPerson eye
+  offsets and low cover are tested. Full five-NPC attacks/specials and cross-hero
   defenses/control remain open.
+  Pending Assassin1157 work adds manual contact/continuous damage and pin
+  lifecycle/input suppression, plus actual allied source kill/Flashbang release.
+  Short control cancels Genji's separate MoveTo phase. Scoped1177 victim
+  execution retains source/target VM identities and restores input after authored1s
+  release; the former early E restart check passes. Dragonblade
+  activity timer is preserved separately from holster stack loss. Direct tests
+  cover throttle17/18/19 and Shift/E buffer boundaries. Native controller,
+  animation selection/attachment/immunity, generic messages and autonomous AI stay OPEN.
   See [Genji combat restoration](GENJI_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,

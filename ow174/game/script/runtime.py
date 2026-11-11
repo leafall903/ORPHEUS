@@ -392,6 +392,22 @@ class World:
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
+    def track_targets(self, state: "State") -> bool:
+        """Return true when the selection must refresh every VM update."""
+        return False
+
+    def compatibility_message_receiver(self, state: "State"):
+        return NotImplemented
+
+    def compatibility_stop_script(self, instance: "Instance", node: Node):
+        return NotImplemented
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
@@ -495,6 +511,17 @@ class World:
         resource = resolve_resource(instance, node)
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
+
+    def compatibility_play_script(self, instance: "Instance", node: Node) -> None:
+        """Optional explicitly scoped owner routing in the permissive body VM."""
+
+    def create_pet(self, state: "State") -> int:
+        if state.instance.component.strict:
+            state.instance.component.unsupported(state.instance, "pet factory", state.node.cls, state.node)
+        return 0
+
+    def retire_pet(self, entity: int) -> None:
+        """Retire only a factory-owned pet when its source state ends."""
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -670,7 +697,7 @@ class Component:
                     continue
             elif not changed and not (structural and var.watchers[state]):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1485,6 +1512,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Coalescing markers describe the events cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

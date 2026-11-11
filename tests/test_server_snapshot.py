@@ -15,10 +15,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import assassin_victim, combat, messages
 from ow174.game import mover as mover_module
+from ow174.game.bits import BitReader
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
-from ow174.game.link import SYN
+from ow174.game.link import KIND_FRAME, SYN, peek_connection
 from ow174.game.match import Match
 from ow174.game.mover import Mover
 from ow174.game.script import runtime
@@ -81,6 +83,27 @@ class ServerSnapshotTests(unittest.TestCase):
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
 
+    def test_shared_vm_definition_mutation_changes_the_next_capture(self):
+        session, _, players = self.scene(two=True)
+        left, right = (player.body_script.component for player in players)
+        right_graphs = {instance.graph for instance in right.instances.values()}
+        shared = next(instance.graph for instance in left.instances.values() if instance.graph in right_graphs)
+        original = snapshot_digest(self.capture(session))
+        self.assertEqual(session._state_digest(), original)
+        self.assertEqual(session._state_digest(), original)
+        shared.fields["snapshot_probe"] = [1]
+        try:
+            changed = session._state_digest()
+            self.assertNotEqual(changed, original)
+            self.assertEqual(changed, snapshot_digest(self.capture(session)))
+            shared.fields["snapshot_probe"][0] = 2
+            changed_again = session._state_digest()
+            self.assertNotEqual(changed_again, changed)
+            self.assertEqual(changed_again, snapshot_digest(self.capture(session)))
+        finally:
+            del shared.fields["snapshot_probe"]
+        self.assertEqual(session._state_digest(), original)
+
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()
         player = players[0]
@@ -111,6 +134,139 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(snapshot_digest(self.capture(session)), first)
         fight.genji_assists.clear()
         self.assertEqual(snapshot_digest(self.capture(session)), first)
+
+    def test_live_genji_projectile_extent_is_causal(self):
+        session, peers, players = self.scene()
+        player = players[0]
+        self.assertTrue(session.apply("switch_hero", {"account": player.account_lo,
+                                                      "hero": 0x02E0000000000029}))
+        for tick in range(8):
+            now = 100.96 + tick * 0.016
+            session.tick(now)
+            peers[0].drain()
+            peers[0].send(now=now)
+        peers[0].commands(player.body_script.frame + 1, 40, 2, now=101.2)
+        rockets = player.match.combat.rockets
+        self.assertEqual(len(rockets), 3)
+        self.assertTrue(all(rocket.shooter is player for rocket in rockets))
+        for rocket in rockets:
+            self.assertAlmostEqual(rocket.direct.projectile_extent, .1)
+
+        initial = snapshot_digest(self.capture(session))
+        direct = rockets[0].direct
+        rockets[0].direct = dataclasses.replace(direct, projectile_extent=0.0)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        rockets[0].direct = direct
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_live_piercing_spray_hit_ledger_is_causal(self):
+        case = journal_tests.ServerJournalTests()
+        session, sent = case.make()
+        peers, (genji, mei) = case.connected(session, sent, first_hero=0x02E0000000000029,
+                                            second_hero=0x02E00000000000DD)
+        fight = genji.match.combat
+        peers[1].commands(mei.body_script.frame + 1, 1, 1, yaw=-32768, pitch=500, now=100.944)
+        for tick in range(18):
+            now = 100.96 + tick * combat.TICK
+            session.tick(now)
+            if fight.rockets and genji.body in fight.rockets[0].hit_entities:
+                break
+        rocket, = fight.rockets
+        self.assertEqual(rocket.hit_entities, {genji.body})
+        self.assertEqual(fight.vitals[genji.body].total, 197.25)
+        self.assertIn(genji.body, fight.frost_hits)
+        before = snapshot_digest(self.capture(session))
+        rocket.hit_entities.clear()
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_live_sleep_dart_wake_floor_is_causal(self):
+        case = journal_tests.ServerJournalTests()
+        session, sent = case.make()
+        peers, (genji, ana) = case.connected(session, sent, first_hero=0x02E0000000000029,
+                                            second_hero=0x02E000000000013B)
+        fight = genji.match.combat
+        for tick in range(70):
+            now = 100.96 + tick * combat.TICK
+            session.tick(now)
+            if fight.is_asleep(genji):
+                break
+            peers[1].commands(ana.body_script.frame + 1, 1, 8 if tick == 0 else 0,
+                              yaw=-32768, pitch=500, now=now)
+        self.assertTrue(fight.is_asleep(genji))
+        vitals = fight.vitals[genji.body]
+        self.assertEqual(vitals.total, 195)
+        self.assertEqual(vitals.sleep_wake_floor - fight.tick, combat.SLEEP_WAKE_FLOOR_TICKS)
+        before = snapshot_digest(self.capture(session))
+        vitals.sleep_wake_floor += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_temporary_pool_amount_and_decay_clock_are_causal(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(t for t in fight._targets() if t.owner is player)
+        vitals = fight.vitals_of(target)
+        pool = vitals.add_temporary((22, 0, 1), 0x5847, 2, 52.2, player.match.tick)
+        initial = snapshot_digest(self.capture(session))
+        pool.now -= 1
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, initial)
+        pool.last_tick += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), damaged)
+
+    def test_pin_source_and_victim_body_identity_are_causal(self):
+        session, _, players = self.scene(two=True)
+        fight = players[0].match.combat
+        initial = snapshot_digest(self.capture(session))
+        fight.pins[0xC0001001] = players[0].body
+        pinned = snapshot_digest(self.capture(session))
+        self.assertNotEqual(pinned, initial)
+        fight.pins[0xC0001001] = players[1].body
+        self.assertNotEqual(snapshot_digest(self.capture(session)), pinned)
+        fight.pins.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        lease = assassin_victim.Lease(0xC0001001, 8, 16, 2, players[0].body,
+                                      players[1].body_script.component, players[0].body_script.component, 20)
+        fight.assassin_victims[lease.source] = lease
+        victim_script = snapshot_digest(self.capture(session))
+        self.assertNotEqual(victim_script, initial)
+        lease.activation += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), victim_script)
+        previous = lease.source_component
+        lease.source_component = players[0].body_script.component
+        self.assertNotEqual(snapshot_digest(self.capture(session)), victim_script)
+        lease.source_component = previous
+        fight.assassin_victims.clear()
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_live_pet_component_health_and_source_generation_are_causal(self):
+        session, peers, players = self.scene()
+        player = players[0]
+        match = player.match
+        session.apply("switch_hero", {"account": player.account_lo, "hero": 0x02E0000000000007})
+        for tick in range(8):
+            now = 100.96 + tick * 0.016
+            session.tick(now)
+            peers[0].drain()
+            peers[0].send(now=now)
+        peers[0].commands(player.body_script.frame + 1, 90, 0, now=101.2)
+        peers[0].commands(player.body_script.frame + 1, 40, 2, now=101.2)
+        self.assertEqual(len(match.combat.barriers), 1)
+        barrier = next(iter(match.combat.barriers.values()))
+        initial = snapshot_digest(self.capture(session))
+        mesh, digest = barrier.mesh, barrier.geometry_digest
+        barrier.mesh = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        barrier.mesh = mesh
+        barrier.geometry_digest = "changed geometry input"
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+        barrier.geometry_digest = digest
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        barrier.vitals.now[0] -= 1
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, initial)
+        barrier.activation += 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), damaged)
 
     def test_equal_data_clone_is_distinguished_from_the_canonical_lazy_table(self):
         session, _, players = self.scene()
@@ -216,6 +372,78 @@ class StoredJournalTests(unittest.TestCase):
         damaged["roots"][-1]["state_after"] = "0" * 64
         with self.assertRaises(ServerJournalError):
             _ReplaySession(damaged, session.registry.resolve).run()
+
+    def test_stored_journal_replays_in_flight_genji_fan(self):
+        session, sent = self.make()
+        genji = 0x02E0000000000029
+        # At 10 m, the outer pellets clear the target and remain in flight after the centre hit.
+        target_spawn = dataclasses.replace(MAP.spawns[1], position=(0.0, 0.0, 10.0))
+        fan_map = dataclasses.replace(MAP, spawns=(MAP.spawns[0], target_spawn))
+        handoffs = session.create_match(fan_map, [(1, "A", genji, 0, False), (2, "B", SOLDIER, 1, False)])
+        peers = [Peer(session, handoff, sent, ("127.0.0.1", 47100 + index))
+                 for index, handoff in enumerate(handoffs)]
+        for peer in peers:
+            peer.send(flags=SYN)
+            peer.send()
+            peer.message(21601, {})
+        acknowledge_ownership(session, peers)
+        session.tick(100.8)
+        player, target = session.server.matches[0].players
+        peers[0].message(21616, pick(player.entity, genji), now=100.8)
+        peers[1].message(21616, pick(target.entity, SOLDIER), now=100.8)
+        self.assertEqual(player.hero.guid, genji)
+        fight = player.match.combat
+        peers[0].commands(player.body_script.frame + 1, 16, 2, now=100.816)
+        first_packet = len(sent)
+        for tick in range(12):
+            now = 100.832 + tick * 0.016
+            session.tick(now)
+            if tick == 0:
+                self.assertEqual(len(fight.rockets), 3)
+                self.assertTrue(all(rocket.flown > 0 for rocket in fight.rockets))
+            for peer in peers:
+                peer.drain()
+                peer.send(now=now)
+        self.assertEqual(fight.vitals[target.body].total, 171)
+        self.assertEqual(player.body_script.component.entity_var(342).value(), 29)
+        rockets = tuple(fight.rockets)
+        self.assertEqual(len(rockets), 2)
+
+        hits = {}
+        for data, address in sent[first_packet:]:
+            if peek_connection(data) != peers[0].handoff.conn:
+                continue
+            self.assertEqual(address, peers[0].address)
+            packet = peers[0].cipher.open(data)
+            self.assertIsNotNone(packet)
+            if packet.kind != KIND_FRAME:
+                continue
+            reader = BitReader(packet.payload)
+            reader.var_a()
+            reliable, _ = messages.read_channel(reader)
+            hits.update((seq, value) for seq, msg_id, value in reliable if msg_id == combat.HIT)
+        hit, = hits.values()
+        self.assertEqual(hit["+0x78"], {"+0x0": {"+0x0": target.body}, "+0x4": 29, "+0x8": 0})
+
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        result = replay.run()
+        self.assertTrue(result["stored_state_verified"])
+        copied_match = replay.server.matches[0]
+        copied_player, copied_target = copied_match.players
+        self.assertEqual(copied_match.combat.vitals[copied_target.body].total, 171)
+        self.assertEqual(copied_player.body_script.component.entity_var(342).value(), 29)
+        for fighter in (player, copied_player):
+            weapon = next(i for i in fighter.body_script.component.instances.values() if i.graph.index == 0x0304)
+            self.assertEqual(weapon.vars[53].value(), 27)
+        copied = copied_match.combat.rockets
+        self.assertEqual(len(copied), 2)
+        for original, restored in zip(rockets, copied, strict=True):
+            self.assertIs(restored.shooter, copied_player)
+            self.assertEqual(restored.position, original.position)
+            self.assertEqual(restored.direction, original.direction)
+            self.assertEqual(restored.left, original.left)
+            self.assertAlmostEqual(restored.direct.projectile_extent, .1)
 
     def test_unrecorded_hidden_queue_change_cannot_be_sealed_even_without_wire_effect(self):
         session, _ = self.make()

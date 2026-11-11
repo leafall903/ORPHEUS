@@ -93,10 +93,14 @@ def remove_spawned(match) -> tuple[int, ...]:
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
+        match.combat.clear_pins(bot.entity)
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component
+            from ow174.game import assassin
+
+            assassin.bind(component.world, component, None)
             component.owner_dead = True
             component.held.clear()
             component.shots.clear()

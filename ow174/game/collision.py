@@ -673,6 +673,12 @@ class World(_TriangleScene):
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
         self.engine = engine
 
+    def sweep_sphere(self, origin, direction, length: float, radius: float, category: int = MOVER) -> float | None:
+        """Distance travelled by a sphere before first static contact."""
+        end = tuple(a + axis * length for a, axis in zip(origin, direction, strict=True))
+        hit = contacts.scene_sweep(self.engine, origin, end, ((0.0, 0.0, 0.0),), radius, category)
+        return hit[0] * length if hit is not None else None
+
     @classmethod
     def load(cls, path: str | Path, identifiers: frozenset[int] = frozenset()) -> "World":
         """A cache file's movement world for a mode that keeps these placeable identifiers."""

@@ -7,6 +7,7 @@ This is an observation format, not a restorer or a Python stack checkpoint.
 
 import hashlib
 import json
+import marshal
 import random
 
 from ow174.game import replay_values
@@ -67,6 +68,9 @@ _STATE_LAYOUTS = {
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
+    nodes.Pet: (("pet_entity", "pet_var"), ()),
+    nodes.PhaseEntry: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
@@ -138,7 +142,7 @@ def _digest(value) -> str:
 
 
 class _Export:
-    def __init__(self, component):
+    def __init__(self, component, definition_digests):
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
@@ -148,6 +152,7 @@ class _Export:
         _containers(fields, ("parameter_scopes",), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
+        self.definition_digests = definition_digests
         self.instances = {}
         self.states = {}
         self.variables = {}
@@ -390,7 +395,8 @@ class _Export:
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
+                               "manual_target"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
@@ -461,25 +467,29 @@ class _Export:
             if reference is not None:
                 self.ancestors.remove(identity)
 
-    def _graph_record(self, obj):
+    def _graph_definition(self, obj):
         data = _layout(obj, _GRAPH)
-        identities, bindings, active = {}, [], set()
+        identities, objects, active, nodes = {}, [], set(), {}
 
         def identity(value):
             number = identities.get(id(value))
-            storage = self.identity(value, "model")
             if number is None:
                 number = len(identities)
                 identities[id(value)] = number
-                bindings.append({"local": number, "storage": storage})
+                objects.append(value)
             return ["model_storage", number]
+
+        def node_ref(node):
+            ref = self._node(node)
+            nodes[id(node)] = (node, ref)
+            return ref
 
         def value(item):
             kind = type(item)
             if item is None or kind in (bool, int, float, str, bytes):
                 return item
             if kind is graph.Node:
-                return {"ref": self._node(item)}
+                return {"ref": node_ref(item)}
             if kind is graph.SyncVar:
                 fields = _layout(item, _VALUE_LAYOUTS[kind])
                 return {"class": _name(kind), "fields_identity": identity(fields),
@@ -511,14 +521,48 @@ class _Export:
         for node in data["nodes"]:
             fields = _layout(node, _NODE)
             definition["nodes"].append({
-                "ref": self._node(node), "fields_identity": identity(fields),
+                "ref": node_ref(node), "fields_identity": identity(fields),
                 "fields": [[name, value(nested)] for name, nested in fields.items()],
             })
-        return {"ref": ["graph", obj.index], "class": _name(type(obj)),
-                "fields_identity": self.identity(data, "model"), "storage_bindings": bindings,
-                "definition_sha256": _digest(replay_values.encode(definition))}
+        digest = self._definition_digest(obj, definition)
+        return digest, objects, tuple(nodes.values())
 
-    def capture(self, extra_roots, script=None):
+    def _definition_digest(self, obj, definition):
+        if self.definition_digests is None:
+            return _digest(replay_values.encode(definition))
+        # The definition is rebuilt and validated on every capture. Marshal v2 is
+        # only an in-process equality check on plain values, without reference
+        # tracking. The persisted digest still uses the canonical replay encoding.
+        try:
+            guard = marshal.dumps(definition, 2)
+        except ValueError:
+            return _digest(replay_values.encode(definition))
+        key = (replay_values.MAX_DEPTH, replay_values.MAX_VALUES, guard)
+        cached = self.definition_digests.get(obj)
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        digest = _digest(replay_values.encode(definition))
+        self.definition_digests[obj] = (key, digest)
+        return digest
+
+    def _graph_record(self, obj, graph_definitions):
+        # This cache belongs to one locked server snapshot. Component-local storage
+        # identities are rebuilt, and every graph reference must be valid here too.
+        cached = graph_definitions.get(obj)
+        if cached is None:
+            cached = graph_definitions[obj] = self._graph_definition(obj)
+        else:
+            for node, ref in cached[2]:
+                if self._node(node) != ref:
+                    raise BodyVMSnapshotError("shared graph node reference changed during capture")
+        digest, objects, _ = cached
+        bindings = [{"local": number, "storage": self.identity(value, "model")}
+                    for number, value in enumerate(objects)]
+        return {"ref": ["graph", obj.index], "class": _name(type(obj)),
+                "fields_identity": bindings[0]["storage"], "storage_bindings": bindings,
+                "definition_sha256": digest}
+
+    def capture(self, extra_roots, script=None, *, graph_definitions):
         # Register graph ownership before a queue/state refers to one of its Nodes.
         for number, instance in self.component.instances.items():
             self._instance(instance)
@@ -574,18 +618,19 @@ class _Export:
                           "fields": [[name, self.value(object.__getattribute__(obj, name))]
                                      for name in _VAR]}
             else:
-                record = self._graph_record(obj)
+                record = self._graph_record(obj, graph_definitions)
             self.records.append(record)
         return result
 
 
-def _document(component, extra_roots, script=None):
+def _document(component, extra_roots, script=None, *, graph_definitions=None, definition_digests=None):
     if type(extra_roots) not in (tuple, list):
         raise BodyVMSnapshotError("extra_roots must be a tuple or list")
     try:
         source = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
-        exporter = _Export(component)
-        raw = exporter.capture(extra_roots, script)
+        exporter = _Export(component, definition_digests)
+        raw = exporter.capture(extra_roots, script,
+                               graph_definitions={} if graph_definitions is None else graph_definitions)
         document = {
             "schema": SCHEMA if script is not None else COMPONENT_SCHEMA,
             "scope": SCOPE if script is not None else COMPONENT_SCOPE,
@@ -601,14 +646,16 @@ def export_component_vm(component, *, extra_roots=()) -> dict:
     return _document(component, extra_roots)[0]
 
 
-def export_component_vm_with_identities(component, *, extra_roots=()) -> tuple:
+def export_component_vm_with_identities(component, *, extra_roots=(), _graph_definitions=None,
+                                        _definition_digests=None) -> tuple:
     """Return one capture plus ephemeral (storage id, original object, scope tag) bindings.
 
     Scope tags are vm, model or vm+model. The sidecar is not serializable replay
     data; an outer adapter can detect unsupported sharing across artifact scopes.
     No identity callback or gameplay function is invoked.
     """
-    return _document(component, extra_roots)
+    return _document(component, extra_roots, graph_definitions=_graph_definitions,
+                     definition_digests=_definition_digests)
 
 
 def export_body_vm(script) -> dict:

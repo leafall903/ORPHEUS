@@ -206,7 +206,7 @@ class ProjectileRangeTests(unittest.TestCase):
                 self.assertEqual(vitals.total, expected_health)
 
     def test_helix_sweeps_to_its_range_boundary(self):
-        for z, hit in ((100.05, True), (100.7, False)):
+        for z, hit in ((100.05, True), (100.75, False)):
             with self.subTest(target_feet_z=z):
                 run = Run(KANEZAKA_DM, ("A", "B"))
                 shooter, victim = run.players
@@ -222,8 +222,11 @@ class ProjectileRangeTests(unittest.TestCase):
                 reach = rocket.speed * rocket.left
                 self.assertEqual(reach, 100.0)
                 target = next(target for target in fight._targets() if target.owner is victim)
+                self.assertIsNotNone(rocket.direct)
+                self.assertAlmostEqual(rocket.direct.projectile_extent, 0.2)
                 contact = combat.ray_capsule(
-                    rocket.position, rocket.direction, *target.segment(), target.radius,
+                    rocket.position, rocket.direction, *target.segment(),
+                    target.radius + rocket.direct.projectile_extent,
                 )
                 self.assertGreater(contact, reach - rocket.speed * combat.TICK)
                 self.assertEqual(contact < reach, hit)

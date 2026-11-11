@@ -4,7 +4,321 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Genji server implementation handoff
+
+- Deliver the accumulated Genji combat, cross-hero interactions, manual
+  NPCs, script runtime and replay changes with their regression tests.
+- Six targeted tests passed, including the normal-health five-NPC fight.
+  All 53 changed Python files compiled and 25 external runtime input
+  hashes matched the preparation manifest.
+- Full static combat, full registered-state replay and original-client
+  acceptance remain open. The build-specific runtime data stays external.
+
 ### 2026-11-09
+
+#### Historical Soldier crash frame replay
+
+- Recreate the 977-bit capture using its historical stack notifications
+  and missing effect payload inside the fixture. The priority-watch fix
+  changed 02C5 state17's timer and state records, yielding 991 bits under
+  the obsolete encoder. Preserve the exact crash assertion and decode a
+  separate frame through the current runtime.
+
+#### Pending Genji unspent charge transfer
+
+- Capture unspent Genji charge only once a same-hero replacement ID is
+  available. Restore the fraction through the new body's actual 0B8B
+  14F2/0951 entry before its owner snapshot. Death during Dragonblade
+  carries the already-consumed meter. A different hero starts fresh
+  under the current server policy.
+- Actual shuriken and rifle combat covers charge across death and normal
+  respawn. The original 0C90 source watches, mode coefficients and
+  cross-hero retention policy remain open.
+
+#### Pending Zenyatta Transcendence allied healing
+
+- Feed 017B's tracked ally tuple on each VM update and let the graph
+  activate its actual ModifyHealth state. The normal 1800 budget over
+  six seconds is applied at 300 per second and capped by missing health.
+  Current capsule range and static line of sight are reconstructed rules.
+- Actual Genji damage verifies ally recovery, range, wall and team
+  rejection, and acquisition when line of sight opens. Native target
+  filters, treatment cadence, healing credit and client wire remain open.
+
+#### Pending Mei Cryo-Freeze self healing
+
+- Run 05FE ModifyHealth node27 against the live casting body. The server
+  distributes the authored budget over the evaluated duration, 567 minus
+  0.1 seconds, using the existing VM elapsed-time cursor. A cancellation
+  settles only elapsed healing and a body teardown discards old work.
+- Actual Genji shuriken wounds verify the 200-point budget and partial
+  healing on cancellation. Native tick cadence and healing credit rules
+  remain open.
+
+#### Pending Mei Cryo-Freeze combat interaction
+
+- Complete 05FE's untimed entry gate and use the authored protection
+  stack for body damage rejection. Host the actual 090B Pet and its 0623
+  script. The ray host interprets the definition's 0.5 metre radius and
+  2 metre height as an upright capsule anchored to Mei's feet.
+- Actual inputs verify Genji attacks, four-second expiry, cancellation,
+  cooldown rejection and the independent Pet's lifetime. Native receiver
+  masks and attachment, self healing and client presentation remain open.
+
+#### Pending Zenyatta Transcendence damage protection
+
+- Complete 017B's zero-valued entry and use its live protection stack to
+  reject body damage and hit effects during the authored six-second window.
+  The server keeps Zenyatta's ordinary body collider active.
+- Actual commands verify Genji's direct attacks, protection expiry, charge
+  rejection, a target behind Zenyatta, and Flashbang. Native collider
+  behavior, allied healing, and client presentation remain open.
+
+#### Pending Moira Fade combat interaction
+
+- Complete the matching zero-valued 0F7C entry gate and use its live
+  protection stack for the same server admission policy as Wraith.
+  Actual inputs exercise Genji attacks, Flashbang, the authored 750 ms
+  window and cooldown rejection and reuse. Native entry, target filters
+  and client presentation remain open.
+
+#### Pending Reaper Wraith combat interaction
+
+- Complete the zero-valued 0020 entry gate in the compatible server VM.
+  Reaper's graph runs the protection stack, three-second window, early
+  cancellation, recovery and cooldown. Combat uses the live stack to
+  reject damage and to let rays and projectiles continue past Reaper.
+- Cover actual Genji attacks, reflected damage ownership, Flashbang and
+  the end of protection. The zero-gate implementation and receiver
+  policy are reconstructed. Native entry scheduling and other heroes'
+  invulnerability remain open.
+
+#### Pending Zarya barrier energy
+
+- Report effective bubble loss through the 0256 damage entry and route its
+  authored 0146 message to the caster's 0242 graph. Both self and projected
+  barriers award energy to the caster. The graph applies the cap, delay,
+  decay and energy variable consumed by the primary beam. The shield's last
+  hit reports absorbed health before the Pet retires.
+- Actual Genji bursts verify 17.4 energy from 87 absorption and 40 energy
+  from a depleted 200-health bubble. An actual Zarya beam verifies the
+  increased damage, and the energy meter decays at the authored rate.
+  Native damage category mappings and message scheduling remain open.
+
+#### Pending Zarya projected barrier
+
+- Supply 025C's cast TrackTargets output with the nearest visible allied
+  capsule under the crosshair within its authored 30-metre radius. The graph
+  selects the first target, spawns the 03DA Pet and invokes 0256 on it.
+  Retain both body generations so source or recipient replacement removes
+  the old protection. Include recipient references in causal snapshots.
+- Test actual allied protection, failed casts, expiry, cooldown rejection
+  and reuse. Native target scoring, attachment, shield energy and wire
+  presentation remain open.
+
+#### Pending Zarya self barrier
+
+- Host the 0244 Pet for definition 13F4 and play the actual 0256 graph on
+  its separate component. The authored pool provides 200 health under the
+  normal server profile, and the source graph owns the two-second duration
+  and cooldown. Breaking the pool aborts the Pet through a scoped host bridge.
+- Use the protected body capsule for the bubble's ray boundary and route
+  body-directed damage through the same pool. A breaking impact is consumed.
+  Absorbed hits award no hero damage or ultimate charge and deliver no hit
+  effect to the protected body. Actual inputs exercise shuriken, Swift Strike,
+  Flashbang, expiry and cooldown rejection. The native shape, projected
+  bubble, energy gain, break message ordering and client presentation remain open.
+
+#### Pending Zarya primary beam interaction
+
+- Use 0241 TrackRay node175 to supply the authored target stack and evaluate
+  ModifyHealth node28 on posed player commands. The beam uses the extracted
+  15-metre range, the energy-dependent damage expression and the body003BF
+  FirstPerson offsets of 1.6 and 1.12 metres. The authored graph owns ammo
+  consumption and release.
+- Actual commands verify damage through Genji's frontal Deflect and Sigma's
+  active Grasp, interception by Reinhardt's barrier, and miss cases for walls,
+  range, aim and team. The server uses body capsules and one damage sample per
+  posed command. Native TrackRay filtering, damage cadence and beam
+  presentation remain open.
+
+#### Pending Reinhardt dynamic barrier host (uncommitted)
+
+- Load the optional external build104319 modelA3C triangle mesh; missing input
+  produces no ray collider, and malformed present input fails explicitly. Keep
+  asset bytes outside Git. The replay manifest seals input presence and bytes;
+  causal snapshots retain the immutable triangles and input digest.
+- Reconstruct a raised shield anchor from owner yaw/pitch, FirstPerson1.8/1.26
+  height and one metre forward, at unit scale. Hitscan and projectiles select
+  the nearest shield/body/map/Grasp intersection. Friendly shields are ignored
+  outside free-for-all. Native bone008C attachment and receiver admission remain open.
+- Bridge shield health loss into0095's saved586 meter. Reopening carries the
+  remaining amount; authored Wait2s/Chase200 restores it while lowered. Zero
+  health sends the owning0095 break entry0053 and runs its five-second cooldown.
+  Notify authored variable gates when an Ability cooldown reaches zero; native
+  intermediate notification/callback ordering remains unproved.
+- Focused input checks cover primary/fan, Soldier hitscan, map priority, rear
+  body ordering, silhouette, pose/team/range, melee/Strike/Blade passthrough,
+  meter carry, regeneration and break/reuse. Full regression results are recorded
+  in the private barrier checkpoint. No original-client acceptance or full hero
+  completion is claimed. Native death payload, splash redistribution, beam and
+  other receiver exceptions, lag history and shield entity wire remain open.
+- At Python fingerprint2b55ba80,620 combined methods pass with611 PASS/9 missing
+  collision-cache SKIP and no expected failure (418.156s). All17 complete server
+  snapshot methods pass (815.871s). Recheck364 Python files and27 runtime inputs;
+  Ruff and diff checks pass. Preserve the full hero goal as ACTIVE/uncommitted.
+
+#### Pending Genji FirstPerson offsets and authored passive charge (uncommitted)
+
+- Genji's actual FirstPerson standing/crouched fields are1.2/.84; enemy McCree's
+  are1.425/.9975. Share eye_height between shot/cast origins and Target.eye.
+  Six actual low-cover/stand/crouch methods pass5.209s. Keep native animated
+  camera/muzzle and bone hit regions OPEN.
+- Correct geometry-dependent fixtures: independent calculations confirm19 of25
+  Enforcer rays hit the lower-eye capsule, for38/76/114/152 damage. Reflection,
+  durable reload checks, level returned body hits and1.5m fan headshots follow
+  the corrected geometry. Four horizontal dash cancellation timings retain full
+  position checks. Six affected methods pass15.439s.
+- Use actual0B8B passive charge for normal owned Genji:1s Wait -> add5 times two
+  authored multipliers -> cap at cost. Seed normal profile gates and scoped live
+  owner association explicitly as server reconstruction. Retire passive on death
+  and inactive ownership; actual Q pauses/resumes its wait. Default debug fill0
+  and prevent double fill; other heroes and explicit constructor diagnostics
+  retain their existing behavior.
+-13 focused charge methods pass10.009s, including387 VM events from0 to1932,
+  normal actor behavior, modifiers/cap/restart, death/replacement, actual Blade,
+  damage isolation and missing/explicit diagnostic contexts. Original server-only
+  mode/association and cross-body unspent charge persistence remain OPEN.
+- Frozen54bec69b source passes607 combined methods (598 pass/9 missing-cache
+  skips) and all17 complete server snapshots787.104s. Python/runtime/NPC/eye
+  input hashes recheck unchanged. Full27-row matrix retains every incomplete
+  requirement; no partial commit or original-client operation.
+
+#### Pending Assassin1157 host and short-control dash cancellation (uncommitted)
+
+- Reuse a hash-pinned snapshot of lane0020's uncommitted manual Assassin and
+  controller context mechanisms. Scope logical36/target-member1650 to explicitly
+  declared manual controllers; health queries use actual owner health and the
+  Enforcer controller predicate distinguishes4B present/5C absent. Native
+  controller allocation, contact3m, rate interpretation, attachments, release
+  animation and selective immunity remain reconstructed or OPEN.
+- Register an explicit ModifyHealth world service with a causal last-applied
+  clock. Actual1157 contact deals25, then100/second after the authored delay;
+  command/movement suppression retains look. Stop, LOS/range/team loss, source
+  death/removal and victim death/replacement clean up. Actual allied fire kills
+  the source and actual allied Flashbang releases the pin with an independent
+  source stun deadline. Extra game assets and the private reuse snapshot remain
+  outside Git. Zen-specific immunity services unavailable here are not imported.
+- Preserve Dragonblade's original timer during draw/active pin suppression and
+  natural expiry. A short pin exposed Swift Strike's movement surviving Ability
+  stop:01DB starts MoveTo outside its Ability subgraph. Explicitly end that phase
+  on reconstructed interruption so immediate control release cannot resume the
+  old15m destination. Native generalized control/counterplay still needs proof.
+- Route actual1157/node45 through ready1177 victim execution with source/target
+  VM identities, scoped8FE phases, actual owner health and authored stop nodes.
+  Reject stale re-prepared sources; replace prior manual invocations explicitly.
+  Actual1177 explicitly authors intro0.55s/release1s through the existing Anim
+  timer. Remove the unreachable raw-clip fallback and correct its earlier
+  documentation. Native attachment, message roles/filter/overlap and immunity
+  remain OPEN; the private native timing probe declares external services.
+- The former early-release E expected failure now passes with control retained
+  through authored cooldown write. Measure Dragonblade activity timer215
+  separately from its holster wrapper; authored stack loss can end the wrapper.
+- Execute captured104319 metadata projection, explicit-duration fallback and
+  timer scheduling:205 asserted cases. Direct input checks the authored intro
+  and release queue deadlines and complete cleanup. Alias/category selection,
+  full request construction and external clock/playback services remain OPEN.
+- Apply reviewed throttle17/18/19 modifiers while storing raw command bytes;
+  check actual victim rows in four directions and next-pose/end boundaries.
+  Four Shift/E input-buffer cases retain original press age.24 focused methods
+  pass72.058s. Historical154a9f7d totals remain in external checkpoint logs.
+- The corrected authored-timing tree30ead3a9 passes549 combined methods
+  (540 pass/9 cache skips) and all17 snapshots in711.223s. These are historical
+  results before the subsequent shared lifecycle intake.
+- Correct State notification lifetime: canceled CHANGED/CHECK events clear their
+  coalescing markers; ending states do not enqueue new self notifications. Keep
+  the own-lane structural dependency fix. Queue Ability.stop scope cleanup
+  before arbitration unlink; this order remains explicit server reconstruction.
+- Native Anim proof distinguishes2DEAE6A9 finish suppression from client playback
+  flags and37EE887D loop. Five new regressions fail before their respective
+  changes and pass after; each separate in-memory candidate also passes73
+  own Genji methods. Final718fbe29 source passes554 methods (545 pass/9 skips)
+  and all17 server snapshots659.906s; source/runtime hashes recheck unchanged.
+- Full static acceptance remains FALSE. Further commits remain deferred until
+  the complete hero objective passes; no original-client operation/publication.
+
+#### Pending Genji incoming Enforcer coverage (uncommitted)
+
+- Parent supplies an independent43-entry mover runtime with the five authored
+  Talon capsules/speeds. Recheck all NPC fixtures there: old Assassin aim missed
+  above its1.5m body, and Heavy's.7m radius caused point-blank head impacts.
+  Correct torso fixtures and add explicit entry/height/radius/speed assertions,
+  width/height misses, all-five melee and primary/Strike/Blade range/wall checks.
+  All18 NPC methods pass in36.204s. Mover capsules still do not prove native
+  damage hitboxes, eyes/muzzles, navigation or original-client behavior.
+- Reuse the reviewed manual Enforcer mechanisms from lane0020 commit0f53a419:
+  scoped13EB readiness queries, explicit default/validated damage-table index
+  and25 projectile rays from the authored three rings. Preserve the existing
+  Genji fan. Native readiness, spread units/phase, animated muzzle and multi-ray
+  observer transport remain unaccepted; autonomous AI is not restored.
+- Actual Genji8m fixtures first reproduce zero projectiles, then execute one
+  25-pellet volley with14 hits for28/56/84/112 damage across all four indices.
+  Check ammo, stop, wall/range/team release, invalid index rejection, two authored
+  reloads and frontal Deflect versus rear damage. Effective reflected damage
+  grants28 charge with diagnostic passive fill explicitly disabled and reset.
+  Full hero acceptance remains open; this work is not committed or published.
+- Before the mover-fixture correction,305 combined tests pass in166.855s and
+  all16 server snapshots pass in589.828s at the byte-pinned Enforcer source.
+  Production Python remains identical after the test-only fixture correction.
+- The43-entry NPC mover runtime runs310 combined tests in218.056s:301 pass,
+  nine real-map movement/prop checks skip because its collision cache is absent.
+  All18 NPC methods execute; source and input hashes recheck unchanged. Preserve
+  the missing real-map cache/deployment boundary rather than counting skips as
+  acceptance. Existing normal-runtime305 tests and16 snapshots remain separate.
+
+#### Pending Reinhardt barrier entity/script boundary (uncommitted)
+
+- Host only0095/Pet17's actual011A definition, its initial25B4 script and the
+  source node6 cross-entity0096 invocation. Actual RMB input produces a distinct
+  component and1600-health pool from the original current/max parameters.
+  Source-state release, generation change and death retire the child. Store Pet
+  outputs, the child component, health and generation in causal snapshots.
+- Pass four factory/lifetime methods, one live-component causal snapshot method
+  and289 combined Genji/shared combat/NPC/VM/model-manifest regressions. Add the
+  36th concrete state model to read-only VM export. Strict worlds without a pet
+  factory still refuse execution. Ruff/diff checks pass.
+- The selected normal-mode unit scale and private proxy ID allocation are
+  reconstructed. Entity wire creation, raised attachment pose, dynamic mesh
+  interception, barrier damage/break/regen and full cross-hero acceptance remain
+  OPEN. Private build-pinned geometry extraction recovered98 vertices/192
+  triangles fromA3C; no game asset enters this repository or normal runtime.
+  All new work remains uncommitted pending complete hero static acceptance.
+- The frozen factory-source fingerprint passes all16 server snapshots in634.841s;
+  Python source fingerprint recheck matches. Source freeze is released. Private
+  animation evidence resolves0044 aliases01B6/01B7 to trees06C8/006B; selected
+  playback/IK pose remains open and does not establish a raised collision frame.
+
+#### Pending Sigma temporary shield hosting (uncommitted)
+
+- Route live Sigma1D02/node34 self-target requests through the existing actual
+  resource/request/ready queue into1D03. Evaluate its grant and named5847 cap
+  query. Add leased temporary pools before base shields, no healing, full pool
+  snapshots/tombstones, unique reused-slot IDs and death/generation cleanup.
+- Interpret active named ModifyHealth28 as aggregate per-second decay after its
+  authored delay. Clip the first interval to graph time and deduplicate by world
+  tick. Getter slots2311/5275, scale, cadence, capacity and explicit completed
+  graph retirement remain reconstructed/unaccepted native details.
+- Pass284 combined Genji/shared combat/NPC/VM/model-manifest regressions and
+  nine shield methods (the broad run loaded eight of them before the last
+  lifecycle method was added). One new causal snapshot method passes. Static
+  owner-frame serialization builds after the grant; no original client was used.
+  Ruff/diff checks pass. Further commits await full hero static acceptance under
+  the latest user instruction; the complete goal remains active.
+- The frozen uncommitted source fingerprint recorded in the lane passes all15
+  server snapshot tests in373.896s. This includes the new temporary-pool causal
+  check. Source freeze is released; the change remains uncommitted.
 
 #### Genji input-join dependency and actual defensive pools
 

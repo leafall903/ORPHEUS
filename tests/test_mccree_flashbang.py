@@ -17,7 +17,7 @@ class FlashbangTests(unittest.TestCase):
     arena = melee_tests.McCreeMeleeTests.arena
     health = melee_tests.McCreeMeleeTests.health
 
-    def step(self, run, caster, target, *, cast=0, target_buttons=0, forward=0):
+    def step(self, run, caster, target, *, cast=0, target_buttons=0, forward=0, target_pitch=None):
         run.frame += 1
         match = run.match
         match.update(run.frame * combat.TICK, run.frame)
@@ -29,7 +29,8 @@ class FlashbangTests(unittest.TestCase):
                 command = Command(run.frame, yaw=yaw, pitch=pitch, buttons=cast)
             else:
                 y, p = aim(match.combat._eye(player), match.combat._eye(caster))
-                command = Command(run.frame, yaw=y, pitch=p, buttons=target_buttons, forward=forward)
+                command = Command(run.frame, yaw=y, pitch=p if target_pitch is None else target_pitch,
+                                  buttons=target_buttons, forward=forward)
             player.take_commands([command])
 
     def cast(self, run, caster, target, *, target_buttons=0, forward=0):

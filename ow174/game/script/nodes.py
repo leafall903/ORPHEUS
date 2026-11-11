@@ -819,6 +819,50 @@ class DisableLogicalButton(State):
                     state.dependency_changed()
 
 
+@state_class("STUStatescriptStatePet")
+class Pet(State):
+    """Factory-backed entity output and source-state lifetime; engine services are explicit."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.pet_entity = 0
+        self.pet_var = None
+
+    def on_begin(self):
+        self.pet_entity = self.instance.component.world.create_pet(self)
+        target = lvalue(_field(self, "m_B3019338"))
+        if self.pet_entity and target is not None:
+            self.pet_var = self.link(target)
+
+    def output(self, slot):
+        return expr.Entity(self.pet_entity)
+
+    def on_end(self, finished):
+        if self.pet_var is not None:
+            self.unlink(self.pet_var)
+            self.pet_var = None
+        if self.pet_entity:
+            self.instance.component.world.retire_pet(self.pet_entity)
+            self.pet_entity = 0
+
+
+@state_class("STU_54FEB21C")
+class PhaseEntry(State):
+    """Scoped completion of protection entry gates with zero or absent timing."""
+
+    def on_enter(self) -> None:
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, "entry gate", self.node.cls, self.node)
+            return
+        entry = self.instance.graph.index, self.node.pos
+        zero_gate = (entry in ((0x20, 2), (0x0F7C, 2), (0x017B, 26))
+                     and self.node.field("m_ED97A97C.m_value") == 0)
+        cryo_gate = entry == (0x05FE, 64) and self.node.field("m_ED97A97C") is None
+        if zero_gate or cryo_gate:
+            self.request_finish()
+
+
 @state_class("STUStatescriptStateWait")
 class Wait(State):
     """OnEnter 0x7FF78AAA7570: `ms = R(timeout * 1000)`; 0 or less finishes now, else a timer (param 1) at
@@ -1185,21 +1229,24 @@ class MoveTo(State):
 
 @state_class("STUStatescriptStateAnim")
 class Anim(State):
-    """An animation (OnBegin 0x7FF78981DD90): with m_playOverDuration (m_86701C3E) set, a timer at start + d
-    follows m_A3B86BB0 (animation finished), and unless m_clientAnimRemovesSelf (m_154DBA91) the state
-    finishes at start + d. Without it the duration is the animation asset's: not known here."""
+    """104319 CBD58F/CC1E70: nonloop duration schedules finished timer and state
+    finish unless2DEAE6A9 suppresses it. clientAnimRemovesSelf is a separate
+    playback field. Unknown alias duration, playback and external services remain open."""
 
     family = "anim"
 
     def on_enter(self) -> None:
+        loop = _field(self, "m_37EE887D")
+        if loop is not None and truthy(self.evaluate(loop, watch=False)):
+            return
         duration = _field(self, "m_86701C3E")
         if duration is None:
             expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
             return
         ms = seconds_to_ms(self.evaluate(duration, watch=False))
         self.timer_at(max(0, ms), 1)
-        removes_self = _field(self, "m_154DBA91")
-        if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
+        suppress_finish = _field(self, "m_2DEAE6A9")
+        if suppress_finish is None or not truthy(self.evaluate(suppress_finish, watch=False)):
             self.request_finish(max(0, ms))
 
     def timer(self, param: int) -> None:
@@ -1323,6 +1370,11 @@ class Ability(State):
         self.activate()
 
     def timer(self, param: int) -> None:
+        if param == 2 and self.var is not None:
+            # Reconstructed boundary notification: the linked getter now reads
+            # zero, so dependent authored gates must be evaluated again. Native
+            # intermediate-value notifications and callback order remain open.
+            self.instance.changed(self.var, self.cur)
         if param in (1, 2):
             self.activate()
 
@@ -1434,18 +1486,40 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
-        if self.flags & self.PUSHED:
-            self.flags &= ~self.PUSHED
-            var, self.stack_var = self.stack_var, None
+
+            """Queue the running scope's cleanup before releasing its arbitration link.
+
+
+
+            This server ordering prevents a newly unblocked weapon from sampling old
+
+            ammo before the outgoing scope's refill message. Native inter-object
+
+            ordering is not yet proven by the static stop/delta-guard instructions.
+
+            """
+
+            var = None
+
+            if self.flags & self.PUSHED:
+
+                self.flags &= ~self.PUSHED
+
+                var, self.stack_var = self.stack_var, None
+
+            if self.flags & self.RUNNING:
+
+                self.flags &= ~self.RUNNING
+
+                self.instance.exit_subgraph(self.node, "m_B969AFC9")
+
+                self.instance.follow(self.node, "m_6EEEC0AA", self)
+
+                self.set_vars("m_19899EAC")
+
             if var is not None:
+
                 self.unlink(var)
-        if self.flags & self.RUNNING:
-            self.flags &= ~self.RUNNING
-            self.instance.exit_subgraph(self.node, "m_B969AFC9")
-            self.instance.follow(self.node, "m_6EEEC0AA", self)
-            self.set_vars("m_19899EAC")
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1671,6 +1745,8 @@ class GameMessageEntry(State):
         if self.instance.component.strict:
             message_receiver.begin(self)
             return
+        if self.instance.component.world.compatibility_message_receiver(self) is not NotImplemented:
+            return
         self.received = False
         self.instance.follow(self.node, "m_33DA5163", self)
 
@@ -1694,7 +1770,7 @@ class GameMessageEntry(State):
         self.instance.exit_subgraph(self.node, "m_452862E6")
 
     def payload(self) -> dict:
-        if self.instance.component.strict:
+        if self.instance.component.strict or self.message_flags is not None:
             return {"sender": self.message_sender, "stacked": self.message_stacked}
         return {"sender": None, "stacked": False}
 
@@ -1709,6 +1785,8 @@ class GameMessageEntry(State):
     def tick(self):
         if self.instance.component.strict:
             message_receiver.tick(self)
+        elif self.instance.component.world.compatibility_message_receiver(self) is not NotImplemented:
+            return
         else:
             super().tick()
 
@@ -1815,11 +1893,45 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Explicit world health service; manual1157 clock remains reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """World-hosted selection on entry where the graph has a scoped service."""
 
     family = "targets"
+
+    def on_enter(self) -> None:
+        component = self.instance.component
+        if not component.strict and component.world.track_targets(self):
+            self.ticks()
+
+    def tick(self) -> None:
+        self.instance.component.world.track_targets(self)
 
     def payload(self) -> dict:
         return {"targets": ()}
@@ -2129,6 +2241,13 @@ def action_switch(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_6E5C5F66")
+def action_relay(instance: Instance, node, caller) -> bool:
+    """104319 vtable 27AC260: the action body succeeds and the wrapper follows its output."""
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 def message_params(instance: Instance, node) -> dict:
     params = {}
     for item in node.fields.get("m_params") or []:
@@ -2196,7 +2315,19 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 def play_script(instance: Instance, node, caller) -> bool:
     if instance.component.strict:
         instance.component.world.play_script(instance, node)
+    else:
+        instance.component.world.compatibility_play_script(instance, node)
     instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_22926252")
+def stop_script(instance: Instance, node, caller) -> bool:
+    handled = instance.component.world.compatibility_stop_script(instance, node)
+    if handled is NotImplemented and instance.component.strict:
+        instance.component.unsupported(instance, "stop-script service", node.cls, node)
+    if not instance.stopped:
+        instance.follow(node, "m_outPlug", caller)
     return True
 
 

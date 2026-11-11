@@ -104,6 +104,19 @@ class ReplayManifestTests(unittest.TestCase):
             {"path": "files/ow174/jam/new_package/new_model.py", "kind": "added"},
         ])
 
+    def test_optional_barrier_geometry_presence_and_content_are_causal_inputs(self):
+        before = self.capture()
+        path = self.data / "barrier_geometry_174.json"
+        path.write_bytes(b"external geometry one")
+        present = self.capture()
+        self.assertEqual(manifest.compare_manifests(before, present), [
+            {"path": "files/data/barrier_geometry_174.json", "kind": "added"}])
+        path.write_bytes(b"external geometry two")
+        self.assertEqual(manifest.compare_manifests(present, self.capture()), [
+            {"path": "files/data/barrier_geometry_174.json", "kind": "changed"}])
+        path.unlink()
+        self.assertEqual(self.capture(), before)
+
     def test_required_data_and_source_roots_fail_explicitly(self):
         for name in manifest.DATA_FILES:
             with self.subTest(name=name):
@@ -273,7 +286,9 @@ class ReplayManifestTests(unittest.TestCase):
                      "ow174/jam/codec.py", "data/game_graphs_174.json.gz", "data/game_heroes_174.json",
                      "data/collision_keys_174.json", "data/collision_props_174.json"):
             self.assertIn(name, files)
-        self.assertEqual({name[5:] for name in files if name.startswith("data/")}, set(manifest.DATA_FILES))
+        expected = set(manifest.DATA_FILES) | {
+            name for name in manifest.OPTIONAL_DATA_FILES if (DATA_DIR / name).exists()}
+        self.assertEqual({name[5:] for name in files if name.startswith("data/")}, expected)
         self.assertFalse(any(name.endswith(".col") for name in files))
 
     def test_fresh_process_hash_seed_does_not_change_canonical_set_identity(self):
